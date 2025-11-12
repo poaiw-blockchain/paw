@@ -1,0 +1,39 @@
+chain_id: paw-testnet
+moniker: paw-controller
+initial_height: 1
+validators:
+  - name: validator-1
+    address: "PAW1VALIDATOR0000000000000000000000000000"
+    commission_rate: 0.10
+    max_commission_rate: 0.15
+    max_change_rate: 0.01
+  - name: validator-2
+    address: "PAW1VALIDATOR0000000000000000000000000001"
+    commission_rate: 0.08
+    max_commission_rate: 0.15
+    max_change_rate: 0.02
+emission:
+  year1_per_day: 2870
+  halving_schedule:
+    - year: 2
+      per_day: 1435
+    - year: 3
+      per_day: 717
+    - year: 6
+      per_day: 65
+tokenomics:
+  total_supply: 50000000
+  reserve: 15000000
+  inflation_cap: 0.05
+  reward_pool:
+    validators: 30
+    node_operators: 30
+    compute_agents: 30
+    treasury: 5
+roadmap:
+  - stage: genesis
+    description: controller chain launch, mobile wallet, DEX frontend
+  - stage: adoption
+    description: connect compute agents, Guardian DAO voting pools
+  - stage: extension
+    description: unlock shards, zkML, interoperability bridges

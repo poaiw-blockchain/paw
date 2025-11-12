@@ -26,3 +26,8 @@ Use the provided GitHub remote to push once the implementation is ready. The rep
 - `external/crypto/ai` brings fee optimization, fraud detection, and API-rotator helpers that can be wired into the reward/compute subsystems.
 - `external/crypto/exchange-frontend` + `browser-wallet-extension` are production-grade DEX GUI and WalletConnect-style extension assets we can rebrand to make PAW a DEX from inception.
 - `wallet/fernet_storage.py` demonstrates how PAW will replace the legacy XOR/weak storage layers with Fernet-authenticated encryption for any wallet payloads we ship.
+
+## Bootstrap & Node Configuration
+- `infra/node-config.yaml` encodes the validator roster, emission schedule, and reward breakdown used by our controller.
+- `scripts/bootstrap-node.sh` initializes the `infra/node` directory, writes a placeholder genesis file, emits Fernet salts, and prepares `infra/node.env` that downstream binaries can consume.
+- `infra/start-test-node.sh` simulates launching the controller node, printing genesis data and reminding operators how to plug in their binary.
