@@ -1,0 +1,115 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "labels": [
+    "dependencies"
+  ],
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps):",
+  "dependencyDashboard": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": [
+      "security"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Automerge minor and patch updates",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Require approval for major updates",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "labels": [
+        "major-update"
+      ]
+    },
+    {
+      "description": "Group Go module updates",
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "Go modules",
+      "schedule": [
+        "every weekend"
+      ]
+    },
+    {
+      "description": "Pin Docker digests",
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigests": true
+    },
+    {
+      "description": "Separate GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions",
+      "automerge": true,
+      "schedule": [
+        "every weekend"
+      ]
+    },
+    {
+      "description": "Security updates - high priority",
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "schedule": [
+        "at any time"
+      ]
+    },
+    {
+      "description": "Cosmos SDK updates - careful review",
+      "matchPackagePatterns": [
+        "^github.com/cosmos/cosmos-sdk",
+        "^github.com/tendermint/tendermint"
+      ],
+      "groupName": "Cosmos SDK",
+      "automerge": false,
+      "schedule": [
+        "every weekend"
+      ]
+    },
+    {
+      "description": "Dev dependencies",
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "automerge": true
+    }
+  ],
+  "prConcurrentLimit": 5,
+  "prCreation": "not-pending",
+  "rebaseWhen": "conflicted",
+  "schedule": [
+    "after 10pm every weekday",
+    "every weekend"
+  ],
+  "timezone": "UTC",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 3am on Monday"
+    ]
+  },
+  "ignoreDeps": [],
+  "ignorePresets": [],
+  "rangeStrategy": "bump"
+}

@@ -1,0 +1,66 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'paw-testnet'
+    chain_id: 'paw-testnet'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Tendermint/CometBFT metrics
+  - job_name: 'paw-tendermint'
+    static_configs:
+      - targets: ['paw-node:26660']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Cosmos SDK REST API metrics
+  - job_name: 'paw-api'
+    static_configs:
+      - targets: ['paw-node:1317']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Application-specific metrics
+  - job_name: 'paw-app'
+    static_configs:
+      - targets: ['paw-node:26661']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # DEX-specific metrics
+  - job_name: 'paw-dex'
+    static_configs:
+      - targets: ['paw-node:26662']
+    metrics_path: '/dex/metrics'
+    scrape_interval: 10s
+
+  # Validator metrics
+  - job_name: 'paw-validators'
+    static_configs:
+      - targets: ['paw-node:26663']
+    metrics_path: '/validator/metrics'
+    scrape_interval: 30s

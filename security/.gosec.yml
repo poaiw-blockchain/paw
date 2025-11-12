@@ -1,0 +1,183 @@
+# GoSec Configuration for PAW Blockchain
+# Security scanning for Go code - blockchain-focused rules
+
+# Global settings
+global:
+  nosec: false
+  confidence: medium
+  severity: medium
+  exclude-generated: true
+  audit: true
+
+# Exclude specific checks that may cause false positives
+excludes:
+  - G104  # Unhandled errors (handled by golangci-lint errcheck)
+  - G204  # Subprocess with variable (validated separately)
+
+# Include critical security rules for blockchain applications
+rules:
+  # SQL Injection (even though we use BoltDB, good to check)
+  - G201  # SQL query construction using format string
+  - G202  # SQL query construction using string concatenation
+
+  # Cryptographic weaknesses - CRITICAL for blockchain
+  - G401  # Detect use of weak crypto (MD5, SHA1)
+  - G402  # Look for bad TLS connection settings
+  - G403  # Ensure minimum RSA key length of 2048 bits
+  - G404  # Detect insecure random number source (crypto/rand required)
+  - G501  # Import blacklist (crypto/md5, crypto/sha1)
+  - G502  # Import blacklist (crypto/des, crypto/rc4)
+  - G503  # Import blacklist (crypto/rc4, crypto/hmac)
+  - G504  # Import blacklist for weak key derivation (PBKDF2 iterations)
+  - G505  # Import blacklist (crypto/des)
+  - G506  # Import blacklist (crypto/md5, crypto/sha1, crypto/rc4)
+
+  # File operations
+  - G301  # Poor file permissions used when creating a directory
+  - G302  # Poor file permissions used when creation file
+  - G303  # Creating tempfile using a predictable path
+  - G304  # File path provided as taint input
+  - G305  # File traversal when extracting zip archive
+  - G306  # Poor file permissions used when writing to a new file
+
+  # Network security
+  - G401  # Use of weak crypto
+  - G402  # TLS InsecureSkipVerify set true
+
+  # Memory and integer overflow
+  - G101  # Look for hardcoded credentials
+  - G102  # Bind to all interfaces
+  - G103  # Audit the use of unsafe block
+  - G104  # Audit errors not checked
+  - G106  # Audit the use of ssh.InsecureIgnoreHostKey
+  - G107  # Url provided to HTTP request as taint input
+
+  # Command injection
+  - G203  # Use of unescaped data in HTML templates
+
+# Configuration for specific checks
+config:
+  # G101: Hardcoded credentials
+  G101:
+    pattern: "(?i)(password|passwd|pwd|secret|token|api_key|apikey|access_key|private_key)"
+    ignore_entropy: false
+    entropy_threshold: "80.0"
+    per_char_threshold: "3.0"
+    truncate: "32"
+
+  # G104: Unhandled errors
+  G104:
+    # Functions to ignore unhandled errors from
+    # (these are typically safe in our context)
+    ignore:
+      - "fmt.Print*"
+      - "fmt.Fprint*"
+      - "io.WriteString"
+      - "rand.Read"
+
+  # G106: SSH HostKey verification
+  G106:
+    enabled: true
+
+  # G201/G202: SQL injection
+  G201:
+    enabled: true
+  G202:
+    enabled: true
+
+  # G301: Directory permissions
+  G301:
+    pattern: "0[0-7]{3}"
+
+  # G302/G306: File permissions
+  G302:
+    pattern: "0[0-7]{3}"
+  G306:
+    pattern: "0[0-7]{3}"
+
+  # G401: Weak crypto
+  G401:
+    enabled: true
+
+  # G402: TLS configuration
+  G402:
+    enabled: true
+
+  # G403: RSA key length
+  G403:
+    minimum: 2048
+
+  # G404: Random number generation
+  G404:
+    enabled: true
+
+  # G501-G506: Weak crypto imports
+  G501:
+    enabled: true
+  G502:
+    enabled: true
+  G503:
+    enabled: true
+  G504:
+    enabled: true
+  G505:
+    enabled: true
+  G506:
+    enabled: true
+
+# Severity settings
+severity:
+  default: medium
+  rules:
+    # Critical for blockchain
+    G401: high
+    G402: high
+    G403: high
+    G404: high
+    G501: high
+    G502: high
+    G505: high
+    G506: high
+    # High severity
+    G101: high  # Hardcoded credentials
+    G102: high  # Bind to all interfaces
+    G106: high  # SSH HostKey verification
+    # Medium severity
+    G201: medium
+    G202: medium
+    G301: medium
+    G302: medium
+    G304: medium
+    G305: medium
+    G306: medium
+
+# Confidence settings
+confidence:
+  default: medium
+  rules:
+    G401: high
+    G404: high
+    G501: high
+    G502: high
+    G505: high
+
+# Output format
+output:
+  format: "text"  # Can be: json, yaml, csv, junit-xml, html, sonarqube, golint, text
+  nosec: true     # Show nosec comments
+  confidence: true
+  severity: true
+  issues: true
+
+# Scanning options
+scan:
+  tests: true           # Include test files
+  exclude-dirs:
+    - vendor
+    - testdata
+    - build
+    - dist
+    - .git
+    - node_modules
+  exclude-files:
+    - "*_test.go"       # Optionally exclude test files from some checks

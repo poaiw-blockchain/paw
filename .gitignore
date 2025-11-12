@@ -1,0 +1,61 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+
+# Go workspace file
+go.work
+
+# Build artifacts
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Chain data
+.paw/
+.pawcli/
+
+# Node modules (if any JS tooling)
+node_modules/
+package-lock.json
+
+# Pre-commit
+.pre-commit-cache/
+
+# Generated files
+*.pb.go
+*.pb.gw.go
+client/docs/statik/
+
+# Vendor
+vendor/
+
+# Logs
+*.log
+
+# Local environment
+.env
+.env.local
+
+# Tendermint/CometBFT
+config/
+data/

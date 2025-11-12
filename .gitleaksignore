@@ -1,0 +1,28 @@
+# GitLeaks Ignore File
+# Add false positives here with justification
+
+# Example entries (update as needed):
+# security/gosec-report.json:1:password
+# Reason: Test data in security reports
+
+# Test files with mock credentials
+*_test.go:mock_password
+*_test.go:test_secret
+testutil/**:*
+
+# Documentation examples (clearly marked as examples)
+docs/**:example_key
+*.md:example_password
+
+# Configuration templates (not real secrets)
+*.example:*
+*.template:*
+config.example.yml:*
+
+# Generated reports and logs (may contain found secrets for review)
+security/*-report.json:*
+security/*-report.txt:*
+logs/**:*
+
+# False positives from package imports or variable names
+# (Add specific cases as needed)

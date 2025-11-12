@@ -1,0 +1,51 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// Params defines the parameters for the compute module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // min_stake is the minimum stake required to register as a compute provider
+  string min_stake = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // verification_timeout is the timeout for compute verification in seconds
+  uint64 verification_timeout = 2;
+
+  // max_retries is the maximum number of verification retries
+  uint32 max_retries = 3;
+}
+
+// ComputeTask represents a compute task submitted for verification
+message ComputeTask {
+  option (gogoproto.goproto_stringer) = false;
+
+  uint64 id = 1;
+  string requester = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string task_type = 3;
+  bytes input_data = 4;
+  bytes expected_output = 5;
+  string reward = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string status = 7;
+  int64 created_at = 8;
+  int64 verified_at = 9;
+}
+
+// GenesisState defines the compute module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated ComputeTask tasks = 2 [(gogoproto.nullable) = false];
+  uint64 next_task_id = 3;
+}

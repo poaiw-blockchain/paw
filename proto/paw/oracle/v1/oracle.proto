@@ -1,0 +1,41 @@
+syntax = "proto3";
+package paw.oracle.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+
+option go_package = "github.com/paw-chain/paw/x/oracle/types";
+
+// Params defines the parameters for the oracle module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // min_validators is the minimum number of validators required for a price feed
+  uint32 min_validators = 1;
+
+  // update_interval is the minimum interval between price updates in seconds
+  uint64 update_interval = 2;
+
+  // expiry_duration is how long a price is considered valid in seconds
+  uint64 expiry_duration = 3;
+}
+
+// PriceFeed represents a price feed for an asset
+message PriceFeed {
+  option (gogoproto.goproto_stringer) = false;
+
+  string asset = 1;
+  string price = 2 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+  int64 timestamp = 3;
+  repeated string validators = 4;
+}
+
+// GenesisState defines the oracle module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated PriceFeed price_feeds = 2 [(gogoproto.nullable) = false];
+}

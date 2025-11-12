@@ -1,0 +1,195 @@
+# GoReleaser configuration for PAW blockchain
+# https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    # Ensure dependencies are up to date
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: pawd
+    main: ./cmd/pawd
+    binary: pawd
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -mod=readonly
+    ldflags:
+      - -s -w
+      - -X github.com/cosmos/cosmos-sdk/version.Name=paw
+      - -X github.com/cosmos/cosmos-sdk/version.AppName=pawd
+      - -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
+      - -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+    tags:
+      - netgo
+      - ledger
+    ignore:
+      # Disable CGO for specific combinations if needed
+      - goos: windows
+        goarch: arm64
+
+  - id: pawcli
+    main: ./cmd/pawcli
+    binary: pawcli
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -mod=readonly
+    ldflags:
+      - -s -w
+      - -X github.com/cosmos/cosmos-sdk/version.Name=paw
+      - -X github.com/cosmos/cosmos-sdk/version.AppName=pawcli
+      - -X github.com/cosmos/cosmos-sdk/version.Version={{.Version}}
+      - -X github.com/cosmos/cosmos-sdk/version.Commit={{.Commit}}
+      - -X github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger
+    tags:
+      - netgo
+      - ledger
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: release-archives
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - docs/**/*
+      - infra/node-config.yaml
+      - scripts/bootstrap-node.sh
+      - scripts/localnet-start.sh
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'typo'
+  groups:
+    - title: 'New Features'
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Performance Improvements'
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: 'Other Changes'
+      order: 999
+
+release:
+  github:
+    owner: paw-chain
+    name: paw
+  draft: false
+  prerelease: auto
+  name_template: "PAW Blockchain v{{.Version}}"
+  header: |
+    ## PAW Blockchain Release {{.Version}}
+
+    ### What's New
+
+    This release includes the latest improvements to the PAW blockchain platform.
+
+    ### Installation
+
+    Download the appropriate binary for your platform and add it to your PATH.
+
+    ### Verifying the Release
+
+    All binaries are checksummed. Verify with:
+    ```bash
+    sha256sum -c checksums.txt
+    ```
+
+  footer: |
+    ## Docker Images
+
+    Docker images are available at `ghcr.io/paw-chain/paw:{{.Version}}`
+
+    ## Documentation
+
+    Full documentation is available at https://docs.paw-chain.io
+
+# Announce to users
+announce:
+  skip: false
+
+# Docker images configuration (optional)
+dockers:
+  - image_templates:
+      - "ghcr.io/paw-chain/paw:{{ .Version }}-amd64"
+      - "ghcr.io/paw-chain/paw:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+
+  - image_templates:
+      - "ghcr.io/paw-chain/paw:{{ .Version }}-arm64"
+      - "ghcr.io/paw-chain/paw:latest-arm64"
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+
+# Multi-arch manifest
+docker_manifests:
+  - name_template: "ghcr.io/paw-chain/paw:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/paw-chain/paw:{{ .Version }}-amd64"
+      - "ghcr.io/paw-chain/paw:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/paw-chain/paw:latest"
+    image_templates:
+      - "ghcr.io/paw-chain/paw:latest-amd64"
+      - "ghcr.io/paw-chain/paw:latest-arm64"

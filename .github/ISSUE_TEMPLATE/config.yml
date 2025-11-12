@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/OWNER/paw/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: Security Vulnerability
+    url: https://github.com/OWNER/paw/security/policy
+    about: Report security vulnerabilities privately (DO NOT create public issues)
+  - name: Documentation
+    url: https://github.com/OWNER/paw/tree/master/docs
+    about: View project documentation
+  - name: Community Chat
+    url: https://discord.gg/YOUR_DISCORD_INVITE
+    about: Join our community chat for real-time discussions

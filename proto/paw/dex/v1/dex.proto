@@ -1,0 +1,79 @@
+syntax = "proto3";
+package paw.dex.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+
+option go_package = "github.com/paw-chain/paw/x/dex/types";
+
+// Params defines the parameters for the dex module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // swap_fee is the total swap fee percentage (e.g., 0.003 for 0.3%)
+  string swap_fee = 1 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // lp_fee is the portion of swap fee that goes to liquidity providers
+  string lp_fee = 2 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // protocol_fee is the portion of swap fee that goes to the protocol treasury
+  string protocol_fee = 3 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // min_liquidity is the minimum liquidity required to create a pool
+  string min_liquidity = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // max_slippage_percent is the maximum allowed slippage percentage
+  string max_slippage_percent = 5 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// Pool represents a liquidity pool for token pairs
+message Pool {
+  option (gogoproto.goproto_stringer) = false;
+
+  uint64 id = 1;
+  string token_a = 2;
+  string token_b = 3;
+  string reserve_a = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string reserve_b = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string total_shares = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string creator = 7 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// GenesisState defines the dex module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated Pool pools = 2 [(gogoproto.nullable) = false];
+  uint64 next_pool_id = 3;
+}

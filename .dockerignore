@@ -1,0 +1,126 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+.github
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Test and coverage files
+coverage.txt
+coverage.html
+*.coverprofile
+.pre-commit-cache
+
+# Node modules and npm
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv
+
+# Documentation and markdown (except README)
+docs/
+*.md
+!README.md
+
+# Configuration files
+.env
+.env.local
+*.local
+.pre-commit-config.yaml
+renovate.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# GoReleaser
+.goreleaser.yml
+dist/
+
+# Scripts (will be copied selectively)
+scripts/*.sh
+!scripts/bootstrap-node.sh
+!scripts/localnet-start.sh
+
+# Test data
+testdata/
+
+# CI/CD
+.circleci/
+.travis.yml
+azure-pipelines.yml
+
+# Database and state files
+*.db
+*.sqlite
+*.sqlite3
+data/
+.paw/
+
+# Archives
+*.tar.gz
+*.zip
+*.rar
+
+# Certificates and keys (should never be in repo anyway)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# GoLand
+.idea/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]

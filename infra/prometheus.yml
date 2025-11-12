@@ -1,0 +1,72 @@
+# Prometheus configuration for PAW blockchain monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'paw-dev'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # PAW node metrics
+  - job_name: 'paw-node'
+    static_configs:
+      - targets: ['paw-node:26660']
+        labels:
+          instance: 'paw-node-1'
+          node_type: 'validator'
+
+  # PAW validator 2 metrics
+  - job_name: 'paw-validator-2'
+    static_configs:
+      - targets: ['paw-validator-2:26660']
+        labels:
+          instance: 'paw-validator-2'
+          node_type: 'validator'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # PostgreSQL metrics (if pg_exporter is installed)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: []
+        # - postgres-exporter:9187
+
+  # Redis metrics (if redis_exporter is installed)
+  - job_name: 'redis'
+    static_configs:
+      - targets: []
+        # - redis-exporter:9121
+
+  # Node exporter for system metrics (if installed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: []
+        # - node-exporter:9100
+
+  # Tendermint metrics
+  - job_name: 'tendermint'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['paw-node:26660', 'paw-validator-2:26660']
+
+  # Cosmos SDK metrics
+  - job_name: 'cosmos-sdk'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['paw-node:26660', 'paw-validator-2:26660']

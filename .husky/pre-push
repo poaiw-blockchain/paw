@@ -1,0 +1,79 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# PAW Blockchain Pre-Push Hook (Husky)
+# This hook runs tests before pushing to remote
+
+echo "🐾 PAW Pre-Push Checks..."
+
+# Run Go tests
+if command -v go &> /dev/null; then
+    echo "Running Go tests..."
+
+    # Run short tests with race detection
+    echo "  Running unit tests..."
+    if ! go test -short -race -timeout=5m ./...; then
+        echo "❌ Go tests failed!"
+        echo ""
+        echo "Please fix failing tests before pushing."
+        echo "To skip this check (not recommended): git push --no-verify"
+        exit 1
+    fi
+
+    echo "  ✅ Go tests passed"
+fi
+
+# Run Go mod tidy check
+if command -v go &> /dev/null; then
+    echo "Checking go.mod and go.sum..."
+    go mod tidy
+
+    if ! git diff --exit-code go.mod go.sum; then
+        echo "❌ go.mod or go.sum is not tidy!"
+        echo ""
+        echo "Run 'go mod tidy' and commit the changes."
+        exit 1
+    fi
+
+    echo "  ✅ go.mod and go.sum are tidy"
+fi
+
+# Check if pushing to protected branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+PROTECTED_BRANCHES="^(master|main|develop|release/.*)$"
+
+if echo "$CURRENT_BRANCH" | grep -qE "$PROTECTED_BRANCHES"; then
+    echo "⚠️  Warning: Pushing to protected branch: $CURRENT_BRANCH"
+    echo ""
+    echo "Are you sure you want to push to this branch?"
+    echo "Consider creating a pull request instead."
+    echo ""
+    read -p "Continue? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Push cancelled"
+        exit 1
+    fi
+fi
+
+# Run security checks
+echo "Running security checks..."
+
+# Check for exposed secrets
+if git log --format=%B -n 1 | grep -iE "(password|api[_-]?key|secret|token)" > /dev/null; then
+    echo "⚠️  Warning: Commit message contains potentially sensitive words"
+fi
+
+# Check build
+if command -v go &> /dev/null; then
+    echo "Verifying build..."
+    if ! go build -v ./...; then
+        echo "❌ Build failed!"
+        exit 1
+    fi
+    echo "  ✅ Build successful"
+fi
+
+echo ""
+echo "✅ All pre-push checks passed!"
+echo "🚀 Pushing to remote..."

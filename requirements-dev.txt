@@ -1,0 +1,22 @@
+# PAW Blockchain - Development Dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Pre-commit framework
+pre-commit>=3.6.0
+
+# Python code quality tools
+black>=23.12.0
+pylint>=3.0.0
+mypy>=1.8.0
+
+# Security scanning
+detect-secrets>=1.4.0
+
+# Optional but recommended
+bandit>=1.7.5  # Security linter
+isort>=5.13.0  # Import sorting
+flake8>=7.0.0  # Style guide enforcement
+
+# Type stubs for common libraries
+types-requests>=2.31.0
+cryptography>=41.0.0  # Required for wallet/fernet_storage.py

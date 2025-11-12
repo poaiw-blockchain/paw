@@ -1,0 +1,36 @@
+{
+  "name": "paw-blockchain",
+  "version": "1.0.0",
+  "description": "PAW Blockchain - Privacy-Aware Wallet System",
+  "private": true,
+  "scripts": {
+    "commitlint": "commitlint --edit",
+    "lint:js": "eslint 'external/**/*.js' --fix",
+    "format:js": "prettier --write 'external/**/*.{js,json}'",
+    "prepare": "node scripts/install-husky.js"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "eslint": "^8.56.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "husky": "^8.0.3",
+    "prettier": "^3.1.1"
+  },
+  "keywords": [
+    "blockchain",
+    "cryptocurrency",
+    "cosmos-sdk",
+    "privacy",
+    "wallet"
+  ],
+  "author": "PAW Team",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,0 +1,85 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# PAW Blockchain Pre-Commit Hook (Husky)
+# This hook runs formatting and linting checks before each commit
+
+echo "🐾 PAW Pre-Commit Checks..."
+
+# Get staged files
+STAGED_GO_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' | grep -v '\.pb\.go$' || true)
+STAGED_JS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.js$' || true)
+STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
+
+# Go checks
+if [ -n "$STAGED_GO_FILES" ]; then
+    echo "Checking Go files..."
+
+    # Format Go files
+    echo "  Running gofmt..."
+    go fmt ./...
+
+    # Organize imports
+    if command -v goimports &> /dev/null; then
+        echo "  Running goimports..."
+        goimports -w -local github.com/paw $STAGED_GO_FILES
+    fi
+
+    # Run go vet
+    echo "  Running go vet..."
+    go vet ./...
+
+    # Run golangci-lint if available
+    if command -v golangci-lint &> /dev/null; then
+        echo "  Running golangci-lint..."
+        golangci-lint run --new-from-rev=HEAD --config=.golangci.yml
+    fi
+
+    # Re-stage potentially modified files
+    git add $STAGED_GO_FILES
+fi
+
+# JavaScript checks
+if [ -n "$STAGED_JS_FILES" ]; then
+    echo "Checking JavaScript files..."
+
+    # Run ESLint
+    if command -v npx &> /dev/null; then
+        echo "  Running ESLint..."
+        npx eslint $STAGED_JS_FILES --fix || exit 1
+        git add $STAGED_JS_FILES
+    fi
+
+    # Run Prettier
+    if command -v npx &> /dev/null; then
+        echo "  Running Prettier..."
+        npx prettier --write $STAGED_JS_FILES
+        git add $STAGED_JS_FILES
+    fi
+fi
+
+# Python checks
+if [ -n "$STAGED_PY_FILES" ]; then
+    echo "Checking Python files..."
+
+    # Run Black
+    if command -v black &> /dev/null; then
+        echo "  Running Black..."
+        black --line-length=100 $STAGED_PY_FILES
+        git add $STAGED_PY_FILES
+    fi
+
+    # Run Pylint
+    if command -v pylint &> /dev/null; then
+        echo "  Running Pylint..."
+        pylint --max-line-length=100 $STAGED_PY_FILES || echo "  Warning: Pylint issues found"
+    fi
+fi
+
+# Check for sensitive data
+echo "Checking for sensitive data..."
+if git diff --cached | grep -iE "(password|api[_-]?key|secret|private[_-]?key)" > /dev/null; then
+    echo "⚠️  Warning: Potential sensitive data detected in commit"
+fi
+
+echo "✅ Pre-commit checks passed!"
