@@ -6,9 +6,9 @@ import (
 
 // Parameter store keys
 var (
-	KeyMinValidators   = []byte("MinValidators")
-	KeyUpdateInterval  = []byte("UpdateInterval")
-	KeyExpiryDuration  = []byte("ExpiryDuration")
+	KeyMinValidators  = []byte("MinValidators")
+	KeyUpdateInterval = []byte("UpdateInterval")
+	KeyExpiryDuration = []byte("ExpiryDuration")
 )
 
 // ParamKeyTable returns the param key table for the Oracle module
@@ -20,8 +20,8 @@ func ParamKeyTable() paramtypes.KeyTable {
 func DefaultParams() Params {
 	return Params{
 		MinValidators:  3,
-		UpdateInterval: 60,   // 1 minute
-		ExpiryDuration: 300,  // 5 minutes
+		UpdateInterval: 60,  // 1 minute
+		ExpiryDuration: 300, // 5 minutes
 	}
 }
 

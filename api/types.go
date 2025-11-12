@@ -171,22 +171,22 @@ type HeaderResponse struct {
 
 // CheckpointResponse represents a checkpoint for light client
 type CheckpointResponse struct {
-	Height          int64     `json:"height"`
-	Hash            string    `json:"hash"`
-	ValidatorSetHash string   `json:"validator_set_hash"`
-	Timestamp       time.Time `json:"timestamp"`
-	TrustedHeight   int64     `json:"trusted_height"`
+	Height           int64     `json:"height"`
+	Hash             string    `json:"hash"`
+	ValidatorSetHash string    `json:"validator_set_hash"`
+	Timestamp        time.Time `json:"timestamp"`
+	TrustedHeight    int64     `json:"trusted_height"`
 }
 
 // TxProofResponse represents a transaction proof
 type TxProofResponse struct {
-	TxHash      string   `json:"tx_hash"`
-	Height      int64    `json:"height"`
-	Index       int      `json:"index"`
-	Proof       []string `json:"proof"` // Merkle proof
-	Data        string   `json:"data"`  // Transaction data
-	BlockHash   string   `json:"block_hash"`
-	Verified    bool     `json:"verified"`
+	TxHash    string   `json:"tx_hash"`
+	Height    int64    `json:"height"`
+	Index     int      `json:"index"`
+	Proof     []string `json:"proof"` // Merkle proof
+	Data      string   `json:"data"`  // Transaction data
+	BlockHash string   `json:"block_hash"`
+	Verified  bool     `json:"verified"`
 }
 
 // VerifyProofRequest represents a proof verification request
@@ -212,13 +212,13 @@ type PrepareSwapRequest struct {
 
 // PrepareSwapResponse represents a swap preparation response
 type PrepareSwapResponse struct {
-	SwapID           string    `json:"swap_id"`
-	HashLock         string    `json:"hash_lock"`
-	Secret           string    `json:"secret,omitempty"`
-	TimeLock         int64     `json:"time_lock"`
-	Status           string    `json:"status"`
-	ExpiresAt        time.Time `json:"expires_at"`
-	ContractAddress  string    `json:"contract_address,omitempty"`
+	SwapID          string    `json:"swap_id"`
+	HashLock        string    `json:"hash_lock"`
+	Secret          string    `json:"secret,omitempty"`
+	TimeLock        int64     `json:"time_lock"`
+	Status          string    `json:"status"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	ContractAddress string    `json:"contract_address,omitempty"`
 }
 
 // CommitSwapRequest represents a swap commitment request
@@ -238,22 +238,22 @@ type CommitSwapResponse struct {
 
 // AtomicSwap represents an atomic swap
 type AtomicSwap struct {
-	ID                  string    `json:"id"`
-	Initiator           string    `json:"initiator"`
-	Counterparty        string    `json:"counterparty"`
-	SendAmount          string    `json:"send_amount"`
-	SendDenom           string    `json:"send_denom"`
-	ReceiveAmount       string    `json:"receive_amount"`
-	ReceiveDenom        string    `json:"receive_denom"`
-	HashLock            string    `json:"hash_lock"`
-	Secret              string    `json:"secret,omitempty"`
-	TimeLock            int64     `json:"time_lock"`
-	Status              string    `json:"status"` // "pending", "committed", "refunded", "expired"
-	InitiatorCommitted  bool      `json:"initiator_committed"`
-	CounterpartyCommitted bool    `json:"counterparty_committed"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
-	ExpiresAt           time.Time `json:"expires_at"`
+	ID                    string    `json:"id"`
+	Initiator             string    `json:"initiator"`
+	Counterparty          string    `json:"counterparty"`
+	SendAmount            string    `json:"send_amount"`
+	SendDenom             string    `json:"send_denom"`
+	ReceiveAmount         string    `json:"receive_amount"`
+	ReceiveDenom          string    `json:"receive_denom"`
+	HashLock              string    `json:"hash_lock"`
+	Secret                string    `json:"secret,omitempty"`
+	TimeLock              int64     `json:"time_lock"`
+	Status                string    `json:"status"` // "pending", "committed", "refunded", "expired"
+	InitiatorCommitted    bool      `json:"initiator_committed"`
+	CounterpartyCommitted bool      `json:"counterparty_committed"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
+	ExpiresAt             time.Time `json:"expires_at"`
 }
 
 // SwapStatusResponse represents swap status
@@ -280,9 +280,9 @@ type Pool struct {
 
 // AddLiquidityRequest represents add liquidity request
 type AddLiquidityRequest struct {
-	PoolID   string `json:"pool_id" binding:"required"`
-	AmountA  string `json:"amount_a" binding:"required"`
-	AmountB  string `json:"amount_b" binding:"required"`
+	PoolID   string  `json:"pool_id" binding:"required"`
+	AmountA  string  `json:"amount_a" binding:"required"`
+	AmountB  string  `json:"amount_b" binding:"required"`
 	Slippage float64 `json:"slippage"`
 }
 
@@ -309,17 +309,17 @@ type PriceResponse struct {
 
 // MarketStats represents comprehensive market statistics
 type MarketStats struct {
-	Price            float64   `json:"price"`
-	Volume24h        float64   `json:"volume_24h"`
-	VolumeChange24h  float64   `json:"volume_change_24h"`
-	High24h          float64   `json:"high_24h"`
-	Low24h           float64   `json:"low_24h"`
-	PriceChange24h   float64   `json:"price_change_24h"`
-	PriceChangePercent24h float64 `json:"price_change_percent_24h"`
-	MarketCap        float64   `json:"market_cap,omitempty"`
-	TotalLiquidity   float64   `json:"total_liquidity"`
-	TotalTrades      int64     `json:"total_trades"`
-	LastUpdated      time.Time `json:"last_updated"`
+	Price                 float64   `json:"price"`
+	Volume24h             float64   `json:"volume_24h"`
+	VolumeChange24h       float64   `json:"volume_change_24h"`
+	High24h               float64   `json:"high_24h"`
+	Low24h                float64   `json:"low_24h"`
+	PriceChange24h        float64   `json:"price_change_24h"`
+	PriceChangePercent24h float64   `json:"price_change_percent_24h"`
+	MarketCap             float64   `json:"market_cap,omitempty"`
+	TotalLiquidity        float64   `json:"total_liquidity"`
+	TotalTrades           int64     `json:"total_trades"`
+	LastUpdated           time.Time `json:"last_updated"`
 }
 
 // ==================== WebSocket Types ====================

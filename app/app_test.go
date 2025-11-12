@@ -17,10 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/paw/app"
-	dextypes "github.com/paw/x/dex/types"
-	computetypes "github.com/paw/x/compute/types"
-	oracletypes "github.com/paw/x/oracle/types"
+	"github.com/paw-chain/paw/app"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
+	dextypes "github.com/paw-chain/paw/x/dex/types"
+	oracletypes "github.com/paw-chain/paw/x/oracle/types"
 )
 
 type AppTestSuite struct {

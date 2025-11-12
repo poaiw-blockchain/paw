@@ -5,7 +5,6 @@ import (
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
-	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -14,10 +13,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/paw/app"
-	dextypes "github.com/paw/x/dex/types"
-	computetypes "github.com/paw/x/compute/types"
-	oracletypes "github.com/paw/x/oracle/types"
+	"github.com/paw-chain/paw/app"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
+	dextypes "github.com/paw-chain/paw/x/dex/types"
+	oracletypes "github.com/paw-chain/paw/x/oracle/types"
 )
 
 // E2ETestSuite is a comprehensive end-to-end test suite
@@ -28,10 +27,10 @@ type E2ETestSuite struct {
 	ctx sdk.Context
 
 	// Test accounts
-	dexUser     sdk.AccAddress
-	trader      sdk.AccAddress
-	provider    sdk.AccAddress
-	oracle      sdk.AccAddress
+	dexUser  sdk.AccAddress
+	trader   sdk.AccAddress
+	provider sdk.AccAddress
+	oracle   sdk.AccAddress
 }
 
 func (suite *E2ETestSuite) SetupSuite() {

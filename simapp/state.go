@@ -30,7 +30,7 @@ func AppStateFn(
 	) (json.RawMessage, []simtypes.Account, string, time.Time) {
 		// Randomize initial parameters
 		var (
-			numAccs           = 100
+			numAccs            = 100
 			numInitiallyBonded = 50
 			initialStake       = sdk.NewInt(100000000000)
 		)

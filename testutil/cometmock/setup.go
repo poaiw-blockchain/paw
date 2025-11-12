@@ -22,12 +22,12 @@ import (
 // CometMockApp wraps the PAW app with CometMock for testing
 type CometMockApp struct {
 	*app.App
-	ctx            sdk.Context
-	blockHeight    int64
-	blockTime      time.Time
-	validators     []*tmtypes.Validator
-	validatorSet   *tmtypes.ValidatorSet
-	proposer       *tmtypes.Validator
+	ctx          sdk.Context
+	blockHeight  int64
+	blockTime    time.Time
+	validators   []*tmtypes.Validator
+	validatorSet *tmtypes.ValidatorSet
+	proposer     *tmtypes.Validator
 }
 
 // CometMockConfig contains configuration for CometMock
@@ -95,9 +95,9 @@ func SetupCometMock(t *testing.T, config CometMockConfig) *CometMockApp {
 
 	// Create initial context
 	header := tmproto.Header{
-		ChainID: config.ChainID,
-		Height:  config.InitialHeight,
-		Time:    time.Now(),
+		ChainID:         config.ChainID,
+		Height:          config.InitialHeight,
+		Time:            time.Now(),
 		ProposerAddress: proposer.Address,
 	}
 
@@ -122,9 +122,9 @@ func (m *CometMockApp) BeginBlock(txs [][]byte) {
 	m.blockTime = m.blockTime.Add(5 * time.Second)
 
 	header := tmproto.Header{
-		ChainID: m.ctx.ChainID(),
-		Height:  m.blockHeight,
-		Time:    m.blockTime,
+		ChainID:         m.ctx.ChainID(),
+		Height:          m.blockHeight,
+		Time:            m.blockTime,
 		ProposerAddress: m.proposer.Address,
 		LastBlockId: tmproto.BlockID{
 			Hash: []byte("mock_block_hash"),

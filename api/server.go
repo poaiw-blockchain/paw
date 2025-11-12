@@ -9,25 +9,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // Server represents the main API server
 type Server struct {
-	router        *gin.Engine
-	clientCtx     client.Context
-	config        *Config
-	wsHub         *WebSocketHub
-	authService   *AuthService
+	router         *gin.Engine
+	clientCtx      client.Context
+	config         *Config
+	wsHub          *WebSocketHub
+	authService    *AuthService
 	tradingService *TradingService
-	walletService *WalletService
-	swapService   *SwapService
+	walletService  *WalletService
+	swapService    *SwapService
 	poolService    *PoolService
 }
 

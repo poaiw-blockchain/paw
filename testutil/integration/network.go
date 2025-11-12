@@ -10,9 +10,7 @@ import (
 
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
-	tmrand "github.com/cometbft/cometbft/libs/rand"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	tmtypes "github.com/cometbft/cometbft/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -38,31 +36,31 @@ type Network struct {
 
 // NetworkConfig holds the configuration for test networks
 type NetworkConfig struct {
-	NumValidators   int
-	NumFullNodes    int
-	ChainID         string
-	BondDenom       string
-	MinGasPrices    string
-	AccountTokens   sdk.Int
-	StakingTokens   sdk.Int
-	BondedTokens    sdk.Int
-	TimeoutCommit   time.Duration
+	NumValidators int
+	NumFullNodes  int
+	ChainID       string
+	BondDenom     string
+	MinGasPrices  string
+	AccountTokens sdk.Int
+	StakingTokens sdk.Int
+	BondedTokens  sdk.Int
+	TimeoutCommit time.Duration
 }
 
 // Validator represents a network validator
 type Validator struct {
-	Index         int
-	App           *app.App
-	Ctx           sdk.Context
-	ClientCtx     interface{} // client.Context
-	Address       sdk.AccAddress
-	ValAddress    sdk.ValAddress
-	PubKey        cryptotypes.PubKey
-	Moniker       string
-	RPCAddress    string
-	P2PAddress    string
-	APIAddress    string
-	GRPCAddress   string
+	Index       int
+	App         *app.App
+	Ctx         sdk.Context
+	ClientCtx   interface{} // client.Context
+	Address     sdk.AccAddress
+	ValAddress  sdk.ValAddress
+	PubKey      cryptotypes.PubKey
+	Moniker     string
+	RPCAddress  string
+	P2PAddress  string
+	APIAddress  string
+	GRPCAddress string
 }
 
 // DefaultNetworkConfig returns a default network configuration

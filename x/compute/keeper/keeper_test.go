@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	keepertest "github.com/paw/testutil/keeper"
-	"github.com/paw/x/compute/keeper"
-	"github.com/paw/x/compute/types"
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/compute/keeper"
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 type KeeperTestSuite struct {
@@ -31,10 +31,10 @@ func TestRegisterProvider(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
 	tests := []struct {
-		name     string
-		msg      *types.MsgRegisterProvider
-		wantErr  bool
-		errMsg   string
+		name    string
+		msg     *types.MsgRegisterProvider
+		wantErr bool
+		errMsg  string
 	}{
 		{
 			name: "valid provider registration",
@@ -99,10 +99,10 @@ func TestRequestCompute(t *testing.T) {
 	keepertest.RegisterTestProvider(t, k, ctx, "paw1provider", "https://api.provider.io", sdk.NewInt(1000000))
 
 	tests := []struct {
-		name       string
-		msg        *types.MsgRequestCompute
-		wantErr    bool
-		errMsg     string
+		name    string
+		msg     *types.MsgRequestCompute
+		wantErr bool
+		errMsg  string
 	}{
 		{
 			name: "valid compute request",
@@ -170,10 +170,10 @@ func TestSubmitResult(t *testing.T) {
 	requestId := keepertest.SubmitTestRequest(t, k, ctx, "paw1requester", "https://api.openai.com/v1/chat/completions")
 
 	tests := []struct {
-		name      string
-		msg       *types.MsgSubmitResult
-		wantErr   bool
-		errMsg    string
+		name    string
+		msg     *types.MsgSubmitResult
+		wantErr bool
+		errMsg  string
 	}{
 		{
 			name: "valid result submission",

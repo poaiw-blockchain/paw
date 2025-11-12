@@ -14,8 +14,8 @@ var (
 	ErrInvalidInitialHeight  = errors.New("initial height must be at least 1")
 
 	// Runtime errors
-	ErrBlockNotStarted       = errors.New("block not started - call BeginBlock first")
-	ErrBlockAlreadyStarted   = errors.New("block already started - call EndBlock first")
-	ErrInvalidTransaction    = errors.New("invalid transaction format")
-	ErrValidatorNotFound     = errors.New("validator not found")
+	ErrBlockNotStarted     = errors.New("block not started - call BeginBlock first")
+	ErrBlockAlreadyStarted = errors.New("block already started - call EndBlock first")
+	ErrInvalidTransaction  = errors.New("invalid transaction format")
+	ErrValidatorNotFound   = errors.New("validator not found")
 )

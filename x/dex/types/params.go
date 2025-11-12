@@ -7,11 +7,11 @@ import (
 
 // Parameter store keys
 var (
-	KeySwapFee              = []byte("SwapFee")
-	KeyLPFee                = []byte("LPFee")
-	KeyProtocolFee          = []byte("ProtocolFee")
-	KeyMinLiquidity         = []byte("MinLiquidity")
-	KeyMaxSlippagePercent   = []byte("MaxSlippagePercent")
+	KeySwapFee            = []byte("SwapFee")
+	KeyLPFee              = []byte("LPFee")
+	KeyProtocolFee        = []byte("ProtocolFee")
+	KeyMinLiquidity       = []byte("MinLiquidity")
+	KeyMaxSlippagePercent = []byte("MaxSlippagePercent")
 )
 
 // ParamKeyTable returns the param key table for the DEX module
@@ -26,7 +26,7 @@ func DefaultParams() Params {
 		LpFee:              sdk.NewDecWithPrec(25, 4), // 0.25%
 		ProtocolFee:        sdk.NewDecWithPrec(5, 4),  // 0.05%
 		MinLiquidity:       sdk.NewInt(1000),
-		MaxSlippagePercent: sdk.NewDecWithPrec(1, 1),  // 10%
+		MaxSlippagePercent: sdk.NewDecWithPrec(1, 1), // 10%
 	}
 }
 

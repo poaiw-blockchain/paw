@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	keepertest "github.com/paw/testutil/keeper"
-	"github.com/paw/x/dex/keeper"
-	"github.com/paw/x/dex/types"
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 type KeeperTestSuite struct {
@@ -31,10 +31,10 @@ func TestCreatePool(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	tests := []struct {
-		name      string
-		msg       *types.MsgCreatePool
-		wantErr   bool
-		errMsg    string
+		name    string
+		msg     *types.MsgCreatePool
+		wantErr bool
+		errMsg  string
 	}{
 		{
 			name: "valid pool creation",
@@ -118,21 +118,21 @@ func TestSwap(t *testing.T) {
 		validateOutput bool
 	}{
 		{
-			name:         "swap PAW for USDT",
-			poolId:       poolId,
-			tokenIn:      "upaw",
-			amountIn:     sdk.NewInt(100000000), // 100 PAW
-			minAmountOut: sdk.NewInt(180000000), // expect ~180-190 USDT (with 0.3% fee)
-			wantErr:      false,
+			name:           "swap PAW for USDT",
+			poolId:         poolId,
+			tokenIn:        "upaw",
+			amountIn:       sdk.NewInt(100000000), // 100 PAW
+			minAmountOut:   sdk.NewInt(180000000), // expect ~180-190 USDT (with 0.3% fee)
+			wantErr:        false,
 			validateOutput: true,
 		},
 		{
-			name:         "swap USDT for PAW",
-			poolId:       poolId,
-			tokenIn:      "uusdt",
-			amountIn:     sdk.NewInt(200000000), // 200 USDT
-			minAmountOut: sdk.NewInt(90000000),  // expect ~90-95 PAW
-			wantErr:      false,
+			name:           "swap USDT for PAW",
+			poolId:         poolId,
+			tokenIn:        "uusdt",
+			amountIn:       sdk.NewInt(200000000), // 200 USDT
+			minAmountOut:   sdk.NewInt(90000000),  // expect ~90-95 PAW
+			wantErr:        false,
 			validateOutput: true,
 		},
 		{
@@ -195,12 +195,12 @@ func TestAddLiquidity(t *testing.T) {
 		sdk.NewInt(1000000000), sdk.NewInt(2000000000))
 
 	tests := []struct {
-		name     string
-		poolId   uint64
-		amountA  sdk.Int
-		amountB  sdk.Int
-		wantErr  bool
-		errMsg   string
+		name    string
+		poolId  uint64
+		amountA sdk.Int
+		amountB sdk.Int
+		wantErr bool
+		errMsg  string
 	}{
 		{
 			name:    "add proportional liquidity",

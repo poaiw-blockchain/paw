@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
 
-	"github.com/gin-gonic/gin"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gin-gonic/gin"
 )
 
 // PoolService handles liquidity pool operations
@@ -39,9 +38,9 @@ func (ps *PoolService) initializeDefaultPools() {
 		TokenA:          "paw",
 		TokenB:          "usdc",
 		ReserveA:        "1000000000000000000000", // 1000 PAW
-		ReserveB:        "10000000000",             // 10,000 USDC
+		ReserveB:        "10000000000",            // 10,000 USDC
 		LiquidityShares: "100000000000000000000",  // 100 LP tokens
-		SwapFee:         0.003,                     // 0.3%
+		SwapFee:         0.003,                    // 0.3%
 		PoolType:        "amm",
 	}
 

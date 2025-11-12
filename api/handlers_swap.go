@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gin-gonic/gin"
 )
 
 // SwapService handles atomic swap operations
@@ -121,10 +121,10 @@ func (s *Server) handlePrepareSwap(c *gin.Context) {
 
 	// Return response with secret only to initiator
 	response := PrepareSwapResponse{
-		SwapID:   swapID,
-		HashLock: hashLock,
-		TimeLock: timeLock,
-		Status:   swap.Status,
+		SwapID:    swapID,
+		HashLock:  hashLock,
+		TimeLock:  timeLock,
+		Status:    swap.Status,
 		ExpiresAt: expiresAt,
 	}
 

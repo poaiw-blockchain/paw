@@ -9,39 +9,39 @@ import (
 // MockConfig provides configuration options for CometMock
 type MockConfig struct {
 	// Consensus parameters
-	BlockTime        time.Duration
-	MaxBlockSize     int64
-	MaxGas           int64
+	BlockTime    time.Duration
+	MaxBlockSize int64
+	MaxGas       int64
 
 	// Network parameters
-	ChainID          string
-	NumValidators    int
-	InitialHeight    int64
+	ChainID       string
+	NumValidators int
+	InitialHeight int64
 
 	// Testing parameters
-	AutoCommit       bool
-	EnableLogging    bool
-	FastMode         bool // Skip validation and go straight to block production
+	AutoCommit    bool
+	EnableLogging bool
+	FastMode      bool // Skip validation and go straight to block production
 
 	// Account configuration
-	AccountFunding   sdk.Coins
-	NumAccounts      int
+	AccountFunding sdk.Coins
+	NumAccounts    int
 }
 
 // DefaultMockConfig returns sensible defaults for testing
 func DefaultMockConfig() MockConfig {
 	return MockConfig{
-		BlockTime:        1 * time.Second, // Fast blocks for testing
-		MaxBlockSize:     200000,
-		MaxGas:           2000000,
-		ChainID:          "paw-test-1",
-		NumValidators:    4,
-		InitialHeight:    1,
-		AutoCommit:       true,
-		EnableLogging:    false,
-		FastMode:         true,
-		AccountFunding:   sdk.NewCoins(sdk.NewInt64Coin("upaw", 1000000000)),
-		NumAccounts:      10,
+		BlockTime:      1 * time.Second, // Fast blocks for testing
+		MaxBlockSize:   200000,
+		MaxGas:         2000000,
+		ChainID:        "paw-test-1",
+		NumValidators:  4,
+		InitialHeight:  1,
+		AutoCommit:     true,
+		EnableLogging:  false,
+		FastMode:       true,
+		AccountFunding: sdk.NewCoins(sdk.NewInt64Coin("upaw", 1000000000)),
+		NumAccounts:    10,
 	}
 }
 

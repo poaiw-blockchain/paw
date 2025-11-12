@@ -17,8 +17,8 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/paw/x/compute/keeper"
-	"github.com/paw/x/compute/types"
+	"github.com/paw-chain/paw/x/compute/keeper"
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 // ComputeKeeper creates a test keeper for the Compute module with mock dependencies

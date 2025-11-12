@@ -6,22 +6,21 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
+	"time"
+
+	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	tmtypes "github.com/tendermint/tendermint/types"
-	tmtime "github.com/tendermint/tendermint/types/time"
-
-	"github.com/paw/paw/app"
+	"github.com/spf13/cobra"
 )
 
 const (
-	flagOverwrite     = "overwrite"
-	flagRecover       = "recover"
-	flagDefaultDenom  = "default-denom"
+	flagOverwrite    = "overwrite"
+	flagRecover      = "recover"
+	flagDefaultDenom = "default-denom"
 )
 
 // InitCmd returns a command that initializes all files needed for Tendermint
@@ -46,7 +45,7 @@ Example:
 
 			chainID, _ := cmd.Flags().GetString(flags.FlagChainID)
 			if chainID == "" {
-				chainID = fmt.Sprintf("test-chain-%v", tmtime.Now().Unix())
+				chainID = fmt.Sprintf("test-chain-%v", time.Now().Unix())
 			}
 
 			// Get bech32 prefixes
@@ -86,12 +85,12 @@ Example:
 			}
 
 			// Update consensus params with PAW-specific values
-			genDoc.ConsensusParams.Block.MaxBytes = 2097152     // 2 MB
-			genDoc.ConsensusParams.Block.MaxGas = 100000000     // 100M gas
-			genDoc.ConsensusParams.Block.TimeIotaMs = 1000      // 1 second
+			genDoc.ConsensusParams.Block.MaxBytes = 2097152 // 2 MB
+			genDoc.ConsensusParams.Block.MaxGas = 100000000 // 100M gas
+			genDoc.ConsensusParams.Block.TimeIotaMs = 1000  // 1 second
 			genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks = 100000
 			genDoc.ConsensusParams.Evidence.MaxAgeDuration = 172800000000000 // 48 hours
-			genDoc.ConsensusParams.Evidence.MaxBytes = 1048576  // 1 MB
+			genDoc.ConsensusParams.Evidence.MaxBytes = 1048576               // 1 MB
 
 			if err = genDoc.ValidateAndComplete(); err != nil {
 				return fmt.Errorf("failed to validate genesis doc: %w", err)
@@ -110,23 +109,23 @@ Example:
 			}
 
 			// Update config.toml with PAW-specific settings
-			config.Consensus.TimeoutPropose = 3000000000      // 3 seconds
-			config.Consensus.TimeoutProposeDelta = 500000000  // 500ms
-			config.Consensus.TimeoutPrevote = 1000000000      // 1 second
-			config.Consensus.TimeoutPrevoteDelta = 500000000  // 500ms
-			config.Consensus.TimeoutPrecommit = 1000000000    // 1 second
+			config.Consensus.TimeoutPropose = 3000000000       // 3 seconds
+			config.Consensus.TimeoutProposeDelta = 500000000   // 500ms
+			config.Consensus.TimeoutPrevote = 1000000000       // 1 second
+			config.Consensus.TimeoutPrevoteDelta = 500000000   // 500ms
+			config.Consensus.TimeoutPrecommit = 1000000000     // 1 second
 			config.Consensus.TimeoutPrecommitDelta = 500000000 // 500ms
-			config.Consensus.TimeoutCommit = 4000000000       // 4 seconds
+			config.Consensus.TimeoutCommit = 4000000000        // 4 seconds
 
 			// P2P settings
 			config.P2P.MaxNumInboundPeers = 40
 			config.P2P.MaxNumOutboundPeers = 10
-			config.P2P.SendRate = 5120000    // 5 MB/s
-			config.P2P.RecvRate = 5120000    // 5 MB/s
+			config.P2P.SendRate = 5120000 // 5 MB/s
+			config.P2P.RecvRate = 5120000 // 5 MB/s
 
 			// Mempool settings
 			config.Mempool.Size = 10000
-			config.Mempool.MaxTxsBytes = 10485760  // 10 MB
+			config.Mempool.MaxTxsBytes = 10485760 // 10 MB
 			config.Mempool.CacheSize = 100000
 
 			// State sync settings

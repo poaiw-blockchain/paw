@@ -32,11 +32,11 @@ type WebSocketHub struct {
 
 // WebSocketClient represents a WebSocket client
 type WebSocketClient struct {
-	hub          *WebSocketHub
-	conn         *websocket.Conn
-	send         chan WSMessage
+	hub           *WebSocketHub
+	conn          *websocket.Conn
+	send          chan WSMessage
 	subscriptions map[string]bool
-	mu           sync.RWMutex
+	mu            sync.RWMutex
 }
 
 // NewWebSocketHub creates a new WebSocket hub

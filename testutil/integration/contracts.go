@@ -11,24 +11,24 @@ import (
 
 // ContractInfo holds information about a deployed contract
 type ContractInfo struct {
-	CodeID      uint64
-	Address     sdk.AccAddress
-	Label       string
-	Admin       sdk.AccAddress
-	InitMsg     string
-	WasmFile    string
+	CodeID   uint64
+	Address  sdk.AccAddress
+	Label    string
+	Admin    sdk.AccAddress
+	InitMsg  string
+	WasmFile string
 }
 
 // ContractManager manages test contracts
 type ContractManager struct {
-	contracts map[string]*ContractInfo
+	contracts     map[string]*ContractInfo
 	codeIDCounter uint64
 }
 
 // NewContractManager creates a new contract manager
 func NewContractManager() *ContractManager {
 	return &ContractManager{
-		contracts: make(map[string]*ContractInfo),
+		contracts:     make(map[string]*ContractInfo),
 		codeIDCounter: 1,
 	}
 }
@@ -114,12 +114,12 @@ func (m *ContractManager) GetContract(label string) (*ContractInfo, error) {
 
 // CW20InitMsg is the initialization message for CW20 tokens
 type CW20InitMsg struct {
-	Name            string           `json:"name"`
-	Symbol          string           `json:"symbol"`
-	Decimals        uint8            `json:"decimals"`
-	InitialBalances []CW20Balance    `json:"initial_balances"`
-	Mint            *CW20Minter      `json:"mint,omitempty"`
-	Marketing       *CW20Marketing   `json:"marketing,omitempty"`
+	Name            string         `json:"name"`
+	Symbol          string         `json:"symbol"`
+	Decimals        uint8          `json:"decimals"`
+	InitialBalances []CW20Balance  `json:"initial_balances"`
+	Mint            *CW20Minter    `json:"mint,omitempty"`
+	Marketing       *CW20Marketing `json:"marketing,omitempty"`
 }
 
 // CW20Balance represents a balance in CW20 init
@@ -198,10 +198,10 @@ type AMMSwapMsg struct {
 
 // SwapParams defines swap parameters
 type SwapParams struct {
-	OfferAsset    string `json:"offer_asset"`
-	AskAsset      string `json:"ask_asset"`
-	Amount        string `json:"amount"`
-	MinReceive    string `json:"min_receive,omitempty"`
+	OfferAsset string `json:"offer_asset"`
+	AskAsset   string `json:"ask_asset"`
+	Amount     string `json:"amount"`
+	MinReceive string `json:"min_receive,omitempty"`
 }
 
 // NewAMMSwapMsg creates a swap message

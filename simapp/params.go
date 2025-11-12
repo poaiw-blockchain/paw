@@ -18,17 +18,17 @@ const (
 	InitialAccountBalance = "initial_account_balance"
 
 	// DEX parameters
-	InitialPoolCount     = "initial_pool_count"
-	InitialLiquidity     = "initial_liquidity"
-	SwapProbability      = "swap_probability"
-	AddLiquidityProb     = "add_liquidity_probability"
-	RemoveLiquidityProb  = "remove_liquidity_probability"
+	InitialPoolCount    = "initial_pool_count"
+	InitialLiquidity    = "initial_liquidity"
+	SwapProbability     = "swap_probability"
+	AddLiquidityProb    = "add_liquidity_probability"
+	RemoveLiquidityProb = "remove_liquidity_probability"
 
 	// Compute parameters
 	ComputeOperationProb = "compute_operation_probability"
 
 	// Oracle parameters
-	OracleFeedProb       = "oracle_feed_probability"
+	OracleFeedProb = "oracle_feed_probability"
 )
 
 // SimulationParams defines the parameters for the simulation
@@ -57,16 +57,16 @@ type SimulationParams struct {
 // DefaultSimulationParams returns default simulation parameters
 func DefaultSimulationParams() SimulationParams {
 	return SimulationParams{
-		StakePerAccount:           sdk.NewInt(100000000000),      // 100k tokens
-		InitialAccountBalance:     sdk.NewInt(1000000000000),     // 1M tokens
+		StakePerAccount:           sdk.NewInt(100000000000),  // 100k tokens
+		InitialAccountBalance:     sdk.NewInt(1000000000000), // 1M tokens
 		InitiallyBondedValidators: 50,
 		InitialPoolCount:          10,
-		InitialLiquidity:          sdk.NewInt(10000000000),       // 10k tokens per pool
-		SwapProbability:           sdk.NewDecWithPrec(30, 2),     // 30%
-		AddLiquidityProb:          sdk.NewDecWithPrec(10, 2),     // 10%
-		RemoveLiquidityProb:       sdk.NewDecWithPrec(10, 2),     // 10%
-		ComputeOperationProb:      sdk.NewDecWithPrec(5, 2),      // 5%
-		OracleFeedProb:            sdk.NewDecWithPrec(15, 2),     // 15%
+		InitialLiquidity:          sdk.NewInt(10000000000),   // 10k tokens per pool
+		SwapProbability:           sdk.NewDecWithPrec(30, 2), // 30%
+		AddLiquidityProb:          sdk.NewDecWithPrec(10, 2), // 10%
+		RemoveLiquidityProb:       sdk.NewDecWithPrec(10, 2), // 10%
+		ComputeOperationProb:      sdk.NewDecWithPrec(5, 2),  // 5%
+		OracleFeedProb:            sdk.NewDecWithPrec(15, 2), // 15%
 	}
 }
 
@@ -143,21 +143,21 @@ func WeightedOperations() simulation.WeightedOperations {
 	// This would be populated with actual operations
 	// Example structure:
 	/*
-	return simulation.WeightedOperations{
-		simulation.NewWeightedOperation(
-			100, // weight
-			SimulateMsgSwap(am accountKeeper, bk bankKeeper, dk dexKeeper),
-		),
-		simulation.NewWeightedOperation(
-			50,
-			SimulateMsgAddLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
-		),
-		simulation.NewWeightedOperation(
-			50,
-			SimulateMsgRemoveLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
-		),
-		// Add more operations
-	}
+		return simulation.WeightedOperations{
+			simulation.NewWeightedOperation(
+				100, // weight
+				SimulateMsgSwap(am accountKeeper, bk bankKeeper, dk dexKeeper),
+			),
+			simulation.NewWeightedOperation(
+				50,
+				SimulateMsgAddLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
+			),
+			simulation.NewWeightedOperation(
+				50,
+				SimulateMsgRemoveLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
+			),
+			// Add more operations
+		}
 	*/
 	return nil
 }

@@ -10,12 +10,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 // LoadTestConfig holds the configuration for the load test
@@ -32,19 +26,19 @@ type LoadTestConfig struct {
 
 // LoadTestMetrics tracks performance metrics
 type LoadTestMetrics struct {
-	TotalTxSubmitted    uint64
-	TotalTxSuccessful   uint64
-	TotalTxFailed       uint64
-	TotalQueries        uint64
-	TotalQueryFailed    uint64
-	MinLatency          int64 // nanoseconds
-	MaxLatency          int64
-	TotalLatency        int64
-	StartTime           time.Time
-	EndTime             time.Time
-	LatencyHistogram    map[int]uint64 // bucket (ms) -> count
-	ErrorsByType        map[string]uint64
-	mutex               sync.RWMutex
+	TotalTxSubmitted  uint64
+	TotalTxSuccessful uint64
+	TotalTxFailed     uint64
+	TotalQueries      uint64
+	TotalQueryFailed  uint64
+	MinLatency        int64 // nanoseconds
+	MaxLatency        int64
+	TotalLatency      int64
+	StartTime         time.Time
+	EndTime           time.Time
+	LatencyHistogram  map[int]uint64 // bucket (ms) -> count
+	ErrorsByType      map[string]uint64
+	mutex             sync.RWMutex
 }
 
 // NewLoadTestMetrics creates a new metrics tracker

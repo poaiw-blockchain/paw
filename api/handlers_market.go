@@ -75,13 +75,13 @@ func (s *Server) handleGet24HStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"price":           s.tradingService.currentPrice,
-		"change_24h":      s.tradingService.priceChange24h,
-		"change_percent":  (s.tradingService.priceChange24h / s.tradingService.currentPrice) * 100,
-		"high_24h":        s.tradingService.high24h,
-		"low_24h":         s.tradingService.low24h,
-		"volume_24h":      volume24h,
-		"trades_24h":      trades24h,
-		"last_updated":    time.Now(),
+		"price":          s.tradingService.currentPrice,
+		"change_24h":     s.tradingService.priceChange24h,
+		"change_percent": (s.tradingService.priceChange24h / s.tradingService.currentPrice) * 100,
+		"high_24h":       s.tradingService.high24h,
+		"low_24h":        s.tradingService.low24h,
+		"volume_24h":     volume24h,
+		"trades_24h":     trades24h,
+		"last_updated":   time.Now(),
 	})
 }

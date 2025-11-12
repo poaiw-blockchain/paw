@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/cosmos/cosmos-sdk/client"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gin-gonic/gin"
 )
 
 // TradingService handles trading operations
@@ -23,11 +22,11 @@ type TradingService struct {
 	mu        sync.RWMutex
 
 	// Market state
-	currentPrice     float64
-	high24h          float64
-	low24h           float64
-	volume24h        float64
-	priceChange24h   float64
+	currentPrice   float64
+	high24h        float64
+	low24h         float64
+	volume24h      float64
+	priceChange24h float64
 }
 
 // NewTradingService creates a new trading service

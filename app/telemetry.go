@@ -9,14 +9,12 @@ import (
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
 const (
@@ -120,16 +118,6 @@ func (t *Telemetry) initMetrics(res *resource.Resource) error {
 	provider := metricsdk.NewMeterProvider(
 		metricsdk.WithResource(res),
 		metricsdk.WithReader(exporter),
-		metricsdk.WithView(
-			metricsdk.NewView(
-				metricsdk.Instrument{Name: "tx_processing_time"},
-				metricsdk.Stream{
-					Aggregation: aggregation.ExplicitBucketHistogram{
-						Boundaries: []float64{10, 50, 100, 250, 500, 1000, 2000, 5000},
-					},
-				},
-			),
-		),
 	)
 
 	otel.SetMeterProvider(provider)
@@ -151,11 +139,11 @@ type TelemetryMiddleware struct {
 	tracer metric.Meter
 
 	// Metrics
-	txCounter    metric.Int64Counter
-	txDuration   metric.Float64Histogram
-	txGasUsed    metric.Int64Histogram
-	blockHeight  metric.Int64Gauge
-	moduleExec   metric.Float64Histogram
+	txCounter   metric.Int64Counter
+	txDuration  metric.Float64Histogram
+	txGasUsed   metric.Int64Histogram
+	blockHeight metric.Int64Gauge
+	moduleExec  metric.Float64Histogram
 }
 
 // NewTelemetryMiddleware creates a new telemetry middleware

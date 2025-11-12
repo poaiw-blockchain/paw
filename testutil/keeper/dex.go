@@ -17,8 +17,8 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/paw/x/dex/keeper"
-	"github.com/paw/x/dex/types"
+	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // DexKeeper creates a test keeper for the DEX module with mock dependencies
@@ -54,11 +54,11 @@ func DexKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 // CreateTestPool creates a test liquidity pool with given tokens
 func CreateTestPool(t testing.TB, k keeper.Keeper, ctx sdk.Context, tokenA, tokenB string, amountA, amountB sdk.Int) uint64 {
 	msgCreate := &types.MsgCreatePool{
-		Creator:  "paw1test",
-		TokenA:   tokenA,
-		TokenB:   tokenB,
-		AmountA:  amountA,
-		AmountB:  amountB,
+		Creator: "paw1test",
+		TokenA:  tokenA,
+		TokenB:  tokenB,
+		AmountA: amountA,
+		AmountB: amountB,
 	}
 
 	resp, err := k.CreatePool(ctx, msgCreate)

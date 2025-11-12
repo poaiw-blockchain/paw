@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -59,31 +59,31 @@ func (s *DEXInvariantsTestSuite) InvariantPoolReservesXYK() (string, bool) {
 	// This is a placeholder showing the structure
 
 	/*
-	s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
-		// Calculate k from current reserves
-		currentK := pool.ReserveA.Mul(pool.ReserveB)
+		s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
+			// Calculate k from current reserves
+			currentK := pool.ReserveA.Mul(pool.ReserveB)
 
-		// K should match the pool's stored K (or be slightly higher due to fees)
-		if currentK.LT(pool.K) {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"pool reserves",
-				"pool %d violates x*y=k invariant\n"+
-					"\treserveA: %s\n"+
-					"\treserveB: %s\n"+
-					"\tcurrent k: %s\n"+
-					"\tstored k: %s\n",
-				pool.Id,
-				pool.ReserveA.String(),
-				pool.ReserveB.String(),
-				currentK.String(),
-				pool.K.String(),
-			)
-		}
+			// K should match the pool's stored K (or be slightly higher due to fees)
+			if currentK.LT(pool.K) {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"pool reserves",
+					"pool %d violates x*y=k invariant\n"+
+						"\treserveA: %s\n"+
+						"\treserveB: %s\n"+
+						"\tcurrent k: %s\n"+
+						"\tstored k: %s\n",
+					pool.Id,
+					pool.ReserveA.String(),
+					pool.ReserveB.String(),
+					currentK.String(),
+					pool.K.String(),
+				)
+			}
 
-		return false
-	})
+			return false
+		})
 	*/
 
 	return msg, broken
@@ -96,33 +96,33 @@ func (s *DEXInvariantsTestSuite) InvariantPoolLPShares() (string, bool) {
 
 	// Iterate through all pools
 	/*
-	s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
-		// Sum all LP token holders
-		var totalShares sdk.Int
-		totalShares = sdk.ZeroInt()
+		s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
+			// Sum all LP token holders
+			var totalShares sdk.Int
+			totalShares = sdk.ZeroInt()
 
-		s.dexKeeper.IteratePoolShares(s.ctx, pool.Id, func(holder sdk.AccAddress, shares sdk.Int) bool {
-			totalShares = totalShares.Add(shares)
+			s.dexKeeper.IteratePoolShares(s.ctx, pool.Id, func(holder sdk.AccAddress, shares sdk.Int) bool {
+				totalShares = totalShares.Add(shares)
+				return false
+			})
+
+			// Check if total shares match pool's total LP tokens
+			if !totalShares.Equal(pool.TotalShares) {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"LP shares",
+					"pool %d LP shares do not match\n"+
+						"\tsum of holder shares: %s\n"+
+						"\tpool total shares: %s\n",
+					pool.Id,
+					totalShares.String(),
+					pool.TotalShares.String(),
+				)
+			}
+
 			return false
 		})
-
-		// Check if total shares match pool's total LP tokens
-		if !totalShares.Equal(pool.TotalShares) {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"LP shares",
-				"pool %d LP shares do not match\n"+
-					"\tsum of holder shares: %s\n"+
-					"\tpool total shares: %s\n",
-				pool.Id,
-				totalShares.String(),
-				pool.TotalShares.String(),
-			)
-		}
-
-		return false
-	})
 	*/
 
 	return msg, broken
@@ -135,45 +135,45 @@ func (s *DEXInvariantsTestSuite) InvariantNoNegativeReserves() (string, bool) {
 
 	// Iterate through all pools
 	/*
-	s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
-		// Check reserve A
-		if pool.ReserveA.IsNegative() {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"negative reserves",
-				"pool %d has negative reserve A: %s\n",
-				pool.Id,
-				pool.ReserveA.String(),
-			)
-		}
+		s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
+			// Check reserve A
+			if pool.ReserveA.IsNegative() {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"negative reserves",
+					"pool %d has negative reserve A: %s\n",
+					pool.Id,
+					pool.ReserveA.String(),
+				)
+			}
 
-		// Check reserve B
-		if pool.ReserveB.IsNegative() {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"negative reserves",
-				"pool %d has negative reserve B: %s\n",
-				pool.Id,
-				pool.ReserveB.String(),
-			)
-		}
+			// Check reserve B
+			if pool.ReserveB.IsNegative() {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"negative reserves",
+					"pool %d has negative reserve B: %s\n",
+					pool.Id,
+					pool.ReserveB.String(),
+				)
+			}
 
-		// Check total shares
-		if pool.TotalShares.IsNegative() {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"negative reserves",
-				"pool %d has negative total shares: %s\n",
-				pool.Id,
-				pool.TotalShares.String(),
-			)
-		}
+			// Check total shares
+			if pool.TotalShares.IsNegative() {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"negative reserves",
+					"pool %d has negative total shares: %s\n",
+					pool.Id,
+					pool.TotalShares.String(),
+				)
+			}
 
-		return false
-	})
+			return false
+		})
 	*/
 
 	return msg, broken
@@ -186,44 +186,44 @@ func (s *DEXInvariantsTestSuite) InvariantPoolBalances() (string, bool) {
 
 	// Iterate through all pools
 	/*
-	s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
-		// Get pool module account
-		poolAddr := s.dexKeeper.GetPoolAddress(pool.Id)
+		s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
+			// Get pool module account
+			poolAddr := s.dexKeeper.GetPoolAddress(pool.Id)
 
-		// Check actual balances match reserves
-		balanceA := s.app.BankKeeper.GetBalance(s.ctx, poolAddr, pool.DenomA)
-		balanceB := s.app.BankKeeper.GetBalance(s.ctx, poolAddr, pool.DenomB)
+			// Check actual balances match reserves
+			balanceA := s.app.BankKeeper.GetBalance(s.ctx, poolAddr, pool.DenomA)
+			balanceB := s.app.BankKeeper.GetBalance(s.ctx, poolAddr, pool.DenomB)
 
-		if !balanceA.Amount.Equal(pool.ReserveA) {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"pool balances",
-				"pool %d reserve A does not match actual balance\n"+
-					"\treserve: %s\n"+
-					"\tbalance: %s\n",
-				pool.Id,
-				pool.ReserveA.String(),
-				balanceA.Amount.String(),
-			)
-		}
+			if !balanceA.Amount.Equal(pool.ReserveA) {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"pool balances",
+					"pool %d reserve A does not match actual balance\n"+
+						"\treserve: %s\n"+
+						"\tbalance: %s\n",
+					pool.Id,
+					pool.ReserveA.String(),
+					balanceA.Amount.String(),
+				)
+			}
 
-		if !balanceB.Amount.Equal(pool.ReserveB) {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"pool balances",
-				"pool %d reserve B does not match actual balance\n"+
-					"\treserve: %s\n"+
-					"\tbalance: %s\n",
-				pool.Id,
-				pool.ReserveB.String(),
-				balanceB.Amount.String(),
-			)
-		}
+			if !balanceB.Amount.Equal(pool.ReserveB) {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"pool balances",
+					"pool %d reserve B does not match actual balance\n"+
+						"\treserve: %s\n"+
+						"\tbalance: %s\n",
+					pool.Id,
+					pool.ReserveB.String(),
+					balanceB.Amount.String(),
+				)
+			}
 
-		return false
-	})
+			return false
+		})
 	*/
 
 	return msg, broken
@@ -236,25 +236,25 @@ func (s *DEXInvariantsTestSuite) InvariantMinimumLiquidity() (string, bool) {
 
 	// Minimum liquidity is usually locked forever to prevent exploits
 	/*
-	minimumLiquidity := sdk.NewInt(1000) // Common value is 1000 smallest units
+		minimumLiquidity := sdk.NewInt(1000) // Common value is 1000 smallest units
 
-	s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
-		if pool.TotalShares.LT(minimumLiquidity) {
-			broken = true
-			msg += sdk.FormatInvariant(
-				"dex",
-				"minimum liquidity",
-				"pool %d has less than minimum liquidity\n"+
-					"\ttotal shares: %s\n"+
-					"\tminimum required: %s\n",
-				pool.Id,
-				pool.TotalShares.String(),
-				minimumLiquidity.String(),
-			)
-		}
+		s.dexKeeper.IteratePools(s.ctx, func(pool types.Pool) bool {
+			if pool.TotalShares.LT(minimumLiquidity) {
+				broken = true
+				msg += sdk.FormatInvariant(
+					"dex",
+					"minimum liquidity",
+					"pool %d has less than minimum liquidity\n"+
+						"\ttotal shares: %s\n"+
+						"\tminimum required: %s\n",
+					pool.Id,
+					pool.TotalShares.String(),
+					minimumLiquidity.String(),
+				)
+			}
 
-		return false
-	})
+			return false
+		})
 	*/
 
 	return msg, broken

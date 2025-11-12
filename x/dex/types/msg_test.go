@@ -7,7 +7,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/paw/x/dex/types"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // TestMsgCreatePool_ValidateBasic validates MsgCreatePool message validation

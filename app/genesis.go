@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"time"
 
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // GenesisState represents the genesis state of the PAW blockchain
@@ -30,7 +30,7 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	// Bank module - token balances and transfers
 	bankGenesis := banktypes.DefaultGenesisState()
 	bankGenesis.Params = banktypes.Params{
-		SendEnabled: []*banktypes.SendEnabled{},
+		SendEnabled:        []*banktypes.SendEnabled{},
 		DefaultSendEnabled: true,
 	}
 	bankGenesis.Supply = sdk.NewCoins(
@@ -42,7 +42,7 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	stakingGenesis := stakingtypes.DefaultGenesisState()
 	stakingGenesis.Params = stakingtypes.Params{
 		UnbondingTime:     time.Duration(1814400) * time.Second, // 21 days
-		MaxValidators:     125,                                   // From node-config.yaml
+		MaxValidators:     125,                                  // From node-config.yaml
 		MaxEntries:        7,
 		HistoricalEntries: 10000,
 		BondDenom:         "upaw",
@@ -53,27 +53,27 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	// Slashing module - validator punishment
 	slashingGenesis := slashingtypes.DefaultGenesisState()
 	slashingGenesis.Params = slashingtypes.Params{
-		SignedBlocksWindow:      10000,                          // Blocks to track for downtime
-		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.50"),  // 50% minimum uptime
+		SignedBlocksWindow:      10000,                              // Blocks to track for downtime
+		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.50"),      // 50% minimum uptime
 		DowntimeJailDuration:    time.Duration(86400) * time.Second, // 24 hours jail
-		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.05"),  // 5% slash for double signing
-		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.001"), // 0.1% slash for downtime
+		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.05"),      // 5% slash for double signing
+		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.001"),     // 0.1% slash for downtime
 	}
 	genesis[slashingtypes.ModuleName] = mustMarshalJSON(slashingGenesis)
 
 	// Governance module - on-chain governance
 	govGenesis := govtypes.DefaultGenesisState()
 	govGenesis.Params = &govtypes.Params{
-		MinDeposit: sdk.NewCoins(sdk.NewInt64Coin("upaw", 10000000000)), // 10,000 PAW
-		MaxDepositPeriod: durationPtr(time.Duration(604800) * time.Second), // 7 days
-		VotingPeriod:     durationPtr(time.Duration(1209600) * time.Second), // 14 days
-		Quorum:           "0.400000000000000000", // 40% quorum
-		Threshold:        "0.667000000000000000", // 66.7% threshold
-		VetoThreshold:    "0.333000000000000000", // 33.3% veto
-		MinInitialDepositRatio: "0.100000000000000000", // 10% initial deposit
-		BurnVoteQuorum:         false,
+		MinDeposit:                 sdk.NewCoins(sdk.NewInt64Coin("upaw", 10000000000)), // 10,000 PAW
+		MaxDepositPeriod:           durationPtr(time.Duration(604800) * time.Second),    // 7 days
+		VotingPeriod:               durationPtr(time.Duration(1209600) * time.Second),   // 14 days
+		Quorum:                     "0.400000000000000000",                              // 40% quorum
+		Threshold:                  "0.667000000000000000",                              // 66.7% threshold
+		VetoThreshold:              "0.333000000000000000",                              // 33.3% veto
+		MinInitialDepositRatio:     "0.100000000000000000",                              // 10% initial deposit
+		BurnVoteQuorum:             false,
 		BurnProposalDepositPrevote: false,
-		BurnVoteVeto:          false,
+		BurnVoteVeto:               false,
 	}
 	genesis[govtypes.ModuleName] = mustMarshalJSON(govGenesis)
 
@@ -81,8 +81,8 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	distrGenesis := distrtypes.DefaultGenesisState()
 	distrGenesis.Params = distrtypes.Params{
 		CommunityTax:        sdk.MustNewDecFromStr("0.20"), // 20% to treasury
-		BaseProposerReward:  sdk.ZeroDec(),                  // Deprecated
-		BonusProposerReward: sdk.ZeroDec(),                  // Deprecated
+		BaseProposerReward:  sdk.ZeroDec(),                 // Deprecated
+		BonusProposerReward: sdk.ZeroDec(),                 // Deprecated
 		WithdrawAddrEnabled: true,
 	}
 	genesis[distrtypes.ModuleName] = mustMarshalJSON(distrGenesis)
@@ -187,9 +187,9 @@ func DefaultGenesisConfig() GenesisConfig {
 		DoubleSignPenalty:           "0.05",  // 5%
 		DowntimePenalty:             "0.001", // 0.1%
 		DowntimeWindowBlocks:        10000,
-		DowntimeJailDurationSeconds: 86400, // 24 hours
-		MinDepositAmount:            10000000000, // 10,000 PAW
-		VotingPeriodSeconds:         1209600, // 14 days
+		DowntimeJailDurationSeconds: 86400,                  // 24 hours
+		MinDepositAmount:            10000000000,            // 10,000 PAW
+		VotingPeriodSeconds:         1209600,                // 14 days
 		Quorum:                      "0.400000000000000000", // 40%
 		Threshold:                   "0.667000000000000000", // 66.7%
 		VetoThreshold:               "0.333000000000000000", // 33.3%

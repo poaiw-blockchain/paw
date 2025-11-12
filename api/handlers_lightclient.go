@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	tmtypes "github.com/cometbft/cometbft/types"
 )
 
 // handleGetHeaders returns block headers for light client sync

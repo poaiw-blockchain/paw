@@ -17,8 +17,8 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/paw/x/oracle/keeper"
-	"github.com/paw/x/oracle/types"
+	"github.com/paw-chain/paw/x/oracle/keeper"
+	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 // OracleKeeper creates a test keeper for the Oracle module with mock dependencies

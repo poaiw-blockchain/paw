@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	keepertest "github.com/paw/testutil/keeper"
-	"github.com/paw/x/oracle/keeper"
-	"github.com/paw/x/oracle/types"
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/oracle/keeper"
+	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 type KeeperTestSuite struct {

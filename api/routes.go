@@ -1,9 +1,5 @@
 package api
 
-import (
-	"github.com/gin-gonic/gin"
-)
-
 // registerRoutes registers all API routes
 func (s *Server) registerRoutes() {
 	// API version 1
