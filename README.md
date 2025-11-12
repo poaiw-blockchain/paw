@@ -19,3 +19,9 @@ This repo hosts the condensed PAW release: a lean layer-1 blockchain with a buil
 
 ## Publishing
 Use the provided GitHub remote to push once the implementation is ready. The repository is configured to deploy the content above and should host any future contracts, SDKs, or UI prototypes.
+
+## Reused Assets
+- `external/aura/0003-ai-assistant-network.md` and `0006-wallet-light-client.md` document the wallet, assistant, and verifier flows we’re adopting for PAW’s compute plane and mobile GUI.
+- `external/crypto/docs/*` contains onboarding, embedded-wallet, mobile bridge, light-client, and notification specs ready for PAW’s multi-device experience.
+- `external/crypto/ai` brings fee optimization, fraud detection, and API-rotator helpers that can be wired into the reward/compute subsystems.
+- `external/crypto/exchange-frontend` + `browser-wallet-extension` are production-grade DEX GUI and WalletConnect-style extension assets we can rebrand to make PAW a DEX from inception.
