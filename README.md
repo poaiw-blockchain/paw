@@ -1,5 +1,7 @@
 # PAW Manageable Blockchain
 
+> **🛠️ Development Tools Ready!** All linters, formatters, security scanners, and testing tools are installed and configured. See [TOOLS_SETUP.md](TOOLS_SETUP.md) for details.
+
 This repo hosts the condensed PAW release: a lean layer-1 blockchain with a built-in DEX, secure API compute aggregation, and multi-device, mobile-friendly wallets. The key artifacts are:
 
 - `PAW Extensive whitepaper .md`: the core spec covering tokenomics, DEX strategy, reward model, governance expansion, and launch roadmap.
@@ -16,6 +18,7 @@ This repo hosts the condensed PAW release: a lean layer-1 blockchain with a buil
 1. Review `PAW Extensive whitepaper .md` for launch details.
 2. Reference `PAW Future Phases.md` when planning later scaling or privacy-focused releases.
 3. Build GUIs and wallets that mirror the described QR / biometric flows to ensure the chain ships with consumer-ready UX.
+4. See `TOOLS_SETUP.md` for all installed development tools (linters, formatters, security scanners, etc.)
 
 ## Publishing
 Use the provided GitHub remote to push once the implementation is ready. The repository is configured to deploy the content above and should host any future contracts, SDKs, or UI prototypes.
