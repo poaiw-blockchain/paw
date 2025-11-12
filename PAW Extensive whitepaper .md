@@ -92,6 +92,7 @@ The halving schedule guarantees that rewards shrink as PAW appreciates, reinforc
 - **GUI Strategy**: Deliver a responsive React/Vue interface for desktop and browser use cases, plus lightweight Progressive Web App shells for mobile that tap device secure storage. Native builds expose QR onboarding, push approval flows, and WalletConnect/QR/NFC confirmations.
 - **Mobile Onboarding**: Focus on QR-code-driven account creation, biometric unlocks, and in-app tutorials. Provide one-tap staking/swapping, camera-based QR trustless connect, and wallet recovery via secret phrases or social account recovery manager.
 - **Atomic Swaps & Liquidity Pools**: Implement cross-chain atomic swap contracts from day one so users can swap PAW with wrapped assets without relying on custodial bridges. Pool incentives reward early liquidity providers with bonus emissions that taper as pool depth grows.
+- **Fernet-Encrypted Storage**: All wallet secrets leverage Fernet-authenticated encryption derived from on-device passwords. Fernet replaces the legacy XOR obfuscation with AES-128 in CBC mode plus HMAC-SHA256, ensuring both confidentiality and integrity of private keys, drafts, and WalletConnect session tokens.
 
 ## Governance Expansion
 

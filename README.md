@@ -25,3 +25,4 @@ Use the provided GitHub remote to push once the implementation is ready. The rep
 - `external/crypto/docs/*` contains onboarding, embedded-wallet, mobile bridge, light-client, and notification specs ready for PAW’s multi-device experience.
 - `external/crypto/ai` brings fee optimization, fraud detection, and API-rotator helpers that can be wired into the reward/compute subsystems.
 - `external/crypto/exchange-frontend` + `browser-wallet-extension` are production-grade DEX GUI and WalletConnect-style extension assets we can rebrand to make PAW a DEX from inception.
+- `wallet/fernet_storage.py` demonstrates how PAW will replace the legacy XOR/weak storage layers with Fernet-authenticated encryption for any wallet payloads we ship.
