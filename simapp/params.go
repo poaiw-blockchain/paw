@@ -56,8 +56,8 @@ type SimulationParams struct {
 // DefaultSimulationParams returns default simulation parameters
 func DefaultSimulationParams() SimulationParams {
 	return SimulationParams{
-		StakePerAccount:           math.NewInt(100000000000),        // 100k tokens
-		InitialAccountBalance:     math.NewInt(1000000000000),       // 1M tokens
+		StakePerAccount:           math.NewInt(100000000000),  // 100k tokens
+		InitialAccountBalance:     math.NewInt(1000000000000), // 1M tokens
 		InitiallyBondedValidators: 50,
 		InitialPoolCount:          10,
 		InitialLiquidity:          math.NewInt(10000000000),         // 10k tokens per pool

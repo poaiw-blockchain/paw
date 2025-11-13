@@ -54,11 +54,11 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	// Slashing module - validator punishment
 	slashingGenesis := slashingtypes.DefaultGenesisState()
 	slashingGenesis.Params = slashingtypes.Params{
-		SignedBlocksWindow:      10000,                              // Blocks to track for downtime
-		MinSignedPerWindow:      math.LegacyMustNewDecFromStr("0.50"),      // 50% minimum uptime
-		DowntimeJailDuration:    time.Duration(86400) * time.Second, // 24 hours jail
-		SlashFractionDoubleSign: math.LegacyMustNewDecFromStr("0.05"),      // 5% slash for double signing
-		SlashFractionDowntime:   math.LegacyMustNewDecFromStr("0.001"),     // 0.1% slash for downtime
+		SignedBlocksWindow:      10000,                                 // Blocks to track for downtime
+		MinSignedPerWindow:      math.LegacyMustNewDecFromStr("0.50"),  // 50% minimum uptime
+		DowntimeJailDuration:    time.Duration(86400) * time.Second,    // 24 hours jail
+		SlashFractionDoubleSign: math.LegacyMustNewDecFromStr("0.05"),  // 5% slash for double signing
+		SlashFractionDowntime:   math.LegacyMustNewDecFromStr("0.001"), // 0.1% slash for downtime
 	}
 	genesis[slashingtypes.ModuleName] = mustMarshalJSON(slashingGenesis)
 
