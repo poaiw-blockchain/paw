@@ -8,8 +8,6 @@ option go_package = "github.com/paw-chain/paw/x/dex/types";
 
 // Params defines the parameters for the dex module.
 message Params {
-  option (gogoproto.goproto_stringer) = false;
-
   // swap_fee is the total swap fee percentage (e.g., 0.003 for 0.3%)
   string swap_fee = 1 [
     (cosmos_proto.scalar) = "cosmos.Dec",
@@ -48,8 +46,6 @@ message Params {
 
 // Pool represents a liquidity pool for token pairs
 message Pool {
-  option (gogoproto.goproto_stringer) = false;
-
   uint64 id = 1;
   string token_a = 2;
   string token_b = 3;

@@ -1,10 +1,12 @@
 package app
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/evidence"
@@ -19,6 +21,7 @@ import (
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -30,8 +33,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -49,6 +54,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/client/grpc/node"
 	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -163,7 +169,7 @@ type PAWApp struct {
 	SlashingKeeper        slashingkeeper.Keeper
 	MintKeeper            mintkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
-	GovKeeper             govkeeper.Keeper
+	GovKeeper             *govkeeper.Keeper
 	CrisisKeeper          *crisiskeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	ParamsKeeper          paramskeeper.Keeper
@@ -176,8 +182,8 @@ type PAWApp struct {
 
 	// PAW custom keepers
 	DEXKeeper     dexkeeper.Keeper
-	ComputeKeeper computekeeper.Keeper
-	OracleKeeper  oraclekeeper.Keeper
+	ComputeKeeper *computekeeper.Keeper
+	OracleKeeper  *oraclekeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -245,7 +251,7 @@ func NewPAWApp(
 
 	// add keepers
 	app.AccountKeeper = authkeeper.NewAccountKeeper(
-		appCodec, runtime.NewKVStoreService(keys[authtypes.StoreKey]), authtypes.ProtoBaseAccount, maccPerms, AccountAddressPrefix, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		appCodec, runtime.NewKVStoreService(keys[authtypes.StoreKey]), authtypes.ProtoBaseAccount, maccPerms, authcodec.NewBech32Codec(AccountAddressPrefix), AccountAddressPrefix, authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
 	app.BankKeeper = bankkeeper.NewBaseKeeper(
@@ -307,21 +313,20 @@ func NewPAWApp(
 	// app.WasmKeeper = wasmkeeper.NewKeeper(...)
 
 	// Initialize PAW custom keepers
-	app.DEXKeeper = *dexkeeper.NewKeeper(
+	app.DEXKeeper = dexkeeper.NewKeeper(
 		appCodec,
-		runtime.NewKVStoreService(keys[dextypes.StoreKey]),
+		keys[dextypes.StoreKey],
 		app.BankKeeper,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
-	app.ComputeKeeper = *computekeeper.NewKeeper(
+	app.ComputeKeeper = computekeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[computetypes.StoreKey]),
 		app.BankKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
-	app.OracleKeeper = *oraclekeeper.NewKeeper(
+	app.OracleKeeper = oraclekeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[oracletypes.StoreKey]),
 		app.BankKeeper,
@@ -339,7 +344,7 @@ func NewPAWApp(
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper, app.GetSubspace(banktypes.ModuleName)),
 		crisis.NewAppModule(app.CrisisKeeper, false, app.GetSubspace(crisistypes.ModuleName)),
 		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
-		gov.NewAppModule(appCodec, &app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.GetSubspace(govtypes.ModuleName)),
+		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.GetSubspace(govtypes.ModuleName)),
 		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper, nil, app.GetSubspace(minttypes.ModuleName)),
 		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper, app.GetSubspace(slashingtypes.ModuleName), app.interfaceRegistry),
 		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper, app.GetSubspace(distrtypes.ModuleName)),
@@ -409,6 +414,40 @@ func (app *PAWApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APICon
 // LoadHeight loads a particular height
 func (app *PAWApp) LoadHeight(height int64) error {
 	return app.LoadVersion(height)
+}
+
+// InitChainer application updates at chain initialization
+func (app *PAWApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*abci.ResponseInitChain, error) {
+	var genesisState GenesisState
+	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
+		return nil, err
+	}
+	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
+}
+
+// BeginBlocker application updates every begin block
+func (app *PAWApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
+	return app.mm.BeginBlock(ctx)
+}
+
+// EndBlocker application updates every end block
+func (app *PAWApp) EndBlocker(ctx sdk.Context) (sdk.EndBlock, error) {
+	return app.mm.EndBlock(ctx)
+}
+
+// RegisterTendermintService registers the Tendermint service on the provided server
+func (app *PAWApp) RegisterTendermintService(clientCtx client.Context) {
+	cmtservice.RegisterServiceServer(app.GRPCQueryRouter(), cmtservice.NewQueryServer(clientCtx, app.interfaceRegistry, app.Query))
+}
+
+// RegisterTxService registers the tx service on the provided server
+func (app *PAWApp) RegisterTxService(clientCtx client.Context) {
+	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
+}
+
+// RegisterNodeService registers the node gRPC service on the provided server
+func (app *PAWApp) RegisterNodeService(clientCtx client.Context, cfg config.Config) {
+	node.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg)
 }
 
 // ExportAppStateAndValidators exports the state of the application for a genesis

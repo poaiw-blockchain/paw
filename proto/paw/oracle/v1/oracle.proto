@@ -8,8 +8,6 @@ option go_package = "github.com/paw-chain/paw/x/oracle/types";
 
 // Params defines the parameters for the oracle module.
 message Params {
-  option (gogoproto.goproto_stringer) = false;
-
   // min_validators is the minimum number of validators required for a price feed
   uint32 min_validators = 1;
 
@@ -22,8 +20,6 @@ message Params {
 
 // PriceFeed represents a price feed for an asset
 message PriceFeed {
-  option (gogoproto.goproto_stringer) = false;
-
   string asset = 1;
   string price = 2 [
     (cosmos_proto.scalar) = "cosmos.Dec",

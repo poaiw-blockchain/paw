@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"cosmossdk.io/math"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -46,7 +47,7 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 		MaxEntries:        7,
 		HistoricalEntries: 10000,
 		BondDenom:         "upaw",
-		MinCommissionRate: sdk.MustNewDecFromStr("0.05"), // 5% minimum commission
+		MinCommissionRate: math.LegacyMustNewDecFromStr("0.05"), // 5% minimum commission
 	}
 	genesis[stakingtypes.ModuleName] = mustMarshalJSON(stakingGenesis)
 
@@ -54,10 +55,10 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	slashingGenesis := slashingtypes.DefaultGenesisState()
 	slashingGenesis.Params = slashingtypes.Params{
 		SignedBlocksWindow:      10000,                              // Blocks to track for downtime
-		MinSignedPerWindow:      sdk.MustNewDecFromStr("0.50"),      // 50% minimum uptime
+		MinSignedPerWindow:      math.LegacyMustNewDecFromStr("0.50"),      // 50% minimum uptime
 		DowntimeJailDuration:    time.Duration(86400) * time.Second, // 24 hours jail
-		SlashFractionDoubleSign: sdk.MustNewDecFromStr("0.05"),      // 5% slash for double signing
-		SlashFractionDowntime:   sdk.MustNewDecFromStr("0.001"),     // 0.1% slash for downtime
+		SlashFractionDoubleSign: math.LegacyMustNewDecFromStr("0.05"),      // 5% slash for double signing
+		SlashFractionDowntime:   math.LegacyMustNewDecFromStr("0.001"),     // 0.1% slash for downtime
 	}
 	genesis[slashingtypes.ModuleName] = mustMarshalJSON(slashingGenesis)
 
@@ -75,14 +76,14 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 		BurnProposalDepositPrevote: false,
 		BurnVoteVeto:               false,
 	}
-	genesis[govtypes.ModuleName] = mustMarshalJSON(govGenesis)
+	genesis["gov"] = mustMarshalJSON(govGenesis)
 
 	// Distribution module - fee distribution
 	distrGenesis := distrtypes.DefaultGenesisState()
 	distrGenesis.Params = distrtypes.Params{
-		CommunityTax:        sdk.MustNewDecFromStr("0.20"), // 20% to treasury
-		BaseProposerReward:  sdk.ZeroDec(),                 // Deprecated
-		BonusProposerReward: sdk.ZeroDec(),                 // Deprecated
+		CommunityTax:        math.LegacyMustNewDecFromStr("0.20"), // 20% to treasury
+		BaseProposerReward:  math.LegacyZeroDec(),                 // Deprecated
+		BonusProposerReward: math.LegacyZeroDec(),                 // Deprecated
 		WithdrawAddrEnabled: true,
 	}
 	genesis[distrtypes.ModuleName] = mustMarshalJSON(distrGenesis)
@@ -91,15 +92,15 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	mintGenesis := minttypes.DefaultGenesisState()
 	mintGenesis.Params = minttypes.Params{
 		MintDenom:           "upaw",
-		InflationRateChange: sdk.MustNewDecFromStr("0.00"), // No inflation
-		InflationMax:        sdk.MustNewDecFromStr("0.00"),
-		InflationMin:        sdk.MustNewDecFromStr("0.00"),
-		GoalBonded:          sdk.MustNewDecFromStr("0.67"),
+		InflationRateChange: math.LegacyMustNewDecFromStr("0.00"), // No inflation
+		InflationMax:        math.LegacyMustNewDecFromStr("0.00"),
+		InflationMin:        math.LegacyMustNewDecFromStr("0.00"),
+		GoalBonded:          math.LegacyMustNewDecFromStr("0.67"),
 		BlocksPerYear:       uint64(7884000), // ~4 second blocks
 	}
 	mintGenesis.Minter = minttypes.Minter{
-		Inflation:        sdk.ZeroDec(),
-		AnnualProvisions: sdk.ZeroDec(),
+		Inflation:        math.LegacyZeroDec(),
+		AnnualProvisions: math.LegacyZeroDec(),
 	}
 	genesis[minttypes.ModuleName] = mustMarshalJSON(mintGenesis)
 
@@ -109,7 +110,7 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	genesis[crisistypes.ModuleName] = mustMarshalJSON(crisisGenesis)
 
 	// Wasm module - CosmWasm smart contracts
-	wasmGenesis := wasmtypes.DefaultGenesisState()
+	wasmGenesis := wasmtypes.GenesisFixture()
 	wasmGenesis.Params = wasmtypes.Params{
 		CodeUploadAccess: wasmtypes.AccessConfig{
 			Permission: wasmtypes.AccessTypeEverybody,
@@ -135,21 +136,21 @@ func NewGenesisStateFromConfig(config GenesisConfig) GenesisState {
 	// Override slashing params
 	var slashingGenesis slashingtypes.GenesisState
 	mustUnmarshalJSON(genesis[slashingtypes.ModuleName], &slashingGenesis)
-	slashingGenesis.Params.SlashFractionDoubleSign = sdk.MustNewDecFromStr(config.DoubleSignPenalty)
-	slashingGenesis.Params.SlashFractionDowntime = sdk.MustNewDecFromStr(config.DowntimePenalty)
+	slashingGenesis.Params.SlashFractionDoubleSign = math.LegacyMustNewDecFromStr(config.DoubleSignPenalty)
+	slashingGenesis.Params.SlashFractionDowntime = math.LegacyMustNewDecFromStr(config.DowntimePenalty)
 	slashingGenesis.Params.SignedBlocksWindow = int64(config.DowntimeWindowBlocks)
 	slashingGenesis.Params.DowntimeJailDuration = time.Duration(config.DowntimeJailDurationSeconds) * time.Second
 	genesis[slashingtypes.ModuleName] = mustMarshalJSON(slashingGenesis)
 
 	// Override governance params
 	var govGenesis govtypes.GenesisState
-	mustUnmarshalJSON(genesis[govtypes.ModuleName], &govGenesis)
+	mustUnmarshalJSON(genesis["gov"], &govGenesis)
 	govGenesis.Params.MinDeposit = sdk.NewCoins(sdk.NewInt64Coin("upaw", config.MinDepositAmount))
 	govGenesis.Params.VotingPeriod = durationPtr(time.Duration(config.VotingPeriodSeconds) * time.Second)
 	govGenesis.Params.Quorum = config.Quorum
 	govGenesis.Params.Threshold = config.Threshold
 	govGenesis.Params.VetoThreshold = config.VetoThreshold
-	genesis[govtypes.ModuleName] = mustMarshalJSON(govGenesis)
+	genesis["gov"] = mustMarshalJSON(govGenesis)
 
 	// Override bank supply
 	var bankGenesis banktypes.GenesisState

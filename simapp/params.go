@@ -1,10 +1,9 @@
 package simapp
 
 import (
-	"fmt"
 	"math/rand"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types/simulation"
 )
 
@@ -34,116 +33,77 @@ const (
 // SimulationParams defines the parameters for the simulation
 type SimulationParams struct {
 	// Account parameters
-	StakePerAccount       sdk.Int
-	InitialAccountBalance sdk.Int
+	StakePerAccount       math.Int
+	InitialAccountBalance math.Int
 
 	// Staking parameters
 	InitiallyBondedValidators int
 
 	// DEX parameters
 	InitialPoolCount    int
-	InitialLiquidity    sdk.Int
-	SwapProbability     sdk.Dec
-	AddLiquidityProb    sdk.Dec
-	RemoveLiquidityProb sdk.Dec
+	InitialLiquidity    math.Int
+	SwapProbability     math.LegacyDec
+	AddLiquidityProb    math.LegacyDec
+	RemoveLiquidityProb math.LegacyDec
 
 	// Compute parameters
-	ComputeOperationProb sdk.Dec
+	ComputeOperationProb math.LegacyDec
 
 	// Oracle parameters
-	OracleFeedProb sdk.Dec
+	OracleFeedProb math.LegacyDec
 }
 
 // DefaultSimulationParams returns default simulation parameters
 func DefaultSimulationParams() SimulationParams {
 	return SimulationParams{
-		StakePerAccount:           sdk.NewInt(100000000000),  // 100k tokens
-		InitialAccountBalance:     sdk.NewInt(1000000000000), // 1M tokens
+		StakePerAccount:           math.NewInt(100000000000),        // 100k tokens
+		InitialAccountBalance:     math.NewInt(1000000000000),       // 1M tokens
 		InitiallyBondedValidators: 50,
 		InitialPoolCount:          10,
-		InitialLiquidity:          sdk.NewInt(10000000000),   // 10k tokens per pool
-		SwapProbability:           sdk.NewDecWithPrec(30, 2), // 30%
-		AddLiquidityProb:          sdk.NewDecWithPrec(10, 2), // 10%
-		RemoveLiquidityProb:       sdk.NewDecWithPrec(10, 2), // 10%
-		ComputeOperationProb:      sdk.NewDecWithPrec(5, 2),  // 5%
-		OracleFeedProb:            sdk.NewDecWithPrec(15, 2), // 15%
+		InitialLiquidity:          math.NewInt(10000000000),         // 10k tokens per pool
+		SwapProbability:           math.LegacyNewDecWithPrec(30, 2), // 30%
+		AddLiquidityProb:          math.LegacyNewDecWithPrec(10, 2), // 10%
+		RemoveLiquidityProb:       math.LegacyNewDecWithPrec(10, 2), // 10%
+		ComputeOperationProb:      math.LegacyNewDecWithPrec(5, 2),  // 5%
+		OracleFeedProb:            math.LegacyNewDecWithPrec(15, 2), // 15%
 	}
 }
 
 // RandomizedParams creates randomized simulation parameters
 func RandomizedParams(r *rand.Rand) SimulationParams {
 	return SimulationParams{
-		StakePerAccount:           simulation.RandomAmount(r, sdk.NewInt(1000000000000)),
-		InitialAccountBalance:     simulation.RandomAmount(r, sdk.NewInt(10000000000000)),
+		StakePerAccount:           simulation.RandomAmount(r, math.NewInt(1000000000000)),
+		InitialAccountBalance:     simulation.RandomAmount(r, math.NewInt(10000000000000)),
 		InitiallyBondedValidators: simulation.RandIntBetween(r, 10, 100),
 		InitialPoolCount:          simulation.RandIntBetween(r, 5, 20),
-		InitialLiquidity:          simulation.RandomAmount(r, sdk.NewInt(100000000000)),
-		SwapProbability:           simulation.RandomDecAmount(r, sdk.NewDecWithPrec(50, 2)),
-		AddLiquidityProb:          simulation.RandomDecAmount(r, sdk.NewDecWithPrec(30, 2)),
-		RemoveLiquidityProb:       simulation.RandomDecAmount(r, sdk.NewDecWithPrec(30, 2)),
-		ComputeOperationProb:      simulation.RandomDecAmount(r, sdk.NewDecWithPrec(20, 2)),
-		OracleFeedProb:            simulation.RandomDecAmount(r, sdk.NewDecWithPrec(40, 2)),
+		InitialLiquidity:          simulation.RandomAmount(r, math.NewInt(100000000000)),
+		SwapProbability:           simulation.RandomDecAmount(r, math.LegacyNewDecWithPrec(50, 2)),
+		AddLiquidityProb:          simulation.RandomDecAmount(r, math.LegacyNewDecWithPrec(30, 2)),
+		RemoveLiquidityProb:       simulation.RandomDecAmount(r, math.LegacyNewDecWithPrec(30, 2)),
+		ComputeOperationProb:      simulation.RandomDecAmount(r, math.LegacyNewDecWithPrec(20, 2)),
+		OracleFeedProb:            simulation.RandomDecAmount(r, math.LegacyNewDecWithPrec(40, 2)),
 	}
 }
 
 // ParamChanges defines the parameters that can be modified by parameter change proposals
+// Note: Legacy param changes are deprecated in SDK v0.50, returning empty slice
 func ParamChanges(r *rand.Rand) []simulation.LegacyParamChange {
-	return []simulation.LegacyParamChange{
-		simulation.NewSimLegacyParamChange(
-			"bank",
-			"SendEnabled",
-			func(r *rand.Rand) string {
-				return fmt.Sprintf("%v", simulation.RandomBool(r))
-			},
-		),
-		simulation.NewSimLegacyParamChange(
-			"staking",
-			"MaxValidators",
-			func(r *rand.Rand) string {
-				return fmt.Sprintf("%d", simulation.RandIntBetween(r, 50, 200))
-			},
-		),
-		simulation.NewSimLegacyParamChange(
-			"staking",
-			"UnbondingTime",
-			func(r *rand.Rand) string {
-				return fmt.Sprintf("%d", simulation.RandIntBetween(r, 60, 60*60*24*21)) // 1 min to 21 days
-			},
-		),
-		simulation.NewSimLegacyParamChange(
-			"dex",
-			"SwapFee",
-			func(r *rand.Rand) string {
-				// Random fee between 0.1% and 1%
-				fee := simulation.RandIntBetween(r, 10, 100)
-				return fmt.Sprintf("\"%d\"", fee)
-			},
-		),
-		simulation.NewSimLegacyParamChange(
-			"dex",
-			"MinLiquidity",
-			func(r *rand.Rand) string {
-				return fmt.Sprintf("\"%d\"", simulation.RandIntBetween(r, 100, 10000))
-			},
-		),
-	}
+	// TODO: Update to use new param change mechanism when needed
+	return []simulation.LegacyParamChange{}
 }
 
 // RandomAccounts creates random accounts for simulation
 func RandomAccounts(r *rand.Rand, n int) []simulation.Account {
-	accs := make([]simulation.Account, n)
-	for i := 0; i < n; i++ {
-		accs[i] = simulation.RandomAccount(r, r.Int())
-	}
-	return accs
+	// Use the SDK's RandomAccounts function instead
+	return simulation.RandomAccounts(r, n)
 }
 
 // WeightedOperations returns the default weighted operations for simulation
-func WeightedOperations() simulation.WeightedOperations {
+func WeightedOperations() []simulation.WeightedOperation {
 	// This would be populated with actual operations
 	// Example structure:
 	/*
-		return simulation.WeightedOperations{
+		return []simulation.WeightedOperation{
 			simulation.NewWeightedOperation(
 				100, // weight
 				SimulateMsgSwap(am accountKeeper, bk bankKeeper, dk dexKeeper),

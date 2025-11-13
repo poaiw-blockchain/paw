@@ -44,15 +44,15 @@ func (k Keeper) CreatePool(
 	creator string,
 	tokenA string,
 	tokenB string,
-	amountA sdk.Int,
-	amountB sdk.Int,
+	amountA math.Int,
+	amountB math.Int,
 ) (uint64, error) {
 	// Validate inputs
 	if tokenA == tokenB {
 		return 0, types.ErrSameToken
 	}
 
-	if amountA.LTE(sdk.ZeroInt()) || amountB.LTE(sdk.ZeroInt()) {
+	if amountA.LTE(math.ZeroInt()) || amountB.LTE(math.ZeroInt()) {
 		return 0, types.ErrInvalidAmount
 	}
 
@@ -122,28 +122,28 @@ func (k Keeper) Swap(
 	poolId uint64,
 	tokenIn string,
 	tokenOut string,
-	amountIn sdk.Int,
-	minAmountOut sdk.Int,
-) (sdk.Int, error) {
+	amountIn math.Int,
+	minAmountOut math.Int,
+) (math.Int, error) {
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
-		return sdk.ZeroInt(), types.ErrPoolNotFound
+		return math.ZeroInt(), types.ErrPoolNotFound
 	}
 
 	// Validate tokens
 	if tokenIn != pool.TokenA && tokenIn != pool.TokenB {
-		return sdk.ZeroInt(), types.ErrInvalidTokenDenom
+		return math.ZeroInt(), types.ErrInvalidTokenDenom
 	}
 	if tokenOut != pool.TokenA && tokenOut != pool.TokenB {
-		return sdk.ZeroInt(), types.ErrInvalidTokenDenom
+		return math.ZeroInt(), types.ErrInvalidTokenDenom
 	}
 	if tokenIn == tokenOut {
-		return sdk.ZeroInt(), types.ErrSameToken
+		return math.ZeroInt(), types.ErrSameToken
 	}
 
 	// Determine reserves
-	var reserveIn, reserveOut sdk.Int
+	var reserveIn, reserveOut math.Int
 	if tokenIn == pool.TokenA {
 		reserveIn = pool.ReserveA
 		reserveOut = pool.ReserveB
@@ -157,13 +157,13 @@ func (k Keeper) Swap(
 
 	// Check minimum output
 	if amountOut.LT(minAmountOut) {
-		return sdk.ZeroInt(), types.ErrMinAmountOut
+		return math.ZeroInt(), types.ErrMinAmountOut
 	}
 
 	// Transfer tokens
 	traderAddr, err := sdk.AccAddressFromBech32(trader)
 	if err != nil {
-		return sdk.ZeroInt(), err
+		return math.ZeroInt(), err
 	}
 
 	moduleAddr := k.GetModuleAddress()
@@ -171,13 +171,13 @@ func (k Keeper) Swap(
 	// Transfer input tokens from trader to module
 	coinIn := sdk.NewCoins(sdk.NewCoin(tokenIn, amountIn))
 	if err := k.bankKeeper.SendCoins(ctx, traderAddr, moduleAddr, coinIn); err != nil {
-		return sdk.ZeroInt(), err
+		return math.ZeroInt(), err
 	}
 
 	// Transfer output tokens from module to trader
 	coinOut := sdk.NewCoins(sdk.NewCoin(tokenOut, amountOut))
 	if err := k.bankKeeper.SendCoins(ctx, moduleAddr, traderAddr, coinOut); err != nil {
-		return sdk.ZeroInt(), err
+		return math.ZeroInt(), err
 	}
 
 	// Update pool reserves
@@ -210,7 +210,7 @@ func (k Keeper) Swap(
 // CalculateSwapAmount calculates the output amount using constant product AMM formula
 // Formula: amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
 // This implements a 0.3% fee (997/1000 = 0.997)
-func (k Keeper) CalculateSwapAmount(reserveIn, reserveOut, amountIn sdk.Int) sdk.Int {
+func (k Keeper) CalculateSwapAmount(reserveIn, reserveOut, amountIn math.Int) math.Int {
 	// amountInWithFee = amountIn * 997
 	amountInWithFee := amountIn.Mul(math.NewInt(997))
 
@@ -231,13 +231,13 @@ func (k Keeper) AddLiquidity(
 	ctx sdk.Context,
 	provider string,
 	poolId uint64,
-	amountA sdk.Int,
-	amountB sdk.Int,
-) (sdk.Int, error) {
+	amountA math.Int,
+	amountB math.Int,
+) (math.Int, error) {
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
-		return sdk.ZeroInt(), types.ErrPoolNotFound
+		return math.ZeroInt(), types.ErrPoolNotFound
 	}
 
 	// Calculate shares to mint based on pool ratio
@@ -245,21 +245,21 @@ func (k Keeper) AddLiquidity(
 	ratioA := amountA.Mul(pool.TotalShares).Quo(pool.ReserveA)
 	ratioB := amountB.Mul(pool.TotalShares).Quo(pool.ReserveB)
 
-	var sharesToMint sdk.Int
+	var sharesToMint math.Int
 	if ratioA.LT(ratioB) {
 		sharesToMint = ratioA
 	} else {
 		sharesToMint = ratioB
 	}
 
-	if sharesToMint.LTE(sdk.ZeroInt()) {
-		return sdk.ZeroInt(), types.ErrInvalidAmount
+	if sharesToMint.LTE(math.ZeroInt()) {
+		return math.ZeroInt(), types.ErrInvalidAmount
 	}
 
 	// Transfer tokens from provider to module
 	providerAddr, err := sdk.AccAddressFromBech32(provider)
 	if err != nil {
-		return sdk.ZeroInt(), err
+		return math.ZeroInt(), err
 	}
 
 	moduleAddr := k.GetModuleAddress()
@@ -269,7 +269,7 @@ func (k Keeper) AddLiquidity(
 	)
 
 	if err := k.bankKeeper.SendCoins(ctx, providerAddr, moduleAddr, coinsToTransfer); err != nil {
-		return sdk.ZeroInt(), err
+		return math.ZeroInt(), err
 	}
 
 	// Update pool reserves and total shares
@@ -303,18 +303,18 @@ func (k Keeper) RemoveLiquidity(
 	ctx sdk.Context,
 	provider string,
 	poolId uint64,
-	shares sdk.Int,
-) (sdk.Int, sdk.Int, error) {
+	shares math.Int,
+) (math.Int, math.Int, error) {
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
-		return sdk.ZeroInt(), sdk.ZeroInt(), types.ErrPoolNotFound
+		return math.ZeroInt(), math.ZeroInt(), types.ErrPoolNotFound
 	}
 
 	// Check provider has enough shares
 	providerShares := k.GetLiquidity(ctx, poolId, provider)
 	if providerShares.LT(shares) {
-		return sdk.ZeroInt(), sdk.ZeroInt(), types.ErrInsufficientShares
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares
 	}
 
 	// Calculate amounts to return
@@ -326,7 +326,7 @@ func (k Keeper) RemoveLiquidity(
 	// Transfer tokens from module to provider
 	providerAddr, err := sdk.AccAddressFromBech32(provider)
 	if err != nil {
-		return sdk.ZeroInt(), sdk.ZeroInt(), err
+		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
 	moduleAddr := k.GetModuleAddress()
@@ -336,7 +336,7 @@ func (k Keeper) RemoveLiquidity(
 	)
 
 	if err := k.bankKeeper.SendCoins(ctx, moduleAddr, providerAddr, coinsToTransfer); err != nil {
-		return sdk.ZeroInt(), sdk.ZeroInt(), err
+		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
 	// Update pool reserves and total shares
@@ -419,22 +419,28 @@ func (k Keeper) SetNextPoolId(ctx sdk.Context, poolId uint64) {
 }
 
 // GetLiquidity gets a provider's liquidity shares
-func (k Keeper) GetLiquidity(ctx sdk.Context, poolId uint64, provider string) sdk.Int {
+func (k Keeper) GetLiquidity(ctx sdk.Context, poolId uint64, provider string) math.Int {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.GetLiquidityKey(poolId, provider))
 	if bz == nil {
-		return sdk.ZeroInt()
+		return math.ZeroInt()
 	}
 
-	var shares sdk.Int
-	k.cdc.MustUnmarshal(bz, &shares)
-	return shares
+	shares := new(math.Int)
+	if err := shares.Unmarshal(bz); err != nil {
+		// Return zero if unmarshal fails
+		return math.ZeroInt()
+	}
+	return *shares
 }
 
 // SetLiquidity sets a provider's liquidity shares
-func (k Keeper) SetLiquidity(ctx sdk.Context, poolId uint64, provider string, shares sdk.Int) {
+func (k Keeper) SetLiquidity(ctx sdk.Context, poolId uint64, provider string, shares math.Int) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshal(&shares)
+	bz, err := shares.Marshal()
+	if err != nil {
+		panic(err)
+	}
 	store.Set(types.GetLiquidityKey(poolId, provider), bz)
 }
 

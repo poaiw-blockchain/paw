@@ -4,6 +4,7 @@ package paw.dex.v1;
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
+import "cosmos_proto/cosmos.proto";
 import "paw/dex/v1/dex.proto";
 
 option go_package = "github.com/paw-chain/paw/x/dex/types";

@@ -33,7 +33,7 @@ type TelemetryConfig struct {
 
 // Telemetry manages OpenTelemetry tracing and metrics
 type Telemetry struct {
-	tracer       trace.TracerProvider
+	tracer       *trace.TracerProvider
 	meter        metric.Meter
 	config       TelemetryConfig
 	shutdownFunc func(context.Context) error

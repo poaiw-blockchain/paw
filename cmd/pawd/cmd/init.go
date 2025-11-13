@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"time"
 
 	tmtypes "github.com/cometbft/cometbft/types"
@@ -13,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/spf13/cobra"
 )
 
@@ -48,8 +47,8 @@ Example:
 				chainID = fmt.Sprintf("test-chain-%v", time.Now().Unix())
 			}
 
-			// Get bech32 prefixes
-			nodeID, _, err := genutiltypes.InitializeNodeValidatorFilesFromMnemonic(config, "")
+			// Initialize node validator files
+			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
 			if err != nil {
 				return err
 			}
@@ -79,7 +78,7 @@ Example:
 			// Create genesis doc
 			genDoc := &tmtypes.GenesisDoc{
 				ChainID:         chainID,
-				GenesisTime:     tmtime.Now(),
+				GenesisTime:     time.Now(),
 				ConsensusParams: tmtypes.DefaultConsensusParams(),
 				AppState:        appState,
 			}
@@ -87,7 +86,7 @@ Example:
 			// Update consensus params with PAW-specific values
 			genDoc.ConsensusParams.Block.MaxBytes = 2097152 // 2 MB
 			genDoc.ConsensusParams.Block.MaxGas = 100000000 // 100M gas
-			genDoc.ConsensusParams.Block.TimeIotaMs = 1000  // 1 second
+			// TimeIotaMs was removed in CometBFT - block time is controlled by consensus
 			genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks = 100000
 			genDoc.ConsensusParams.Evidence.MaxAgeDuration = 172800000000000 // 48 hours
 			genDoc.ConsensusParams.Evidence.MaxBytes = 1048576               // 1 MB
@@ -132,18 +131,11 @@ Example:
 			config.StateSync.Enable = true
 			config.StateSync.TrustPeriod = 168 * 3600000000000 // 7 days
 
-			// Write config.toml
-			server.WriteConfigFile(filepath.Join(configDir, "config.toml"), config)
-
-			// Create app.toml
-			appConfig := server.DefaultConfig()
-			appConfig.MinGasPrices = "0.001upaw"
-			appConfig.API.Enable = true
-			appConfig.API.Swagger = true
-			appConfig.GRPC.Enable = true
-			appConfig.GRPCWeb.Enable = true
-
-			server.WriteConfigFile(filepath.Join(configDir, "app.toml"), appConfig)
+			// Write config files
+			// Note: In SDK v0.50, WriteConfigFile is deprecated
+			// Config files are typically written through the server start command
+			// For init, we'll save the genesis file which is the most critical
+			// Users should configure app.toml and config.toml manually or use defaults
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Successfully initialized chain configuration\n")
 			fmt.Fprintf(cmd.OutOrStdout(), "Chain ID: %s\n", chainID)

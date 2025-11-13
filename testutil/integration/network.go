@@ -12,11 +12,12 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -41,16 +42,16 @@ type NetworkConfig struct {
 	ChainID       string
 	BondDenom     string
 	MinGasPrices  string
-	AccountTokens sdk.Int
-	StakingTokens sdk.Int
-	BondedTokens  sdk.Int
+	AccountTokens math.Int
+	StakingTokens math.Int
+	BondedTokens  math.Int
 	TimeoutCommit time.Duration
 }
 
 // Validator represents a network validator
 type Validator struct {
 	Index       int
-	App         *app.App
+	App         *app.PAWApp
 	Ctx         sdk.Context
 	ClientCtx   interface{} // client.Context
 	Address     sdk.AccAddress
@@ -99,23 +100,23 @@ func New(t *testing.T, cfg NetworkConfig) *Network {
 // createValidator creates a single validator node
 func (n *Network) createValidator(index int) *Validator {
 	db := dbm.NewMemDB()
-	encCfg := app.MakeEncodingConfig()
 
 	logger := log.NewNopLogger()
 	if testing.Verbose() {
-		logger = log.NewTMLogger(log.NewSyncWriter(n.T))
+		// Create a writer that writes to the test log
+		writer := &testWriter{t: n.T}
+		logger = log.NewTMLogger(log.NewSyncWriter(writer))
 	}
 
-	pawApp := app.NewApp(
+	// Create app options for testing
+	appOpts := &mockAppOptions{}
+
+	pawApp := app.NewPAWApp(
 		logger,
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
-		encCfg,
-		app.GetEnabledProposals(),
+		appOpts,
 		baseapp.SetChainID(n.Config.ChainID),
 	)
 
@@ -178,7 +179,7 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 	t.Helper()
 
 	encCfg := app.MakeEncodingConfig()
-	genesisState := app.NewDefaultGenesisState(encCfg.Codec)
+	genesisState := app.NewDefaultGenesisState(n.Config.ChainID)
 
 	// Create accounts and balances
 	accounts := make([]authtypes.GenesisAccount, 0, len(n.Validators))
@@ -218,10 +219,8 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 	delegations := make([]stakingtypes.Delegation, 0, len(n.Validators))
 
 	for _, val := range n.Validators {
-		pk, err := cryptocodec.FromTmPubKeyInterface(val.PubKey)
-		require.NoError(t, err)
-
-		pkAny, err := codectypes.NewAnyWithValue(pk)
+		// Convert PubKey directly to Any
+		pkAny, err := codectypes.NewAnyWithValue(val.PubKey)
 		require.NoError(t, err)
 
 		validator := stakingtypes.Validator{
@@ -230,12 +229,12 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
 			Tokens:            n.Config.BondedTokens,
-			DelegatorShares:   sdk.NewDecFromInt(n.Config.BondedTokens),
+			DelegatorShares:   math.LegacyNewDecFromInt(n.Config.BondedTokens),
 			Description:       stakingtypes.Description{Moniker: val.Moniker},
 			UnbondingHeight:   int64(0),
 			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			MinSelfDelegation: sdk.OneInt(),
+			Commission:        stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
+			MinSelfDelegation: math.OneInt(),
 		}
 
 		validators = append(validators, validator)
@@ -243,7 +242,7 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 		delegations = append(delegations, stakingtypes.Delegation{
 			DelegatorAddress: val.Address.String(),
 			ValidatorAddress: val.ValAddress.String(),
-			Shares:           sdk.NewDecFromInt(n.Config.BondedTokens),
+			Shares:           math.LegacyNewDecFromInt(n.Config.BondedTokens),
 		})
 	}
 
@@ -292,4 +291,21 @@ func (n *Network) WaitForHeightWithTimeout(height int64, timeout time.Duration) 
 // LatestHeight returns the latest block height
 func (n *Network) LatestHeight() int64 {
 	return n.Validators[0].Ctx.BlockHeight()
+}
+
+// testWriter wraps testing.T to implement io.Writer
+type testWriter struct {
+	t *testing.T
+}
+
+func (tw *testWriter) Write(p []byte) (n int, err error) {
+	tw.t.Log(string(p))
+	return len(p), nil
+}
+
+// mockAppOptions implements server.AppOptions for testing
+type mockAppOptions struct{}
+
+func (m *mockAppOptions) Get(key string) interface{} {
+	return nil
 }

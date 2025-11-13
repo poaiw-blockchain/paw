@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -64,7 +66,9 @@ Example:
 			config := serverCtx.Config
 			config.SetRoot(clientCtx.HomeDir)
 
-			nodeID, valPubKey, err := genutiltypes.InitializeNodeValidatorFiles(config)
+			// Initialize node validator files
+			// In SDK v0.50, InitializeNodeValidatorFiles signature changed
+			nodeID, valPubKey, err := genutil.InitializeNodeValidatorFiles(config)
 			if err != nil {
 				return fmt.Errorf("failed to initialize node validator files: %w", err)
 			}
@@ -83,8 +87,6 @@ Example:
 			if err = mbm.ValidateGenesis(cdc, txEncCfg, genesisState); err != nil {
 				return fmt.Errorf("failed to validate genesis state: %w", err)
 			}
-
-			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			// Get validator key
 			keyName := args[0]
@@ -115,9 +117,13 @@ Example:
 			}
 
 			// Get min self delegation
-			minSelfDelegation, err := cmd.Flags().GetString(flagMinSelfDelegation)
+			minSelfDelegationStr, err := cmd.Flags().GetString(flagMinSelfDelegation)
 			if err != nil {
 				return err
+			}
+			minSelfDelegation, ok := math.NewIntFromString(minSelfDelegationStr)
+			if !ok {
+				return fmt.Errorf("invalid min self delegation: %s", minSelfDelegationStr)
 			}
 
 			// Build validator description
@@ -142,20 +148,18 @@ Example:
 			// Create MsgCreateValidator
 			valAddr := sdk.ValAddress(addr)
 			msg, err := stakingtypes.NewMsgCreateValidator(
-				valAddr,
+				valAddr.String(),
 				valPubKey,
 				amount,
 				description,
 				commissionRates,
-				sdk.NewInt(1),
+				minSelfDelegation,
 			)
 			if err != nil {
 				return fmt.Errorf("failed to create MsgCreateValidator: %w", err)
 			}
 
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
+			// ValidateBasic was removed in SDK v0.50 - validation happens in message server
 
 			// Build and sign transaction
 			txBuilder := clientCtx.TxConfig.NewTxBuilder()
@@ -170,7 +174,7 @@ Example:
 				WithKeybase(clientCtx.Keyring).
 				WithTxConfig(clientCtx.TxConfig)
 
-			if err = tx.Sign(txFactory, keyName, txBuilder, true); err != nil {
+			if err = tx.Sign(context.Background(), txFactory, keyName, txBuilder, true); err != nil {
 				return err
 			}
 
@@ -220,17 +224,17 @@ Example:
 
 // buildCommissionRates builds commission rates from string values
 func buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr string) (stakingtypes.CommissionRates, error) {
-	rate, err := sdk.NewDecFromStr(rateStr)
+	rate, err := math.LegacyNewDecFromStr(rateStr)
 	if err != nil {
 		return stakingtypes.CommissionRates{}, fmt.Errorf("invalid commission rate: %w", err)
 	}
 
-	maxRate, err := sdk.NewDecFromStr(maxRateStr)
+	maxRate, err := math.LegacyNewDecFromStr(maxRateStr)
 	if err != nil {
 		return stakingtypes.CommissionRates{}, fmt.Errorf("invalid max commission rate: %w", err)
 	}
 
-	maxChangeRate, err := sdk.NewDecFromStr(maxChangeRateStr)
+	maxChangeRate, err := math.LegacyNewDecFromStr(maxChangeRateStr)
 	if err != nil {
 		return stakingtypes.CommissionRates{}, fmt.Errorf("invalid max change rate: %w", err)
 	}

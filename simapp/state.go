@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"cosmossdk.io/math"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -32,7 +34,7 @@ func AppStateFn(
 		var (
 			numAccs            = 100
 			numInitiallyBonded = 50
-			initialStake       = sdk.NewInt(100000000000)
+			initialStake       = math.NewInt(100000000000)
 		)
 
 		if len(accs) == 0 {
@@ -47,7 +49,7 @@ func AppStateFn(
 		appState := make(map[string]json.RawMessage)
 
 		if genesisState == nil {
-			genesisState = app.NewDefaultGenesisState(cdc)
+			genesisState = app.NewDefaultGenesisState(config.ChainID)
 		}
 
 		// Auth genesis
@@ -67,12 +69,14 @@ func AppStateFn(
 		// appState["dex"] = cdc.MustMarshalJSON(&dexGenesis)
 
 		// Use simulation manager to randomize all other genesis states
-		simManager.GenerateGenesisStates(&simtypes.SimCtx{
+		simState := &module.SimulationState{
 			AppParams: appParams,
 			Cdc:       cdc,
 			Rand:      r,
 			Accounts:  accs,
-		}, appState)
+			GenState:  appState,
+		}
+		simManager.GenerateGenesisStates(simState)
 
 		appStateJSON, err := json.MarshalIndent(appState, "", "  ")
 		if err != nil {
@@ -171,7 +175,7 @@ func RandomizedBankGenesisState(r *rand.Rand, accs []simtypes.Account) banktypes
 func RandomizedStakingGenesisState(
 	r *rand.Rand,
 	accs []simtypes.Account,
-	initialStake sdk.Int,
+	initialStake math.Int,
 	numAccs, numInitiallyBonded int,
 ) stakingtypes.GenesisState {
 	// Create validators from first N accounts
@@ -179,18 +183,23 @@ func RandomizedStakingGenesisState(
 	delegations := make([]stakingtypes.Delegation, numInitiallyBonded)
 
 	for i := 0; i < numInitiallyBonded && i < len(accs); i++ {
+		pubKeyAny, err := codectypes.NewAnyWithValue(accs[i].ConsKey.PubKey())
+		if err != nil {
+			panic(err)
+		}
+
 		val := stakingtypes.Validator{
 			OperatorAddress:   sdk.ValAddress(accs[i].Address).String(),
-			ConsensusPubkey:   accs[i].ConsKey.PubKey().String(),
+			ConsensusPubkey:   pubKeyAny,
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
 			Tokens:            initialStake,
-			DelegatorShares:   sdk.NewDecFromInt(initialStake),
+			DelegatorShares:   math.LegacyNewDecFromInt(initialStake),
 			Description:       stakingtypes.Description{Moniker: fmt.Sprintf("validator-%d", i)},
 			UnbondingHeight:   int64(0),
 			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			MinSelfDelegation: sdk.OneInt(),
+			Commission:        stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
+			MinSelfDelegation: math.OneInt(),
 		}
 
 		validators[i] = val
@@ -198,7 +207,7 @@ func RandomizedStakingGenesisState(
 		delegations[i] = stakingtypes.Delegation{
 			DelegatorAddress: accs[i].Address.String(),
 			ValidatorAddress: sdk.ValAddress(accs[i].Address).String(),
-			Shares:           sdk.NewDecFromInt(initialStake),
+			Shares:           math.LegacyNewDecFromInt(initialStake),
 		}
 	}
 

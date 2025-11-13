@@ -7,6 +7,7 @@ import (
 // DEX module sentinel errors
 var (
 	ErrInvalidPoolId         = errors.Register(ModuleName, 1, "invalid pool id")
+	ErrInvalidPoolID         = ErrInvalidPoolId // Alias for consistency
 	ErrPoolNotFound          = errors.Register(ModuleName, 2, "pool not found")
 	ErrPoolAlreadyExists     = errors.Register(ModuleName, 3, "pool already exists")
 	ErrInvalidTokenDenom     = errors.Register(ModuleName, 4, "invalid token denomination")

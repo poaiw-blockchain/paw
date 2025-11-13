@@ -8,8 +8,6 @@ option go_package = "github.com/paw-chain/paw/x/compute/types";
 
 // Params defines the parameters for the compute module.
 message Params {
-  option (gogoproto.goproto_stringer) = false;
-
   // min_stake is the minimum stake required to register as a compute provider
   string min_stake = 1 [
     (cosmos_proto.scalar) = "cosmos.Int",
@@ -26,8 +24,6 @@ message Params {
 
 // ComputeTask represents a compute task submitted for verification
 message ComputeTask {
-  option (gogoproto.goproto_stringer) = false;
-
   uint64 id = 1;
   string requester = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
   string task_type = 3;

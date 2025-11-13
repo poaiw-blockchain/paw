@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -94,8 +95,13 @@ Example:
 						return fmt.Errorf("gentx message must be MsgCreateValidator")
 					}
 
-					if err := msgCreateVal.ValidateBasic(); err != nil {
-						return fmt.Errorf("invalid gentx: %w", err)
+					// ValidateBasic was removed in SDK v0.50 - validation happens in message server
+					// Basic validation: check that required fields are present
+					if msgCreateVal.ValidatorAddress == "" {
+						return fmt.Errorf("invalid gentx: validator address is required")
+					}
+					if msgCreateVal.Pubkey == nil {
+						return fmt.Errorf("invalid gentx: pubkey is required")
 					}
 
 					genTxs = append(genTxs, tx)
@@ -129,32 +135,30 @@ Example:
 				msgs := tx.GetMsgs()
 				msgCreateVal := msgs[0].(*stakingtypes.MsgCreateValidator)
 
-				// Add validator to genesis state
-				validator, err := stakingtypes.NewValidator(
-					msgCreateVal.ValidatorAddress,
-					msgCreateVal.Pubkey,
-					stakingtypes.Description{
-						Moniker: msgCreateVal.Description.Moniker,
+				// Construct validator manually since Pubkey is already *Any
+				validator := stakingtypes.Validator{
+					OperatorAddress: msgCreateVal.ValidatorAddress,
+					ConsensusPubkey: msgCreateVal.Pubkey,
+					Jailed:          false,
+					Status:          stakingtypes.Bonded,
+					Tokens:          msgCreateVal.Value.Amount,
+					DelegatorShares: math.LegacyNewDecFromInt(msgCreateVal.Value.Amount),
+					Description:     msgCreateVal.Description,
+					UnbondingHeight: 0,
+					UnbondingTime:   genDoc.GenesisTime,
+					Commission: stakingtypes.Commission{
+						CommissionRates: msgCreateVal.Commission,
+						UpdateTime:      genDoc.GenesisTime,
 					},
-				)
-				if err != nil {
-					return fmt.Errorf("failed to create validator: %w", err)
+					MinSelfDelegation: msgCreateVal.MinSelfDelegation,
 				}
-
-				validator.Commission = stakingtypes.Commission{
-					CommissionRates: msgCreateVal.Commission,
-					UpdateTime:      genDoc.GenesisTime,
-				}
-				validator.MinSelfDelegation = msgCreateVal.MinSelfDelegation
-				validator.Tokens = msgCreateVal.Value.Amount
-				validator.DelegatorShares = sdk.NewDecFromInt(msgCreateVal.Value.Amount)
 
 				stakingGenesis.Validators = append(stakingGenesis.Validators, validator)
 
 				// Add delegation
 				delegation := stakingtypes.Delegation{
 					DelegatorAddress: sdk.AccAddress(validator.GetOperator()).String(),
-					ValidatorAddress: validator.GetOperator().String(),
+					ValidatorAddress: validator.GetOperator(),
 					Shares:           validator.DelegatorShares,
 				}
 				stakingGenesis.Delegations = append(stakingGenesis.Delegations, delegation)

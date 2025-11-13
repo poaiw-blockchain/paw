@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/log"
+	"cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
@@ -234,7 +235,7 @@ func (suite *AppTestSuite) TestOracleModuleIntegration() {
 	msgSubmit := &oracletypes.MsgSubmitPrice{
 		Oracle: oracleAddr.String(),
 		Asset:  "BTC/USD",
-		Price:  sdk.MustNewDecFromStr("45000.00"),
+		Price:  math.LegacyMustNewDecFromStr("45000.00"),
 	}
 
 	_, err = suite.app.OracleKeeper.SubmitPrice(suite.ctx, msgSubmit)
@@ -243,7 +244,7 @@ func (suite *AppTestSuite) TestOracleModuleIntegration() {
 	// Verify price submitted
 	price, found := suite.app.OracleKeeper.GetPrice(suite.ctx, "BTC/USD", oracleAddr.String())
 	require.True(suite.T(), found)
-	require.Equal(suite.T(), sdk.MustNewDecFromStr("45000.00"), price.Price)
+	require.Equal(suite.T(), math.LegacyMustNewDecFromStr("45000.00"), price.Price)
 }
 
 // TestModuleAccountsExist validates module accounts are created

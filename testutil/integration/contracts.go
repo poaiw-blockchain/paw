@@ -54,6 +54,8 @@ func (m *ContractManager) StoreContract(label string, wasmPath string) (*Contrac
 	if err != nil {
 		return nil, err
 	}
+	// wasmCode is loaded for validation but not used in mock implementation
+	_ = wasmCode
 
 	info := &ContractInfo{
 		CodeID:   m.codeIDCounter,

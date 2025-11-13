@@ -1,0 +1,16 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/paw-chain/paw
+    except:
+      - buf.build/cosmos/cosmos-sdk
+      - buf.build/cosmos/cosmos-proto
+      - buf.build/cosmos/gogo-proto
+      - buf.build/googleapis/googleapis
+plugins:
+  - name: gocosmos
+    out: ..
+    opt:
+      - plugins=grpc
+      - Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types

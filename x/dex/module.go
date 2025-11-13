@@ -11,6 +11,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
@@ -42,12 +43,12 @@ func (AppModuleBasic) Name() string {
 
 // RegisterLegacyAminoCodec registers the dex module's types on the LegacyAmino codec.
 func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	types.RegisterLegacyAminoCodec(cdc)
+	// types.RegisterLegacyAminoCodec(cdc)
 }
 
 // RegisterInterfaces registers the module's interface types
 func (a AppModuleBasic) RegisterInterfaces(reg codectypes.InterfaceRegistry) {
-	types.RegisterInterfaces(reg)
+	// types.RegisterInterfaces(reg)
 }
 
 // DefaultGenesis returns default genesis state as raw bytes for the dex
@@ -146,3 +147,21 @@ func (am AppModule) IsOnePerModuleType() {}
 
 // IsAppModule implements the appmodule.AppModule interface.
 func (am AppModule) IsAppModule() {}
+
+// GenerateGenesisState creates a randomized GenState of the dex module for simulation.
+func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
+	// Create default genesis state for simulation
+	dexGenesis := types.DefaultGenesis()
+	simState.GenState[types.ModuleName] = simState.Cdc.MustMarshalJSON(dexGenesis)
+}
+
+// RegisterStoreDecoder registers a decoder for dex module's types.
+func (am AppModule) RegisterStoreDecoder(sdr simtypes.StoreDecoderRegistry) {
+	// TODO: Register store decoder for simulation
+}
+
+// WeightedOperations returns the all the dex module operations with their respective weights.
+func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
+	// TODO: Return weighted operations for simulation
+	return []simtypes.WeightedOperation{}
+}

@@ -35,7 +35,8 @@ func init() {
 	// Register all Amino interfaces and concrete types on the authz and gov Amino codec
 	// so that this can later be used to properly serialize MsgGrant, MsgExec and MsgSubmitProposal
 	// instances.
-	RegisterLegacyAminoCodec(ModuleBasics.DefaultGenesis(nil))
+	cdc := codec.NewLegacyAmino()
+	RegisterLegacyAminoCodec(cdc)
 }
 
 // RegisterLegacyAminoCodec registers the sdk message type.
