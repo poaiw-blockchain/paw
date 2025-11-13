@@ -2,6 +2,7 @@ package types
 
 import (
 	sdkerrors "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -9,13 +10,13 @@ var _ sdk.Msg = &MsgRemoveLiquidity{}
 
 // MsgRemoveLiquidity defines a message to remove liquidity from a pool
 type MsgRemoveLiquidity struct {
-	Provider string  `json:"provider"`
-	PoolId   uint64  `json:"pool_id"`
-	Shares   sdk.Int `json:"shares"`
+	Provider string   `json:"provider"`
+	PoolId   uint64   `json:"pool_id"`
+	Shares   math.Int `json:"shares"`
 }
 
 // NewMsgRemoveLiquidity creates a new MsgRemoveLiquidity instance
-func NewMsgRemoveLiquidity(provider string, poolId uint64, shares sdk.Int) *MsgRemoveLiquidity {
+func NewMsgRemoveLiquidity(provider string, poolId uint64, shares math.Int) *MsgRemoveLiquidity {
 	return &MsgRemoveLiquidity{
 		Provider: provider,
 		PoolId:   poolId,

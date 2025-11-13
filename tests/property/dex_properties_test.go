@@ -5,6 +5,7 @@ import (
 	"testing"
 	"testing/quick"
 
+	"cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,13 +25,13 @@ func TestPropertyPoolCreationCommutative(t *testing.T) {
 		}
 
 		// Create pool with (A, B)
-		reserveA1 := sdk.NewIntFromUint64(amountA)
-		reserveB1 := sdk.NewIntFromUint64(amountB)
+		reserveA1 := math.NewInt(int64(amountA))
+		reserveB1 := math.NewInt(int64(amountB))
 		k1 := reserveA1.Mul(reserveB1)
 
 		// Create pool with (B, A)
-		reserveA2 := sdk.NewIntFromUint64(amountB)
-		reserveB2 := sdk.NewIntFromUint64(amountA)
+		reserveA2 := math.NewInt(int64(amountB))
+		reserveB2 := math.NewInt(int64(amountA))
 		k2 := reserveA2.Mul(reserveB2)
 
 		// K should be the same regardless of order
@@ -57,9 +58,9 @@ func TestPropertySwapNeverIncreasesReserves(t *testing.T) {
 		}
 
 		// Calculate swap using constant product formula with 0.3% fee
-		resA := sdk.NewIntFromUint64(reserveA)
-		resB := sdk.NewIntFromUint64(reserveB)
-		amtIn := sdk.NewIntFromUint64(swapAmount)
+		resA := math.NewInt(int64(reserveA))
+		resB := math.NewInt(int64(reserveB))
+		amtIn := math.NewInt(int64(swapAmount))
 
 		// Fee: 0.3% (997/1000 after fee)
 		amtInWithFee := amtIn.MulRaw(997)
@@ -111,12 +112,16 @@ func TestPropertyAddRemoveLiquidityRoundtrip(t *testing.T) {
 			return true
 		}
 
-		resA := sdk.NewIntFromUint64(reserveA)
-		resB := sdk.NewIntFromUint64(reserveB)
-		liqAmt := sdk.NewIntFromUint64(liquidityAmount)
+		resA := math.NewInt(int64(reserveA))
+		resB := math.NewInt(int64(reserveB))
+		liqAmt := math.NewInt(int64(liquidityAmount))
 
 		// Assume initial total shares equal to geometric mean of reserves
-		totalShares := resA.Mul(resB).ApproxSqrt()
+		// Using simple approximation: min(resA, resB) for total shares
+		totalShares := resA
+		if resB.LT(resA) {
+			totalShares = resB
+		}
 		if totalShares.IsZero() {
 			return true
 		}
@@ -173,16 +178,16 @@ func TestPropertyPriceImpactIncreasesWithSize(t *testing.T) {
 			return true
 		}
 
-		resA := sdk.NewIntFromUint64(reserveA)
-		resB := sdk.NewIntFromUint64(reserveB)
+		resA := math.NewInt(int64(reserveA))
+		resB := math.NewInt(int64(reserveB))
 
 		// Calculate output for smaller swap
-		amt1 := sdk.NewIntFromUint64(swapAmount1)
+		amt1 := math.NewInt(int64(swapAmount1))
 		amt1WithFee := amt1.MulRaw(997)
 		out1 := amt1WithFee.Mul(resB).Quo(resA.MulRaw(1000).Add(amt1WithFee))
 
 		// Calculate output for larger swap
-		amt2 := sdk.NewIntFromUint64(swapAmount2)
+		amt2 := math.NewInt(int64(swapAmount2))
 		amt2WithFee := amt2.MulRaw(997)
 		out2 := amt2WithFee.Mul(resB).Quo(resA.MulRaw(1000).Add(amt2WithFee))
 
@@ -218,9 +223,9 @@ func TestPropertySwapAggregation(t *testing.T) {
 		}
 
 		// Scale up the values
-		resA := sdk.NewIntFromUint64(uint64(reserveA) * 1000000)
-		resB := sdk.NewIntFromUint64(uint64(reserveB) * 1000000)
-		total := sdk.NewIntFromUint64(uint64(totalSwap) * 10000)
+		resA := math.NewInt(int64(uint64(reserveA)) * 1000000)
+		resB := math.NewInt(int64(uint64(reserveB)) * 1000000)
+		total := math.NewInt(int64(uint64(totalSwap)) * 10000)
 
 		// One large swap
 		amtWithFee := total.MulRaw(997)
@@ -262,8 +267,8 @@ func TestPropertyReservesStayPositive(t *testing.T) {
 		rng := rand.New(rand.NewSource(seed))
 
 		// Initial reserves
-		reserveA := sdk.NewInt(rng.Int63n(1000000) + 100000)
-		reserveB := sdk.NewInt(rng.Int63n(1000000) + 100000)
+		reserveA := math.NewInt(rng.Int63n(1000000) + 100000)
+		reserveB := math.NewInt(rng.Int63n(1000000) + 100000)
 
 		// Perform 10 random operations
 		for i := 0; i < 10; i++ {
@@ -275,7 +280,7 @@ func TestPropertyReservesStayPositive(t *testing.T) {
 				if maxSwap.IsZero() {
 					continue
 				}
-				swapAmt := sdk.NewInt(rng.Int63n(maxSwap.Int64()) + 1)
+				swapAmt := math.NewInt(rng.Int63n(maxSwap.Int64()) + 1)
 
 				amtWithFee := swapAmt.MulRaw(997)
 				out := amtWithFee.Mul(reserveB).Quo(reserveA.MulRaw(1000).Add(amtWithFee))
@@ -288,7 +293,7 @@ func TestPropertyReservesStayPositive(t *testing.T) {
 				if maxSwap.IsZero() {
 					continue
 				}
-				swapAmt := sdk.NewInt(rng.Int63n(maxSwap.Int64()) + 1)
+				swapAmt := math.NewInt(rng.Int63n(maxSwap.Int64()) + 1)
 
 				amtWithFee := swapAmt.MulRaw(997)
 				out := amtWithFee.Mul(reserveA).Quo(reserveB.MulRaw(1000).Add(amtWithFee))
@@ -323,9 +328,9 @@ func TestPropertyKNeverDecreases(t *testing.T) {
 			return true
 		}
 
-		resA := sdk.NewIntFromUint64(reserveA)
-		resB := sdk.NewIntFromUint64(reserveB)
-		amt := sdk.NewIntFromUint64(swapAmount)
+		resA := math.NewInt(int64(reserveA))
+		resB := math.NewInt(int64(reserveB))
+		amt := math.NewInt(int64(swapAmount))
 
 		// Original K
 		k1 := resA.Mul(resB)

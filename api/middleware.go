@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -206,9 +207,10 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Create a context with timeout
-		ctx, cancel := c.Copy().Request.Context(), func() {}
+		ctx := c.Copy().Request.Context()
+		cancel := func() {}
 		if timeout > 0 {
-			ctx, cancel = c.Copy().Request.Context(), cancel
+			ctx, cancel = context.WithTimeout(ctx, timeout)
 		}
 		defer cancel()
 

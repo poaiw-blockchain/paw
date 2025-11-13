@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -195,7 +196,7 @@ func (ws *WalletService) GetBalance(address sdk.AccAddress) (*BalanceResponse, e
 	queryClient := banktypes.NewQueryClient(ws.clientCtx)
 
 	res, err := queryClient.AllBalances(
-		ws.clientCtx.Context,
+		context.Background(),
 		&banktypes.QueryAllBalancesRequest{
 			Address: address.String(),
 		},
@@ -232,7 +233,7 @@ func (ws *WalletService) GetBalance(address sdk.AccAddress) (*BalanceResponse, e
 // SendTokens sends tokens from one address to another
 func (ws *WalletService) SendTokens(from, to sdk.AccAddress, amount sdk.Coins, memo string) (string, error) {
 	// Create MsgSend
-	msg := banktypes.NewMsgSend(from, to, amount)
+	_ = banktypes.NewMsgSend(from, to, amount)
 
 	// In production, this would:
 	// 1. Build the transaction

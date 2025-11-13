@@ -2,6 +2,7 @@ package types
 
 import (
 	sdkerrors "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -9,15 +10,15 @@ var _ sdk.Msg = &MsgCreatePool{}
 
 // MsgCreatePool defines a message to create a new liquidity pool
 type MsgCreatePool struct {
-	Creator string  `json:"creator"`
-	TokenA  string  `json:"token_a"`
-	TokenB  string  `json:"token_b"`
-	AmountA sdk.Int `json:"amount_a"`
-	AmountB sdk.Int `json:"amount_b"`
+	Creator string   `json:"creator"`
+	TokenA  string   `json:"token_a"`
+	TokenB  string   `json:"token_b"`
+	AmountA math.Int `json:"amount_a"`
+	AmountB math.Int `json:"amount_b"`
 }
 
 // NewMsgCreatePool creates a new MsgCreatePool instance
-func NewMsgCreatePool(creator, tokenA, tokenB string, amountA, amountB sdk.Int) *MsgCreatePool {
+func NewMsgCreatePool(creator, tokenA, tokenB string, amountA, amountB math.Int) *MsgCreatePool {
 	return &MsgCreatePool{
 		Creator: creator,
 		TokenA:  tokenA,

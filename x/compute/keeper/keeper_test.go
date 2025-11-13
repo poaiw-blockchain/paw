@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -41,7 +42,7 @@ func TestRegisterProvider(t *testing.T) {
 			msg: &types.MsgRegisterProvider{
 				Provider: "paw1provider",
 				Endpoint: "https://api.compute-provider.io",
-				Stake:    sdk.NewInt(1000000),
+				Stake:    math.NewInt(1000000),
 			},
 			wantErr: false,
 		},
@@ -50,7 +51,7 @@ func TestRegisterProvider(t *testing.T) {
 			msg: &types.MsgRegisterProvider{
 				Provider: "paw1provider",
 				Endpoint: "",
-				Stake:    sdk.NewInt(1000000),
+				Stake:    math.NewInt(1000000),
 			},
 			wantErr: true,
 			errMsg:  "endpoint cannot be empty",
@@ -60,7 +61,7 @@ func TestRegisterProvider(t *testing.T) {
 			msg: &types.MsgRegisterProvider{
 				Provider: "paw1provider",
 				Endpoint: "https://api.compute-provider.io",
-				Stake:    sdk.NewInt(0),
+				Stake:    math.NewInt(0),
 			},
 			wantErr: true,
 			errMsg:  "stake must be positive",
@@ -96,7 +97,7 @@ func TestRequestCompute(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
 	// Register a provider first
-	keepertest.RegisterTestProvider(t, k, ctx, "paw1provider", "https://api.provider.io", sdk.NewInt(1000000))
+	keepertest.RegisterTestProvider(t, k, ctx, "paw1provider", "https://api.provider.io", math.NewInt(1000000))
 
 	tests := []struct {
 		name    string
@@ -109,7 +110,7 @@ func TestRequestCompute(t *testing.T) {
 			msg: &types.MsgRequestCompute{
 				Requester: "paw1requester",
 				ApiUrl:    "https://api.openai.com/v1/chat/completions",
-				MaxFee:    sdk.NewInt(1000),
+				MaxFee:    math.NewInt(1000),
 			},
 			wantErr: false,
 		},
@@ -118,7 +119,7 @@ func TestRequestCompute(t *testing.T) {
 			msg: &types.MsgRequestCompute{
 				Requester: "paw1requester",
 				ApiUrl:    "",
-				MaxFee:    sdk.NewInt(1000),
+				MaxFee:    math.NewInt(1000),
 			},
 			wantErr: true,
 			errMsg:  "API URL cannot be empty",
@@ -128,7 +129,7 @@ func TestRequestCompute(t *testing.T) {
 			msg: &types.MsgRequestCompute{
 				Requester: "paw1requester",
 				ApiUrl:    "https://api.openai.com/v1/chat/completions",
-				MaxFee:    sdk.NewInt(0),
+				MaxFee:    math.NewInt(0),
 			},
 			wantErr: true,
 			errMsg:  "max fee must be positive",
@@ -166,7 +167,7 @@ func TestSubmitResult(t *testing.T) {
 
 	// Setup: Register provider and create request
 	providerAddr := "paw1provider"
-	keepertest.RegisterTestProvider(t, k, ctx, providerAddr, "https://api.provider.io", sdk.NewInt(1000000))
+	keepertest.RegisterTestProvider(t, k, ctx, providerAddr, "https://api.provider.io", math.NewInt(1000000))
 	requestId := keepertest.SubmitTestRequest(t, k, ctx, "paw1requester", "https://api.openai.com/v1/chat/completions")
 
 	tests := []struct {

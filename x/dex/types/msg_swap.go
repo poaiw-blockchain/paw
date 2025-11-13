@@ -2,6 +2,7 @@ package types
 
 import (
 	sdkerrors "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -9,16 +10,16 @@ var _ sdk.Msg = &MsgSwap{}
 
 // MsgSwap defines a message to swap tokens using AMM
 type MsgSwap struct {
-	Trader       string  `json:"trader"`
-	PoolId       uint64  `json:"pool_id"`
-	TokenIn      string  `json:"token_in"`
-	TokenOut     string  `json:"token_out"`
-	AmountIn     sdk.Int `json:"amount_in"`
-	MinAmountOut sdk.Int `json:"min_amount_out"`
+	Trader       string   `json:"trader"`
+	PoolId       uint64   `json:"pool_id"`
+	TokenIn      string   `json:"token_in"`
+	TokenOut     string   `json:"token_out"`
+	AmountIn     math.Int `json:"amount_in"`
+	MinAmountOut math.Int `json:"min_amount_out"`
 }
 
 // NewMsgSwap creates a new MsgSwap instance
-func NewMsgSwap(trader string, poolId uint64, tokenIn, tokenOut string, amountIn, minAmountOut sdk.Int) *MsgSwap {
+func NewMsgSwap(trader string, poolId uint64, tokenIn, tokenOut string, amountIn, minAmountOut math.Int) *MsgSwap {
 	return &MsgSwap{
 		Trader:       trader,
 		PoolId:       poolId,

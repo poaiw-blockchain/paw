@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 	"github.com/gin-gonic/gin"
 )
 
@@ -142,7 +142,7 @@ func (s *Server) handleAddLiquidity(c *gin.Context) {
 		s.poolService = NewPoolService()
 	}
 
-	userAddress, exists := c.Get("address")
+	_, exists := c.Get("address")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
@@ -158,7 +158,7 @@ func (s *Server) handleAddLiquidity(c *gin.Context) {
 	}
 
 	// Validate amounts
-	amountA, err := sdk.NewDecFromStr(req.AmountA)
+	amountA, err := math.LegacyNewDecFromStr(req.AmountA)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error:   "Invalid amount A",
@@ -167,7 +167,7 @@ func (s *Server) handleAddLiquidity(c *gin.Context) {
 		return
 	}
 
-	amountB, err := sdk.NewDecFromStr(req.AmountB)
+	amountB, err := math.LegacyNewDecFromStr(req.AmountB)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error:   "Invalid amount B",
@@ -188,14 +188,14 @@ func (s *Server) handleAddLiquidity(c *gin.Context) {
 
 	// Calculate LP shares to mint
 	// shares = (amountA / reserveA) * totalShares
-	reserveA, _ := sdk.NewDecFromStr(pool.ReserveA)
-	totalShares, _ := sdk.NewDecFromStr(pool.LiquidityShares)
+	reserveA, _ := math.LegacyNewDecFromStr(pool.ReserveA)
+	totalShares, _ := math.LegacyNewDecFromStr(pool.LiquidityShares)
 
 	lpShares := amountA.Quo(reserveA).Mul(totalShares)
 
 	// Update pool reserves
 	newReserveA := reserveA.Add(amountA)
-	newReserveB, _ := sdk.NewDecFromStr(pool.ReserveB)
+	newReserveB, _ := math.LegacyNewDecFromStr(pool.ReserveB)
 	newReserveB = newReserveB.Add(amountB)
 	newTotalShares := totalShares.Add(lpShares)
 
@@ -225,7 +225,7 @@ func (s *Server) handleRemoveLiquidity(c *gin.Context) {
 		s.poolService = NewPoolService()
 	}
 
-	userAddress, exists := c.Get("address")
+	_, exists := c.Get("address")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
@@ -241,7 +241,7 @@ func (s *Server) handleRemoveLiquidity(c *gin.Context) {
 	}
 
 	// Validate shares
-	shares, err := sdk.NewDecFromStr(req.Shares)
+	shares, err := math.LegacyNewDecFromStr(req.Shares)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error:   "Invalid shares amount",
@@ -262,9 +262,9 @@ func (s *Server) handleRemoveLiquidity(c *gin.Context) {
 
 	// Calculate amounts to withdraw
 	// amountA = (shares / totalShares) * reserveA
-	totalShares, _ := sdk.NewDecFromStr(pool.LiquidityShares)
-	reserveA, _ := sdk.NewDecFromStr(pool.ReserveA)
-	reserveB, _ := sdk.NewDecFromStr(pool.ReserveB)
+	totalShares, _ := math.LegacyNewDecFromStr(pool.LiquidityShares)
+	reserveA, _ := math.LegacyNewDecFromStr(pool.ReserveA)
+	reserveB, _ := math.LegacyNewDecFromStr(pool.ReserveB)
 
 	withdrawnA := shares.Quo(totalShares).Mul(reserveA)
 	withdrawnB := shares.Quo(totalShares).Mul(reserveB)

@@ -32,7 +32,7 @@ func (s *Server) handleGetMarketStats(c *gin.Context) {
 	var totalLiquidity float64
 	if s.poolService != nil {
 		s.poolService.mu.RLock()
-		for _, pool := range s.poolService.pools {
+		for range s.poolService.pools {
 			// Simple calculation - in production, convert to USD properly
 			totalLiquidity += 1000.0 // Placeholder
 		}

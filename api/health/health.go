@@ -3,6 +3,7 @@ package health
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -269,7 +270,7 @@ func SyncCheck(syncStatusFunc func(context.Context) (bool, int64, error)) CheckF
 	return func(ctx context.Context) CheckResult {
 		start := time.Now()
 
-		catching_up, latest_block_height, err := syncStatusFunc(ctx)
+		catching_up, latestBlockHeight, err := syncStatusFunc(ctx)
 		latency := time.Since(start)
 
 		if err != nil {
@@ -283,7 +284,7 @@ func SyncCheck(syncStatusFunc func(context.Context) (bool, int64, error)) CheckF
 		if catching_up {
 			return CheckResult{
 				Status:  StatusDegraded,
-				Message: "Node is catching up",
+				Message: fmt.Sprintf("Node is catching up (block height: %d)", latestBlockHeight),
 				Latency: latency.String(),
 			}
 		}

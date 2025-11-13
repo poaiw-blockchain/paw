@@ -2,6 +2,7 @@ package types
 
 import (
 	sdkerrors "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -9,14 +10,14 @@ var _ sdk.Msg = &MsgAddLiquidity{}
 
 // MsgAddLiquidity defines a message to add liquidity to a pool
 type MsgAddLiquidity struct {
-	Provider string  `json:"provider"`
-	PoolId   uint64  `json:"pool_id"`
-	AmountA  sdk.Int `json:"amount_a"`
-	AmountB  sdk.Int `json:"amount_b"`
+	Provider string   `json:"provider"`
+	PoolId   uint64   `json:"pool_id"`
+	AmountA  math.Int `json:"amount_a"`
+	AmountB  math.Int `json:"amount_b"`
 }
 
 // NewMsgAddLiquidity creates a new MsgAddLiquidity instance
-func NewMsgAddLiquidity(provider string, poolId uint64, amountA, amountB sdk.Int) *MsgAddLiquidity {
+func NewMsgAddLiquidity(provider string, poolId uint64, amountA, amountB math.Int) *MsgAddLiquidity {
 	return &MsgAddLiquidity{
 		Provider: provider,
 		PoolId:   poolId,

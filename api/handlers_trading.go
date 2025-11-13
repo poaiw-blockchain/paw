@@ -57,7 +57,7 @@ func (s *Server) handleCreateOrder(c *gin.Context) {
 	}
 
 	username, _ := c.Get("username")
-	address, _ := c.Get("address")
+	_, _ = c.Get("address")
 
 	var req CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

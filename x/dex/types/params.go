@@ -1,6 +1,7 @@
 package types
 
 import (
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
@@ -25,7 +26,7 @@ func DefaultParams() Params {
 		SwapFee:            sdk.NewDecWithPrec(3, 3),  // 0.3%
 		LpFee:              sdk.NewDecWithPrec(25, 4), // 0.25%
 		ProtocolFee:        sdk.NewDecWithPrec(5, 4),  // 0.05%
-		MinLiquidity:       sdk.NewInt(1000),
+		MinLiquidity:       math.NewInt(1000),
 		MaxSlippagePercent: sdk.NewDecWithPrec(1, 1), // 10%
 	}
 }

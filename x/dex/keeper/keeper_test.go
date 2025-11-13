@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -42,8 +43,8 @@ func TestCreatePool(t *testing.T) {
 				Creator: "paw1creator",
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
-				AmountA: sdk.NewInt(1000000),
-				AmountB: sdk.NewInt(1000000),
+				AmountA: math.NewInt(1000000),
+				AmountB: math.NewInt(1000000),
 			},
 			wantErr: false,
 		},
@@ -53,8 +54,8 @@ func TestCreatePool(t *testing.T) {
 				Creator: "paw1creator",
 				TokenA:  "upaw",
 				TokenB:  "upaw",
-				AmountA: sdk.NewInt(1000000),
-				AmountB: sdk.NewInt(1000000),
+				AmountA: math.NewInt(1000000),
+				AmountB: math.NewInt(1000000),
 			},
 			wantErr: true,
 			errMsg:  "tokens must be different",
@@ -65,8 +66,8 @@ func TestCreatePool(t *testing.T) {
 				Creator: "paw1creator",
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
-				AmountA: sdk.NewInt(0),
-				AmountB: sdk.NewInt(1000000),
+				AmountA: math.NewInt(0),
+				AmountB: math.NewInt(1000000),
 			},
 			wantErr: true,
 			errMsg:  "amounts must be positive",
@@ -106,7 +107,7 @@ func TestSwap(t *testing.T) {
 
 	// Create pool with 1000 PAW and 2000 USDT (1 PAW = 2 USDT)
 	poolId := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt",
-		sdk.NewInt(1000000000), sdk.NewInt(2000000000))
+		math.NewInt(1000000000), math.NewInt(2000000000))
 
 	tests := []struct {
 		name           string
@@ -121,8 +122,8 @@ func TestSwap(t *testing.T) {
 			name:           "swap PAW for USDT",
 			poolId:         poolId,
 			tokenIn:        "upaw",
-			amountIn:       sdk.NewInt(100000000), // 100 PAW
-			minAmountOut:   sdk.NewInt(180000000), // expect ~180-190 USDT (with 0.3% fee)
+			amountIn:       math.NewInt(100000000), // 100 PAW
+			minAmountOut:   math.NewInt(180000000), // expect ~180-190 USDT (with 0.3% fee)
 			wantErr:        false,
 			validateOutput: true,
 		},
@@ -130,8 +131,8 @@ func TestSwap(t *testing.T) {
 			name:           "swap USDT for PAW",
 			poolId:         poolId,
 			tokenIn:        "uusdt",
-			amountIn:       sdk.NewInt(200000000), // 200 USDT
-			minAmountOut:   sdk.NewInt(90000000),  // expect ~90-95 PAW
+			amountIn:       math.NewInt(200000000), // 200 USDT
+			minAmountOut:   math.NewInt(90000000),  // expect ~90-95 PAW
 			wantErr:        false,
 			validateOutput: true,
 		},
@@ -139,8 +140,8 @@ func TestSwap(t *testing.T) {
 			name:         "slippage too high",
 			poolId:       poolId,
 			tokenIn:      "upaw",
-			amountIn:     sdk.NewInt(100000000),
-			minAmountOut: sdk.NewInt(300000000), // unrealistic expectation
+			amountIn:     math.NewInt(100000000),
+			minAmountOut: math.NewInt(300000000), // unrealistic expectation
 			wantErr:      true,
 		},
 	}
@@ -192,7 +193,7 @@ func TestAddLiquidity(t *testing.T) {
 
 	// Create initial pool
 	poolId := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt",
-		sdk.NewInt(1000000000), sdk.NewInt(2000000000))
+		math.NewInt(1000000000), math.NewInt(2000000000))
 
 	tests := []struct {
 		name    string
@@ -205,23 +206,23 @@ func TestAddLiquidity(t *testing.T) {
 		{
 			name:    "add proportional liquidity",
 			poolId:  poolId,
-			amountA: sdk.NewInt(100000000), // 100 PAW
-			amountB: sdk.NewInt(200000000), // 200 USDT (maintains 1:2 ratio)
+			amountA: math.NewInt(100000000), // 100 PAW
+			amountB: math.NewInt(200000000), // 200 USDT (maintains 1:2 ratio)
 			wantErr: false,
 		},
 		{
 			name:    "add with ratio mismatch",
 			poolId:  poolId,
-			amountA: sdk.NewInt(100000000), // 100 PAW
-			amountB: sdk.NewInt(100000000), // 100 USDT (wrong ratio)
+			amountA: math.NewInt(100000000), // 100 PAW
+			amountB: math.NewInt(100000000), // 100 USDT (wrong ratio)
 			wantErr: true,
 			errMsg:  "ratio mismatch",
 		},
 		{
 			name:    "zero liquidity",
 			poolId:  poolId,
-			amountA: sdk.NewInt(0),
-			amountB: sdk.NewInt(0),
+			amountA: math.NewInt(0),
+			amountB: math.NewInt(0),
 			wantErr: true,
 			errMsg:  "amounts must be positive",
 		},
@@ -268,7 +269,7 @@ func TestRemoveLiquidity(t *testing.T) {
 
 	// Create pool and add liquidity
 	poolId := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt",
-		sdk.NewInt(1000000000), sdk.NewInt(2000000000))
+		math.NewInt(1000000000), math.NewInt(2000000000))
 
 	tests := []struct {
 		name            string
@@ -282,26 +283,26 @@ func TestRemoveLiquidity(t *testing.T) {
 		{
 			name:            "remove 10% liquidity",
 			poolId:          poolId,
-			liquidityTokens: sdk.NewInt(100000000), // 10% of initial
-			minAmountA:      sdk.NewInt(90000000),  // expect ~100M PAW
-			minAmountB:      sdk.NewInt(180000000), // expect ~200M USDT
+			liquidityTokens: math.NewInt(100000000), // 10% of initial
+			minAmountA:      math.NewInt(90000000),  // expect ~100M PAW
+			minAmountB:      math.NewInt(180000000), // expect ~200M USDT
 			wantErr:         false,
 		},
 		{
 			name:            "insufficient liquidity tokens",
 			poolId:          poolId,
-			liquidityTokens: sdk.NewInt(10000000000), // more than exists
-			minAmountA:      sdk.NewInt(0),
-			minAmountB:      sdk.NewInt(0),
+			liquidityTokens: math.NewInt(10000000000), // more than exists
+			minAmountA:      math.NewInt(0),
+			minAmountB:      math.NewInt(0),
 			wantErr:         true,
 			errMsg:          "insufficient liquidity",
 		},
 		{
 			name:            "zero liquidity",
 			poolId:          poolId,
-			liquidityTokens: sdk.NewInt(0),
-			minAmountA:      sdk.NewInt(0),
-			minAmountB:      sdk.NewInt(0),
+			liquidityTokens: math.NewInt(0),
+			minAmountA:      math.NewInt(0),
+			minAmountB:      math.NewInt(0),
 			wantErr:         true,
 			errMsg:          "must be positive",
 		},

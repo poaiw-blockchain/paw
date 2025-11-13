@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
@@ -20,8 +20,8 @@ func ParamKeyTable() paramtypes.KeyTable {
 // DefaultParams returns a default set of parameters
 func DefaultParams() Params {
 	return Params{
-		MinStake:            sdk.NewInt(10000000000), // 10,000 PAW
-		VerificationTimeout: 300,                     // 5 minutes
+		MinStake:            math.NewInt(10000000000), // 10,000 PAW
+		VerificationTimeout: 300,                      // 5 minutes
 		MaxRetries:          3,
 	}
 }

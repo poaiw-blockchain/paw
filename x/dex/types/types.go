@@ -3,22 +3,22 @@ package types
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 )
 
 // Pool represents a liquidity pool for token pairs
 type Pool struct {
-	Id          uint64  `json:"id"`
-	TokenA      string  `json:"token_a"`
-	TokenB      string  `json:"token_b"`
-	ReserveA    sdk.Int `json:"reserve_a"`
-	ReserveB    sdk.Int `json:"reserve_b"`
-	TotalShares sdk.Int `json:"total_shares"`
-	Creator     string  `json:"creator"`
+	Id          uint64   `json:"id"`
+	TokenA      string   `json:"token_a"`
+	TokenB      string   `json:"token_b"`
+	ReserveA    math.Int `json:"reserve_a"`
+	ReserveB    math.Int `json:"reserve_b"`
+	TotalShares math.Int `json:"total_shares"`
+	Creator     string   `json:"creator"`
 }
 
 // NewPool creates a new liquidity pool
-func NewPool(id uint64, tokenA, tokenB string, reserveA, reserveB sdk.Int, creator string) Pool {
+func NewPool(id uint64, tokenA, tokenB string, reserveA, reserveB math.Int, creator string) Pool {
 	return Pool{
 		Id:          id,
 		TokenA:      tokenA,

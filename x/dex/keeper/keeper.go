@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/log"
+	"cosmossdk.io/math"
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -211,13 +212,13 @@ func (k Keeper) Swap(
 // This implements a 0.3% fee (997/1000 = 0.997)
 func (k Keeper) CalculateSwapAmount(reserveIn, reserveOut, amountIn sdk.Int) sdk.Int {
 	// amountInWithFee = amountIn * 997
-	amountInWithFee := amountIn.Mul(sdk.NewInt(997))
+	amountInWithFee := amountIn.Mul(math.NewInt(997))
 
 	// numerator = amountInWithFee * reserveOut
 	numerator := amountInWithFee.Mul(reserveOut)
 
 	// denominator = (reserveIn * 1000) + amountInWithFee
-	denominator := reserveIn.Mul(sdk.NewInt(1000)).Add(amountInWithFee)
+	denominator := reserveIn.Mul(math.NewInt(1000)).Add(amountInWithFee)
 
 	// amountOut = numerator / denominator
 	amountOut := numerator.Quo(denominator)
