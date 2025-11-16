@@ -117,7 +117,7 @@ func RandomizedBankGenesisState(r *rand.Rand, accs []simtypes.Account) banktypes
 	for i, acc := range accs {
 		// Random balance between 1M and 10M upaw
 		balance := simtypes.RandIntBetween(r, 1000000, 10000000)
-		coins := sdk.NewCoins(math.NewInt64Coin("upaw", int64(balance)))
+		coins := sdk.NewCoins(sdk.NewInt64Coin("upaw", int64(balance)))
 
 		balances[i] = banktypes.Balance{
 			Address: acc.Address.String(),
@@ -131,7 +131,7 @@ func RandomizedBankGenesisState(r *rand.Rand, accs []simtypes.Account) banktypes
 	for i := range accs {
 		// Random USDC balance
 		usdcBalance := simtypes.RandIntBetween(r, 100000, 1000000)
-		usdcCoins := sdk.NewCoins(math.NewInt64Coin("uusdc", int64(usdcBalance)))
+		usdcCoins := sdk.NewCoins(sdk.NewInt64Coin("uusdc", int64(usdcBalance)))
 
 		balances[i].Coins = balances[i].Coins.Add(usdcCoins...)
 		totalSupply = totalSupply.Add(usdcCoins...)

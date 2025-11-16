@@ -8,8 +8,8 @@ import (
 
 // BenchmarkComputeJobSubmission benchmarks submitting compute jobs
 func BenchmarkComputeJobSubmission(b *testing.B) {
-	creator := sdk.AccAddress("creator_____________")
-	jobData := []byte("sample compute job data")
+	_ = sdk.AccAddress("creator_____________")
+	_ = []byte("sample compute job data")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -22,9 +22,9 @@ func BenchmarkComputeJobSubmission(b *testing.B) {
 
 // BenchmarkComputeJobVerification benchmarks verifying compute results
 func BenchmarkComputeJobVerification(b *testing.B) {
-	jobID := uint64(1)
-	verifier := sdk.AccAddress("verifier____________")
-	result := []byte("compute result")
+	_ = uint64(1)
+	_ = sdk.AccAddress("verifier____________")
+	_ = []byte("compute result")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -34,7 +34,7 @@ func BenchmarkComputeJobVerification(b *testing.B) {
 
 // BenchmarkComputeNodeRegistration benchmarks registering compute nodes
 func BenchmarkComputeNodeRegistration(b *testing.B) {
-	nodeAddr := sdk.AccAddress("node________________")
+	_ = sdk.AccAddress("node________________")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -44,7 +44,7 @@ func BenchmarkComputeNodeRegistration(b *testing.B) {
 
 // BenchmarkComputeSlashing benchmarks slashing malicious compute nodes
 func BenchmarkComputeSlashing(b *testing.B) {
-	nodeAddr := sdk.AccAddress("node________________")
+	_ = sdk.AccAddress("node________________")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

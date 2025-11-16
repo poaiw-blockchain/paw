@@ -14,9 +14,9 @@ func BenchmarkCreatePool(b *testing.B) {
 	// TODO: Setup test keeper and context
 	// k, ctx := setupKeeper(b)
 
-	creator := sdk.AccAddress("creator_____________")
-	tokenA := sdk.NewCoin("upaw", math.NewInt(1000000))
-	tokenB := sdk.NewCoin("uatom", math.NewInt(1000000))
+	_ = sdk.AccAddress("creator_____________")
+	_ = sdk.NewCoin("upaw", math.NewInt(1000000))
+	_ = sdk.NewCoin("uatom", math.NewInt(1000000))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
