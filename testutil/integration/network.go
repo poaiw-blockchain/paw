@@ -13,10 +13,10 @@ import (
 	dbm "github.com/cosmos/cosmos-db"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -142,8 +142,7 @@ func (n *Network) InitChain(t *testing.T) {
 
 	// Create genesis state
 	genesisState := n.createGenesisState(t)
-	encCfg := app.MakeEncodingConfig()
-	stateBytes, err := encCfg.Codec.MarshalJSON(genesisState)
+	stateBytes, err := json.Marshal(genesisState)
 	require.NoError(t, err)
 
 	// Initialize each validator
@@ -167,7 +166,7 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 	t.Helper()
 
 	encCfg := app.MakeEncodingConfig()
-	genesisState := n.Validators[0].App.DefaultGenesis()
+	genesisState := app.NewDefaultGenesisState(n.Config.ChainID)
 
 	// Create accounts and balances
 	accounts := make([]authtypes.GenesisAccount, 0, len(n.Validators))

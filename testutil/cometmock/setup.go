@@ -1,21 +1,22 @@
 package cometmock
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/log"
-	dbm "github.com/cosmos/cosmos-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
+	dbm "github.com/cosmos/cosmos-db"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/app"
 )
@@ -55,7 +56,6 @@ func SetupCometMock(t *testing.T, config CometMockConfig) *CometMockApp {
 	t.Helper()
 
 	db := dbm.NewMemDB()
-	encCfg := app.MakeEncodingConfig()
 
 	pawApp := app.NewPAWApp(
 		log.NewNopLogger(),
@@ -72,8 +72,8 @@ func SetupCometMock(t *testing.T, config CometMockConfig) *CometMockApp {
 	proposer := validators[0]
 
 	// Initialize the chain
-	genesisState := app.NewDefaultGenesisState(encCfg.Codec)
-	stateBytes, err := encCfg.Codec.MarshalJSON(genesisState)
+	genesisState := app.NewDefaultGenesisState(config.ChainID)
+	stateBytes, err := json.Marshal(genesisState)
 	require.NoError(t, err)
 
 	// Initialize the blockchain
@@ -143,14 +143,32 @@ func (m *CometMockApp) EndBlock() {
 
 // DeliverTx simulates delivering a transaction
 func (m *CometMockApp) DeliverTx(tx []byte) (*abci.ExecTxResult, error) {
-	// Note: RequestDeliverTx is deprecated in newer versions
-	// For now, we'll use a simplified approach
-	res := m.PAWApp.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx: tx})
-	return &abci.ExecTxResult{
-		Code: res.Code,
-		Data: res.Data,
-		Log:  res.Log,
-	}, nil
+	// Use FinalizeBlock with a single transaction instead of deprecated DeliverTx
+	header := tmproto.Header{
+		ChainID: m.ctx.ChainID(),
+		Height:  m.blockHeight,
+		Time:    m.blockTime,
+	}
+
+	req := &abci.RequestFinalizeBlock{
+		Txs:    [][]byte{tx},
+		Height: m.blockHeight,
+		Time:   m.blockTime,
+	}
+
+	res, err := m.PAWApp.FinalizeBlock(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update context after block finalization
+	m.ctx = m.PAWApp.BaseApp.NewContext(false).WithBlockHeader(header)
+
+	if len(res.TxResults) > 0 {
+		return res.TxResults[0], nil
+	}
+
+	return &abci.ExecTxResult{}, nil
 }
 
 // Context returns the current SDK context
