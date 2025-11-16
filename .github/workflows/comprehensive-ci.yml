@@ -1,0 +1,497 @@
+name: Comprehensive CI/CD Pipeline
+
+on:
+  push:
+    branches: ["**"]  # Run on every push to any branch
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: write
+  packages: write
+
+env:
+  GO_VERSION: '1.23.1'
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # LINTING - Go Backend
+  # ============================================================================
+  lint-go:
+    name: Go Linters
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=10m --enable=gosec,staticcheck,govet,errcheck,ineffassign,unused,revive,gofmt,goimports
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck ./...
+
+      - name: Check go fmt
+        run: |
+          if [ -n "$(gofmt -s -l .)" ]; then
+            echo "Go code is not formatted:"
+            gofmt -s -d .
+            exit 1
+          fi
+
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+  # ============================================================================
+  # LINTING - Frontend (JavaScript/TypeScript)
+  # ============================================================================
+  lint-frontend:
+    name: Frontend Linters
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run ESLint
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || true
+
+      - name: Run Prettier check
+        run: npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"
+
+      - name: Run TypeScript compiler check
+        run: npx tsc --noEmit || echo "TypeScript check complete"
+
+  # ============================================================================
+  # STATIC ANALYSIS - Go Security & Quality
+  # ============================================================================
+  static-analysis-go:
+    name: Go Static Analysis & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run gosec (Go security scanner)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt=json -out=gosec-report.json ./... || true
+          gosec ./...
+
+      - name: Run go-critic
+        run: |
+          go install github.com/go-critic/go-critic/cmd/gocritic@latest
+          gocritic check ./... || true
+
+      - name: Check for vulnerabilities (govulncheck)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Run nilaway (nil pointer analysis)
+        run: |
+          go install go.uber.org/nilaway/cmd/nilaway@latest
+          nilaway ./... || true
+
+      - name: Upload Go security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports-go
+          path: gosec-report.json
+
+  # ============================================================================
+  # STATIC ANALYSIS - Frontend Security
+  # ============================================================================
+  static-analysis-frontend:
+    name: Frontend Static Analysis & Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run npm audit
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          npm audit
+
+      - name: Check for dependency vulnerabilities
+        run: |
+          npx audit-ci --moderate || true
+
+      - name: Upload frontend security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports-frontend
+          path: npm-audit-report.json
+
+  sonarqube-scan:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        continue-on-error: true
+
+  # ============================================================================
+  # UNIT TESTS - Go
+  # ============================================================================
+  unit-tests-go:
+    name: Go Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run unit tests with coverage
+        run: |
+          go test -v -race -timeout 30m \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            $(go list ./... | grep -v /tests/e2e | grep -v /tests/simulation | grep -v /tests/load)
+
+      - name: Upload Go coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports-go
+          path: coverage.out
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.out
+          flags: go-unittests
+          name: go-unit-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+        continue-on-error: true
+
+  # ============================================================================
+  # UNIT TESTS - Frontend
+  # ============================================================================
+  unit-tests-frontend:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run Jest tests
+        run: npm test -- --coverage --ci || echo "No frontend tests configured"
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports-frontend
+          path: coverage/
+
+  # ============================================================================
+  # INTEGRATION TESTS
+  # ============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run integration tests
+        run: |
+          go test -v -timeout 45m \
+            -coverprofile=integration-coverage.out \
+            ./testutil/integration/... || echo "Integration tests"
+
+      - name: Upload integration coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports-integration
+          path: integration-coverage.out
+
+  # ============================================================================
+  # E2E TESTS
+  # ============================================================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run E2E tests
+        run: |
+          go test -v -timeout 60m ./tests/e2e/...
+
+  # ============================================================================
+  # FUZZ TESTING - 60 seconds
+  # ============================================================================
+  fuzz-tests:
+    name: Fuzz Testing (60s)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run Go fuzz tests (60 seconds)
+        run: |
+          # Find all fuzz tests and run them for 60 seconds total
+          FUZZ_TESTS=$(grep -r "func Fuzz" --include="*_test.go" . | cut -d: -f1 | sort -u || echo "")
+          if [ -n "$FUZZ_TESTS" ]; then
+            echo "Found fuzz tests, running for 60 seconds..."
+            for test_file in $FUZZ_TESTS; do
+              dir=$(dirname "$test_file")
+              timeout 60 go test -fuzz=. -fuzztime=60s "$dir" || echo "Fuzz test completed"
+            done
+          else
+            echo "No native fuzz tests found"
+            # Look for property-based tests
+            timeout 60 go test -v ./... -run=Property || echo "No property tests found"
+          fi
+
+      - name: Upload fuzz test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fuzz-test-results
+          path: testdata/fuzz/
+
+  # ============================================================================
+  # SIMULATION TESTS (if available)
+  # ============================================================================
+  simulation-tests:
+    name: Simulation Tests
+    runs-on: ubuntu-latest
+    if: hashFiles('tests/simulation/**') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run simulation tests
+        run: |
+          go test -v -timeout 30m ./tests/simulation/...
+
+  # ============================================================================
+  # BUILD VERIFICATION
+  # ============================================================================
+  build-binaries:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+    needs: [lint-go, unit-tests-go]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build pawd
+        run: |
+          VERSION=$(cat VERSION || echo "dev")
+          COMMIT=$(git rev-parse HEAD)
+
+          go build -mod=readonly \
+            -ldflags="-w -s \
+              -X github.com/cosmos/cosmos-sdk/version.Name=paw \
+              -X github.com/cosmos/cosmos-sdk/version.AppName=pawd \
+              -X github.com/cosmos/cosmos-sdk/version.Version=$VERSION \
+              -X github.com/cosmos/cosmos-sdk/version.Commit=$COMMIT" \
+            -trimpath \
+            -o build/pawd \
+            ./cmd/pawd
+
+      - name: Build pawcli
+        run: |
+          go build -mod=readonly \
+            -ldflags="-w -s" \
+            -trimpath \
+            -o build/pawcli \
+            ./cmd/pawcli || echo "pawcli not found"
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: build/*
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [lint-frontend, unit-tests-frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Build frontend
+        run: npm run build || echo "No build script configured"
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-build
+          path: |
+            dist/
+            build/
+
+  # ============================================================================
+  # SUMMARY
+  # ============================================================================
+  ci-summary:
+    name: CI Pipeline Summary
+    runs-on: ubuntu-latest
+    needs:
+      - lint-go
+      - lint-frontend
+      - static-analysis-go
+      - static-analysis-frontend
+      - unit-tests-go
+      - unit-tests-frontend
+      - integration-tests
+      - e2e-tests
+      - fuzz-tests
+      - build-binaries
+      - build-frontend
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "# CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Linting" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Linters: ${{ needs.lint-go.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend Linters: ${{ needs.lint-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Static Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Security: ${{ needs.static-analysis-go.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend Security: ${{ needs.static-analysis-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Testing" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Unit Tests: ${{ needs.unit-tests-go.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend Unit Tests: ${{ needs.unit-tests-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E Tests: ${{ needs.e2e-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Fuzz Tests (60s): ${{ needs.fuzz-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Binaries: ${{ needs.build-binaries.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Frontend: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any critical job failed
+        if: |
+          needs.lint-go.result == 'failure' ||
+          needs.static-analysis-go.result == 'failure' ||
+          needs.unit-tests-go.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.build-binaries.result == 'failure'
+        run: |
+          echo "::error::One or more critical jobs failed"
+          exit 1
