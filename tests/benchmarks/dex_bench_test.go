@@ -143,12 +143,13 @@ func BenchmarkMultiHopSwap(b *testing.B) {
 	_ = sdk.AccAddress("sender______________")
 	_ = sdk.NewCoin("upaw", math.NewInt(1000))
 
+	// TODO: Define SwapAmountInRoute type when implementing swap routing
 	// Route through multiple pools
-	_ = []types.SwapAmountInRoute{
-		{PoolId: 1, TokenOutDenom: "uatom"},
-		{PoolId: 2, TokenOutDenom: "uosmo"},
-		{PoolId: 3, TokenOutDenom: "uusdc"},
-	}
+	// _ = []types.SwapAmountInRoute{
+	// 	{PoolId: 1, TokenOutDenom: "uatom"},
+	// 	{PoolId: 2, TokenOutDenom: "uosmo"},
+	// 	{PoolId: 3, TokenOutDenom: "uusdc"},
+	// }
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -3,14 +3,15 @@ package benchmarks
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // BenchmarkOraclePriceUpdate benchmarks updating oracle prices
 func BenchmarkOraclePriceUpdate(b *testing.B) {
-	feeder := sdk.AccAddress("feeder______________")
-	pair := "PAW/USD"
-	price := sdk.NewDec(100)
+	_ = sdk.AccAddress("feeder______________")
+	_ = "PAW/USD"
+	_ = math.LegacyNewDec(100)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -23,7 +24,7 @@ func BenchmarkOraclePriceUpdate(b *testing.B) {
 
 // BenchmarkOraclePriceQuery benchmarks querying oracle prices
 func BenchmarkOraclePriceQuery(b *testing.B) {
-	pair := "PAW/USD"
+	_ = "PAW/USD"
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -36,7 +37,7 @@ func BenchmarkOraclePriceQuery(b *testing.B) {
 
 // BenchmarkOracleMedianCalculation benchmarks calculating median price
 func BenchmarkOracleMedianCalculation(b *testing.B) {
-	pair := "PAW/USD"
+	_ = "PAW/USD"
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -48,8 +49,8 @@ func BenchmarkOracleMedianCalculation(b *testing.B) {
 
 // BenchmarkOracleFeederRegistration benchmarks registering price feeders
 func BenchmarkOracleFeederRegistration(b *testing.B) {
-	validator := sdk.AccAddress("validator___________")
-	feeder := sdk.AccAddress("feeder______________")
+	_ = sdk.AccAddress("validator___________")
+	_ = sdk.AccAddress("feeder______________")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -59,7 +60,7 @@ func BenchmarkOracleFeederRegistration(b *testing.B) {
 
 // BenchmarkOracleSlashing benchmarks slashing inactive feeders
 func BenchmarkOracleSlashing(b *testing.B) {
-	validator := sdk.AccAddress("validator___________")
+	_ = sdk.AccAddress("validator___________")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
