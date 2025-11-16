@@ -24,6 +24,7 @@ Define a trustless cross-chain atomic swap protocol using Hash Time-Locked Contr
 Each atomic swap involves two mirrored HTLC contracts deployed on source and destination chains:
 
 **Core Components:**
+
 - **Hash Lock:** SHA-256 hash of a secret preimage (32 bytes). Only the swap initiator knows the preimage initially.
 - **Time Lock:** Absolute block height/timestamp after which refunds become possible.
 - **Participants:**
@@ -33,6 +34,7 @@ Each atomic swap involves two mirrored HTLC contracts deployed on source and des
   - `participant_refund_address`: Fallback address if swap fails
 
 **State Variables:**
+
 ```
 struct HTLCContract {
     bytes32 hash_lock;           // SHA-256(preimage)
@@ -54,6 +56,7 @@ enum SwapState { PENDING, REDEEMED, REFUNDED }
 ### 4-Phase Protocol
 
 #### Phase 1: Initiate
+
 1. Initiator generates random 32-byte preimage `P` and computes `H = SHA256(P)`.
 2. Initiator submits `MsgInitiateSwap` to source chain with:
    - `hash_lock = H`
@@ -65,6 +68,7 @@ enum SwapState { PENDING, REDEEMED, REFUNDED }
 4. Initiator communicates `H`, `swap_id`, and HTLC details to participant off-chain (via P2P, relayer, or API).
 
 #### Phase 2: Lock (Participate)
+
 1. Participant verifies initiator's HTLC exists on source chain via light client proof.
 2. Participant submits `MsgParticipateSwap` to destination chain with:
    - `hash_lock = H` (same hash from initiator)
@@ -75,6 +79,7 @@ enum SwapState { PENDING, REDEEMED, REFUNDED }
 3. Destination chain creates mirrored HTLC, locks participant's funds, emits `SwapParticipated` event.
 
 #### Phase 3: Reveal & Redeem
+
 1. Initiator monitors destination chain for `SwapParticipated` event.
 2. Initiator submits `MsgRedeemSwap` to destination chain with:
    - `swap_id`
@@ -88,6 +93,7 @@ enum SwapState { PENDING, REDEEMED, REFUNDED }
 **Result:** Swap completes atomically. Both parties receive their counterparty's assets.
 
 #### Phase 4: Refund (Timeout Path)
+
 If participant never locks funds OR initiator never reveals preimage:
 
 1. After `time_lock` expires on participant's chain (24h):
@@ -102,6 +108,7 @@ If participant never locks funds OR initiator never reveals preimage:
 ### Message Types
 
 #### MsgInitiateSwap
+
 ```protobuf
 message MsgInitiateSwap {
     string initiator = 1;                    // Bech32 address
@@ -115,6 +122,7 @@ message MsgInitiateSwap {
 ```
 
 #### MsgParticipateSwap
+
 ```protobuf
 message MsgParticipateSwap {
     string participant = 1;
@@ -128,6 +136,7 @@ message MsgParticipateSwap {
 ```
 
 #### MsgRedeemSwap
+
 ```protobuf
 message MsgRedeemSwap {
     string redeemer = 1;                     // Address claiming funds
@@ -137,6 +146,7 @@ message MsgRedeemSwap {
 ```
 
 #### MsgRefundSwap
+
 ```protobuf
 message MsgRefundSwap {
     string refunder = 1;                     // Must be initiator or participant
@@ -146,29 +156,32 @@ message MsgRefundSwap {
 
 ### Timeout Configuration
 
-| Parameter | Value | Rationale |
-| --------- | ----- | --------- |
+| Parameter              | Value    | Rationale                                                                        |
+| ---------------------- | -------- | -------------------------------------------------------------------------------- |
 | `participant_timelock` | 24 hours | Gives initiator 24h to redeem on destination chain after participant locks funds |
-| `initiator_timelock` | 48 hours | 24h safety margin after participant's timeout to handle chain congestion |
-| `reveal_grace_period` | 1 hour | Minimum time before participant timeout for initiator to safely reveal |
-| `max_swap_duration` | 7 days | Governance-adjustable maximum timelock to prevent capital lock-up abuse |
+| `initiator_timelock`   | 48 hours | 24h safety margin after participant's timeout to handle chain congestion         |
+| `reveal_grace_period`  | 1 hour   | Minimum time before participant timeout for initiator to safely reveal           |
+| `max_swap_duration`    | 7 days   | Governance-adjustable maximum timelock to prevent capital lock-up abuse          |
 
 **Clock Drift Protection:** All on-chain time comparisons use block timestamps with ±15-minute tolerance accounting for Bitcoin's variable block times.
 
 ### Cryptographic Primitives
 
 **Hash Function:** SHA-256 (FIPS 180-4 compliant)
+
 - Collision resistance: 2^128 security level
 - Preimage resistance: 2^256 security level
 - Standardized across all supported chains (Bitcoin, Ethereum, Cosmos SDK)
 
 **Preimage Generation:**
+
 ```
 preimage = CSPRNG(32 bytes)  // Cryptographically secure random number generator
 hash_lock = SHA256(preimage)
 ```
 
 **Swap ID Derivation (prevents replay attacks):**
+
 ```
 swap_id = SHA256(
     initiator_address ||
@@ -185,21 +198,25 @@ swap_id = SHA256(
 Each chain validates counterparty HTLCs via light client proofs:
 
 #### Cosmos IBC Chains
+
 - Use IBC light client verification (ICS-07 Tendermint).
 - Query Merkle proof of HTLC state from counterparty chain.
 - Verify proof against trusted consensus state.
 
 #### Ethereum
+
 - Maintain Ethereum light client (sync committee signatures post-merge).
 - Verify receipt logs via Merkle Patricia Trie proofs.
 - Storage proof validation for HTLC contract state.
 
 #### Bitcoin
+
 - SPV proofs for HTLC transaction inclusion.
 - Verify transaction outputs using Merkle proof against block header.
 - Require 6 confirmations (approximately 1 hour) before considering Bitcoin HTLC locked.
 
 **Light Client Update Frequency:**
+
 - Ethereum: Every epoch (~6.4 minutes)
 - Bitcoin: Every 10 blocks (~100 minutes)
 - Cosmos: Every block (~6 seconds)
@@ -207,16 +224,19 @@ Each chain validates counterparty HTLCs via light client proofs:
 ### Fee Structure
 
 **Swap Fee:** 0.1% of swap value
+
 - 70% to liquidity providers
 - 20% to protocol treasury
 - 10% to relayers (if assisted swap)
 
 **Fee Collection Points:**
+
 - Deducted from initiator's locked amount on source chain.
 - Distributed on swap completion (redemption).
 - Refunded proportionally if swap is refunded.
 
 **Gas Cost Estimation (Ethereum):**
+
 - `MsgInitiateSwap`: ~80,000 gas
 - `MsgParticipateSwap`: ~80,000 gas
 - `MsgRedeemSwap`: ~50,000 gas
@@ -224,14 +244,15 @@ Each chain validates counterparty HTLCs via light client proofs:
 
 ### Supported Chains (Phase 1)
 
-| Chain | Asset Support | Light Client | Estimated Launch |
-| ----- | ------------- | ------------ | ---------------- |
-| Cosmos Hub | ATOM, IBC tokens | Native IBC | Testnet Week 1 |
-| Osmosis | OSMO, IBC tokens | Native IBC | Testnet Week 1 |
-| Ethereum | ETH, ERC-20 | Sync Committee | Testnet Week 3 |
-| Bitcoin | BTC | SPV Client | Testnet Week 6 |
+| Chain      | Asset Support    | Light Client   | Estimated Launch |
+| ---------- | ---------------- | -------------- | ---------------- |
+| Cosmos Hub | ATOM, IBC tokens | Native IBC     | Testnet Week 1   |
+| Osmosis    | OSMO, IBC tokens | Native IBC     | Testnet Week 1   |
+| Ethereum   | ETH, ERC-20      | Sync Committee | Testnet Week 3   |
+| Bitcoin    | BTC              | SPV Client     | Testnet Week 6   |
 
 **Chain Adapters:** Abstraction layer mapping chain-specific primitives:
+
 - Address format conversion (Bech32, Ethereum hex, Bitcoin Base58)
 - Transaction signing (Secp256k1, ECDSA, Schnorr)
 - Block time normalization (seconds, block heights)
@@ -239,6 +260,7 @@ Each chain validates counterparty HTLCs via light client proofs:
 ## Security Considerations
 
 ### Timelock Safety Margins
+
 - **Problem:** Participant redeems on source chain, but initiator's refund window closes before participant can redeem on destination.
 - **Solution:** Participant timeout (24h) always < Initiator timeout (48h) with 24h margin accounting for:
   - Chain downtime (Byzantine faults, consensus halts)
@@ -246,11 +268,13 @@ Each chain validates counterparty HTLCs via light client proofs:
   - Cross-chain communication latency
 
 ### Hash Collision Resistance
+
 - **Threat:** Attacker finds second preimage `P'` where `SHA256(P') = SHA256(P)`.
 - **Mitigation:** SHA-256 provides 2^256 preimage resistance. Computationally infeasible with current/near-future hardware.
 - **Monitoring:** Protocol logs hash collisions (never expected to occur) for cryptographic break detection.
 
 ### Replay Attack Prevention
+
 - **Threat:** Reusing `swap_id` or `preimage` across different swaps to drain funds.
 - **Mitigation:**
   - `swap_id` includes chain-specific nonce and all swap parameters.
@@ -258,6 +282,7 @@ Each chain validates counterparty HTLCs via light client proofs:
   - Cross-chain replay prevented by embedding `chain_id` in `swap_id`.
 
 ### Front-Running Protection
+
 - **Threat:** Mempool watcher sees initiator's redemption transaction, extracts preimage, front-runs on source chain.
 - **Solution:**
   - **Commit-Reveal Enhancement:** Optional two-step redemption:
@@ -267,6 +292,7 @@ Each chain validates counterparty HTLCs via light client proofs:
   - **Grace Period:** Participant must wait `reveal_grace_period` (1h) after participant's lock before redeeming, giving initiator priority.
 
 ### MEV (Maximal Extractable Value) Mitigation
+
 - **Sandwich Attacks:** Not applicable—swaps execute at predetermined rates, no AMM slippage.
 - **Preimage Extraction:** Addressed via commit-reveal or private mempools.
 - **Time Bandit Attacks:** Validators reordering blocks to capture swap value. Mitigated by:
@@ -274,6 +300,7 @@ Each chain validates counterparty HTLCs via light client proofs:
   - Slashing conditions for provable time manipulation (if consensus supports).
 
 ### Griefing Attacks
+
 - **Capital Lock-Up Griefing:** Attacker initiates swaps, never reveals preimage, locking participant capital for 24h.
 - **Mitigation:**
   - Reputation system tracking swap completion rates.
@@ -281,6 +308,7 @@ Each chain validates counterparty HTLCs via light client proofs:
   - Rate limiting: Max 3 pending swaps per address per 24h window.
 
 ### Atomic Swap Censorship
+
 - **Threat:** Validators censor redemption transactions to force timeouts.
 - **Mitigation:**
   - Multi-relayer infrastructure ensuring redundancy.
@@ -290,9 +318,11 @@ Each chain validates counterparty HTLCs via light client proofs:
 ## API Endpoints
 
 ### POST /atomic-swap/prepare
+
 Prepares atomic swap parameters and returns unsigned HTLC transactions.
 
 **Request:**
+
 ```json
 {
   "source_chain": "cosmos-hub",
@@ -308,6 +338,7 @@ Prepares atomic swap parameters and returns unsigned HTLC transactions.
 ```
 
 **Response:**
+
 ```json
 {
   "swap_id": "0x1a2b3c...",
@@ -325,9 +356,11 @@ Prepares atomic swap parameters and returns unsigned HTLC transactions.
 ```
 
 ### POST /atomic-swap/commit
+
 Submits signed HTLC transactions to initiate or participate in swap.
 
 **Request:**
+
 ```json
 {
   "swap_id": "0x1a2b3c...",
@@ -338,6 +371,7 @@ Submits signed HTLC transactions to initiate or participate in swap.
 ```
 
 **Response:**
+
 ```json
 {
   "tx_hash": "0xABCDEF...",
@@ -348,9 +382,11 @@ Submits signed HTLC transactions to initiate or participate in swap.
 ```
 
 ### GET /atomic-swap/status/{swap_id}
+
 Queries current swap state across both chains.
 
 **Response:**
+
 ```json
 {
   "swap_id": "0x1a2b3c...",
@@ -381,9 +417,11 @@ Queries current swap state across both chains.
 ```
 
 ### WebSocket /atomic-swap/subscribe/{swap_id}
+
 Real-time updates for swap state transitions.
 
 **Events:**
+
 - `swap_initiated`
 - `swap_participated`
 - `swap_redeemed`
@@ -397,30 +435,35 @@ Real-time updates for swap state transitions.
 ### Testnet Phases
 
 **Phase 1: Single-Chain Testing (Week 1-2)**
+
 - Deploy HTLC module on AURA testnet.
 - Test all message types with test tokens.
 - Verify timeout mechanics using accelerated block times.
 - Stress test with 1000+ concurrent swaps.
 
 **Phase 2: Cross-Chain (Cosmos IBC) (Week 3-4)**
+
 - Integrate with Cosmos Hub testnet and Osmosis testnet.
 - Validate IBC light client proofs.
 - Test failure scenarios (chain halts, validator set changes).
 - Measure end-to-end swap latency.
 
 **Phase 3: Ethereum Integration (Week 5-7)**
+
 - Deploy Ethereum HTLC contracts on Sepolia testnet.
 - Sync committee light client integration.
 - Test ERC-20 and native ETH swaps.
 - Gas optimization benchmarks.
 
 **Phase 4: Bitcoin Integration (Week 8-10)**
+
 - Bitcoin testnet SPV client deployment.
 - HTLC using Bitcoin Script (OP_SHA256, OP_CHECKLOCKTIMEVERIFY).
 - Multi-signature fallback testing.
 - Confirmation depth sensitivity analysis.
 
 **Phase 5: Security Audit (Week 11-12)**
+
 - External audit of HTLC contracts and light clients.
 - Formal verification of timeout safety properties (TLA+ model).
 - Economic attack simulation (griefing, MEV).
@@ -437,17 +480,20 @@ Real-time updates for swap state transitions.
 ### Monitoring & Observability
 
 **On-Chain Metrics:**
+
 - Swap completion rate by chain pair.
 - Average time-to-completion vs. timeout.
 - Refund reasons (participant no-show, initiator no-reveal, timeout).
 - Fee collection and distribution.
 
 **Light Client Health:**
+
 - Sync delay (current block vs. latest verified header).
 - Proof verification failures and retry rates.
 - Consensus anomalies (fork detection, validator set discrepancies).
 
 **Alerting Thresholds:**
+
 - Completion rate <95% for any chain pair.
 - Light client sync delay >10 minutes.
 - Gas price spikes causing timeout failures.
@@ -461,9 +507,11 @@ Real-time updates for swap state transitions.
 ## Open Questions
 
 ### Should we support more complex multi-party swaps?
+
 **Use Case:** Triangular arbitrage (A→B→C→A) or 1-to-N swaps (airdrop splitting).
 
 **Challenges:**
+
 - Timeout ordering: Each leg needs progressively shorter timelocks, limiting depth.
 - Coordination overhead: All parties must be online simultaneously for reveals.
 - Increased attack surface: More participants = more griefing vectors.
@@ -471,15 +519,18 @@ Real-time updates for swap state transitions.
 **Recommendation:** Start with 2-party swaps (RFC-0007). Defer multi-party to RFC-0007-ext after production validation.
 
 ### Privacy Enhancements?
+
 - **Current State:** All swap parameters (amounts, participants, preimages) are public on-chain.
 - **Future Work:** Zero-knowledge proofs for private amounts, or integration with privacy chains (Penumbra, Zcash) requiring custom HTLC circuits.
 
 ### Adaptive Timeouts?
+
 - **Idea:** Dynamically adjust timelock durations based on network congestion or historical completion rates.
 - **Risk:** Complexity in ensuring timeout safety across chains with different adaptation algorithms.
 - **Decision:** Fixed timeouts for V1, gather data for V2 improvements.
 
 ### Cross-Chain Gas Payment?
+
 - **Problem:** User initiating Cosmos→Ethereum swap may lack ETH for gas.
 - **Solution:** Gas abstraction layer where relayers pay gas, deducted from swap amount. Requires relayer incentive model (additional 0.05% fee).
 

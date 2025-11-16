@@ -37,20 +37,21 @@ Reference diagrams: `docs/architecture/flows/verifier-proof-flow.puml` (proof re
 
 ## State Machine
 
-| State | Description | Transitions |
-| ----- | ----------- | ----------- |
-| `FreshInstall` | App just installed; no seed yet. | `FreshInstall`, `SeedGen`, `SeedImport` |
-| `SeedGen` | User creating new seed; not yet backed up. | `SeedBackedUp`, `Aborted` |
-| `SeedImport` | Import mnemonic or hardware link. | `SeedBackedUp`, `Aborted` |
-| `SeedBackedUp` | Backup confirmed; wallet locked until biometric binding. | `Ready` |
-| `Ready` | Normal operating state; headers synced, keys bound. | `SessionPending`, `Recovery`, `Compromised` |
-| `SessionPending` | WalletConnect session open awaiting biometrics. | `SessionApproved`, `SessionCancelled` |
-| `SessionApproved` | Proof executed, awaiting verifier response. | `Ready` |
-| `SessionCancelled` | User/retried; session cleared. | `Ready` |
-| `Recovery` | Device lost / reinstall; requires guardian approval if enabled. | `Ready`, `Compromised` |
-| `Compromised` | Keys suspected leaked; wallet nukes local state and prompts re-setup. | `FreshInstall` |
+| State              | Description                                                           | Transitions                                 |
+| ------------------ | --------------------------------------------------------------------- | ------------------------------------------- |
+| `FreshInstall`     | App just installed; no seed yet.                                      | `FreshInstall`, `SeedGen`, `SeedImport`     |
+| `SeedGen`          | User creating new seed; not yet backed up.                            | `SeedBackedUp`, `Aborted`                   |
+| `SeedImport`       | Import mnemonic or hardware link.                                     | `SeedBackedUp`, `Aborted`                   |
+| `SeedBackedUp`     | Backup confirmed; wallet locked until biometric binding.              | `Ready`                                     |
+| `Ready`            | Normal operating state; headers synced, keys bound.                   | `SessionPending`, `Recovery`, `Compromised` |
+| `SessionPending`   | WalletConnect session open awaiting biometrics.                       | `SessionApproved`, `SessionCancelled`       |
+| `SessionApproved`  | Proof executed, awaiting verifier response.                           | `Ready`                                     |
+| `SessionCancelled` | User/retried; session cleared.                                        | `Ready`                                     |
+| `Recovery`         | Device lost / reinstall; requires guardian approval if enabled.       | `Ready`, `Compromised`                      |
+| `Compromised`      | Keys suspected leaked; wallet nukes local state and prompts re-setup. | `FreshInstall`                              |
 
 Guards / triggers:
+
 - `SeedGen -> SeedBackedUp`: backup checklist (words written + camera confirmation) must succeed within 15 minutes.
 - `Ready -> SessionPending`: requires active network + latest header within drift tolerance (default 5 minutes).
 - `SessionPending -> SessionApproved`: biometric + secure enclave signature succeed; proof built and transmitted.

@@ -12,6 +12,8 @@ import (
 type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=50"`
 	Password string `json:"password" binding:"required,min=6"`
+	Recover  bool   `json:"recover,omitempty"`  // If true, recover from mnemonic
+	Mnemonic string `json:"mnemonic,omitempty"` // BIP39 mnemonic for recovery
 }
 
 // LoginRequest represents a login request
@@ -22,10 +24,24 @@ type LoginRequest struct {
 
 // AuthResponse represents authentication response
 type AuthResponse struct {
-	Token    string `json:"token"`
-	Username string `json:"username"`
-	UserID   string `json:"user_id"`
-	Address  string `json:"address,omitempty"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	ExpiresIn    int64  `json:"expires_in"` // Seconds until access token expires
+	Username     string `json:"username"`
+	UserID       string `json:"user_id"`
+	Address      string `json:"address,omitempty"`
+	Mnemonic     string `json:"mnemonic,omitempty"` // Only included on new wallet creation
+}
+
+// RefreshTokenRequest represents a token refresh request
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// RefreshTokenResponse represents a token refresh response
+type RefreshTokenResponse struct {
+	Token     string `json:"token"`
+	ExpiresIn int64  `json:"expires_in"` // Seconds until access token expires
 }
 
 // User represents a user in the system

@@ -106,6 +106,7 @@ make install-tools
 ```
 
 This installs:
+
 - golangci-lint (linting)
 - goimports (import formatting)
 - misspell (spell checking)
@@ -176,6 +177,7 @@ Infrastructure:
 ## Port Reference
 
 ### PAW Node 1
+
 - **26657**: Tendermint RPC
 - **1317**: REST API
 - **9090**: gRPC
@@ -183,11 +185,13 @@ Infrastructure:
 - **26656**: P2P
 
 ### PAW Node 2 (Docker only)
+
 - **26667**: Tendermint RPC
 - **1327**: REST API
 - **9091**: gRPC
 
 ### Services (Docker only)
+
 - **5432**: PostgreSQL
 - **6379**: Redis
 - **9090**: Prometheus
@@ -261,6 +265,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    - `PAW Extensive whitepaper .md` - Technical specifications
 
 2. Run help commands:
+
    ```bash
    pawd --help
    pawcli --help
@@ -268,6 +273,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
 3. Check logs:
+
    ```bash
    # Docker logs
    docker-compose -f docker-compose.dev.yml logs -f paw-node

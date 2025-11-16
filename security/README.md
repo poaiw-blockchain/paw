@@ -110,6 +110,7 @@ See `.github/workflows/security.yml` for details.
 ### For Developers
 
 1. **Before Committing**
+
    ```bash
    make security-audit-quick
    ```
@@ -135,6 +136,7 @@ See `.github/workflows/security.yml` for details.
 ### For Reviewers
 
 Security checklist:
+
 - [ ] No hardcoded secrets or keys
 - [ ] Proper crypto usage (crypto/rand, strong algorithms)
 - [ ] Input validation and sanitization
@@ -160,22 +162,27 @@ If you encounter false positives:
 ## Common Issues
 
 ### Weak Cryptography
+
 **Problem**: Use of MD5, SHA1, DES, or RC4
 **Solution**: Use SHA-256/SHA-512, AES-256-GCM, ECDSA/Ed25519
 
 ### Insecure Random
+
 **Problem**: Using `math/rand` instead of `crypto/rand`
 **Solution**: Always use `crypto/rand` for security-sensitive operations
 
 ### Hardcoded Secrets
+
 **Problem**: Credentials or keys in source code
 **Solution**: Use environment variables or secure key management
 
 ### Small Key Sizes
+
 **Problem**: RSA keys smaller than 2048 bits
 **Solution**: Use at least 2048-bit RSA, or prefer ECDSA (256-bit)
 
 ### Insecure TLS
+
 **Problem**: `InsecureSkipVerify: true` in TLS config
 **Solution**: Always verify certificates, use proper cert management
 
@@ -222,5 +229,6 @@ go install github.com/sonatype-nexus-community/nancy@latest
 ## Contact
 
 For security questions:
+
 - Security Team: security@pawblockchain.io
 - Security Policy: See `SECURITY.md` in project root

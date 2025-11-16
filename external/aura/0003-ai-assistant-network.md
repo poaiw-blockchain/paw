@@ -18,12 +18,14 @@ Define the on-chain/off-chain architecture for user-sponsored AI assistants, inc
 ## Detailed Design
 
 ### On-Chain Module
+
 - **State:** `AssistantRecord {address, owner_did, stake, locales[], model_hash, api_key_fingerprint, sponsorship_balance, heartbeat_ts}`.
 - **Messages:** `MsgRegisterAssistant`, `MsgUpdateLocales`, `MsgReportMisbehavior`, `MsgHeartbeat`.
 - **Slashing:** triggered by conflicting attestations, missed heartbeats, or fraud proofs submitted by monitors.
 - **Routing:** identity module queries active assistants per locale; fallback to global pool if undersupplied.
 
 ### Off-Chain Components
+
 - **GUI:** creates wallets, requests user API key, validates minimal hardware, guides IR capture, stores data locally, deletes on completion.
 - **Attestation Signer:** packages `{ir_id, proof_hash, model_hash, timestamp}` and signs with assistant key.
 - **Sponsorships:** optional encrypted vouchers from foundation/partners replenish compute credits without revealing user data.
@@ -46,4 +48,4 @@ Define the on-chain/off-chain architecture for user-sponsored AI assistants, inc
 ## Open Questions
 
 - How to quantify locale demand and auto-adjust staking requirements?
-- Should sponsorship vouchers be tradable NFTs? 
+- Should sponsorship vouchers be tradable NFTs?

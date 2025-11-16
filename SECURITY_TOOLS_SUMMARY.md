@@ -11,6 +11,7 @@ Comprehensive security audit and analysis tools have been configured for the PAW
 **Purpose**: Static Application Security Testing (SAST) for Go code
 
 **Installation**:
+
 ```bash
 go install github.com/securego/gosec/v2/cmd/gosec@latest
 ```
@@ -18,6 +19,7 @@ go install github.com/securego/gosec/v2/cmd/gosec@latest
 **Configuration**: `C:\users\decri\gitclones\paw\security\.gosec.yml`
 
 **Key Features**:
+
 - Detects weak cryptography (MD5, SHA1, DES, RC4)
 - Identifies hardcoded credentials
 - Checks for SQL injection vulnerabilities
@@ -27,12 +29,14 @@ go install github.com/securego/gosec/v2/cmd/gosec@latest
 - Identifies unsafe Go constructs
 
 **Blockchain-Specific Rules**:
+
 - Minimum RSA key size enforcement (2048 bits)
 - Crypto/rand vs math/rand validation
 - Strong hash function requirements (SHA-256, SHA-512)
 - ECDSA/Ed25519 signature validation
 
 **Usage**:
+
 ```bash
 # Command line
 gosec -conf security/.gosec.yml ./...
@@ -46,17 +50,20 @@ make security-audit-quick
 **Purpose**: Scans for known vulnerabilities in Go dependencies
 
 **Installation**:
+
 ```bash
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
 **Key Features**:
+
 - Uses official Go vulnerability database
 - Call stack analysis (only reports used code)
 - Low false positive rate
 - Direct integration with Go toolchain
 
 **Usage**:
+
 ```bash
 # Command line
 govulncheck ./...
@@ -70,6 +77,7 @@ make check-deps
 **Purpose**: Checks Go dependencies against Sonatype vulnerability database
 
 **Installation**:
+
 ```bash
 # Linux
 curl -L -o nancy https://github.com/sonatype-nexus-community/nancy/releases/latest/download/nancy-linux-amd64
@@ -88,6 +96,7 @@ sudo mv nancy /usr/local/bin/
 **Configuration**: `C:\users\decri\gitclones\paw\security\nancy-config.yml`
 
 **Usage**:
+
 ```bash
 # Command line
 go list -json -m all | nancy sleuth
@@ -101,6 +110,7 @@ make security-audit
 **Purpose**: Comprehensive security scanner for vulnerabilities, configuration issues, and secrets
 
 **Installation**:
+
 ```bash
 # macOS
 brew install trivy
@@ -116,6 +126,7 @@ sudo apt-get install trivy
 ```
 
 **Key Features**:
+
 - Dependency vulnerability scanning
 - Container image scanning
 - Configuration file auditing
@@ -123,6 +134,7 @@ sudo apt-get install trivy
 - IaC security scanning
 
 **Usage**:
+
 ```bash
 # Filesystem scan
 trivy fs --security-checks vuln,config,secret .
@@ -139,6 +151,7 @@ make security-audit
 **Purpose**: Detects hardcoded secrets, API keys, and credentials
 
 **Installation**:
+
 ```bash
 # macOS
 brew install gitleaks
@@ -155,6 +168,7 @@ sudo mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
 **Configuration**: `.gitleaksignore` for false positive management
 
 **Key Features**:
+
 - Scans current repository state
 - Can scan entire git history
 - Detects AWS keys, private keys, API tokens
@@ -162,6 +176,7 @@ sudo mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
 - Blockchain private key detection
 
 **Usage**:
+
 ```bash
 # Scan current state
 gitleaks detect --verbose
@@ -180,6 +195,7 @@ make scan-secrets
 **Location**: `C:\users\decri\gitclones\paw\security\crypto-check.go`
 
 **Key Features**:
+
 - Detects weak crypto algorithm imports
 - Identifies insecure random number generation
 - Finds hardcoded secrets and keys
@@ -188,6 +204,7 @@ make scan-secrets
 - Detects hex-encoded potential keys
 
 **Usage**:
+
 ```bash
 # Command line
 go run security/crypto-check.go
@@ -201,17 +218,20 @@ make crypto-check
 ### Security Audit Scripts
 
 **Bash Script**: `C:\users\decri\gitclones\paw\scripts\security-audit.sh`
+
 - Comprehensive multi-tool security audit
 - Runs all security tools sequentially
 - Generates summary reports
 - Exit codes for CI/CD integration
 
 **PowerShell Script**: `C:\users\decri\gitclones\paw\scripts\security-audit.ps1`
+
 - Windows-compatible version
 - Same functionality as bash script
 - Native Windows error handling
 
 **Dependency Check Script**: `C:\users\decri\gitclones\paw\scripts\check-deps.sh`
+
 - Focused dependency security checking
 - Verifies go.mod integrity
 - Checks for outdated dependencies
@@ -254,12 +274,14 @@ make security-report
 **File**: `C:\users\decri\gitclones\paw\.github\workflows\security.yml`
 
 **Triggers**:
+
 - Push to main/master/develop branches
 - Pull requests
 - Weekly scheduled scan (Sundays at midnight UTC)
 - Manual workflow dispatch
 
 **Jobs**:
+
 1. **GoSec** - Go security scanning with SARIF upload
 2. **Nancy** - Dependency vulnerability scanning
 3. **Govulncheck** - Official Go vulnerability check
@@ -271,6 +293,7 @@ make security-report
 9. **Summary** - Consolidated security report
 
 **Features**:
+
 - Results uploaded to GitHub Security tab
 - SARIF format for GitHub integration
 - JSON reports as artifacts
@@ -280,21 +303,27 @@ make security-report
 ## Configuration Files
 
 ### GoSec Configuration
+
 **File**: `C:\users\decri\gitclones\paw\security\.gosec.yml`
+
 - Blockchain-focused security rules
 - Severity and confidence levels
 - Exclusion patterns
 - Output formats
 
 ### Nancy Configuration
+
 **File**: `C:\users\decri\gitclones\paw\security\nancy-config.yml`
+
 - CVE exclusion list
 - Minimum severity levels
 - Output format settings
 - Timeout and retry configuration
 
 ### GitLeaks Ignore
+
 **File**: `C:\users\decri\gitclones\paw\.gitleaksignore`
+
 - False positive management
 - Test file exclusions
 - Documentation example exclusions
@@ -302,9 +331,11 @@ make security-report
 ## Documentation
 
 ### Security Testing Guide
+
 **File**: `C:\users\decri\gitclones\paw\security\SECURITY_TESTING.md`
 
 **Contents**:
+
 - Comprehensive tool descriptions
 - Security testing strategy
 - Usage instructions
@@ -314,9 +345,11 @@ make security-report
 - Common issues and solutions
 
 ### Security Directory README
+
 **File**: `C:\users\decri\gitclones\paw\security\README.md`
 
 **Contents**:
+
 - Quick start guide
 - Tool usage examples
 - CI/CD integration details
@@ -350,6 +383,7 @@ make dev-setup
 ```
 
 **Installed by dev-setup.sh**:
+
 - gosec
 - govulncheck
 - nancy (platform-specific)
@@ -406,14 +440,14 @@ ls -la security/
 
 ## Tool Comparison
 
-| Tool | Type | Focus | Output | Speed |
-|------|------|-------|--------|-------|
-| GoSec | SAST | Go code issues | SARIF, JSON, Text | Fast |
-| Govulncheck | SCA | Go vulnerabilities | Text, JSON | Fast |
-| Nancy | SCA | Dep vulnerabilities | Text, JSON | Fast |
-| Trivy | Multi | Vuln, Config, Secrets | SARIF, JSON, Table | Medium |
-| GitLeaks | Secret | Hardcoded secrets | JSON, Text | Fast |
-| Crypto Check | Custom | Crypto usage | Text | Fast |
+| Tool         | Type   | Focus                 | Output             | Speed  |
+| ------------ | ------ | --------------------- | ------------------ | ------ |
+| GoSec        | SAST   | Go code issues        | SARIF, JSON, Text  | Fast   |
+| Govulncheck  | SCA    | Go vulnerabilities    | Text, JSON         | Fast   |
+| Nancy        | SCA    | Dep vulnerabilities   | Text, JSON         | Fast   |
+| Trivy        | Multi  | Vuln, Config, Secrets | SARIF, JSON, Table | Medium |
+| GitLeaks     | Secret | Hardcoded secrets     | JSON, Text         | Fast   |
+| Crypto Check | Custom | Crypto usage          | Text               | Fast   |
 
 ## Best Practices
 
@@ -472,6 +506,7 @@ make security-audit
 **Security Team**: security@pawblockchain.io
 
 **Resources**:
+
 - Main security policy: `SECURITY.md`
 - Testing guide: `security/SECURITY_TESTING.md`
 - Tool documentation: `security/README.md`
@@ -493,6 +528,7 @@ make security-audit
 ## Summary
 
 The PAW blockchain project now has comprehensive security tooling covering:
+
 - ✓ Static code analysis (GoSec, CodeQL)
 - ✓ Dependency vulnerability scanning (Govulncheck, Nancy)
 - ✓ Secret detection (GitLeaks)

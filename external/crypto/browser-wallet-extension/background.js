@@ -8,7 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'getApiHost') {
-    chrome.storage.local.get(['apiHost'], (result) => {
+    chrome.storage.local.get(['apiHost'], result => {
       sendResponse({ apiHost: result.apiHost || DEFAULT_API_HOST });
     });
     return true;

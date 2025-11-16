@@ -5,6 +5,7 @@ This module implements an Automated Market Maker (AMM) decentralized exchange wi
 ## Overview
 
 The DEX module provides liquidity pools for token swaps with the following features:
+
 - Constant product AMM formula: `x * y = k`
 - 0.3% swap fee (0.25% to LPs, 0.05% to protocol)
 - Permissionless pool creation
@@ -16,6 +17,7 @@ The DEX module provides liquidity pools for token swaps with the following featu
 ### Core Types
 
 **Pool Structure** (`x/dex/types/types.go`):
+
 ```go
 type Pool struct {
     Id          uint64
@@ -58,6 +60,7 @@ All message types are defined in `x/dex/types/` and implement the `sdk.Msg` inte
 The keeper (`x/dex/keeper/keeper.go`) implements core business logic:
 
 **Key Methods:**
+
 - `CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)` - Creates new liquidity pool
 - `Swap(ctx, trader, poolId, tokenIn, tokenOut, amountIn, minAmountOut)` - Executes token swap
 - `AddLiquidity(ctx, provider, poolId, amountA, amountB)` - Adds liquidity to pool
@@ -65,6 +68,7 @@ The keeper (`x/dex/keeper/keeper.go`) implements core business logic:
 - `CalculateSwapAmount(reserveIn, reserveOut, amountIn)` - Implements AMM formula
 
 **AMM Formula Implementation:**
+
 ```go
 // Constant product with 0.3% fee
 func CalculateSwapAmount(reserveIn, reserveOut, amountIn sdk.Int) sdk.Int {
@@ -80,6 +84,7 @@ This implements: `amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 
 ### Message Server
 
 The message server (`x/dex/keeper/msg_server.go`) handles incoming transactions:
+
 - Routes messages to appropriate keeper methods
 - Validates message signatures and authorization
 - Emits events for successful operations
@@ -87,6 +92,7 @@ The message server (`x/dex/keeper/msg_server.go`) handles incoming transactions:
 ### Module Definition
 
 The module (`x/dex/module.go`) implements:
+
 - `AppModuleBasic` interface for basic module functionality
 - `AppModule` interface for full module implementation
 - Genesis initialization and export
@@ -98,16 +104,17 @@ The module (`x/dex/module.go`) implements:
 
 Defined in `x/dex/types/keys.go`:
 
-| Key Prefix | Purpose | Format |
-|------------|---------|--------|
-| `0x01` | Pool storage | `pool_id -> Pool` |
-| `0x02` | Pool counter | `-> next_pool_id` |
-| `0x03` | LP shares | `pool_id + provider -> shares` |
-| `0x04` | Pool lookup | `token_pair -> pool_id` |
+| Key Prefix | Purpose      | Format                         |
+| ---------- | ------------ | ------------------------------ |
+| `0x01`     | Pool storage | `pool_id -> Pool`              |
+| `0x02`     | Pool counter | `-> next_pool_id`              |
+| `0x03`     | LP shares    | `pool_id + provider -> shares` |
+| `0x04`     | Pool lookup  | `token_pair -> pool_id`        |
 
 ### Pool Lookup
 
 Pools are indexed by token pair for efficient discovery:
+
 ```go
 GetPoolByTokens(tokenA, tokenB) -> Pool
 ```
@@ -118,12 +125,12 @@ Token pairs are normalized (alphabetically sorted) to ensure unique lookup.
 
 As specified in `docs/TECHNICAL_SPECIFICATION.md` section 6:
 
-| Operation | Gas Cost | Notes |
-|-----------|----------|-------|
-| Create Pool | 50,000+ | Base + storage |
-| Swap | 150,000 | DEX swap operation |
-| Add Liquidity | 100,000+ | Base + storage |
-| Remove Liquidity | 80,000+ | Base + computation |
+| Operation        | Gas Cost | Notes              |
+| ---------------- | -------- | ------------------ |
+| Create Pool      | 50,000+  | Base + storage     |
+| Swap             | 150,000  | DEX swap operation |
+| Add Liquidity    | 100,000+ | Base + storage     |
+| Remove Liquidity | 80,000+  | Base + computation |
 
 ## Error Types
 
@@ -142,6 +149,7 @@ Defined in `x/dex/types/errors.go`:
 Each transaction emits events for indexing:
 
 **CreatePool:**
+
 ```
 - pool_id
 - creator
@@ -152,6 +160,7 @@ Each transaction emits events for indexing:
 ```
 
 **Swap:**
+
 ```
 - pool_id
 - trader
@@ -162,6 +171,7 @@ Each transaction emits events for indexing:
 ```
 
 **AddLiquidity:**
+
 ```
 - pool_id
 - provider
@@ -171,6 +181,7 @@ Each transaction emits events for indexing:
 ```
 
 **RemoveLiquidity:**
+
 ```
 - pool_id
 - provider
@@ -192,6 +203,7 @@ Defined in `x/dex/types/params.go`:
 ## Genesis State
 
 Genesis state includes:
+
 ```go
 type GenesisState struct {
     Params     Params
@@ -213,6 +225,7 @@ Located in `proto/paw/dex/v1/`:
 To integrate the DEX module:
 
 1. Register in app.go:
+
 ```go
 dexKeeper := dexkeeper.NewKeeper(
     appCodec,
@@ -230,11 +243,13 @@ app.ModuleManager = module.NewManager(
 ```
 
 2. Add to genesis:
+
 ```go
 genesisState[dextypes.ModuleName] = dextypes.DefaultGenesis()
 ```
 
 3. Generate protobuf code:
+
 ```bash
 make proto-gen
 ```
@@ -242,6 +257,7 @@ make proto-gen
 ## Testing
 
 Run tests:
+
 ```bash
 go test ./x/dex/...
 ```
@@ -249,6 +265,7 @@ go test ./x/dex/...
 ## Future Enhancements
 
 Potential improvements:
+
 - Multi-hop swaps (routing through multiple pools)
 - Concentrated liquidity (Uniswap v3 style)
 - Price oracles integration
@@ -260,6 +277,7 @@ Potential improvements:
 ## Files Created
 
 ### Types (`x/dex/types/`)
+
 - ✅ `types.go` - Pool structure and validation
 - ✅ `keys.go` - Store keys and prefixes
 - ✅ `errors.go` - Error definitions
@@ -272,14 +290,17 @@ Potential improvements:
 - ✅ `msg_remove_liquidity.go` - Remove liquidity message
 
 ### Keeper (`x/dex/keeper/`)
+
 - ✅ `keeper.go` - Core keeper with AMM logic
 - ✅ `msg_server.go` - Message server implementation
 - ✅ `genesis.go` - Genesis initialization/export
 
 ### Module
+
 - ✅ `module.go` - Module definition (pre-existing, interfaces defined)
 
 ### Protobuf Definitions (`proto/paw/dex/v1/`)
+
 - ✅ `dex.proto` - Pre-existing
 - ✅ `tx.proto` - Pre-existing
 - ✅ `query.proto` - Pre-existing
@@ -287,6 +308,7 @@ Potential improvements:
 ## Summary
 
 The DEX module is now fully implemented with:
+
 - ✅ Constant product AMM formula (Uniswap v2 style)
 - ✅ 0.3% fee structure (0.25% LP + 0.05% protocol)
 - ✅ All four core transaction types

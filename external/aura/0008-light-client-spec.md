@@ -32,6 +32,7 @@ Light clients operate under the following security assumptions:
 Light clients verify block headers using validator set signatures:
 
 **Header Structure:**
+
 ```
 Header {
   version: u64,
@@ -52,6 +53,7 @@ Header {
 ```
 
 **Signature Verification:**
+
 ```
 Commit {
   height: u64,
@@ -78,6 +80,7 @@ Vote (canonical encoding) = SignBytes(
 ```
 
 **Verification Algorithm:**
+
 1. Parse header `H` and commit `C` from trusted peer
 2. Verify `C.height == H.height`
 3. Verify `C.block_id == BlockID(H)`
@@ -96,6 +99,7 @@ Vote (canonical encoding) = SignBytes(
 Light clients verify application state using Merkle proofs against `app_hash` in verified headers.
 
 **IAVL Tree Specification:**
+
 - Tree structure: AVL-balanced Merkle tree (IAVL)
 - Hash function: SHA-256
 - Internal node hash: `SHA-256(height || size || left_hash || right_hash)`
@@ -103,6 +107,7 @@ Light clients verify application state using Merkle proofs against `app_hash` in
 - Value hash: `SHA-256(value)`
 
 **Proof Format:**
+
 ```
 MerkleProof {
   key: bytes,
@@ -116,6 +121,7 @@ MerkleProof {
 ```
 
 **Verification Algorithm:**
+
 ```rust
 fn verify_merkle_proof(
   proof: &MerkleProof,
@@ -138,6 +144,7 @@ fn verify_merkle_proof(
 ### Sync Protocol
 
 **1. Initial Trust Setup:**
+
 ```
 TrustedHeader {
   header: Header,
@@ -153,6 +160,7 @@ TrustedHeader {
 ```
 
 **2. Sequential Header Sync:**
+
 ```
 // Verify header at height H+1 using trusted header at H
 fn verify_adjacent(
@@ -184,6 +192,7 @@ fn verify_adjacent(
 ```
 
 **3. Bisection Algorithm (Fast Sync):**
+
 ```
 // Skip from height H to H+n efficiently
 fn verify_skipping(
@@ -217,6 +226,7 @@ fn verify_skipping(
 ```
 
 **4. Trust Period & Clock Drift:**
+
 - **Trust Period:** Maximum time between header updates before trust expires (default: 14 days).
 - **Clock Drift Tolerance:** Accept headers with timestamp within ±5 minutes of local clock.
 - **Header Refresh Policy:** Fetch new header if latest is >5 minutes old or before generating proofs.
@@ -226,6 +236,7 @@ fn verify_skipping(
 Light clients can trustlessly verify:
 
 **Transaction Inclusion:**
+
 ```
 TxProof {
   tx: Transaction,
@@ -241,6 +252,7 @@ verify_tx_inclusion(proof: &TxProof) -> bool {
 ```
 
 **Account Balance:**
+
 ```
 AccountProof {
   address: Address,
@@ -262,6 +274,7 @@ verify_account_state(proof: &AccountProof) -> bool {
 ```
 
 **Verifiable Credential Status:**
+
 ```
 VCStatusProof {
   vc_id: Hash,
@@ -274,6 +287,7 @@ VCStatusProof {
 ```
 
 **Contract State:**
+
 ```
 ContractStateProof {
   contract_address: Address,
@@ -291,6 +305,7 @@ ContractStateProof {
 Full nodes expose the following RPC endpoints for light client synchronization:
 
 **GET /light-client/headers?from={height}&to={height}**
+
 ```json
 Response: {
   "headers": [
@@ -320,6 +335,7 @@ Response: {
 ```
 
 **GET /light-client/checkpoint**
+
 ```json
 Response: {
   "header": {...},
@@ -332,6 +348,7 @@ Response: {
 ```
 
 **GET /light-client/tx-proof/{txid}**
+
 ```json
 Response: {
   "tx": "base64...",              // Transaction bytes
@@ -350,6 +367,7 @@ Response: {
 ```
 
 **GET /light-client/account-proof/{address}?height={height}**
+
 ```json
 Response: {
   "address": "cosmos1...",
@@ -374,6 +392,7 @@ Response: {
 ```
 
 **GET /light-client/vc-status-proof/{vc_id}**
+
 ```json
 Response: {
   "vc_id": "0x...",
@@ -391,26 +410,31 @@ Response: {
 ### Threat Mitigation
 
 **1. Byzantine Validators (<1/3 stake):**
+
 - Cannot forge valid commits (require >2/3 signatures)
 - Can withhold data but not create false state
 - Detection: Conflicting signatures constitute slashable evidence
 
 **2. Eclipse Attacks:**
+
 - Mitigation: Connect to multiple full node endpoints
 - Cross-reference headers from ≥3 independent peers
 - Reject if any peer provides conflicting header at same height
 
 **3. Long-Range Attacks:**
+
 - Trust period bounds how far back adversary can rewrite history
 - After trust period expires, require new trusted checkpoint from social layer
 - Cannot attack within trust period without controlling >1/3 stake at time of attack
 
 **4. Invalid State Transitions:**
+
 - Fraud Proofs: Any full node can submit proof that validator set committed to invalid state transition
 - Proof format: `{prev_state_root, block, next_state_root, witness}` where witness demonstrates state transition invalidity
 - Light client upgrades to full verification if fraud proof confirmed
 
 **5. Timestamp Manipulation:**
+
 - Bounded by BFT time (median of validator timestamps)
 - Light client rejects headers with timestamps >5min ahead of local clock
 - Prevents time-based attacks on VC expiration, governance deadlines
@@ -505,6 +529,7 @@ pub struct LightClientConfig {
 ```
 
 **Dependencies:**
+
 - `ed25519-dalek` for signature verification
 - `sha2` for hashing
 - `serde` for serialization
@@ -555,6 +580,7 @@ class AuraLightClient {
 Trusted header storage on mobile devices:
 
 **iOS (Keychain):**
+
 ```swift
 // Store encrypted checkpoint in keychain
 let checkpoint = try lightClient.exportCheckpoint()
@@ -571,6 +597,7 @@ SecItemAdd(query as CFDictionary, nil)
 ```
 
 **Android (EncryptedSharedPreferences):**
+
 ```kotlin
 val masterKey = MasterKey.Builder(context)
   .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -633,6 +660,7 @@ mod fuzz_targets {
 ```
 
 **Fuzzing Parameters:**
+
 - 1M+ executions per target
 - Coverage-guided (libFuzzer)
 - Sanitizers: AddressSanitizer, MemorySanitizer, UndefinedBehaviorSanitizer
@@ -692,6 +720,7 @@ Before mainnet release:
 - Verify fraud proof detection with intentionally malicious validator
 
 **Success Criteria:**
+
 - <1s proof verification on mobile (iPhone 12, Pixel 5)
 - <10s sync from genesis to 1K blocks (sequential)
 - <30s sync from genesis to 100K blocks (bisection)

@@ -9,9 +9,9 @@ groups:
           severity: critical
           component: consensus
         annotations:
-          summary: "Block production has stopped on {{ $labels.instance }}"
-          description: "No new blocks produced in the last 5 minutes"
-          runbook_url: "https://docs.paw.network/runbooks/block-production"
+          summary: 'Block production has stopped on {{ $labels.instance }}'
+          description: 'No new blocks produced in the last 5 minutes'
+          runbook_url: 'https://docs.paw.network/runbooks/block-production'
 
       - alert: LowPeerCount
         expr: tendermint_p2p_peers < 3
@@ -20,8 +20,8 @@ groups:
           severity: warning
           component: p2p
         annotations:
-          summary: "Low peer count on {{ $labels.instance }}"
-          description: "Current peer count: {{ $value }}. Minimum recommended: 3"
+          summary: 'Low peer count on {{ $labels.instance }}'
+          description: 'Current peer count: {{ $value }}. Minimum recommended: 3'
 
       - alert: HighBlockTime
         expr: rate(tendermint_consensus_height[5m]) < 0.1
@@ -30,8 +30,8 @@ groups:
           severity: warning
           component: consensus
         annotations:
-          summary: "Block time is unusually high"
-          description: "Block production rate: {{ $value }} blocks/sec (expected ~0.2)"
+          summary: 'Block time is unusually high'
+          description: 'Block production rate: {{ $value }} blocks/sec (expected ~0.2)'
 
       - alert: ValidatorMissedBlocks
         expr: increase(tendermint_consensus_validator_missed_blocks[1h]) > 10
@@ -40,8 +40,8 @@ groups:
           severity: warning
           component: validator
         annotations:
-          summary: "Validator missing blocks"
-          description: "Validator has missed {{ $value }} blocks in the last hour"
+          summary: 'Validator missing blocks'
+          description: 'Validator has missed {{ $value }} blocks in the last hour'
 
   - name: transaction_health
     interval: 30s
@@ -53,8 +53,8 @@ groups:
           severity: warning
           component: transactions
         annotations:
-          summary: "High transaction processing latency"
-          description: "95th percentile tx latency: {{ $value }}ms (threshold: 2000ms)"
+          summary: 'High transaction processing latency'
+          description: '95th percentile tx latency: {{ $value }}ms (threshold: 2000ms)'
 
       - alert: TransactionPoolFull
         expr: tendermint_mempool_size > 5000
@@ -63,8 +63,8 @@ groups:
           severity: warning
           component: mempool
         annotations:
-          summary: "Transaction mempool is nearly full"
-          description: "Current mempool size: {{ $value }} transactions"
+          summary: 'Transaction mempool is nearly full'
+          description: 'Current mempool size: {{ $value }} transactions'
 
       - alert: HighTransactionFailureRate
         expr: rate(cosmos_tx_failed_total[5m]) / rate(cosmos_tx_total[5m]) > 0.1
@@ -73,8 +73,8 @@ groups:
           severity: warning
           component: transactions
         annotations:
-          summary: "High transaction failure rate"
-          description: "Failure rate: {{ $value | humanizePercentage }}"
+          summary: 'High transaction failure rate'
+          description: 'Failure rate: {{ $value | humanizePercentage }}'
 
   - name: dex_health
     interval: 30s
@@ -86,8 +86,8 @@ groups:
           severity: warning
           component: dex
         annotations:
-          summary: "Low liquidity in pool {{ $labels.pool_id }}"
-          description: "Current reserves: {{ $value }} for {{ $labels.token }}"
+          summary: 'Low liquidity in pool {{ $labels.pool_id }}'
+          description: 'Current reserves: {{ $value }} for {{ $labels.token }}'
 
       - alert: HighSwapFailureRate
         expr: rate(paw_dex_swap_failures_total[5m]) / rate(paw_dex_swaps_total[5m]) > 0.05
@@ -96,8 +96,8 @@ groups:
           severity: warning
           component: dex
         annotations:
-          summary: "High DEX swap failure rate"
-          description: "Swap failure rate: {{ $value | humanizePercentage }}"
+          summary: 'High DEX swap failure rate'
+          description: 'Swap failure rate: {{ $value | humanizePercentage }}'
 
       - alert: AbnormalSwapVolume
         expr: abs(paw_dex_swap_volume_24h - paw_dex_swap_volume_24h offset 24h) / paw_dex_swap_volume_24h offset 24h > 0.5
@@ -106,8 +106,8 @@ groups:
           severity: info
           component: dex
         annotations:
-          summary: "Abnormal swap volume detected"
-          description: "24h volume change: {{ $value | humanizePercentage }} for {{ $labels.token }}"
+          summary: 'Abnormal swap volume detected'
+          description: '24h volume change: {{ $value | humanizePercentage }} for {{ $labels.token }}'
 
   - name: system_resources
     interval: 30s
@@ -119,8 +119,8 @@ groups:
           severity: warning
           component: system
         annotations:
-          summary: "High CPU usage on {{ $labels.instance }}"
-          description: "CPU usage: {{ $value }}%"
+          summary: 'High CPU usage on {{ $labels.instance }}'
+          description: 'CPU usage: {{ $value }}%'
 
       - alert: HighMemoryUsage
         expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
@@ -129,8 +129,8 @@ groups:
           severity: warning
           component: system
         annotations:
-          summary: "High memory usage on {{ $labels.instance }}"
-          description: "Memory usage: {{ $value }}%"
+          summary: 'High memory usage on {{ $labels.instance }}'
+          description: 'Memory usage: {{ $value }}%'
 
       - alert: LowDiskSpace
         expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
@@ -139,8 +139,8 @@ groups:
           severity: critical
           component: system
         annotations:
-          summary: "Low disk space on {{ $labels.instance }}"
-          description: "Available disk space: {{ $value }}%"
+          summary: 'Low disk space on {{ $labels.instance }}'
+          description: 'Available disk space: {{ $value }}%'
 
       - alert: HighDiskIOWait
         expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
@@ -149,8 +149,8 @@ groups:
           severity: warning
           component: system
         annotations:
-          summary: "High disk I/O wait time"
-          description: "I/O wait ratio: {{ $value }}"
+          summary: 'High disk I/O wait time'
+          description: 'I/O wait ratio: {{ $value }}'
 
   - name: api_health
     interval: 30s
@@ -162,8 +162,8 @@ groups:
           severity: warning
           component: api
         annotations:
-          summary: "High API latency"
-          description: "95th percentile latency: {{ $value }}s"
+          summary: 'High API latency'
+          description: '95th percentile latency: {{ $value }}s'
 
       - alert: HighAPIErrorRate
         expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
@@ -172,5 +172,5 @@ groups:
           severity: critical
           component: api
         annotations:
-          summary: "High API error rate"
-          description: "Error rate: {{ $value | humanizePercentage }}"
+          summary: 'High API error rate'
+          description: 'Error rate: {{ $value | humanizePercentage }}'

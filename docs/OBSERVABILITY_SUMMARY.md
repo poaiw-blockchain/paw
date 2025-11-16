@@ -15,6 +15,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 1. Block Explorers (2)
 
 #### Big Dipper
+
 - **Purpose**: User-friendly blockchain explorer UI
 - **Port**: 3001
 - **Database**: PostgreSQL
@@ -22,6 +23,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\explorer\docker-compose.yml`
 
 #### Mintscan Backend
+
 - **Purpose**: REST API for blockchain data
 - **Port**: 8080
 - **Database**: PostgreSQL
@@ -31,6 +33,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 2. Metrics Collection (1)
 
 #### Prometheus
+
 - **Purpose**: Time-series metrics database
 - **Port**: 9090
 - **Retention**: 30 days (configurable)
@@ -38,6 +41,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\infra\monitoring\prometheus.yml`
 
 **Scrape Jobs:**
+
 - `paw-tendermint` (:26660) - Consensus metrics
 - `paw-api` (:1317) - REST API metrics
 - `paw-app` (:26661) - Application metrics
@@ -48,6 +52,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 3. Visualization (1)
 
 #### Grafana
+
 - **Purpose**: Metrics visualization & dashboards
 - **Port**: 3000
 - **Credentials**: admin/admin (change in production!)
@@ -55,6 +60,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\infra\monitoring\grafana-dashboards\`
 
 **Dashboard Panels (14 total):**
+
 1. Block Height (time series)
 2. Blocks Per Second
 3. Transaction Throughput
@@ -73,6 +79,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 4. Log Aggregation (2)
 
 #### Loki
+
 - **Purpose**: Log storage and querying
 - **Port**: 3100
 - **Retention**: 30 days
@@ -80,12 +87,14 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\infra\logging\loki-config.yaml`
 
 #### Promtail
+
 - **Purpose**: Log shipping to Loki
 - **Port**: 9080
 - **Log Sources**: 6 configured
 - **Location**: `C:\users\decri\gitclones\paw\infra\logging\promtail-config.yaml`
 
 **Log Sources:**
+
 - `/var/log/paw/node.log` - Node logs
 - `/var/log/paw/tendermint.log` - Consensus logs
 - `/var/log/paw/dex.log` - DEX module logs
@@ -96,6 +105,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 5. Distributed Tracing (1)
 
 #### Jaeger (All-in-One)
+
 - **Purpose**: Distributed request tracing
 - **Port**: 16686 (UI), 4317/4318 (OTLP)
 - **Backend**: Badger (persistent)
@@ -103,6 +113,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\infra\tracing\jaeger-config.yaml`
 
 **Traced Operations:**
+
 - Transaction execution
 - Module execution (DEX, compute, oracle)
 - DEX operations (swaps, liquidity)
@@ -112,6 +123,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 6. Alerting (1)
 
 #### Alertmanager
+
 - **Purpose**: Alert routing and notifications
 - **Port**: 9093
 - **Channels**: Slack, PagerDuty
@@ -119,6 +131,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 - **Location**: `C:\users\decri\gitclones\paw\infra\monitoring\alertmanager.yml`
 
 **Alert Categories:**
+
 - **Critical** (3): Block production stopped, high API errors, low disk
 - **Warning** (12): Low peers, high latency, resource usage, DEX issues
 - **Info** (3): Volume changes, arbitrage opportunities
@@ -126,12 +139,14 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 7. System Metrics (2)
 
 #### Node Exporter
+
 - **Purpose**: System-level metrics (CPU, memory, disk, network)
 - **Port**: 9100
 - **Metrics**: 100+ system metrics
 - **Auto-deployed**: Yes
 
 #### cAdvisor
+
 - **Purpose**: Container resource metrics
 - **Port**: 8081
 - **Metrics**: Docker container stats
@@ -140,6 +155,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### 8. Application Instrumentation (3 Go files)
 
 #### Telemetry Module
+
 - **File**: `C:\users\decri\gitclones\paw\app\telemetry.go`
 - **Size**: 7.3 KB
 - **Features**:
@@ -151,6 +167,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
   - Custom metrics
 
 #### DEX Metrics
+
 - **File**: `C:\users\decri\gitclones\paw\x\dex\keeper\metrics.go`
 - **Size**: 8.2 KB
 - **Metrics**: 25 custom metrics
@@ -163,6 +180,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
   - Advanced metrics (arbitrage, impermanent loss)
 
 #### Health Checks
+
 - **File**: `C:\users\decri\gitclones\paw\api\health\health.go`
 - **Size**: 7.3 KB
 - **Endpoints**:
@@ -183,6 +201,7 @@ Comprehensive blockchain-specific monitoring, observability, and block explorer 
 ### Blockchain Metrics (40+)
 
 #### Tendermint/CometBFT
+
 ```
 tendermint_consensus_height               # Current block height
 tendermint_consensus_rounds               # Consensus rounds
@@ -193,6 +212,7 @@ tendermint_consensus_validator_missed_blocks  # Missed blocks
 ```
 
 #### Cosmos SDK
+
 ```
 cosmos_tx_total                           # Total transactions
 cosmos_tx_failed_total                    # Failed transactions
@@ -205,6 +225,7 @@ cosmos_block_height                       # Block height
 ### DEX Metrics (25 custom)
 
 #### Swap Metrics
+
 ```
 paw_dex_swaps_total{pool_id,token_in,token_out}       # Swap count
 paw_dex_swap_failures_total{pool_id,reason}            # Failed swaps
@@ -213,6 +234,7 @@ paw_dex_swap_latency_ms{pool_id}                       # Swap latency
 ```
 
 #### Pool Metrics
+
 ```
 paw_dex_pool_reserves{pool_id,token}                   # Pool reserves
 paw_dex_pool_liquidity_usd{pool_id}                    # Total liquidity
@@ -221,6 +243,7 @@ paw_dex_pool_apy{pool_id}                              # Pool APY
 ```
 
 #### Liquidity Provider Metrics
+
 ```
 paw_dex_lp_tokens_minted_total{pool_id}               # LP tokens minted
 paw_dex_lp_tokens_burned_total{pool_id}               # LP tokens burned
@@ -229,6 +252,7 @@ paw_dex_liquidity_removed_total{pool_id,token}        # Liquidity removed
 ```
 
 #### Fee & Price Metrics
+
 ```
 paw_dex_fees_collected_total{pool_id,token}           # Fees collected
 paw_dex_fees_distributed_total{pool_id,token}         # Fees to LPs
@@ -239,6 +263,7 @@ paw_dex_slippage_exceeded_total{pool_id}              # Slippage exceeded
 ```
 
 #### Advanced Metrics
+
 ```
 paw_dex_arbitrage_opportunities_total{pool_pair}      # Arb opportunities
 paw_dex_impermanent_loss_percent{pool_id}             # IL estimation
@@ -336,16 +361,16 @@ make monitoring-status  # See what's running
 
 ## Access URLs
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Grafana | http://localhost:3000 | admin/admin |
-| Prometheus | http://localhost:9090 | None |
-| Jaeger UI | http://localhost:16686 | None |
-| Alertmanager | http://localhost:9093 | None |
-| Big Dipper | http://localhost:3001 | None |
-| Mintscan API | http://localhost:8080 | None |
-| Node Exporter | http://localhost:9100/metrics | None |
-| cAdvisor | http://localhost:8081 | None |
+| Service       | URL                           | Credentials |
+| ------------- | ----------------------------- | ----------- |
+| Grafana       | http://localhost:3000         | admin/admin |
+| Prometheus    | http://localhost:9090         | None        |
+| Jaeger UI     | http://localhost:16686        | None        |
+| Alertmanager  | http://localhost:9093         | None        |
+| Big Dipper    | http://localhost:3001         | None        |
+| Mintscan API  | http://localhost:8080         | None        |
+| Node Exporter | http://localhost:9100/metrics | None        |
+| cAdvisor      | http://localhost:8081         | None        |
 
 ---
 
@@ -393,6 +418,7 @@ C:\users\decri\gitclones\paw\
 ## Production Checklist
 
 ### Security
+
 - [ ] Change Grafana default password
 - [ ] Enable authentication on Prometheus/Alertmanager
 - [ ] Use TLS for all metric endpoints
@@ -402,6 +428,7 @@ C:\users\decri\gitclones\paw\
 - [ ] Sanitize alert messages
 
 ### Scalability
+
 - [ ] Separate monitoring stack from blockchain nodes
 - [ ] Configure persistent volumes for data
 - [ ] Set up remote storage for long-term retention
@@ -410,6 +437,7 @@ C:\users\decri\gitclones\paw\
 - [ ] Use service discovery for dynamic nodes
 
 ### Monitoring
+
 - [ ] Import Grafana dashboard
 - [ ] Configure alert receivers (Slack, PagerDuty)
 - [ ] Test alert firing
@@ -418,6 +446,7 @@ C:\users\decri\gitclones\paw\
 - [ ] Verify traces are appearing in Jaeger
 
 ### Documentation
+
 - [ ] Train team on dashboards
 - [ ] Document alert runbooks
 - [ ] Set up on-call rotation
@@ -427,36 +456,38 @@ C:\users\decri\gitclones\paw\
 
 ## Data Retention
 
-| Service | Default Retention | Configurable |
-|---------|------------------|--------------|
-| Prometheus | 30 days | Yes (`--storage.tsdb.retention.time`) |
-| Loki | 30 days | Yes (`retention_period`) |
-| Jaeger | Persistent (Badger) | Yes |
-| Grafana | Unlimited | N/A |
+| Service    | Default Retention   | Configurable                          |
+| ---------- | ------------------- | ------------------------------------- |
+| Prometheus | 30 days             | Yes (`--storage.tsdb.retention.time`) |
+| Loki       | 30 days             | Yes (`retention_period`)              |
+| Jaeger     | Persistent (Badger) | Yes                                   |
+| Grafana    | Unlimited           | N/A                                   |
 
 ---
 
 ## Resource Requirements
 
 ### Minimum (Development)
+
 - **CPU**: 2 cores
 - **RAM**: 4 GB
 - **Disk**: 50 GB
 
 ### Recommended (Production)
+
 - **CPU**: 8+ cores
 - **RAM**: 16+ GB
 - **Disk**: 500+ GB SSD
 
 ### Per Component
 
-| Component | CPU | RAM | Disk |
-|-----------|-----|-----|------|
-| Prometheus | 1 core | 2 GB | 100 GB |
-| Grafana | 0.5 core | 512 MB | 10 GB |
-| Loki | 1 core | 1 GB | 100 GB |
-| Jaeger | 1 core | 1 GB | 50 GB |
-| Explorers | 2 cores | 2 GB | 100 GB |
+| Component  | CPU      | RAM    | Disk   |
+| ---------- | -------- | ------ | ------ |
+| Prometheus | 1 core   | 2 GB   | 100 GB |
+| Grafana    | 0.5 core | 512 MB | 10 GB  |
+| Loki       | 1 core   | 1 GB   | 100 GB |
+| Jaeger     | 1 core   | 1 GB   | 50 GB  |
+| Explorers  | 2 cores  | 2 GB   | 100 GB |
 
 ---
 

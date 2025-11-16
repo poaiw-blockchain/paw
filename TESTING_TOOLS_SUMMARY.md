@@ -5,6 +5,7 @@ This document summarizes the Cosmos SDK-specific testing and evaluation tools in
 ## Overview
 
 A comprehensive testing infrastructure has been installed covering:
+
 1. **CometMock Integration** - Fast consensus-free testing
 2. **Invariant Testing** - State machine correctness verification
 3. **Property-Based Testing** - Mathematical property verification
@@ -40,6 +41,7 @@ A comprehensive testing infrastructure has been installed covering:
   - `BenchmarkCometMockBlockProduction` - Block production benchmark
 
 **Key Features**:
+
 - Skippable via `USE_COMETMOCK=true` environment variable
 - Identical interface to CometBFT
 - Deterministic and reproducible
@@ -63,13 +65,14 @@ A comprehensive testing infrastructure has been installed covering:
   - `InvariantPositiveDelegation()` - All delegations positive
 
 - **`tests/invariants/dex_invariants_test.go`** (256 lines)
-  - `InvariantPoolReservesXYK()` - Constant product (x*y=k) maintained
+  - `InvariantPoolReservesXYK()` - Constant product (x\*y=k) maintained
   - `InvariantPoolLPShares()` - LP shares sum equals pool total
   - `InvariantNoNegativeReserves()` - All reserves positive
   - `InvariantPoolBalances()` - Reserves match actual balances
   - `InvariantMinimumLiquidity()` - Minimum liquidity locked
 
 **Testing Strategy**:
+
 - Run after every state-changing operation
 - Check multiple invariants in combination
 - Provide detailed error messages on violation
@@ -88,6 +91,7 @@ A comprehensive testing infrastructure has been installed covering:
   - `TestPropertyKNeverDecreases` - Constant product never decreases
 
 **Key Features**:
+
 - 1000+ randomized test cases per property
 - Automatic edge case discovery
 - Input space exploration
@@ -118,6 +122,7 @@ A comprehensive testing infrastructure has been installed covering:
   - `RandomizedStakingGenesisState()` - Random validators/delegations
 
 **Simulation Capabilities**:
+
 - 500-1000 blocks with random operations
 - State export/import testing
 - Determinism verification (multiple runs same seed)
@@ -152,6 +157,7 @@ A comprehensive testing infrastructure has been installed covering:
   - Contract query helpers
 
 **Integration Features**:
+
 - Multi-validator network simulation
 - Pre-configured test accounts
 - Contract deployment and execution
@@ -205,6 +211,7 @@ benchmark-invariants    # Benchmark invariant checking
 ### When to Use Each Tool
 
 **CometMock**:
+
 - ✅ Rapid development iteration
 - ✅ CI/CD pipelines
 - ✅ Application logic testing
@@ -213,18 +220,21 @@ benchmark-invariants    # Benchmark invariant checking
 - ❌ Network behavior testing
 
 **Invariant Tests**:
+
 - ✅ After state-changing operations
 - ✅ In CI for regression detection
 - ✅ As simulation hooks
 - ✅ Post-upgrade verification
 
 **Property Tests**:
+
 - ✅ Mathematical functions (DEX formulas, pricing)
 - ✅ Commutative/associative operations
 - ✅ Edge case discovery
 - ✅ Quick correctness verification
 
 **Simulation**:
+
 - ✅ Finding unexpected edge cases
 - ✅ Stress testing
 - ✅ Determinism verification
@@ -325,14 +335,14 @@ func TestMultiNodeNetwork(t *testing.T) {
 
 ## Performance Characteristics
 
-| Test Type | Speed | Coverage | Use Case |
-|-----------|-------|----------|----------|
-| Unit Tests | ⚡⚡⚡ | Function | Development |
-| Property Tests | ⚡⚡⚡ | Mathematical | Math verification |
-| Invariant Tests | ⚡⚡ | State correctness | After operations |
-| CometMock E2E | ⚡⚡ | Full workflow | Fast integration |
-| Simulation | ⚡ | Edge cases | Nightly/pre-release |
-| Real Consensus | 🐌 | Production-like | Final validation |
+| Test Type       | Speed  | Coverage          | Use Case            |
+| --------------- | ------ | ----------------- | ------------------- |
+| Unit Tests      | ⚡⚡⚡ | Function          | Development         |
+| Property Tests  | ⚡⚡⚡ | Mathematical      | Math verification   |
+| Invariant Tests | ⚡⚡   | State correctness | After operations    |
+| CometMock E2E   | ⚡⚡   | Full workflow     | Fast integration    |
+| Simulation      | ⚡     | Edge cases        | Nightly/pre-release |
+| Real Consensus  | 🐌     | Production-like   | Final validation    |
 
 ## Continuous Integration
 
@@ -370,6 +380,7 @@ The testing infrastructure integrates with CI/CD:
 ## Troubleshooting
 
 ### CometMock Not Running
+
 ```bash
 # Set environment variable
 export USE_COMETMOCK=true
@@ -377,6 +388,7 @@ make test-cometmock
 ```
 
 ### Simulation Failures
+
 ```bash
 # Run with specific seed
 go test ./tests/simulation/... -SimulationSeed=42
@@ -386,6 +398,7 @@ go test -v ./tests/simulation/... -SimulationVerbose=true
 ```
 
 ### Invariant Failures
+
 ```bash
 # Run specific invariant
 go test ./tests/invariants/ -run TestBankInvariants -v

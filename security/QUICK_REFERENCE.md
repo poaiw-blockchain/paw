@@ -21,26 +21,31 @@ brew install gitleaks
 ## Quick Commands
 
 ### Before Committing
+
 ```bash
 make security-audit-quick
 ```
 
 ### Full Security Audit
+
 ```bash
 make security-audit
 ```
 
 ### Check Dependencies
+
 ```bash
 make check-deps
 ```
 
 ### Scan for Secrets
+
 ```bash
 make scan-secrets
 ```
 
 ### All Security Checks
+
 ```bash
 make security-all
 ```
@@ -48,31 +53,37 @@ make security-all
 ## Individual Tools
 
 ### GoSec
+
 ```bash
 gosec -conf security/.gosec.yml ./...
 ```
 
 ### Govulncheck
+
 ```bash
 govulncheck ./...
 ```
 
 ### Nancy
+
 ```bash
 go list -json -m all | nancy sleuth
 ```
 
 ### Trivy
+
 ```bash
 trivy fs --security-checks vuln,config,secret .
 ```
 
 ### GitLeaks
+
 ```bash
 gitleaks detect --verbose
 ```
 
 ### Crypto Check
+
 ```bash
 go run security/crypto-check.go
 ```
@@ -80,6 +91,7 @@ go run security/crypto-check.go
 ## Report Locations
 
 All reports are saved in `security/` directory:
+
 - `gosec-report.json` - GoSec findings
 - `trivy-report.json` - Trivy findings
 - `gitleaks-report.json` - GitLeaks findings
@@ -88,6 +100,7 @@ All reports are saved in `security/` directory:
 ## Common Issues
 
 ### Weak Crypto
+
 ```go
 // Bad
 import "crypto/md5"
@@ -99,6 +112,7 @@ import "crypto/rand"
 ```
 
 ### Hardcoded Secrets
+
 ```go
 // Bad
 password := "my_secret_password"
@@ -108,6 +122,7 @@ password := os.Getenv("PASSWORD")
 ```
 
 ### Insecure TLS
+
 ```go
 // Bad
 InsecureSkipVerify: true
@@ -126,6 +141,7 @@ InsecureSkipVerify: false
 ## CI/CD
 
 Security checks run automatically on:
+
 - Every push to main/master/develop
 - Every pull request
 - Weekly (Sundays at midnight UTC)

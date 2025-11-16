@@ -32,16 +32,19 @@ PAW blockchain uses Git hooks to ensure code quality and consistency across the 
 ### Required Tools
 
 **For Go Development:**
+
 - Go 1.21+ (required)
 - `gofmt` (included with Go)
 - `goimports`: `go install golang.org/x/tools/cmd/goimports@latest`
 - `golangci-lint`: See [installation guide](https://golangci-lint.run/usage/install/)
 
 **For JavaScript Development:**
+
 - Node.js 18+ (required for Husky method)
 - npm 9+
 
 **For Python Development:**
+
 - Python 3.11+
 - `pip3`
 
@@ -50,11 +53,13 @@ PAW blockchain uses Git hooks to ensure code quality and consistency across the 
 Choose one or both:
 
 **Pre-Commit Framework (Python-based):**
+
 ```bash
 pip3 install pre-commit
 ```
 
 **Husky (Node.js-based):**
+
 ```bash
 npm install
 ```
@@ -184,6 +189,7 @@ Commit messages must follow [Conventional Commits](https://www.conventionalcommi
 ```
 
 **Valid types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes

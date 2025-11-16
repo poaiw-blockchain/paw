@@ -9,6 +9,7 @@ This document summarizes the core Go project structure setup for the PAW blockch
 ### Root Files
 
 #### `go.mod`
+
 - **Module**: `github.com/paw-chain/paw`
 - **Go Version**: 1.21
 - **Key Dependencies**:
@@ -18,7 +19,9 @@ This document summarizes the core Go project structure setup for the PAW blockch
   - Standard Cosmos modules for bank, staking, governance, etc.
 
 #### `Makefile`
+
 Comprehensive build and development targets:
+
 - **Build**: `make build` - Builds pawd daemon and pawcli
 - **Install**: `make install` - Installs binaries to GOPATH
 - **Test**: Multiple test targets (unit, integration, coverage, keeper, types)
@@ -28,7 +31,9 @@ Comprehensive build and development targets:
 - **Localnet**: `make localnet-start` - Starts local testnet
 
 #### `.gitignore`
+
 Standard Go project ignores plus blockchain-specific exclusions:
+
 - Build artifacts
 - Chain data directories
 - Generated protobuf files
@@ -38,6 +43,7 @@ Standard Go project ignores plus blockchain-specific exclusions:
 ### Command Line Interface
 
 #### `cmd/pawd/` - Main Daemon
+
 - **`main.go`**: Entry point for blockchain daemon
 - **`cmd/root.go`**: Root command with all subcommands
   - Initializes SDK with "paw" prefix
@@ -47,13 +53,16 @@ Standard Go project ignores plus blockchain-specific exclusions:
 - **`cmd/genesis.go`**: Genesis account management commands
 
 #### `cmd/pawcli/` - CLI Tool
+
 - Shares the same command structure as pawd
 - Used for client operations without running a full node
 
 ### Application Layer (`app/`)
 
 #### `app.go`
+
 Main application definition with:
+
 - **PAWApp struct**: Extends Cosmos SDK BaseApp
 - **Module Registration**:
   - Standard Cosmos modules (auth, bank, staking, gov, etc.)
@@ -64,19 +73,24 @@ Main application definition with:
 - **Module Manager**: Orchestrates all module lifecycle hooks
 
 #### `encoding.go`
+
 Codec configuration:
+
 - Protobuf codec setup
 - Amino legacy codec support
 - Transaction config with Ed25519 signing
 
 #### `params.go`
+
 Chain parameters:
+
 - **Address Prefix**: "paw"
 - **Coin Type**: 118 (Cosmos standard)
 - **Bond Denom**: "upaw" (micro-PAW)
 - **Default Gas Price**: 0.001upaw
 
 #### `genesis_state.go`
+
 Genesis state management and default genesis generation
 
 ### Custom Modules
@@ -86,6 +100,7 @@ Genesis state management and default genesis generation
 **Purpose**: Decentralized exchange with constant product AMM
 
 ### Files Created:
+
 - **`module.go`**: Module definition and lifecycle hooks
 - **`keeper/keeper.go`**: Core business logic (444 lines)
   - `CreatePool()`: Create liquidity pools
@@ -102,6 +117,7 @@ Genesis state management and default genesis generation
   - `codec.go`: Message registration
 
 ### Protobuf Definitions:
+
 - **`proto/paw/dex/v1/tx.proto`**: Transaction messages
   - MsgCreatePool
   - MsgAddLiquidity
@@ -111,6 +127,7 @@ Genesis state management and default genesis generation
 - **`proto/paw/dex/v1/dex.proto`**: Core types (Pool, Params, GenesisState)
 
 ### Key Features:
+
 - **Constant Product AMM**: x × y = k formula
 - **Fee Structure**: 0.3% swap fee (0.25% to LPs, 0.05% to protocol)
 - **Slippage Protection**: Configurable maximum slippage
@@ -122,6 +139,7 @@ Genesis state management and default genesis generation
 **Purpose**: AI workload verification and compute task management
 
 ### Files Created:
+
 - **`module.go`**: Module definition
 - **`keeper/keeper.go`**: State management and task verification
 - **`types/`**: Type definitions
@@ -131,12 +149,14 @@ Genesis state management and default genesis generation
   - `expected_keepers.go`: Bank keeper interface
 
 ### Protobuf Definitions:
+
 - **`proto/paw/compute/v1/compute.proto`**:
   - Params (min_stake, verification_timeout, max_retries)
   - ComputeTask (id, requester, task_type, input/output, status)
   - GenesisState
 
 ### Key Features:
+
 - **Minimum Stake**: 10,000 PAW required for compute providers
 - **Verification Timeout**: 5 minutes default
 - **Task Tracking**: Submitted tasks with status management
@@ -147,6 +167,7 @@ Genesis state management and default genesis generation
 **Purpose**: Price feed aggregation and oracle services
 
 ### Files Created:
+
 - **`module.go`**: Module definition
 - **`keeper/keeper.go`**: Price feed management
 - **`types/`**: Type definitions
@@ -156,12 +177,14 @@ Genesis state management and default genesis generation
   - `expected_keepers.go`: Bank keeper interface
 
 ### Protobuf Definitions:
+
 - **`proto/paw/oracle/v1/oracle.proto`**:
   - Params (min_validators, update_interval, expiry_duration)
   - PriceFeed (asset, price, timestamp, validators)
   - GenesisState
 
 ### Key Features:
+
 - **Multi-Validator Consensus**: Minimum 3 validators per feed
 - **Update Interval**: 1 minute minimum between updates
 - **Price Expiry**: 5 minutes default expiry duration
@@ -170,13 +193,17 @@ Genesis state management and default genesis generation
 ### Scripts
 
 #### `scripts/protocgen.sh`
+
 Protobuf code generation script:
+
 - Finds all .proto files
 - Generates Go code with cosmos and gRPC plugins
 - Moves generated files to correct locations
 
 #### `scripts/localnet-start.sh`
+
 Local testnet initialization:
+
 - Cleans old data
 - Initializes node with chain-id "paw-localnet-1"
 - Creates validator key
@@ -189,12 +216,14 @@ Local testnet initialization:
 Based on `docs/TECHNICAL_SPECIFICATION.md`:
 
 ### Consensus
+
 - **Block Time**: 4 seconds
 - **Finality**: Instant (Tendermint BFT)
 - **Validators**: 25 genesis validators (max 125)
 - **Byzantine Tolerance**: Up to 1/3 malicious nodes
 
 ### Timeouts
+
 ```yaml
 timeoutPropose: 3000ms
 timeoutPrevote: 1000ms
@@ -203,11 +232,13 @@ timeoutCommit: 0ms
 ```
 
 ### Block Limits
+
 - **Max Block Size**: 2 MB
 - **Max Gas Per Block**: 100,000,000 gas units
 - **Throughput**: 500-2,500 TPS (depending on transaction complexity)
 
 ### Fees
+
 - **Minimum Gas Price**: 0.001 upaw/gas
 - **Fee Distribution**:
   - 50% burned (deflationary)
@@ -215,6 +246,7 @@ timeoutCommit: 0ms
   - 20% to treasury
 
 ### Staking
+
 - **Minimum Validator Stake**: 100,000 PAW
 - **Unbonding Period**: 21 days
 - **Slashing**:
@@ -224,26 +256,34 @@ timeoutCommit: 0ms
 ## Development Workflow
 
 ### 1. Build the Project
+
 ```bash
 make build
 ```
+
 This creates:
+
 - `build/pawd` - Blockchain daemon
 - `build/pawcli` - CLI tool
 
 ### 2. Install Binaries
+
 ```bash
 make install
 ```
+
 Installs to `$GOPATH/bin`
 
 ### 3. Generate Protobuf Files
+
 ```bash
 make proto-gen
 ```
+
 Generates Go code from `.proto` files
 
 ### 4. Run Tests
+
 ```bash
 make test          # All tests
 make test-unit     # Module unit tests only
@@ -252,16 +292,19 @@ make test-coverage # With coverage report
 ```
 
 ### 5. Lint Code
+
 ```bash
 make lint
 ```
 
 ### 6. Format Code
+
 ```bash
 make format
 ```
 
 ### 7. Start Local Testnet
+
 ```bash
 make localnet-start
 ```
@@ -269,12 +312,14 @@ make localnet-start
 ## Module Integration Status
 
 ### ✅ Fully Implemented
+
 - **DEX Module**: Complete AMM implementation with pool management
   - CreatePool, AddLiquidity, RemoveLiquidity, Swap
   - Constant product formula with fee calculation
   - Event emission and error handling
 
 ### 🚧 Skeleton/TODO
+
 - **Compute Module**: Structure complete, core logic pending
   - Task submission and verification (TODO)
   - TEE integration (TODO)
@@ -286,6 +331,7 @@ make localnet-start
   - Price aggregation (TODO)
 
 ### 🔧 Partially Complete
+
 - **App Integration**: Module registration complete, some TODOs:
   - WASM keeper initialization (commented out)
   - Module configurator setup (pending)
@@ -295,12 +341,14 @@ make localnet-start
 ## Next Steps
 
 ### Immediate Tasks
+
 1. **Complete WASM Integration**: Uncomment and configure WasmKeeper in app.go
 2. **Implement Module Services**: Register gRPC query/msg services
 3. **Add Begin/End Blockers**: Set module execution order
 4. **Implement Export Logic**: Complete app state export for genesis export
 
 ### Module Development
+
 1. **Compute Module**:
    - Implement task submission messages
    - Add verification logic
@@ -320,12 +368,14 @@ make localnet-start
    - Create DEX analytics queries
 
 ### Testing
+
 1. Write comprehensive unit tests for all keepers
 2. Add integration tests for module interactions
 3. Create E2E tests for full transaction flows
 4. Add benchmarks for performance-critical paths
 
 ### Documentation
+
 1. Generate Swagger/OpenAPI docs from protobuf
 2. Create module-specific documentation
 3. Write developer guides

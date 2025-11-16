@@ -128,6 +128,7 @@ Choose ONE of the following methods:
 #### Method 1: Pre-Commit Framework (Recommended)
 
 **Linux/Mac:**
+
 ```bash
 # Install pre-commit
 pip3 install --user pre-commit
@@ -140,6 +141,7 @@ make install-hooks
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 # Install pre-commit
 pip install --user pre-commit
@@ -152,6 +154,7 @@ make install-hooks
 ```
 
 **Windows (Git Bash):**
+
 ```bash
 pip install --user pre-commit
 bash scripts/install-hooks.sh
@@ -160,6 +163,7 @@ bash scripts/install-hooks.sh
 #### Method 2: Husky (Node.js)
 
 **All Platforms:**
+
 ```bash
 # Install Node.js dependencies (includes Husky)
 npm install
@@ -321,6 +325,7 @@ chore(deps): update dependencies
 ### Common Issues
 
 **Issue:** `pre-commit: command not found`
+
 ```bash
 # Solution: Install and add to PATH
 pip3 install --user pre-commit
@@ -328,18 +333,21 @@ export PATH="$HOME/.local/bin:$PATH"  # Add to ~/.bashrc or ~/.zshrc
 ```
 
 **Issue:** `golangci-lint: not found`
+
 ```bash
 # Solution: Install golangci-lint
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 ```
 
 **Issue:** Hooks running slowly
+
 ```bash
 # Solution: Skip slow hooks during development
 SKIP=golangci-lint,go-unit-tests git commit -m "message"
 ```
 
 **Issue:** Windows "bad interpreter" error
+
 ```bash
 # Solution: Fix line endings
 git config core.autocrlf false
@@ -368,7 +376,7 @@ hooks:
   - id: golangci-lint
     args:
       - --config=.golangci.yml
-      - --timeout=15m  # Increased timeout
+      - --timeout=15m # Increased timeout
       - --new-from-rev=HEAD~1
 ```
 

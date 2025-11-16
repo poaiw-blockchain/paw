@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* global __ENV */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
@@ -12,25 +14,25 @@ const txCounter = new Counter('transactions_submitted');
 // Test configuration
 export let options = {
   stages: [
-    { duration: '2m', target: 100 },  // Ramp up to 100 users
-    { duration: '5m', target: 100 },  // Stay at 100 users
-    { duration: '2m', target: 200 },  // Ramp up to 200 users
-    { duration: '5m', target: 200 },  // Peak load
-    { duration: '2m', target: 0 },    // Ramp down
+    { duration: '2m', target: 100 }, // Ramp up to 100 users
+    { duration: '5m', target: 100 }, // Stay at 100 users
+    { duration: '2m', target: 200 }, // Ramp up to 200 users
+    { duration: '5m', target: 200 }, // Peak load
+    { duration: '2m', target: 0 }, // Ramp down
   ],
   thresholds: {
-    'http_req_duration': ['p(95)<500', 'p(99)<1000'], // 95% under 500ms, 99% under 1s
-    'http_req_failed': ['rate<0.01'],   // Less than 1% errors
-    'errors': ['rate<0.05'],            // Less than 5% custom errors
-    'transaction_latency': ['p(95)<2000'], // Tx confirmation under 2s
-    'query_latency': ['p(95)<200'],     // Queries under 200ms
+    http_req_duration: ['p(95)<500', 'p(99)<1000'], // 95% under 500ms, 99% under 1s
+    http_req_failed: ['rate<0.01'], // Less than 1% errors
+    errors: ['rate<0.05'], // Less than 5% custom errors
+    transaction_latency: ['p(95)<2000'], // Tx confirmation under 2s
+    query_latency: ['p(95)<200'], // Queries under 200ms
   },
   ext: {
     loadimpact: {
       projectID: 'PAW Blockchain',
-      name: 'Blockchain Load Test'
-    }
-  }
+      name: 'Blockchain Load Test',
+    },
+  },
 };
 
 // Test data
@@ -53,7 +55,7 @@ export function setup() {
   // Test connectivity
   const res = http.get(`${BASE_URL}/cosmos/base/tendermint/v1beta1/node_info`);
   check(res, {
-    'setup: node is reachable': (r) => r.status === 200,
+    'setup: node is reachable': r => r.status === 200,
   });
 
   return {
@@ -62,8 +64,10 @@ export function setup() {
 }
 
 // Main test function
-export default function(data) {
-  const testAddress = TEST_ADDRESSES[randomIntBetween(0, TEST_ADDRESSES.length - 1)];
+// eslint-disable-next-line no-unused-vars
+export default function (data) {
+  const testAddress =
+    TEST_ADDRESSES[randomIntBetween(0, TEST_ADDRESSES.length - 1)];
 
   // Test 1: Query account balance (70% of requests)
   if (Math.random() < 0.7) {
@@ -76,7 +80,7 @@ export default function(data) {
   }
 
   // Test 3: Submit transaction (10% of requests)
-  if (Math.random() < 0.10) {
+  if (Math.random() < 0.1) {
     submitTransaction(testAddress);
   }
 
@@ -94,9 +98,9 @@ function queryBalance(address) {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'balance query: status 200': (r) => r.status === 200,
-    'balance query: has balances': (r) => {
-      if (r.status !== 200) return false;
+    'balance query: status 200': r => r.status === 200,
+    'balance query: has balances': r => {
+      if (r.status !== 200) {return false;}
       try {
         const body = JSON.parse(r.body);
         return body.balances !== undefined;
@@ -104,11 +108,11 @@ function queryBalance(address) {
         return false;
       }
     },
-    'balance query: response time OK': (r) => r.timings.duration < 300,
+    'balance query: response time OK': r => r.timings.duration < 300,
   });
 
   queryLatency.add(duration);
-  if (!success) errorRate.add(1);
+  if (!success) {errorRate.add(1);}
 }
 
 function queryDEXPools() {
@@ -117,9 +121,9 @@ function queryDEXPools() {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'dex query: status 200': (r) => r.status === 200,
-    'dex query: has pools': (r) => {
-      if (r.status !== 200) return false;
+    'dex query: status 200': r => r.status === 200,
+    'dex query: has pools': r => {
+      if (r.status !== 200) {return false;}
       try {
         const body = JSON.parse(r.body);
         return body.pools !== undefined;
@@ -130,7 +134,7 @@ function queryDEXPools() {
   });
 
   queryLatency.add(duration);
-  if (!success) errorRate.add(1);
+  if (!success) {errorRate.add(1);}
 }
 
 function submitTransaction(fromAddress) {
@@ -140,47 +144,58 @@ function submitTransaction(fromAddress) {
   const txPayload = {
     tx: {
       body: {
-        messages: [{
-          '@type': '/cosmos.bank.v1beta1.MsgSend',
-          from_address: fromAddress,
-          to_address: TEST_ADDRESSES[randomIntBetween(0, TEST_ADDRESSES.length - 1)],
-          amount: [{
-            denom: 'upaw',
-            amount: '1000'
-          }]
-        }],
+        messages: [
+          {
+            '@type': '/cosmos.bank.v1beta1.MsgSend',
+            from_address: fromAddress,
+            to_address:
+              TEST_ADDRESSES[randomIntBetween(0, TEST_ADDRESSES.length - 1)],
+            amount: [
+              {
+                denom: 'upaw',
+                amount: '1000',
+              },
+            ],
+          },
+        ],
         memo: `load-test-${Date.now()}`,
         timeout_height: '0',
         extension_options: [],
-        non_critical_extension_options: []
+        non_critical_extension_options: [],
       },
       auth_info: {
         signer_infos: [],
         fee: {
-          amount: [{
-            denom: 'upaw',
-            amount: '5000'
-          }],
+          amount: [
+            {
+              denom: 'upaw',
+              amount: '5000',
+            },
+          ],
           gas_limit: '200000',
           payer: '',
-          granter: ''
-        }
+          granter: '',
+        },
       },
-      signatures: []
+      signatures: [],
     },
-    mode: 'BROADCAST_MODE_ASYNC'
+    mode: 'BROADCAST_MODE_ASYNC',
   };
 
   const params = {
     headers: { 'Content-Type': 'application/json' },
   };
 
-  const res = http.post(`${BASE_URL}/cosmos/tx/v1beta1/txs`, JSON.stringify(txPayload), params);
+  const res = http.post(
+    `${BASE_URL}/cosmos/tx/v1beta1/txs`,
+    JSON.stringify(txPayload),
+    params
+  );
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'tx submit: accepted': (r) => r.status === 200 || r.status === 400, // 400 might be invalid signature
-    'tx submit: has tx_response': (r) => {
+    'tx submit: accepted': r => r.status === 200 || r.status === 400, // 400 might be invalid signature
+    'tx submit: has tx_response': r => {
       try {
         const body = JSON.parse(r.body);
         return body.tx_response !== undefined || body.code !== undefined;
@@ -192,7 +207,7 @@ function submitTransaction(fromAddress) {
 
   txLatency.add(duration);
   txCounter.add(1);
-  if (!success) errorRate.add(1);
+  if (!success) {errorRate.add(1);}
 }
 
 function queryValidators() {
@@ -201,9 +216,9 @@ function queryValidators() {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'validators query: status 200': (r) => r.status === 200,
-    'validators query: has validators': (r) => {
-      if (r.status !== 200) return false;
+    'validators query: status 200': r => r.status === 200,
+    'validators query: has validators': r => {
+      if (r.status !== 200) {return false;}
       try {
         const body = JSON.parse(r.body);
         return body.validators !== undefined;
@@ -214,7 +229,7 @@ function queryValidators() {
   });
 
   queryLatency.add(duration);
-  if (!success) errorRate.add(1);
+  if (!success) {errorRate.add(1);}
 }
 
 // Teardown function

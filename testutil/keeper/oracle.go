@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -16,6 +17,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/oracle/keeper"
@@ -40,7 +42,9 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	k := keeper.NewKeeper(
 		cdc,
 		runtime.NewKVStoreService(storeKey),
-		nil, // TODO: Add mock bank keeper
+		&MockBankKeeper{},
+		&MockStakingKeeper{},
+		&MockSlashingKeeper{},
 		authority.String(),
 	)
 
@@ -50,6 +54,53 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	k.InitGenesis(ctx, *types.DefaultGenesis())
 
 	return k, ctx
+}
+
+// MockBankKeeper is a mock implementation of BankKeeper for testing
+type MockBankKeeper struct{}
+
+func (m *MockBankKeeper) SendCoins(ctx context.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (m *MockBankKeeper) SendCoinsFromAccountToModule(ctx context.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
+	return nil
+}
+
+func (m *MockBankKeeper) SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {
+	return nil
+}
+
+func (m *MockBankKeeper) GetBalance(ctx context.Context, addr sdk.AccAddress, denom string) sdk.Coin {
+	return sdk.NewCoin(denom, math.NewInt(0))
+}
+
+// MockStakingKeeper is a mock implementation of StakingKeeper for testing
+type MockStakingKeeper struct{}
+
+func (m *MockStakingKeeper) GetValidator(ctx context.Context, addr sdk.ValAddress) (stakingtypes.Validator, error) {
+	return stakingtypes.Validator{}, nil
+}
+
+func (m *MockStakingKeeper) IterateBondedValidatorsByPower(ctx context.Context, fn func(index int64, validator stakingtypes.ValidatorI) (stop bool)) error {
+	return nil
+}
+
+func (m *MockStakingKeeper) PowerReduction(ctx context.Context) math.Int {
+	return math.NewInt(1000000)
+}
+
+// MockSlashingKeeper is a mock implementation of SlashingKeeper for testing
+type MockSlashingKeeper struct{}
+
+func (m *MockSlashingKeeper) Slash(ctx context.Context, consAddr sdk.ConsAddress, slashFactor math.LegacyDec, infractionHeight, power int64) error {
+	// Mock implementation - do nothing
+	return nil
+}
+
+func (m *MockSlashingKeeper) SlashWithInfractionReason(ctx context.Context, consAddr sdk.ConsAddress, slashFactor math.LegacyDec, infractionHeight, power int64, infraction stakingtypes.Infraction) error {
+	// Mock implementation - do nothing
+	return nil
 }
 
 // RegisterTestOracle registers a test oracle validator

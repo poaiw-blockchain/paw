@@ -33,17 +33,20 @@ Before you begin, ensure you have the following installed:
 
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/paw.git
    cd paw
    ```
 
 3. **Add upstream remote**:
+
    ```bash
    git remote add upstream https://github.com/ORIGINAL_OWNER/paw.git
    ```
 
 4. **Install dependencies**:
+
    ```bash
    # Go dependencies
    go mod download
@@ -56,11 +59,13 @@ Before you begin, ensure you have the following installed:
    ```
 
 5. **Set up commit message template** (optional but recommended):
+
    ```bash
    git config commit.template .gitmessage
    ```
 
 6. **Build the project**:
+
    ```bash
    go build -o bin/paw ./cmd/paw
    ```
@@ -96,6 +101,7 @@ We follow standard Go conventions and use `gofmt` for formatting:
   - Avoid circular dependencies
 
 **Example:**
+
 ```go
 // ProcessTransaction validates and processes a blockchain transaction.
 // It returns an error if the transaction is invalid or cannot be processed.
@@ -204,6 +210,7 @@ Use descriptive branch names with prefixes:
 ### Creating a Pull Request
 
 1. **Update your fork** with the latest upstream changes:
+
    ```bash
    git fetch upstream
    git checkout master
@@ -211,6 +218,7 @@ Use descriptive branch names with prefixes:
    ```
 
 2. **Create a new branch** for your changes:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -218,6 +226,7 @@ Use descriptive branch names with prefixes:
 3. **Make your changes** and commit them following the commit message format
 
 4. **Push to your fork**:
+
    ```bash
    git push origin feature/your-feature-name
    ```

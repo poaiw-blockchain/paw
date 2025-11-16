@@ -6,7 +6,8 @@ the node—all without exposing private keys.
 
 ## Draft → Sign → Commit
 
-1. **Draft**  
+1. **Draft**
+
    ```bash
    curl -X POST http://localhost:5000/mobile/transactions/draft \
      -H "Content-Type: application/json" \
@@ -18,6 +19,7 @@ the node—all without exposing private keys.
            "memo": "Gift"
          }'
    ```
+
    Response includes:
    - `draft_id`
    - `unsigned_transaction` (sender, recipient, amount, fee, nonce)
@@ -28,7 +30,7 @@ the node—all without exposing private keys.
    The air-gapped device reads the QR/JSON, signs the payload with the
    user's private key, and produces `signature` + `public_key`.
 
-3. **Commit**  
+3. **Commit**
    ```bash
    curl -X POST http://localhost:5000/mobile/transactions/commit \
      -H "Content-Type: application/json" \

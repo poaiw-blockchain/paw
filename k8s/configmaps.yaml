@@ -1,0 +1,259 @@
+---
+# PAW Configuration ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-config
+  namespace: paw-blockchain
+  labels:
+    app: paw
+data:
+  # Chain configuration
+  chain_id: 'paw-1'
+  genesis_time: '2024-01-01T00:00:00Z'
+
+  # Network configuration
+  minimum_gas_prices: '0.001upaw'
+  max_validators: '100'
+
+  # Snapshot URL for fast sync (optional)
+  snapshot_url: 'https://snapshots.paw.network/latest.tar.gz'
+
+  # Seed nodes
+  seeds: 'seed1@seed1.paw.network:26656,seed2@seed2.paw.network:26656'
+
+  # Persistent peers (update with actual validator IDs)
+  persistent_peers: ''
+
+---
+# PAW Node Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-node-config
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: node
+data:
+  config.toml: |
+    # CometBFT Configuration for Full Node
+
+    # TCP or UNIX socket address of the ABCI application
+    proxy_app = "tcp://127.0.0.1:26658"
+
+    # A custom human readable name for this node
+    moniker = "${MONIKER}"
+
+    # Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb
+    db_backend = "goleveldb"
+
+    # Database directory
+    db_dir = "data"
+
+    # Output level for logging
+    log_level = "info"
+
+    # Output format: 'plain' (colored text) or 'json'
+    log_format = "json"
+
+    ##### Main Base Config Options #####
+
+    # Path to the JSON file containing the initial validator set
+    genesis_file = "config/genesis.json"
+
+    # Path to the JSON file containing the private key
+    priv_validator_key_file = "config/priv_validator_key.json"
+
+    # Path to the JSON file containing the last sign state
+    priv_validator_state_file = "data/priv_validator_state.json"
+
+    # TCP or UNIX socket address for CometBFT to listen on
+    priv_validator_laddr = ""
+
+    # Path to the JSON file containing the private key to use as a validator
+    node_key_file = "config/node_key.json"
+
+    # Mechanism to connect to the ABCI application: socket | grpc
+    abci = "socket"
+
+    # If true, query the ABCI app on connecting to a new peer
+    filter_peers = false
+
+    ##### RPC Server Configuration #####
+    [rpc]
+
+    # TCP or UNIX socket address for the RPC server to listen on
+    laddr = "tcp://0.0.0.0:26657"
+
+    # Maximum number of simultaneous connections
+    max_open_connections = 900
+
+    # Maximum number of unique clientIDs that can /subscribe
+    max_subscription_clients = 100
+
+    # Maximum number of unique queries a given client can /subscribe to
+    max_subscriptions_per_client = 5
+
+    # Enable unsafe RPC methods (for development only)
+    unsafe = false
+
+    ##### P2P Configuration #####
+    [p2p]
+
+    # Address to listen for incoming connections
+    laddr = "tcp://0.0.0.0:26656"
+
+    # Address to advertise to peers for them to dial
+    external_address = ""
+
+    # Comma separated list of seed nodes to connect to
+    seeds = "${SEEDS}"
+
+    # Comma separated list of nodes to keep persistent connections to
+    persistent_peers = "${PERSISTENT_PEERS}"
+
+    # Maximum number of inbound peers
+    max_num_inbound_peers = 40
+
+    # Maximum number of outbound peers to connect to
+    max_num_outbound_peers = 10
+
+    # Rate at which packets can be sent, in bytes/second
+    send_rate = 5120000
+
+    # Rate at which packets can be received, in bytes/second
+    recv_rate = 5120000
+
+    ##### Mempool Configuration #####
+    [mempool]
+
+    # Maximum number of transactions in the mempool
+    size = 5000
+
+    # Limit the total size of all txs in the mempool
+    max_txs_bytes = 1073741824
+
+    # Size of the cache (used to filter transactions we saw earlier)
+    cache_size = 10000
+
+    ##### Consensus Configuration #####
+    [consensus]
+
+    # How long we wait for a proposal block before prevoting nil
+    timeout_propose = "3s"
+
+    # How much timeout_propose increases with each round
+    timeout_propose_delta = "500ms"
+
+    # How long we wait after receiving +2/3 prevotes
+    timeout_prevote = "1s"
+
+    # How much the timeout_prevote increases with each round
+    timeout_prevote_delta = "500ms"
+
+    # How long we wait after receiving +2/3 precommits
+    timeout_precommit = "1s"
+
+    # How much the timeout_precommit increases with each round
+    timeout_precommit_delta = "500ms"
+
+    # How long we wait after committing a block
+    timeout_commit = "4s"
+
+    ##### Instrumentation Configuration #####
+    [instrumentation]
+
+    # When true, Prometheus metrics are served under /metrics
+    prometheus = true
+
+    # Address to listen for Prometheus collector(s) connections
+    prometheus_listen_addr = ":26660"
+
+    # Maximum number of simultaneous connections
+    max_open_connections = 3
+
+    # Instrumentation namespace
+    namespace = "cometbft"
+
+---
+# PAW Validator Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-validator-config
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: validator
+data:
+  config.toml: |
+    # CometBFT Configuration for Validator Node
+    # Optimized for validator operations with security hardening
+
+    proxy_app = "tcp://127.0.0.1:26658"
+    moniker = "${MONIKER}"
+    db_backend = "goleveldb"
+    db_dir = "data"
+    log_level = "info"
+    log_format = "json"
+
+    genesis_file = "config/genesis.json"
+    priv_validator_key_file = "config/priv_validator_key.json"
+    priv_validator_state_file = "data/priv_validator_state.json"
+    priv_validator_laddr = ""
+    node_key_file = "config/node_key.json"
+    abci = "socket"
+    filter_peers = true
+
+    [rpc]
+    # Validators should restrict RPC access
+    laddr = "tcp://127.0.0.1:26657"
+    max_open_connections = 100
+    max_subscription_clients = 10
+    max_subscriptions_per_client = 5
+    unsafe = false
+
+    [p2p]
+    laddr = "tcp://0.0.0.0:26656"
+    external_address = ""
+    seeds = "${SEEDS}"
+    persistent_peers = "${PERSISTENT_PEERS}"
+
+    # Validator-optimized P2P settings
+    max_num_inbound_peers = 20
+    max_num_outbound_peers = 10
+    send_rate = 10240000
+    recv_rate = 10240000
+
+    # Enable PEX for peer discovery
+    pex = true
+
+    # Seed mode (should be false for validators)
+    seed_mode = false
+
+    # Private peer IDs (for sentry architecture)
+    private_peer_ids = ""
+
+    [mempool]
+    size = 10000
+    max_txs_bytes = 2147483648
+    cache_size = 20000
+
+    [consensus]
+    timeout_propose = "3s"
+    timeout_propose_delta = "500ms"
+    timeout_prevote = "1s"
+    timeout_prevote_delta = "500ms"
+    timeout_precommit = "1s"
+    timeout_precommit_delta = "500ms"
+    timeout_commit = "4s"
+
+    # Skip timeout commit when possible (for validators)
+    skip_timeout_commit = false
+
+    [instrumentation]
+    prometheus = true
+    prometheus_listen_addr = ":26660"
+    max_open_connections = 3
+    namespace = "cometbft"

@@ -1,0 +1,173 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+    component: blockchain
+    tier: node
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: paw-node
+  template:
+    metadata:
+      labels:
+        app: paw-node
+        component: blockchain
+        tier: node
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '26660'
+        prometheus.io/path: '/metrics'
+    spec:
+      serviceAccountName: paw-node
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: init-genesis
+          image: paw-chain/paw:latest
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              if [ ! -f /paw/.paw/config/genesis.json ]; then
+                echo "Downloading genesis file..."
+                wget -O /paw/.paw/config/genesis.json $GENESIS_URL
+              fi
+          env:
+            - name: GENESIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: genesis-config
+                  key: GENESIS_URL
+          volumeMounts:
+            - name: paw-data
+              mountPath: /paw/.paw
+      containers:
+        - name: paw-node
+          image: paw-chain/paw:latest
+          imagePullPolicy: Always
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+            - name: MONIKER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MINIMUM_GAS_PRICES
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: MINIMUM_GAS_PRICES
+            - name: PRUNING
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: PRUNING
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: LOG_LEVEL
+            - name: STATE_SYNC_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-node-config
+                  key: STATE_SYNC_ENABLED
+          volumeMounts:
+            - name: paw-data
+              mountPath: /paw/.paw
+            - name: config
+              mountPath: /paw/.paw/config
+          resources:
+            requests:
+              cpu: '2'
+              memory: '4Gi'
+            limits:
+              cpu: '4'
+              memory: '8Gi'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: paw-node-config
+        - name: paw-data
+          persistentVolumeClaim:
+            claimName: paw-node-data
+      nodeSelector:
+        node-type: blockchain
+      tolerations:
+        - key: 'blockchain'
+          operator: 'Equal'
+          value: 'true'
+          effect: 'NoSchedule'
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - paw-node
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node

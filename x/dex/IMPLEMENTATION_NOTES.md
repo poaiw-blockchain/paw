@@ -80,6 +80,7 @@ buf generate
 ```
 
 This will generate:
+
 - `x/dex/types/tx.pb.go` - Transaction messages
 - `x/dex/types/dex.pb.go` - Core types
 - `x/dex/types/query.pb.go` - Query types
@@ -185,6 +186,7 @@ x/dex/simulation/
 ```
 
 Test coverage should include:
+
 - Pool creation edge cases
 - AMM formula verification
 - Liquidity addition/removal
@@ -240,14 +242,15 @@ func (q queryServer) EstimateSwap(ctx context.Context, req *types.QueryEstimateS
 
 The implementation aligns with the technical specification:
 
-| Operation | Implemented Gas | Spec Gas | Status |
-|-----------|----------------|----------|--------|
-| DEX Swap | 150,000 | 150,000 | ✅ Match |
-| Create Pool | ~50,000 | 50,000+ | ✅ Match |
-| Add Liquidity | ~100,000 | 100,000+ | ✅ Match |
-| Remove Liquidity | ~80,000 | 80,000+ | ✅ Match |
+| Operation        | Implemented Gas | Spec Gas | Status   |
+| ---------------- | --------------- | -------- | -------- |
+| DEX Swap         | 150,000         | 150,000  | ✅ Match |
+| Create Pool      | ~50,000         | 50,000+  | ✅ Match |
+| Add Liquidity    | ~100,000        | 100,000+ | ✅ Match |
+| Remove Liquidity | ~80,000         | 80,000+  | ✅ Match |
 
 Note: Actual gas usage will be calculated dynamically based on:
+
 - Storage operations
 - Token transfers
 - Mathematical computations
@@ -262,19 +265,22 @@ amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
 ```
 
 This implements:
+
 - 0.3% fee (997/1000 = 0.997)
-- Constant product invariant (k = x * y)
+- Constant product invariant (k = x \* y)
 - No division before multiplication (prevents precision loss)
 
 ## Security Considerations
 
 ✅ **Implemented:**
+
 - Input validation in `ValidateBasic()`
 - Slippage protection via `minAmountOut`
 - Overflow protection (sdk.Int handles big integers)
 - Access control (only LP share owner can remove)
 
 ⚠️ **To Consider:**
+
 - Reentrancy protection (handled by Cosmos SDK)
 - Front-running mitigation (MEV protection)
 - Pool manipulation attacks (ensure minimum liquidity)
@@ -307,6 +313,7 @@ These can be addressed in future upgrades.
 ## Conclusion
 
 The DEX module implementation is **functionally complete** and ready for:
+
 - Protobuf code generation
 - Testing
 - Integration

@@ -31,6 +31,7 @@ Each tool has specific strengths and use cases.
 **Best for:** HTTP API testing, WebSocket testing, complex scenarios
 
 **Installation:**
+
 ```bash
 # Windows (via Chocolatey)
 choco install k6
@@ -50,6 +51,7 @@ sudo apt-get install k6
 **Best for:** Distributed testing, Python scripting, custom scenarios
 
 **Installation:**
+
 ```bash
 pip install locust
 ```
@@ -59,6 +61,7 @@ pip install locust
 **Best for:** Tendermint consensus layer testing, raw transaction throughput
 
 **Installation:**
+
 ```bash
 go install github.com/informalsystems/tm-load-test@latest
 ```
@@ -68,6 +71,7 @@ go install github.com/informalsystems/tm-load-test@latest
 **Best for:** Blockchain-specific operations, detailed metrics
 
 **Build:**
+
 ```bash
 cd tests/load/gotester
 go build -o gotester main.go
@@ -102,6 +106,7 @@ Edit `tests/load/config.yaml` to adjust test parameters for your environment.
 ## Test Scenarios
 
 ### Light Load (Functional Testing)
+
 - **Duration:** 5 minutes
 - **Users:** 10
 - **Target TPS:** 10
@@ -112,6 +117,7 @@ make load-test SCENARIO=light
 ```
 
 ### Normal Load (Production Simulation)
+
 - **Duration:** 10 minutes
 - **Users:** 100
 - **Target TPS:** 100
@@ -122,6 +128,7 @@ make load-test SCENARIO=normal
 ```
 
 ### Peak Load
+
 - **Duration:** 15 minutes
 - **Users:** 500
 - **Target TPS:** 500
@@ -132,6 +139,7 @@ make load-test SCENARIO=peak
 ```
 
 ### Stress Test
+
 - **Duration:** 30 minutes
 - **Users:** 1000
 - **Target TPS:** 1000
@@ -142,6 +150,7 @@ make load-test SCENARIO=stress
 ```
 
 ### Endurance Test
+
 - **Duration:** 2 hours
 - **Users:** 200
 - **Target TPS:** 200
@@ -156,26 +165,31 @@ make load-test SCENARIO=endurance
 ### k6 Tests
 
 #### Blockchain Load Test
+
 ```bash
 k6 run tests/load/k6/blockchain-load-test.js
 ```
 
 #### DEX-Specific Test
+
 ```bash
 k6 run tests/load/k6/dex-swap-test.js
 ```
 
 #### WebSocket Test
+
 ```bash
 k6 run tests/load/k6/websocket-test.js
 ```
 
 #### With Custom Options
+
 ```bash
 k6 run --vus 100 --duration 10m tests/load/k6/blockchain-load-test.js
 ```
 
 #### With Environment Variables
+
 ```bash
 BASE_URL=http://localhost:1317 \
 RPC_URL=http://localhost:26657 \
@@ -185,12 +199,15 @@ k6 run tests/load/k6/blockchain-load-test.js
 ### Locust Tests
 
 #### Web UI Mode (Recommended)
+
 ```bash
 locust -f tests/load/locust/locustfile.py
 ```
+
 Then open http://localhost:8089 in your browser.
 
 #### Headless Mode
+
 ```bash
 locust -f tests/load/locust/locustfile.py \
   --headless \
@@ -201,6 +218,7 @@ locust -f tests/load/locust/locustfile.py \
 ```
 
 #### Distributed Testing
+
 ```bash
 # Master node
 locust -f tests/load/locust/locustfile.py --master
@@ -222,6 +240,7 @@ tm-load-test \
 ```
 
 **Options:**
+
 - `-c` - Concurrent connections
 - `-T` - Test duration (seconds)
 - `-r` - Transaction rate (per second)
@@ -280,21 +299,25 @@ go tool pprof -http=:8080 mem.prof
 ### Key Metrics
 
 #### Throughput
+
 - **TPS (Transactions Per Second):** Number of successful transactions per second
 - **Target:** 100+ TPS for normal load, 1000+ TPS peak capacity
 
 #### Latency
+
 - **p50 (Median):** 50% of requests complete within this time
 - **p95:** 95% of requests complete within this time
 - **p99:** 99% of requests complete within this time
 - **Target:** p95 < 500ms for queries, p95 < 2s for transactions
 
 #### Error Rate
+
 - **HTTP Errors:** Failed HTTP requests
 - **Transaction Errors:** Failed transaction submissions
 - **Target:** < 1% error rate
 
 #### Resource Usage
+
 - **CPU:** Processor utilization
 - **Memory:** RAM usage and growth
 - **Disk I/O:** Read/write operations
@@ -316,12 +339,14 @@ go tool pprof -http=:8080 mem.prof
 ```
 
 **Good signs:**
+
 - ✓ checks near 100%
 - p95 latency meeting targets
 - Low error rate (< 1%)
 - Stable performance over time
 
 **Warning signs:**
+
 - Increasing error rates
 - Growing latencies
 - Memory leaks (increasing RAM usage)
@@ -339,18 +364,21 @@ POST     /cosmos/tx/v1beta1/txs           15000       8        |    1234     567
 ## Performance Targets
 
 ### Minimum Requirements
+
 - **TPS:** 50+ sustained
 - **Latency (p95):** < 1s for queries, < 3s for transactions
 - **Error Rate:** < 2%
 - **Uptime:** 99%+
 
 ### Production Targets
+
 - **TPS:** 100+ sustained, 500+ peak
 - **Latency (p95):** < 500ms for queries, < 2s for transactions
 - **Error Rate:** < 1%
 - **Uptime:** 99.9%+
 
 ### Optimal Performance
+
 - **TPS:** 1000+ sustained
 - **Latency (p95):** < 200ms for queries, < 1s for transactions
 - **Error Rate:** < 0.1%
@@ -363,12 +391,14 @@ POST     /cosmos/tx/v1beta1/txs           15000       8        |    1234     567
 **Symptoms:** > 5% failed requests
 
 **Possible causes:**
+
 - Insufficient resources (CPU/RAM)
 - Network congestion
 - Database bottlenecks
 - Rate limiting
 
 **Solutions:**
+
 ```bash
 # Check node logs
 journalctl -u pawd -f
@@ -388,12 +418,14 @@ htop
 **Symptoms:** p95 > 1s for queries, p95 > 5s for transactions
 
 **Possible causes:**
+
 - Slow database queries
 - Network latency
 - Insufficient processing power
 - Memory swapping
 
 **Solutions:**
+
 ```bash
 # Profile the application
 go tool pprof http://localhost:6060/debug/pprof/profile
@@ -413,6 +445,7 @@ go tool pprof http://localhost:6060/debug/pprof/profile
 **Symptoms:** Continuously growing memory usage
 
 **Solutions:**
+
 ```bash
 # Profile memory
 go test -memprofile=mem.prof ./...
@@ -425,6 +458,7 @@ curl http://localhost:6060/debug/pprof/goroutine?debug=2
 ### Test Failures
 
 **Connection refused:**
+
 ```bash
 # Ensure node is running
 curl http://localhost:26657/status
@@ -434,6 +468,7 @@ curl http://localhost:26657/status
 ```
 
 **WebSocket errors:**
+
 ```bash
 # Test WebSocket connection
 wscat -c ws://localhost:26657/websocket
@@ -465,7 +500,7 @@ Add to your CI pipeline:
 name: Load Tests
 on:
   schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM
+    - cron: '0 2 * * *' # Daily at 2 AM
 
 jobs:
   load-test:
@@ -500,6 +535,7 @@ jobs:
 ## Support
 
 For load testing issues or questions:
+
 - GitHub Issues: https://github.com/paw-chain/paw/issues
 - Discord: #load-testing channel
 - Documentation: https://docs.paw.network/load-testing

@@ -1,0 +1,270 @@
+version: '3.9'
+
+services:
+  # PAW Blockchain Node
+  paw-node:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: paw-chain/paw:latest
+    container_name: paw-node
+    restart: unless-stopped
+    ports:
+      - '26656:26656' # P2P
+      - '26657:26657' # RPC
+      - '26660:26660' # Prometheus metrics
+      - '9090:9090' # gRPC
+      - '1317:1317' # REST API
+    volumes:
+      - paw-data:/paw/.paw
+      - ./genesis.json:/paw/.paw/config/genesis.json:ro
+    environment:
+      - CHAIN_ID=paw-1
+      - MONIKER=paw-docker-node
+      - MINIMUM_GAS_PRICES=0.025upaw
+      - PRUNING=default
+      - PERSISTENT_PEERS=${PERSISTENT_PEERS:-}
+      - SEEDS=${SEEDS:-}
+      - STATE_SYNC_ENABLED=${STATE_SYNC_ENABLED:-false}
+      - STATE_SYNC_RPC_SERVERS=${STATE_SYNC_RPC_SERVERS:-}
+      - STATE_SYNC_TRUST_HEIGHT=${STATE_SYNC_TRUST_HEIGHT:-}
+      - STATE_SYNC_TRUST_HASH=${STATE_SYNC_TRUST_HASH:-}
+    networks:
+      - paw-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '3'
+
+  # PAW API Server
+  paw-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: paw-chain/paw:latest
+    container_name: paw-api
+    restart: unless-stopped
+    command: ['api-server']
+    ports:
+      - '5000:5000' # Custom API
+    volumes:
+      - paw-api-data:/paw/.paw
+    environment:
+      - CHAIN_ID=paw-1
+      - NODE_URI=tcp://paw-node:26657
+      - API_HOST=0.0.0.0
+      - API_PORT=5000
+      - JWT_SECRET=${JWT_SECRET:-}
+      - TLS_ENABLED=${TLS_ENABLED:-false}
+      - RATE_LIMIT_RPS=100
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    networks:
+      - paw-network
+    depends_on:
+      paw-node:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '3'
+
+  # Prometheus (Metrics Collection)
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: paw-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9091:9090' # Changed to avoid conflict with node gRPC
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - paw-network
+    depends_on:
+      - paw-node
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:9090/-/healthy',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  # Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: paw-grafana
+    restart: unless-stopped
+    ports:
+      - '3001:3000' # Changed to avoid common conflicts
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana-dashboards.json:/etc/grafana/provisioning/dashboards/paw-dashboard.json:ro
+      - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yml:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    networks:
+      - paw-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/api/health',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  # Loki (Log Aggregation)
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: paw-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - '3100:3100'
+    volumes:
+      - ../monitoring/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - paw-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3100/ready',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  # Promtail (Log Shipper)
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: paw-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ../monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - paw-network
+    depends_on:
+      - loki
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+  # AlertManager (Alert Routing)
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: paw-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - '9093:9093'
+    volumes:
+      - ../monitoring/alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - paw-network
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:9093/-/healthy',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
+        max-file: '3'
+
+networks:
+  paw-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  paw-data:
+    driver: local
+  paw-api-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+  alertmanager-data:
+    driver: local

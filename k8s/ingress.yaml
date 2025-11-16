@@ -1,0 +1,103 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paw-ingress
+  namespace: paw-blockchain
+  labels:
+    app: paw
+  annotations:
+    kubernetes.io/ingress.class: 'nginx'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/rate-limit: '100'
+    nginx.ingress.kubernetes.io/limit-rps: '20'
+    nginx.ingress.kubernetes.io/limit-connections: '10'
+    nginx.ingress.kubernetes.io/proxy-body-size: '10m'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '120'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '120'
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+    nginx.ingress.kubernetes.io/cors-allow-methods: 'GET, POST, PUT, DELETE, OPTIONS'
+    nginx.ingress.kubernetes.io/cors-allow-origin: 'https://app.paw-chain.io'
+    nginx.ingress.kubernetes.io/cors-allow-credentials: 'true'
+spec:
+  tls:
+    - hosts:
+        - api.paw-chain.io
+        - rpc.paw-chain.io
+        - grpc.paw-chain.io
+      secretName: paw-tls-cert
+  rules:
+    - host: api.paw-chain.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paw-api
+                port:
+                  number: 5000
+    - host: rpc.paw-chain.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paw-node-rpc
+                port:
+                  number: 26657
+    - host: grpc.paw-chain.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paw-node-grpc
+                port:
+                  number: 9090
+
+---
+# Ingress for Monitoring (internal only)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paw-monitoring-ingress
+  namespace: paw-blockchain
+  labels:
+    app: paw-monitoring
+  annotations:
+    kubernetes.io/ingress.class: 'nginx'
+    nginx.ingress.kubernetes.io/whitelist-source-range: '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+    nginx.ingress.kubernetes.io/auth-type: 'basic'
+    nginx.ingress.kubernetes.io/auth-secret: 'monitoring-basic-auth'
+    nginx.ingress.kubernetes.io/auth-realm: 'PAW Monitoring - Authentication Required'
+spec:
+  tls:
+    - hosts:
+        - grafana.internal.paw-chain.io
+        - prometheus.internal.paw-chain.io
+      secretName: paw-monitoring-tls
+  rules:
+    - host: grafana.internal.paw-chain.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+    - host: prometheus.internal.paw-chain.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090

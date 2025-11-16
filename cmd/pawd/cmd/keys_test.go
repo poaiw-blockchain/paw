@@ -1,0 +1,556 @@
+package cmd
+
+import (
+	"bytes"
+	"crypto/rand"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/go-bip39"
+	"github.com/paw-chain/paw/app"
+	"github.com/stretchr/testify/require"
+)
+
+// Test that we can generate valid 12-word mnemonics
+func TestGenerateMnemonic12Words(t *testing.T) {
+	// Generate 128 bits of entropy (12 words)
+	entropy := make([]byte, 16)
+	_, err := rand.Read(entropy)
+	require.NoError(t, err)
+
+	// Generate mnemonic
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	require.NoError(t, err)
+	require.NotEmpty(t, mnemonic)
+
+	// Validate mnemonic
+	require.True(t, bip39.IsMnemonicValid(mnemonic))
+
+	// Check word count
+	words := strings.Fields(mnemonic)
+	require.Equal(t, 12, len(words))
+}
+
+// Test that we can generate valid 24-word mnemonics
+func TestGenerateMnemonic24Words(t *testing.T) {
+	// Generate 256 bits of entropy (24 words)
+	entropy := make([]byte, 32)
+	_, err := rand.Read(entropy)
+	require.NoError(t, err)
+
+	// Generate mnemonic
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	require.NoError(t, err)
+	require.NotEmpty(t, mnemonic)
+
+	// Validate mnemonic
+	require.True(t, bip39.IsMnemonicValid(mnemonic))
+
+	// Check word count
+	words := strings.Fields(mnemonic)
+	require.Equal(t, 24, len(words))
+}
+
+// Test mnemonic validation with checksums
+func TestMnemonicValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		mnemonic  string
+		valid     bool
+		wordCount int
+	}{
+		{
+			name:      "valid 12-word mnemonic",
+			mnemonic:  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+			valid:     true,
+			wordCount: 12,
+		},
+		{
+			name:      "valid 24-word mnemonic",
+			mnemonic:  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+			valid:     true,
+			wordCount: 24,
+		},
+		{
+			name:      "invalid checksum",
+			mnemonic:  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon",
+			valid:     false,
+			wordCount: 12,
+		},
+		{
+			name:      "wrong word count",
+			mnemonic:  "abandon abandon abandon",
+			valid:     false,
+			wordCount: 3,
+		},
+		{
+			name:      "invalid word",
+			mnemonic:  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon invalidword",
+			valid:     false,
+			wordCount: 12,
+		},
+		{
+			name:      "empty mnemonic",
+			mnemonic:  "",
+			valid:     false,
+			wordCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isValid := bip39.IsMnemonicValid(tt.mnemonic)
+			require.Equal(t, tt.valid, isValid)
+
+			words := strings.Fields(tt.mnemonic)
+			require.Equal(t, tt.wordCount, len(words))
+		})
+	}
+}
+
+// Test entropy generation is cryptographically secure
+func TestEntropyGeneration(t *testing.T) {
+	// Generate multiple entropy samples
+	samples := 100
+	entropies := make(map[string]bool)
+
+	for i := 0; i < samples; i++ {
+		entropy := make([]byte, 32)
+		_, err := rand.Read(entropy)
+		require.NoError(t, err)
+
+		// Convert to string for uniqueness check
+		entropyStr := string(entropy)
+
+		// Ensure we don't get duplicates (extremely unlikely with crypto/rand)
+		require.False(t, entropies[entropyStr], "Duplicate entropy detected - crypto/rand may not be working correctly")
+		entropies[entropyStr] = true
+	}
+
+	// We should have generated 'samples' unique entropy values
+	require.Equal(t, samples, len(entropies))
+}
+
+// Test key derivation from mnemonic produces consistent results
+func TestKeyDerivationConsistency(t *testing.T) {
+	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+	// Derive key twice with same parameters
+	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
+
+	// First derivation
+	masterPriv, ch := hd.ComputeMastersFromSeed(bip39.NewSeed(mnemonic, ""))
+	derivedPriv, err := hd.DerivePrivateKeyForPath(masterPriv, ch, hdPath.String())
+	require.NoError(t, err)
+
+	// Second derivation
+	masterPriv2, ch2 := hd.ComputeMastersFromSeed(bip39.NewSeed(mnemonic, ""))
+	derivedPriv2, err := hd.DerivePrivateKeyForPath(masterPriv2, ch2, hdPath.String())
+	require.NoError(t, err)
+
+	// Keys should be identical
+	require.Equal(t, derivedPriv, derivedPriv2)
+}
+
+// Test different HD paths produce different keys
+func TestHDPathDifferentiation(t *testing.T) {
+	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+	coinType := sdk.GetConfig().GetCoinType()
+
+	// Derive keys with different paths
+	hdPath1 := hd.CreateHDPath(coinType, 0, 0)
+	hdPath2 := hd.CreateHDPath(coinType, 0, 1)
+	hdPath3 := hd.CreateHDPath(coinType, 1, 0)
+
+	masterPriv, ch := hd.ComputeMastersFromSeed(bip39.NewSeed(mnemonic, ""))
+
+	key1, err := hd.DerivePrivateKeyForPath(masterPriv, ch, hdPath1.String())
+	require.NoError(t, err)
+
+	key2, err := hd.DerivePrivateKeyForPath(masterPriv, ch, hdPath2.String())
+	require.NoError(t, err)
+
+	key3, err := hd.DerivePrivateKeyForPath(masterPriv, ch, hdPath3.String())
+	require.NoError(t, err)
+
+	// All keys should be different
+	require.NotEqual(t, key1, key2)
+	require.NotEqual(t, key1, key3)
+	require.NotEqual(t, key2, key3)
+}
+
+// Test AddKeyCommand with 12-word mnemonic
+func TestAddKeyCommand12Words(t *testing.T) {
+	// Create temporary keyring
+	tmpDir := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flagMnemonicLength, "12")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "true") // Don't display mnemonic in test
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Verify key was created
+	key, err := kr.Key("testkey")
+	require.NoError(t, err)
+	require.NotNil(t, key)
+	require.Equal(t, "testkey", key.Name)
+}
+
+// Test AddKeyCommand with 24-word mnemonic
+func TestAddKeyCommand24Words(t *testing.T) {
+	// Create temporary keyring
+	tmpDir := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flagMnemonicLength, "24")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "true")
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	cmd.SetArgs([]string{"testkey24"})
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Verify key was created
+	key, err := kr.Key("testkey24")
+	require.NoError(t, err)
+	require.NotNil(t, key)
+	require.Equal(t, "testkey24", key.Name)
+}
+
+// Test AddKeyCommand with invalid mnemonic length
+func TestAddKeyCommandInvalidLength(t *testing.T) {
+	// Create temporary keyring
+	tmpDir := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags with invalid length
+	cmd.Flags().Set(flagMnemonicLength, "18")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command - should fail
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "mnemonic length must be 12 or 24 words")
+}
+
+// Test RecoverKeyCommand with valid mnemonic
+func TestRecoverKeyCommand(t *testing.T) {
+	// Create temporary keyring
+	tmpDir := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec).
+		WithInput(strings.NewReader("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\n"))
+
+	// Create command
+	cmd := RecoverKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetIn(strings.NewReader("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\n"))
+
+	// Set flags
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	cmd.SetArgs([]string{"recoveredkey"})
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Verify key was recovered
+	key, err := kr.Key("recoveredkey")
+	require.NoError(t, err)
+	require.NotNil(t, key)
+	require.Equal(t, "recoveredkey", key.Name)
+}
+
+// Test that recovered keys have consistent addresses
+func TestRecoverKeyConsistency(t *testing.T) {
+	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+	// Create two temporary keyrings
+	tmpDir1 := t.TempDir()
+	tmpDir2 := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create first keyring and recover key
+	kr1, err := keyring.New("test", keyring.BackendTest, tmpDir1, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
+	key1, err := kr1.NewAccount("key1", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	require.NoError(t, err)
+
+	// Create second keyring and recover same key
+	kr2, err := keyring.New("test", keyring.BackendTest, tmpDir2, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	key2, err := kr2.NewAccount("key2", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	require.NoError(t, err)
+
+	// Addresses should be identical
+	addr1, err := key1.GetAddress()
+	require.NoError(t, err)
+
+	addr2, err := key2.GetAddress()
+	require.NoError(t, err)
+
+	require.Equal(t, addr1.String(), addr2.String())
+}
+
+// Test ListKeysCommand
+func TestListKeysCommand(t *testing.T) {
+	// Create temporary keyring
+	tmpDir := t.TempDir()
+
+	// Initialize SDK config
+	initSDKConfig()
+
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Add some test keys
+	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
+	_, err = kr.NewAccount("key1", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	require.NoError(t, err)
+
+	_, err = kr.NewAccount("key2", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	require.NoError(t, err)
+
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := ListKeysCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Check output contains both keys
+	output := buf.String()
+	require.Contains(t, output, "key1")
+	require.Contains(t, output, "key2")
+}
+
+// Benchmark mnemonic generation
+func BenchmarkMnemonicGeneration12Words(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		entropy := make([]byte, 16)
+		_, _ = rand.Read(entropy)
+		_, _ = bip39.NewMnemonic(entropy)
+	}
+}
+
+func BenchmarkMnemonicGeneration24Words(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		entropy := make([]byte, 32)
+		_, _ = rand.Read(entropy)
+		_, _ = bip39.NewMnemonic(entropy)
+	}
+}
+
+// Benchmark mnemonic validation
+func BenchmarkMnemonicValidation(b *testing.B) {
+	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	for i := 0; i < b.N; i++ {
+		_ = bip39.IsMnemonicValid(mnemonic)
+	}
+}
+
+// Test that mnemonic backup warning is displayed when no-backup is false
+func TestMnemonicBackupWarning(t *testing.T) {
+	tmpDir := t.TempDir()
+	initSDKConfig()
+
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	cmd := AddKeyCommand()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	cmd.Flags().Set(flagMnemonicLength, "12")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "false") // Display mnemonic
+
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	output := buf.String()
+	require.Contains(t, output, "IMPORTANT")
+	require.Contains(t, output, "mnemonic phrase")
+}
+
+// Test export and import key functionality
+func TestExportImportKey(t *testing.T) {
+	tmpDir := t.TempDir()
+	initSDKConfig()
+
+	// Create keyring and add a key
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
+	originalKey, err := kr.NewAccount("exportkey", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	require.NoError(t, err)
+
+	// Export the key
+	passphrase := "testpassphrase123"
+	armor, err := kr.ExportPrivKeyArmor("exportkey", passphrase)
+	require.NoError(t, err)
+	require.NotEmpty(t, armor)
+
+	// Write to temporary file
+	tmpFile := filepath.Join(tmpDir, "exported_key.txt")
+	err = os.WriteFile(tmpFile, []byte(armor), 0600)
+	require.NoError(t, err)
+
+	// Create a new keyring for import
+	tmpDir2 := t.TempDir()
+	kr2, err := keyring.New("test", keyring.BackendTest, tmpDir2, nil, app.MakeEncodingConfig().Codec)
+	require.NoError(t, err)
+
+	// Import the key
+	err = kr2.ImportPrivKey("importedkey", armor, passphrase)
+	require.NoError(t, err)
+
+	// Verify imported key matches original
+	importedKey, err := kr2.Key("importedkey")
+	require.NoError(t, err)
+
+	originalAddr, err := originalKey.GetAddress()
+	require.NoError(t, err)
+
+	importedAddr, err := importedKey.GetAddress()
+	require.NoError(t, err)
+
+	require.Equal(t, originalAddr.String(), importedAddr.String())
+}

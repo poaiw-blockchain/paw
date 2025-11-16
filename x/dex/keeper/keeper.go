@@ -47,6 +47,11 @@ func (k Keeper) CreatePool(
 	amountA math.Int,
 	amountB math.Int,
 ) (uint64, error) {
+	// Check if module is paused
+	if err := k.RequireNotPaused(ctx); err != nil {
+		return 0, err
+	}
+
 	// Validate inputs
 	if tokenA == tokenB {
 		return 0, types.ErrSameToken
@@ -125,6 +130,28 @@ func (k Keeper) Swap(
 	amountIn math.Int,
 	minAmountOut math.Int,
 ) (math.Int, error) {
+	// Check if module is paused
+	if err := k.RequireNotPaused(ctx); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// Check circuit breaker before swap
+	if err := k.CheckCircuitBreaker(ctx, poolId); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// Check swap volume limits (for gradual resume)
+	if err := k.CheckSwapVolumeLimit(ctx, poolId, amountIn); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// MEV Protection: Enforce timestamp-based ordering
+	txTimestamp := ctx.BlockTime().Unix()
+	orderingManager := NewTransactionOrderingManager(&k)
+	if err := orderingManager.EnforceTimestampOrdering(ctx, trader, poolId, txTimestamp); err != nil {
+		return math.ZeroInt(), err
+	}
+
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
@@ -160,6 +187,55 @@ func (k Keeper) Swap(
 		return math.ZeroInt(), types.ErrMinAmountOut
 	}
 
+	// MEV Protection: Calculate and check price impact
+	priceImpact := types.CalculatePriceImpact(reserveIn, reserveOut, amountIn, amountOut)
+
+	// MEV Protection: Detect and prevent MEV attacks
+	mevManager := NewMEVProtectionManager(&k)
+	mevResult := mevManager.DetectMEVAttack(ctx, trader, poolId, tokenIn, tokenOut, amountIn, amountOut, priceImpact)
+
+	// Update MEV metrics
+	k.UpdateMEVMetrics(ctx, mevResult)
+
+	// Block transaction if MEV attack detected
+	if mevResult.ShouldBlock {
+		// Emit blocking event
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeMEVBlocked,
+				sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolId)),
+				sdk.NewAttribute("trader", trader),
+				sdk.NewAttribute("attack_type", mevResult.AttackType),
+				sdk.NewAttribute("confidence", mevResult.Confidence.String()),
+				sdk.NewAttribute("reason", mevResult.Reason),
+			),
+		)
+
+		return math.ZeroInt(), types.ErrMEVAttackBlocked.Wrapf("%s: %s", mevResult.AttackType, mevResult.Reason)
+	}
+
+	// Validate swap against TWAP to prevent price manipulation
+	if err := k.ValidateSwapAgainstTWAP(ctx, poolId, amountIn, amountOut, tokenIn, tokenOut); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// Detect flash loan patterns
+	isFlashLoan, pattern := k.DetectFlashLoanPattern(ctx, trader, poolId, amountIn)
+	if isFlashLoan {
+		// Log flash loan attempt
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"flash_loan_pattern_detected",
+				sdk.NewAttribute("trader", trader),
+				sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolId)),
+				sdk.NewAttribute("pattern", pattern),
+				sdk.NewAttribute("amount_in", amountIn.String()),
+			),
+		)
+		// Note: We log but don't block - flash loans can be legitimate
+		// Governance can decide to block them if needed
+	}
+
 	// Transfer tokens
 	traderAddr, err := sdk.AccAddressFromBech32(trader)
 	if err != nil {
@@ -191,6 +267,13 @@ func (k Keeper) Swap(
 
 	k.SetPool(ctx, *pool)
 
+	// Record price for TWAP after the swap
+	k.RecordPrice(ctx, poolId)
+
+	// MEV Protection: Record transaction for future MEV detection
+	txHash := fmt.Sprintf("%s-%d-%d", trader, ctx.BlockHeight(), ctx.BlockTime().Unix())
+	k.RecordTransaction(ctx, txHash, trader, poolId, tokenIn, tokenOut, amountIn, amountOut, priceImpact)
+
 	// Emit event
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -201,6 +284,7 @@ func (k Keeper) Swap(
 			sdk.NewAttribute("token_out", tokenOut),
 			sdk.NewAttribute("amount_in", amountIn.String()),
 			sdk.NewAttribute("amount_out", amountOut.String()),
+			sdk.NewAttribute("price_impact", priceImpact.String()),
 		),
 	)
 
@@ -234,6 +318,11 @@ func (k Keeper) AddLiquidity(
 	amountA math.Int,
 	amountB math.Int,
 ) (math.Int, error) {
+	// Check if module is paused
+	if err := k.RequireNotPaused(ctx); err != nil {
+		return math.ZeroInt(), err
+	}
+
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
@@ -305,6 +394,11 @@ func (k Keeper) RemoveLiquidity(
 	poolId uint64,
 	shares math.Int,
 ) (math.Int, math.Int, error) {
+	// Check if module is paused
+	if err := k.RequireNotPaused(ctx); err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
+	}
+
 	// Get pool
 	pool := k.GetPool(ctx, poolId)
 	if pool == nil {
@@ -447,4 +541,45 @@ func (k Keeper) SetLiquidity(ctx sdk.Context, poolId uint64, provider string, sh
 // GetModuleAddress returns the module account address
 func (k Keeper) GetModuleAddress() sdk.AccAddress {
 	return sdk.AccAddress([]byte(types.ModuleName))
+}
+
+// GetAllPools returns all pools
+func (k Keeper) GetAllPools(ctx sdk.Context) []types.Pool {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.PoolKey)
+	iterator := store.Iterator(nil, nil)
+	defer iterator.Close()
+
+	pools := []types.Pool{}
+	for ; iterator.Valid(); iterator.Next() {
+		var pool types.Pool
+		k.cdc.MustUnmarshal(iterator.Value(), &pool)
+		pools = append(pools, pool)
+	}
+
+	return pools
+}
+
+// GetParams returns the current DEX parameters
+func (k Keeper) GetParams(ctx sdk.Context) types.Params {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.ParamsKey)
+	if bz == nil {
+		return types.DefaultParams()
+	}
+
+	var params types.Params
+	k.cdc.MustUnmarshal(bz, &params)
+	return params
+}
+
+// SetParams sets the DEX parameters
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
+	if err := params.Validate(); err != nil {
+		return err
+	}
+
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshal(&params)
+	store.Set(types.ParamsKey, bz)
+	return nil
 }

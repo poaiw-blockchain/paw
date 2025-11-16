@@ -1,0 +1,57 @@
+---
+# PAW Blockchain Namespace
+# Isolate PAW blockchain resources
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paw-blockchain
+  labels:
+    name: paw-blockchain
+    app: paw
+    environment: production
+
+---
+# Resource Quotas for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: paw-compute-quota
+  namespace: paw-blockchain
+spec:
+  hard:
+    requests.cpu: '100'
+    requests.memory: '500Gi'
+    limits.cpu: '200'
+    limits.memory: '1Ti'
+    persistentvolumeclaims: '50'
+    requests.storage: '20Ti'
+
+---
+# Limit Range for individual pods
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: paw-limit-range
+  namespace: paw-blockchain
+spec:
+  limits:
+    - max:
+        cpu: '16'
+        memory: '64Gi'
+      min:
+        cpu: '100m'
+        memory: '128Mi'
+      default:
+        cpu: '2'
+        memory: '4Gi'
+      defaultRequest:
+        cpu: '1'
+        memory: '2Gi'
+      type: Container
+    - max:
+        cpu: '32'
+        memory: '128Gi'
+      min:
+        cpu: '500m'
+        memory: '512Mi'
+      type: Pod

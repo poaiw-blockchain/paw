@@ -16,8 +16,5 @@
     "http://localhost:18545/*",
     "http://127.0.0.1:18545/*"
   ],
-  "permissions": [
-    "storage",
-    "alarms"
- ]
+  "permissions": ["storage", "alarms"]
 }

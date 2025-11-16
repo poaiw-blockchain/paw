@@ -11,7 +11,7 @@
         "id": 1,
         "title": "Block Height",
         "type": "graph",
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "tendermint_consensus_height",
@@ -20,15 +20,15 @@
           }
         ],
         "yaxes": [
-          {"format": "short", "label": "Height"},
-          {"format": "short"}
+          { "format": "short", "label": "Height" },
+          { "format": "short" }
         ]
       },
       {
         "id": 2,
         "title": "Blocks Per Second",
         "type": "graph",
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "rate(tendermint_consensus_height[1m])",
@@ -37,15 +37,15 @@
           }
         ],
         "yaxes": [
-          {"format": "ops", "label": "Blocks/sec"},
-          {"format": "short"}
+          { "format": "ops", "label": "Blocks/sec" },
+          { "format": "short" }
         ]
       },
       {
         "id": 3,
         "title": "Transaction Throughput",
         "type": "graph",
-        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "rate(cosmos_tx_total[1m])",
@@ -58,16 +58,13 @@
             "refId": "B"
           }
         ],
-        "yaxes": [
-          {"format": "ops", "label": "Tx/sec"},
-          {"format": "short"}
-        ]
+        "yaxes": [{ "format": "ops", "label": "Tx/sec" }, { "format": "short" }]
       },
       {
         "id": 4,
         "title": "P2P Peer Count",
         "type": "stat",
-        "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+        "gridPos": { "x": 12, "y": 8, "w": 6, "h": 4 },
         "targets": [
           {
             "expr": "tendermint_p2p_peers",
@@ -90,7 +87,7 @@
         "id": 5,
         "title": "Mempool Size",
         "type": "stat",
-        "gridPos": {"x": 18, "y": 8, "w": 6, "h": 4},
+        "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
         "targets": [
           {
             "expr": "tendermint_mempool_size",
@@ -106,7 +103,7 @@
         "id": 6,
         "title": "Validator Voting Power",
         "type": "piechart",
-        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "tendermint_consensus_validators_power",
@@ -119,7 +116,7 @@
         "id": 7,
         "title": "DEX Swap Volume (24h)",
         "type": "graph",
-        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "sum by (token) (paw_dex_swap_volume_24h)",
@@ -128,15 +125,15 @@
           }
         ],
         "yaxes": [
-          {"format": "currencyUSD", "label": "Volume"},
-          {"format": "short"}
+          { "format": "currencyUSD", "label": "Volume" },
+          { "format": "short" }
         ]
       },
       {
         "id": 8,
         "title": "DEX Swaps Total",
         "type": "graph",
-        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "rate(paw_dex_swaps_total[5m])",
@@ -145,15 +142,15 @@
           }
         ],
         "yaxes": [
-          {"format": "ops", "label": "Swaps/sec"},
-          {"format": "short"}
+          { "format": "ops", "label": "Swaps/sec" },
+          { "format": "short" }
         ]
       },
       {
         "id": 9,
         "title": "Pool Reserves",
         "type": "graph",
-        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "paw_dex_pool_reserves",
@@ -162,15 +159,15 @@
           }
         ],
         "yaxes": [
-          {"format": "short", "label": "Reserves"},
-          {"format": "short"}
+          { "format": "short", "label": "Reserves" },
+          { "format": "short" }
         ]
       },
       {
         "id": 10,
         "title": "CPU Usage",
         "type": "graph",
-        "gridPos": {"x": 12, "y": 24, "w": 6, "h": 8},
+        "gridPos": { "x": 12, "y": 24, "w": 6, "h": 8 },
         "targets": [
           {
             "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
@@ -179,15 +176,15 @@
           }
         ],
         "yaxes": [
-          {"format": "percent", "max": 100, "min": 0},
-          {"format": "short"}
+          { "format": "percent", "max": 100, "min": 0 },
+          { "format": "short" }
         ]
       },
       {
         "id": 11,
         "title": "Memory Usage",
         "type": "graph",
-        "gridPos": {"x": 18, "y": 24, "w": 6, "h": 8},
+        "gridPos": { "x": 18, "y": 24, "w": 6, "h": 8 },
         "targets": [
           {
             "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
@@ -196,15 +193,15 @@
           }
         ],
         "yaxes": [
-          {"format": "percent", "max": 100, "min": 0},
-          {"format": "short"}
+          { "format": "percent", "max": 100, "min": 0 },
+          { "format": "short" }
         ]
       },
       {
         "id": 12,
         "title": "Transaction Latency (p95)",
         "type": "graph",
-        "gridPos": {"x": 0, "y": 32, "w": 12, "h": 8},
+        "gridPos": { "x": 0, "y": 32, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(cosmos_tx_processing_time_bucket[5m]))",
@@ -212,16 +209,13 @@
             "refId": "A"
           }
         ],
-        "yaxes": [
-          {"format": "ms", "label": "Latency"},
-          {"format": "short"}
-        ]
+        "yaxes": [{ "format": "ms", "label": "Latency" }, { "format": "short" }]
       },
       {
         "id": 13,
         "title": "Consensus State",
         "type": "stat",
-        "gridPos": {"x": 12, "y": 32, "w": 12, "h": 4},
+        "gridPos": { "x": 12, "y": 32, "w": 12, "h": 4 },
         "targets": [
           {
             "expr": "tendermint_consensus_rounds",
@@ -237,7 +231,7 @@
         "id": 14,
         "title": "Network I/O",
         "type": "graph",
-        "gridPos": {"x": 12, "y": 36, "w": 12, "h": 8},
+        "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
         "targets": [
           {
             "expr": "rate(node_network_receive_bytes_total[5m])",
@@ -251,8 +245,8 @@
           }
         ],
         "yaxes": [
-          {"format": "Bps", "label": "Bytes/sec"},
-          {"format": "short"}
+          { "format": "Bps", "label": "Bytes/sec" },
+          { "format": "short" }
         ]
       }
     ]

@@ -74,6 +74,7 @@ CometMock is a drop-in replacement for CometBFT that enables **much faster** end
 ### When to Use CometMock vs Real CometBFT
 
 **Use CometMock for:**
+
 - Rapid iteration during development
 - CI/CD pipelines
 - Unit and integration tests
@@ -81,6 +82,7 @@ CometMock is a drop-in replacement for CometBFT that enables **much faster** end
 - Debugging state transitions
 
 **Use Real CometBFT for:**
+
 - Consensus testing
 - Network behavior testing
 - Performance benchmarks
@@ -158,7 +160,7 @@ Located in `tests/invariants/staking_invariants_test.go`:
 
 Located in `tests/invariants/dex_invariants_test.go`:
 
-- **Constant Product (x*y=k)**: Pool reserves maintain k invariant
+- **Constant Product (x\*y=k)**: Pool reserves maintain k invariant
 - **LP Shares**: Sum of LP shares equals pool total
 - **No Negative Reserves**: All reserves are positive
 - **Pool Balances**: Reserves match actual token balances

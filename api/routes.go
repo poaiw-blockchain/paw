@@ -10,6 +10,14 @@ func (s *Server) registerRoutes() {
 		{
 			auth.POST("/register", s.handleRegister)
 			auth.POST("/login", s.handleLogin)
+			auth.POST("/refresh", s.handleRefreshToken)
+
+			// Protected auth routes
+			authProtected := auth.Group("")
+			authProtected.Use(s.AuthMiddleware())
+			{
+				authProtected.POST("/logout", s.handleLogout)
+			}
 		}
 
 		// Trading/Order routes

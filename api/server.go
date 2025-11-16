@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -26,6 +29,8 @@ type Server struct {
 	walletService  *WalletService
 	swapService    *SwapService
 	poolService    *PoolService
+	rateLimiter    *AdvancedRateLimiter
+	auditLogger    *AuditLogger
 }
 
 // Config holds server configuration
@@ -36,11 +41,21 @@ type Config struct {
 	NodeURI         string
 	JWTSecret       []byte
 	CORSOrigins     []string
-	RateLimitRPS    int
+	RateLimitRPS    int // Deprecated: Use RateLimitConfig
 	MaxConnections  int
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
 	ShutdownTimeout time.Duration
+	TLSEnabled      bool
+	TLSCertFile     string
+	TLSKeyFile      string
+
+	// Advanced rate limiting
+	RateLimitConfig *RateLimitConfig
+
+	// Audit logging
+	AuditLogDir  string
+	AuditEnabled bool
 }
 
 // DefaultConfig returns default server configuration
@@ -56,6 +71,9 @@ func DefaultConfig() *Config {
 		ReadTimeout:     15 * time.Second,
 		WriteTimeout:    15 * time.Second,
 		ShutdownTimeout: 10 * time.Second,
+		RateLimitConfig: DefaultRateLimitConfig(),
+		AuditLogDir:     "./logs/audit",
+		AuditEnabled:    true,
 	}
 }
 
@@ -65,9 +83,25 @@ func NewServer(clientCtx client.Context, config *Config) (*Server, error) {
 		config = DefaultConfig()
 	}
 
-	// Generate JWT secret if not provided
+	// Generate JWT secret if not provided (using cryptographically secure random)
 	if len(config.JWTSecret) == 0 {
-		config.JWTSecret = []byte("change-me-in-production-" + time.Now().String())
+		// Generate 32 bytes (256 bits) of cryptographically secure random data
+		secret := make([]byte, 32)
+		if _, err := rand.Read(secret); err != nil {
+			return nil, fmt.Errorf("failed to generate JWT secret: %w", err)
+		}
+		config.JWTSecret = secret
+
+		// Log warning that secret should be configured explicitly
+		fmt.Printf("WARNING: JWT secret generated randomly. For production, set explicit JWT secret via environment variable or config file.\n")
+		fmt.Printf("Generated JWT secret (hex): %s\n", hex.EncodeToString(secret))
+		fmt.Println("Save this secret and configure it explicitly to maintain session continuity across restarts.")
+	}
+
+	// Initialize audit logger
+	auditLogger, err := NewAuditLogger(config.AuditLogDir, config.AuditEnabled)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize audit logger: %w", err)
 	}
 
 	// Initialize WebSocket hub
@@ -80,6 +114,15 @@ func NewServer(clientCtx client.Context, config *Config) (*Server, error) {
 	swapService := NewSwapService(clientCtx)
 	poolService := NewPoolService()
 
+	// Initialize advanced rate limiter
+	var rateLimiter *AdvancedRateLimiter
+	if config.RateLimitConfig != nil && config.RateLimitConfig.Enabled {
+		rateLimiter, err = NewAdvancedRateLimiter(config.RateLimitConfig, auditLogger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize rate limiter: %w", err)
+		}
+	}
+
 	server := &Server{
 		clientCtx:      clientCtx,
 		config:         config,
@@ -89,6 +132,8 @@ func NewServer(clientCtx client.Context, config *Config) (*Server, error) {
 		walletService:  walletService,
 		swapService:    swapService,
 		poolService:    poolService,
+		rateLimiter:    rateLimiter,
+		auditLogger:    auditLogger,
 	}
 
 	// Setup router
@@ -106,14 +151,52 @@ func (s *Server) setupRouter() {
 
 	s.router = gin.New()
 
-	// Global middleware
+	// Global middleware - ORDER MATTERS!
+	// 1. Recovery (must be first to catch panics)
 	s.router.Use(gin.Recovery())
-	s.router.Use(LoggerMiddleware())
-	s.router.Use(s.CORSMiddleware())
-	s.router.Use(RateLimitMiddleware(s.config.RateLimitRPS))
 
-	// Health check endpoint
+	// 2. Security headers (set early)
+	s.router.Use(SecurityHeadersMiddleware())
+
+	// 3. Request size limiting (prevent DOS)
+	s.router.Use(RequestSizeLimitMiddleware(MaxRequestSize))
+
+	// 4. HTTPS redirect (if configured)
+	if s.config.TLSEnabled {
+		s.router.Use(HTTPSRedirectMiddleware())
+	}
+
+	// 5. Request ID (for tracing)
+	s.router.Use(RequestIDMiddleware())
+
+	// 6. Logging
+	s.router.Use(LoggerMiddleware())
+
+	// 7. CORS (before auth)
+	s.router.Use(s.CORSMiddleware())
+
+	// 8. Rate limiting (before expensive operations)
+	if s.rateLimiter != nil {
+		s.router.Use(AdvancedRateLimitMiddleware(s.rateLimiter))
+	} else {
+		s.router.Use(RateLimitMiddleware(s.config.RateLimitRPS))
+	}
+
+	// 9. Audit logging (if enabled)
+	if s.auditLogger != nil && s.config.AuditEnabled {
+		s.router.Use(AuditMiddleware(s.auditLogger))
+	}
+
+	// 10. Timeout (prevent hanging requests)
+	s.router.Use(TimeoutMiddleware(30 * time.Second))
+
+	// Health check endpoint (no auth required)
 	s.router.GET("/health", s.healthCheck)
+
+	// Rate limiter stats endpoint (for monitoring)
+	if s.rateLimiter != nil {
+		s.router.GET("/rate-limit/stats", s.handleRateLimitStats)
+	}
 
 	// Register all routes
 	s.registerRoutes()
@@ -133,19 +216,42 @@ func (s *Server) Start() error {
 	// Start WebSocket hub
 	go s.wsHub.Run()
 
-	// Create HTTP server
+	// Create HTTP server with security configurations
 	srv := &http.Server{
-		Addr:         fmt.Sprintf("%s:%s", s.config.Host, s.config.Port),
-		Handler:      s.router,
-		ReadTimeout:  s.config.ReadTimeout,
-		WriteTimeout: s.config.WriteTimeout,
+		Addr:           fmt.Sprintf("%s:%s", s.config.Host, s.config.Port),
+		Handler:        s.router,
+		ReadTimeout:    s.config.ReadTimeout,
+		WriteTimeout:   s.config.WriteTimeout,
+		MaxHeaderBytes: 1 << 20, // 1 MB
+	}
+
+	// Configure TLS if enabled
+	if s.config.TLSEnabled {
+		// Configure secure TLS settings
+		srv.TLSConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS13, // Only TLS 1.3
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_AES_128_GCM_SHA256,
+				tls.TLS_AES_256_GCM_SHA384,
+				tls.TLS_CHACHA20_POLY1305_SHA256,
+			},
+		}
 	}
 
 	// Start server in a goroutine
 	go func() {
-		fmt.Printf("Starting PAW API server on %s:%s\n", s.config.Host, s.config.Port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Printf("Server error: %v\n", err)
+		if s.config.TLSEnabled {
+			fmt.Printf("Starting PAW API server (TLS) on %s:%s\n", s.config.Host, s.config.Port)
+			if err := srv.ListenAndServeTLS(s.config.TLSCertFile, s.config.TLSKeyFile); err != nil && err != http.ErrServerClosed {
+				fmt.Printf("Server error: %v\n", err)
+			}
+		} else {
+			fmt.Printf("WARNING: Starting PAW API server (HTTP - unencrypted) on %s:%s\n", s.config.Host, s.config.Port)
+			fmt.Println("For production, enable TLS by setting TLSEnabled=true and providing certificate files")
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				fmt.Printf("Server error: %v\n", err)
+			}
 		}
 	}()
 
@@ -167,8 +273,31 @@ func (s *Server) Start() error {
 	// Close WebSocket hub
 	s.wsHub.Close()
 
+	// Close rate limiter
+	if s.rateLimiter != nil {
+		s.rateLimiter.Close()
+	}
+
+	// Close audit logger
+	if s.auditLogger != nil {
+		s.auditLogger.Close()
+	}
+
 	fmt.Println("Server exited")
 	return nil
+}
+
+// handleRateLimitStats returns rate limiter statistics
+func (s *Server) handleRateLimitStats(c *gin.Context) {
+	if s.rateLimiter == nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Rate limiter not enabled",
+		})
+		return
+	}
+
+	stats := s.rateLimiter.GetStats()
+	c.JSON(http.StatusOK, stats)
 }
 
 // BroadcastTx broadcasts a transaction to the blockchain

@@ -25,14 +25,14 @@ make metrics
 
 ## Access URLs
 
-| Service | URL |
-|---------|-----|
-| Grafana | http://localhost:3000 |
-| Prometheus | http://localhost:9090 |
-| Jaeger | http://localhost:16686 |
-| Alertmanager | http://localhost:9093 |
-| Big Dipper | http://localhost:3001 |
-| Mintscan | http://localhost:8080 |
+| Service      | URL                    |
+| ------------ | ---------------------- |
+| Grafana      | http://localhost:3000  |
+| Prometheus   | http://localhost:9090  |
+| Jaeger       | http://localhost:16686 |
+| Alertmanager | http://localhost:9093  |
+| Big Dipper   | http://localhost:3001  |
+| Mintscan     | http://localhost:8080  |
 
 **Grafana Credentials**: admin/admin
 
@@ -48,18 +48,21 @@ curl http://localhost:1317/metrics        # Prometheus metrics
 ## Key Metrics
 
 ### Blockchain
+
 - `tendermint_consensus_height` - Block height
 - `tendermint_p2p_peers` - Peer count
 - `cosmos_tx_total` - Total transactions
 - `cosmos_tx_processing_time` - TX latency
 
 ### DEX
+
 - `paw_dex_swaps_total` - Swap count
 - `paw_dex_swap_volume_24h` - 24h volume
 - `paw_dex_pool_reserves` - Pool reserves
 - `paw_dex_pool_liquidity_usd` - Total liquidity
 
 ### System
+
 - `node_cpu_seconds_total` - CPU usage
 - `node_memory_MemAvailable_bytes` - Memory
 - `node_filesystem_avail_bytes` - Disk space

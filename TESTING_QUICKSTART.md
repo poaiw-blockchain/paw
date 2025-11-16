@@ -104,6 +104,7 @@ for _, tt := range tests {
 ## CI/CD
 
 Tests run automatically on:
+
 - Push to master/main/develop
 - Pull requests
 - Multiple Go versions

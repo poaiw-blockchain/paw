@@ -1,0 +1,300 @@
+---
+# PAW Validator StatefulSet
+# For validator nodes requiring stable network identities
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-validator
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: validator
+    tier: consensus
+spec:
+  serviceName: paw-validator
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: paw
+      component: validator
+  template:
+    metadata:
+      labels:
+        app: paw
+        component: validator
+        tier: consensus
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '26660'
+        prometheus.io/path: '/metrics'
+    spec:
+      serviceAccountName: paw-validator
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Anti-affinity to ensure validators are on different nodes
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: component
+                    operator: In
+                    values:
+                      - validator
+              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: component
+                      operator: In
+                      values:
+                        - validator
+                topologyKey: topology.kubernetes.io/zone
+
+      initContainers:
+        # Initialize validator if not already done
+        - name: validator-init
+          image: paw-chain/paw-validator:latest
+          command:
+            - /usr/local/bin/validator-init.sh
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: chain_id
+            - name: MONIKER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: data
+              mountPath: /home/validator/.paw/data
+            - name: config
+              mountPath: /home/validator/.paw/config
+
+        # Restore from backup if available
+        - name: restore-state
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              if [ -f /backup/latest.tar.gz ] && [ ! -f /data/.restored ]; then
+                echo "Restoring from backup..."
+                tar -xzf /backup/latest.tar.gz -C /
+                touch /data/.restored
+              else
+                echo "No backup to restore or already restored"
+              fi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /config
+            - name: backup
+              mountPath: /backup
+              readOnly: true
+
+      containers:
+        - name: validator
+          image: paw-chain/paw-validator:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+
+          env:
+            - name: MONIKER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: chain_id
+            - name: MINIMUM_GAS_PRICES
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: minimum_gas_prices
+            - name: LOG_LEVEL
+              value: 'info'
+            - name: VALIDATOR_MODE
+              value: 'true'
+
+          volumeMounts:
+            - name: data
+              mountPath: /home/validator/.paw/data
+            - name: config
+              mountPath: /home/validator/.paw/config
+            - name: validator-keys
+              mountPath: /home/validator/.paw/keyring-file
+              readOnly: true
+            - name: validator-config
+              mountPath: /home/validator/.paw/config-template
+
+          resources:
+            requests:
+              cpu: '4'
+              memory: '8Gi'
+            limits:
+              cpu: '8'
+              memory: '16Gi'
+
+          livenessProbe:
+            exec:
+              command:
+                - pawcli
+                - status
+                - --node
+                - tcp://localhost:26657
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+
+          readinessProbe:
+            exec:
+              command:
+                - pawcli
+                - status
+                - --node
+                - tcp://localhost:26657
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    echo "Gracefully shutting down validator..."
+                    # Wait for pending transactions
+                    sleep 30
+
+        # Sidecar: Backup validator state
+        - name: backup-sidecar
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                sleep 3600  # Backup every hour
+                echo "Creating backup at $(date)"
+                tar -czf /backup/state-$(date +%Y%m%d-%H%M%S).tar.gz \
+                  -C /home/validator/.paw/data priv_validator_state.json
+                # Keep only last 24 backups
+                ls -t /backup/state-*.tar.gz | tail -n +25 | xargs -r rm
+              done
+          volumeMounts:
+            - name: data
+              mountPath: /home/validator/.paw/data
+              readOnly: true
+            - name: backup
+              mountPath: /backup
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '128Mi'
+            limits:
+              cpu: '200m'
+              memory: '256Mi'
+
+      volumes:
+        - name: validator-config
+          configMap:
+            name: paw-validator-config
+        - name: validator-keys
+          secret:
+            secretName: paw-validator-keys
+            defaultMode: 0400
+
+      terminationGracePeriodSeconds: 90
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: paw-storage-ssd
+        resources:
+          requests:
+            storage: 1Ti
+    - metadata:
+        name: config
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: paw-storage-ssd
+        resources:
+          requests:
+            storage: 1Gi
+    - metadata:
+        name: backup
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: paw-storage-standard
+        resources:
+          requests:
+            storage: 50Gi
+
+---
+# Service Account for Validator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-validator
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: validator
+
+---
+# Headless Service for StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: validator
+spec:
+  clusterIP: None
+  selector:
+    app: paw
+    component: validator
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+    - name: rpc
+      port: 26657
+      targetPort: 26657

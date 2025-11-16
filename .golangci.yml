@@ -52,11 +52,11 @@ linters-settings:
 
   gosec:
     excludes:
-      - G107  # Url provided as taint input (common in blockchain apps)
-      - G204  # Audit use of command execution (needed for CLI)
+      - G107 # Url provided as taint input (common in blockchain apps)
+      - G204 # Audit use of command execution (needed for CLI)
 
   stylecheck:
-    checks: ["all", "-ST1003"]  # Allow underscores in func names for test helpers
+    checks: ['all', '-ST1003'] # Allow underscores in func names for test helpers
 
 issues:
   exclude-rules:

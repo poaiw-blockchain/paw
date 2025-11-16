@@ -7,20 +7,24 @@ This document describes the security testing strategy and tools used for the PAW
 ## Security Testing Strategy
 
 ### 1. Static Application Security Testing (SAST)
+
 - **GoSec**: Go code security scanner
 - **CodeQL**: Advanced semantic code analysis
 - **Custom Crypto Checker**: Blockchain-specific cryptographic analysis
 
 ### 2. Dependency Security
+
 - **Govulncheck**: Official Go vulnerability database scanner
 - **Nancy**: Sonatype vulnerability scanner
 - **Dependency Review**: GitHub's dependency analysis
 
 ### 3. Secret Detection
+
 - **GitLeaks**: Secret and credential scanner
 - **Custom patterns**: Blockchain-specific secret detection
 
 ### 4. Container & Infrastructure Security
+
 - **Trivy**: Multi-purpose security scanner
 - **Configuration auditing**: Docker, Kubernetes, etc.
 
@@ -31,11 +35,13 @@ This document describes the security testing strategy and tools used for the PAW
 **Purpose**: Identifies common security issues in Go code
 
 **Installation**:
+
 ```bash
 go install github.com/securego/gosec/v2/cmd/gosec@latest
 ```
 
 **Usage**:
+
 ```bash
 # Run with project config
 gosec -conf security/.gosec.yml ./...
@@ -50,6 +56,7 @@ gosec -conf security/.gosec.yml -fmt sarif -out gosec.sarif ./...
 **Configuration**: `security/.gosec.yml`
 
 **What it checks**:
+
 - Weak cryptography (MD5, SHA1, DES, RC4)
 - Hardcoded credentials
 - SQL injection
@@ -60,6 +67,7 @@ gosec -conf security/.gosec.yml -fmt sarif -out gosec.sarif ./...
 - Unsafe Go constructs
 
 **Blockchain-specific checks**:
+
 - Crypto/rand vs math/rand usage
 - Minimum RSA key sizes (2048 bits)
 - Secure hash functions (SHA-256, SHA-512)
@@ -70,6 +78,7 @@ gosec -conf security/.gosec.yml -fmt sarif -out gosec.sarif ./...
 **Purpose**: Checks Go dependencies against Sonatype vulnerability database
 
 **Installation**:
+
 ```bash
 # Linux/macOS
 curl -L -o nancy https://github.com/sonatype-nexus-community/nancy/releases/latest/download/nancy-$(uname -s | tr '[:upper:]' '[:lower:]')-amd64
@@ -81,6 +90,7 @@ sudo mv nancy /usr/local/bin/
 ```
 
 **Usage**:
+
 ```bash
 go list -json -m all | nancy sleuth
 ```
@@ -92,11 +102,13 @@ go list -json -m all | nancy sleuth
 **Purpose**: Scans for known vulnerabilities using Go's official vulnerability database
 
 **Installation**:
+
 ```bash
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
 **Usage**:
+
 ```bash
 # Scan entire project
 govulncheck ./...
@@ -109,6 +121,7 @@ govulncheck -json ./... > vuln-report.json
 ```
 
 **Advantages**:
+
 - Official Go team tool
 - Direct integration with Go vulnerability database
 - Low false positive rate
@@ -119,6 +132,7 @@ govulncheck -json ./... > vuln-report.json
 **Purpose**: Scans for vulnerabilities in dependencies, containers, and configuration files
 
 **Installation**:
+
 ```bash
 # Linux
 wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
@@ -134,6 +148,7 @@ brew install trivy
 ```
 
 **Usage**:
+
 ```bash
 # Scan filesystem
 trivy fs .
@@ -152,6 +167,7 @@ trivy image paw-blockchain:latest
 ```
 
 **What it scans**:
+
 - Go module vulnerabilities
 - OS package vulnerabilities (in containers)
 - Configuration issues (Docker, Kubernetes, Terraform)
@@ -163,6 +179,7 @@ trivy image paw-blockchain:latest
 **Purpose**: Detects hardcoded secrets, API keys, and credentials
 
 **Installation**:
+
 ```bash
 # macOS
 brew install gitleaks
@@ -177,6 +194,7 @@ sudo mv gitleaks-linux-amd64 /usr/local/bin/gitleaks
 ```
 
 **Usage**:
+
 ```bash
 # Scan current state
 gitleaks detect --verbose
@@ -192,6 +210,7 @@ gitleaks detect --log-opts="main..feature-branch"
 ```
 
 **What it detects**:
+
 - AWS keys
 - Private keys
 - API tokens
@@ -206,11 +225,13 @@ gitleaks detect --log-opts="main..feature-branch"
 **Location**: `security/crypto-check.go`
 
 **Usage**:
+
 ```bash
 go run security/crypto-check.go
 ```
 
 **What it checks**:
+
 - Weak crypto algorithm imports (MD5, SHA1, DES, RC4)
 - Insecure random number generation (math/rand)
 - Hardcoded secrets and keys
@@ -248,6 +269,7 @@ make security-audit
 ```
 
 The full audit runs:
+
 1. GoSec (SAST)
 2. Nancy (dependency vulnerabilities)
 3. Govulncheck (Go vulnerabilities)
@@ -270,6 +292,7 @@ make check-deps
 ### CI/CD Pipeline
 
 Security checks run automatically on:
+
 - Every push to main/master/develop
 - Every pull request
 - Weekly scheduled scans (Sundays at midnight UTC)
@@ -293,6 +316,7 @@ See `.github/workflows/security.yml` for details.
 **Issue**: Use of MD5, SHA1, DES, or RC4
 
 **Remediation**:
+
 - Use SHA-256 or SHA-512 for hashing
 - Use AES-256-GCM for symmetric encryption
 - Use ECDSA or Ed25519 for signatures
@@ -302,6 +326,7 @@ See `.github/workflows/security.yml` for details.
 **Issue**: Using `math/rand` instead of `crypto/rand`
 
 **Remediation**:
+
 ```go
 // Bad
 import "math/rand"
@@ -319,6 +344,7 @@ rand.Read(key)
 **Issue**: Credentials or keys in source code
 
 **Remediation**:
+
 - Use environment variables
 - Use secure key management (HashiCorp Vault, AWS KMS)
 - Use the wallet's secure storage
@@ -328,6 +354,7 @@ rand.Read(key)
 **Issue**: RSA keys smaller than 2048 bits
 
 **Remediation**:
+
 - Use at least 2048-bit RSA keys
 - Prefer ECDSA (256-bit) or Ed25519 for better security/performance
 
@@ -336,6 +363,7 @@ rand.Read(key)
 **Issue**: `InsecureSkipVerify: true` in TLS config
 
 **Remediation**:
+
 - Always verify TLS certificates
 - Use proper certificate management
 - Only skip verification in test environments (with clear documentation)
@@ -345,6 +373,7 @@ rand.Read(key)
 ### Handling False Positives
 
 **GoSec**:
+
 ```go
 // Add nosec comment with justification
 // #nosec G404 - Using math/rand for non-security test data generation
@@ -352,11 +381,13 @@ rand.Intn(100)
 ```
 
 **Nancy/Govulncheck**:
+
 - Add to exclude list in `security/nancy-config.yml`
 - Document why the vulnerability doesn't apply
 - Consider if mitigation is possible
 
 **GitLeaks**:
+
 - Update `.gitleaksignore` (use sparingly)
 - Ensure it's truly a false positive
 
@@ -365,11 +396,13 @@ rand.Intn(100)
 ### Development
 
 1. Run security checks before committing:
+
 ```bash
 make security-check
 ```
 
 2. Keep dependencies updated:
+
 ```bash
 go get -u ./...
 go mod tidy
@@ -388,6 +421,7 @@ go mod tidy
 ### Code Review
 
 Security checklist for reviewers:
+
 - [ ] No hardcoded secrets or keys
 - [ ] Proper crypto usage (crypto/rand, SHA-256+, AES-256-GCM)
 - [ ] Input validation and sanitization
@@ -414,17 +448,20 @@ See `SECURITY.md` for our security policy and responsible disclosure process.
 ## Regular Security Tasks
 
 ### Weekly
+
 - Review automated security scan results
 - Update dependencies with security patches
 - Check for new CVEs affecting dependencies
 
 ### Monthly
+
 - Full security audit
 - Review and update security configurations
 - Penetration testing (if applicable)
 - Security training/awareness
 
 ### Quarterly
+
 - External security audit
 - Threat modeling review
 - Incident response plan testing
@@ -440,6 +477,7 @@ See `SECURITY.md` for our security policy and responsible disclosure process.
 ## Tool Versions
 
 Keep security tools updated:
+
 ```bash
 # Update all security tools
 go install github.com/securego/gosec/v2/cmd/gosec@latest
@@ -448,6 +486,7 @@ go install github.com/sonatype-nexus-community/nancy@latest
 ```
 
 Check versions:
+
 ```bash
 gosec -version
 govulncheck -version
@@ -458,5 +497,6 @@ gitleaks version
 ## Contact
 
 For security questions or concerns:
+
 - Email: security@pawblockchain.io
 - Security Team: See `SECURITY.md`

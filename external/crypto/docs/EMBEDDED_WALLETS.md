@@ -5,9 +5,9 @@ Embedded wallets provide seamless account abstraction through email/social ident
 ## Workflow
 
 1. **Create** `POST /wallet/embedded/create` with:
-   - `alias` (email/username), `contact`, and `secret` (passphrase).  
+   - `alias` (email/username), `contact`, and `secret` (passphrase).
    - Returns the new address plus `session_token`.
-2. **Authenticate** `POST /wallet/embedded/login` with `alias` + `secret`.  
+2. **Authenticate** `POST /wallet/embedded/login` with `alias` + `secret`.
    - Returns the last known address and a new `session_token`.
 3. **Session usage**: `session_token` can be used by UIs to map the embedded identity to wallet actions; the node stores the token in memory per alias.
 

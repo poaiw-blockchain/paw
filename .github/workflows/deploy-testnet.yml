@@ -1,0 +1,349 @@
+name: Deploy to Testnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'testnet'
+        type: choice
+        options:
+          - testnet
+          - staging
+      version:
+        description: 'Version/tag to deploy'
+        required: true
+        default: 'latest'
+      component:
+        description: 'Component to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - nodes
+          - validators
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG_TESTNET }}
+  NAMESPACE: paw-blockchain
+  CHAIN_ID: paw-testnet-1
+
+jobs:
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        run: |
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Version: ${{ github.event.inputs.version }}"
+          echo "Component: ${{ github.event.inputs.component }}"
+
+      - name: Check version exists
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          if [ "$VERSION" != "latest" ]; then
+            if ! docker manifest inspect ghcr.io/${{ github.repository }}/paw-node:$VERSION > /dev/null 2>&1; then
+              echo "::error::Version $VERSION does not exist in registry"
+              exit 1
+            fi
+          fi
+
+  backup:
+    name: Backup Current State
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_TESTNET }}" | base64 -d > kubeconfig
+          export KUBECONFIG=./kubeconfig
+
+      - name: Create pre-deployment backup
+        run: |
+          chmod +x scripts/deploy/backup-state.sh
+          ./scripts/deploy/backup-state.sh \
+            --namespace ${{ env.NAMESPACE }} \
+            --tag pre-deploy-${{ github.run_number }} \
+            --s3-bucket ${{ secrets.BACKUP_S3_BUCKET }} \
+            --no-compress
+
+      - name: Upload backup info
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-info
+          path: /tmp/paw-backups/pre-deploy-${{ github.run_number }}/**/k8s-config
+
+  deploy-nodes:
+    name: Deploy Full Nodes
+    runs-on: ubuntu-latest
+    needs: backup
+    if: github.event.inputs.component == 'all' || github.event.inputs.component == 'nodes'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_TESTNET }}" | base64 -d > kubeconfig
+          export KUBECONFIG=./kubeconfig
+
+      - name: Deploy nodes
+        run: |
+          chmod +x scripts/deploy/deploy-node.sh
+          export KUBECONFIG=./kubeconfig
+          ./scripts/deploy/deploy-node.sh \
+            --namespace ${{ env.NAMESPACE }} \
+            --image-tag ${{ github.event.inputs.version }} \
+            --replicas 3 \
+            --chain-id ${{ env.CHAIN_ID }}
+
+      - name: Wait for nodes to be ready
+        run: |
+          export KUBECONFIG=./kubeconfig
+          kubectl rollout status deployment/paw-node -n ${{ env.NAMESPACE }} --timeout=15m
+
+      - name: Verify node deployment
+        run: |
+          export KUBECONFIG=./kubeconfig
+          kubectl get pods -n ${{ env.NAMESPACE }} -l component=node
+          kubectl logs -n ${{ env.NAMESPACE }} -l component=node --tail=50
+
+  deploy-validators:
+    name: Deploy Validators
+    runs-on: ubuntu-latest
+    needs: backup
+    if: github.event.inputs.component == 'all' || github.event.inputs.component == 'validators'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_TESTNET }}" | base64 -d > kubeconfig
+          export KUBECONFIG=./kubeconfig
+
+      - name: Update validator images
+        run: |
+          export KUBECONFIG=./kubeconfig
+          kubectl set image statefulset/paw-validator \
+            -n ${{ env.NAMESPACE }} \
+            validator=ghcr.io/${{ github.repository }}/paw-validator:${{ github.event.inputs.version }}
+
+      - name: Wait for validators to be ready
+        run: |
+          export KUBECONFIG=./kubeconfig
+          kubectl rollout status statefulset/paw-validator -n ${{ env.NAMESPACE }} --timeout=20m
+
+      - name: Verify validator deployment
+        run: |
+          export KUBECONFIG=./kubeconfig
+          kubectl get pods -n ${{ env.NAMESPACE }} -l component=validator
+
+          # Check validator status
+          POD=$(kubectl get pods -n ${{ env.NAMESPACE }} -l component=validator -o jsonpath='{.items[0].metadata.name}')
+          kubectl exec -n ${{ env.NAMESPACE }} $POD -- pawcli status
+
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-nodes, deploy-validators]
+    if: always() && (needs.deploy-nodes.result == 'success' || needs.deploy-validators.result == 'success')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_TESTNET }}" | base64 -d > kubeconfig
+          export KUBECONFIG=./kubeconfig
+
+      - name: Check node health
+        run: |
+          export KUBECONFIG=./kubeconfig
+
+          # Get RPC endpoint
+          RPC_IP=$(kubectl get svc paw-rpc -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+          # Check node status
+          curl -f http://$RPC_IP:26657/health || exit 1
+          curl -f http://$RPC_IP:26657/status || exit 1
+
+      - name: Verify block production
+        run: |
+          export KUBECONFIG=./kubeconfig
+
+          POD=$(kubectl get pods -n ${{ env.NAMESPACE }} -l component=node -o jsonpath='{.items[0].metadata.name}')
+
+          # Get initial height
+          HEIGHT1=$(kubectl exec -n ${{ env.NAMESPACE }} $POD -- \
+            curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+
+          echo "Initial height: $HEIGHT1"
+
+          # Wait 30 seconds
+          sleep 30
+
+          # Get new height
+          HEIGHT2=$(kubectl exec -n ${{ env.NAMESPACE }} $POD -- \
+            curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+
+          echo "New height: $HEIGHT2"
+
+          # Verify blocks are being produced
+          if [ "$HEIGHT2" -le "$HEIGHT1" ]; then
+            echo "::error::Chain is not producing blocks"
+            exit 1
+          fi
+
+          echo "Chain is healthy and producing blocks"
+
+      - name: Check validator status
+        if: github.event.inputs.component == 'all' || github.event.inputs.component == 'validators'
+        run: |
+          export KUBECONFIG=./kubeconfig
+
+          # Check all validators
+          kubectl get pods -n ${{ env.NAMESPACE }} -l component=validator -o name | while read POD; do
+            echo "Checking $POD..."
+            kubectl exec -n ${{ env.NAMESPACE }} ${POD#pod/} -- pawcli status || echo "Warning: $POD status check failed"
+          done
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy-nodes, deploy-validators, smoke-tests]
+    if: always()
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.smoke-tests.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "color=danger" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Testnet Deployment ${{ steps.status.outputs.status }}",
+              "attachments": [
+                {
+                  "color": "${{ steps.status.outputs.color }}",
+                  "fields": [
+                    {
+                      "title": "Environment",
+                      "value": "${{ github.event.inputs.environment }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Version",
+                      "value": "${{ github.event.inputs.version }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Component",
+                      "value": "${{ github.event.inputs.component }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Status",
+                      "value": "${{ steps.status.outputs.status }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Triggered by",
+                      "value": "${{ github.actor }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Run",
+                      "value": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>",
+                      "short": false
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-nodes, deploy-validators, smoke-tests]
+    if: failure()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_TESTNET }}" | base64 -d > kubeconfig
+          export KUBECONFIG=./kubeconfig
+
+      - name: Rollback deployment
+        run: |
+          export KUBECONFIG=./kubeconfig
+
+          echo "Rolling back deployments..."
+
+          if [ "${{ github.event.inputs.component }}" == "all" ] || [ "${{ github.event.inputs.component }}" == "nodes" ]; then
+            kubectl rollout undo deployment/paw-node -n ${{ env.NAMESPACE }}
+          fi
+
+          if [ "${{ github.event.inputs.component }}" == "all" ] || [ "${{ github.event.inputs.component }}" == "validators" ]; then
+            kubectl rollout undo statefulset/paw-validator -n ${{ env.NAMESPACE }}
+          fi
+
+      - name: Restore from backup
+        run: |
+          chmod +x scripts/deploy/restore-state.sh
+          export KUBECONFIG=./kubeconfig
+          ./scripts/deploy/restore-state.sh \
+            --namespace ${{ env.NAMESPACE }} \
+            --backup pre-deploy-${{ github.run_number }} \
+            --s3-bucket ${{ secrets.BACKUP_S3_BUCKET }}

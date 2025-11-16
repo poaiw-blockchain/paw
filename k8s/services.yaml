@@ -1,0 +1,268 @@
+---
+# PAW Node RPC Service (LoadBalancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-rpc
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: rpc
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: 'nlb'
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: 'true'
+spec:
+  type: LoadBalancer
+  selector:
+    app: paw
+    component: node
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+
+---
+# PAW Node gRPC Service (LoadBalancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-grpc
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: grpc
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: 'nlb'
+spec:
+  type: LoadBalancer
+  selector:
+    app: paw
+    component: node
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# PAW Node REST API Service (LoadBalancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-api
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: 'nlb'
+spec:
+  type: LoadBalancer
+  selector:
+    app: paw
+    component: node
+  ports:
+    - name: api
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+
+---
+# PAW Node P2P Service (NodePort for external peers)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-p2p
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: p2p
+spec:
+  type: NodePort
+  selector:
+    app: paw
+    component: node
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+      nodePort: 30656
+
+---
+# Internal ClusterIP Service for Node-to-Node Communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node-internal
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: internal
+spec:
+  type: ClusterIP
+  selector:
+    app: paw
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+
+---
+# Validator P2P Service (NodePort for sentry architecture)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-p2p
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: validator
+    service: p2p
+spec:
+  type: NodePort
+  selector:
+    app: paw
+    component: validator
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+      nodePort: 30657
+
+---
+# Prometheus Metrics Service (for monitoring)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-metrics
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    service: metrics
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '26660'
+spec:
+  type: ClusterIP
+  selector:
+    app: paw
+  ports:
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+
+---
+# Ingress for HTTP/HTTPS access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paw-ingress
+  namespace: paw-blockchain
+  labels:
+    app: paw
+  annotations:
+    kubernetes.io/ingress.class: 'nginx'
+    cert-manager.io/cluster-issuer: 'letsencrypt-prod'
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/backend-protocol: 'HTTP'
+    nginx.ingress.kubernetes.io/rate-limit: '100'
+    nginx.ingress.kubernetes.io/limit-rps: '10'
+    nginx.ingress.kubernetes.io/proxy-body-size: '100m'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '600'
+spec:
+  tls:
+    - hosts:
+        - api.paw.network
+        - rpc.paw.network
+      secretName: paw-tls-cert
+  rules:
+    - host: api.paw.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paw-api
+                port:
+                  number: 1317
+    - host: rpc.paw.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paw-rpc
+                port:
+                  number: 26657
+
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paw-network-policy
+  namespace: paw-blockchain
+spec:
+  podSelector:
+    matchLabels:
+      app: paw
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P traffic
+    - from:
+        - podSelector:
+            matchLabels:
+              app: paw
+        - namespaceSelector:
+            matchLabels:
+              name: paw-blockchain
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow RPC from monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 26657
+        - protocol: TCP
+          port: 26660
+    # Allow external API/RPC through ingress
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 1317
+        - protocol: TCP
+          port: 9090
+  egress:
+    # Allow all egress (can be restricted further)
+    - to:
+        - podSelector: {}
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53

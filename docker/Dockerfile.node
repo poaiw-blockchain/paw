@@ -1,0 +1,92 @@
+# PAW Blockchain Node Dockerfile
+# Multi-stage build for optimized production image
+
+# Stage 1: Build
+FROM golang:1.23.1-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    make \
+    gcc \
+    musl-dev \
+    linux-headers \
+    ca-certificates
+
+# Set working directory
+WORKDIR /build
+
+# Copy dependency files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the binary with optimizations
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+    go build -mod=readonly \
+    -ldflags="-w -s -X github.com/cosmos/cosmos-sdk/version.Name=paw \
+    -X github.com/cosmos/cosmos-sdk/version.AppName=pawd \
+    -X github.com/cosmos/cosmos-sdk/version.Version=$(cat VERSION) \
+    -X github.com/cosmos/cosmos-sdk/version.Commit=$(git rev-parse HEAD)" \
+    -trimpath \
+    -o /build/bin/pawd \
+    ./cmd/pawd
+
+# Build CLI tool
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+    go build -mod=readonly \
+    -ldflags="-w -s" \
+    -trimpath \
+    -o /build/bin/pawcli \
+    ./cmd/pawcli
+
+# Stage 2: Runtime
+FROM alpine:3.20
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    ca-certificates \
+    bash \
+    curl \
+    jq \
+    tini
+
+# Create app user and group
+RUN addgroup -g 1000 paw && \
+    adduser -D -u 1000 -G paw paw
+
+# Set working directory
+WORKDIR /home/paw
+
+# Copy binaries from builder
+COPY --from=builder /build/bin/pawd /usr/local/bin/pawd
+COPY --from=builder /build/bin/pawcli /usr/local/bin/pawcli
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/paw/.paw/config && \
+    mkdir -p /home/paw/.paw/data && \
+    mkdir -p /home/paw/.paw/keyring-test && \
+    chown -R paw:paw /home/paw
+
+# Switch to app user
+USER paw
+
+# Expose ports
+# 26656: P2P
+# 26657: RPC
+# 26660: Prometheus metrics
+# 9090: gRPC
+# 1317: REST API
+EXPOSE 26656 26657 26660 9090 1317
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:26657/health || exit 1
+
+# Use tini as init system
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Default command
+CMD ["pawd", "start", "--home=/home/paw/.paw"]

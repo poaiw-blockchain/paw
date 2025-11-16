@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+spec:
+  type: ClusterIP
+  selector:
+    app: paw-node
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    - name: api
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node-p2p
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+spec:
+  type: LoadBalancer
+  selector:
+    app: paw-node
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node-rpc
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+spec:
+  type: ClusterIP
+  selector:
+    app: paw-node
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node-grpc
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+spec:
+  type: ClusterIP
+  selector:
+    app: paw-node
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-api
+  namespace: paw-blockchain
+  labels:
+    app: paw-api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: 'nlb'
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: 'true'
+spec:
+  type: ClusterIP
+  selector:
+    app: paw-api
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: grafana
+  ports:
+    - name: web
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: alertmanager
+  ports:
+    - name: web
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: paw-blockchain
+  labels:
+    app: loki
+    component: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: loki
+  ports:
+    - name: http
+      port: 3100
+      targetPort: 3100
+      protocol: TCP

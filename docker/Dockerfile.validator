@@ -1,0 +1,115 @@
+# PAW Blockchain Validator Dockerfile
+# Multi-stage build for optimized production validator image
+# Includes additional security hardening and monitoring
+
+# Stage 1: Build
+FROM golang:1.23.1-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    make \
+    gcc \
+    musl-dev \
+    linux-headers \
+    ca-certificates
+
+# Set working directory
+WORKDIR /build
+
+# Copy dependency files first for better caching
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the binary with optimizations and security flags
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+    go build -mod=readonly \
+    -ldflags="-w -s -X github.com/cosmos/cosmos-sdk/version.Name=paw \
+    -X github.com/cosmos/cosmos-sdk/version.AppName=pawd \
+    -X github.com/cosmos/cosmos-sdk/version.Version=$(cat VERSION) \
+    -X github.com/cosmos/cosmos-sdk/version.Commit=$(git rev-parse HEAD)" \
+    -tags "netgo,ledger,muslc" \
+    -trimpath \
+    -buildmode=pie \
+    -o /build/bin/pawd \
+    ./cmd/pawd
+
+# Build CLI tool
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+    go build -mod=readonly \
+    -ldflags="-w -s" \
+    -tags "netgo,muslc" \
+    -trimpath \
+    -buildmode=pie \
+    -o /build/bin/pawcli \
+    ./cmd/pawcli
+
+# Stage 2: Runtime
+FROM alpine:3.20
+
+# Install runtime dependencies including security tools
+RUN apk add --no-cache \
+    ca-certificates \
+    bash \
+    curl \
+    jq \
+    tini \
+    libcap
+
+# Create app user and group with specific UID/GID for security
+RUN addgroup -g 1001 validator && \
+    adduser -D -u 1001 -G validator validator
+
+# Set working directory
+WORKDIR /home/validator
+
+# Copy binaries from builder
+COPY --from=builder /build/bin/pawd /usr/local/bin/pawd
+COPY --from=builder /build/bin/pawcli /usr/local/bin/pawcli
+
+# Set capabilities for binding to privileged ports (if needed)
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/pawd
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/validator/.paw/config && \
+    mkdir -p /home/validator/.paw/data && \
+    mkdir -p /home/validator/.paw/keyring-file && \
+    mkdir -p /home/validator/.paw/wasm && \
+    chmod 700 /home/validator/.paw/keyring-file && \
+    chown -R validator:validator /home/validator
+
+# Copy validator-specific scripts
+COPY --chown=validator:validator docker/scripts/validator-init.sh /usr/local/bin/validator-init.sh
+RUN chmod +x /usr/local/bin/validator-init.sh
+
+# Create volume mount points
+VOLUME ["/home/validator/.paw/config", "/home/validator/.paw/data"]
+
+# Switch to app user
+USER validator
+
+# Expose ports
+# 26656: P2P (required for validators)
+# 26657: RPC (should be restricted in production)
+# 26660: Prometheus metrics
+# 9090: gRPC (should be restricted in production)
+EXPOSE 26656 26657 26660 9090
+
+# Validator-specific health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+    CMD pawcli status --node tcp://localhost:26657 || exit 1
+
+# Use tini as init system for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Default command with validator-optimized flags
+CMD ["pawd", "start", \
+     "--home=/home/validator/.paw", \
+     "--pruning=custom", \
+     "--pruning-keep-recent=100", \
+     "--pruning-interval=10", \
+     "--min-retain-blocks=0", \
+     "--log_level=info"]

@@ -43,8 +43,8 @@ Related to #
 
 <!-- If applicable, provide test coverage information -->
 
-- Coverage before: ___%
-- Coverage after: ___%
+- Coverage before: \_\_\_%
+- Coverage after: \_\_\_%
 
 ### Manual Testing Steps
 

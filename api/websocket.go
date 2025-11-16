@@ -15,10 +15,39 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow all origins for development
-		// In production, implement proper origin checking
-		return true
+		// Proper origin validation to prevent CSRF attacks
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			// If no origin header, reject (browsers always send origin for WebSocket)
+			return false
+		}
+
+		// Get allowed origins from environment or use defaults
+		allowedOrigins := getAllowedOrigins()
+
+		// Check if origin is in allowed list
+		for _, allowed := range allowedOrigins {
+			if origin == allowed {
+				return true
+			}
+		}
+
+		// Log rejected origin for security monitoring
+		fmt.Printf("WebSocket connection rejected: origin %s not in allowed list\n", origin)
+		return false
 	},
+}
+
+// getAllowedOrigins returns the list of allowed WebSocket origins
+func getAllowedOrigins() []string {
+	// In production, load from configuration
+	// For now, use default secure localhost origins
+	return []string{
+		"http://localhost:3000",
+		"http://localhost:8080",
+		"https://localhost:3000",
+		"https://localhost:8080",
+	}
 }
 
 // WebSocketHub manages WebSocket connections

@@ -9,7 +9,9 @@ This implementation provides a complete genesis state initialization and node bo
 ### 1. Scripts
 
 #### `scripts/init-genesis.sh`
+
 Complete genesis state initialization script that:
+
 - Initializes chain data directory using `pawd init`
 - Generates validator keys for 2 genesis validators
 - Creates genesis accounts with 50M PAW total supply allocation:
@@ -27,12 +29,15 @@ Complete genesis state initialization script that:
 - Validates final genesis file
 
 **Usage:**
+
 ```bash
 ./scripts/init-genesis.sh
 ```
 
 #### `scripts/bootstrap-node.sh` (Enhanced)
+
 Enhanced bootstrap script that:
+
 - Calls `pawd init` to initialize node configuration
 - Generates validator keys
 - Parses `infra/node-config.yaml` for:
@@ -48,6 +53,7 @@ Enhanced bootstrap script that:
 - Outputs comprehensive README with next steps
 
 **Usage:**
+
 ```bash
 ./scripts/bootstrap-node.sh
 ```
@@ -55,7 +61,9 @@ Enhanced bootstrap script that:
 ### 2. Application Code
 
 #### `app/genesis.go`
+
 Complete genesis state management:
+
 - **GenesisState**: Map of module genesis states
 - **NewDefaultGenesisState()**: Creates default genesis with all module configs:
   - Auth: Account authentication
@@ -72,6 +80,7 @@ Complete genesis state management:
 - **DefaultGenesisConfig()**: Returns parameters from technical spec
 
 **Key Features:**
+
 - All parameters align with TECHNICAL_SPECIFICATION.md
 - Supports customization via GenesisConfig
 - Proper module state initialization
@@ -80,7 +89,9 @@ Complete genesis state management:
 ### 3. CLI Commands
 
 #### `cmd/pawd/cmd/init.go`
+
 Initialize node command:
+
 - Creates validator and node configuration files
 - Generates genesis.json with default state
 - Sets up Tendermint configuration:
@@ -96,12 +107,15 @@ Initialize node command:
   - Swagger documentation enabled
 
 **Usage:**
+
 ```bash
 pawd init [moniker] --chain-id paw-testnet
 ```
 
 #### `cmd/pawd/cmd/gentx.go`
+
 Generate validator genesis transaction:
+
 - Creates MsgCreateValidator for genesis validators
 - Supports commission rate configuration
 - Sets validator metadata (moniker, identity, website)
@@ -109,6 +123,7 @@ Generate validator genesis transaction:
 - Writes gentx to config/gentx/ directory
 
 **Usage:**
+
 ```bash
 pawd gentx validator-1 10000000000upaw \
   --chain-id paw-testnet \
@@ -120,7 +135,9 @@ pawd gentx validator-1 10000000000upaw \
 ```
 
 #### `cmd/pawd/cmd/collect_gentxs.go`
+
 Collect genesis transactions:
+
 - Reads all gentx files from config/gentx/
 - Validates each gentx (must be MsgCreateValidator)
 - Updates genesis state with validators
@@ -130,18 +147,22 @@ Collect genesis transactions:
 - Saves updated genesis.json
 
 **Usage:**
+
 ```bash
 pawd collect-gentxs
 ```
 
 #### `cmd/pawd/cmd/add_genesis_account.go`
+
 Add genesis account:
+
 - Adds accounts to genesis.json before chain start
 - Supports vesting accounts
 - Updates bank module balances and total supply
 - Validates account doesn't already exist
 
 **Usage:**
+
 ```bash
 pawd add-genesis-account paw1... 100000000upaw
 pawd add-genesis-account validator-1 10000000000upaw --keyring-backend test
@@ -150,6 +171,7 @@ pawd add-genesis-account validator-1 10000000000upaw --keyring-backend test
 ## Configuration Source
 
 All parameters are derived from:
+
 - **`infra/node-config.yaml`**: Network configuration
   - Chain ID, validators, tokenomics
   - Consensus, slashing, staking parameters
@@ -163,6 +185,7 @@ All parameters are derived from:
 ## Genesis Parameters
 
 ### Tokenomics
+
 - **Total Supply**: 50,000,000 PAW (50M)
 - **Reserve**: 15,000,000 PAW (treasury)
 - **Genesis Distribution**:
@@ -171,6 +194,7 @@ All parameters are derived from:
   - Foundation: 15M PAW
 
 ### Validators
+
 - **Genesis Validators**: 2 (expandable to 25)
 - **Max Validators**: 125
 - **Min Stake**: 10,000 PAW
@@ -180,6 +204,7 @@ All parameters are derived from:
   - Validator 2: 8% (max 15%, max change 2%/day)
 
 ### Consensus (Tendermint BFT)
+
 - **Block Time**: 4 seconds
 - **Max Block Size**: 2 MB (2,097,152 bytes)
 - **Max Gas/Block**: 100,000,000 units
@@ -190,6 +215,7 @@ All parameters are derived from:
   - Commit: 4s
 
 ### Slashing
+
 - **Double Sign Penalty**: 5% of stake
 - **Downtime Penalty**: 0.1% of stake
 - **Downtime Window**: 10,000 blocks
@@ -197,6 +223,7 @@ All parameters are derived from:
 - **Jail Duration**: 24 hours (86,400 seconds)
 
 ### Governance
+
 - **Min Deposit**: 10,000 PAW
 - **Deposit Period**: 7 days (604,800 seconds)
 - **Voting Period**: 14 days (1,209,600 seconds)
@@ -205,6 +232,7 @@ All parameters are derived from:
 - **Veto Threshold**: 33.3%
 
 ### Fees
+
 - **Min Gas Price**: 0.001 upaw/gas
 - **Fee Distribution**:
   - Burn: 50%
@@ -212,6 +240,7 @@ All parameters are derived from:
   - Treasury: 20%
 
 ### CosmWasm
+
 - **Code Upload**: Open to everyone
 - **Instantiate**: Open to everyone
 - **Max Contract Size**: 800 KB
@@ -219,6 +248,7 @@ All parameters are derived from:
 ## Workflow
 
 ### Initial Setup
+
 1. Run `scripts/bootstrap-node.sh`:
    - Initializes node configuration
    - Generates validator keys
@@ -237,35 +267,42 @@ All parameters are derived from:
    ```
 
 ### Manual Setup (Alternative)
+
 1. Initialize node:
+
    ```bash
    pawd init paw-controller --chain-id paw-testnet
    ```
 
 2. Create validator keys:
+
    ```bash
    pawd keys add validator-1 --keyring-backend test
    pawd keys add validator-2 --keyring-backend test
    ```
 
 3. Add genesis accounts:
+
    ```bash
    pawd add-genesis-account validator-1 10000000000000upaw --keyring-backend test
    pawd add-genesis-account validator-2 10000000000000upaw --keyring-backend test
    ```
 
 4. Generate gentxs:
+
    ```bash
    pawd gentx validator-1 10000000000upaw --chain-id paw-testnet --moniker "Validator 1"
    pawd gentx validator-2 10000000000upaw --chain-id paw-testnet --moniker "Validator 2"
    ```
 
 5. Collect gentxs:
+
    ```bash
    pawd collect-gentxs
    ```
 
 6. Validate genesis:
+
    ```bash
    pawd validate-genesis
    ```
@@ -311,6 +348,7 @@ infra/node/                      # Development node config
 To verify the implementation:
 
 1. **Bootstrap test**:
+
    ```bash
    ./scripts/bootstrap-node.sh
    cat infra/node/genesis.json
@@ -318,6 +356,7 @@ To verify the implementation:
    ```
 
 2. **Genesis initialization test**:
+
    ```bash
    ./scripts/init-genesis.sh
    cat ~/.paw/config/genesis.json | jq '.app_state.bank.supply'
@@ -333,16 +372,19 @@ To verify the implementation:
 ## Next Steps
 
 1. Build the pawd binary:
+
    ```bash
    make install
    ```
 
 2. Run bootstrap:
+
    ```bash
    ./scripts/bootstrap-node.sh
    ```
 
 3. Initialize genesis:
+
    ```bash
    ./scripts/init-genesis.sh
    ```

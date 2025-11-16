@@ -6,11 +6,11 @@ proofs without downloading the full chain.
 
 ## Endpoints
 
-| Endpoint | Description |
-| --- | --- |
+| Endpoint                                        | Description                                                                                                                                                                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /light-client/headers?count=25&start=5000` | Returns compact headers (`index`, `hash`, `previous_hash`, `merkle_root`, `nonce`, `difficulty`) for `count` blocks starting at `start`. If `start` is omitted, the most recent `count` headers are returned. |
-| `GET /light-client/checkpoint` | Provides the latest header (height + hash) along with the current pending transaction count—handy for “is my view fresh?” checks. |
-| `GET /light-client/tx-proof/<txid>` | Returns the block header, merkle root, and a sibling hash path for a confirmed transaction. Wallets can use this to verify an inclusion proof on-device. |
+| `GET /light-client/checkpoint`                  | Provides the latest header (height + hash) along with the current pending transaction count—handy for “is my view fresh?” checks.                                                                             |
+| `GET /light-client/tx-proof/<txid>`             | Returns the block header, merkle root, and a sibling hash path for a confirmed transaction. Wallets can use this to verify an inclusion proof on-device.                                                      |
 
 All three endpoints require no authentication. The responses are tiny (<3 KB) and easily cacheable by mobile apps.
 

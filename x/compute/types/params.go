@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	"cosmossdk.io/math"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
@@ -37,21 +39,73 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 
 // Validate validates the set of params
 func (p Params) Validate() error {
-	// TODO: Implement comprehensive validation
+	if err := validateMinStake(p.MinStake); err != nil {
+		return err
+	}
+	if err := validateVerificationTimeout(p.VerificationTimeout); err != nil {
+		return err
+	}
+	if err := validateMaxRetries(p.MaxRetries); err != nil {
+		return err
+	}
 	return nil
 }
 
 func validateMinStake(i interface{}) error {
-	// TODO: Implement validation
+	v, ok := i.(math.Int)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v.IsNil() || !v.IsPositive() {
+		return fmt.Errorf("min_stake must be positive")
+	}
+
+	// Minimum stake should be at least 1000 PAW (1000000000 micro-PAW)
+	minAllowed := math.NewInt(1000000000)
+	if v.LT(minAllowed) {
+		return fmt.Errorf("min_stake must be at least %s, got %s", minAllowed, v)
+	}
+
+	// Maximum stake shouldn't exceed 1M PAW (1000000000000 micro-PAW)
+	maxAllowed := math.NewInt(1000000000000)
+	if v.GT(maxAllowed) {
+		return fmt.Errorf("min_stake cannot exceed %s, got %s", maxAllowed, v)
+	}
+
 	return nil
 }
 
 func validateVerificationTimeout(i interface{}) error {
-	// TODO: Implement validation
+	v, ok := i.(uint64)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v < 10 {
+		return fmt.Errorf("verification_timeout must be at least 10 seconds, got %d", v)
+	}
+
+	if v > 3600 {
+		return fmt.Errorf("verification_timeout cannot exceed 3600 seconds (1 hour), got %d", v)
+	}
+
 	return nil
 }
 
 func validateMaxRetries(i interface{}) error {
-	// TODO: Implement validation
+	v, ok := i.(uint32)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if v < 1 {
+		return fmt.Errorf("max_retries must be at least 1, got %d", v)
+	}
+
+	if v > 10 {
+		return fmt.Errorf("max_retries cannot exceed 10, got %d", v)
+	}
+
 	return nil
 }

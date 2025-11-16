@@ -10,7 +10,7 @@ services:
       - API_URL=http://paw-node:1317
       - GENESIS_URL=http://paw-node:26657/genesis
     ports:
-      - "3001:3000"
+      - '3001:3000'
     networks:
       - paw-network
     restart: unless-stopped
@@ -40,7 +40,7 @@ services:
       - GRPC_ENDPOINT=paw-node:9090
       - DATABASE_URL=postgresql://mintscan:mintscan@mintscan-db:5432/mintscan
     ports:
-      - "8080:8080"
+      - '8080:8080'
     networks:
       - paw-network
     restart: unless-stopped

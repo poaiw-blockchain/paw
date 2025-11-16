@@ -26,7 +26,7 @@ output:
   min-severity: low
 
 # Logging
-log-level: info  # Options: trace, debug, info, warn, error
+log-level: info # Options: trace, debug, info, warn, error
 
 # Proxy settings (if needed)
 # proxy:
@@ -56,7 +56,6 @@ timeout: 300
 retry:
   max-attempts: 3
   delay-seconds: 5
-
 # Notification settings (future use)
 # notifications:
 #   slack:

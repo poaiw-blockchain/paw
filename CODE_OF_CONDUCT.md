@@ -17,28 +17,28 @@ diverse, inclusive, and healthy community.
 Examples of behavior that contributes to a positive environment for our
 community include:
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
+- Demonstrating empathy and kindness toward other people
+- Being respectful of differing opinions, viewpoints, and experiences
+- Giving and gracefully accepting constructive feedback
+- Accepting responsibility and apologizing to those affected by our mistakes,
   and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the overall
+- Focusing on what is best not just for us as individuals, but for the overall
   community
-* Using welcoming and inclusive language
-* Being patient with newcomers and helping them learn
-* Showing appreciation for contributions of all sizes
+- Using welcoming and inclusive language
+- Being patient with newcomers and helping them learn
+- Showing appreciation for contributions of all sizes
 
 Examples of unacceptable behavior include:
 
-* The use of sexualized language or imagery, and sexual attention or advances of
+- The use of sexualized language or imagery, and sexual attention or advances of
   any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email address,
+- Trolling, insulting or derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information, such as a physical or email address,
   without their explicit permission
-* Spamming, promotional content, or excessive self-promotion
-* Deliberately derailing conversations or discussions
-* Other conduct which could reasonably be considered inappropriate in a
+- Spamming, promotional content, or excessive self-promotion
+- Deliberately derailing conversations or discussions
+- Other conduct which could reasonably be considered inappropriate in a
   professional setting
 
 ## Enforcement Responsibilities
@@ -141,18 +141,18 @@ For answers to common questions about this code of conduct, see the FAQ at
 
 ### Technical Discussions
 
-* Stay focused on technical merits of proposals and implementations
-* Support claims with evidence, data, or well-reasoned arguments
-* Be open to changing your position based on new information
-* Avoid appeals to authority; ideas should stand on their own merit
+- Stay focused on technical merits of proposals and implementations
+- Support claims with evidence, data, or well-reasoned arguments
+- Be open to changing your position based on new information
+- Avoid appeals to authority; ideas should stand on their own merit
 
 ### Code Review Etiquette
 
-* Review code, not people
-* Provide specific, actionable feedback
-* Assume good intent
-* Praise good work
-* Be humble in your suggestions
+- Review code, not people
+- Provide specific, actionable feedback
+- Assume good intent
+- Praise good work
+- Be humble in your suggestions
 
 ### Conflict Resolution
 
@@ -167,11 +167,11 @@ If you witness or experience conflicts:
 
 We are committed to:
 
-* Making blockchain technology accessible to all
-* Providing mentorship to new contributors
-* Encouraging diverse perspectives and approaches
-* Creating documentation for all skill levels
-* Being patient with those learning new technologies
+- Making blockchain technology accessible to all
+- Providing mentorship to new contributors
+- Encouraging diverse perspectives and approaches
+- Creating documentation for all skill levels
+- Being patient with those learning new technologies
 
 ---
 

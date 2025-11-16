@@ -9,16 +9,19 @@
 ## Quick Start (5 minutes)
 
 ### 1. Clone and Navigate
+
 ```bash
 cd /path/to/paw/api
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 go mod download
 ```
 
 ### 3. Run the Server
+
 ```bash
 go run cmd/main.go
 ```
@@ -28,11 +31,13 @@ The server will start on `http://localhost:5000`
 ### 4. Test the API
 
 #### Health Check
+
 ```bash
 curl http://localhost:5000/health
 ```
 
 #### Register a User
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -43,6 +48,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ```
 
 #### Login
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -55,11 +61,13 @@ curl -X POST http://localhost:5000/api/auth/login \
 Save the token from the response!
 
 #### Get Order Book
+
 ```bash
 curl http://localhost:5000/api/orders/book
 ```
 
 #### Create an Order (requires token)
+
 ```bash
 TOKEN="your-jwt-token-here"
 
@@ -74,6 +82,7 @@ curl -X POST http://localhost:5000/api/orders/create \
 ```
 
 #### Get Wallet Balance (requires token)
+
 ```bash
 curl http://localhost:5000/api/wallet/balance \
   -H "Authorization: Bearer $TOKEN"
@@ -82,16 +91,19 @@ curl http://localhost:5000/api/wallet/balance \
 ## Docker Quick Start
 
 ### 1. Build and Run
+
 ```bash
 docker-compose up -d
 ```
 
 ### 2. Check Logs
+
 ```bash
 docker-compose logs -f api
 ```
 
 ### 3. Stop
+
 ```bash
 docker-compose down
 ```
@@ -133,6 +145,7 @@ cp .env.example .env
 ```
 
 Edit `.env`:
+
 ```env
 API_PORT=5000
 JWT_SECRET=your-secure-secret-here
@@ -149,6 +162,7 @@ NODE_URI=tcp://localhost:26657
 ## WebSocket Testing
 
 Using `wscat`:
+
 ```bash
 npm install -g wscat
 
@@ -168,26 +182,31 @@ wscat -c ws://localhost:5000/ws
 ## Common Commands
 
 ### Get Market Price
+
 ```bash
 curl http://localhost:5000/api/market/price
 ```
 
 ### Get Market Stats
+
 ```bash
 curl http://localhost:5000/api/market/stats
 ```
 
 ### Get All Pools
+
 ```bash
 curl http://localhost:5000/api/pools
 ```
 
 ### Get Light Client Checkpoint
+
 ```bash
 curl http://localhost:5000/api/light-client/checkpoint
 ```
 
 ### Prepare Atomic Swap
+
 ```bash
 curl -X POST http://localhost:5000/api/atomic-swap/prepare \
   -H "Content-Type: application/json" \
@@ -205,19 +224,24 @@ curl -X POST http://localhost:5000/api/atomic-swap/prepare \
 ## Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Change the port in .env or use environment variable
 API_PORT=5001 go run cmd/main.go
 ```
 
 ### CORS Issues
+
 Add your origin to `.env`:
+
 ```env
 CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
 ### Connection to Blockchain Node Fails
+
 The API will work in mock mode for testing even without a blockchain node. To connect to a real node:
+
 ```env
 NODE_URI=tcp://your-node-ip:26657
 ```

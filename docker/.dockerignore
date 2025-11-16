@@ -1,0 +1,81 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Build artifacts
+bin/
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+testdata/
+coverage.txt
+coverage.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment
+docker/
+k8s/
+monitoring/
+scripts/deploy/
+
+# Logs
+*.log
+logs/
+
+# Data directories
+.paw/
+node_modules/
+
+# Security
+*.key
+*.pem
+*.crt
+certs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Environment files
+.env
+.env.*
+
+# Frontend
+external/crypto/exchange-frontend/node_modules/
+external/crypto/exchange-frontend/dist/
+external/crypto/browser-wallet-extension/node_modules/
+external/crypto/browser-wallet-extension/dist/
+
+# Generated files
+*.pb.go
+*.swagger.json
+
+# Audit and security reports
+AUDIT_*.md
+SECURITY_*.md
+*_SUMMARY.md
+*_FINDINGS.md
+IMPLEMENTATION_*.md

@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* global __ENV */
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
@@ -13,18 +15,18 @@ const liquidityCounter = new Counter('liquidity_operations');
 
 export let options = {
   stages: [
-    { duration: '1m', target: 50 },   // Ramp up
-    { duration: '3m', target: 50 },   // Steady DEX load
-    { duration: '1m', target: 100 },  // Peak DEX activity
-    { duration: '3m', target: 100 },  // Peak steady
-    { duration: '1m', target: 0 },    // Ramp down
+    { duration: '1m', target: 50 }, // Ramp up
+    { duration: '3m', target: 50 }, // Steady DEX load
+    { duration: '1m', target: 100 }, // Peak DEX activity
+    { duration: '3m', target: 100 }, // Peak steady
+    { duration: '1m', target: 0 }, // Ramp down
   ],
   thresholds: {
-    'http_req_duration': ['p(95)<800'],
-    'http_req_failed': ['rate<0.02'],
-    'swap_errors': ['rate<0.03'],
-    'pool_query_latency': ['p(95)<300'],
-    'swap_latency': ['p(95)<3000'],
+    http_req_duration: ['p(95)<800'],
+    http_req_failed: ['rate<0.02'],
+    swap_errors: ['rate<0.03'],
+    pool_query_latency: ['p(95)<300'],
+    swap_latency: ['p(95)<3000'],
   },
 };
 
@@ -50,13 +52,14 @@ export function setup() {
   // Verify DEX module is available
   const res = http.get(`${BASE_URL}/paw/dex/v1/params`);
   check(res, {
-    'setup: DEX module available': (r) => r.status === 200,
+    'setup: DEX module available': r => r.status === 200,
   });
 
   return { startTime: new Date().toISOString() };
 }
 
-export default function(data) {
+// eslint-disable-next-line no-unused-vars
+export default function (data) {
   // Test distribution:
   // 60% - Query pools
   // 25% - Simulate swaps
@@ -65,7 +68,7 @@ export default function(data) {
 
   const rand = Math.random();
 
-  if (rand < 0.60) {
+  if (rand < 0.6) {
     queryAllPools();
   } else if (rand < 0.85) {
     simulateSwap();
@@ -84,8 +87,8 @@ function queryAllPools() {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'query pools: status 200': (r) => r.status === 200,
-    'query pools: has data': (r) => {
+    'query pools: status 200': r => r.status === 200,
+    'query pools: has data': r => {
       try {
         const body = JSON.parse(r.body);
         return body.pools !== undefined;
@@ -96,7 +99,7 @@ function queryAllPools() {
   });
 
   poolQueryLatency.add(duration);
-  if (!success) swapErrorRate.add(1);
+  if (!success) {swapErrorRate.add(1);}
 }
 
 function queryPoolLiquidity() {
@@ -107,9 +110,9 @@ function queryPoolLiquidity() {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'query pool: status ok': (r) => r.status === 200 || r.status === 404,
-    'query pool: valid response': (r) => {
-      if (r.status === 404) return true; // Pool doesn't exist is OK
+    'query pool: status ok': r => r.status === 200 || r.status === 404,
+    'query pool: valid response': r => {
+      if (r.status === 404) {return true;} // Pool doesn't exist is OK
       try {
         const body = JSON.parse(r.body);
         return body.pool !== undefined;
@@ -120,7 +123,7 @@ function queryPoolLiquidity() {
   });
 
   liquidityLatency.add(duration);
-  if (!success) swapErrorRate.add(1);
+  if (!success) {swapErrorRate.add(1);}
 }
 
 function queryPoolPrices() {
@@ -133,11 +136,11 @@ function queryPoolPrices() {
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'query price: status ok': (r) => r.status === 200 || r.status === 404,
+    'query price: status ok': r => r.status === 200 || r.status === 404,
   });
 
   poolQueryLatency.add(duration);
-  if (!success) swapErrorRate.add(1);
+  if (!success) {swapErrorRate.add(1);}
 }
 
 function simulateSwap() {
@@ -149,47 +152,57 @@ function simulateSwap() {
   const swapPayload = {
     tx: {
       body: {
-        messages: [{
-          '@type': '/paw.dex.v1.MsgSwapExactAmountIn',
-          sender: sender,
-          routes: [{
-            pool_id: '1',
-            token_out_denom: pair.tokenB,
-          }],
-          token_in: {
-            denom: pair.tokenA,
-            amount: `${randomIntBetween(1000, 100000)}`
+        messages: [
+          {
+            '@type': '/paw.dex.v1.MsgSwapExactAmountIn',
+            sender: sender,
+            routes: [
+              {
+                pool_id: '1',
+                token_out_denom: pair.tokenB,
+              },
+            ],
+            token_in: {
+              denom: pair.tokenA,
+              amount: `${randomIntBetween(1000, 100000)}`,
+            },
+            token_out_min_amount: '1',
           },
-          token_out_min_amount: '1'
-        }],
+        ],
         memo: `dex-load-test-${Date.now()}`,
         timeout_height: '0',
       },
       auth_info: {
         signer_infos: [],
         fee: {
-          amount: [{
-            denom: 'upaw',
-            amount: '10000'
-          }],
+          amount: [
+            {
+              denom: 'upaw',
+              amount: '10000',
+            },
+          ],
           gas_limit: '300000',
-        }
+        },
       },
-      signatures: []
+      signatures: [],
     },
-    mode: 'BROADCAST_MODE_ASYNC'
+    mode: 'BROADCAST_MODE_ASYNC',
   };
 
   const params = {
     headers: { 'Content-Type': 'application/json' },
   };
 
-  const res = http.post(`${BASE_URL}/cosmos/tx/v1beta1/txs`, JSON.stringify(swapPayload), params);
+  const res = http.post(
+    `${BASE_URL}/cosmos/tx/v1beta1/txs`,
+    JSON.stringify(swapPayload),
+    params
+  );
   const duration = Date.now() - startTime;
 
   const success = check(res, {
-    'swap: accepted': (r) => r.status === 200 || r.status === 400,
-    'swap: has response': (r) => {
+    'swap: accepted': r => r.status === 200 || r.status === 400,
+    'swap: has response': r => {
       try {
         const body = JSON.parse(r.body);
         return body.tx_response !== undefined || body.code !== undefined;
@@ -201,7 +214,7 @@ function simulateSwap() {
 
   swapLatency.add(duration);
   swapCounter.add(1);
-  if (!success) swapErrorRate.add(1);
+  if (!success) {swapErrorRate.add(1);}
 }
 
 // Test adding liquidity
@@ -212,44 +225,51 @@ export function addLiquidity() {
   const liquidityPayload = {
     tx: {
       body: {
-        messages: [{
-          '@type': '/paw.dex.v1.MsgJoinPool',
-          sender: sender,
-          pool_id: '1',
-          share_out_amount: '1000000',
-          token_in_maxs: [
-            { denom: 'upaw', amount: '1000000' },
-            { denom: 'uatom', amount: '1000000' }
-          ]
-        }],
+        messages: [
+          {
+            '@type': '/paw.dex.v1.MsgJoinPool',
+            sender: sender,
+            pool_id: '1',
+            share_out_amount: '1000000',
+            token_in_maxs: [
+              { denom: 'upaw', amount: '1000000' },
+              { denom: 'uatom', amount: '1000000' },
+            ],
+          },
+        ],
         memo: `liquidity-test-${Date.now()}`,
       },
       auth_info: {
         fee: {
           amount: [{ denom: 'upaw', amount: '15000' }],
           gas_limit: '400000',
-        }
+        },
       },
-      signatures: []
+      signatures: [],
     },
-    mode: 'BROADCAST_MODE_ASYNC'
+    mode: 'BROADCAST_MODE_ASYNC',
   };
 
   const params = {
     headers: { 'Content-Type': 'application/json' },
   };
 
-  const res = http.post(`${BASE_URL}/cosmos/tx/v1beta1/txs`, JSON.stringify(liquidityPayload), params);
+  const res = http.post(
+    `${BASE_URL}/cosmos/tx/v1beta1/txs`,
+    JSON.stringify(liquidityPayload),
+    params
+  );
   const duration = Date.now() - startTime;
 
   check(res, {
-    'add liquidity: accepted': (r) => r.status === 200 || r.status === 400,
+    'add liquidity: accepted': r => r.status === 200 || r.status === 400,
   });
 
   liquidityLatency.add(duration);
   liquidityCounter.add(1);
 }
 
+// eslint-disable-next-line no-unused-vars
 export function teardown(data) {
   console.log('DEX load test completed');
   console.log(`Total swaps simulated: ${swapCounter.value}`);

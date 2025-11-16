@@ -26,13 +26,13 @@ make benchmark-invariants
 
 ## Test Categories
 
-| Category | Files | Purpose | Speed |
-|----------|-------|---------|-------|
-| **CometMock** | `testutil/cometmock/` | Fast consensus-free testing | ⚡⚡⚡ |
-| **Invariants** | `tests/invariants/` | State correctness verification | ⚡⚡ |
-| **Properties** | `tests/property/` | Mathematical property verification | ⚡⚡⚡ |
-| **Simulation** | `tests/simulation/`, `simapp/` | Randomized operation testing | ⚡ |
-| **Integration** | `testutil/integration/` | Network/account/contract helpers | ⚡⚡ |
+| Category        | Files                          | Purpose                            | Speed  |
+| --------------- | ------------------------------ | ---------------------------------- | ------ |
+| **CometMock**   | `testutil/cometmock/`          | Fast consensus-free testing        | ⚡⚡⚡ |
+| **Invariants**  | `tests/invariants/`            | State correctness verification     | ⚡⚡   |
+| **Properties**  | `tests/property/`              | Mathematical property verification | ⚡⚡⚡ |
+| **Simulation**  | `tests/simulation/`, `simapp/` | Randomized operation testing       | ⚡     |
+| **Integration** | `testutil/integration/`        | Network/account/contract helpers   | ⚡⚡   |
 
 ## CometMock Quick Start
 
@@ -54,6 +54,7 @@ balance := app.BankKeeper.GetBalance(ctx, addr, "upaw")
 ## Invariant Tests
 
 ### Bank Module
+
 ```go
 InvariantTotalSupply()          // Supply = sum of accounts
 InvariantNonNegativeBalances()  // No negative balances
@@ -61,6 +62,7 @@ InvariantDenomMetadata()        // All denoms have metadata
 ```
 
 ### Staking Module
+
 ```go
 InvariantModuleAccountCoins()   // Pool balances match
 InvariantValidatorsBonded()     // Validators sum correctly
@@ -69,6 +71,7 @@ InvariantPositiveDelegation()   // All delegations positive
 ```
 
 ### DEX Module
+
 ```go
 InvariantPoolReservesXYK()      // x*y=k maintained
 InvariantPoolLPShares()         // LP shares sum correctly
@@ -91,6 +94,7 @@ err := quick.Check(property, &quick.Config{MaxCount: 1000})
 ```
 
 ### DEX Properties
+
 - Pool creation is commutative
 - Swaps never increase reserves
 - Add/remove liquidity roundtrip
@@ -117,6 +121,7 @@ make test-simulation-with-invariants
 ## Integration Helpers
 
 ### Networks
+
 ```go
 config := integration.DefaultNetworkConfig()
 network := integration.New(t, config)
@@ -127,6 +132,7 @@ network.WaitForHeight(10)
 ```
 
 ### Accounts
+
 ```go
 // Account manager
 manager := integration.NewTestAccountManager()
@@ -144,6 +150,7 @@ accounts, balances := manager.CreateFundedAccounts(
 ```
 
 ### Contracts
+
 ```go
 // Contract manager
 contracts := integration.NewContractManager()
@@ -173,6 +180,7 @@ export SimulationVerbose=true              # Detailed logging
 ## Common Patterns
 
 ### Test with Invariants
+
 ```go
 func (s *Suite) TestOperationMaintainsInvariants() {
     // Perform operation
@@ -186,6 +194,7 @@ func (s *Suite) TestOperationMaintainsInvariants() {
 ```
 
 ### Property-Based Test
+
 ```go
 func TestMathProperty(t *testing.T) {
     property := func(x, y uint64) bool {
@@ -202,6 +211,7 @@ func TestMathProperty(t *testing.T) {
 ```
 
 ### CometMock vs Real Consensus
+
 ```go
 if os.Getenv("USE_COMETMOCK") == "true" {
     app := cometmock.SetupCometMock(t, config)
@@ -252,23 +262,27 @@ simapp/
 ## Troubleshooting
 
 ### Tests won't compile
+
 ```bash
 go mod tidy
 go mod download
 ```
 
 ### CometMock tests skipped
+
 ```bash
 export USE_COMETMOCK=true
 make test-cometmock
 ```
 
 ### Simulation fails with specific seed
+
 ```bash
 go test ./tests/simulation/... -SimulationSeed=<seed> -v
 ```
 
 ### Invariant violation
+
 ```bash
 # Run specific invariant with verbose output
 go test ./tests/invariants/ -run TestBankInvariants -v

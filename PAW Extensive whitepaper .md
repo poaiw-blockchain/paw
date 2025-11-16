@@ -58,15 +58,15 @@ PAW launches as a compact layer 1 focused on useful AI work with a predictable, 
 - **Total Supply**: 50,000,000 PAW (allocations trimmed 30% from their prior amounts while keeping the global cap unchanged; the residual 15M PAW is held in the Reserve for future adoption boosts or burns).
 - **Decimals**: 18
 
-| Category | Adjusted Allocation | Purpose | Notes |
-|----------|---------------------|---------|-------|
-| Public Sale | 7,000,000 | Initial liquidity and decentralization | 70% of the prior 10M allocation |
-| Mining & Node Rewards | 10,500,000 | Incentivize validators and node operators | 70% of the prior 15M allocation |
-| API Donor Rewards | 8,400,000 | API key minutes, GPU-hour donors, and compute partners | 70% of the prior 12M allocation |
-| Team & Advisors | 3,500,000 | Core team and ecosystem advisors | 70% of the prior 5M allocation |
-| Foundation Treasury | 3,500,000 | Development, audits, partnerships | 70% of the prior 5M allocation |
-| Ecosystem Fund | 2,100,000 | Grants, tooling, community programs | 70% of the prior 3M allocation |
-| Reserve for Future Adoption | 15,000,000 | Strategic reserve for future launches, burns, or incentives | The 30% supply trimmed from each category is parked here until governance unlocks it |
+| Category                    | Adjusted Allocation | Purpose                                                     | Notes                                                                                |
+| --------------------------- | ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Public Sale                 | 7,000,000           | Initial liquidity and decentralization                      | 70% of the prior 10M allocation                                                      |
+| Mining & Node Rewards       | 10,500,000          | Incentivize validators and node operators                   | 70% of the prior 15M allocation                                                      |
+| API Donor Rewards           | 8,400,000           | API key minutes, GPU-hour donors, and compute partners      | 70% of the prior 12M allocation                                                      |
+| Team & Advisors             | 3,500,000           | Core team and ecosystem advisors                            | 70% of the prior 5M allocation                                                       |
+| Foundation Treasury         | 3,500,000           | Development, audits, partnerships                           | 70% of the prior 5M allocation                                                       |
+| Ecosystem Fund              | 2,100,000           | Grants, tooling, community programs                         | 70% of the prior 3M allocation                                                       |
+| Reserve for Future Adoption | 15,000,000          | Strategic reserve for future launches, burns, or incentives | The 30% supply trimmed from each category is parked here until governance unlocks it |
 
 ### Emission Schedule
 
@@ -126,14 +126,14 @@ This tri-partite split ensures that transaction activity simultaneously reduces 
 
 Sample operations and their associated gas costs provide transparency for developers and users:
 
-| Operation | Gas Cost | Notes |
-|-----------|----------|-------|
-| Simple transfer | 21,000 gas | Base cost for transferring PAW between accounts |
-| Contract deployment | 53,000 gas + 200 per byte | Initial deployment plus bytecode storage costs |
-| Contract call | 21,000 gas + contract logic | Base invocation plus execution-specific costs |
-| DEX swap | ~150,000 gas | Typical automated market maker swap operation |
-| Stake/unstake | 75,000 gas | Validator delegation or withdrawal operations |
-| Governance vote | 50,000 gas | On-chain proposal voting and signature verification |
+| Operation           | Gas Cost                    | Notes                                               |
+| ------------------- | --------------------------- | --------------------------------------------------- |
+| Simple transfer     | 21,000 gas                  | Base cost for transferring PAW between accounts     |
+| Contract deployment | 53,000 gas + 200 per byte   | Initial deployment plus bytecode storage costs      |
+| Contract call       | 21,000 gas + contract logic | Base invocation plus execution-specific costs       |
+| DEX swap            | ~150,000 gas                | Typical automated market maker swap operation       |
+| Stake/unstake       | 75,000 gas                  | Validator delegation or withdrawal operations       |
+| Governance vote     | 50,000 gas                  | On-chain proposal voting and signature verification |
 
 These costs are calibrated to discourage frivolous transactions while keeping legitimate usage affordable.
 
@@ -164,11 +164,11 @@ This design ensures that PAW becomes increasingly scarce as the network succeeds
 
 PAW positions itself in the accessibility gap between ultra-cheap chains and premium secure networks:
 
-| Network | Typical Transaction Cost | Positioning |
-|---------|-------------------------|-------------|
-| Ethereum | $2-50 per transaction | High security, high cost barrier to entry |
-| Solana | $0.00025 per transaction | Very low cost, optimistic security model |
-| **PAW** | **$0.01-0.10 per transaction** | **Accessible pricing with enhanced security** |
+| Network  | Typical Transaction Cost       | Positioning                                   |
+| -------- | ------------------------------ | --------------------------------------------- |
+| Ethereum | $2-50 per transaction          | High security, high cost barrier to entry     |
+| Solana   | $0.00025 per transaction       | Very low cost, optimistic security model      |
+| **PAW**  | **$0.01-0.10 per transaction** | **Accessible pricing with enhanced security** |
 
 PAW delivers approximately 10x cost savings versus Ethereum while maintaining premium security guarantees compared to ultra-low-cost chains. This balance makes PAW ideal for AI computation tasks that require both economic efficiency and verifiable execution.
 
@@ -242,16 +242,19 @@ Once the mainnet matures and demonstrates sustained transaction volume, the Guar
 Price data aggregates from a diversified mix of centralized exchanges, decentralized protocols, and aggregator services:
 
 **Centralized Exchanges:**
+
 - Binance (BTC/USDT, ETH/USDT pairs as proxies for market sentiment)
 - Coinbase Pro (regulated USD pairs for price anchoring)
 - Kraken (institutional volume indicators)
 - OKX (Asian market price discovery)
 
 **Decentralized Exchanges:**
+
 - Uniswap (Ethereum-based liquidity depth)
 - PancakeSwap (BSC-based trading activity)
 
 **Price Aggregators:**
+
 - CoinGecko (multi-exchange composite pricing)
 - CoinMarketCap (global volume-weighted averages)
 
@@ -262,11 +265,13 @@ The protocol requires a minimum of five distinct sources for each price update. 
 PAW's oracle design anticipates and mitigates common attack vectors:
 
 **Attack Vectors:**
+
 - **Price Manipulation**: Flash loans, wash trading, or coordinated market manipulation attempts that temporarily distort exchange prices.
 - **Oracle Node Compromise**: Validators submitting fraudulent data to manipulate emissions or exploit price-dependent mechanisms.
 - **Network Partition Attacks**: Censorship or network splits that prevent sufficient validators from submitting price data.
 
 **Mitigations:**
+
 - **Time-Weighted Average Price (TWAP)**: Price submissions use a 10-minute TWAP rather than spot prices, smoothing out short-term volatility and rendering flash loan attacks ineffective.
 - **Volume-Weighted Median**: Sources with higher trading volume carry greater weight in median calculations, prioritizing liquid markets over thin order books.
 - **Anomaly Detection**: Price submissions deviating more than 20% from the previous consensus trigger automatic rejection, preventing sudden shocks from bad data.
@@ -346,6 +351,7 @@ Rather than halting all protocol operations during oracle failures, PAW prioriti
 The Guardian DAO exercises comprehensive control over oracle parameters and policies:
 
 **DAO Authority:**
+
 - Addition or removal of trusted data sources (exchanges, aggregators, oracle providers)
 - Adjustment of update frequency (100-block default, tunable from 50 to 500 blocks)
 - Configuration of deviation thresholds (anomaly detection, slashing parameters)
@@ -370,6 +376,7 @@ PAW uses Tendermint BFT consensus, which requires 2/3+ honest validators for cor
 - **Invalid block attack**: Control >2/3 of stake to create and finalize invalid blocks
 
 At genesis (50M PAW total supply, assuming 30% staked = 15M PAW):
+
 - **Halt attack cost**: 5M PAW (~$500K at $0.10/PAW)
 - **Invalid block attack cost**: 10M PAW (~$1M at $0.10/PAW)
 
@@ -380,21 +387,25 @@ As PAW price increases, the cost to attack grows exponentially, making the netwo
 The protocol enforces strict slashing to penalize malicious or negligent behavior:
 
 **Double-signing (Byzantine behavior)**:
+
 - **Penalty**: 5% of validator stake + permanent jail (tombstone)
 - **Example**: A validator with 200K PAW stake loses 10K PAW
 - **Delegators**: Also slashed at the same rate to ensure aligned incentives
 
 **Downtime (liveness failure)**:
+
 - **Threshold**: Miss >5% of blocks in a 10,000 block window (~11 hours at 4s blocks)
 - **First penalty**: 0.1% of stake + 24-hour jail
 - **Repeated failures**: After 3 jails, validator loses 1% of stake and is removed from the active set
 
 **Bad oracle data**:
+
 - **Penalty**: 1% stake for >5% price deviation from consensus median
 - **Strike system**: 3 strikes result in permanent removal from oracle committee
 - **Application**: Ensures market-responsive rewards use accurate PAW price data
 
 **Invalid compute attestation**:
+
 - **Penalty**: 10% stake for verified fraud proofs showing incorrect compute results
 - **Consequence**: Loss of compute agent registration privileges
 - **Detection**: Challenge period allows full nodes to submit fraud proofs
@@ -404,16 +415,19 @@ The protocol enforces strict slashing to penalize malicious or negligent behavio
 A 51% attack (or more precisely, a >2/3 stake attack) would allow an adversary to produce invalid blocks and finalize them.
 
 **Attack cost at launch**:
+
 - Acquire 10M PAW (~$1M at initial valuation)
 - Ongoing opportunity cost of staking rewards foregone
 - Risk of total stake loss via social consensus recovery
 
 **Detection**:
+
 - Invalid state transitions are detected by full nodes
 - Blocks violating protocol rules are rejected
 - Network alerts trigger if conflicting blocks are signed
 
 **Recovery**:
+
 - Social consensus coordinates to fork the chain
 - Attacker stake is slashed in the recovery fork
 - Honest validators continue on the canonical chain
@@ -425,6 +439,7 @@ A 51% attack (or more precisely, a >2/3 stake attack) would allow an adversary t
 **Problem**: In pure PoS systems, validators could sign multiple forks without economic cost, enabling costless attacks on finality.
 
 **Solution**:
+
 - **Slashing for double-signing**: 5% stake penalty for signing conflicting blocks
 - **Monitoring**: Full nodes track all validator signatures and submit fraud proofs
 - **Incentive**: Fraud proof submitters earn 20% of slashed stake as a reward
@@ -436,6 +451,7 @@ This ensures validators have strong economic incentives to sign only valid block
 **Problem**: An attacker could acquire old validator private keys and rewrite chain history from an early checkpoint.
 
 **Solutions**:
+
 - **Weak subjectivity**: Light clients checkpoint every 14 days and reject forks diverging before the checkpoint
 - **Unbonding period**: 21-day unstaking period prevents attackers from exiting stake and then rewriting history
 - **Social consensus**: Community validates and publishes canonical checkpoints
@@ -448,6 +464,7 @@ This ensures validators have strong economic incentives to sign only valid block
 **Risk**: Validators could collude to extract MEV (Maximal Extractable Value), censor transactions, or manipulate governance.
 
 **Mitigations**:
+
 - **VRF-based committee selection**: Governance committees are selected via Verifiable Random Functions, preventing coordination
 - **Delegator choice**: Delegators can switch validators with 21-day unbonding, punishing misbehaving validators
 - **Slash risk**: Evidence of collusion results in 5% stake loss for all participants
@@ -460,6 +477,7 @@ This ensures validators have strong economic incentives to sign only valid block
 **Attack**: Create many validator identities to gain outsized influence.
 
 **Defense**:
+
 - **Minimum stake requirement**: 10,000 PAW per validator (~$1,000 at $0.10/PAW)
 - **Cost**: Creating 25 validators requires 250K PAW (~$25K minimum investment)
 - **Limitation**: Voting power is proportional to stake, not identity count
@@ -471,6 +489,7 @@ Sybil attacks are economically infeasible because stake is the security resource
 **Attack**: Isolate a light client from honest peers and feed it false block headers.
 
 **Defense**:
+
 - **Multiple connections**: Light clients connect to at least 5 full nodes by default
 - **Header comparison**: Clients compare headers across peers and reject outliers
 - **Alert on conflict**: Clients alert users when receiving conflicting headers from different peers
@@ -480,16 +499,19 @@ Sybil attacks are economically infeasible because stake is the security resource
 ### Compute Plane Attack Vectors
 
 **TEE Compromise**:
+
 - **Risk**: Side-channel attacks on Trusted Execution Environments (e.g., Intel SGX)
 - **Mitigation**: Use AWS Nitro Enclaves (no known practical attacks), employ defense in depth
 - **Fallback**: Optimistic verification with fraud proofs and 24-hour challenge period
 
 **Proof Withholding**:
+
 - **Risk**: Compute agent accepts a task but withholds the proof to deny service
 - **Mitigation**: 6-hour timeout triggers task reassignment and 5% slash of agent stake
 - **Incentive**: Agents earn rewards only upon successful proof submission
 
 **Result Manipulation**:
+
 - **Risk**: Agent submits incorrect compute results to benefit from payment without doing work
 - **Mitigation**: Optimistic verification with fraud proofs; 10% slash if fraud is proven
 - **Challenge period**: 24 hours for anyone to submit fraud proof disputing result
@@ -499,36 +521,40 @@ Sybil attacks are economically infeasible because stake is the security resource
 The protocol is designed for long-term economic sustainability through multiple mechanisms:
 
 **Emission halving**:
+
 - Rewards decrease 50% annually, reducing selling pressure on PAW
 - Year 1: 2,870 PAW/day → Year 6: ~65 PAW/day
 - After Year 10: Zero base emissions, all rewards from fees
 
 **Fee burn**:
+
 - 50% of transaction and task fees are burned
 - Network becomes net deflationary at high usage levels
 - Reduces circulating supply over time
 
 **Treasury funding**:
+
 - 20% of fees + 5% of emissions fund development
 - Ensures sustainable protocol development without external fundraising
 - Treasury governed by Guardian DAO
 
 **Break-even analysis**:
+
 - At 10M daily gas usage (~100 TPS sustained), fee revenue covers validator operating costs
 - Higher usage increases validator profitability and security budget
 
 ### Cost of Attack Summary
 
-| Attack Type | Minimum Cost | Success Probability | Detection Time | Recovery |
-|-------------|--------------|---------------------|----------------|----------|
-| 51% Attack (>2/3 stake) | 10M PAW ($1M) | Low (social consensus) | Immediate | Fork & slash |
-| Halt (>1/3 stake) | 5M PAW ($500K) | Medium | Immediate | Social recovery |
-| Double-sign | 200K PAW stake | Low (slashed) | 1 block (4s) | Auto-slash |
-| Long-range | Impractical | Very low | 14 days | Checkpoints |
-| Validator cartel | Reputation loss | Medium | Days-weeks | Delegator exit |
-| TEE compromise | $50K+ exploit | Low (Nitro) | 24 hours | Fraud proof |
-| Sybil (25 validators) | 250K PAW ($25K) | Very low | N/A | Stake-weighted voting |
-| Eclipse attack | Network-level | Low | Minutes | Multi-peer validation |
+| Attack Type             | Minimum Cost    | Success Probability    | Detection Time | Recovery              |
+| ----------------------- | --------------- | ---------------------- | -------------- | --------------------- |
+| 51% Attack (>2/3 stake) | 10M PAW ($1M)   | Low (social consensus) | Immediate      | Fork & slash          |
+| Halt (>1/3 stake)       | 5M PAW ($500K)  | Medium                 | Immediate      | Social recovery       |
+| Double-sign             | 200K PAW stake  | Low (slashed)          | 1 block (4s)   | Auto-slash            |
+| Long-range              | Impractical     | Very low               | 14 days        | Checkpoints           |
+| Validator cartel        | Reputation loss | Medium                 | Days-weeks     | Delegator exit        |
+| TEE compromise          | $50K+ exploit   | Low (Nitro)            | 24 hours       | Fraud proof           |
+| Sybil (25 validators)   | 250K PAW ($25K) | Very low               | N/A            | Stake-weighted voting |
+| Eclipse attack          | Network-level   | Low                    | Minutes        | Multi-peer validation |
 
 ### Comparison to Other Chains
 
@@ -540,6 +566,7 @@ PAW's security budget and attack costs scale with adoption:
 - **PAW (Mature)**: $50M+ attack cost as adoption increases and stake grows
 
 **Security budget**:
+
 - Year 1: 30% of 2,870 PAW/day = 861 PAW/day (~$86/day at $0.10)
 - As PAW price increases, security budget grows proportionally
 - Target: 50%+ of supply staked to maximize attack cost

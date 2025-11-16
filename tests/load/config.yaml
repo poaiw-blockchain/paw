@@ -2,17 +2,17 @@
 
 # Global test settings
 global:
-  base_url: "http://localhost:1317"
-  rpc_url: "http://localhost:26657"
-  ws_url: "ws://localhost:26657/websocket"
-  chain_id: "paw-testnet-1"
+  base_url: 'http://localhost:1317'
+  rpc_url: 'http://localhost:26657'
+  ws_url: 'ws://localhost:26657/websocket'
+  chain_id: 'paw-testnet-1'
   timeout: 30 # seconds
 
 # Load test scenarios
 scenarios:
-  - name: "Light Load"
-    description: "Minimal load for functional testing"
-    duration: "5m"
+  - name: 'Light Load'
+    description: 'Minimal load for functional testing'
+    duration: '5m'
     users: 10
     spawn_rate: 2
     target_tps: 10
@@ -21,9 +21,9 @@ scenarios:
       - queries: 50%
       - dex: 10%
 
-  - name: "Normal Load"
-    description: "Expected production load"
-    duration: "10m"
+  - name: 'Normal Load'
+    description: 'Expected production load'
+    duration: '10m'
     users: 100
     spawn_rate: 10
     target_tps: 100
@@ -32,9 +32,9 @@ scenarios:
       - queries: 60%
       - dex: 10%
 
-  - name: "Peak Load"
-    description: "Peak usage hours simulation"
-    duration: "15m"
+  - name: 'Peak Load'
+    description: 'Peak usage hours simulation'
+    duration: '15m'
     users: 500
     spawn_rate: 50
     target_tps: 500
@@ -43,9 +43,9 @@ scenarios:
       - queries: 65%
       - dex: 10%
 
-  - name: "Stress Test"
-    description: "Push system to limits"
-    duration: "30m"
+  - name: 'Stress Test'
+    description: 'Push system to limits'
+    duration: '30m'
     users: 1000
     spawn_rate: 100
     target_tps: 1000
@@ -54,9 +54,9 @@ scenarios:
       - queries: 50%
       - dex: 20%
 
-  - name: "Endurance Test"
-    description: "Long-running stability test"
-    duration: "2h"
+  - name: 'Endurance Test'
+    description: 'Long-running stability test'
+    duration: '2h'
     users: 200
     spawn_rate: 20
     target_tps: 200
@@ -65,9 +65,9 @@ scenarios:
       - queries: 60%
       - dex: 10%
 
-  - name: "Spike Test"
-    description: "Sudden traffic spike simulation"
-    duration: "20m"
+  - name: 'Spike Test'
+    description: 'Sudden traffic spike simulation'
+    duration: '20m'
     users: 2000
     spawn_rate: 500 # Very fast ramp up
     target_tps: 2000
@@ -76,9 +76,9 @@ scenarios:
       - queries: 40%
       - dex: 20%
 
-  - name: "DEX Heavy"
-    description: "DEX-focused load testing"
-    duration: "15m"
+  - name: 'DEX Heavy'
+    description: 'DEX-focused load testing'
+    duration: '15m'
     users: 300
     spawn_rate: 30
     target_tps: 300
@@ -91,7 +91,7 @@ scenarios:
 thresholds:
   # HTTP request thresholds
   http_req_duration:
-    p95: 500  # 95% of requests should be under 500ms
+    p95: 500 # 95% of requests should be under 500ms
     p99: 1000 # 99% of requests should be under 1s
 
   http_req_failed:
@@ -99,23 +99,23 @@ thresholds:
 
   # Transaction-specific thresholds
   transaction_latency:
-    p95: 2000  # 95% of transactions confirmed under 2s
-    p99: 5000  # 99% of transactions confirmed under 5s
+    p95: 2000 # 95% of transactions confirmed under 2s
+    p99: 5000 # 99% of transactions confirmed under 5s
 
   query_latency:
-    p95: 200   # 95% of queries under 200ms
-    p99: 500   # 99% of queries under 500ms
+    p95: 200 # 95% of queries under 200ms
+    p99: 500 # 99% of queries under 500ms
 
   # DEX-specific thresholds
   swap_latency:
-    p95: 3000  # 95% of swaps under 3s
+    p95: 3000 # 95% of swaps under 3s
 
   pool_query_latency:
-    p95: 300   # 95% of pool queries under 300ms
+    p95: 300 # 95% of pool queries under 300ms
 
   # WebSocket thresholds
   ws_message_latency:
-    p95: 100   # 95% of WS messages under 100ms
+    p95: 100 # 95% of WS messages under 100ms
 
   ws_errors:
     rate: 0.05 # Less than 5% WS errors
@@ -123,24 +123,24 @@ thresholds:
 # Test data
 test_data:
   addresses:
-    - "paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0d8t4q"
-    - "paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqg3vxq7"
-    - "paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqa29wr0"
-    - "paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqcjqxn9"
+    - 'paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0d8t4q'
+    - 'paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqg3vxq7'
+    - 'paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqa29wr0'
+    - 'paw1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqcjqxn9'
 
   token_pairs:
-    - tokenA: "upaw"
-      tokenB: "uatom"
-    - tokenA: "upaw"
-      tokenB: "uosmo"
-    - tokenA: "uatom"
-      tokenB: "uosmo"
-    - tokenA: "upaw"
-      tokenB: "uusdc"
+    - tokenA: 'upaw'
+      tokenB: 'uatom'
+    - tokenA: 'upaw'
+      tokenB: 'uosmo'
+    - tokenA: 'uatom'
+      tokenB: 'uosmo'
+    - tokenA: 'upaw'
+      tokenB: 'uusdc'
 
   transaction_amounts:
-    min: 1000      # Minimum transaction amount (in smallest denomination)
-    max: 1000000   # Maximum transaction amount
+    min: 1000 # Minimum transaction amount (in smallest denomination)
+    max: 1000000 # Maximum transaction amount
 
 # Monitoring and reporting
 monitoring:
@@ -156,8 +156,8 @@ monitoring:
 
   # Report generation
   reports:
-    format: "html" # html, json, csv
-    output_dir: "tests/load/reports"
+    format: 'html' # html, json, csv
+    output_dir: 'tests/load/reports'
 
   # Real-time monitoring
   realtime:
@@ -170,7 +170,7 @@ monitoring:
     error_rate_threshold: 5 # percentage
     latency_threshold: 1000 # milliseconds
     email_notifications: false
-    slack_webhook: ""
+    slack_webhook: ''
 
 # Advanced options
 advanced:
@@ -189,38 +189,38 @@ advanced:
 
   # Custom headers
   custom_headers:
-    User-Agent: "PAW-LoadTester/1.0"
-    X-Test-Run: "true"
+    User-Agent: 'PAW-LoadTester/1.0'
+    X-Test-Run: 'true'
 
   # TLS configuration
   tls:
     insecure_skip_verify: false
-    cert_file: ""
-    key_file: ""
+    cert_file: ''
+    key_file: ''
 
   # Logging
   logging:
-    level: "info" # debug, info, warn, error
-    file: "tests/load/reports/loadtest.log"
-    format: "json" # json, text
+    level: 'info' # debug, info, warn, error
+    file: 'tests/load/reports/loadtest.log'
+    format: 'json' # json, text
 
 # Environment-specific overrides
 environments:
   local:
-    base_url: "http://localhost:1317"
-    rpc_url: "http://localhost:26657"
+    base_url: 'http://localhost:1317'
+    rpc_url: 'http://localhost:26657'
 
   testnet:
-    base_url: "https://api-testnet.paw.network"
-    rpc_url: "https://rpc-testnet.paw.network"
+    base_url: 'https://api-testnet.paw.network'
+    rpc_url: 'https://rpc-testnet.paw.network'
 
   staging:
-    base_url: "https://api-staging.paw.network"
-    rpc_url: "https://rpc-staging.paw.network"
+    base_url: 'https://api-staging.paw.network'
+    rpc_url: 'https://rpc-staging.paw.network'
 
   mainnet:
-    base_url: "https://api.paw.network"
-    rpc_url: "https://rpc.paw.network"
+    base_url: 'https://api.paw.network'
+    rpc_url: 'https://rpc.paw.network'
     # More conservative thresholds for mainnet
     thresholds:
       http_req_failed:

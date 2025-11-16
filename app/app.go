@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"cosmossdk.io/log"
+	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/evidence"
 	evidencekeeper "cosmossdk.io/x/evidence/keeper"
@@ -18,6 +19,7 @@ import (
 	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -40,6 +42,7 @@ import (
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
+	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -75,8 +78,10 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/cast"
 
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	// CosmWasm - commented out until IBC is initialized
+	// "github.com/CosmWasm/wasmd/x/wasm"
+	// wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types" // Keep for store key only
 
 	// PAW custom modules
 	dexmodule "github.com/paw-chain/paw/x/dex"
@@ -124,6 +129,7 @@ var (
 		evidence.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		consensus.AppModuleBasic{},
+		// wasm.AppModuleBasic{}, // TODO: Uncomment when WasmKeeper is initialized
 
 		// PAW custom modules
 		dexmodule.AppModuleBasic{},
@@ -177,8 +183,8 @@ type PAWApp struct {
 	FeeGrantKeeper        feegrantkeeper.Keeper
 	ConsensusParamsKeeper consensusparamkeeper.Keeper
 
-	// WASM keeper
-	WasmKeeper wasmkeeper.Keeper
+	// WASM keeper - commented out until IBC is initialized
+	// WasmKeeper wasmkeeper.Keeper
 
 	// PAW custom keepers
 	DEXKeeper     dexkeeper.Keeper
@@ -309,8 +315,49 @@ func NewPAWApp(
 		appCodec, runtime.NewKVStoreService(keys[evidencetypes.StoreKey]), app.StakingKeeper, app.SlashingKeeper, app.AccountKeeper.AddressCodec(), runtime.ProvideCometInfoService(),
 	)
 
-	// TODO: Initialize WASM keeper
-	// app.WasmKeeper = wasmkeeper.NewKeeper(...)
+	// TODO: Initialize WASM keeper (requires IBC setup first)
+	//
+	// SECURITY REQUIREMENTS for CosmWasm initialization:
+	// 1. Set upload access to GOVERNANCE ONLY (not everyone!)
+	//    - Use AllowNobody for production (governance proposals only)
+	//    - Never use AllowEverybody in production
+	// 2. Configure secure defaults:
+	//    - SmartQueryGasLimit: 3_000_000 (prevent DoS)
+	//    - MemoryCacheSize: 100 (limit cache to 100MB)
+	//    - ContractDebugMode: false (disable debug in production)
+	// 3. Supported features: "iterator,staking,stargate"
+	// 4. wasmDir: filepath.Join(DefaultNodeHome, "wasm")
+	//
+	// Example initialization (requires IBC):
+	//   wasmDir := filepath.Join(DefaultNodeHome, "wasm")
+	//   wasmConfig := wasmtypes.WasmConfig{
+	//       SmartQueryGasLimit: 3_000_000,
+	//       MemoryCacheSize: 100,
+	//       ContractDebugMode: false,
+	//   }
+	//   app.WasmKeeper = wasmkeeper.NewKeeper(
+	//       appCodec,
+	//       runtime.NewKVStoreService(keys[wasmtypes.StoreKey]),
+	//       app.AccountKeeper,
+	//       app.BankKeeper,
+	//       app.StakingKeeper,
+	//       app.DistrKeeper,
+	//       app.IBCKeeper.ChannelKeeper, // Requires IBC
+	//       app.IBCKeeper.ChannelKeeper, // Requires IBC
+	//       app.IBCKeeper.PortKeeper,    // Requires IBC
+	//       app.ScopedWasmKeeper,        // Requires IBC
+	//       app.TransferKeeper,          // Requires IBC
+	//       app.MsgServiceRouter(),
+	//       app.GRPCQueryRouter(),
+	//       wasmDir,
+	//       wasmConfig,
+	//       "iterator,staking,stargate",
+	//       authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	//   )
+	//
+	// NOTE: CosmWasm module is registered in ModuleBasics and Module Manager
+	//       but keeper initialization requires IBC to be set up first.
+	//       This is a deliberate ordering dependency.
 
 	// Initialize PAW custom keepers
 	app.DEXKeeper = dexkeeper.NewKeeper(
@@ -330,6 +377,8 @@ func NewPAWApp(
 		appCodec,
 		runtime.NewKVStoreService(keys[oracletypes.StoreKey]),
 		app.BankKeeper,
+		app.StakingKeeper,
+		app.SlashingKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
@@ -353,6 +402,7 @@ func NewPAWApp(
 		evidence.NewAppModule(app.EvidenceKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		consensus.NewAppModule(appCodec, app.ConsensusParamsKeeper),
+		// wasm.NewAppModule(...), // TODO: Uncomment when WasmKeeper is initialized
 
 		// PAW custom modules
 		dexmodule.NewAppModule(appCodec, app.DEXKeeper),
@@ -360,8 +410,76 @@ func NewPAWApp(
 		oraclemodule.NewAppModule(appCodec, app.OracleKeeper),
 	)
 
-	// TODO: Add remaining initialization and module configuration
-	// Set begin/end blockers, init genesis order, etc.
+	// Set init genesis order
+	// NOTE: The genutil module must occur after staking so that pools are
+	// properly initialized with tokens from genesis accounts.
+	// NOTE: wasm module should be initialized after all modules it depends on
+	app.mm.SetOrderInitGenesis(
+		authtypes.ModuleName,
+		banktypes.ModuleName,
+		distrtypes.ModuleName,
+		stakingtypes.ModuleName,
+		slashingtypes.ModuleName,
+		govtypes.ModuleName,
+		minttypes.ModuleName,
+		crisistypes.ModuleName,
+		genutiltypes.ModuleName,
+		evidencetypes.ModuleName,
+		feegrant.ModuleName,
+		paramstypes.ModuleName,
+		upgradetypes.ModuleName,
+		vestingtypes.ModuleName,
+		consensusparamtypes.ModuleName,
+		// wasmtypes.ModuleName, // TODO: Add when WasmKeeper is initialized
+		// PAW custom modules
+		dextypes.ModuleName,
+		computetypes.ModuleName,
+		oracletypes.ModuleName,
+	)
+
+	// Set begin blockers order
+	app.mm.SetOrderBeginBlockers(
+		minttypes.ModuleName,
+		distrtypes.ModuleName,
+		slashingtypes.ModuleName,
+		evidencetypes.ModuleName,
+		stakingtypes.ModuleName,
+		genutiltypes.ModuleName,
+		// PAW custom modules
+		dextypes.ModuleName,
+		computetypes.ModuleName,
+		oracletypes.ModuleName,
+	)
+
+	// Set end blockers order
+	app.mm.SetOrderEndBlockers(
+		crisistypes.ModuleName,
+		govtypes.ModuleName,
+		stakingtypes.ModuleName,
+		// PAW custom modules
+		dextypes.ModuleName,
+		computetypes.ModuleName,
+		oracletypes.ModuleName,
+	)
+
+	// Initialize stores
+	app.MountKVStores(keys)
+	app.MountTransientStores(tkeys)
+	app.MountMemoryStores(memKeys)
+
+	// Initialize and seal the baseapp configuration
+	app.SetInitChainer(app.InitChainer)
+	app.SetBeginBlocker(app.BeginBlocker)
+	app.SetEndBlocker(app.EndBlocker)
+
+	// Register upgrade handlers if needed
+	// app.UpgradeKeeper.SetUpgradeHandler(...)
+
+	if loadLatest {
+		if err := app.LoadLatestVersion(); err != nil {
+			panic(err)
+		}
+	}
 
 	return app
 }
@@ -408,7 +526,16 @@ func (app *PAWApp) SimulationManager() *module.SimulationManager {
 // RegisterAPIRoutes registers all application module routes with the provided
 // API server.
 func (app *PAWApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
-	// TODO: Register API routes
+	clientCtx := apiSvr.ClientCtx
+
+	// Register gRPC Gateway routes for all modules
+	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// Register legacy REST routes (if needed)
+	if apiConfig.Swagger {
+		server.RegisterSwaggerAPI(clientCtx, apiSvr.Router, apiConfig.Swagger)
+	}
 }
 
 // LoadHeight loads a particular height
@@ -455,8 +582,187 @@ func (app *PAWApp) RegisterNodeService(clientCtx client.Context, cfg config.Conf
 func (app *PAWApp) ExportAppStateAndValidators(
 	forZeroHeight bool, jailAllowedAddrs []string, modulesToExport []string,
 ) (servertypes.ExportedApp, error) {
-	// TODO: Implement export logic
-	return servertypes.ExportedApp{}, nil
+	// Create context for export
+	ctx := app.NewContextLegacy(true, cmtproto.Header{Height: app.LastBlockHeight()})
+
+	// If exporting for zero height, we need to do some cleanup
+	if forZeroHeight {
+		app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs)
+	}
+
+	// Export genesis state from all modules
+	genState, err := app.mm.ExportGenesisForModules(ctx, app.appCodec, modulesToExport)
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+
+	// Marshal genesis state
+	appState, err := json.MarshalIndent(genState, "", "  ")
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+
+	// Get validators
+	validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
+
+	return servertypes.ExportedApp{
+		AppState:        appState,
+		Validators:      validators,
+		Height:          app.LastBlockHeight(),
+		ConsensusParams: app.BaseApp.GetConsensusParams(ctx),
+	}, nil
+}
+
+// prepForZeroHeightGenesis prepares app state for a zero-height genesis export
+func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
+	// Create map of allowed addresses for unjailing
+	allowedAddrsMap := make(map[string]bool)
+	for _, addr := range jailAllowedAddrs {
+		allowedAddrsMap[addr] = true
+	}
+
+	// Withdraw all validator commission
+	err := app.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
+		valBz, err := app.StakingKeeper.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		if err != nil {
+			panic(err)
+		}
+		_, _ = app.DistrKeeper.WithdrawValidatorCommission(ctx, valBz)
+		return false
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Withdraw all delegator rewards
+	dels, err := app.StakingKeeper.GetAllDelegations(ctx)
+	if err != nil {
+		panic(err)
+	}
+	for _, delegation := range dels {
+		valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress)
+		if err != nil {
+			panic(err)
+		}
+
+		delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
+		if err != nil {
+			panic(err)
+		}
+
+		_, _ = app.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
+	}
+
+	// Clear validator slash events
+	app.DistrKeeper.DeleteAllValidatorSlashEvents(ctx)
+
+	// Clear validator historical rewards
+	app.DistrKeeper.DeleteAllValidatorHistoricalRewards(ctx)
+
+	// Set current validator historical rewards to zero period
+	err = app.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
+		valBz, err := app.StakingKeeper.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		if err != nil {
+			panic(err)
+		}
+		err = app.DistrKeeper.SetValidatorHistoricalRewards(ctx, valBz, 0, distrtypes.NewValidatorHistoricalRewards(sdk.DecCoins{}, 1))
+		if err != nil {
+			panic(err)
+		}
+		return false
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Set accumulated commissions to zero
+	err = app.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
+		valBz, err := app.StakingKeeper.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		if err != nil {
+			panic(err)
+		}
+		err = app.DistrKeeper.SetValidatorAccumulatedCommission(ctx, valBz, distrtypes.ValidatorAccumulatedCommission{Commission: sdk.DecCoins{}})
+		if err != nil {
+			panic(err)
+		}
+		return false
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Set outstanding rewards to zero
+	err = app.DistrKeeper.SetValidatorOutstandingRewards(ctx, sdk.ValAddress{}, distrtypes.ValidatorOutstandingRewards{Rewards: sdk.DecCoins{}})
+	if err != nil {
+		panic(err)
+	}
+
+	// Reset context height to zero
+	ctx = ctx.WithBlockHeight(0)
+
+	// Reinitialize all validators
+	err = app.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
+		// Jail validators that are not in the allowed list
+		valAddr := val.GetOperator()
+		if !allowedAddrsMap[valAddr] {
+			consAddr, err := val.GetConsAddr()
+			if err != nil {
+				panic(err)
+			}
+			err = app.SlashingKeeper.Jail(ctx, consAddr)
+			if err != nil {
+				panic(err)
+			}
+			// Reset signing info
+			signingInfo, err := app.SlashingKeeper.GetValidatorSigningInfo(ctx, consAddr)
+			if err == nil {
+				signingInfo.StartHeight = 0
+				signingInfo.JailedUntil = ctx.BlockTime()
+				err = app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signingInfo)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}
+
+		// Initialize validator distribution record
+		valBz, err := app.StakingKeeper.ValidatorAddressCodec().StringToBytes(valAddr)
+		if err != nil {
+			panic(err)
+		}
+		err = app.DistrKeeper.SetValidatorHistoricalRewards(ctx, valBz, 0, distrtypes.NewValidatorHistoricalRewards(sdk.DecCoins{}, 1))
+		if err != nil {
+			panic(err)
+		}
+		err = app.DistrKeeper.SetValidatorCurrentRewards(ctx, valBz, distrtypes.NewValidatorCurrentRewards(sdk.DecCoins{}, 1))
+		if err != nil {
+			panic(err)
+		}
+
+		return false
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	// Reinitialize all delegations
+	for _, del := range dels {
+		valAddr, err := sdk.ValAddressFromBech32(del.ValidatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		delAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		err = app.DistrKeeper.SetDelegatorStartingInfo(ctx, valAddr, delAddr, distrtypes.NewDelegatorStartingInfo(2, math.LegacyOneDec(), 0))
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // initParamsKeeper init params keeper and its subspaces
@@ -503,6 +809,7 @@ var maccPerms = map[string][]string{
 	stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 	stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 	govtypes.ModuleName:            {authtypes.Burner},
+	wasmtypes.ModuleName:           {authtypes.Burner},
 	// PAW custom modules
 	dextypes.ModuleName:     {authtypes.Minter, authtypes.Burner},
 	computetypes.ModuleName: nil,

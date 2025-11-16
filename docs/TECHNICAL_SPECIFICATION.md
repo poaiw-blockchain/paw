@@ -139,6 +139,7 @@ RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
 ```
 
 **Contract Size Limits**:
+
 - Maximum compiled WASM size: 800 KB (uncompressed)
 - Maximum instantiation message size: 256 KB
 - Maximum execution message size: 128 KB
@@ -149,17 +150,17 @@ Gas is charged per operation to prevent infinite loops and resource exhaustion:
 
 #### 2.3.1 Base Operation Costs
 
-| Operation | Gas Cost | Notes |
-|-----------|----------|-------|
-| WASM instruction | 1 | Per instruction executed |
-| Storage write (per byte) | 100 | Persistent state storage |
-| Storage read (per byte) | 10 | Loading from persistent state |
-| Memory allocation (per page) | 1000 | 64 KB WASM page |
-| Cryptographic hash (SHA256) | 500 | Per hash operation |
-| Signature verification (Ed25519) | 3000 | Per signature |
-| Event emission | 100 | Plus 10 per attribute |
-| Contract instantiation | 50000 | Base overhead |
-| Contract execution | 10000 | Base overhead |
+| Operation                        | Gas Cost | Notes                         |
+| -------------------------------- | -------- | ----------------------------- |
+| WASM instruction                 | 1        | Per instruction executed      |
+| Storage write (per byte)         | 100      | Persistent state storage      |
+| Storage read (per byte)          | 10       | Loading from persistent state |
+| Memory allocation (per page)     | 1000     | 64 KB WASM page               |
+| Cryptographic hash (SHA256)      | 500      | Per hash operation            |
+| Signature verification (Ed25519) | 3000     | Per signature                 |
+| Event emission                   | 100      | Plus 10 per attribute         |
+| Contract instantiation           | 50000    | Base overhead                 |
+| Contract execution               | 10000    | Base overhead                 |
 
 #### 2.3.2 Gas Calculation Formula
 
@@ -200,6 +201,7 @@ pub enum QueryMsg {
 ```
 
 **Standard Features**:
+
 - Minting/burning capabilities
 - Allowance mechanism for delegated transfers
 - Metadata support (name, symbol, decimals)
@@ -233,6 +235,7 @@ pub enum QueryMsg {
 ```
 
 **Standard Features**:
+
 - Unique token identification
 - Ownership tracking
 - Operator approvals
@@ -305,6 +308,7 @@ pub enum QueryMsg {
 ```
 
 **Constant Product AMM Formula**:
+
 ```
 x × y = k
 
@@ -315,6 +319,7 @@ where:
 ```
 
 **Fee Structure**:
+
 - Swap fee: 0.3% (configurable via governance)
 - 0.25% to liquidity providers
 - 0.05% to protocol treasury
@@ -324,6 +329,7 @@ where:
 #### 2.5.1 Deployment Steps
 
 1. **Code Upload**:
+
 ```protobuf
 message MsgStoreCode {
   string sender = 1;
@@ -343,6 +349,7 @@ message MsgStoreCode {
    - Create code_info entry with creator, hash, instantiate_permission
 
 4. **Contract Instantiation**:
+
 ```protobuf
 message MsgInstantiateContract {
   string sender = 1;
@@ -355,6 +362,7 @@ message MsgInstantiateContract {
 ```
 
 5. **Contract Address Generation**:
+
 ```
 contract_address = bech32_encode("paw",
     SHA256(
@@ -402,12 +410,14 @@ pub enum ExecuteMsg {
 ```
 
 **Upgrade Process**:
+
 1. Deploy new implementation contract
 2. Admin calls `Upgrade` with new contract address
 3. Proxy redirects future calls to new implementation
 4. State remains in proxy contract
 
 **Security Considerations**:
+
 - Timelocks: Upgrades require 7-day timelock period
 - Governance approval: Critical contracts require DAO vote
 - State migration: Implement explicit migration logic
@@ -460,6 +470,7 @@ PAW uses Tendermint Byzantine Fault Tolerant consensus, a proven, battle-tested 
 #### 3.1.2 Round Advancement
 
 If consensus not reached in round R:
+
 1. Increment round: R → R+1
 2. Double timeout: `timeout(R+1) = 2 × timeout(R)`
 3. Select new proposer via round-robin + VRF seed
@@ -471,14 +482,15 @@ If consensus not reached in round R:
 **Tolerance**: ±0.5 seconds
 
 **Timeout Parameters**:
+
 ```yaml
-timeoutPropose: 3000ms      # Proposal broadcast window
-timeoutPrevote: 1000ms      # Prevote collection window
-timeoutPrecommit: 1000ms    # Precommit collection window
-timeoutCommit: 0ms          # Proceed immediately on commit
+timeoutPropose: 3000ms # Proposal broadcast window
+timeoutPrevote: 1000ms # Prevote collection window
+timeoutPrecommit: 1000ms # Precommit collection window
+timeoutCommit: 0ms # Proceed immediately on commit
 
 # Round increment multipliers
-timeoutProposeDelta: 500ms  # Added per failed round
+timeoutProposeDelta: 500ms # Added per failed round
 timeoutPrevoteDelta: 500ms
 timeoutPrecommitDelta: 500ms
 ```
@@ -493,6 +505,7 @@ Tendermint provides **deterministic finality**:
 - Validators cannot equivocate without being slashed
 
 **Finality Guarantees**:
+
 - Byzantine tolerance: Up to 1/3 of voting power can be malicious
 - Safety threshold: 2/3 + 1 voting power required for finalization
 - Accountable safety: Evidence of double-signing is provable and slashable
@@ -506,6 +519,7 @@ Tendermint provides **deterministic finality**:
 - **Minimum validators**: 4 (network safety threshold)
 
 **Expansion Schedule**:
+
 ```
 Epoch 0-180 days:   25 validators
 Epoch 180-365 days: 50 validators (governance vote required)
@@ -528,6 +542,7 @@ max_validator_stake = total_staked / (num_validators × 2)
 This prevents single-validator dominance while maintaining stake-weighting.
 
 **Validator Requirements**:
+
 - Minimum stake: 100,000 PAW
 - Maximum stake: Capped at 2× average validator stake
 - Minimum uptime: 95% over trailing 30-day window
@@ -542,6 +557,7 @@ Validator Voting Power % = (validator_stake / total_voting_power) × 100
 ```
 
 **Anti-Centralization Measures**:
+
 - No single validator can hold >15% voting power
 - Top 5 validators cannot collectively hold >50% voting power
 - Delegation caps: Max 20% of network stake to single validator
@@ -560,6 +576,7 @@ vrf_offset = VRF(block_hash(H-1) || round) mod num_validators
 ```
 
 **VRF (Verifiable Random Function)**:
+
 - Input: Previous block hash concatenated with round number
 - Output: Deterministic but unpredictable offset
 - Verification: All validators can verify proposer legitimacy
@@ -578,6 +595,7 @@ message Proposal {
 ```
 
 **Proposal Validation**:
+
 1. Verify proposer signature
 2. Check proposer is correct for (height, round)
 3. Validate block structure
@@ -607,6 +625,7 @@ consensus_params:
 **Timeout Escalation**:
 
 For round R:
+
 ```
 timeout_propose(R) = timeout_propose + (R × timeout_propose_delta)
 timeout_prevote(R) = timeout_prevote + (R × timeout_prevote_delta)
@@ -632,6 +651,7 @@ Since Tendermint provides instant finality, forks are impossible under normal op
 - **Recovery**: Validators sync to highest finalized block with valid +2/3 precommit proof
 
 **Safety Mechanism**:
+
 ```
 If validator sees conflicting blocks at same height:
   1. Refuse to vote on either
@@ -650,6 +670,7 @@ No automatic fork choice; the protocol prevents forks cryptographically.
 **Algorithm**: Edwards-curve Digital Signature Algorithm (EdDSA) using Curve25519
 
 **Key Characteristics**:
+
 - **Security**: 128-bit security level
 - **Performance**: ~71,000 signatures/sec, ~20,000 verifications/sec (single core)
 - **Key Size**: 32 bytes (public key), 32 bytes (private key)
@@ -664,6 +685,7 @@ Public Key (pk):   edwards25519_point_multiply(sk, base_point)
 ```
 
 **Derivation Path** (BIP44-compatible):
+
 ```
 m / 44' / 118' / 0' / 0 / address_index
 
@@ -732,6 +754,7 @@ Example: paw1qypqxpq9qcrsszg2pvxq6rs0zqg3yyc5lzv7xu
 ```
 
 **Address Components**:
+
 - **Human-readable part (HRP)**: "paw"
 - **Separator**: "1"
 - **Data part**: Bech32-encoded 20-byte address
@@ -1009,12 +1032,14 @@ account = {
 ```
 
 **Transaction Sequence Rules**:
+
 1. Each transaction must include `sequence = current_account_sequence`
 2. After successful execution, `account_sequence++`
 3. Transactions with incorrect sequence are rejected
 4. Prevents replay attacks and ensures ordering
 
 **Sequence Handling**:
+
 ```python
 def validate_sequence(tx: Tx, account: Account) -> bool:
     """Validate transaction sequence"""
@@ -1028,6 +1053,7 @@ def increment_sequence(account: Account):
 ```
 
 **Mempool Ordering**:
+
 - Transactions in mempool ordered by (account, sequence)
 - Missing sequences cause dependent txs to wait
 - Maximum gap: 1000 sequences
@@ -1080,6 +1106,7 @@ message LegacyAminoPubKey {
 ```
 
 **Validation**:
+
 ```python
 def verify_multisig(tx: Tx, multisig_pubkey: MultiSig, signatures: MultiSignature) -> bool:
     """Verify multi-signature transaction"""
@@ -1212,6 +1239,7 @@ type Node struct {
 ```
 
 **Hash Calculation**:
+
 ```
 node.hash = SHA256(
     node.height ||
@@ -1227,6 +1255,7 @@ node.hash = SHA256(
 #### 5.2.3 Tree Operations
 
 **Insertion**:
+
 ```
 1. Find insertion point (O(log n))
 2. Create new node with value
@@ -1236,6 +1265,7 @@ node.hash = SHA256(
 ```
 
 **Query**:
+
 ```
 1. Traverse tree from root (O(log n))
 2. Compare keys at each node
@@ -1243,6 +1273,7 @@ node.hash = SHA256(
 ```
 
 **Merkle Proof**:
+
 ```
 1. Find target key
 2. Collect sibling hashes along path to root
@@ -1265,6 +1296,7 @@ type Header struct {
 ```
 
 **Computation**:
+
 ```
 app_hash = root_node.hash
 
@@ -1286,6 +1318,7 @@ CommitMultiStore
 ```
 
 **Multi-Store Root Hash**:
+
 ```
 multi_store_hash = SimpleMerkleRoot([
     sha256("bank" || bank_store.root_hash),
@@ -1302,6 +1335,7 @@ multi_store_hash = SimpleMerkleRoot([
 Storage is free (paid via gas during writes). This simplifies initial launch.
 
 **Future Phases** (governance decision):
+
 - Periodic rent charged per byte of storage
 - Accounts must maintain minimum balance
 - Unpaid rent → state pruning or archival
@@ -1314,32 +1348,35 @@ Storage is free (paid via gas during writes). This simplifies initial launch.
 
 ```yaml
 pruning:
-  strategy: "custom"
+  strategy: 'custom'
   keep_recent: 100000
-  keep_every: 10000  # Keep every 10,000th block (archival)
-  interval: 10       # Prune every 10 blocks
+  keep_every: 10000 # Keep every 10,000th block (archival)
+  interval: 10 # Prune every 10 blocks
 ```
 
 **Pruning Strategies**:
 
 1. **Nothing**: Keep all historical states (archive node)
+
    ```yaml
-   pruning: "nothing"
+   pruning: 'nothing'
    ```
 
 2. **Everything**: Keep only current state (light node)
+
    ```yaml
-   pruning: "everything"
+   pruning: 'everything'
    ```
 
 3. **Default**: Keep last 100,000 blocks
+
    ```yaml
-   pruning: "default"
+   pruning: 'default'
    ```
 
 4. **Custom**: User-defined
    ```yaml
-   pruning: "custom"
+   pruning: 'custom'
    keep_recent: 100000
    keep_every: 10000
    interval: 10
@@ -1371,6 +1408,7 @@ Every 10 blocks:
 ```
 
 **Snapshot Structure**:
+
 ```protobuf
 message Snapshot {
   uint64 height = 1;
@@ -1393,14 +1431,14 @@ message SnapshotChunk {
 ```yaml
 statesync:
   enable: true
-  rpc_servers: "https://rpc1.paw.network:443,https://rpc2.paw.network:443"
+  rpc_servers: 'https://rpc1.paw.network:443,https://rpc2.paw.network:443'
   trust_height: 12345
-  trust_hash: "ABC123..."
-  trust_period: "168h"  # 7 days
+  trust_hash: 'ABC123...'
+  trust_period: '168h' # 7 days
 
   # Snapshot configuration
-  snapshot_interval: 1000  # Take snapshot every 1000 blocks
-  snapshot_keep_recent: 2  # Keep last 2 snapshots
+  snapshot_interval: 1000 # Take snapshot every 1000 blocks
+  snapshot_keep_recent: 2 # Keep last 2 snapshots
 ```
 
 #### 5.6.3 Sync Process
@@ -1418,6 +1456,7 @@ statesync:
 ```
 
 **Sync Time Estimate**:
+
 - Traditional sync: ~7 days for 1M blocks
 - State sync: ~30 minutes for same height
 
@@ -1431,36 +1470,37 @@ statesync:
 
 Gas is consumed for every operation that uses computational or storage resources:
 
-| Operation Category | Operation | Gas Cost |
-|-------------------|-----------|----------|
-| **Storage** | Write 1 byte | 100 |
-| | Read 1 byte | 10 |
-| | Delete 1 byte | 50 |
-| **Crypto** | SHA256 hash | 500 |
-| | Ed25519 verify | 3,000 |
-| | Secp256k1 verify | 5,000 |
-| **Bank** | Send tokens | 10,000 |
-| | Multi-send | 10,000 + (5,000 × outputs) |
-| **Staking** | Delegate | 20,000 |
-| | Undelegate | 20,000 |
-| | Redelegate | 25,000 |
-| **Contract** | Instantiate | 50,000 + execution |
-| | Execute | 10,000 + execution |
-| | Query | 1,000 + execution |
-| **Governance** | Submit proposal | 50,000 |
-| | Vote | 5,000 |
+| Operation Category | Operation        | Gas Cost                   |
+| ------------------ | ---------------- | -------------------------- |
+| **Storage**        | Write 1 byte     | 100                        |
+|                    | Read 1 byte      | 10                         |
+|                    | Delete 1 byte    | 50                         |
+| **Crypto**         | SHA256 hash      | 500                        |
+|                    | Ed25519 verify   | 3,000                      |
+|                    | Secp256k1 verify | 5,000                      |
+| **Bank**           | Send tokens      | 10,000                     |
+|                    | Multi-send       | 10,000 + (5,000 × outputs) |
+| **Staking**        | Delegate         | 20,000                     |
+|                    | Undelegate       | 20,000                     |
+|                    | Redelegate       | 25,000                     |
+| **Contract**       | Instantiate      | 50,000 + execution         |
+|                    | Execute          | 10,000 + execution         |
+|                    | Query            | 1,000 + execution          |
+| **Governance**     | Submit proposal  | 50,000                     |
+|                    | Vote             | 5,000                      |
 
 #### 6.1.2 WASM Execution Costs
 
-| WASM Operation | Gas Multiplier |
-|----------------|----------------|
-| Basic instruction | 1 |
-| Memory load | 2 |
-| Memory store | 3 |
-| Function call | 10 |
-| Host function call | 100 |
+| WASM Operation     | Gas Multiplier |
+| ------------------ | -------------- |
+| Basic instruction  | 1              |
+| Memory load        | 2              |
+| Memory store       | 3              |
+| Function call      | 10             |
+| Host function call | 100            |
 
 **Example Calculation**:
+
 ```
 Contract execution gas =
     10,000 (base) +
@@ -1483,6 +1523,7 @@ where:
 ```
 
 **Fee Specification**:
+
 ```protobuf
 message Fee {
   repeated Coin amount = 1;      // Total fee amount
@@ -1493,6 +1534,7 @@ message Fee {
 ```
 
 **Effective Gas Price**:
+
 ```
 gas_price = total_fee_amount / gas_limit
 
@@ -1509,6 +1551,7 @@ Example:
 - **Refund**: `(gas_limit - gas_used) × gas_price` returned to sender
 
 **Validation**:
+
 ```
 if gas_used > gas_limit:
     // Transaction fails, fee still charged
@@ -1533,6 +1576,7 @@ where:
 ```
 
 **Fee Structure**:
+
 ```go
 type DynamicFee struct {
     BaseFee      sdk.Dec   // Minimum fee (burned)
@@ -1569,10 +1613,11 @@ if base_fee_delta > max_delta:
 ```
 
 **Parameters**:
+
 ```yaml
 fee_market:
-  target_block_utilization: 0.5      # 50% target
-  max_base_fee_change: 12.5%         # Per block
+  target_block_utilization: 0.5 # 50% target
+  max_base_fee_change: 12.5% # Per block
   min_base_fee: 0.001 upaw/gas
   max_base_fee: 1000 upaw/gas
 ```
@@ -1589,6 +1634,7 @@ Transaction valid only if:
 ```
 
 **Validator Configuration**:
+
 ```yaml
 # In validator config
 minimum-gas-prices: "0.001upaw"
@@ -1619,6 +1665,7 @@ func DistributeFees(totalFee sdk.Coins) {
 ```
 
 **Per-Validator Distribution**:
+
 ```
 validator_fee_share = (validator_voting_power / total_voting_power) × validator_pool
 
@@ -1631,37 +1678,38 @@ Then:
 
 ### 6.6 Contract Execution Costs Table
 
-| Contract Operation | Gas Cost | Notes |
-|-------------------|----------|-------|
-| **Storage Operations** | | |
-| Store 32 bytes (new key) | 20,000 | First write to key |
-| Store 32 bytes (existing key) | 5,000 | Overwrite existing |
-| Load 32 bytes | 1,000 | Read from storage |
-| Remove key | 3,000 | Delete from storage |
-| **Token Operations** | | |
-| CW20 transfer | 25,000 | Base cost |
-| CW20 approve | 20,000 | Set allowance |
-| CW20 transfer_from | 30,000 | Delegated transfer |
-| CW20 mint | 25,000 | Requires minter role |
-| CW20 burn | 20,000 | Destroy tokens |
-| **NFT Operations** | | |
-| CW721 mint | 30,000 | Create NFT |
-| CW721 transfer | 25,000 | Transfer ownership |
-| CW721 approve | 20,000 | Set operator |
-| CW721 burn | 20,000 | Destroy NFT |
-| **DEX Operations** | | |
-| Provide liquidity | 150,000 | Add to pool |
-| Withdraw liquidity | 100,000 | Remove from pool |
-| Swap | 120,000 | Execute trade |
-| Initiate atomic swap | 80,000 | Create HTLC |
-| Claim atomic swap | 50,000 | Reveal secret |
-| Refund atomic swap | 40,000 | Timeout refund |
-| **Query Operations** | | |
-| Query balance | 1,000 | Read-only |
-| Query pool info | 2,000 | Read-only |
-| Simulate swap | 5,000 | Calculation |
+| Contract Operation            | Gas Cost | Notes                |
+| ----------------------------- | -------- | -------------------- |
+| **Storage Operations**        |          |                      |
+| Store 32 bytes (new key)      | 20,000   | First write to key   |
+| Store 32 bytes (existing key) | 5,000    | Overwrite existing   |
+| Load 32 bytes                 | 1,000    | Read from storage    |
+| Remove key                    | 3,000    | Delete from storage  |
+| **Token Operations**          |          |                      |
+| CW20 transfer                 | 25,000   | Base cost            |
+| CW20 approve                  | 20,000   | Set allowance        |
+| CW20 transfer_from            | 30,000   | Delegated transfer   |
+| CW20 mint                     | 25,000   | Requires minter role |
+| CW20 burn                     | 20,000   | Destroy tokens       |
+| **NFT Operations**            |          |                      |
+| CW721 mint                    | 30,000   | Create NFT           |
+| CW721 transfer                | 25,000   | Transfer ownership   |
+| CW721 approve                 | 20,000   | Set operator         |
+| CW721 burn                    | 20,000   | Destroy NFT          |
+| **DEX Operations**            |          |                      |
+| Provide liquidity             | 150,000  | Add to pool          |
+| Withdraw liquidity            | 100,000  | Remove from pool     |
+| Swap                          | 120,000  | Execute trade        |
+| Initiate atomic swap          | 80,000   | Create HTLC          |
+| Claim atomic swap             | 50,000   | Reveal secret        |
+| Refund atomic swap            | 40,000   | Timeout refund       |
+| **Query Operations**          |          |                      |
+| Query balance                 | 1,000    | Read-only            |
+| Query pool info               | 2,000    | Read-only            |
+| Simulate swap                 | 5,000    | Calculation          |
 
 **Example DEX Swap Gas Calculation**:
+
 ```
 Swap 1000 PAW for USDC:
 
@@ -1738,6 +1786,7 @@ last_commit_hash = SimpleMerkleRoot(commit_signatures)
 ```
 
 **Block Header Hash**:
+
 ```
 header_hash = SHA256(
     version ||
@@ -1789,6 +1838,7 @@ Block contains ordered list of transactions:
 ```
 
 **Transaction Ordering**:
+
 1. Priority: Higher gas price = higher priority
 2. Sequence: Transactions from same account ordered by sequence
 3. First-seen: Among equal priority, first-seen first
@@ -1816,11 +1866,13 @@ message LightClientAttackEvidence {
 ```
 
 **Slashing Conditions**:
+
 - Double signing: Validator signs two different blocks at same height
 - Light client attack: Validator signs conflicting headers
 - Downtime: Validator misses >500 consecutive blocks
 
 **Penalties**:
+
 - Double sign: 5% stake slashed + permanent jail
 - Light client attack: 20% stake slashed + permanent jail
 - Downtime: 0.01% stake slashed + temporary jail (unjail after 10 minutes)
@@ -1832,12 +1884,13 @@ message LightClientAttackEvidence {
 ```yaml
 consensus_params:
   block:
-    max_bytes: 2097152        # 2 MB
-    max_gas: 100000000        # 100M gas units
-    time_iota_ms: 1000        # 1 second precision
+    max_bytes: 2097152 # 2 MB
+    max_gas: 100000000 # 100M gas units
+    time_iota_ms: 1000 # 1 second precision
 ```
 
 **Size Breakdown**:
+
 ```
 Block size =
     header_size +
@@ -1853,6 +1906,7 @@ Typical breakdown:
 ```
 
 **Transaction Capacity**:
+
 ```
 Average transaction size: 300 bytes
 Max transactions per block: ~6,500 txs
@@ -1977,11 +2031,12 @@ Example:
 #### 8.2.1 Discovery Methods
 
 **1. Seed Nodes** (bootstrap):
+
 ```yaml
 seeds:
-  - "seed1.paw.network:26656"
-  - "seed2.paw.network:26656"
-  - "seed3.paw.network:26656"
+  - 'seed1.paw.network:26656'
+  - 'seed2.paw.network:26656'
+  - 'seed3.paw.network:26656'
 ```
 
 **2. DHT (Distributed Hash Table)**:
@@ -1994,10 +2049,11 @@ seeds:
 ```
 
 **3. Persistent Peers**:
+
 ```yaml
 persistent_peers:
-  - "node1@192.168.1.1:26656"
-  - "node2@192.168.1.2:26656"
+  - 'node1@192.168.1.1:26656'
+  - 'node2@192.168.1.2:26656'
 ```
 
 #### 8.2.2 Peer Exchange (PEX)
@@ -2013,6 +2069,7 @@ Discovery process repeats, network forms mesh topology
 ```
 
 **PEX Message**:
+
 ```protobuf
 message PexRequest {
 }
@@ -2049,13 +2106,14 @@ Proposer creates block
 ```
 
 **GossipSub Parameters**:
+
 ```yaml
 gossipsub:
-  D: 6           # Desired peer count
-  D_low: 4       # Minimum peer count
-  D_high: 12     # Maximum peer count
-  D_lazy: 6      # Gossip peer count
-  fanout: 8      # Broadcast fanout
+  D: 6 # Desired peer count
+  D_low: 4 # Minimum peer count
+  D_high: 12 # Maximum peer count
+  D_lazy: 6 # Gossip peer count
+  fanout: 8 # Broadcast fanout
   gossip_factor: 0.25
   heartbeat_interval: 1s
 ```
@@ -2071,6 +2129,7 @@ message BlockGossip {
 ```
 
 **Propagation Steps**:
+
 ```
 1. Proposer creates block at height H
 2. Serialize block to protobuf
@@ -2122,12 +2181,13 @@ Low priority (1 upaw/gas):    [tx3, tx4, tx7, tx8]
 ```
 
 **Mempool Limits**:
+
 ```yaml
 mempool:
-  size: 10000              # Max transactions
-  max_txs_bytes: 10485760  # 10 MB total
-  max_tx_bytes: 1048576    # 1 MB per tx
-  cache_size: 100000       # Recently seen txs (dedup)
+  size: 10000 # Max transactions
+  max_txs_bytes: 10485760 # 10 MB total
+  max_tx_bytes: 1048576 # 1 MB per tx
+  cache_size: 100000 # Recently seen txs (dedup)
 ```
 
 #### 8.4.2 Transaction Lifecycle
@@ -2157,6 +2217,7 @@ message TxMessage {
 ```
 
 **Gossip Strategy**:
+
 ```
 Node receives new tx
 │
@@ -2170,6 +2231,7 @@ Node receives new tx
 ```
 
 **Deduplication**:
+
 ```go
 type MempoolCache struct {
     cache map[string]bool  // tx_hash -> seen
@@ -2246,6 +2308,7 @@ message SnapshotResponse {
 ```
 
 **Sync Process**:
+
 ```
 1. Request latest snapshot
 2. Download snapshot chunks in parallel
@@ -2256,6 +2319,7 @@ message SnapshotResponse {
 ```
 
 **Snapshot Generation**:
+
 ```
 Every 1,000 blocks:
   1. Export IAVL tree state
@@ -2297,50 +2361,50 @@ message StatusResponse {
 
 ### 9.1 Glossary
 
-| Term | Definition |
-|------|------------|
-| **Account Model** | State model where each account has a balance, unlike UTXO model |
-| **AMM** | Automated Market Maker - algorithm for decentralized trading |
-| **Bech32** | Bitcoin address encoding format used by Cosmos chains |
-| **BFT** | Byzantine Fault Tolerant - consensus that works with malicious nodes |
-| **CosmWasm** | WebAssembly-based smart contract platform for Cosmos |
-| **CW20** | Cosmos WASM fungible token standard |
-| **CW721** | Cosmos WASM non-fungible token standard |
-| **DEX** | Decentralized Exchange |
-| **DHT** | Distributed Hash Table - decentralized key-value store |
-| **Ed25519** | Elliptic curve signature algorithm |
-| **Finality** | Guarantee that block cannot be reverted |
-| **Gas** | Computational cost unit |
-| **GossipSub** | Pub/sub protocol for efficient message propagation |
-| **HTLC** | Hash Time Locked Contract - atomic swap primitive |
-| **IAVL** | Immutable AVL tree - versioned Merkle tree |
-| **libp2p** | Modular peer-to-peer networking library |
-| **Mempool** | Memory pool of pending transactions |
-| **Protobuf** | Protocol Buffers - binary serialization format |
-| **Slashing** | Penalty for validator misbehavior |
-| **Tendermint** | BFT consensus algorithm |
-| **TEE** | Trusted Execution Environment |
-| **VRF** | Verifiable Random Function |
-| **WASM** | WebAssembly - portable bytecode format |
+| Term              | Definition                                                           |
+| ----------------- | -------------------------------------------------------------------- |
+| **Account Model** | State model where each account has a balance, unlike UTXO model      |
+| **AMM**           | Automated Market Maker - algorithm for decentralized trading         |
+| **Bech32**        | Bitcoin address encoding format used by Cosmos chains                |
+| **BFT**           | Byzantine Fault Tolerant - consensus that works with malicious nodes |
+| **CosmWasm**      | WebAssembly-based smart contract platform for Cosmos                 |
+| **CW20**          | Cosmos WASM fungible token standard                                  |
+| **CW721**         | Cosmos WASM non-fungible token standard                              |
+| **DEX**           | Decentralized Exchange                                               |
+| **DHT**           | Distributed Hash Table - decentralized key-value store               |
+| **Ed25519**       | Elliptic curve signature algorithm                                   |
+| **Finality**      | Guarantee that block cannot be reverted                              |
+| **Gas**           | Computational cost unit                                              |
+| **GossipSub**     | Pub/sub protocol for efficient message propagation                   |
+| **HTLC**          | Hash Time Locked Contract - atomic swap primitive                    |
+| **IAVL**          | Immutable AVL tree - versioned Merkle tree                           |
+| **libp2p**        | Modular peer-to-peer networking library                              |
+| **Mempool**       | Memory pool of pending transactions                                  |
+| **Protobuf**      | Protocol Buffers - binary serialization format                       |
+| **Slashing**      | Penalty for validator misbehavior                                    |
+| **Tendermint**    | BFT consensus algorithm                                              |
+| **TEE**           | Trusted Execution Environment                                        |
+| **VRF**           | Verifiable Random Function                                           |
+| **WASM**          | WebAssembly - portable bytecode format                               |
 
 ### 9.2 Network Parameters Summary
 
 ```yaml
 # Chain Configuration
-chain_id: "paw-1"
-denomination: "upaw"
-decimals: 6  # 1 PAW = 1,000,000 upaw
+chain_id: 'paw-1'
+denomination: 'upaw'
+decimals: 6 # 1 PAW = 1,000,000 upaw
 
 # Consensus
 block_time: 4s
 max_validators: 125
 min_validators: 4
-byzantine_tolerance: 33%  # Up to 1/3 malicious
+byzantine_tolerance: 33% # Up to 1/3 malicious
 
 # Block Limits
-max_block_size: 2097152      # 2 MB
+max_block_size: 2097152 # 2 MB
 max_gas_per_block: 100000000 # 100M gas
-max_tx_size: 1048576         # 1 MB
+max_tx_size: 1048576 # 1 MB
 
 # Fees
 min_gas_price: 0.001 upaw/gas
@@ -2350,19 +2414,19 @@ fee_distribution:
   treasury: 20%
 
 # Staking
-min_validator_stake: 100000000000 upaw  # 100,000 PAW
-unbonding_period: 1814400s              # 21 days
+min_validator_stake: 100000000000 upaw # 100,000 PAW
+unbonding_period: 1814400s # 21 days
 max_validators_per_delegator: 100
 
 # Governance
-min_deposit: 1000000000 upaw  # 1,000 PAW
-voting_period: 604800s         # 7 days
+min_deposit: 1000000000 upaw # 1,000 PAW
+voting_period: 604800s # 7 days
 quorum: 33.4%
 threshold: 50%
 veto_threshold: 33.4%
 
 # State Sync
-snapshot_interval: 1000        # blocks
+snapshot_interval: 1000 # blocks
 snapshot_keep_recent: 2
 state_sync_enable: true
 
@@ -2618,9 +2682,7 @@ fn compute_swap(
       "granter": ""
     }
   },
-  "signatures": [
-    "7gH4K9... [64 bytes Ed25519 signature]"
-  ]
+  "signatures": ["7gH4K9... [64 bytes Ed25519 signature]"]
 }
 ```
 
@@ -2675,9 +2737,7 @@ fn compute_swap(
       "granter": ""
     }
   },
-  "signatures": [
-    "9kL2M... [64 bytes Ed25519 signature]"
-  ]
+  "signatures": ["9kL2M... [64 bytes Ed25519 signature]"]
 }
 ```
 
@@ -2761,13 +2821,13 @@ fn compute_swap(
 
 **Document Control**
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0.0 | 2025-11-12 | PAW Core Team | Initial technical specification |
+| Version | Date       | Author        | Changes                         |
+| ------- | ---------- | ------------- | ------------------------------- |
+| 1.0.0   | 2025-11-12 | PAW Core Team | Initial technical specification |
 
 **Review Status**: Draft
 **Approval Required**: Engineering Lead, Security Auditor, Community Review
 
 ---
 
-*End of Technical Specification*
+_End of Technical Specification_

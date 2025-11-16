@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/config"
 	"github.com/cosmos/cosmos-sdk/client/debug"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/pruning"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/snapshot"
@@ -41,7 +40,6 @@ func NewRootCmd() *cobra.Command {
 		WithTxConfig(app.MakeEncodingConfig().TxConfig).
 		WithLegacyAmino(app.MakeEncodingConfig().Amino).
 		WithInput(os.Stdin).
-		WithAccountRetriever(app.MakeEncodingConfig().AccountRetriever).
 		WithHomeDir(app.DefaultNodeHome).
 		WithViper("")
 
@@ -85,13 +83,15 @@ with a built-in DEX, secure API compute aggregation, and multi-device wallet sup
 func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context) {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
-		genutilcli.CollectGenTxsCmd(app.DefaultNodeHome),
-		genutilcli.MigrateGenesisCmd(),
-		genutilcli.GenTxCmd(app.ModuleBasics, clientCtx.TxConfig, app.DefaultNodeHome),
+		// TODO: Update genutil CLI commands for SDK v0.50 signatures
+		// genutilcli.CollectGenTxsCmd(app.DefaultNodeHome),
+		// genutilcli.MigrateGenesisCmd(),
+		// genutilcli.GenTxCmd(app.ModuleBasics, clientCtx.TxConfig, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
 		debug.Cmd(),
-		config.Cmd(),
+		// TODO: Update config.Cmd() for SDK v0.50
+		// config.Cmd(),
 		pruning.Cmd(newApp, app.DefaultNodeHome),
 		snapshot.Cmd(newApp),
 	)
@@ -103,7 +103,7 @@ func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context) {
 		server.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		keys.Commands(),
+		KeysCmd(), // PAW custom keys command with BIP39 support
 	)
 }
 

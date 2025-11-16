@@ -23,6 +23,7 @@ make metrics
 ```
 
 **URLs:**
+
 - **Grafana**: http://localhost:3000 (admin/admin)
 - **Prometheus**: http://localhost:9090
 - **Jaeger Tracing**: http://localhost:16686
@@ -60,24 +61,25 @@ make metrics
 
 ### Components
 
-| Component | Purpose | Port |
-|-----------|---------|------|
-| **Prometheus** | Metrics collection & storage | 9090 |
-| **Grafana** | Visualization & dashboards | 3000 |
-| **Loki** | Log aggregation | 3100 |
-| **Promtail** | Log shipping | 9080 |
-| **Jaeger** | Distributed tracing | 16686 |
-| **Alertmanager** | Alert routing & notifications | 9093 |
-| **Node Exporter** | System metrics | 9100 |
-| **cAdvisor** | Container metrics | 8081 |
-| **Big Dipper** | Block explorer UI | 3001 |
-| **Mintscan** | Explorer API | 8080 |
+| Component         | Purpose                       | Port  |
+| ----------------- | ----------------------------- | ----- |
+| **Prometheus**    | Metrics collection & storage  | 9090  |
+| **Grafana**       | Visualization & dashboards    | 3000  |
+| **Loki**          | Log aggregation               | 3100  |
+| **Promtail**      | Log shipping                  | 9080  |
+| **Jaeger**        | Distributed tracing           | 16686 |
+| **Alertmanager**  | Alert routing & notifications | 9093  |
+| **Node Exporter** | System metrics                | 9100  |
+| **cAdvisor**      | Container metrics             | 8081  |
+| **Big Dipper**    | Block explorer UI             | 3001  |
+| **Mintscan**      | Explorer API                  | 8080  |
 
 ## Metrics Categories
 
 ### 1. Blockchain Metrics
 
 **Tendermint/CometBFT**
+
 - `tendermint_consensus_height` - Current block height
 - `tendermint_consensus_rounds` - Consensus rounds
 - `tendermint_p2p_peers` - Connected peers
@@ -86,6 +88,7 @@ make metrics
 - `tendermint_consensus_validator_missed_blocks` - Missed blocks
 
 **Transactions**
+
 - `cosmos_tx_total` - Total transactions
 - `cosmos_tx_failed_total` - Failed transactions
 - `cosmos_tx_processing_time` - Processing latency (histogram)
@@ -94,24 +97,28 @@ make metrics
 ### 2. DEX-Specific Metrics
 
 **Swaps**
+
 - `paw_dex_swaps_total` - Swap count (by pool, tokens)
 - `paw_dex_swap_failures_total` - Failed swaps
 - `paw_dex_swap_volume_24h` - 24h volume (USD)
 - `paw_dex_swap_latency_ms` - Swap latency
 
 **Pools**
+
 - `paw_dex_pool_reserves` - Pool reserves
 - `paw_dex_pool_liquidity_usd` - Total liquidity
 - `paw_dex_pools_total` - Number of pools
 - `paw_dex_pool_apy` - Pool APY
 
 **Liquidity**
+
 - `paw_dex_lp_tokens_minted_total` - LP tokens minted
 - `paw_dex_lp_tokens_burned_total` - LP tokens burned
 - `paw_dex_liquidity_added_total` - Liquidity added
 - `paw_dex_liquidity_removed_total` - Liquidity removed
 
 **Fees & Prices**
+
 - `paw_dex_fees_collected_total` - Fees collected
 - `paw_dex_token_price_usd` - Token prices
 - `paw_dex_price_impact_percent` - Price impact
@@ -166,6 +173,7 @@ receivers:
 Located: `C:\users\decri\gitclones\paw\infra\monitoring\grafana-dashboards\paw-chain.json`
 
 **Panels:**
+
 - Block Height & Production Rate
 - Transaction Throughput
 - P2P Peer Count & Network I/O
@@ -212,6 +220,7 @@ Located: `C:\users\decri\gitclones\paw\infra\monitoring\grafana-dashboards\paw-c
 ### Log Levels
 
 Access logs by level:
+
 ```logql
 {job="paw-node", level="ERROR"}
 {job="paw-node", level="WARN"}
@@ -223,6 +232,7 @@ Access logs by level:
 ### Instrumented Operations
 
 Traces are automatically collected for:
+
 - Transaction execution
 - Module execution (DEX, compute, oracle)
 - DEX operations (swaps, liquidity changes)
@@ -405,6 +415,7 @@ Adjust in respective config files based on storage capacity.
 ## Support
 
 For issues or questions:
+
 - GitHub: https://github.com/paw-chain/paw
 - Documentation: https://docs.paw.network
 - Discord: https://discord.gg/paw

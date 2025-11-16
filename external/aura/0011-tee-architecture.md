@@ -14,6 +14,7 @@ This RFC specifies the Trusted Execution Environment (TEE) architecture for PAW'
 PAW's vision includes democratizing access to AI compute through pooled resources. However, this requires solving a fundamental trust problem: how can users safely donate API keys to a shared pool without exposing them to theft, misuse, or unauthorized access?
 
 **Key Challenges:**
+
 1. **Confidentiality**: API keys must never be visible to operators, validators, or other users
 2. **Integrity**: Key usage must be accurately metered and cryptographically provable
 3. **Accountability**: Donors must receive fair compensation for their contributed compute
@@ -21,6 +22,7 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 5. **Availability**: The system must handle failures gracefully without compromising keys
 
 **Goals:**
+
 - Protect donated API keys from all parties including infrastructure operators
 - Enable verifiable proof-of-exhaustion for fair reward distribution
 - Support multiple API providers (OpenAI, Anthropic, Google, etc.)
@@ -32,6 +34,7 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 ### Primary: AWS Nitro Enclaves
 
 **Selection Rationale:**
+
 - **Hardware Root of Trust**: Cryptographic attestation backed by AWS Nitro hardware security module
 - **No Known Side Channels**: Unlike Intel SGX, Nitro has not been compromised by speculative execution attacks
 - **Auditability**: Public PCR measurements and open-source attestation verification
@@ -40,6 +43,7 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 - **Cost Efficiency**: Pay-per-use model with no additional hardware requirements
 
 **Security Properties:**
+
 - Memory encryption at hardware level (AES-256-XTS)
 - CPU instruction isolation (separate CPU cores assigned to enclave)
 - No persistent storage (keys exist only in volatile memory)
@@ -51,6 +55,7 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 **Use Case**: Bare-metal deployments, edge computing, regulatory requirements
 
 **Trade-offs:**
+
 - **Pros**: Widely available, fine-grained memory protection, mature tooling
 - **Cons**: History of side-channel vulnerabilities (Spectre, Foreshadow, SGAxe, etc.), smaller enclave page cache (EPC), complex attestation process
 - **Mitigation**: Require latest microcode, disable hyperthreading, implement constant-time operations
@@ -58,6 +63,7 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 ### Why Not AMD SEV (Secure Encrypted Virtualization)
 
 **Rejected Due To:**
+
 - Limited remote attestation support (SEV-SNP required but not widely available)
 - Weaker isolation model (VM-level vs process-level)
 - Attestation cannot verify code identity (only VM measurement)
@@ -66,19 +72,19 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 
 ### Comparison Table
 
-| Feature | AWS Nitro | Intel SGX | AMD SEV |
-|---------|-----------|-----------|---------|
-| **Attestation Strength** | Hardware-signed PCRs | EPID/DCAP signatures | VM measurement only |
-| **Side-Channel History** | None known | Multiple (patched) | Some (SEVO) |
-| **Memory Isolation** | Dedicated CPU cores | EPC (128-256 MB) | Full VM memory |
-| **Code Verification** | SHA-384 hash of enclave | MRENCLAVE measurement | VM hash |
-| **Availability** | AWS regions worldwide | Specific CPU models | AMD EPYC only |
-| **Auditability** | Public PCRs | Public measurements | Limited |
-| **Operational Complexity** | Low (managed) | Medium | High |
-| **Cost Model** | Pay-per-use | Hardware purchase | Hardware purchase |
-| **Max Enclave Size** | Entire EC2 instance | 128-256 MB | Entire VM |
-| **Network Isolation** | Built-in firewall | Application-level | VM-level |
-| **Recommendation** | **Primary** | Secondary | Not recommended |
+| Feature                    | AWS Nitro               | Intel SGX             | AMD SEV             |
+| -------------------------- | ----------------------- | --------------------- | ------------------- |
+| **Attestation Strength**   | Hardware-signed PCRs    | EPID/DCAP signatures  | VM measurement only |
+| **Side-Channel History**   | None known              | Multiple (patched)    | Some (SEVO)         |
+| **Memory Isolation**       | Dedicated CPU cores     | EPC (128-256 MB)      | Full VM memory      |
+| **Code Verification**      | SHA-384 hash of enclave | MRENCLAVE measurement | VM hash             |
+| **Availability**           | AWS regions worldwide   | Specific CPU models   | AMD EPYC only       |
+| **Auditability**           | Public PCRs             | Public measurements   | Limited             |
+| **Operational Complexity** | Low (managed)           | Medium                | High                |
+| **Cost Model**             | Pay-per-use             | Hardware purchase     | Hardware purchase   |
+| **Max Enclave Size**       | Entire EC2 instance     | 128-256 MB            | Entire VM           |
+| **Network Isolation**      | Built-in firewall       | Application-level     | VM-level            |
+| **Recommendation**         | **Primary**             | Secondary             | Not recommended     |
 
 ## Detailed Architecture
 
@@ -122,12 +128,14 @@ PAW's vision includes democratizing access to AI compute through pooled resource
 #### 1. Key Manager
 
 **Responsibilities:**
+
 - Store encrypted API keys in enclave memory
 - Manage key lifecycle (donation, rotation, revocation, destruction)
 - Implement secure key derivation and wrapping
 - Enforce access control policies
 
 **Implementation Details:**
+
 ```rust
 struct KeyManager {
     // Enclave's long-term sealing key (derived from Nitro attestation key)
@@ -170,6 +178,7 @@ struct KeyMetadata {
 ```
 
 **Security Measures:**
+
 - Keys encrypted at rest using AES-256-GCM with unique nonce per key
 - Sealing key derived from enclave attestation (tied to specific enclave version)
 - Constant-time key comparison to prevent timing attacks
@@ -180,6 +189,7 @@ struct KeyMetadata {
 #### 2. Proxy Service
 
 **Responsibilities:**
+
 - Accept authenticated API requests from PAW agents
 - Select appropriate key from pool based on provider and availability
 - Unwrap key, execute API call, immediately destroy session key
@@ -187,6 +197,7 @@ struct KeyMetadata {
 - Record usage metrics for proof-of-exhaustion
 
 **Request Flow:**
+
 ```
 1. Agent sends request: {agent_did, model, prompt_hash, nonce, signature}
 2. Verify agent signature and authorization (check stake, reputation)
@@ -201,6 +212,7 @@ struct KeyMetadata {
 ```
 
 **Security Measures:**
+
 - TLS 1.3 with mutual authentication for agent connections
 - Request replay protection via nonce validation
 - Rate limiting per agent to prevent abuse
@@ -211,39 +223,42 @@ struct KeyMetadata {
 #### 3. Attestation Service
 
 **Responsibilities:**
+
 - Generate remote attestation documents on demand
 - Include enclave measurements (PCR values), public keys, and custom data
 - Sign attestations with Nitro hardware key
 - Provide attestation verification tools for external parties
 
 **Attestation Document Structure:**
+
 ```json
 {
   "module_id": "i-0123456789abcdef0-enc0123456789abcdef",
   "timestamp": 1731398400000,
   "digest": "SHA384",
   "pcrs": {
-    "0": "...",  // Enclave image hash
-    "1": "...",  // Kernel hash
-    "2": "...",  // Application hash
-    "3": "...",  // IAM role hash
-    "4": "...",  // Instance ID
-    "8": "..."   // Custom data (enclave public key)
+    "0": "...", // Enclave image hash
+    "1": "...", // Kernel hash
+    "2": "...", // Application hash
+    "3": "...", // IAM role hash
+    "4": "...", // Instance ID
+    "8": "..." // Custom data (enclave public key)
   },
-  "certificate": "...",  // X.509 certificate chain to AWS root CA
+  "certificate": "...", // X.509 certificate chain to AWS root CA
   "cabundle": ["...", "...", "..."],
-  "public_key": "...",  // Enclave's ephemeral public key (Ed25519)
+  "public_key": "...", // Enclave's ephemeral public key (Ed25519)
   "user_data": {
     "version": "1.0.0",
     "enclave_hash": "sha256:abc123...",
     "supported_providers": ["openai", "anthropic"],
     "max_rpm": 100
   },
-  "nonce": "..."  // Requester-supplied nonce for freshness
+  "nonce": "..." // Requester-supplied nonce for freshness
 }
 ```
 
 **Verification Process:**
+
 1. Validate certificate chain against AWS Nitro root CA
 2. Verify signature on attestation document
 3. Check PCR0-2 match expected enclave measurements (published on GitHub)
@@ -253,6 +268,7 @@ struct KeyMetadata {
 7. Store enclave identity for subsequent proof verification
 
 **Security Measures:**
+
 - Attestation documents include requester nonce to prevent replay
 - PCR measurements published via transparency log (Google Trillian)
 - Certificate pinning for AWS root CA
@@ -262,12 +278,14 @@ struct KeyMetadata {
 #### 4. Accounting Service
 
 **Responsibilities:**
+
 - Track per-key usage at minute-level granularity
 - Generate proof-of-exhaustion when usage thresholds met
 - Maintain tamper-evident audit log
 - Provide usage reports for donors
 
 **Accounting Ledger:**
+
 ```rust
 struct AccountingLedger {
     // Per-key usage tracking
@@ -299,6 +317,7 @@ struct UsageEvent {
 ```
 
 **Proof-of-Exhaustion Generation:**
+
 ```rust
 struct ProofOfExhaustion {
     // Donor identity
@@ -328,6 +347,7 @@ struct ProofOfExhaustion {
 ```
 
 **Security Measures:**
+
 - Append-only ledger with cryptographic linking (hash chain)
 - Merkle tree for efficient proof generation and verification
 - Usage events signed with enclave key to prevent forgery
@@ -339,6 +359,7 @@ struct ProofOfExhaustion {
 #### 1. Donation
 
 **Process:**
+
 ```
 1. User generates asymmetric keypair locally (ephemeral session key)
 2. User requests enclave's public key via attestation
@@ -353,12 +374,14 @@ struct ProofOfExhaustion {
 ```
 
 **Encryption Scheme:**
+
 - ECIES (Elliptic Curve Integrated Encryption Scheme)
 - Curve25519 for ECDH key agreement
 - AES-256-GCM for symmetric encryption
 - HMAC-SHA256 for authentication
 
 **On-Chain Record:**
+
 ```rust
 struct KeyDonation {
     donor_did: String,
@@ -374,12 +397,14 @@ struct KeyDonation {
 #### 2. Storage
 
 **Memory Layout:**
+
 - Keys stored in enclave heap (never swapped to disk)
 - Each key in separate memory page with guard pages
 - Memory encryption enforced by Nitro hardware
 - No debugging symbols or core dumps enabled
 
 **Redundancy:**
+
 - Keys replicated across 3 enclaves in different availability zones
 - Each enclave maintains independent attestation
 - Consensus required for key revocation (2-of-3 multi-sig)
@@ -387,6 +412,7 @@ struct KeyDonation {
 #### 3. Usage
 
 **Session Key Lifecycle (per API call):**
+
 ```
 Time 0ms:   Receive authenticated request
 Time 5ms:   Select key from pool
@@ -401,6 +427,7 @@ Time 520ms: Return response to agent
 ```
 
 **Security Invariants:**
+
 - Plaintext key exists in memory for <1 second
 - Key access serialized (no concurrent access to same key)
 - Failed requests do not leak key material in error messages
@@ -409,6 +436,7 @@ Time 520ms: Return response to agent
 #### 4. Rotation
 
 **User-Initiated Rotation:**
+
 ```
 1. User submits revocation transaction (signed with DID key)
 2. Enclave verifies signature, checks donor ownership
@@ -419,6 +447,7 @@ Time 520ms: Return response to agent
 ```
 
 **Automatic Rotation Triggers:**
+
 - API provider returns authentication error (key compromised/revoked)
 - Usage quota exhausted
 - Expiry timestamp reached
@@ -427,6 +456,7 @@ Time 520ms: Return response to agent
 #### 5. Destruction
 
 **Guaranteed Destruction Events:**
+
 - User revocation (immediate)
 - Enclave shutdown (volatile memory cleared)
 - Expiry timeout (scheduled deletion)
@@ -434,6 +464,7 @@ Time 520ms: Return response to agent
 - Key usage quota exhausted
 
 **Secure Deletion:**
+
 ```rust
 fn zeroize_key(key: &mut [u8]) {
     // Multiple overwrites to prevent forensic recovery
@@ -469,12 +500,14 @@ fn zeroize_key(key: &mut [u8]) {
 #### Runtime Attestation
 
 **Continuous Verification:**
+
 - Enclaves provide fresh attestation every 5 minutes
 - Validators verify attestation before accepting new proofs
 - Attestation includes monotonic counter (prevents replay)
 - Certificate revocation check (AWS CRL)
 
 **Attestation Verification Code:**
+
 ```rust
 fn verify_attestation(doc: &AttestationDocument) -> Result<EnclaveIdentity, Error> {
     // 1. Verify certificate chain to AWS root CA
@@ -549,6 +582,7 @@ struct WeightedKey {
 #### Key Selection Algorithm
 
 **Weighted Round-Robin:**
+
 ```rust
 fn select_key(pool: &mut ProviderPool, request: &Request) -> Result<EncryptedKey, Error> {
     // 1. Filter available keys
@@ -585,21 +619,25 @@ fn select_key(pool: &mut ProviderPool, request: &Request) -> Result<EncryptedKey
 #### Rate Limiting
 
 **Per-Key Limits:**
+
 - Enforced by API provider (e.g., 10 requests/min for OpenAI)
 - Tracked via sliding window algorithm
 - Keys temporarily disabled if rate limit hit
 
 **Per-Provider Limits:**
+
 - Aggregate limit across all keys for same provider
 - Prevents DDoS-style abuse
 
 **Global Limits:**
+
 - Overall enclave throughput limit (e.g., 1000 req/min)
 - Prevents resource exhaustion attacks
 
 #### Fail-Over Mechanism
 
 **Failure Detection:**
+
 ```rust
 enum KeyFailure {
     AuthenticationError,  // 401/403 from API provider
@@ -617,6 +655,7 @@ struct FailureInfo {
 ```
 
 **Fail-Over Strategy:**
+
 1. Mark failed key as temporarily unavailable
 2. Calculate exponential backoff (1min, 2min, 4min, 8min, ...)
 3. Select backup key from pool
@@ -624,6 +663,7 @@ struct FailureInfo {
 5. Notify donor of key status via on-chain message
 
 **Circuit Breaker Pattern:**
+
 - If >50% of keys for a provider fail, circuit opens (stop using provider)
 - Circuit remains open for 5 minutes (cooldown period)
 - After cooldown, allow 1 test request (half-open state)
@@ -632,11 +672,13 @@ struct FailureInfo {
 #### Usage Tracking
 
 **Granularity:**
+
 - Minute-level tracking (smallest billable unit)
 - Token-level tracking for fine-grained accounting
 - Request-level metadata (model, latency, success/failure)
 
 **Metrics Collected:**
+
 ```rust
 struct UsageMetrics {
     // Time-based metrics
@@ -668,12 +710,14 @@ struct UsageMetrics {
 #### Generation
 
 **Trigger Conditions:**
+
 - Key quota exhausted (100% of donated minutes used)
 - Periodic checkpoint (every 1000 minutes of aggregate usage)
 - User-requested proof (on-demand)
 - Enclave shutdown (final accounting)
 
 **Proof Structure:**
+
 ```rust
 struct ProofOfExhaustion {
     // Version for future compatibility
@@ -710,6 +754,7 @@ struct ProofOfExhaustion {
 #### Verification (On-Chain)
 
 **Validator Logic:**
+
 ```rust
 fn verify_proof_of_exhaustion(proof: &ProofOfExhaustion) -> Result<(), Error> {
     // 1. Verify attestation document
@@ -755,11 +800,13 @@ fn verify_proof_of_exhaustion(proof: &ProofOfExhaustion) -> Result<(), Error> {
 ```
 
 **Anti-Replay Protection:**
+
 - Proofs include monotonic counter (increments per proof)
 - Validators track highest counter per donor
 - Reject proofs with counter ≤ last seen counter
 
 **Reward Calculation:**
+
 ```rust
 fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
     // Base reward per minute (in PAW tokens)
@@ -779,6 +826,7 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 #### Threat Model
 
 **In-Scope Threats:**
+
 1. **Malicious Infrastructure Operator**: AWS account owner attempts to extract keys
 2. **Compromised Host OS**: EC2 instance OS compromised by attacker
 3. **Network Adversary**: Man-in-the-middle attacks on enclave communication
@@ -787,6 +835,7 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 6. **Rollback Attacks**: Attacker replays old enclave versions with vulnerabilities
 
 **Out-of-Scope Threats:**
+
 - Physical attacks on AWS data centers (rely on AWS physical security)
 - Compromise of TEE hardware manufacturer (Intel/AWS)
 - Quantum computer attacks (use post-quantum crypto in Phase 3)
@@ -795,6 +844,7 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 #### Trust Assumptions
 
 **What We Trust:**
+
 1. **AWS Nitro Hardware**: Nitro security module correctly implements memory encryption and attestation
 2. **AWS Infrastructure**: AWS does not backdoor Nitro firmware or collude to extract keys
 3. **Cryptographic Primitives**: AES-256-GCM, Ed25519, SHA-256 are secure
@@ -802,6 +852,7 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 5. **Rust Memory Safety**: Rust compiler prevents memory corruption vulnerabilities
 
 **What We Don't Trust:**
+
 - Host operating system (may be compromised)
 - Network (may be monitored or manipulated)
 - Other enclaves on same host
@@ -811,18 +862,21 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 #### Security Guarantees
 
 **Confidentiality:**
+
 - API keys never leave enclave in plaintext
 - Memory encryption prevents physical memory attacks
 - Network encryption (TLS 1.3) prevents eavesdropping
 - No key material in logs, error messages, or debug output
 
 **Integrity:**
+
 - Attestation proves enclave code has not been tampered with
 - Signatures on proofs-of-exhaustion prevent forgery
 - Merkle trees ensure usage logs are append-only
 - Audit trail enables detection of unauthorized access
 
 **Availability:**
+
 - Multi-AZ deployment (3 enclaves in different zones)
 - Graceful degradation (if 1 enclave fails, others continue)
 - Circuit breaker prevents cascade failures
@@ -831,6 +885,7 @@ fn calculate_reward(minutes: u64, provider: Provider) -> u64 {
 #### Limitations & Mitigations
 
 **Known Limitations:**
+
 1. **Side-Channel Attacks**: Speculative execution vulnerabilities (Spectre, Meltdown)
    - **Mitigation**: Use constant-time operations, disable hyperthreading, apply CPU microcode updates
 
@@ -902,18 +957,21 @@ enum AuditEvent {
 #### Transparency Logs
 
 **Enclave Updates:**
+
 - Every enclave version published to GitHub with source code
 - PCR values computed and published to transparency log (Google Trillian)
 - Validators monitor log for unauthorized updates
 - Community can audit source → binary correspondence
 
 **Usage Checkpoints:**
+
 - Aggregate usage posted on-chain every 1000 minutes
 - Merkle root of audit log included in checkpoint
 - Anyone can request proof of specific usage event
 - Enables external audits of enclave behavior
 
 **Incident Reports:**
+
 - Security incidents disclosed publicly (after remediation)
 - Root cause analysis published
 - Remediation steps documented
@@ -926,11 +984,13 @@ enum AuditEvent {
 **Scenario**: Enclave process crashes due to software bug or resource exhaustion
 
 **Consequences:**
+
 - All keys in memory are lost (volatile memory cleared)
 - In-flight API requests fail
 - Proofs-of-exhaustion for recent usage not yet posted
 
 **Recovery Process:**
+
 1. Enclave automatically restarts (EC2 Auto Scaling)
 2. New enclave generates fresh attestation
 3. Validators verify new attestation
@@ -938,11 +998,13 @@ enum AuditEvent {
 5. Usage resumes
 
 **User Impact:**
+
 - Donors lose recent usage data (since last checkpoint)
 - Agents experience temporary service disruption (30-60 seconds)
 - Donors must re-donate keys (manual action required)
 
 **Mitigation:**
+
 - Frequent checkpoints (every 100 minutes instead of 1000)
 - Replicate audit logs to external storage (encrypted)
 - Multi-enclave deployment (2-of-3 quorum for critical operations)
@@ -952,11 +1014,13 @@ enum AuditEvent {
 **Scenario**: Enclave attestation fails verification (invalid PCRs, expired cert, etc.)
 
 **Consequences:**
+
 - Validators stop accepting proofs from enclave
 - New key donations rejected
 - Existing keys quarantined (no new requests)
 
 **Recovery Process:**
+
 1. Investigate root cause (software bug, AWS incident, attack)
 2. If software bug: deploy fixed enclave version
 3. If AWS incident: wait for AWS resolution
@@ -965,10 +1029,12 @@ enum AuditEvent {
 6. Resume normal operation
 
 **User Impact:**
+
 - Service temporarily unavailable (duration depends on root cause)
 - Donors' keys remain safe (encrypted in enclave memory)
 
 **Mitigation:**
+
 - Backup enclaves in different AWS regions
 - Fail-over to Intel SGX enclave if Nitro unavailable
 - Governance multisig can authorize emergency enclave version
@@ -976,24 +1042,28 @@ enum AuditEvent {
 #### Compromise Detection
 
 **Detection Mechanisms:**
+
 1. **Anomaly Detection**: Monitor usage patterns for abnormal behavior
 2. **Canary Keys**: Inject fake keys, alert if used
 3. **External Monitoring**: Independent monitors query enclave, verify attestations
 4. **Community Bug Bounty**: Reward discovery of vulnerabilities
 
 **Compromise Indicators:**
+
 - Keys used without corresponding on-chain proof
 - Attestation PCRs change without governance approval
 - API provider reports unauthorized key usage
 - Side-channel attack successful in penetration test
 
 **Emergency Response:**
+
 1. **Immediate**: Shutdown enclave, prevent new key donations
 2. **Short-term**: Revoke all keys, notify donors
 3. **Medium-term**: Conduct forensic analysis, identify root cause
 4. **Long-term**: Deploy patched enclave, compensate affected users
 
 **Slashing:**
+
 - If enclave operator found negligent, slash their stake
 - Funds used to compensate donors for lost compute
 - Governance vote required for slashing decision
@@ -1005,6 +1075,7 @@ enum AuditEvent {
 **Language**: Rust (memory safety, performance, formal verification potential)
 
 **Key Libraries:**
+
 - `aws-nitro-enclaves-sdk`: Official AWS SDK for Nitro Enclaves
 - `ring`: Cryptographic primitives (AES-GCM, Ed25519, SHA-256)
 - `zeroize`: Secure memory zeroization
@@ -1013,6 +1084,7 @@ enum AuditEvent {
 - `tokio`: Async runtime
 
 **Build Process:**
+
 ```bash
 # Build enclave Docker image
 docker build -t paw-enclave:latest .
@@ -1043,18 +1115,21 @@ publish-to-trillian paw-enclave.eif
 **Rationale**: Reduce attack surface by minimizing external dependencies
 
 **Allowed Dependencies:**
+
 - AWS Nitro SDK (required for attestation)
 - Core cryptographic libraries (ring, zeroize)
 - Async runtime (tokio)
 - HTTP client (hyper with minimal features)
 
 **Forbidden Dependencies:**
+
 - Databases (use in-memory data structures)
 - Logging frameworks (implement custom audit log)
 - Heavy serialization (use serde with minimal features)
 - Unnecessary utilities
 
 **Dependency Audit:**
+
 ```bash
 # Regularly audit dependencies for vulnerabilities
 cargo audit
@@ -1095,6 +1170,7 @@ paw-enclave/
 **Goal**: Mathematically prove correctness of key manager
 
 **Approach**:
+
 1. Model key manager state machine in TLA+
 2. Specify safety properties (keys never leak)
 3. Specify liveness properties (keys eventually get used)
@@ -1102,6 +1178,7 @@ paw-enclave/
 5. Extract verified code using code generation
 
 **Example TLA+ Specification:**
+
 ```tla
 VARIABLES keys, usage, revoked
 
@@ -1124,6 +1201,7 @@ LivenessProperty ==
 **Scope**: Third-party audit by reputable security firm
 
 **Audit Areas:**
+
 1. **Cryptographic Implementation**: Verify correct use of primitives
 2. **Memory Safety**: Review Rust unsafe blocks, foreign function interfaces
 3. **Side-Channel Resistance**: Test for timing leaks, cache attacks
@@ -1140,6 +1218,7 @@ LivenessProperty ==
 **Objectives**: Simulate real-world attacks on enclave
 
 **Attack Vectors:**
+
 1. **Key Extraction**: Attempt to extract API keys from running enclave
 2. **Attestation Forgery**: Try to generate fake attestation documents
 3. **Denial of Service**: Flood enclave with requests
@@ -1157,6 +1236,7 @@ LivenessProperty ==
 **Scope**: Ongoing public bug bounty
 
 **Reward Tiers:**
+
 - **Critical** ($50,000): Key extraction, attestation forgery
 - **High** ($10,000): Unauthorized API access, DoS attacks
 - **Medium** ($2,500): Side-channel leaks, logic bugs
@@ -1171,6 +1251,7 @@ LivenessProperty ==
 **Not Applicable**: This is a new feature, no backwards compatibility concerns.
 
 **Forward Compatibility:**
+
 - Proof-of-exhaustion format versioned (v1, v2, ...)
 - Attestation document parsing supports multiple formats
 - Enclave upgrades via governance (validators vote on new PCR values)

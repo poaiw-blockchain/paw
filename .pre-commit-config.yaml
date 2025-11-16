@@ -194,7 +194,7 @@ repos:
         name: ShellCheck
         args: ['--severity=warning']
 
-# Local hooks for custom validation
+  # Local hooks for custom validation
   - repo: local
     hooks:
       - id: no-debug-statements

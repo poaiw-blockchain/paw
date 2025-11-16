@@ -21,6 +21,6 @@ It is intentionally focused on API access (no KYC) and serves as a light WalletC
 ## API Notes
 
 - Mining controls call `/mining/start`, `/mining/stop`, and `/mining/status`.
--- Replace the default API host (`http://localhost:8545`) using the API Host field in the popup if your node runs elsewhere.
--- The wallet registers a WalletConnect-style session (`/wallet-trades/register`) and signs each order payload with the session secret before posting; if you operate multiple nodes, configure `XAI_WALLET_TRADE_PEER_SECRET/XAI_WALLET_TRADE_PEERS` so they gossip orders via `/wallet-trades/gossip`.
--- For enhanced security the extension now performs a WalletConnect-style ECDH handshake via `/wallet-trades/wc/handshake` and `/wallet-trades/wc/confirm`, deriving per-session secrets used for signing/encrypted trade payloads.
+  -- Replace the default API host (`http://localhost:8545`) using the API Host field in the popup if your node runs elsewhere.
+  -- The wallet registers a WalletConnect-style session (`/wallet-trades/register`) and signs each order payload with the session secret before posting; if you operate multiple nodes, configure `XAI_WALLET_TRADE_PEER_SECRET/XAI_WALLET_TRADE_PEERS` so they gossip orders via `/wallet-trades/gossip`.
+  -- For enhanced security the extension now performs a WalletConnect-style ECDH handshake via `/wallet-trades/wc/handshake` and `/wallet-trades/wc/confirm`, deriving per-session secrets used for signing/encrypted trade payloads.

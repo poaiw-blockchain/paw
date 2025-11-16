@@ -43,6 +43,7 @@ make metrics
 ### Blockchain Metrics
 
 #### Tendermint/CometBFT Metrics
+
 - `tendermint_consensus_height` - Current block height
 - `tendermint_consensus_rounds` - Consensus rounds
 - `tendermint_p2p_peers` - Number of connected peers
@@ -51,40 +52,47 @@ make metrics
 - `tendermint_consensus_validator_missed_blocks` - Missed blocks count
 
 #### Transaction Metrics
+
 - `cosmos_tx_total` - Total transactions processed
 - `cosmos_tx_failed_total` - Failed transactions
 - `cosmos_tx_processing_time` - Transaction processing latency (histogram)
 - `cosmos_tx_gas_used` - Gas consumed by transactions
 
 #### Module Metrics
+
 - `cosmos_module_execution_time` - Module execution latency
 - `cosmos_block_height` - Current block height
 
 ### DEX-Specific Metrics
 
 #### Swap Metrics
+
 - `paw_dex_swaps_total` - Total swap count (by pool_id, token_in, token_out)
 - `paw_dex_swap_failures_total` - Failed swaps (by pool_id, reason)
 - `paw_dex_swap_volume_24h` - 24-hour volume in USD (by token)
 - `paw_dex_swap_latency_ms` - Swap execution latency (histogram)
 
 #### Pool Metrics
+
 - `paw_dex_pool_reserves` - Pool reserves (by pool_id, token)
 - `paw_dex_pool_liquidity_usd` - Total pool liquidity
 - `paw_dex_pools_total` - Number of active pools
 - `paw_dex_pool_apy` - Pool APY percentage
 
 #### Liquidity Provider Metrics
+
 - `paw_dex_lp_tokens_minted_total` - LP tokens minted
 - `paw_dex_lp_tokens_burned_total` - LP tokens burned
 - `paw_dex_liquidity_added_total` - Liquidity deposits
 - `paw_dex_liquidity_removed_total` - Liquidity withdrawals
 
 #### Fee Metrics
+
 - `paw_dex_fees_collected_total` - Fees collected from swaps
 - `paw_dex_fees_distributed_total` - Fees distributed to LPs
 
 #### Price & Slippage Metrics
+
 - `paw_dex_token_price_usd` - Token prices
 - `paw_dex_price_impact_percent` - Price impact (histogram)
 - `paw_dex_slippage_actual_percent` - Actual slippage (histogram)
@@ -129,6 +137,7 @@ make metrics
 Located at: `infra/monitoring/grafana-dashboards/paw-chain.json`
 
 **Panels:**
+
 1. Block Height (time series)
 2. Blocks Per Second (graph)
 3. Transaction Throughput (graph)
@@ -158,6 +167,7 @@ Located at: `infra/monitoring/grafana-dashboards/paw-chain.json`
 ### Log Sources
 
 Promtail collects logs from:
+
 - `/var/log/paw/node.log` - Node logs
 - `/var/log/paw/tendermint.log` - Consensus logs
 - `/var/log/paw/dex.log` - DEX module logs
@@ -189,6 +199,7 @@ Promtail collects logs from:
 ### Jaeger Integration
 
 Traces are automatically collected for:
+
 - Transaction execution
 - Module execution
 - DEX operations
@@ -256,6 +267,7 @@ defer span()
 ### Big Dipper
 
 **Features:**
+
 - Block explorer UI
 - Transaction search
 - Validator information
@@ -268,6 +280,7 @@ defer span()
 ### Mintscan Backend
 
 **Features:**
+
 - REST API for blockchain data
 - Transaction indexing
 - Account balances
@@ -330,12 +343,13 @@ Default: 30 days. Adjust in `loki-config.yaml`:
 
 ```yaml
 table_manager:
-  retention_period: 720h  # 30 days
+  retention_period: 720h # 30 days
 ```
 
 ### Scrape Intervals
 
 Adjust in `prometheus.yml` based on needs:
+
 - **High-frequency** (5-10s): Consensus, transactions
 - **Medium** (15-30s): API, system metrics
 - **Low** (1-5m): Aggregated stats
@@ -370,6 +384,7 @@ Adjust in `prometheus.yml` based on needs:
 ## Support
 
 For issues or questions:
+
 - Documentation: https://docs.paw.network
 - GitHub Issues: https://github.com/paw/paw
 - Discord: https://discord.gg/paw

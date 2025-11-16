@@ -1,0 +1,192 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paw-node-network-policy
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+spec:
+  podSelector:
+    matchLabels:
+      app: paw-node
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P traffic from anywhere
+    - from:
+        - namespaceSelector: {}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow RPC only from API pods and monitoring
+    - from:
+        - podSelector:
+            matchLabels:
+              app: paw-api
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 26657
+    # Allow gRPC only from API pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: paw-api
+      ports:
+        - protocol: TCP
+          port: 9090
+    # Allow metrics scraping from Prometheus
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 26660
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow P2P traffic
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow HTTPS for external services
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paw-api-network-policy
+  namespace: paw-blockchain
+  labels:
+    app: paw-api
+spec:
+  podSelector:
+    matchLabels:
+      app: paw-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow HTTP/HTTPS from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5000
+    # Allow metrics scraping from Prometheus
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 5000
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow traffic to PAW nodes
+    - to:
+        - podSelector:
+            matchLabels:
+              app: paw-node
+      ports:
+        - protocol: TCP
+          port: 26657
+        - protocol: TCP
+          port: 9090
+    # Allow HTTPS for external services
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-network-policy
+  namespace: paw-blockchain
+  labels:
+    app: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      component: monitoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow access from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000 # Grafana
+        - protocol: TCP
+          port: 9090 # Prometheus
+    # Allow Prometheus to scrape all pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow scraping metrics from all pods
+    - to:
+        - podSelector: {}
+    # Allow AlertManager webhook calls
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+---
+# Default deny all ingress traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: paw-blockchain
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress

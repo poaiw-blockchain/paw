@@ -90,7 +90,8 @@ func (s *Server) CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// RateLimitMiddleware implements rate limiting
+// RateLimitMiddleware implements basic rate limiting (legacy)
+// Deprecated: Use AdvancedRateLimitMiddleware for production
 func RateLimitMiddleware(rps int) gin.HandlerFunc {
 	// Create rate limiters per IP
 	limiters := &sync.Map{}
@@ -112,6 +113,68 @@ func RateLimitMiddleware(rps int) gin.HandlerFunc {
 		}
 
 		c.Next()
+	}
+}
+
+// AdvancedRateLimitMiddleware implements advanced rate limiting with all features
+func AdvancedRateLimitMiddleware(limiter *AdvancedRateLimiter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if limiter == nil {
+			c.Next()
+			return
+		}
+
+		// Check rate limit
+		allowed, headers, err := limiter.CheckLimit(c)
+
+		// Set rate limit headers
+		if headers != nil {
+			for k, v := range headers.ToHeaders() {
+				c.Header(k, v)
+			}
+		}
+
+		// Handle rate limit exceeded
+		if !allowed || err != nil {
+			statusCode := http.StatusTooManyRequests
+			errorMsg := "Rate limit exceeded. Please try again later."
+
+			// Get custom message for endpoint if available
+			endpointLimit := limiter.config.GetEndpointLimit(c.Request.Method, c.Request.URL.Path)
+			if endpointLimit != nil && endpointLimit.CustomMessage != "" {
+				errorMsg = endpointLimit.CustomMessage
+			}
+
+			if err != nil {
+				errorMsg = err.Error()
+			}
+
+			c.JSON(statusCode, ErrorResponse{
+				Error: errorMsg,
+				Code:  "RATE_LIMIT_EXCEEDED",
+			})
+			c.Abort()
+			return
+		}
+
+		// Track request completion for adaptive limiting
+		userID := c.GetString("user_id")
+		if userID != "" {
+			defer limiter.DecrementConcurrent(userID)
+		}
+
+		// Process request
+		c.Next()
+
+		// Record success/failure for adaptive rate limiting
+		if userID != "" {
+			statusCode := c.Writer.Status()
+			if statusCode >= 200 && statusCode < 400 {
+				limiter.RecordSuccess(userID)
+			} else if statusCode >= 400 {
+				limiter.RecordFailure(userID)
+			}
+		}
 	}
 }
 
@@ -199,8 +262,101 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		c.Writer.Header().Set("X-Frame-Options", "DENY")
 		c.Writer.Header().Set("X-XSS-Protection", "1; mode=block")
 		c.Writer.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Writer.Header().Set("Content-Security-Policy", "default-src 'self'")
+		c.Writer.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
+		c.Writer.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 		c.Next()
 	}
+}
+
+// RequestSizeLimitMiddleware limits request body size
+func RequestSizeLimitMiddleware(maxSize int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.ContentLength > maxSize {
+			c.JSON(http.StatusRequestEntityTooLarge, ErrorResponse{
+				Error: "Request body too large",
+				Code:  "REQUEST_TOO_LARGE",
+			})
+			c.Abort()
+			return
+		}
+
+		// Also set a reader limit to prevent memory exhaustion
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSize)
+		c.Next()
+	}
+}
+
+// HTTPSRedirectMiddleware redirects HTTP to HTTPS in production
+func HTTPSRedirectMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Check if request is over HTTPS
+		if c.Request.TLS == nil && c.Request.Header.Get("X-Forwarded-Proto") != "https" {
+			// Allow localhost without HTTPS for development
+			if c.Request.Host != "localhost" && !strings.HasPrefix(c.Request.Host, "127.0.0.1") {
+				target := "https://" + c.Request.Host + c.Request.RequestURI
+				c.Redirect(http.StatusMovedPermanently, target)
+				c.Abort()
+				return
+			}
+		}
+		c.Next()
+	}
+}
+
+// APIKeyMiddleware validates API keys for sensitive operations
+func (s *Server) APIKeyMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("X-API-Key")
+
+		// For high-value operations, require API key
+		if apiKey == "" {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Error: "API key required for this operation",
+				Code:  "API_KEY_REQUIRED",
+			})
+			c.Abort()
+			return
+		}
+
+		// Validate API key (in production, check against database)
+		if !s.validateAPIKey(apiKey) {
+			if s.auditLogger != nil {
+				s.auditLogger.LogSecurityEvent(
+					"invalid_api_key",
+					"warning",
+					"api_key_validation",
+					"failure",
+					fmt.Sprintf("Invalid API key attempt from IP: %s", c.ClientIP()),
+					map[string]interface{}{
+						"ip": c.ClientIP(),
+					},
+				)
+			}
+
+			c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Error: "Invalid API key",
+				Code:  "INVALID_API_KEY",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// validateAPIKey validates an API key (placeholder implementation)
+func (s *Server) validateAPIKey(apiKey string) bool {
+	// In production:
+	// 1. Hash the API key
+	// 2. Check against database
+	// 3. Verify not expired
+	// 4. Check rate limits specific to this key
+
+	// For now, accept any non-empty key in development
+	// In production, this MUST be replaced with proper validation
+	return len(apiKey) >= 32
 }
 
 // TimeoutMiddleware sets a timeout for requests

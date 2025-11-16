@@ -142,10 +142,12 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 ## API Endpoints Implemented
 
 ### Authentication (2 endpoints)
+
 - POST /api/auth/register
 - POST /api/auth/login
 
 ### Trading (5 endpoints)
+
 - POST /api/orders/create
 - GET /api/orders/book
 - GET /api/orders/recent
@@ -153,12 +155,14 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - DELETE /api/orders/:order_id
 
 ### Wallet (4 endpoints)
+
 - GET /api/wallet/balance
 - GET /api/wallet/address
 - POST /api/wallet/send
 - GET /api/wallet/transactions
 
 ### Light Client (5 endpoints)
+
 - GET /api/light-client/headers
 - GET /api/light-client/headers/:height
 - GET /api/light-client/checkpoint
@@ -166,6 +170,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - POST /api/light-client/verify-proof
 
 ### Atomic Swaps (5 endpoints)
+
 - POST /api/atomic-swap/prepare
 - POST /api/atomic-swap/commit
 - POST /api/atomic-swap/refund
@@ -173,6 +178,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - GET /api/atomic-swap/my-swaps
 
 ### Liquidity Pools (5 endpoints)
+
 - GET /api/pools
 - GET /api/pools/:pool_id
 - GET /api/pools/:pool_id/liquidity
@@ -180,11 +186,13 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - POST /api/pools/remove-liquidity
 
 ### Market Data (3 endpoints)
+
 - GET /api/market/price
 - GET /api/market/stats
 - GET /api/market/24h
 
 ### WebSocket (1 endpoint)
+
 - GET /ws (supports channels: price, orderbook, trades)
 
 **Total: 35 endpoints**
@@ -192,6 +200,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 ## Key Features
 
 ### 1. Blockchain Integration
+
 - Cosmos SDK client.Context for queries
 - Transaction broadcasting
 - Balance queries
@@ -199,6 +208,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Merkle proof generation
 
 ### 2. Trading Engine
+
 - Order book management
 - Order matching algorithm
 - Real-time trade execution
@@ -206,6 +216,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Volume calculation
 
 ### 3. Security
+
 - JWT-based authentication
 - Password hashing (bcrypt)
 - Rate limiting (100 RPS default)
@@ -214,6 +225,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Security headers
 
 ### 4. Real-time Updates
+
 - WebSocket server
 - Channel-based subscriptions
 - Price updates
@@ -221,6 +233,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Trade notifications
 
 ### 5. Atomic Swaps
+
 - HTLC implementation
 - SHA-256 hash locks
 - Timelock support
@@ -228,12 +241,14 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Status tracking
 
 ### 6. Liquidity Pools
+
 - AMM calculations
 - Add/remove liquidity
 - Pool information
 - Multiple pool support
 
 ### 7. Developer Experience
+
 - Comprehensive documentation
 - Example configurations
 - Docker support
@@ -265,6 +280,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 ## Production Readiness
 
 ### Implemented
+
 - Health checks
 - Graceful shutdown
 - Error handling
@@ -275,6 +291,7 @@ A comprehensive REST API server has been created to bridge the PAW blockchain wi
 - Docker deployment
 
 ### Recommended for Production
+
 - Database integration (replace in-memory storage)
 - Redis for caching
 - Metrics and monitoring
@@ -290,6 +307,7 @@ The API is fully compatible with the exchange frontend at:
 `external/crypto/exchange-frontend/app.js`
 
 All endpoints match the expected frontend API calls:
+
 - Registration/Login
 - Order creation
 - Balance queries
@@ -299,18 +317,21 @@ All endpoints match the expected frontend API calls:
 ## Running the Server
 
 ### Development
+
 ```bash
 cd api
 go run cmd/main.go
 ```
 
 ### Production (Docker)
+
 ```bash
 cd api
 docker-compose up -d
 ```
 
 ### With Make
+
 ```bash
 cd api
 make run           # Development
@@ -321,6 +342,7 @@ make test          # Run tests
 ## Testing
 
 Comprehensive test suite includes:
+
 - Health check tests
 - User registration/login
 - Order creation
@@ -331,6 +353,7 @@ Comprehensive test suite includes:
 - Authentication middleware
 
 Run tests:
+
 ```bash
 cd api
 go test -v ./...
@@ -379,6 +402,7 @@ Total: 20 files, ~90KB of code
 ## Conclusion
 
 A production-ready REST API server has been successfully implemented with:
+
 - 35 endpoints covering all required functionality
 - Full blockchain integration via Cosmos SDK
 - Real-time WebSocket support

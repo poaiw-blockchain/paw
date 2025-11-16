@@ -6,7 +6,7 @@ const HKDF_INFO = new TextEncoder().encode('walletconnect-trade');
 
 function bufferToHex(buffer) {
   return Array.from(new Uint8Array(buffer))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .map(byte => byte.toString(16).padStart(2, '0'))
     .join('');
 }
 
@@ -32,15 +32,13 @@ function base64ToBytes(base64) {
 }
 
 function stableStringify(value) {
-  if (value === null) return 'null';
+  if (value === null) {return 'null';}
   if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+    return `[${value.map(item => stableStringify(item)).join(',')}]`;
   }
   if (typeof value === 'object') {
     const keys = Object.keys(value).sort();
-    return `{${keys
-      .map((key) => `"${key}":${stableStringify(value[key])}`)
-      .join(',')}}`;
+    return `{${keys.map(key => `"${key}":${stableStringify(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
 }
@@ -59,12 +57,12 @@ async function signPayload(payloadStr, secretHex) {
 }
 
 async function saveSession(token, secret, address) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     chrome.storage.local.set(
       {
         [SESSION_TOKEN_KEY]: token,
         [SESSION_SECRET_KEY]: secret,
-        [SESSION_ADDRESS_KEY]: address
+        [SESSION_ADDRESS_KEY]: address,
       },
       () => resolve()
     );
@@ -72,14 +70,14 @@ async function saveSession(token, secret, address) {
 }
 
 async function getSession() {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     chrome.storage.local.get(
       [SESSION_TOKEN_KEY, SESSION_SECRET_KEY, SESSION_ADDRESS_KEY],
-      (result) => {
+      result => {
         resolve({
           sessionToken: result[SESSION_TOKEN_KEY],
           sessionSecret: result[SESSION_SECRET_KEY],
-          walletAddress: result[SESSION_ADDRESS_KEY]
+          walletAddress: result[SESSION_ADDRESS_KEY],
         });
       }
     );
@@ -91,35 +89,33 @@ async function registerSession(address) {
   const response = await fetch(`${host}/wallet-trades/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet_address: address })
+    body: JSON.stringify({ wallet_address: address }),
   });
   const payload = await response.json();
   if (payload.success) {
-    await saveSession(
-      payload.session_token,
-      payload.session_secret,
-      address
-    );
+    await saveSession(payload.session_token, payload.session_secret, address);
     return {
       sessionToken: payload.session_token,
       sessionSecret: payload.session_secret,
-      walletAddress: address
+      walletAddress: address,
     };
   }
   return null;
 }
 
+// eslint-disable-next-line no-unused-vars
 async function beginWalletConnectHandshake(address) {
   const host = await getApiHost();
   const response = await fetch(`${host}/wallet-trades/wc/handshake`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallet_address: address })
+    body: JSON.stringify({ wallet_address: address }),
   });
   const payload = await response.json();
   return payload.success ? payload : null;
 }
 
+// eslint-disable-next-line no-unused-vars
 async function confirmWalletConnectHandshake(address, handshake) {
   const host = await getApiHost();
   const clientKeyPair = await crypto.subtle.generateKey(
@@ -153,7 +149,7 @@ async function confirmWalletConnectHandshake(address, handshake) {
       name: 'HKDF',
       hash: 'SHA-256',
       salt: new TextEncoder().encode(handshake.handshake_id),
-      info: HKDF_INFO
+      info: HKDF_INFO,
     },
     hkdfKey,
     256
@@ -166,18 +162,18 @@ async function confirmWalletConnectHandshake(address, handshake) {
     body: JSON.stringify({
       handshake_id: handshake.handshake_id,
       wallet_address: address,
-      client_public: clientPublicBase64
-    })
+      client_public: clientPublicBase64,
+    }),
   });
   const payload = await response.json();
-  if (!payload.success) return null;
+  if (!payload.success) {return null;}
   await saveSession(payload.session_token, derivedHex, address);
   return { sessionToken: payload.session_token, sessionSecret: derivedHex, walletAddress: address };
 }
 
 async function ensureSession() {
   const address = $('#walletAddress').value.trim();
-  if (!address) return null;
+  if (!address) {return null;}
   const session = await getSession();
   if (
     session &&
@@ -191,8 +187,8 @@ async function ensureSession() {
 }
 
 async function getApiHost() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([API_KEY], (result) => {
+  return new Promise(resolve => {
+    chrome.storage.local.get([API_KEY], result => {
       resolve(result[API_KEY] || 'http://localhost:8545');
     });
   });
@@ -240,7 +236,7 @@ async function startMining() {
   await fetch(`${host}/mining/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ miner_address: address, intensity: 'medium' })
+    body: JSON.stringify({ miner_address: address, intensity: 'medium' }),
   });
   await updateMiningStatus();
   await refreshMinerStats();
@@ -249,12 +245,12 @@ async function startMining() {
 async function stopMining() {
   const host = await getApiHost();
   const address = $('#walletAddress').value.trim();
-  if (!address) return;
+  if (!address) {return;}
 
   await fetch(`${host}/mining/stop`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ miner_address: address })
+    body: JSON.stringify({ miner_address: address }),
   });
   await updateMiningStatus();
   await refreshMinerStats();
@@ -268,7 +264,7 @@ async function refreshOrders() {
   if (data?.orders?.length) {
     list.innerHTML = data.orders
       .map(
-        (order) => `
+        order => `
         <div class="entry">
           <strong>${order.token_offered}</strong> → ${order.token_requested}
           <br />
@@ -289,7 +285,7 @@ async function refreshMatches() {
   if (data?.matches?.length) {
     list.innerHTML = data.matches
       .map(
-        (match) => `
+        match => `
         <div class="entry">
           ${match.maker_order_id} ↔ ${match.taker_order_id}
           <br />
@@ -316,7 +312,7 @@ async function refreshTradeHistory() {
       .slice(-5)
       .reverse()
       .map(
-        (entry) => `
+        entry => `
         <div class="entry">
           ${entry.type.toUpperCase()} @ block ${entry.payload.block_height || 'soon'}
           <br />
@@ -371,7 +367,7 @@ async function submitOrder(event) {
     order_type: formData.get('orderType'),
     expiry: Math.floor(Date.now() / 1000) + 3600,
     nonce: Date.now(),
-    session_token: session.sessionToken
+    session_token: session.sessionToken,
   };
 
   const payloadStr = stableStringify(payload);
@@ -381,7 +377,7 @@ async function submitOrder(event) {
   const res = await fetch(`${host}/wallet-trades/orders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   $('#tradeMessage').textContent = data.message || 'Order request sent';
@@ -419,7 +415,7 @@ async function runPersonalAiSwap() {
     from_coin: $('#aiFromCoin').value.trim() || 'XAI',
     to_coin: $('#aiToCoin').value.trim() || 'ADA',
     amount: parseFloat($('#aiAmount').value) || 0,
-    recipient_address: $('#aiRecipient').value.trim() || userAddress
+    recipient_address: $('#aiRecipient').value.trim() || userAddress,
   };
 
   if (!userAddress) {
@@ -451,9 +447,9 @@ async function runPersonalAiSwap() {
         'X-User-Address': userAddress,
         'X-AI-Provider': provider,
         'X-AI-Model': model,
-        'X-User-API-Key': apiKey
+        'X-User-API-Key': apiKey,
       },
-      body: JSON.stringify({ swap_details: swapDetails })
+      body: JSON.stringify({ swap_details: swapDetails }),
     });
     const data = await res.json();
     if (data.success) {
@@ -475,8 +471,8 @@ async function runPersonalAiSwap() {
 }
 
 async function getStoredAiKey() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['personalAiApiKey'], (result) => {
+  return new Promise(resolve => {
+    chrome.storage.local.get(['personalAiApiKey'], result => {
       resolve(result.personalAiApiKey || '');
     });
   });
@@ -501,13 +497,13 @@ function bindActions() {
   $('#runAiSwap').addEventListener('click', runPersonalAiSwap);
   $('#clearAiKey').addEventListener('click', clearStoredAiKey);
 
-  $('#apiHost').addEventListener('change', (event) => {
+  $('#apiHost').addEventListener('change', event => {
     setApiHost(event.target.value.trim());
   });
 }
 
 function restoreSettings() {
-  chrome.storage.local.get(['walletAddress', API_KEY], (result) => {
+  chrome.storage.local.get(['walletAddress', API_KEY], result => {
     if (result.walletAddress) {
       $('#walletAddress').value = result.walletAddress;
     }
@@ -516,7 +512,7 @@ function restoreSettings() {
     }
   });
 
-  $('#walletAddress').addEventListener('change', async (event) => {
+  $('#walletAddress').addEventListener('change', async event => {
     chrome.storage.local.set({ walletAddress: event.target.value.trim() });
     await ensureSession();
   });

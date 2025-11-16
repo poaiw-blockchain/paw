@@ -94,7 +94,7 @@ checksum:
   algorithm: sha256
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  name_template: '{{ incpatch .Version }}-next'
 
 changelog:
   sort: asc
@@ -124,7 +124,7 @@ release:
     name: paw
   draft: false
   prerelease: auto
-  name_template: "PAW Blockchain v{{.Version}}"
+  name_template: 'PAW Blockchain v{{.Version}}'
   header: |
     ## PAW Blockchain Release {{.Version}}
 
@@ -159,37 +159,37 @@ announce:
 # Docker images configuration (optional)
 dockers:
   - image_templates:
-      - "ghcr.io/paw-chain/paw:{{ .Version }}-amd64"
-      - "ghcr.io/paw-chain/paw:latest-amd64"
+      - 'ghcr.io/paw-chain/paw:{{ .Version }}-amd64'
+      - 'ghcr.io/paw-chain/paw:latest-amd64'
     use: buildx
     dockerfile: Dockerfile
     build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+      - '--platform=linux/amd64'
+      - '--label=org.opencontainers.image.created={{.Date}}'
+      - '--label=org.opencontainers.image.title={{.ProjectName}}'
+      - '--label=org.opencontainers.image.revision={{.FullCommit}}'
+      - '--label=org.opencontainers.image.version={{.Version}}'
 
   - image_templates:
-      - "ghcr.io/paw-chain/paw:{{ .Version }}-arm64"
-      - "ghcr.io/paw-chain/paw:latest-arm64"
+      - 'ghcr.io/paw-chain/paw:{{ .Version }}-arm64'
+      - 'ghcr.io/paw-chain/paw:latest-arm64'
     use: buildx
     dockerfile: Dockerfile
     build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+      - '--platform=linux/arm64'
+      - '--label=org.opencontainers.image.created={{.Date}}'
+      - '--label=org.opencontainers.image.title={{.ProjectName}}'
+      - '--label=org.opencontainers.image.revision={{.FullCommit}}'
+      - '--label=org.opencontainers.image.version={{.Version}}'
 
 # Multi-arch manifest
 docker_manifests:
-  - name_template: "ghcr.io/paw-chain/paw:{{ .Version }}"
+  - name_template: 'ghcr.io/paw-chain/paw:{{ .Version }}'
     image_templates:
-      - "ghcr.io/paw-chain/paw:{{ .Version }}-amd64"
-      - "ghcr.io/paw-chain/paw:{{ .Version }}-arm64"
+      - 'ghcr.io/paw-chain/paw:{{ .Version }}-amd64'
+      - 'ghcr.io/paw-chain/paw:{{ .Version }}-arm64'
 
-  - name_template: "ghcr.io/paw-chain/paw:latest"
+  - name_template: 'ghcr.io/paw-chain/paw:latest'
     image_templates:
-      - "ghcr.io/paw-chain/paw:latest-amd64"
-      - "ghcr.io/paw-chain/paw:latest-arm64"
+      - 'ghcr.io/paw-chain/paw:latest-amd64'
+      - 'ghcr.io/paw-chain/paw:latest-arm64'

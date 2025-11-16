@@ -1,0 +1,199 @@
+---
+# PAW Full Node Deployment
+# For RPC/API gateway nodes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: node
+    tier: blockchain
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: paw
+      component: node
+  template:
+    metadata:
+      labels:
+        app: paw
+        component: node
+        tier: blockchain
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '26660'
+        prometheus.io/path: '/metrics'
+    spec:
+      serviceAccountName: paw-node
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+
+      # Anti-affinity to spread nodes across availability zones
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: component
+                      operator: In
+                      values:
+                        - node
+                topologyKey: topology.kubernetes.io/zone
+
+      initContainers:
+        # Download snapshot for fast sync (optional)
+        - name: download-snapshot
+          image: alpine:3.20
+          command:
+            - sh
+            - -c
+            - |
+              if [ ! -f /data/.initialized ]; then
+                echo "Downloading snapshot..."
+                # wget -O - ${SNAPSHOT_URL} | tar -xzf - -C /data/
+                echo "Snapshot downloaded"
+                touch /data/.initialized
+              else
+                echo "Node already initialized"
+              fi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          env:
+            - name: SNAPSHOT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: snapshot_url
+                  optional: true
+
+      containers:
+        - name: paw
+          image: paw-chain/paw-node:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+
+          env:
+            - name: MONIKER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: chain_id
+            - name: MINIMUM_GAS_PRICES
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: minimum_gas_prices
+            - name: LOG_LEVEL
+              value: 'info'
+            - name: ENABLE_API
+              value: 'true'
+            - name: ENABLE_GRPC
+              value: 'true'
+
+          volumeMounts:
+            - name: data
+              mountPath: /home/paw/.paw/data
+            - name: config
+              mountPath: /home/paw/.paw/config
+            - name: node-config
+              mountPath: /home/paw/.paw/config-template
+
+          resources:
+            requests:
+              cpu: '2'
+              memory: '4Gi'
+            limits:
+              cpu: '4'
+              memory: '8Gi'
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ['/bin/sh', '-c', 'sleep 30']
+
+      volumes:
+        - name: node-config
+          configMap:
+            name: paw-node-config
+
+      terminationGracePeriodSeconds: 60
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: paw-storage-fast
+        resources:
+          requests:
+            storage: 500Gi
+    - metadata:
+        name: config
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: paw-storage-fast
+        resources:
+          requests:
+            storage: 1Gi
+
+---
+# Service Account for Node
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: node

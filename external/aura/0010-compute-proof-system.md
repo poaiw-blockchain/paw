@@ -26,6 +26,7 @@ Define a cryptographically verifiable compute proof system combining TEE (Truste
 Remote attestation from Intel SGX, AMD SEV-SNP, or AWS Nitro Enclaves provides cryptographic proof that code executed in a verified enclave.
 
 **Quote Structure:**
+
 ```
 {
   "task_id": "uuid-v4",
@@ -39,12 +40,14 @@ Remote attestation from Intel SGX, AMD SEV-SNP, or AWS Nitro Enclaves provides c
 ```
 
 **Attestation Components:**
+
 - **Quote**: Platform-specific attestation report (DCAP quote for SGX, attestation document for Nitro)
 - **Signature**: Signed by TEE platform root key
 - **Certificate Chain**: Validates signing key back to manufacturer root-of-trust
 - **Measurement**: Hash of enclave binary, verified against on-chain whitelist
 
 **Security Properties:**
+
 - Freshness: Nonce prevents replay attacks
 - Integrity: Measurement ensures correct code execution
 - Authenticity: Signature chain validates genuine TEE hardware
@@ -56,6 +59,7 @@ Challenge mechanism for disputing incorrect results when TEE attestation is unav
 **Challenge Period:** 24 hours from proof submission
 
 **Challenge Workflow:**
+
 1. Challenger stakes bond (1,000 PAW minimum)
 2. Challenger submits claim: `{task_id, correct_output_hash, evidence_url}`
 3. Arbitration period: 72 hours for resolution
@@ -65,11 +69,13 @@ Challenge mechanism for disputing incorrect results when TEE attestation is unav
    - Governance vote (for edge cases)
 
 **Slashing:**
+
 - If fraud proven: Compute agent loses stake (minimum 10,000 PAW)
 - If frivolous challenge: Challenger loses bond
 - Slashed funds: 50% to challenger, 50% to community pool
 
 **Challenge Bond Calculation:**
+
 ```
 bond = max(1000, task_fee * 10)
 ```
@@ -79,6 +85,7 @@ bond = max(1000, task_fee * 10)
 Zero-knowledge proofs for privacy-preserving compute, enabling verification without revealing inputs/outputs.
 
 **Use Cases:**
+
 - Private ML inference
 - Confidential data processing
 - Regulatory compliance (GDPR, HIPAA)
@@ -147,6 +154,7 @@ Zero-knowledge proofs for privacy-preserving compute, enabling verification with
    - Output content stored on IPFS/Arweave (referenced by hash)
 
 **Verification Pseudocode:**
+
 ```python
 def verify_tee_attestation(task_id, attestation):
     # 1. Extract quote and signature
@@ -233,6 +241,7 @@ class ComputeProofMonitor:
 ```
 
 **Alert Thresholds:**
+
 - `risk_score > 0.9`: Auto-challenge
 - `risk_score > 0.7`: Flag for manual review
 - `risk_score > 0.5`: Enhanced monitoring
@@ -240,6 +249,7 @@ class ComputeProofMonitor:
 ### Proof Format
 
 **Complete Proof Submission:**
+
 ```json
 {
   "version": "1.0",
@@ -249,10 +259,7 @@ class ComputeProofMonitor:
     "platform": "sgx",
     "quote": "AwACAAAAAAAKAA...(base64)",
     "signature": "MEUCIQDx7...(base64)",
-    "certificate_chain": [
-      "MIIEoTCCA...(base64)",
-      "MIICjzCCA...(base64)"
-    ]
+    "certificate_chain": ["MIIEoTCCA...(base64)", "MIICjzCCA...(base64)"]
   },
   "task_data": {
     "input_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -272,11 +279,13 @@ class ComputeProofMonitor:
 ### Enclave Governance
 
 **Whitelist Management:**
+
 - Initial whitelist: Governance proposal with security audit
 - Updates: 7-day voting period, 66% threshold
 - Emergency removal: Validator set can remove compromised enclaves (50% threshold + 24hr timelock)
 
 **Enclave Metadata:**
+
 ```json
 {
   "measurement": "sha256...",
@@ -293,41 +302,49 @@ class ComputeProofMonitor:
 ### Threat Model
 
 **1. TEE Side-Channel Attacks**
+
 - **Spectre/Meltdown variants**: Require enclave updates when disclosed
 - **Cache timing attacks**: Enclave code must use constant-time operations
 - **Mitigation**: Regular security audits, rapid patch deployment via governance
 
 **2. Enclave Compromise**
+
 - **Supply chain attacks**: Certificate chain validation prevents unauthorized enclaves
 - **Extraction attacks**: Physical security assumed (agents responsible for hardware security)
 - **Mitigation**: Multiple TEE platform support reduces single point of failure
 
 **3. Attestation Replay**
+
 - **Attack**: Resubmit old attestation for new task
 - **Mitigation**: Nonce uniqueness check, timestamp freshness, task_id binding
 
 **4. Economic Attacks**
 
 **Sybil Attacks:**
+
 - Create many agents, accept tasks, submit invalid proofs
 - **Mitigation**: Minimum stake (10,000 PAW), reputation system
 
 **Griefing Attacks:**
+
 - Spam frivolous challenges to tie up compute agents
 - **Mitigation**: Challenge bonds, slashing for false challenges
 
 **Collusion:**
+
 - Agent + challenger collude to split slashed funds
 - **Mitigation**: Randomized validator re-execution, reputation tracking
 
 ### Attestation Freshness
 
 **Time Synchronization:**
+
 - Agents must sync with NTP servers
 - Acceptable drift: ±30 seconds
 - Verification uses block timestamp (BFT consensus time)
 
 **Nonce Management:**
+
 - 32-byte cryptographically random nonce per task
 - On-chain storage: Bloom filter for recent nonces (last 10,000 tasks)
 - Prevents replay while bounding state growth
@@ -335,11 +352,13 @@ class ComputeProofMonitor:
 ### Privacy Leakage
 
 **Attestation Metadata:**
+
 - Task parameters may reveal sensitive info
 - **Mitigation**: Support encrypted task inputs (Phase 2)
 - Output stored off-chain; only hash on-chain
 
 **Agent Tracking:**
+
 - Agent address linkable across tasks
 - **Mitigation**: Support key rotation, privacy-preserving agent selection (Phase 2)
 
@@ -348,17 +367,20 @@ class ComputeProofMonitor:
 ### Phase 1: Testnet
 
 **Week 1-2: Verification Logic Audit**
+
 - External security review of on-chain verification contract
 - Focus: Signature validation, nonce management, timestamp handling
 - Deliverable: Audit report with remediation plan
 
 **Week 3-4: TEE Pentesting**
+
 - Side-channel attack simulation
 - Enclave binary reverse engineering attempts
 - Physical security assessment (if applicable)
 - Deliverable: Pentest report, updated enclave code
 
 **Week 5-6: Economic Attack Simulation**
+
 - Sybil attack with low-stake agents
 - Frivolous challenge spam
 - Collusion scenarios
@@ -367,16 +389,19 @@ class ComputeProofMonitor:
 ### Phase 2: Mainnet Preparation
 
 **Integration Testing:**
+
 - 100+ tasks across different agent implementations
 - Verify fraud detector auto-challenge accuracy
 - Test enclave update governance flow
 
 **Performance Benchmarks:**
+
 - Verification gas costs (target: <100k gas per attestation)
 - Challenge resolution time (target: <24 hours median)
 - Fraud detection false positive rate (target: <1%)
 
 **Chaos Engineering:**
+
 - Network partitions during proof submission
 - Validator Byzantine behavior
 - TEE platform certificate expiry

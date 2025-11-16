@@ -21,9 +21,11 @@ This repo hosts the condensed PAW release: a lean layer-1 blockchain with a buil
 4. See `TOOLS_SETUP.md` for all installed development tools (linters, formatters, security scanners, etc.)
 
 ## Publishing
+
 Use the provided GitHub remote to push once the implementation is ready. The repository is configured to deploy the content above and should host any future contracts, SDKs, or UI prototypes.
 
 ## Reused Assets
+
 - `external/aura/0003-ai-assistant-network.md` and `0006-wallet-light-client.md` document the wallet, assistant, and verifier flows we’re adopting for PAW’s compute plane and mobile GUI.
 - `external/crypto/docs/*` contains onboarding, embedded-wallet, mobile bridge, light-client, and notification specs ready for PAW’s multi-device experience.
 - `external/crypto/ai` brings fee optimization, fraud detection, and API-rotator helpers that can be wired into the reward/compute subsystems.
@@ -31,6 +33,7 @@ Use the provided GitHub remote to push once the implementation is ready. The rep
 - `wallet/fernet_storage.py` demonstrates how PAW will replace the legacy XOR/weak storage layers with Fernet-authenticated encryption for any wallet payloads we ship.
 
 ## Bootstrap & Node Configuration
+
 - `infra/node-config.yaml` encodes the validator roster, emission schedule, and reward breakdown used by our controller.
 - `scripts/bootstrap-node.sh` initializes the `infra/node` directory, writes a placeholder genesis file, emits Fernet salts, and prepares `infra/node.env` that downstream binaries can consume.
 - `infra/start-test-node.sh` simulates launching the controller node, printing genesis data and reminding operators how to plug in their binary.

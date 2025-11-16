@@ -35,10 +35,12 @@ api/
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - User login
 
 ### Trading/Orders
+
 - `POST /api/orders/create` - Create buy/sell order (protected)
 - `GET /api/orders/book` - Get order book
 - `GET /api/orders/recent` - Get recent trades
@@ -46,12 +48,14 @@ api/
 - `DELETE /api/orders/:order_id` - Cancel order (protected)
 
 ### Wallet
+
 - `GET /api/wallet/balance` - Get wallet balance (protected)
 - `GET /api/wallet/address` - Get wallet address (protected)
 - `POST /api/wallet/send` - Send tokens (protected)
 - `GET /api/wallet/transactions` - Get transaction history (protected)
 
 ### Light Client
+
 - `GET /api/light-client/headers` - Get block headers
 - `GET /api/light-client/headers/:height` - Get specific header
 - `GET /api/light-client/checkpoint` - Get trusted checkpoint
@@ -59,6 +63,7 @@ api/
 - `POST /api/light-client/verify-proof` - Verify transaction proof
 
 ### Atomic Swaps
+
 - `POST /api/atomic-swap/prepare` - Prepare atomic swap (protected)
 - `POST /api/atomic-swap/commit` - Commit to swap (protected)
 - `POST /api/atomic-swap/refund` - Refund expired swap (protected)
@@ -66,6 +71,7 @@ api/
 - `GET /api/atomic-swap/my-swaps` - Get user's swaps (protected)
 
 ### Liquidity Pools
+
 - `GET /api/pools` - Get all pools
 - `GET /api/pools/:pool_id` - Get specific pool
 - `GET /api/pools/:pool_id/liquidity` - Get pool liquidity
@@ -73,16 +79,19 @@ api/
 - `POST /api/pools/remove-liquidity` - Remove liquidity (protected)
 
 ### Market Data
+
 - `GET /api/market/price` - Get current price
 - `GET /api/market/stats` - Get market statistics
 - `GET /api/market/24h` - Get 24-hour statistics
 
 ### WebSocket
+
 - `GET /ws` - WebSocket connection for real-time updates
 
 ## WebSocket Channels
 
 Subscribe to channels by sending:
+
 ```json
 {
   "type": "subscribe",
@@ -91,6 +100,7 @@ Subscribe to channels by sending:
 ```
 
 Available channels:
+
 - `price` - Real-time price updates
 - `orderbook` - Order book updates
 - `trades` - New trade notifications
@@ -98,6 +108,7 @@ Available channels:
 ## Configuration
 
 Environment variables:
+
 - `API_HOST` - Server host (default: "0.0.0.0")
 - `API_PORT` - Server port (default: "5000")
 - `CHAIN_ID` - Blockchain chain ID (default: "paw-1")
@@ -119,6 +130,7 @@ go run api/cmd/main.go
 ## Example Usage
 
 ### Register User
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -129,6 +141,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ```
 
 ### Login
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -139,6 +152,7 @@ curl -X POST http://localhost:5000/api/auth/login \
 ```
 
 ### Create Buy Order
+
 ```bash
 curl -X POST http://localhost:5000/api/orders/create \
   -H "Content-Type: application/json" \
@@ -151,11 +165,13 @@ curl -X POST http://localhost:5000/api/orders/create \
 ```
 
 ### Get Order Book
+
 ```bash
 curl http://localhost:5000/api/orders/book
 ```
 
 ### Get Wallet Balance
+
 ```bash
 curl http://localhost:5000/api/wallet/balance \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"

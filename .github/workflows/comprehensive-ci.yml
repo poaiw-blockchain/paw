@@ -2,9 +2,9 @@ name: Comprehensive CI/CD Pipeline
 
 on:
   push:
-    branches: ["**"]  # Run on every push to any branch
+    branches: ['**'] # Run on every push to any branch
   pull_request:
-    branches: ["**"]
+    branches: ['**']
 
 permissions:
   contents: read
