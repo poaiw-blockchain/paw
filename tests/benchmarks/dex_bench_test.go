@@ -5,8 +5,6 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // BenchmarkCreatePool benchmarks the creation of liquidity pools

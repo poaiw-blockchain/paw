@@ -7,14 +7,12 @@ import (
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
-	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -173,8 +171,8 @@ func (suite *AppTestSuite) TestDexModuleIntegration() {
 	require.Greater(suite.T(), poolID, uint64(0))
 
 	// Verify pool exists
-	pool, found := suite.app.DEXKeeper.GetPool(suite.ctx, poolID)
-	require.True(suite.T(), found)
+	pool := suite.app.DEXKeeper.GetPool(suite.ctx, poolID)
+	require.NotNil(suite.T(), pool)
 	require.Equal(suite.T(), "upaw", pool.TokenA)
 	require.Equal(suite.T(), "uusdt", pool.TokenB)
 }
