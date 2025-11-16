@@ -231,25 +231,17 @@ func TestAddLiquidity(t *testing.T) {
 			poolBefore := k.GetPool(ctx, tt.poolId)
 			require.NotNil(t, poolBefore)
 
-			msg := &types.MsgAddLiquidity{
-				Provider: "paw1provider",
-				PoolId:   tt.poolId,
-				AmountA:  tt.amountA,
-				AmountB:  tt.amountB,
-			}
-
-			resp, err := k.AddLiquidity(ctx, msg)
+			liquidityTokens, err := k.AddLiquidity(ctx, "paw1provider", tt.poolId, tt.amountA, tt.amountB)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errMsg != "" {
 					require.Contains(t, err.Error(), tt.errMsg)
 				}
-				require.Nil(t, resp)
+				require.True(t, liquidityTokens.IsNil() || liquidityTokens.IsZero())
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.True(t, resp.LiquidityTokens.GT(sdk.ZeroInt()))
+				require.True(t, liquidityTokens.GT(math.ZeroInt()))
 
 				// Verify reserves increased
 				poolAfter, found := k.GetPool(ctx, tt.poolId)
@@ -311,27 +303,18 @@ func TestRemoveLiquidity(t *testing.T) {
 			poolBefore := k.GetPool(ctx, tt.poolId)
 			require.NotNil(t, poolBefore)
 
-			msg := &types.MsgRemoveLiquidity{
-				Provider:        "paw1provider",
-				PoolId:          tt.poolId,
-				LiquidityTokens: tt.liquidityTokens,
-				MinAmountA:      tt.minAmountA,
-				MinAmountB:      tt.minAmountB,
-			}
-
-			resp, err := k.RemoveLiquidity(ctx, msg)
+			amountA, amountB, err := k.RemoveLiquidity(ctx, "paw1provider", tt.poolId, tt.liquidityTokens)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errMsg != "" {
 					require.Contains(t, err.Error(), tt.errMsg)
 				}
-				require.Nil(t, resp)
+				require.True(t, (amountA.IsNil() || amountA.IsZero()) && (amountB.IsNil() || amountB.IsZero()))
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.True(t, resp.AmountA.GTE(tt.minAmountA))
-				require.True(t, resp.AmountB.GTE(tt.minAmountB))
+				require.True(t, amountA.GTE(tt.minAmountA))
+				require.True(t, amountB.GTE(tt.minAmountB))
 
 				// Verify reserves decreased proportionally
 				poolAfter, found := k.GetPool(ctx, tt.poolId)
