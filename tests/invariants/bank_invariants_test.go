@@ -20,7 +20,7 @@ import (
 
 type BankInvariantsTestSuite struct {
 	suite.Suite
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 }
 

@@ -1,0 +1,90 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "paw/compute/v1/compute.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // RegisterProvider registers a new compute provider
+  rpc RegisterProvider(MsgRegisterProvider) returns (MsgRegisterProviderResponse);
+
+  // SubmitTask submits a new compute task
+  rpc SubmitTask(MsgSubmitTask) returns (MsgSubmitTaskResponse);
+
+  // VerifyTask verifies a compute task
+  rpc VerifyTask(MsgVerifyTask) returns (MsgVerifyTaskResponse);
+
+  // UpdateParams updates the module parameters
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// MsgRegisterProvider registers a new compute provider
+message MsgRegisterProvider {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgRegisterProvider";
+
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string endpoint = 2;
+  string stake = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgRegisterProviderResponse defines the response for MsgRegisterProvider
+message MsgRegisterProviderResponse {}
+
+// MsgSubmitTask submits a new compute task
+message MsgSubmitTask {
+  option (cosmos.msg.v1.signer) = "requester";
+  option (amino.name) = "paw/compute/MsgSubmitTask";
+
+  string requester = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string task_type = 2;
+  bytes input_data = 3;
+  bytes expected_output = 4;
+  string reward = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgSubmitTaskResponse defines the response for MsgSubmitTask
+message MsgSubmitTaskResponse {
+  uint64 task_id = 1;
+}
+
+// MsgVerifyTask verifies a compute task
+message MsgVerifyTask {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgVerifyTask";
+
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  uint64 task_id = 2;
+  bytes output_data = 3;
+}
+
+// MsgVerifyTaskResponse defines the response for MsgVerifyTask
+message MsgVerifyTaskResponse {}
+
+// MsgUpdateParams updates the module parameters
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/compute/MsgUpdateParams";
+
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// MsgUpdateParamsResponse defines the response for MsgUpdateParams
+message MsgUpdateParamsResponse {}

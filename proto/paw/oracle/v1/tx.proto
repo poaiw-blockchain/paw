@@ -1,0 +1,64 @@
+syntax = "proto3";
+package paw.oracle.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "paw/oracle/v1/oracle.proto";
+
+option go_package = "github.com/paw-chain/paw/x/oracle/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // RegisterOracle registers a new oracle validator
+  rpc RegisterOracle(MsgRegisterOracle) returns (MsgRegisterOracleResponse);
+
+  // SubmitPrice submits a price feed update
+  rpc SubmitPrice(MsgSubmitPrice) returns (MsgSubmitPriceResponse);
+
+  // UpdateParams updates the module parameters
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// MsgRegisterOracle registers a validator as an oracle
+message MsgRegisterOracle {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name) = "paw/oracle/MsgRegisterOracle";
+
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// MsgRegisterOracleResponse defines the response for MsgRegisterOracle
+message MsgRegisterOracleResponse {}
+
+// MsgSubmitPrice submits a price feed update
+message MsgSubmitPrice {
+  option (cosmos.msg.v1.signer) = "oracle";
+  option (amino.name) = "paw/oracle/MsgSubmitPrice";
+
+  string oracle = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string asset = 2;
+  string price = 3 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgSubmitPriceResponse defines the response for MsgSubmitPrice
+message MsgSubmitPriceResponse {}
+
+// MsgUpdateParams updates the module parameters
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/oracle/MsgUpdateParams";
+
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// MsgUpdateParamsResponse defines the response for MsgUpdateParams
+message MsgUpdateParamsResponse {}

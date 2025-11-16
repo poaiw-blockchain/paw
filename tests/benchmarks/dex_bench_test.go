@@ -33,8 +33,8 @@ func BenchmarkSwapExactAmountIn(b *testing.B) {
 	// k, ctx := setupKeeper(b)
 	// setupTestPool(k, ctx)
 
-	sender := sdk.AccAddress("sender______________")
-	tokenIn := sdk.NewCoin("upaw", math.NewInt(1000))
+	_ = sdk.AccAddress("sender______________")
+	_ = sdk.NewCoin("upaw", math.NewInt(1000))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -51,8 +51,8 @@ func BenchmarkSwapExactAmountIn(b *testing.B) {
 
 // BenchmarkSwapExactAmountOut benchmarks token swaps with exact output amount
 func BenchmarkSwapExactAmountOut(b *testing.B) {
-	sender := sdk.AccAddress("sender______________")
-	tokenOut := sdk.NewCoin("uatom", math.NewInt(1000))
+	_ = sdk.AccAddress("sender______________")
+	_ = sdk.NewCoin("uatom", math.NewInt(1000))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -62,9 +62,9 @@ func BenchmarkSwapExactAmountOut(b *testing.B) {
 
 // BenchmarkJoinPool benchmarks adding liquidity to a pool
 func BenchmarkJoinPool(b *testing.B) {
-	sender := sdk.AccAddress("sender______________")
-	shareOutAmount := math.NewInt(1000000)
-	maxAmountsIn := sdk.NewCoins(
+	_ = sdk.AccAddress("sender______________")
+	_ = math.NewInt(1000000)
+	_ = sdk.NewCoins(
 		sdk.NewCoin("upaw", math.NewInt(1000000)),
 		sdk.NewCoin("uatom", math.NewInt(1000000)),
 	)
@@ -80,9 +80,9 @@ func BenchmarkJoinPool(b *testing.B) {
 
 // BenchmarkExitPool benchmarks removing liquidity from a pool
 func BenchmarkExitPool(b *testing.B) {
-	sender := sdk.AccAddress("sender______________")
-	shareInAmount := math.NewInt(100000)
-	minAmountsOut := sdk.NewCoins(
+	_ = sdk.AccAddress("sender______________")
+	_ = math.NewInt(100000)
+	_ = sdk.NewCoins(
 		sdk.NewCoin("upaw", math.NewInt(100000)),
 		sdk.NewCoin("uatom", math.NewInt(100000)),
 	)
@@ -96,9 +96,9 @@ func BenchmarkExitPool(b *testing.B) {
 // BenchmarkCalculateSpotPrice benchmarks spot price calculation
 func BenchmarkCalculateSpotPrice(b *testing.B) {
 	// Setup pool state
-	reserveA := math.NewInt(1000000)
-	reserveB := math.NewInt(2000000)
-	swapFee := sdk.NewDecWithPrec(3, 3) // 0.3%
+	_ = math.NewInt(1000000)
+	_ = math.NewInt(2000000)
+	_ = sdk.NewDecWithPrec(3, 3) // 0.3%
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -110,10 +110,10 @@ func BenchmarkCalculateSpotPrice(b *testing.B) {
 
 // BenchmarkCalculateOutGivenIn benchmarks the AMM formula for output amount
 func BenchmarkCalculateOutGivenIn(b *testing.B) {
-	reserveIn := math.NewInt(1000000)
-	reserveOut := math.NewInt(2000000)
-	amountIn := math.NewInt(10000)
-	swapFee := sdk.NewDecWithPrec(3, 3)
+	_ = math.NewInt(1000000)
+	_ = math.NewInt(2000000)
+	_ = math.NewInt(10000)
+	_ = sdk.NewDecWithPrec(3, 3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -125,10 +125,10 @@ func BenchmarkCalculateOutGivenIn(b *testing.B) {
 
 // BenchmarkCalculateInGivenOut benchmarks the AMM formula for input amount
 func BenchmarkCalculateInGivenOut(b *testing.B) {
-	reserveIn := math.NewInt(1000000)
-	reserveOut := math.NewInt(2000000)
-	amountOut := math.NewInt(10000)
-	swapFee := sdk.NewDecWithPrec(3, 3)
+	_ = math.NewInt(1000000)
+	_ = math.NewInt(2000000)
+	_ = math.NewInt(10000)
+	_ = sdk.NewDecWithPrec(3, 3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -140,11 +140,11 @@ func BenchmarkCalculateInGivenOut(b *testing.B) {
 
 // BenchmarkMultiHopSwap benchmarks multi-hop swaps across multiple pools
 func BenchmarkMultiHopSwap(b *testing.B) {
-	sender := sdk.AccAddress("sender______________")
-	tokenIn := sdk.NewCoin("upaw", math.NewInt(1000))
+	_ = sdk.AccAddress("sender______________")
+	_ = sdk.NewCoin("upaw", math.NewInt(1000))
 
 	// Route through multiple pools
-	routes := []types.SwapAmountInRoute{
+	_ = []types.SwapAmountInRoute{
 		{PoolId: 1, TokenOutDenom: "uatom"},
 		{PoolId: 2, TokenOutDenom: "uosmo"},
 		{PoolId: 3, TokenOutDenom: "uusdc"},
@@ -177,7 +177,7 @@ func BenchmarkPoolIteration(b *testing.B) {
 
 // BenchmarkPoolLookup benchmarks looking up a specific pool
 func BenchmarkPoolLookup(b *testing.B) {
-	poolId := uint64(1)
+	_ = uint64(1)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -205,9 +205,9 @@ func BenchmarkSwapLargePool(b *testing.B)  { benchmarkSwapPoolSize(b, 1000000000
 
 func benchmarkSwapPoolSize(b *testing.B, poolSize int64) {
 	// Setup pool with specific size
-	reserveA := math.NewInt(poolSize)
-	reserveB := math.NewInt(poolSize)
-	amountIn := math.NewInt(poolSize / 100) // 1% of pool
+	_ = math.NewInt(poolSize)
+	_ = math.NewInt(poolSize)
+	_ = math.NewInt(poolSize / 100) // 1% of pool
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -219,8 +219,8 @@ func benchmarkSwapPoolSize(b *testing.B, poolSize int64) {
 // Parallel benchmarks
 func BenchmarkParallelSwap(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
-		sender := sdk.AccAddress("sender______________")
-		tokenIn := sdk.NewCoin("upaw", math.NewInt(1000))
+		_ = sdk.AccAddress("sender______________")
+		_ = sdk.NewCoin("upaw", math.NewInt(1000))
 
 		for pb.Next() {
 			// TODO: Implement concurrent swap
@@ -232,8 +232,8 @@ func BenchmarkParallelSwap(b *testing.B) {
 func BenchmarkSwapAllocs(b *testing.B) {
 	b.ReportAllocs()
 
-	sender := sdk.AccAddress("sender______________")
-	tokenIn := sdk.NewCoin("upaw", math.NewInt(1000))
+	_ = sdk.AccAddress("sender______________")
+	_ = sdk.NewCoin("upaw", math.NewInt(1000))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cometbft/cometbft/libs/log"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-
+	"cosmossdk.io/log"
 	"cosmossdk.io/math"
+	dbm "github.com/cosmos/cosmos-db"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -101,21 +101,13 @@ func (n *Network) createValidator(index int) *Validator {
 	db := dbm.NewMemDB()
 
 	logger := log.NewNopLogger()
-	if testing.Verbose() {
-		// Create a writer that writes to the test log
-		writer := &testWriter{t: n.T}
-		logger = log.NewTMLogger(log.NewSyncWriter(writer))
-	}
-
-	// Create app options for testing
-	appOpts := &mockAppOptions{}
 
 	pawApp := app.NewPAWApp(
 		logger,
 		db,
 		nil,
 		true,
-		appOpts,
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID(n.Config.ChainID),
 	)
 
@@ -125,11 +117,7 @@ func (n *Network) createValidator(index int) *Validator {
 	address := sdk.AccAddress(pubKey.Address())
 	valAddress := sdk.ValAddress(address)
 
-	ctx := pawApp.BaseApp.NewContext(false, tmproto.Header{
-		ChainID: n.Config.ChainID,
-		Height:  1,
-		Time:    time.Now(),
-	})
+	ctx := pawApp.BaseApp.NewContext(false)
 
 	validator := &Validator{
 		Index:       index,
@@ -154,7 +142,8 @@ func (n *Network) InitChain(t *testing.T) {
 
 	// Create genesis state
 	genesisState := n.createGenesisState(t)
-	stateBytes, err := json.MarshalIndent(genesisState, "", "  ")
+	encCfg := app.MakeEncodingConfig()
+	stateBytes, err := encCfg.Codec.MarshalJSON(genesisState)
 	require.NoError(t, err)
 
 	// Initialize each validator
@@ -178,7 +167,7 @@ func (n *Network) createGenesisState(t *testing.T) map[string]json.RawMessage {
 	t.Helper()
 
 	encCfg := app.MakeEncodingConfig()
-	genesisState := app.NewDefaultGenesisState(n.Config.ChainID)
+	genesisState := n.Validators[0].App.DefaultGenesis()
 
 	// Create accounts and balances
 	accounts := make([]authtypes.GenesisAccount, 0, len(n.Validators))

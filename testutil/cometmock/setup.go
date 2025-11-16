@@ -6,22 +6,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	dbm "github.com/cometbft/cometbft-db"
+	"cosmossdk.io/log"
+	dbm "github.com/cosmos/cosmos-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 
 	"github.com/paw-chain/paw/app"
 )
 
 // CometMockApp wraps the PAW app with CometMock for testing
 type CometMockApp struct {
-	*app.App
+	*app.PAWApp
 	ctx          sdk.Context
 	blockHeight  int64
 	blockTime    time.Time
@@ -37,7 +38,6 @@ type CometMockConfig struct {
 	ChainID          string
 	InitialHeight    int64
 	AccountAddresses []sdk.AccAddress
-	GenesisAccounts  []app.GenesisAccount
 }
 
 // DefaultCometMockConfig returns default configuration for CometMock
@@ -57,16 +57,12 @@ func SetupCometMock(t *testing.T, config CometMockConfig) *CometMockApp {
 	db := dbm.NewMemDB()
 	encCfg := app.MakeEncodingConfig()
 
-	pawApp := app.NewApp(
+	pawApp := app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID(config.ChainID),
 	)
 
@@ -94,17 +90,10 @@ func SetupCometMock(t *testing.T, config CometMockConfig) *CometMockApp {
 	require.NoError(t, err)
 
 	// Create initial context
-	header := tmproto.Header{
-		ChainID:         config.ChainID,
-		Height:          config.InitialHeight,
-		Time:            time.Now(),
-		ProposerAddress: proposer.Address,
-	}
-
-	ctx := pawApp.BaseApp.NewContext(false, header)
+	ctx := pawApp.BaseApp.NewContext(false)
 
 	mockApp := &CometMockApp{
-		App:          pawApp,
+		PAWApp:       pawApp,
 		ctx:          ctx,
 		blockHeight:  config.InitialHeight,
 		blockTime:    time.Now(),
@@ -131,22 +120,22 @@ func (m *CometMockApp) BeginBlock(txs [][]byte) {
 		},
 	}
 
-	_, err := m.App.BeginBlocker(m.ctx.WithBlockHeader(header))
+	_, err := m.PAWApp.BeginBlocker(m.ctx.WithBlockHeader(header))
 	if err != nil {
 		panic(err)
 	}
 
-	m.ctx = m.App.BaseApp.NewContext(false, header)
+	m.ctx = m.PAWApp.BaseApp.NewContext(false)
 }
 
 // EndBlock simulates ending the current block
 func (m *CometMockApp) EndBlock() {
-	_, err := m.App.EndBlocker(m.ctx)
+	_, err := m.PAWApp.EndBlocker(m.ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = m.App.Commit()
+	_, err = m.PAWApp.Commit()
 	if err != nil {
 		panic(err)
 	}
@@ -154,9 +143,14 @@ func (m *CometMockApp) EndBlock() {
 
 // DeliverTx simulates delivering a transaction
 func (m *CometMockApp) DeliverTx(tx []byte) (*abci.ExecTxResult, error) {
-	req := &abci.RequestDeliverTx{Tx: tx}
-	res, err := m.App.BaseApp.DeliverTx(req)
-	return res, err
+	// Note: RequestDeliverTx is deprecated in newer versions
+	// For now, we'll use a simplified approach
+	res := m.PAWApp.BaseApp.DeliverTx(abci.RequestDeliverTx{Tx: tx})
+	return &abci.ExecTxResult{
+		Code: res.Code,
+		Data: res.Data,
+		Log:  res.Log,
+	}, nil
 }
 
 // Context returns the current SDK context

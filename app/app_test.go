@@ -26,20 +26,17 @@ import (
 
 type AppTestSuite struct {
 	suite.Suite
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 }
 
 func (suite *AppTestSuite) SetupTest() {
 	db := dbm.NewMemDB()
-	suite.app = app.New(
+	suite.app = app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID("paw-testnet-1"),
 	)
@@ -56,14 +53,11 @@ func TestNewApp(t *testing.T) {
 	db := dbm.NewMemDB()
 	logger := log.NewNopLogger()
 
-	app := app.New(
+	app := app.NewPAWApp(
 		logger,
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 	)
 
@@ -79,14 +73,11 @@ func TestNewApp(t *testing.T) {
 // TestAppModules validates all required modules are registered
 func TestAppModules(t *testing.T) {
 	db := dbm.NewMemDB()
-	app := app.New(
+	app := app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 	)
 
@@ -123,14 +114,11 @@ func TestAppModules(t *testing.T) {
 // TestExportAppStateAndValidators validates genesis export
 func TestExportAppStateAndValidators(t *testing.T) {
 	db := dbm.NewMemDB()
-	app := app.New(
+	app := app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 	)
 
@@ -250,14 +238,11 @@ func (suite *AppTestSuite) TestOracleModuleIntegration() {
 // TestModuleAccountsExist validates module accounts are created
 func TestModuleAccountsExist(t *testing.T) {
 	db := dbm.NewMemDB()
-	app := app.New(
+	app := app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 	)
 
