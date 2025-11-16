@@ -3,14 +3,15 @@ package invariants_test
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -26,25 +27,17 @@ type BankInvariantsTestSuite struct {
 
 func (s *BankInvariantsTestSuite) SetupTest() {
 	db := dbm.NewMemDB()
-	encCfg := app.MakeEncodingConfig()
 
-	s.app = app.NewApp(
+	s.app = app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID("paw-test-1"),
 	)
 
-	s.ctx = s.app.BaseApp.NewContext(false, tmproto.Header{
-		ChainID: "paw-test-1",
-		Height:  1,
-	})
+	s.ctx = s.app.BaseApp.NewContext(false).WithChainID("paw-test-1").WithBlockHeight(1)
 }
 
 // InvariantTotalSupply checks that total supply equals sum of all account balances
@@ -52,10 +45,10 @@ func (s *BankInvariantsTestSuite) InvariantTotalSupply() (string, bool) {
 	totalSupply := s.app.BankKeeper.GetSupply(s.ctx, "upaw")
 
 	// Sum all account balances
-	var accountTotal sdk.Int
-	accountTotal = sdk.ZeroInt()
+	var accountTotal math.Int
+	accountTotal = math.ZeroInt()
 
-	s.app.AccountKeeper.IterateAccounts(s.ctx, func(account authtypes.AccountI) bool {
+	s.app.AccountKeeper.IterateAccounts(s.ctx, func(account sdk.AccountI) (stop bool) {
 		balance := s.app.BankKeeper.GetBalance(s.ctx, account.GetAddress(), "upaw")
 		accountTotal = accountTotal.Add(balance.Amount)
 		return false
@@ -80,14 +73,13 @@ func (s *BankInvariantsTestSuite) InvariantTotalSupply() (string, bool) {
 	broken := !totalSupply.Amount.Equal(accountTotal)
 	msg := ""
 	if broken {
+		formattedMsg := "total supply does not equal sum of accounts\n" +
+			"\ttotal supply: " + totalSupply.Amount.String() + "\n" +
+			"\tsum of accounts: " + accountTotal.String() + "\n"
 		msg = sdk.FormatInvariant(
 			banktypes.ModuleName,
 			"total supply",
-			"total supply does not equal sum of accounts\n"+
-				"\ttotal supply: %s\n"+
-				"\tsum of accounts: %s\n",
-			totalSupply.Amount.String(),
-			accountTotal.String(),
+			formattedMsg,
 		)
 	}
 
@@ -99,18 +91,17 @@ func (s *BankInvariantsTestSuite) InvariantNonNegativeBalances() (string, bool) 
 	var msg string
 	var broken bool
 
-	s.app.AccountKeeper.IterateAccounts(s.ctx, func(account authtypes.AccountI) bool {
+	s.app.AccountKeeper.IterateAccounts(s.ctx, func(account sdk.AccountI) (stop bool) {
 		balances := s.app.BankKeeper.GetAllBalances(s.ctx, account.GetAddress())
 
 		for _, balance := range balances {
 			if balance.Amount.IsNegative() {
 				broken = true
+				formattedMsg := "account " + account.GetAddress().String() + " has negative balance: " + balance.String() + "\n"
 				msg += sdk.FormatInvariant(
 					banktypes.ModuleName,
 					"non-negative balances",
-					"account %s has negative balance: %s\n",
-					account.GetAddress().String(),
-					balance.String(),
+					formattedMsg,
 				)
 			}
 		}

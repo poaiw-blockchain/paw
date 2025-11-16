@@ -18,7 +18,7 @@ import (
 
 type StakingInvariantsTestSuite struct {
 	suite.Suite
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 }
 
