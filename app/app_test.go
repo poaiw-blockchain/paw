@@ -163,8 +163,8 @@ func (suite *AppTestSuite) TestDexModuleIntegration() {
 
 	// Fund account
 	coins := sdk.NewCoins(
-		sdk.NewCoin("upaw", sdk.NewInt(10000000)),
-		sdk.NewCoin("uusdt", sdk.NewInt(10000000)),
+		sdk.NewCoin("upaw", math.NewInt(10000000)),
+		sdk.NewCoin("uusdt", math.NewInt(10000000)),
 	)
 	require.NoError(suite.T(), suite.app.BankKeeper.MintCoins(suite.ctx, dextypes.ModuleName, coins))
 	require.NoError(suite.T(), suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, dextypes.ModuleName, addr, coins))
@@ -174,8 +174,8 @@ func (suite *AppTestSuite) TestDexModuleIntegration() {
 		Creator: addr.String(),
 		TokenA:  "upaw",
 		TokenB:  "uusdt",
-		AmountA: sdk.NewInt(1000000),
-		AmountB: sdk.NewInt(2000000),
+		AmountA: math.NewInt(1000000),
+		AmountB: math.NewInt(2000000),
 	}
 
 	resp, err := suite.app.DexKeeper.CreatePool(suite.ctx, msgCreatePool)
@@ -197,7 +197,7 @@ func (suite *AppTestSuite) TestComputeModuleIntegration() {
 	providerAddr := sdk.AccAddress(priv.PubKey().Address())
 
 	// Fund provider for stake
-	stakeCoins := sdk.NewCoins(sdk.NewCoin("upaw", sdk.NewInt(1000000)))
+	stakeCoins := sdk.NewCoins(sdk.NewCoin("upaw", math.NewInt(1000000)))
 	require.NoError(suite.T(), suite.app.BankKeeper.MintCoins(suite.ctx, computetypes.ModuleName, stakeCoins))
 	require.NoError(suite.T(), suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, computetypes.ModuleName, providerAddr, stakeCoins))
 
@@ -205,7 +205,7 @@ func (suite *AppTestSuite) TestComputeModuleIntegration() {
 	msgRegister := &computetypes.MsgRegisterProvider{
 		Provider: providerAddr.String(),
 		Endpoint: "https://api.provider.io",
-		Stake:    sdk.NewInt(100000),
+		Stake:    math.NewInt(100000),
 	}
 
 	_, err := suite.app.ComputeKeeper.RegisterProvider(suite.ctx, msgRegister)

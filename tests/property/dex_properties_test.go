@@ -7,8 +7,6 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // Property: Pool creation should be commutative (order doesn't matter)

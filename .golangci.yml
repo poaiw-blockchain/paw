@@ -4,10 +4,7 @@ run:
   build-tags:
     - netgo
     - ledger
-  skip-dirs:
-    - docs
-    - proto
-    - third_party
+  skip-dirs-use-default: false
 
 linters:
   enable:
@@ -59,6 +56,10 @@ linters-settings:
     checks: ['all', '-ST1003'] # Allow underscores in func names for test helpers
 
 issues:
+  exclude-dirs:
+    - docs
+    - proto
+    - third_party
   exclude-rules:
     # Exclude some linters from running on tests files
     - path: _test\.go

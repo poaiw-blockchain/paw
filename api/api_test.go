@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,10 +21,14 @@ func setupTestServer(t *testing.T) *Server {
 	interfaceRegistry := types.NewInterfaceRegistry()
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
+	// Create in-memory keyring for testing
+	kr := keyring.NewInMemory(marshaler)
+
 	// Create client context
 	clientCtx := client.Context{}.
 		WithCodec(marshaler).
-		WithInterfaceRegistry(interfaceRegistry)
+		WithInterfaceRegistry(interfaceRegistry).
+		WithKeyring(kr)
 
 	// Create test config
 	config := &Config{
