@@ -169,8 +169,9 @@ func (s *CometMockE2ETestSuite) TestQueryDuringBlockProduction() {
 	s.Require().NoError(err)
 
 	// Query total supply
-	req := &banktypes.QueryTotalSupplyRequest{}
-	queryServer := s.app.BankKeeper
+	// TODO: Implement total supply query when query server is available
+	_ = &banktypes.QueryTotalSupplyRequest{}
+	_ = s.app.BankKeeper
 
 	// This would require actual query implementation
 	// resp, err := queryServer.TotalSupply(ctx, req)

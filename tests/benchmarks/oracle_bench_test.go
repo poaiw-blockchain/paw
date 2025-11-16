@@ -80,7 +80,7 @@ func BenchmarkMultiplePriceFeeds(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pair := pairs[i%len(pairs)]
 		feeder := feeders[i%len(feeders)]
-		price := sdk.NewDec(int64(100 + i%50))
+		price := math.LegacyNewDec(int64(100 + i%50))
 
 		// TODO: Implement price update
 		_ = pair

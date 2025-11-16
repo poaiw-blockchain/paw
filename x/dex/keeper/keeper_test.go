@@ -15,7 +15,7 @@ import (
 
 type KeeperTestSuite struct {
 	suite.Suite
-	keeper *keeper.Keeper
+	keeper keeper.Keeper
 	ctx    sdk.Context
 }
 

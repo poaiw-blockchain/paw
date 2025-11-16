@@ -51,11 +51,7 @@ func TestFullAppSimulation(t *testing.T) {
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		simcli.FlagPeriodValue,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID(config.ChainID),
 	)
 
@@ -203,11 +199,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		simcli.FlagPeriodValue,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID(config.ChainID),
 	)
 
@@ -319,11 +311,7 @@ func TestSimulationWithInvariants(t *testing.T) {
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		simcli.FlagPeriodValue,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID(config.ChainID),
 	)
 
