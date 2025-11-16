@@ -244,8 +244,8 @@ func TestAddLiquidity(t *testing.T) {
 				require.True(t, liquidityTokens.GT(math.ZeroInt()))
 
 				// Verify reserves increased
-				poolAfter, found := k.GetPool(ctx, tt.poolId)
-				require.True(t, found)
+				poolAfter := k.GetPool(ctx, tt.poolId)
+				require.NotNil(t, poolAfter)
 				require.Equal(t, poolBefore.ReserveA.Add(tt.amountA), poolAfter.ReserveA)
 				require.Equal(t, poolBefore.ReserveB.Add(tt.amountB), poolAfter.ReserveB)
 			}
@@ -317,8 +317,8 @@ func TestRemoveLiquidity(t *testing.T) {
 				require.True(t, amountB.GTE(tt.minAmountB))
 
 				// Verify reserves decreased proportionally
-				poolAfter, found := k.GetPool(ctx, tt.poolId)
-				require.True(t, found)
+				poolAfter := k.GetPool(ctx, tt.poolId)
+				require.NotNil(t, poolAfter)
 				require.True(t, poolAfter.ReserveA.LT(poolBefore.ReserveA))
 				require.True(t, poolAfter.ReserveB.LT(poolBefore.ReserveB))
 			}

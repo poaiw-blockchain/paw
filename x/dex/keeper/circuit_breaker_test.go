@@ -5,12 +5,10 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/keeper"
-	"github.com/paw-chain/paw/x/dex/types"
 )
 
 func TestCircuitBreakerConfig(t *testing.T) {
