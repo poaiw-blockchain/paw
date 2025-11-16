@@ -89,8 +89,8 @@ func TestCreatePool(t *testing.T) {
 				require.Greater(t, poolID, uint64(0))
 
 				// Verify pool exists and has correct initial state
-				pool, found := k.GetPool(ctx, poolID)
-				require.True(t, found)
+				pool := k.GetPool(ctx, poolID)
+				require.NotNil(t, pool)
 				require.Equal(t, tt.msg.TokenA, pool.TokenA)
 				require.Equal(t, tt.msg.TokenB, pool.TokenB)
 				require.Equal(t, tt.msg.AmountA, pool.ReserveA)
@@ -148,8 +148,8 @@ func TestSwap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Get pool state before swap
-			poolBefore, found := k.GetPool(ctx, tt.poolId)
-			require.True(t, found)
+			poolBefore := k.GetPool(ctx, tt.poolId)
+			require.NotNil(t, poolBefore)
 
 			constantProduct := poolBefore.ReserveA.Mul(poolBefore.ReserveB)
 
@@ -174,8 +174,8 @@ func TestSwap(t *testing.T) {
 
 				if tt.validateOutput {
 					// Verify constant product formula (with fee)
-					poolAfter, found := k.GetPool(ctx, tt.poolId)
-					require.True(t, found)
+					poolAfter := k.GetPool(ctx, tt.poolId)
+					require.NotNil(t, poolAfter)
 
 					newConstantProduct := poolAfter.ReserveA.Mul(poolAfter.ReserveB)
 					// After fees, constant product should increase slightly
@@ -229,8 +229,8 @@ func TestAddLiquidity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			poolBefore, found := k.GetPool(ctx, tt.poolId)
-			require.True(t, found)
+			poolBefore := k.GetPool(ctx, tt.poolId)
+			require.NotNil(t, poolBefore)
 
 			msg := &types.MsgAddLiquidity{
 				Provider: "paw1provider",
@@ -309,8 +309,8 @@ func TestRemoveLiquidity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			poolBefore, found := k.GetPool(ctx, tt.poolId)
-			require.True(t, found)
+			poolBefore := k.GetPool(ctx, tt.poolId)
+			require.NotNil(t, poolBefore)
 
 			msg := &types.MsgRemoveLiquidity{
 				Provider:        "paw1provider",
