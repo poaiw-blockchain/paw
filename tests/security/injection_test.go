@@ -7,7 +7,6 @@ import (
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/app"
@@ -20,7 +19,7 @@ import (
 // InjectionSecurityTestSuite tests input validation and injection vulnerabilities
 type InjectionSecurityTestSuite struct {
 	suite.Suite
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 }
 
@@ -209,10 +208,10 @@ func (suite *InjectionSecurityTestSuite) TestIntegerOverflow_Amounts() {
 	// Test with maximum possible integers
 	testCases := []struct {
 		name   string
-		amount sdk.Int
+		amount math.Int
 	}{
-		{"MaxInt64", sdk.NewInt(9223372036854775807)},
-		{"Near_overflow", sdk.NewInt(9223372036854775806)},
+		{"MaxInt64", math.NewInt(9223372036854775807)},
+		{"Near_overflow", math.NewInt(9223372036854775806)},
 	}
 
 	for _, tc := range testCases {
@@ -228,7 +227,7 @@ func (suite *InjectionSecurityTestSuite) TestIntegerOverflow_Amounts() {
 			err := msg.ValidateBasic()
 			// Should either accept valid large numbers or reject overflow
 			if err == nil {
-				suite.Require().True(tc.amount.GT(sdk.ZeroInt()), "Amount should be positive")
+				suite.Require().True(tc.amount.GT(math.ZeroInt()), "Amount should be positive")
 			}
 		})
 	}

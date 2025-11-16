@@ -112,8 +112,8 @@ func TestSwap(t *testing.T) {
 		name           string
 		poolId         uint64
 		tokenIn        string
-		amountIn       sdk.Int
-		minAmountOut   sdk.Int
+		amountIn       math.Int
+		minAmountOut   math.Int
 		wantErr        bool
 		validateOutput bool
 	}{
@@ -153,24 +153,23 @@ func TestSwap(t *testing.T) {
 
 			constantProduct := poolBefore.ReserveA.Mul(poolBefore.ReserveB)
 
-			msg := &types.MsgSwap{
-				Trader:       "paw1trader",
-				PoolId:       tt.poolId,
-				TokenIn:      tt.tokenIn,
-				AmountIn:     tt.amountIn,
-				MinAmountOut: tt.minAmountOut,
+			// Determine tokenOut based on tokenIn and pool tokens
+			var tokenOut string
+			if tt.tokenIn == "upaw" {
+				tokenOut = "uusdt"
+			} else {
+				tokenOut = "upaw"
 			}
 
-			resp, err := k.Swap(ctx, msg)
+			amountOut, err := k.Swap(ctx, "paw1trader", tt.poolId, tt.tokenIn, tokenOut, tt.amountIn, tt.minAmountOut)
 
 			if tt.wantErr {
 				require.Error(t, err)
-				require.Nil(t, resp)
+				require.True(t, amountOut.IsNil() || amountOut.IsZero())
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.True(t, resp.AmountOut.GT(sdk.ZeroInt()))
-				require.True(t, resp.AmountOut.GTE(tt.minAmountOut))
+				require.True(t, amountOut.GT(math.ZeroInt()))
+				require.True(t, amountOut.GTE(tt.minAmountOut))
 
 				if tt.validateOutput {
 					// Verify constant product formula (with fee)
@@ -197,8 +196,8 @@ func TestAddLiquidity(t *testing.T) {
 	tests := []struct {
 		name    string
 		poolId  uint64
-		amountA sdk.Int
-		amountB sdk.Int
+		amountA math.Int
+		amountB math.Int
 		wantErr bool
 		errMsg  string
 	}{
@@ -273,9 +272,9 @@ func TestRemoveLiquidity(t *testing.T) {
 	tests := []struct {
 		name            string
 		poolId          uint64
-		liquidityTokens sdk.Int
-		minAmountA      sdk.Int
-		minAmountB      sdk.Int
+		liquidityTokens math.Int
+		minAmountA      math.Int
+		minAmountB      math.Int
 		wantErr         bool
 		errMsg          string
 	}{

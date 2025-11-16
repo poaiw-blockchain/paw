@@ -106,7 +106,7 @@ func TestAppModules(t *testing.T) {
 // TestExportAppStateAndValidators validates genesis export
 func TestExportAppStateAndValidators(t *testing.T) {
 	db := dbm.NewMemDB()
-	app := app.NewPAWApp(
+	pawApp := app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
@@ -119,7 +119,7 @@ func TestExportAppStateAndValidators(t *testing.T) {
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)
 
-	_, err = app.InitChain(
+	_, err = pawApp.InitChain(
 		&abci.RequestInitChain{
 			ChainId:       "paw-testnet-1",
 			Validators:    []abci.ValidatorUpdate{},
@@ -127,10 +127,10 @@ func TestExportAppStateAndValidators(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	app.Commit()
+	pawApp.Commit()
 
 	// Export genesis
-	exported, err := app.ExportAppStateAndValidators(false, []string{}, []string{})
+	exported, err := pawApp.ExportAppStateAndValidators(false, []string{}, []string{})
 	require.NoError(t, err)
 	require.NotNil(t, exported.AppState)
 	require.NotNil(t, exported.Validators)

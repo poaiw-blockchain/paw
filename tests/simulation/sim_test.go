@@ -44,7 +44,7 @@ func TestFullAppSimulation(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	encCfg := app.MakeEncodingConfig()
+	_ = app.MakeEncodingConfig()
 
 	pawApp := app.NewPAWApp(
 		logger,
@@ -69,7 +69,7 @@ func TestFullAppSimulation(t *testing.T) {
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
-		pawApp.ModuleAccountAddrs(),
+		app.BlockedModuleAccountAddrs(),
 		config,
 		pawApp.AppCodec(),
 	)
@@ -115,7 +115,7 @@ func TestAppStateDeterminism(t *testing.T) {
 			}
 
 			db := dbm.NewMemDB()
-			encCfg := app.MakeEncodingConfig()
+			_ = app.MakeEncodingConfig()
 
 			pawApp := app.NewPAWApp(
 				logger,
@@ -146,7 +146,7 @@ func TestAppStateDeterminism(t *testing.T) {
 				),
 				simtypes.RandomAccounts,
 				simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
-				pawApp.ModuleAccountAddrs(),
+				app.BlockedModuleAccountAddrs(),
 				config,
 				pawApp.AppCodec(),
 			)
@@ -192,7 +192,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	encCfg := app.MakeEncodingConfig()
+	_ = app.MakeEncodingConfig()
 
 	pawApp := app.NewPAWApp(
 		logger,
@@ -217,7 +217,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
-		pawApp.ModuleAccountAddrs(),
+		app.BlockedModuleAccountAddrs(),
 		config,
 		pawApp.AppCodec(),
 	)
@@ -304,7 +304,7 @@ func TestSimulationWithInvariants(t *testing.T) {
 		require.NoError(t, os.RemoveAll(dir))
 	}()
 
-	encCfg := app.MakeEncodingConfig()
+	_ = app.MakeEncodingConfig()
 
 	pawApp := app.NewPAWApp(
 		logger,
@@ -327,7 +327,7 @@ func TestSimulationWithInvariants(t *testing.T) {
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
-		pawApp.ModuleAccountAddrs(),
+		app.BlockedModuleAccountAddrs(),
 		config,
 		pawApp.AppCodec(),
 	)
@@ -352,7 +352,7 @@ func BenchmarkSimulation(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		db := dbm.NewMemDB()
-		encCfg := app.MakeEncodingConfig()
+		_ = app.MakeEncodingConfig()
 
 		pawApp := app.NewPAWApp(
 			log.NewNopLogger(),
@@ -378,7 +378,7 @@ func BenchmarkSimulation(b *testing.B) {
 			),
 			simtypes.RandomAccounts,
 			simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
-			pawApp.ModuleAccountAddrs(),
+			app.BlockedModuleAccountAddrs(),
 			config,
 			pawApp.AppCodec(),
 		)
