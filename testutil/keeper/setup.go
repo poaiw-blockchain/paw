@@ -4,15 +4,12 @@ import (
 	"testing"
 
 	"cosmossdk.io/log"
-	"cosmossdk.io/math"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/app"
-	"github.com/paw-chain/paw/x/dex/keeper"
 )
 
 // SetupTestApp initializes a test application with all modules

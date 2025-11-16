@@ -10,6 +10,7 @@ import (
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/app"
@@ -18,32 +19,24 @@ import (
 
 type DEXInvariantsTestSuite struct {
 	suite.Suite
-	app       *app.App
+	app       *app.PAWApp
 	ctx       sdk.Context
 	dexKeeper *dexkeeper.Keeper
 }
 
 func (s *DEXInvariantsTestSuite) SetupTest() {
 	db := dbm.NewMemDB()
-	encCfg := app.MakeEncodingConfig()
 
-	s.app = app.NewApp(
+	s.app = app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
-		encCfg,
-		app.GetEnabledProposals(),
+		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID("paw-test-1"),
 	)
 
-	s.ctx = s.app.BaseApp.NewContext(false, tmproto.Header{
-		ChainID: "paw-test-1",
-		Height:  1,
-	})
+	s.ctx = s.app.BaseApp.NewContext(false).WithChainID("paw-test-1").WithBlockHeight(1)
 
 	// Get DEX keeper - adjust based on actual app structure
 	// s.dexKeeper = s.app.DEXKeeper

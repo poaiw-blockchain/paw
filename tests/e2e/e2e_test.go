@@ -23,7 +23,7 @@ import (
 type E2ETestSuite struct {
 	suite.Suite
 
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 
 	// Test accounts
@@ -35,7 +35,7 @@ type E2ETestSuite struct {
 
 func (suite *E2ETestSuite) SetupSuite() {
 	suite.app = suite.setupApp()
-	suite.ctx = suite.app.BaseApp.NewContext(false, cmtproto.Header{ChainID: "paw-e2e-1"})
+	suite.ctx = suite.app.BaseApp.NewContext(false).WithChainID("paw-e2e-1")
 
 	// Create test accounts
 	suite.dexUser = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
@@ -56,16 +56,13 @@ func (suite *E2ETestSuite) SetupSuite() {
 	))
 }
 
-func (suite *E2ETestSuite) setupApp() *app.App {
+func (suite *E2ETestSuite) setupApp() *app.PAWApp {
 	db := dbm.NewMemDB()
-	return app.New(
+	return app.NewPAWApp(
 		log.NewNopLogger(),
 		db,
 		nil,
 		true,
-		map[int64]bool{},
-		app.DefaultNodeHome,
-		0,
 		simtestutil.EmptyAppOptions{},
 		baseapp.SetChainID("paw-e2e-1"),
 	)

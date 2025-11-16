@@ -46,7 +46,7 @@ func TestFullAppSimulation(t *testing.T) {
 
 	encCfg := app.MakeEncodingConfig()
 
-	pawApp := app.NewApp(
+	pawApp := app.NewPAWApp(
 		logger,
 		db,
 		nil,
@@ -69,7 +69,7 @@ func TestFullAppSimulation(t *testing.T) {
 		simtestutil.AppStateFn(
 			pawApp.AppCodec(),
 			pawApp.SimulationManager(),
-			app.NewDefaultGenesisState(encCfg.Codec),
+			app.NewDefaultGenesisState(config.ChainID),
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
@@ -121,7 +121,7 @@ func TestAppStateDeterminism(t *testing.T) {
 			db := dbm.NewMemDB()
 			encCfg := app.MakeEncodingConfig()
 
-			pawApp := app.NewApp(
+			pawApp := app.NewPAWApp(
 				logger,
 				db,
 				nil,
@@ -146,7 +146,7 @@ func TestAppStateDeterminism(t *testing.T) {
 				simtestutil.AppStateFn(
 					pawApp.AppCodec(),
 					pawApp.SimulationManager(),
-					app.NewDefaultGenesisState(encCfg.Codec),
+					app.NewDefaultGenesisState(config.ChainID),
 				),
 				simtypes.RandomAccounts,
 				simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
@@ -198,7 +198,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	encCfg := app.MakeEncodingConfig()
 
-	pawApp := app.NewApp(
+	pawApp := app.NewPAWApp(
 		logger,
 		db,
 		nil,
@@ -221,7 +221,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		simtestutil.AppStateFn(
 			pawApp.AppCodec(),
 			pawApp.SimulationManager(),
-			app.NewDefaultGenesisState(encCfg.Codec),
+			app.NewDefaultGenesisState(config.ChainID),
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
@@ -249,7 +249,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	// Create new app and import state
 	db2 := dbm.NewMemDB()
-	pawApp2 := app.NewApp(
+	pawApp2 := app.NewPAWApp(
 		logger,
 		db2,
 		nil,
@@ -314,7 +314,7 @@ func TestSimulationWithInvariants(t *testing.T) {
 
 	encCfg := app.MakeEncodingConfig()
 
-	pawApp := app.NewApp(
+	pawApp := app.NewPAWApp(
 		logger,
 		db,
 		nil,
@@ -335,7 +335,7 @@ func TestSimulationWithInvariants(t *testing.T) {
 		simtestutil.AppStateFn(
 			pawApp.AppCodec(),
 			pawApp.SimulationManager(),
-			app.NewDefaultGenesisState(encCfg.Codec),
+			app.NewDefaultGenesisState(config.ChainID),
 		),
 		simtypes.RandomAccounts,
 		simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),
@@ -366,7 +366,7 @@ func BenchmarkSimulation(b *testing.B) {
 		db := dbm.NewMemDB()
 		encCfg := app.MakeEncodingConfig()
 
-		pawApp := app.NewApp(
+		pawApp := app.NewPAWApp(
 			log.NewNopLogger(),
 			db,
 			nil,
@@ -386,7 +386,7 @@ func BenchmarkSimulation(b *testing.B) {
 			simtestutil.AppStateFn(
 				pawApp.AppCodec(),
 				pawApp.SimulationManager(),
-				app.NewDefaultGenesisState(encCfg.Codec),
+				app.NewDefaultGenesisState(config.ChainID),
 			),
 			simtypes.RandomAccounts,
 			simtestutil.SimulationOperations(pawApp, pawApp.AppCodec(), config),

@@ -41,7 +41,7 @@ func (suite *AppTestSuite) SetupTest() {
 		baseapp.SetChainID("paw-testnet-1"),
 	)
 
-	suite.ctx = suite.app.BaseApp.NewContext(false, cmtproto.Header{ChainID: "paw-testnet-1"})
+	suite.ctx = suite.app.BaseApp.NewContext(false).WithChainID("paw-testnet-1")
 }
 
 func TestAppTestSuite(t *testing.T) {
@@ -246,7 +246,7 @@ func TestModuleAccountsExist(t *testing.T) {
 		simtestutil.EmptyAppOptions{},
 	)
 
-	ctx := app.BaseApp.NewContext(false, cmtproto.Header{})
+	ctx := app.BaseApp.NewContext(false)
 
 	// Check module accounts exist
 	moduleAccounts := []string{

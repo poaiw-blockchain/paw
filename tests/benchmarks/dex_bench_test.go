@@ -98,7 +98,7 @@ func BenchmarkCalculateSpotPrice(b *testing.B) {
 	// Setup pool state
 	_ = math.NewInt(1000000)
 	_ = math.NewInt(2000000)
-	_ = sdk.NewDecWithPrec(3, 3) // 0.3%
+	_ = math.LegacyNewDecWithPrec(3, 3) // 0.3%
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -113,7 +113,7 @@ func BenchmarkCalculateOutGivenIn(b *testing.B) {
 	_ = math.NewInt(1000000)
 	_ = math.NewInt(2000000)
 	_ = math.NewInt(10000)
-	_ = sdk.NewDecWithPrec(3, 3)
+	_ = math.LegacyNewDecWithPrec(3, 3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -128,7 +128,7 @@ func BenchmarkCalculateInGivenOut(b *testing.B) {
 	_ = math.NewInt(1000000)
 	_ = math.NewInt(2000000)
 	_ = math.NewInt(10000)
-	_ = sdk.NewDecWithPrec(3, 3)
+	_ = math.LegacyNewDecWithPrec(3, 3)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

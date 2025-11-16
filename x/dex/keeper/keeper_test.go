@@ -15,7 +15,7 @@ import (
 
 type KeeperTestSuite struct {
 	suite.Suite
-	keeper keeper.Keeper
+	keeper *keeper.Keeper
 	ctx    sdk.Context
 }
 
@@ -76,21 +76,20 @@ func TestCreatePool(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := k.CreatePool(ctx, tt.msg)
+			poolID, err := k.CreatePool(ctx, tt.msg.Creator, tt.msg.TokenA, tt.msg.TokenB, tt.msg.AmountA, tt.msg.AmountB)
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errMsg != "" {
 					require.Contains(t, err.Error(), tt.errMsg)
 				}
-				require.Nil(t, resp)
+				require.Equal(t, uint64(0), poolID)
 			} else {
 				require.NoError(t, err)
-				require.NotNil(t, resp)
-				require.Greater(t, resp.PoolId, uint64(0))
+				require.Greater(t, poolID, uint64(0))
 
 				// Verify pool exists and has correct initial state
-				pool, found := k.GetPool(ctx, resp.PoolId)
+				pool, found := k.GetPool(ctx, poolID)
 				require.True(t, found)
 				require.Equal(t, tt.msg.TokenA, pool.TokenA)
 				require.Equal(t, tt.msg.TokenB, pool.TokenB)
