@@ -1,105 +1,60 @@
 ## Description
-
-<!-- Provide a clear and concise description of your changes -->
+Please include a summary of the changes and related context. Explain the "why" behind these changes.
 
 ## Type of Change
-
-<!-- Mark the relevant option(s) with an "x" -->
-
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Breaking change (fix or feature that would cause existing functionality to change)
 - [ ] Documentation update
+- [ ] Security patch
+- [ ] Dependency update
 - [ ] Performance improvement
-- [ ] Code refactoring
-- [ ] CI/CD changes
-- [ ] Dependency updates
 
 ## Related Issues
+Closes #(issue number)
 
-<!-- Link to related issues using #issue_number -->
-
-Closes #
-Related to #
-
-## Changes Made
-
-<!-- Describe the specific changes you made -->
-
--
--
--
-
-## Testing
-
-<!-- Describe the testing you performed -->
-
+## Testing Checklist
 - [ ] Unit tests added/updated
 - [ ] Integration tests added/updated
-- [ ] All tests pass locally
 - [ ] Manual testing completed
+- [ ] All tests pass locally
+- [ ] Benchmark tests run (if applicable)
+- [ ] Tested on testnet (if applicable)
+- [ ] Contract interaction verified (if applicable)
 
-### Test Coverage
+## Code Quality Checklist
+- [ ] Code follows project style guidelines (Go conventions)
+- [ ] Code is self-documenting with clear variable/function names
+- [ ] Comments added for exported functions and complex logic
+- [ ] Documentation updated (README, API docs, GoDoc, etc.)
+- [ ] No debug code or print statements left
+- [ ] Test coverage maintained or improved
+- [ ] No new linting warnings introduced
+- [ ] go fmt, go vet, and golangci-lint passed
 
-<!-- If applicable, provide test coverage information -->
+## Security Checklist (if applicable)
+- [ ] No sensitive data (keys, secrets) committed
+- [ ] Input validation implemented
+- [ ] Error handling proper (no panics in production paths)
+- [ ] Dependencies checked for vulnerabilities
+- [ ] Cryptographic operations reviewed
+- [ ] Security implications considered
 
-- Coverage before: \_\_\_%
-- Coverage after: \_\_\_%
+## Performance Checklist (if applicable)
+- [ ] Benchmarks run and results recorded
+- [ ] Memory profiling completed (if memory-critical)
+- [ ] No memory leaks introduced
+- [ ] Goroutines properly managed
+- [ ] Database queries optimized
 
-### Manual Testing Steps
-
-<!-- Provide steps to manually test your changes -->
-
-1.
-2.
-3.
-
-## Screenshots
-
-<!-- If applicable, add screenshots to demonstrate changes (especially for UI changes) -->
-
-## Performance Impact
-
-<!-- Describe any performance implications -->
-
-- [ ] No performance impact
-- [ ] Performance improved
-- [ ] Performance may be affected (explain below)
-
-<!-- If performance is affected, explain the impact and any mitigation steps -->
+## Screenshots/Demo (if applicable)
+Add screenshots, gifs, or descriptions of changes visible to users.
 
 ## Breaking Changes
+Describe any breaking changes and migration path for users.
 
-<!-- If this PR introduces breaking changes, describe them and provide migration steps -->
-
-- [ ] No breaking changes
-- [ ] Breaking changes (describe below)
-
-<!-- Migration guide for users updating from previous version -->
-
-## Checklist
-
-<!-- Ensure all items are completed before submitting -->
-
-- [ ] My code follows the code style guidelines of this project
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings or errors
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
-- [ ] I have checked my code and corrected any misspellings
-- [ ] I have updated the CHANGELOG.md (if applicable)
+## Dependencies
+List any new dependencies added and justification:
 
 ## Additional Notes
-
-<!-- Add any additional context, concerns, or questions here -->
-
-## Reviewer Notes
-
-<!-- Optional: Any specific areas you'd like reviewers to focus on -->
-
----
-
-<!-- Thank you for contributing to PAW! -->
+Any additional information reviewers should know.

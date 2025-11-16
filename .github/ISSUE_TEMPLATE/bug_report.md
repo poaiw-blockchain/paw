@@ -1,102 +1,39 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve PAW
-title: '[BUG] '
+about: Report a bug to help us improve
+title: "[BUG] "
 labels: bug
 assignees: ''
+
 ---
 
-## Bug Description
-
-<!-- Provide a clear and concise description of the bug -->
+## Description
+A clear and concise description of what the bug is.
 
 ## Steps to Reproduce
-
-<!-- Provide detailed steps to reproduce the behavior -->
-
-1.
-2.
-3.
-4.
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Run '...'
+3. See error
 
 ## Expected Behavior
-
-<!-- Describe what you expected to happen -->
+A clear and concise description of what you expected to happen.
 
 ## Actual Behavior
+What actually happened instead.
 
-<!-- Describe what actually happened -->
+## Environment Details
+- **Go Version**: [e.g., 1.20, 1.21]
+- **Node.js Version**: [e.g., 18.x, 20.x]
+- **OS**: [e.g., Ubuntu 22.04, macOS 13, Windows 11]
+- **Project Version**: [e.g., v1.0.0]
+- **Blockchain Network**: [e.g., Mainnet, Testnet]
 
-## Environment
-
-<!-- Please complete the following information -->
-
-- **OS**: [e.g., Ubuntu 22.04, macOS 13.0, Windows 11]
-- **Go Version**: [e.g., 1.21.0]
-- **PAW Version/Commit**: [e.g., v1.0.0 or commit hash]
-- **Node Type**: [e.g., full node, light node, validator]
-- **Architecture**: [e.g., amd64, arm64]
-
-## Logs and Error Messages
-
-<!-- Paste relevant logs, error messages, or stack traces -->
-
+## Error Logs
+If applicable, paste relevant error messages or logs here:
 ```
-Paste logs here
+[Error log content]
 ```
-
-## Screenshots
-
-<!-- If applicable, add screenshots to help explain the problem -->
 
 ## Additional Context
-
-<!-- Add any other context about the problem here -->
-
-### Configuration
-
-<!-- If relevant, provide your configuration (redact sensitive information) -->
-
-```yaml
-# Paste relevant configuration here
-```
-
-### Network Conditions
-
-<!-- If this is network-related, describe network conditions -->
-
-- Network latency:
-- Peer count:
-- Bandwidth:
-
-## Possible Solution
-
-<!-- Optional: If you have suggestions on how to fix the bug -->
-
-## Related Issues
-
-<!-- Link to any related issues -->
-
-Related to #
-
-## Severity
-
-<!-- Mark the severity level -->
-
-- [ ] Critical (system crash, data loss, security vulnerability)
-- [ ] High (major functionality broken)
-- [ ] Medium (functionality partially broken)
-- [ ] Low (minor issue, workaround available)
-
-## Frequency
-
-<!-- How often does this occur? -->
-
-- [ ] Always
-- [ ] Often
-- [ ] Sometimes
-- [ ] Rarely
-
----
-
-<!-- Thank you for reporting this bug! We'll investigate as soon as possible. -->
+Add any other context about the problem here (screenshots, configuration, etc.).

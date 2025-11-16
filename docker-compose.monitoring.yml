@@ -1,148 +1,263 @@
 version: '3.8'
 
+# ============================================================================
+# PAW Blockchain - Monitoring Stack
+# Prometheus, Grafana, Node Exporter, and Alert Management
+# ============================================================================
+
 services:
+  # --------------------------------------------------------------------------
+  # Prometheus - Metrics Collection
+  # --------------------------------------------------------------------------
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.48.0-alpine
     container_name: paw-prometheus
+    restart: unless-stopped
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'
       - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+
     ports:
-      - '9090:9090'
+      - "${PROMETHEUS_PORT:-9091}:9090"
+
     volumes:
-      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./infra/monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - ./docker/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./docker/monitoring/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
-    networks:
-      - paw-network
-    restart: unless-stopped
 
+    networks:
+      - monitoring
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Grafana - Metrics Visualization
+  # --------------------------------------------------------------------------
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.2.0
     container_name: paw-grafana
+    restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-grafana_secure_password}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ENABLE_GZIP: "true"
+      GF_DATABASE_URL: postgres://grafana:grafana_password@grafana-postgres:5432/grafana
+
     ports:
-      - '3000:3000'
+      - "${GRAFANA_PORT:-3000}:3000"
+
     volumes:
-      - ./infra/monitoring/grafana-dashboards:/var/lib/grafana/dashboards
       - grafana-data:/var/lib/grafana
+      - ./docker/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+
     networks:
-      - paw-network
-    restart: unless-stopped
+      - monitoring
+
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
+      grafana-postgres:
+        condition: service_healthy
 
-  loki:
-    image: grafana/loki:latest
-    container_name: paw-loki
-    ports:
-      - '3100:3100'
-    volumes:
-      - ./infra/logging/loki-config.yaml:/etc/loki/local-config.yaml
-      - loki-data:/tmp/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    networks:
-      - paw-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Grafana PostgreSQL Backend
+  # --------------------------------------------------------------------------
+  grafana-postgres:
+    image: postgres:15-alpine
+    container_name: paw-grafana-db
     restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: paw-promtail
-    volumes:
-      - ./infra/logging/promtail-config.yaml:/etc/promtail/config.yml
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - paw-network
-    restart: unless-stopped
-    depends_on:
-      - loki
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: paw-jaeger-aio
     environment:
-      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - '5775:5775/udp' # Zipkin Thrift
-      - '6831:6831/udp' # Compact
-      - '6832:6832/udp' # Binary
-      - '5778:5778' # Config
-      - '16686:16686' # UI
-      - '14268:14268' # Collector HTTP
-      - '14250:14250' # Collector gRPC
-      - '9411:9411' # Zipkin
-      - '4317:4317' # OTLP gRPC
-      - '4318:4318' # OTLP HTTP
-    networks:
-      - paw-network
-    restart: unless-stopped
+      POSTGRES_DB: grafana
+      POSTGRES_USER: grafana
+      POSTGRES_PASSWORD: grafana_password
+      PGDATA: /var/lib/postgresql/data/pgdata
 
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: paw-alertmanager
-    ports:
-      - '9093:9093'
     volumes:
-      - ./infra/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-      - alertmanager-data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-    networks:
-      - paw-network
-    restart: unless-stopped
+      - grafana-postgres-data:/var/lib/postgresql/data
 
+    networks:
+      - monitoring
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grafana"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Node Exporter - System Metrics
+  # --------------------------------------------------------------------------
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.7.0
     container_name: paw-node-exporter
+    restart: unless-stopped
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.cpu.info'
+      - '--collector.meminfo'
+
     ports:
-      - '9100:9100'
+      - "${NODE_EXPORTER_PORT:-9100}:9100"
+
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    networks:
-      - paw-network
-    restart: unless-stopped
 
+    networks:
+      - monitoring
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9100"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # cAdvisor - Container Metrics
+  # --------------------------------------------------------------------------
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
     container_name: paw-cadvisor
+    restart: unless-stopped
+    command:
+      - --port=8080
+      - --housekeeping_interval=30s
+      - --max_housekeeping_interval=60s
+
     ports:
-      - '8081:8080'
+      - "${CADVISOR_PORT:-8081}:8080"
+
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
     networks:
-      - paw-network
-    restart: unless-stopped
+      - monitoring
+
     privileged: true
+    devices:
+      - /dev/kmsg
 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Alertmanager - Alert Management
+  # --------------------------------------------------------------------------
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: paw-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+      - '--log.level=info'
+
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+
+    volumes:
+      - ./docker/monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+      - ./docker/monitoring/alertmanager/templates:/etc/alertmanager/templates:ro
+      - alertmanager-data:/alertmanager
+
+    networks:
+      - monitoring
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# Networks
+# ============================================================================
 networks:
-  paw-network:
+  monitoring:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
 
+# ============================================================================
+# Volumes
+# ============================================================================
 volumes:
   prometheus-data:
+    driver: local
+
   grafana-data:
-  loki-data:
+    driver: local
+
+  grafana-postgres-data:
+    driver: local
+
   alertmanager-data:
+    driver: local

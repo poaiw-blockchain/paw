@@ -55,6 +55,62 @@ ldflags := $(strip $(ldflags))
 BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 
 ###############################################################################
+###                                 Help                                    ###
+###############################################################################
+
+help:
+	@echo "============================================================================"
+	@echo "PAW Blockchain - Makefile Targets"
+	@echo "============================================================================"
+	@echo ""
+	@echo "Installation & Setup:"
+	@echo "  install               ## Install pawd & pawcli binaries"
+	@echo "  install-tools         ## Install development tools"
+	@echo "  install-hooks         ## Install Git pre-commit hooks"
+	@echo ""
+	@echo "Development:"
+	@echo "  build                 ## Build pawd & pawcli binaries"
+	@echo "  build-linux           ## Build Linux binaries (requires go)"
+	@echo "  format                ## Format code with gofmt, goimports, misspell"
+	@echo "  format-all            ## Format all code (Go, Python, JS, Proto)"
+	@echo "  lint                  ## Run golangci-lint"
+	@echo "  proto-all             ## Format, lint, and generate protobuf files"
+	@echo "  proto-gen             ## Generate protobuf code"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test                  ## Run all tests with coverage"
+	@echo "  test-unit             ## Run unit tests only"
+	@echo "  test-integration      ## Run integration tests"
+	@echo "  test-coverage         ## Generate coverage report"
+	@echo "  test-keeper           ## Run keeper module tests"
+	@echo "  test-types            ## Run type definition tests"
+	@echo "  benchmark             ## Run benchmark tests"
+	@echo "  test-invariants       ## Run invariant tests"
+	@echo "  test-properties       ## Run property-based tests"
+	@echo "  test-simulation       ## Run simulation tests"
+	@echo "  test-cometmock        ## Run E2E tests with CometMock"
+	@echo "  test-all-advanced     ## Run all advanced tests"
+	@echo ""
+	@echo "Docker & Services:"
+	@echo "  docker-up             ## Start Docker services (dev)"
+	@echo "  docker-down           ## Stop Docker services"
+	@echo "  docker-logs           ## View Docker service logs"
+	@echo "  monitoring-start      ## Start monitoring stack (Prometheus, Grafana, Jaeger)"
+	@echo "  monitoring-stop       ## Stop monitoring stack"
+	@echo ""
+	@echo "Blockchain Operations:"
+	@echo "  init-testnet          ## Initialize local testnet"
+	@echo "  start-node            ## Start blockchain node"
+	@echo "  reset-testnet         ## Reset testnet data"
+	@echo "  localnet-start        ## Start local network with Docker"
+	@echo "  localnet-stop         ## Stop local network"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  clean                 ## Remove build artifacts and caches"
+	@echo "  clean-all             ## Deep clean (modules, caches, data)"
+	@echo ""
+
+###############################################################################
 ###                                  Build                                  ###
 ###############################################################################
 
@@ -289,6 +345,40 @@ dev:
 dev-down:
 	@echo "--> Stopping development environment"
 	@docker-compose -f docker-compose.dev.yml down
+
+###############################################################################
+###                           Docker Short Targets                          ###
+###############################################################################
+
+docker-up: dev
+	@echo "✓ Docker development environment started"
+
+docker-down: dev-down
+	@echo "✓ Docker development environment stopped"
+
+docker-logs:
+	@echo "--> Viewing Docker development logs"
+	@docker-compose -f docker-compose.dev.yml logs -f
+
+###############################################################################
+###                        Blockchain Node Operations                       ###
+###############################################################################
+
+init-testnet: build
+	@echo "--> Initializing testnet"
+	@mkdir -p ~/.paw/testnet
+	@$(BUILDDIR)/pawd init test-1 --home ~/.paw/testnet --chain-id test-chain-1
+	@echo "✓ Testnet initialized"
+
+start-node: build
+	@echo "--> Starting blockchain node"
+	@$(BUILDDIR)/pawd start --home ~/.paw/testnet
+	@echo "✓ Node started"
+
+reset-testnet:
+	@echo "--> Resetting testnet data"
+	@rm -rf ~/.paw/testnet
+	@$(MAKE) init-testnet
 
 ###############################################################################
 ###                                 Clean                                   ###
@@ -529,7 +619,7 @@ security-report:
 	@cat security/report-latest.txt
 	@echo "✓ Security report saved to security/report-latest.txt"
 
-.PHONY: all build build-linux install \
+.PHONY: help all build build-linux install \
 	go.sum install-tools install-hooks install-hooks-all update-hooks run-hooks \
 	test test-unit test-integration test-coverage test-keeper test-types benchmark \
 	test-invariants test-properties test-simulation test-cometmock test-all-advanced \
@@ -538,6 +628,8 @@ security-report:
 	lint format format-all \
 	proto-all proto-gen proto-format proto-lint proto-check-breaking \
 	localnet-start localnet-stop dev dev-down \
+	docker-up docker-down docker-logs \
+	init-testnet start-node reset-testnet \
 	clean clean-all \
 	release release-test dev-setup \
 	monitoring-start monitoring-stop monitoring-restart monitoring-logs monitoring-status \

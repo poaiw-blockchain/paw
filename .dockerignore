@@ -1,126 +1,162 @@
-# Git files
-.git
+# Version Control
+.git/
 .gitignore
 .gitattributes
-.github
+.gitmessage
+.github/
 
-# IDE and editor files
-.vscode
-.idea
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Build artifacts
-build/
-dist/
-*.exe
-*.dll
+# Go
+vendor/
+go.sum.bak
+*.o
+*.a
 *.so
-*.dylib
-*.test
-*.out
 
-# Test and coverage files
-coverage.txt
-coverage.html
-*.coverprofile
-.pre-commit-cache
-
-# Node modules and npm
+# Node.js
 node_modules/
 npm-debug.log
 yarn-error.log
 package-lock.json
 yarn.lock
+.npm/
+.yarn/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-.venv
+# Development & Testing
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
 
-# Documentation and markdown (except README)
+# Tests
+*_test.go
+test_*.go
+tests/
+jest.config.js
+.jest/
+coverage/
+*.test.js
+*.test.ts
+
+# Documentation
 docs/
 *.md
-!README.md
+README*
+CHANGELOG*
+LICENSE
+CONTRIBUTING*
+*.rst
 
-# Configuration files
-.env
-.env.local
-*.local
-.pre-commit-config.yaml
-renovate.json
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-*.log
-
-# OS files
-Thumbs.db
-.DS_Store
-
-# GoReleaser
-.goreleaser.yml
-dist/
-
-# Scripts (will be copied selectively)
-scripts/*.sh
-!scripts/bootstrap-node.sh
-!scripts/localnet-start.sh
-
-# Test data
-testdata/
-
-# CI/CD
-.circleci/
-.travis.yml
-azure-pipelines.yml
-
-# Database and state files
+# Blockchain Data (use volumes)
+data/
+blockchain/
+state/
+logs/
 *.db
 *.sqlite
-*.sqlite3
-data/
-.paw/
+*.log
+*.log.*
+log_*.txt
 
-# Archives
-*.tar.gz
-*.zip
-*.rar
-
-# Certificates and keys (should never be in repo anyway)
+# Secrets (NEVER include)
+.env
+.env.*
+.env.local
+.env.*.local
 *.pem
 *.key
 *.crt
+*.pfx
 *.p12
+secure_keys/
+secrets/
+keystore/
+config/*.secret
 
-# Backup files
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+azure-pipelines.yml
+.circleci/
+.github/workflows/
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.temp
 *.bak
 *.backup
-*~
+*.old
 
-# GoLand
-.idea/
+# Archives
+archived_*/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
 
-# VSCode
+# IDE & Editor
 .vscode/
-*.code-workspace
+.idea/
+*.sublime-*
+.project
+.settings/
+.classpath
+*.iml
 
-# Emacs
-*~
-\#*\#
-.\#*
+# Build artifacts
+build/
+dist/
+out/
+target/
+bin/
+.out/
+api/build/
 
-# Vim
-[._]*.s[a-v][a-z]
-[._]*.sw[a-p]
-[._]s[a-v][a-z]
-[._]sw[a-p]
+# Cache
+.cache/
+.pytest_cache/
+__pycache__/
+.eslintcache
+.turbo/
+
+# Husky
+.husky/
+
+# Git hooks
+.githooks-quickstart.md
+
+# Session files
+*PROGRESS.md
+SESSION_*.md
+frozen.txt
+new-tools.txt
+launch_config.json
+temp_response.html
+
+# PowerShell
+*.ps1
+
+# Batch files
+*.bat
+
+# Shell scripts
+*.sh
+!scripts/deploy/*.sh
+
+# CosmWasm
+.wasmvm/
+
+# Node version managers
+.nvmrc
+.node-version
