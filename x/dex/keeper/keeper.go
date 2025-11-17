@@ -1,3 +1,9 @@
+// Package keeper implements the core business logic for the PAW DEX module.
+//
+// The DEX keeper manages liquidity pools, token swaps, and liquidity provision
+// using a constant product automated market maker (AMM) formula (x * y = k).
+// It includes advanced features such as MEV protection, circuit breakers,
+// flash loan prevention, and TWAP (Time-Weighted Average Price) oracles.
 package keeper
 
 import (
@@ -13,14 +19,29 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
-// Keeper maintains the state of the DEX module
+// Keeper maintains the state of the DEX module.
+//
+// The Keeper is responsible for:
+//   - Managing liquidity pools and their reserves
+//   - Executing token swaps with slippage protection
+//   - Handling liquidity additions and removals
+//   - Enforcing circuit breakers and MEV protection
+//   - Maintaining TWAP price feeds for oracles
+//   - Preventing flash loan attacks
 type Keeper struct {
-	cdc        codec.BinaryCodec
-	storeKey   storetypes.StoreKey
-	bankKeeper types.BankKeeper
+	cdc        codec.BinaryCodec   // Binary codec for marshaling/unmarshaling
+	storeKey   storetypes.StoreKey // KVStore key for DEX state
+	bankKeeper types.BankKeeper    // Bank keeper for token transfers
 }
 
-// NewKeeper creates a new DEX Keeper instance
+// NewKeeper creates a new DEX Keeper instance.
+//
+// Parameters:
+//   - cdc: Binary codec for state serialization
+//   - storeKey: KVStore key for accessing DEX state
+//   - bankKeeper: Bank keeper for managing token transfers
+//
+// Returns a configured Keeper instance ready for use.
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey storetypes.StoreKey,
@@ -33,12 +54,40 @@ func NewKeeper(
 	}
 }
 
-// Logger returns a module-specific logger
+// Logger returns a module-specific logger with contextual information.
+//
+// The logger includes the module name prefix for easy identification
+// in log output when debugging or monitoring the blockchain.
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
-// CreatePool creates a new liquidity pool
+// CreatePool creates a new liquidity pool for a token pair.
+//
+// This function implements a constant product AMM where liquidity providers
+// receive shares proportional to their contribution. The pool uses the formula
+// x * y = k to determine swap prices.
+//
+// Parameters:
+//   - ctx: SDK context with block information
+//   - creator: Bech32 address of the pool creator
+//   - tokenA: First token denomination (will be ordered alphabetically)
+//   - tokenB: Second token denomination (will be ordered alphabetically)
+//   - amountA: Initial amount of tokenA to deposit
+//   - amountB: Initial amount of tokenB to deposit
+//
+// Returns:
+//   - uint64: The newly created pool ID
+//   - error: Any error that occurred during pool creation
+//
+// Errors returned:
+//   - ErrSameToken: if tokenA and tokenB are identical
+//   - ErrInvalidAmount: if either amount is zero or negative
+//   - ErrPoolAlreadyExists: if a pool for this token pair already exists
+//   - ErrModulePaused: if the DEX module is currently paused
+//
+// The function automatically orders tokens alphabetically to ensure
+// consistency and prevent duplicate pools for the same pair.
 func (k Keeper) CreatePool(
 	ctx sdk.Context,
 	creator string,
@@ -120,7 +169,42 @@ func (k Keeper) CreatePool(
 	return poolId, nil
 }
 
-// Swap executes a token swap using the constant product AMM formula
+// Swap executes a token swap using the constant product AMM formula.
+//
+// This function implements the core trading logic for the DEX, using the formula:
+//
+//	amountOut = (reserveOut * amountIn * 997) / (reserveIn * 1000 + amountIn * 997)
+//
+// The formula includes a 0.3% fee that goes to liquidity providers.
+//
+// Security features include:
+//   - Slippage protection via minAmountOut parameter
+//   - MEV protection through timestamp-based ordering
+//   - Circuit breakers to halt trading during anomalies
+//   - Flash loan attack prevention
+//   - TWAP validation against price manipulation
+//
+// Parameters:
+//   - ctx: SDK context with block information
+//   - trader: Bech32 address of the account executing the swap
+//   - poolId: Unique identifier of the liquidity pool
+//   - tokenIn: Denomination of the token being sold
+//   - tokenOut: Denomination of the token being bought
+//   - amountIn: Amount of tokenIn to swap
+//   - minAmountOut: Minimum acceptable amount of tokenOut (slippage protection)
+//
+// Returns:
+//   - math.Int: Actual amount of tokenOut received
+//   - error: Any error that occurred during the swap
+//
+// Errors returned:
+//   - ErrModulePaused: if the DEX module is paused
+//   - ErrCircuitBreakerTripped: if circuit breaker is active for this pool
+//   - ErrInvalidPool: if the pool doesn't exist or tokens don't match
+//   - ErrInsufficientLiquidity: if the pool doesn't have enough reserves
+//   - ErrSlippageExceeded: if amountOut < minAmountOut
+//   - ErrFlashLoanDetected: if suspicious trading patterns are detected
+//   - ErrTWAPDeviation: if price deviates too much from TWAP
 func (k Keeper) Swap(
 	ctx sdk.Context,
 	trader string,

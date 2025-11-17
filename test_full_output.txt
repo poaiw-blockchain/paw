@@ -1,0 +1,1391 @@
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestHealthCheck
+[32m[200][0m 2025/11/16 14:57:32 |            0s |                 | GET     /health
+--- PASS: TestHealthCheck (0.00s)
+=== RUN   TestUserRegistration
+=== RUN   TestUserRegistration/successful_registration
+[32m[201][0m 2025/11/16 14:57:32 |     95.5552ms |                 | POST    /api/auth/register
+=== RUN   TestUserRegistration/username_too_short
+[33m[400][0m 2025/11/16 14:57:32 |            0s |                 | POST    /api/auth/register
+=== RUN   TestUserRegistration/password_too_short
+[33m[400][0m 2025/11/16 14:57:32 |            0s |                 | POST    /api/auth/register
+--- PASS: TestUserRegistration (0.10s)
+    --- PASS: TestUserRegistration/successful_registration (0.10s)
+    --- PASS: TestUserRegistration/username_too_short (0.00s)
+    --- PASS: TestUserRegistration/password_too_short (0.00s)
+=== RUN   TestUserLogin
+[32m[201][0m 2025/11/16 14:57:32 |     96.6045ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:32 |     92.7674ms |                 | POST    /api/auth/login
+--- PASS: TestUserLogin (0.19s)
+=== RUN   TestOrderCreation
+[32m[201][0m 2025/11/16 14:57:32 |     70.2804ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:32 |      66.867ms |                 | POST    /api/auth/login
+[32m[201][0m 2025/11/16 14:57:32 |       331.7µs |                 | POST    /api/orders/create
+--- PASS: TestOrderCreation (0.14s)
+=== RUN   TestGetOrderBook
+[32m[200][0m 2025/11/16 14:57:32 |       503.7µs |                 | GET     /api/orders/book
+--- PASS: TestGetOrderBook (0.00s)
+=== RUN   TestWalletBalance
+[32m[201][0m 2025/11/16 14:57:33 |     69.6662ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     70.4549ms |                 | POST    /api/auth/login
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+--- PASS: TestWalletBalance (0.14s)
+=== RUN   TestAtomicSwapPrepare
+[32m[201][0m 2025/11/16 14:57:33 |     74.1834ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     71.9406ms |                 | POST    /api/auth/login
+[32m[201][0m 2025/11/16 14:57:33 |       524.2µs |                 | POST    /api/atomic-swap/prepare
+--- PASS: TestAtomicSwapPrepare (0.15s)
+=== RUN   TestGetPools
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/pools
+--- PASS: TestGetPools (0.00s)
+=== RUN   TestAuthMiddleware
+[33m[401][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+[33m[401][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+[32m[201][0m 2025/11/16 14:57:33 |     68.9924ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     65.8437ms |                 | POST    /api/auth/login
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+--- PASS: TestAuthMiddleware (0.14s)
+=== RUN   TestDefaultRateLimitConfig
+--- PASS: TestDefaultRateLimitConfig (0.00s)
+=== RUN   TestConfigValidation
+=== RUN   TestConfigValidation/valid_config
+=== RUN   TestConfigValidation/invalid_default_rps
+=== RUN   TestConfigValidation/invalid_default_burst
+=== RUN   TestConfigValidation/invalid_endpoint_rps
+--- PASS: TestConfigValidation (0.00s)
+    --- PASS: TestConfigValidation/valid_config (0.00s)
+    --- PASS: TestConfigValidation/invalid_default_rps (0.00s)
+    --- PASS: TestConfigValidation/invalid_default_burst (0.00s)
+    --- PASS: TestConfigValidation/invalid_endpoint_rps (0.00s)
+=== RUN   TestNewAdvancedRateLimiter
+--- PASS: TestNewAdvancedRateLimiter (0.00s)
+=== RUN   TestIPBasedRateLimiting
+--- PASS: TestIPBasedRateLimiting (0.00s)
+=== RUN   TestEndpointSpecificRateLimiting
+--- PASS: TestEndpointSpecificRateLimiting (0.00s)
+=== RUN   TestAccountBasedRateLimiting
+--- PASS: TestAccountBasedRateLimiting (0.05s)
+=== RUN   TestIPWhitelisting
+--- PASS: TestIPWhitelisting (0.00s)
+=== RUN   TestIPBlacklisting
+--- PASS: TestIPBlacklisting (0.00s)
+=== RUN   TestAdaptiveRateLimiting
+--- PASS: TestAdaptiveRateLimiting (0.00s)
+=== RUN   TestAutoIPBlocking
+--- PASS: TestAutoIPBlocking (1.45s)
+=== RUN   TestRateLimitHeaders
+--- PASS: TestRateLimitHeaders (0.00s)
+=== RUN   TestConcurrentAccess
+--- PASS: TestConcurrentAccess (0.00s)
+=== RUN   TestCleanupRoutine
+--- PASS: TestCleanupRoutine (0.20s)
+=== RUN   TestGetStats
+--- PASS: TestGetStats (0.00s)
+=== RUN   TestGetEndpointLimit
+--- PASS: TestGetEndpointLimit (0.00s)
+=== RUN   TestGetTierLimit
+--- PASS: TestGetTierLimit (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/api	(cached)
+?   	github.com/paw-chain/paw/api/cmd	[no test files]
+?   	github.com/paw-chain/paw/api/health	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestAppTestSuite
+=== RUN   TestAppTestSuite/TestComputeModuleIntegration
+    panic.go:262: test panicked: runtime error: invalid memory address or nil pointer dereference
+        goroutine 57 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000507500, {0x7ff7779f7f80, 0x7ff77a4503e0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7779f7f80?, 0x7ff77a4503e0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContextLegacy(_, _, {{0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0, 0x0}, ...})
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:61 +0x8c
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContext(...)
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:66
+        github.com/paw-chain/paw/app_test.(*AppTestSuite).SetupTest(0xc000a50408)
+        	C:/Users/decri/GitClones/PAW/app/app_test.go:42 +0x23a
+        github.com/stretchr/testify/suite.Run.func1(0xc000507500)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000507500, 0xc00108da70)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 56
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAppTestSuite/TestDexModuleIntegration
+    panic.go:262: test panicked: runtime error: invalid memory address or nil pointer dereference
+        goroutine 160 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000507a40, {0x7ff7779f7f80, 0x7ff77a4503e0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7779f7f80?, 0x7ff77a4503e0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContextLegacy(_, _, {{0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0, 0x0}, ...})
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:61 +0x8c
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContext(...)
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:66
+        github.com/paw-chain/paw/app_test.(*AppTestSuite).SetupTest(0xc000a50408)
+        	C:/Users/decri/GitClones/PAW/app/app_test.go:42 +0x23a
+        github.com/stretchr/testify/suite.Run.func1(0xc000507a40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000507a40, 0xc00108db00)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 56
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAppTestSuite/TestOracleModuleIntegration
+    panic.go:262: test panicked: runtime error: invalid memory address or nil pointer dereference
+        goroutine 264 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000507c00, {0x7ff7779f7f80, 0x7ff77a4503e0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7779f7f80?, 0x7ff77a4503e0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContextLegacy(_, _, {{0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0, 0x0}, ...})
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:61 +0x8c
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContext(...)
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:66
+        github.com/paw-chain/paw/app_test.(*AppTestSuite).SetupTest(0xc000a50408)
+        	C:/Users/decri/GitClones/PAW/app/app_test.go:42 +0x23a
+        github.com/stretchr/testify/suite.Run.func1(0xc000507c00)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000507c00, 0xc00108db90)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 56
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+--- FAIL: TestAppTestSuite (0.02s)
+    --- FAIL: TestAppTestSuite/TestComputeModuleIntegration (0.00s)
+    --- FAIL: TestAppTestSuite/TestDexModuleIntegration (0.01s)
+    --- FAIL: TestAppTestSuite/TestOracleModuleIntegration (0.00s)
+=== RUN   TestNewApp
+--- PASS: TestNewApp (0.00s)
+=== RUN   TestAppModules
+    app_test.go:73: TODO: Add public accessor method for ModuleManager in PAWApp
+--- SKIP: TestAppModules (0.00s)
+=== RUN   TestExportAppStateAndValidators
+    app_test.go:129: 
+        	Error Trace:	C:/Users/decri/GitClones/PAW/app/app_test.go:129
+        	Error:      	Received unexpected error:
+        	            	invalid chain-id on InitChain; expected: , got: paw-testnet-1
+        	Test:       	TestExportAppStateAndValidators
+--- FAIL: TestExportAppStateAndValidators (0.01s)
+=== RUN   TestModuleAccountsExist
+--- FAIL: TestModuleAccountsExist (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal 0xc0000005 code=0x0 addr=0x0 pc=0x7ff776788d8c]
+
+goroutine 588 [running]:
+testing.tRunner.func1.2({0x7ff7779f7f80, 0x7ff77a4503e0})
+	C:/Program Files/Go/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	C:/Program Files/Go/src/testing/testing.go:1875 +0x35b
+panic({0x7ff7779f7f80?, 0x7ff77a4503e0?})
+	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContextLegacy(_, _, {{0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0, 0x0}, ...})
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:61 +0x8c
+github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContext(...)
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:66
+github.com/paw-chain/paw/app_test.TestModuleAccountsExist(0xc00037a380)
+	C:/Users/decri/GitClones/PAW/app/app_test.go:222 +0x1c5
+testing.tRunner(0xc00037a380, 0x7ff7786598b0)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/paw-chain/paw/app	0.427s
+?   	github.com/paw-chain/paw/cmd/pawcli	[no test files]
+?   	github.com/paw-chain/paw/cmd/pawd	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestGenerateMnemonic12Words
+--- PASS: TestGenerateMnemonic12Words (0.00s)
+=== RUN   TestGenerateMnemonic24Words
+--- PASS: TestGenerateMnemonic24Words (0.00s)
+=== RUN   TestMnemonicValidation
+=== RUN   TestMnemonicValidation/valid_12-word_mnemonic
+=== RUN   TestMnemonicValidation/valid_24-word_mnemonic
+=== RUN   TestMnemonicValidation/invalid_checksum
+    keys_test.go:110: 
+        	Error Trace:	C:/Users/decri/GitClones/PAW/cmd/pawd/cmd/keys_test.go:110
+        	Error:      	Not equal: 
+        	            	expected: false
+        	            	actual  : true
+        	Test:       	TestMnemonicValidation/invalid_checksum
+=== RUN   TestMnemonicValidation/wrong_word_count
+=== RUN   TestMnemonicValidation/invalid_word
+=== RUN   TestMnemonicValidation/empty_mnemonic
+--- FAIL: TestMnemonicValidation (0.00s)
+    --- PASS: TestMnemonicValidation/valid_12-word_mnemonic (0.00s)
+    --- PASS: TestMnemonicValidation/valid_24-word_mnemonic (0.00s)
+    --- FAIL: TestMnemonicValidation/invalid_checksum (0.00s)
+    --- PASS: TestMnemonicValidation/wrong_word_count (0.00s)
+    --- PASS: TestMnemonicValidation/invalid_word (0.00s)
+    --- PASS: TestMnemonicValidation/empty_mnemonic (0.00s)
+=== RUN   TestEntropyGeneration
+--- PASS: TestEntropyGeneration (0.00s)
+=== RUN   TestKeyDerivationConsistency
+--- PASS: TestKeyDerivationConsistency (0.02s)
+=== RUN   TestHDPathDifferentiation
+--- PASS: TestHDPathDifferentiation (0.00s)
+=== RUN   TestAddKeyCommand12Words
+--- FAIL: TestAddKeyCommand12Words (0.01s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal 0xc0000005 code=0x0 addr=0x30 pc=0x7ff7e86d4807]
+
+goroutine 70 [running]:
+testing.tRunner.func1.2({0x7ff7e9b1f860, 0x7ff7ec15cfb0})
+	C:/Program Files/Go/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	C:/Program Files/Go/src/testing/testing.go:1875 +0x35b
+panic({0x7ff7e9b1f860?, 0x7ff7ec15cfb0?})
+	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+github.com/cosmos/cosmos-sdk/client.SetCmdClientContext(_, {{0x0, 0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0}, {0x7ff7ea725ac8, ...}, ...})
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/client/cmd.go:367 +0x87
+github.com/cosmos/cosmos-sdk/client.SetCmdClientContextHandler({{0x0, 0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0}, {0x7ff7ea725ac8, 0xc0007cc9f0}, ...}, ...)
+	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/client/cmd.go:36 +0x105
+github.com/paw-chain/paw/cmd/pawd/cmd.TestAddKeyCommand12Words(0xc000484700)
+	C:/Users/decri/GitClones/PAW/cmd/pawd/cmd/keys_test.go:221 +0x3a5
+testing.tRunner(0xc000484700, 0x7ff7ea2edea8)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/paw-chain/paw/cmd/pawd/cmd	0.451s
+?   	github.com/paw-chain/paw/external/crypto/exchange-frontend/node_modules/snyk/dist/gosrc	[no test files]
+?   	github.com/paw-chain/paw/p2p	[no test files]
+?   	github.com/paw-chain/paw/p2p/discovery	[no test files]
+?   	github.com/paw-chain/paw/p2p/protocol	[no test files]
+?   	github.com/paw-chain/paw/p2p/reputation	[no test files]
+?   	github.com/paw-chain/paw/security	[no test files]
+?   	github.com/paw-chain/paw/simapp	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+testing: warning: no tests to run
+PASS
+ok  	github.com/paw-chain/paw/tests/benchmarks	(cached) [no tests to run]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCometMockE2ETestSuite
+    cometmock_test.go:187: Skipping CometMock E2E tests - set USE_COMETMOCK=true to run
+--- SKIP: TestCometMockE2ETestSuite (0.00s)
+=== RUN   TestE2ETestSuite
+    panic.go:262: test panicked: runtime error: invalid memory address or nil pointer dereference
+        goroutine 49 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00018ea80, {0x7ff634a1e280, 0x7ff637495400})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.recoverAndFailOnPanic(0xc00018ea80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:83 +0x35
+        panic({0x7ff634a1e280?, 0x7ff637495400?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContextLegacy(_, _, {{0x0, 0x0}, {0x0, 0x0}, 0x0, {0x0, 0x0, 0x0}, ...})
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:61 +0x8c
+        github.com/cosmos/cosmos-sdk/baseapp.(*BaseApp).NewContext(...)
+        	C:/Users/decri/go/pkg/mod/github.com/cosmos/cosmos-sdk@v0.50.11/baseapp/test_helpers.go:66
+        github.com/paw-chain/paw/tests/e2e_test.(*E2ETestSuite).SetupSuite(0xc00105ed88)
+        	C:/Users/decri/GitClones/PAW/tests/e2e/e2e_test.go:35 +0x7a
+        github.com/stretchr/testify/suite.Run(0xc00018ea80, {0x7ff635a67c60, 0xc00105ed88})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:211 +0x7a4
+        github.com/paw-chain/paw/tests/e2e_test.TestE2ETestSuite(0xc00018ea80)
+        	C:/Users/decri/GitClones/PAW/tests/e2e/e2e_test.go:76 +0x33
+        testing.tRunner(0xc00018ea80, 0x7ff635682508)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+--- FAIL: TestE2ETestSuite (0.01s)
+FAIL
+FAIL	github.com/paw-chain/paw/tests/e2e	0.400s
+=== RUN   TestPropertyPoolCreationCommutative
+--- PASS: TestPropertyPoolCreationCommutative (0.00s)
+=== RUN   TestPropertySwapNeverIncreasesReserves
+--- PASS: TestPropertySwapNeverIncreasesReserves (0.00s)
+=== RUN   TestPropertyAddRemoveLiquidityRoundtrip
+--- PASS: TestPropertyAddRemoveLiquidityRoundtrip (0.00s)
+=== RUN   TestPropertyPriceImpactIncreasesWithSize
+--- PASS: TestPropertyPriceImpactIncreasesWithSize (0.00s)
+=== RUN   TestPropertySwapAggregation
+--- PASS: TestPropertySwapAggregation (0.00s)
+=== RUN   TestPropertyReservesStayPositive
+--- PASS: TestPropertyReservesStayPositive (0.02s)
+=== RUN   TestPropertyKNeverDecreases
+--- PASS: TestPropertyKNeverDecreases (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/tests/property	(cached)
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestAdversarialTestSuite
+=== RUN   TestAdversarialTestSuite/TestCensorship_Resistance
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 59 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000107500, {0x7ff7a3891e40, 0xc0013a8c90})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0013a8c90?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000107500)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000107500, 0xc000c48e10)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestDoubleSpending_Prevention
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 193 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000107a40, {0x7ff7a3891e40, 0xc00180c0d0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00180c0d0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000107a40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000107a40, 0xc000c48ea0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestEclipseAttack
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 252 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6700, {0x7ff7a3891e40, 0xc0010907e0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0010907e0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6700)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6700, 0xc000c48f30)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestFlashLoan_Attack
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 441 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c68c0, {0x7ff7a3891e40, 0xc00076ce00})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00076ce00?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c68c0)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c68c0, 0xc000c48fc0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestFrontRunning_Simulation
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 558 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6a80, {0x7ff7a3891e40, 0xc0013396e0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0013396e0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6a80, 0xc000c49050)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestGriefing_ResourceExhaustion
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 666 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc000ff4890})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000ff4890?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000c490e0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestLongRangeAttack
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 802 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6700, {0x7ff7a3891e40, 0xc0008f0660})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0008f0660?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6700)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6700, 0xc000c49170)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestOracleManipulation
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 651 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000107a40, {0x7ff7a3891e40, 0xc000cd3480})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000cd3480?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000107a40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000107a40, 0xc000c49200)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestReplayAttack
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1019 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043ca80, {0x7ff7a3891e40, 0xc00010b540})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00010b540?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043ca80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043ca80, 0xc000c49290)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestSandwichAttack_Detection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1131 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6700, {0x7ff7a3891e40, 0xc0007ab500})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0007ab500?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6700)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6700, 0xc000c49320)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestSelfish_Mining
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1269 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cc40, {0x7ff7a3891e40, 0xc0000950d0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0000950d0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cc40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cc40, 0xc000c493b0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestSybilAttack
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1386 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043ce00, {0x7ff7a3891e40, 0xc001107970})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc001107970?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043ce00)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043ce00, 0xc000c49440)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestAdversarialTestSuite/TestTimeBandits
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1492 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6700, {0x7ff7a3891e40, 0xc00010af70})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00010af70?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*AdversarialTestSuite).SetupTest(0xc000ca9008)
+        	C:/Users/decri/GitClones/PAW/tests/security/adversarial_test.go:25 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6700)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6700, 0xc000c494d0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 58
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+--- FAIL: TestAdversarialTestSuite (0.10s)
+    --- FAIL: TestAdversarialTestSuite/TestCensorship_Resistance (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestDoubleSpending_Prevention (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestEclipseAttack (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestFlashLoan_Attack (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestFrontRunning_Simulation (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestGriefing_ResourceExhaustion (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestLongRangeAttack (0.00s)
+    --- FAIL: TestAdversarialTestSuite/TestOracleManipulation (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestReplayAttack (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestSandwichAttack_Detection (0.00s)
+    --- FAIL: TestAdversarialTestSuite/TestSelfish_Mining (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestSybilAttack (0.01s)
+    --- FAIL: TestAdversarialTestSuite/TestTimeBandits (0.01s)
+=== RUN   TestAuthSecurityTestSuite
+    auth_test.go:35: Requires SetupTestApp fix - BaseApp store initialization incomplete
+--- SKIP: TestAuthSecurityTestSuite (0.00s)
+=== RUN   TestCryptoSecurityTestSuite
+=== RUN   TestCryptoSecurityTestSuite/TestAddressGeneration_Consistency
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1619 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cfc0, {0x7ff7a3891e40, 0xc0007aad70})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0007aad70?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cfc0)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cfc0, 0xc000ecd5f0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1733 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc00062f1f0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00062f1f0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000ecd680)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1828 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6700, {0x7ff7a3891e40, 0xc000ff4d00})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000ff4d00?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6700)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6700, 0xc000ecd710)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 1970 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587180, {0x7ff7a3891e40, 0xc0006f8dc0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0006f8dc0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587180, 0xc000ecd7a0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestCryptographicPrimitives_Standards
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2089 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587340, {0x7ff7a3891e40, 0xc001776f00})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc001776f00?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587340)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587340, 0xc000ecd830)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestEntropy_Randomness
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2200 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6a80, {0x7ff7a3891e40, 0xc0000298b0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0000298b0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6a80, 0xc000ecd8c0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestHashCollision_Resistance
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2325 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc000f07dd0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000f07dd0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000ecd950)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestKeyGeneration_Secp256k1
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2442 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587180, {0x7ff7a3891e40, 0xc001090c50})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc001090c50?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587180, 0xc000ecd9e0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestKeyRecovery_Prevention
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2566 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6c40, {0x7ff7a3891e40, 0xc0011690a0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0011690a0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6c40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6c40, 0xc000ecda70)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestNonceReuse_Prevention
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2675 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6e00, {0x7ff7a3891e40, 0xc0008f1c40})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0008f1c40?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6e00)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6e00, 0xc000ecdb00)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2786 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c7180, {0x7ff7a3891e40, 0xc000b5acb0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000b5acb0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c7180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c7180, 0xc000ecdb90)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestTimingAttack_Resistance
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 2673 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc0017f6160})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0017f6160?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000ecdc20)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3014 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587180, {0x7ff7a3891e40, 0xc000c898c0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000c898c0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*CryptoSecurityTestSuite).SetupTest(0xc000908c08)
+        	C:/Users/decri/GitClones/PAW/tests/security/crypto_test.go:28 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587180, 0xc000ecdcb0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 1618
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+--- FAIL: TestCryptoSecurityTestSuite (0.08s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestAddressGeneration_Consistency (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestCryptographicPrimitives_Standards (0.00s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestEntropy_Randomness (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestHashCollision_Resistance (0.00s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestKeyGeneration_Secp256k1 (0.00s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestKeyRecovery_Prevention (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestNonceReuse_Prevention (0.00s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestSignature_Verification (0.00s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestTimingAttack_Resistance (0.01s)
+    --- FAIL: TestCryptoSecurityTestSuite/TestWeakKeys_Detection (0.01s)
+=== RUN   TestInjectionSecurityTestSuite
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3131 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cfc0, {0x7ff7a3891e40, 0xc00010ae20})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00010ae20?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cfc0)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cfc0, 0xc000ecd4d0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3248 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043d340, {0x7ff7a3891e40, 0xc00088ac40})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00088ac40?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043d340)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043d340, 0xc000ecd560)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3375 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6c40, {0x7ff7a3891e40, 0xc000d53be0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000d53be0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6c40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6c40, 0xc000ecdd40)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3507 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6e00, {0x7ff7a3891e40, 0xc000029cc0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000029cc0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6e00)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6e00, 0xc000ecddd0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3611 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cc40, {0x7ff7a3891e40, 0xc000f07620})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000f07620?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cc40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cc40, 0xc000ecde60)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3738 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c7180, {0x7ff7a3891e40, 0xc0016c2dd0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0016c2dd0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c7180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c7180, 0xc000ecdef0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestNullByte_Injection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3853 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc000c89f30})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc000c89f30?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000d74000)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 3968 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6c40, {0x7ff7a3891e40, 0xc00010bf20})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00010bf20?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6c40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6c40, 0xc000d74090)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestRegex_Denial
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4076 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587180, {0x7ff7a3891e40, 0xc0008ca9f0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0008ca9f0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587180)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587180, 0xc000d74120)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4195 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000587340, {0x7ff7a3891e40, 0xc001911a10})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc001911a10?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000587340)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000587340, 0xc000d741b0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4320 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc000586a80, {0x7ff7a3891e40, 0xc00062f780})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00062f780?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc000586a80)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc000586a80, 0xc000d74240)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4428 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc0004c6e00, {0x7ff7a3891e40, 0xc00113e610})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc00113e610?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc0004c6e00)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc0004c6e00, 0xc000d742d0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4493 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cc40, {0x7ff7a3891e40, 0xc0017eaee0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc0017eaee0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cc40)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cc40, 0xc000d74360)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames
+    setup.go:46: test panicked: validator set is empty after InitGenesis, please ensure at least one validator is initialized with a delegation greater than or equal to the DefaultPowerReduction ({824637073472})
+        goroutine 4658 [running]:
+        runtime/debug.Stack()
+        	C:/Program Files/Go/src/runtime/debug/stack.go:26 +0x5e
+        github.com/stretchr/testify/suite.failOnPanic(0xc00043cfc0, {0x7ff7a3891e40, 0xc001b8dcf0})
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:89 +0x37
+        github.com/stretchr/testify/suite.Run.func1.1()
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:184 +0x25f
+        panic({0x7ff7a3891e40?, 0xc001b8dcf0?})
+        	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+        github.com/paw-chain/paw/testutil/keeper.SetupTestApp(_)
+        	C:/Users/decri/GitClones/PAW/testutil/keeper/setup.go:46 +0x4c8
+        github.com/paw-chain/paw/tests/security_test.(*InjectionSecurityTestSuite).SetupTest(0xc001b9c808)
+        	C:/Users/decri/GitClones/PAW/tests/security/injection_test.go:27 +0x59
+        github.com/stretchr/testify/suite.Run.func1(0xc00043cfc0)
+        	C:/Users/decri/go/pkg/mod/github.com/stretchr/testify@v1.11.1/suite/suite.go:188 +0x1e5
+        testing.tRunner(0xc00043cfc0, 0xc000d743f0)
+        	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+        created by testing.(*T).Run in goroutine 3130
+        	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+--- FAIL: TestInjectionSecurityTestSuite (0.09s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs (0.00s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestFormatString_Injection (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestLDAP_Injection (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestNoSQL_Injection (0.00s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestNullByte_Injection (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestRegex_Denial (0.00s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestUnicode_Normalization (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestXML_Injection (0.01s)
+    --- FAIL: TestInjectionSecurityTestSuite/TestXSS_AssetNames (0.01s)
+FAIL
+FAIL	github.com/paw-chain/paw/tests/security	0.612s
+?   	github.com/paw-chain/paw/testutil/cometmock	[no test files]
+?   	github.com/paw-chain/paw/testutil/integration	[no test files]
+?   	github.com/paw-chain/paw/testutil/keeper	[no test files]
+?   	github.com/paw-chain/paw/x/compute	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestKeeperTestSuite
+--- PASS: TestKeeperTestSuite (0.00s)
+=== RUN   TestRegisterProvider
+    keeper_test.go:33: TODO: Implement RegisterProvider method in compute keeper
+--- SKIP: TestRegisterProvider (0.00s)
+=== RUN   TestRequestCompute
+    compute.go:58: 
+        	Error Trace:	C:/Users/decri/GitClones/PAW/testutil/keeper/compute.go:58
+        	            				C:/Users/decri/GitClones/PAW/x/compute/keeper/keeper_test.go:108
+        	Error:      	Received unexpected error:
+        	            	stake 1000000 is less than minimum required 10000000000
+        	Test:       	TestRequestCompute
+--- FAIL: TestRequestCompute (0.01s)
+=== RUN   TestSubmitResult
+    compute.go:58: 
+        	Error Trace:	C:/Users/decri/GitClones/PAW/testutil/keeper/compute.go:58
+        	            				C:/Users/decri/GitClones/PAW/x/compute/keeper/keeper_test.go:179
+        	Error:      	Received unexpected error:
+        	            	stake 1000000 is less than minimum required 10000000000
+        	Test:       	TestSubmitResult
+--- FAIL: TestSubmitResult (0.00s)
+FAIL
+FAIL	github.com/paw-chain/paw/x/compute/keeper	0.289s
+?   	github.com/paw-chain/paw/x/compute/types	[no test files]
+?   	github.com/paw-chain/paw/x/dex	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCircuitBreakerConfig
+--- PASS: TestCircuitBreakerConfig (0.00s)
+=== RUN   TestCircuitBreakerValidation
+=== RUN   TestCircuitBreakerValidation/valid_config
+=== RUN   TestCircuitBreakerValidation/negative_threshold
+=== RUN   TestCircuitBreakerValidation/thresholds_not_in_ascending_order
+=== RUN   TestCircuitBreakerValidation/negative_cooldown_period
+=== RUN   TestCircuitBreakerValidation/invalid_resume_volume_factor
+--- PASS: TestCircuitBreakerValidation (0.00s)
+    --- PASS: TestCircuitBreakerValidation/valid_config (0.00s)
+    --- PASS: TestCircuitBreakerValidation/negative_threshold (0.00s)
+    --- PASS: TestCircuitBreakerValidation/thresholds_not_in_ascending_order (0.00s)
+    --- PASS: TestCircuitBreakerValidation/negative_cooldown_period (0.00s)
+    --- PASS: TestCircuitBreakerValidation/invalid_resume_volume_factor (0.00s)
+=== RUN   TestCircuitBreakerTrip
+--- PASS: TestCircuitBreakerTrip (0.00s)
+=== RUN   TestCircuitBreakerResume
+--- PASS: TestCircuitBreakerResume (0.00s)
+=== RUN   TestCircuitBreakerAutomaticResume
+--- PASS: TestCircuitBreakerAutomaticResume (0.00s)
+=== RUN   TestPriceVolatilityDetection
+--- FAIL: TestPriceVolatilityDetection (0.01s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal 0xc0000005 code=0x0 addr=0x28 pc=0x7ff7d9c8de25]
+
+goroutine 110 [running]:
+testing.tRunner.func1.2({0x7ff7dae0c520, 0x7ff7dd24c3a0})
+	C:/Program Files/Go/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	C:/Program Files/Go/src/testing/testing.go:1875 +0x35b
+panic({0x7ff7dae0c520?, 0x7ff7dd24c3a0?})
+	C:/Program Files/Go/src/runtime/panic.go:783 +0x132
+github.com/paw-chain/paw/x/dex/keeper.Keeper.CreatePool({{_, _}, {_, _}, {_, _}}, {{0x7ff7db889028, 0x7ff7dd325300}, {0x7ff7db8a0440, 0xc001053c00}, ...}, ...)
+	C:/Users/decri/GitClones/PAW/x/dex/keeper/keeper.go:139 +0x4e5
+github.com/paw-chain/paw/x/dex/keeper_test.TestPriceVolatilityDetection(0xc000107880)
+	C:/Users/decri/GitClones/PAW/x/dex/keeper/circuit_breaker_test.go:220 +0x37c
+testing.tRunner(0xc000107880, 0x7ff7db495fc0)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/paw-chain/paw/x/dex/keeper	0.292s
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestMsgCreatePool_ValidateBasic
+=== RUN   TestMsgCreatePool_ValidateBasic/valid_message
+=== RUN   TestMsgCreatePool_ValidateBasic/invalid_creator_address
+=== RUN   TestMsgCreatePool_ValidateBasic/empty_token_A
+=== RUN   TestMsgCreatePool_ValidateBasic/empty_token_B
+=== RUN   TestMsgCreatePool_ValidateBasic/same_tokens
+=== RUN   TestMsgCreatePool_ValidateBasic/zero_amount_A
+=== RUN   TestMsgCreatePool_ValidateBasic/negative_amount_B
+--- PASS: TestMsgCreatePool_ValidateBasic (0.01s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/valid_message (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/invalid_creator_address (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/empty_token_A (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/empty_token_B (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/same_tokens (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/zero_amount_A (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/negative_amount_B (0.00s)
+=== RUN   TestMsgSwap_ValidateBasic
+=== RUN   TestMsgSwap_ValidateBasic/valid_swap
+=== RUN   TestMsgSwap_ValidateBasic/invalid_trader_address
+=== RUN   TestMsgSwap_ValidateBasic/zero_pool_id
+=== RUN   TestMsgSwap_ValidateBasic/empty_token_in
+=== RUN   TestMsgSwap_ValidateBasic/zero_amount_in
+=== RUN   TestMsgSwap_ValidateBasic/negative_min_amount_out
+--- PASS: TestMsgSwap_ValidateBasic (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/valid_swap (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/invalid_trader_address (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/empty_token_in (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/zero_amount_in (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/negative_min_amount_out (0.00s)
+=== RUN   TestMsgAddLiquidity_ValidateBasic
+=== RUN   TestMsgAddLiquidity_ValidateBasic/valid_add_liquidity
+=== RUN   TestMsgAddLiquidity_ValidateBasic/invalid_provider_address
+=== RUN   TestMsgAddLiquidity_ValidateBasic/zero_pool_id
+=== RUN   TestMsgAddLiquidity_ValidateBasic/zero_amount_A
+=== RUN   TestMsgAddLiquidity_ValidateBasic/negative_amount_B
+--- PASS: TestMsgAddLiquidity_ValidateBasic (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/valid_add_liquidity (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/invalid_provider_address (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/zero_amount_A (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/negative_amount_B (0.00s)
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/valid_remove_liquidity
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/invalid_provider_address
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/zero_pool_id
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/zero_liquidity_shares
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/negative_shares
+--- PASS: TestMsgRemoveLiquidity_ValidateBasic (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/valid_remove_liquidity (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/invalid_provider_address (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/zero_liquidity_shares (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/negative_shares (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/dex/types	(cached)
+?   	github.com/paw-chain/paw/x/oracle	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCalculateMedian
+=== RUN   TestCalculateMedian/odd_number_of_prices
+=== RUN   TestCalculateMedian/even_number_of_prices
+=== RUN   TestCalculateMedian/single_price
+--- PASS: TestCalculateMedian (0.00s)
+    --- PASS: TestCalculateMedian/odd_number_of_prices (0.00s)
+    --- PASS: TestCalculateMedian/even_number_of_prices (0.00s)
+    --- PASS: TestCalculateMedian/single_price (0.00s)
+=== RUN   TestAggregatePrice
+--- PASS: TestAggregatePrice (0.00s)
+=== RUN   TestAggregatePriceInsufficientSubmissions
+--- PASS: TestAggregatePriceInsufficientSubmissions (0.00s)
+=== RUN   TestAggregatePriceWithOutliers
+--- PASS: TestAggregatePriceWithOutliers (0.00s)
+=== RUN   TestGetPriceWithConfidence
+--- PASS: TestGetPriceWithConfidence (0.00s)
+=== RUN   TestPriceDeviation
+=== RUN   TestPriceDeviation/no_deviation
+=== RUN   TestPriceDeviation/10%_higher
+=== RUN   TestPriceDeviation/10%_lower
+--- PASS: TestPriceDeviation (0.00s)
+    --- PASS: TestPriceDeviation/no_deviation (0.00s)
+    --- PASS: TestPriceDeviation/10%_higher (0.00s)
+    --- PASS: TestPriceDeviation/10%_lower (0.00s)
+=== RUN   TestIsOutlier
+=== RUN   TestIsOutlier/within_threshold
+=== RUN   TestIsOutlier/beyond_threshold
+=== RUN   TestIsOutlier/exactly_at_threshold
+--- PASS: TestIsOutlier (0.00s)
+    --- PASS: TestIsOutlier/within_threshold (0.00s)
+    --- PASS: TestIsOutlier/beyond_threshold (0.00s)
+    --- PASS: TestIsOutlier/exactly_at_threshold (0.00s)
+=== RUN   TestSetAndGetPriceFeed
+--- PASS: TestSetAndGetPriceFeed (0.00s)
+=== RUN   TestGetAllPriceFeeds
+--- PASS: TestGetAllPriceFeeds (0.00s)
+=== RUN   TestDeletePriceFeed
+--- PASS: TestDeletePriceFeed (0.00s)
+=== RUN   TestIsPriceFeedStale
+--- PASS: TestIsPriceFeedStale (0.00s)
+=== RUN   TestGetValidPrice
+--- PASS: TestGetValidPrice (0.00s)
+=== RUN   TestValidatorSubmission
+--- PASS: TestValidatorSubmission (0.00s)
+=== RUN   TestGetValidatorSubmissions
+--- PASS: TestGetValidatorSubmissions (0.00s)
+=== RUN   TestDeleteValidatorSubmission
+--- PASS: TestDeleteValidatorSubmission (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/oracle/keeper	(cached)
+?   	github.com/paw-chain/paw/x/oracle/types	[no test files]
+FAIL

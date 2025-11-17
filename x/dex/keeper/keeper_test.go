@@ -31,6 +31,8 @@ func TestKeeperTestSuite(t *testing.T) {
 func TestCreatePool(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
+	creator := types.TestAddr()
+
 	tests := []struct {
 		name    string
 		msg     *types.MsgCreatePool
@@ -40,7 +42,7 @@ func TestCreatePool(t *testing.T) {
 		{
 			name: "valid pool creation",
 			msg: &types.MsgCreatePool{
-				Creator: "paw1creator",
+				Creator: creator,
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(1000000),
@@ -51,26 +53,26 @@ func TestCreatePool(t *testing.T) {
 		{
 			name: "same token pool",
 			msg: &types.MsgCreatePool{
-				Creator: "paw1creator",
+				Creator: creator,
 				TokenA:  "upaw",
 				TokenB:  "upaw",
 				AmountA: math.NewInt(1000000),
 				AmountB: math.NewInt(1000000),
 			},
 			wantErr: true,
-			errMsg:  "tokens must be different",
+			errMsg:  "same token",
 		},
 		{
 			name: "zero amount",
 			msg: &types.MsgCreatePool{
-				Creator: "paw1creator",
+				Creator: creator,
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(0),
 				AmountB: math.NewInt(1000000),
 			},
 			wantErr: true,
-			errMsg:  "amounts must be positive",
+			errMsg:  "invalid amount",
 		},
 	}
 
@@ -161,7 +163,8 @@ func TestSwap(t *testing.T) {
 				tokenOut = "upaw"
 			}
 
-			amountOut, err := k.Swap(ctx, "paw1trader", tt.poolId, tt.tokenIn, tokenOut, tt.amountIn, tt.minAmountOut)
+			trader := types.TestAddr()
+			amountOut, err := k.Swap(ctx, trader, tt.poolId, tt.tokenIn, tokenOut, tt.amountIn, tt.minAmountOut)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -231,7 +234,8 @@ func TestAddLiquidity(t *testing.T) {
 			poolBefore := k.GetPool(ctx, tt.poolId)
 			require.NotNil(t, poolBefore)
 
-			liquidityTokens, err := k.AddLiquidity(ctx, "paw1provider", tt.poolId, tt.amountA, tt.amountB)
+			provider := types.TestAddr()
+			liquidityTokens, err := k.AddLiquidity(ctx, provider, tt.poolId, tt.amountA, tt.amountB)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -303,7 +307,8 @@ func TestRemoveLiquidity(t *testing.T) {
 			poolBefore := k.GetPool(ctx, tt.poolId)
 			require.NotNil(t, poolBefore)
 
-			amountA, amountB, err := k.RemoveLiquidity(ctx, "paw1provider", tt.poolId, tt.liquidityTokens)
+			provider := types.TestAddr()
+			amountA, amountB, err := k.RemoveLiquidity(ctx, provider, tt.poolId, tt.liquidityTokens)
 
 			if tt.wantErr {
 				require.Error(t, err)

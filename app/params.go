@@ -38,8 +38,15 @@ var (
 )
 
 // SetConfig sets the configuration for the PAW network
+// This function is idempotent and can be called multiple times safely
 func SetConfig() {
 	config := sdk.GetConfig()
+
+	// Only set if not already configured with PAW prefix
+	if config.GetBech32AccountAddrPrefix() == Bech32PrefixAccAddr {
+		return
+	}
+
 	config.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)

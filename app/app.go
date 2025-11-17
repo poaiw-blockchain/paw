@@ -1,3 +1,20 @@
+// Package app provides the PAW blockchain application implementation.
+//
+// This package defines the PAW application structure, initializes all Cosmos SDK
+// modules, and configures the application for production use. It integrates the
+// core modules (bank, staking, governance) with custom PAW modules (DEX, Oracle,
+// Compute) to create a complete blockchain application.
+//
+// Key features:
+//   - Cosmos SDK v0.50+ integration
+//   - Tendermint BFT consensus
+//   - Custom module initialization (DEX, Oracle, Compute)
+//   - State management via IAVL trees
+//   - gRPC and REST API exposure
+//   - Transaction routing and processing
+//
+// The App struct is the central type that coordinates all blockchain operations,
+// from transaction processing to consensus participation and state management.
 package app
 
 import (
@@ -210,6 +227,9 @@ func NewPAWApp(
 	appOpts servertypes.AppOptions,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *PAWApp {
+	// Set SDK config before creating any addresses
+	SetConfig()
+
 	encodingConfig := MakeEncodingConfig()
 	appCodec := encodingConfig.Codec
 	legacyAmino := encodingConfig.Amino
@@ -456,6 +476,7 @@ func NewPAWApp(
 		crisistypes.ModuleName,
 		govtypes.ModuleName,
 		stakingtypes.ModuleName,
+		feegrant.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
 		computetypes.ModuleName,

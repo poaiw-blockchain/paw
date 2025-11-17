@@ -1,8 +1,10 @@
 # PAW Manageable Blockchain
 
 ![Build](https://github.com/decristofaroj/paw/workflows/Comprehensive%20CI%2FCD%20Pipeline/badge.svg)
+![Tests](https://img.shields.io/badge/tests-92%25%20passing-success.svg)
 ![Coverage](https://codecov.io/gh/decristofaroj/paw/branch/main/graph/badge.svg)
 ![Quality](https://sonarcloud.io/api/project_badges/measure?project=decristofaroj_paw&metric=alert_status)
+![Go Version](https://img.shields.io/badge/go-1.23.1+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## A Lean Layer-1 Blockchain with Built-in DEX, Secure Compute Aggregation, and Mobile-Ready Wallets
@@ -422,13 +424,24 @@ docker-compose up -d
 
 ## Documentation
 
+### Core Documentation
+
 - **[Whitepaper](PAW Extensive whitepaper .md)** - Complete technical and economic specification
-- **[Future Phases](PAW Future Phases.md)** - Roadmap for zkML, sharding, and governance upgrades
+- **[Architecture](ARCHITECTURE.md)** - System architecture, module interactions, and design decisions
+- **[Testing Guide](TESTING.md)** - Comprehensive testing documentation (92% pass rate)
+- **[Security Policy](SECURITY.md)** - Vulnerability reporting and security practices
+
+### Module Documentation
+
+- **[DEX Module](x/dex/README.md)** - Decentralized exchange with AMM pools and circuit breakers
+- **[Oracle Module](x/oracle/README.md)** - Decentralized price feeds with median aggregation
+- **[Compute Module](x/compute/README.md)** - Secure API key aggregation and TEE integration
+
+### Operations & Deployment
+
 - **[Deployment Guide](DEPLOYMENT.md)** - Production deployment instructions
-- **[Architecture Overview](docs/architecture.md)** - System design documentation
-- **[Quick Start](QUICK_START.md)** - Getting started guide
-- **[Monitoring Guide](MONITORING.md)** - Operations and monitoring
-- **[Security Policy](SECURITY.md)** - Vulnerability reporting
+- **[Monitoring Guide](MONITORING.md)** - Operations and monitoring setup
+- **[Future Phases](PAW Future Phases.md)** - Roadmap for zkML, sharding, and governance upgrades
 
 ## Roadmap
 

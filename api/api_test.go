@@ -11,6 +11,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -241,8 +243,12 @@ func TestAtomicSwapPrepare(t *testing.T) {
 	// Register and login
 	token := registerAndLogin(t, server, "swapper", "password123")
 
+	// Generate a valid counterparty address
+	counterpartyPriv := secp256k1.GenPrivKey()
+	counterpartyAddr := sdk.AccAddress(counterpartyPriv.PubKey().Address()).String()
+
 	swapPayload := PrepareSwapRequest{
-		CounterpartyAddress: "paw1counterparty123",
+		CounterpartyAddress: counterpartyAddr,
 		SendAmount:          "1000000",
 		SendDenom:           "paw",
 		ReceiveAmount:       "500000",

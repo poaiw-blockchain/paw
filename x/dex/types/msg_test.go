@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/dex/types"
@@ -12,6 +11,8 @@ import (
 
 // TestMsgCreatePool_ValidateBasic validates MsgCreatePool message validation
 func TestMsgCreatePool_ValidateBasic(t *testing.T) {
+	validAddr := types.TestAddr()
+
 	tests := []struct {
 		name    string
 		msg     types.MsgCreatePool
@@ -21,7 +22,7 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 		{
 			name: "valid message",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(1000000),
@@ -39,12 +40,12 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 				AmountB: math.NewInt(1000000),
 			},
 			wantErr: true,
-			errType: sdkerrors.ErrInvalidAddress,
+			errType: types.ErrInvalidAddress,
 		},
 		{
 			name: "empty token A",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(1000000),
@@ -55,7 +56,7 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 		{
 			name: "empty token B",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "upaw",
 				TokenB:  "",
 				AmountA: math.NewInt(1000000),
@@ -66,7 +67,7 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 		{
 			name: "same tokens",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "upaw",
 				TokenB:  "upaw",
 				AmountA: math.NewInt(1000000),
@@ -77,7 +78,7 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 		{
 			name: "zero amount A",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(0),
@@ -88,7 +89,7 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 		{
 			name: "negative amount B",
 			msg: types.MsgCreatePool{
-				Creator: "paw1validaddress",
+				Creator: validAddr,
 				TokenA:  "upaw",
 				TokenB:  "uusdt",
 				AmountA: math.NewInt(1000000),
@@ -115,6 +116,8 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 
 // TestMsgSwap_ValidateBasic validates MsgSwap message validation
 func TestMsgSwap_ValidateBasic(t *testing.T) {
+	validAddr := types.TestAddr()
+
 	tests := []struct {
 		name    string
 		msg     types.MsgSwap
@@ -124,9 +127,10 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 		{
 			name: "valid swap",
 			msg: types.MsgSwap{
-				Trader:       "paw1trader",
+				Trader:       validAddr,
 				PoolId:       1,
 				TokenIn:      "upaw",
+				TokenOut:     "uusdt",
 				AmountIn:     math.NewInt(1000000),
 				MinAmountOut: math.NewInt(900000),
 			},
@@ -138,16 +142,17 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 				Trader:       "invalid",
 				PoolId:       1,
 				TokenIn:      "upaw",
+				TokenOut:     "uusdt",
 				AmountIn:     math.NewInt(1000000),
 				MinAmountOut: math.NewInt(900000),
 			},
 			wantErr: true,
-			errType: sdkerrors.ErrInvalidAddress,
+			errType: types.ErrInvalidAddress,
 		},
 		{
 			name: "zero pool id",
 			msg: types.MsgSwap{
-				Trader:       "paw1trader",
+				Trader:       validAddr,
 				PoolId:       0,
 				TokenIn:      "upaw",
 				AmountIn:     math.NewInt(1000000),
@@ -158,7 +163,7 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 		{
 			name: "empty token in",
 			msg: types.MsgSwap{
-				Trader:       "paw1trader",
+				Trader:       validAddr,
 				PoolId:       1,
 				TokenIn:      "",
 				AmountIn:     math.NewInt(1000000),
@@ -169,7 +174,7 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 		{
 			name: "zero amount in",
 			msg: types.MsgSwap{
-				Trader:       "paw1trader",
+				Trader:       validAddr,
 				PoolId:       1,
 				TokenIn:      "upaw",
 				AmountIn:     math.NewInt(0),
@@ -180,7 +185,7 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 		{
 			name: "negative min amount out",
 			msg: types.MsgSwap{
-				Trader:       "paw1trader",
+				Trader:       validAddr,
 				PoolId:       1,
 				TokenIn:      "upaw",
 				AmountIn:     math.NewInt(1000000),
@@ -207,6 +212,8 @@ func TestMsgSwap_ValidateBasic(t *testing.T) {
 
 // TestMsgAddLiquidity_ValidateBasic validates MsgAddLiquidity message validation
 func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
+	validAddr := types.TestAddr()
+
 	tests := []struct {
 		name    string
 		msg     types.MsgAddLiquidity
@@ -216,7 +223,7 @@ func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "valid add liquidity",
 			msg: types.MsgAddLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				AmountA:  math.NewInt(1000000),
 				AmountB:  math.NewInt(2000000),
@@ -232,12 +239,12 @@ func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
 				AmountB:  math.NewInt(2000000),
 			},
 			wantErr: true,
-			errType: sdkerrors.ErrInvalidAddress,
+			errType: types.ErrInvalidAddress,
 		},
 		{
 			name: "zero pool id",
 			msg: types.MsgAddLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   0,
 				AmountA:  math.NewInt(1000000),
 				AmountB:  math.NewInt(2000000),
@@ -247,7 +254,7 @@ func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "zero amount A",
 			msg: types.MsgAddLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				AmountA:  math.NewInt(0),
 				AmountB:  math.NewInt(2000000),
@@ -257,7 +264,7 @@ func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "negative amount B",
 			msg: types.MsgAddLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				AmountA:  math.NewInt(1000000),
 				AmountB:  math.NewInt(-1),
@@ -283,6 +290,8 @@ func TestMsgAddLiquidity_ValidateBasic(t *testing.T) {
 
 // TestMsgRemoveLiquidity_ValidateBasic validates MsgRemoveLiquidity message validation
 func TestMsgRemoveLiquidity_ValidateBasic(t *testing.T) {
+	validAddr := types.TestAddr()
+
 	tests := []struct {
 		name    string
 		msg     types.MsgRemoveLiquidity
@@ -292,7 +301,7 @@ func TestMsgRemoveLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "valid remove liquidity",
 			msg: types.MsgRemoveLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				Shares:   math.NewInt(1000000),
 			},
@@ -306,12 +315,12 @@ func TestMsgRemoveLiquidity_ValidateBasic(t *testing.T) {
 				Shares:   math.NewInt(1000000),
 			},
 			wantErr: true,
-			errType: sdkerrors.ErrInvalidAddress,
+			errType: types.ErrInvalidAddress,
 		},
 		{
 			name: "zero pool id",
 			msg: types.MsgRemoveLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   0,
 				Shares:   math.NewInt(1000000),
 			},
@@ -320,7 +329,7 @@ func TestMsgRemoveLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "zero liquidity shares",
 			msg: types.MsgRemoveLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				Shares:   math.NewInt(0),
 			},
@@ -329,7 +338,7 @@ func TestMsgRemoveLiquidity_ValidateBasic(t *testing.T) {
 		{
 			name: "negative shares",
 			msg: types.MsgRemoveLiquidity{
-				Provider: "paw1provider",
+				Provider: validAddr,
 				PoolId:   1,
 				Shares:   math.NewInt(-1),
 			},

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -34,6 +35,8 @@ func TestRegisterProvider(t *testing.T) {
 	_ = k
 	_ = ctx
 
+	providerAddr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String()
+
 	tests := []struct {
 		name    string
 		msg     *types.MsgRegisterProvider
@@ -43,7 +46,7 @@ func TestRegisterProvider(t *testing.T) {
 		{
 			name: "valid provider registration",
 			msg: &types.MsgRegisterProvider{
-				Provider: "paw1provider",
+				Provider: providerAddr,
 				Endpoint: "https://api.compute-provider.io",
 				Stake:    math.NewInt(1000000),
 			},
@@ -52,7 +55,7 @@ func TestRegisterProvider(t *testing.T) {
 		{
 			name: "invalid endpoint",
 			msg: &types.MsgRegisterProvider{
-				Provider: "paw1provider",
+				Provider: providerAddr,
 				Endpoint: "",
 				Stake:    math.NewInt(1000000),
 			},
@@ -62,7 +65,7 @@ func TestRegisterProvider(t *testing.T) {
 		{
 			name: "insufficient stake",
 			msg: &types.MsgRegisterProvider{
-				Provider: "paw1provider",
+				Provider: providerAddr,
 				Endpoint: "https://api.compute-provider.io",
 				Stake:    math.NewInt(0),
 			},
@@ -99,8 +102,10 @@ func TestRegisterProvider(t *testing.T) {
 func TestRequestCompute(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register a provider first
-	keepertest.RegisterTestProvider(t, k, ctx, "paw1provider", "https://api.provider.io", math.NewInt(1000000))
+	providerAddr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String()
+	requesterAddr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String()
+	// Register a provider first (minimum stake is 10000000000)
+	keepertest.RegisterTestProvider(t, k, ctx, providerAddr, "https://api.provider.io", math.NewInt(10000000000))
 
 	tests := []struct {
 		name    string
@@ -111,7 +116,7 @@ func TestRequestCompute(t *testing.T) {
 		{
 			name: "valid compute request",
 			msg: &types.MsgRequestCompute{
-				Requester: "paw1requester",
+				Requester: requesterAddr,
 				ApiUrl:    "https://api.openai.com/v1/chat/completions",
 				MaxFee:    math.NewInt(1000),
 			},
@@ -120,7 +125,7 @@ func TestRequestCompute(t *testing.T) {
 		{
 			name: "empty API URL",
 			msg: &types.MsgRequestCompute{
-				Requester: "paw1requester",
+				Requester: requesterAddr,
 				ApiUrl:    "",
 				MaxFee:    math.NewInt(1000),
 			},
@@ -130,7 +135,7 @@ func TestRequestCompute(t *testing.T) {
 		{
 			name: "zero max fee",
 			msg: &types.MsgRequestCompute{
-				Requester: "paw1requester",
+				Requester: requesterAddr,
 				ApiUrl:    "https://api.openai.com/v1/chat/completions",
 				MaxFee:    math.NewInt(0),
 			},
@@ -168,10 +173,11 @@ func TestRequestCompute(t *testing.T) {
 func TestSubmitResult(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Setup: Register provider and create request
-	providerAddr := "paw1provider"
-	keepertest.RegisterTestProvider(t, k, ctx, providerAddr, "https://api.provider.io", math.NewInt(1000000))
-	requestId := keepertest.SubmitTestRequest(t, k, ctx, "paw1requester", "https://api.openai.com/v1/chat/completions")
+	// Setup: Register provider and create request (minimum stake is 10000000000)
+	providerAddr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String()
+	requesterAddr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address()).String()
+	keepertest.RegisterTestProvider(t, k, ctx, providerAddr, "https://api.provider.io", math.NewInt(10000000000))
+	requestId := keepertest.SubmitTestRequest(t, k, ctx, requesterAddr, "https://api.openai.com/v1/chat/completions")
 
 	tests := []struct {
 		name    string

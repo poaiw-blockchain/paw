@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"cosmossdk.io/log"
 	cmtcfg "github.com/cometbft/cometbft/config"
@@ -217,20 +218,24 @@ func appExport(
 }
 
 // initSDKConfig initializes the SDK config with PAW chain prefix
-func initSDKConfig() {
-	// Set prefixes
-	accountPubKeyPrefix := app.AccountAddressPrefix + "pub"
-	validatorAddressPrefix := app.AccountAddressPrefix + "valoper"
-	validatorPubKeyPrefix := app.AccountAddressPrefix + "valoperpub"
-	consNodeAddressPrefix := app.AccountAddressPrefix + "valcons"
-	consNodePubKeyPrefix := app.AccountAddressPrefix + "valconspub"
+var sdkConfigOnce sync.Once
 
-	// Set and seal config
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(app.AccountAddressPrefix, accountPubKeyPrefix)
-	config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
-	config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
-	config.Seal()
+func initSDKConfig() {
+	sdkConfigOnce.Do(func() {
+		// Set prefixes
+		accountPubKeyPrefix := app.AccountAddressPrefix + "pub"
+		validatorAddressPrefix := app.AccountAddressPrefix + "valoper"
+		validatorPubKeyPrefix := app.AccountAddressPrefix + "valoperpub"
+		consNodeAddressPrefix := app.AccountAddressPrefix + "valcons"
+		consNodePubKeyPrefix := app.AccountAddressPrefix + "valconspub"
+
+		// Set and seal config
+		config := sdk.GetConfig()
+		config.SetBech32PrefixForAccount(app.AccountAddressPrefix, accountPubKeyPrefix)
+		config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
+		config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
+		config.Seal()
+	})
 }
 
 // initAppConfig helps to override default appConfig template and configs.

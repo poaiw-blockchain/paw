@@ -1216,3 +1216,40 @@ var (
 	ErrIntOverflowCompute          = fmt.Errorf("proto: integer overflow")
 	ErrUnexpectedEndOfGroupCompute = fmt.Errorf("proto: unexpected end of group")
 )
+
+// RequestStatus defines the status of a compute request
+type RequestStatus int32
+
+const (
+	RequestStatus_UNKNOWN   RequestStatus = 0
+	RequestStatus_PENDING   RequestStatus = 1
+	RequestStatus_COMPLETED RequestStatus = 2
+	RequestStatus_FAILED    RequestStatus = 3
+)
+
+// Provider represents a registered compute provider
+type Provider struct {
+	Address  string                `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Endpoint string                `protobuf:"bytes,2,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Stake    cosmossdk_io_math.Int `protobuf:"bytes,3,opt,name=stake,proto3,customtype=cosmossdk.io/math.Int" json:"stake"`
+	Active   bool                  `protobuf:"varint,4,opt,name=active,proto3" json:"active,omitempty"`
+}
+
+func (m *Provider) Reset()         {}
+func (m *Provider) String() string { return "" }
+func (m *Provider) ProtoMessage()  {}
+
+// ComputeRequest represents a compute request
+type ComputeRequest struct {
+	Id        uint64                `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Requester string                `protobuf:"bytes,2,opt,name=requester,proto3" json:"requester,omitempty"`
+	ApiUrl    string                `protobuf:"bytes,3,opt,name=api_url,proto3" json:"api_url,omitempty"`
+	MaxFee    cosmossdk_io_math.Int `protobuf:"bytes,4,opt,name=max_fee,proto3,customtype=cosmossdk.io/math.Int" json:"max_fee"`
+	Status    RequestStatus         `protobuf:"varint,5,opt,name=status,proto3,enum=paw.compute.v1.RequestStatus" json:"status,omitempty"`
+	Result    string                `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
+	Provider  string                `protobuf:"bytes,7,opt,name=provider,proto3" json:"provider,omitempty"`
+}
+
+func (m *ComputeRequest) Reset()         {}
+func (m *ComputeRequest) String() string { return "" }
+func (m *ComputeRequest) ProtoMessage()  {}

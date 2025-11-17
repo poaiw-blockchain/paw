@@ -11,7 +11,34 @@ import (
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
-// SubmitPrice allows a validator to submit a price for an asset
+// SubmitPrice allows an active validator to submit a price feed for an asset.
+//
+// This function is the primary entry point for validators to provide oracle data.
+// Submissions are validated for authenticity, rate-limited to prevent spam, and
+// stored for aggregation with other validator submissions.
+//
+// Security features include:
+//   - Validator authentication (only bonded validators can submit)
+//   - Rate limiting per validator per asset
+//   - Price validation (must be positive, non-zero)
+//   - Submission timestamp and block height tracking
+//
+// Parameters:
+//   - ctx: SDK context with block information
+//   - validatorAddr: The validator's consensus address
+//   - asset: Asset symbol (e.g., "BTC/USD", "ETH/USD")
+//   - price: The price to submit (must be positive)
+//
+// Returns:
+//   - error: Any validation error that occurred
+//
+// Errors returned:
+//   - "asset symbol cannot be empty": if asset is empty string
+//   - "price must be positive": if price is nil, negative, or zero
+//   - "only active validators can submit prices": if validator is not bonded
+//   - Rate limit error: if submitting too frequently for this asset
+//
+// The submission is stored and emits a price_submitted event for indexing.
 func (k Keeper) SubmitPrice(ctx sdk.Context, validatorAddr sdk.ValAddress, asset string, price math.LegacyDec) error {
 	// Validate inputs
 	if asset == "" {

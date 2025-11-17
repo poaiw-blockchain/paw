@@ -1,10 +1,71 @@
 package types
 
 import (
+	"regexp"
+	"strings"
+
 	sdkerrors "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+// Security validation constants
+const (
+	maxTokenDenomLength = 128
+)
+
+// Dangerous patterns for injection attacks
+var (
+	// SQL injection patterns
+	sqlInjectionPattern = regexp.MustCompile(`(?i)(--|;|'|\"|union|select|insert|update|delete|drop|create|alter|exec|execute|script|javascript|onclick|onerror|onload)`)
+	// XSS patterns
+	xssPattern = regexp.MustCompile(`(?i)(<script|<iframe|javascript:|onerror=|onload=|onclick=)`)
+	// XML injection patterns
+	xmlInjectionPattern = regexp.MustCompile(`(?i)(<!DOCTYPE|<!ENTITY|SYSTEM|file:///)`)
+	// Valid denom pattern (alphanumeric, dash, underscore)
+	validDenomPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9/_\-.]*$`)
+)
+
+// validateTokenDenom checks if a token denomination is valid and safe
+func validateTokenDenom(denom string) error {
+	if denom == "" {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination cannot be empty")
+	}
+
+	if len(denom) > maxTokenDenomLength {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination too long")
+	}
+
+	// Check for SQL injection patterns
+	if sqlInjectionPattern.MatchString(denom) {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination contains suspicious SQL pattern")
+	}
+
+	// Check for XSS patterns
+	if xssPattern.MatchString(denom) {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination contains suspicious XSS pattern")
+	}
+
+	// Check for XML injection patterns
+	if xmlInjectionPattern.MatchString(denom) {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination contains suspicious XML pattern")
+	}
+
+	// Check for dangerous shell characters
+	dangerousChars := []string{";", "|", "&", "`", "$", "(", ")", "<", ">", "\n", "\r"}
+	for _, char := range dangerousChars {
+		if strings.Contains(denom, char) {
+			return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination contains dangerous character")
+		}
+	}
+
+	// Check valid pattern
+	if !validDenomPattern.MatchString(denom) {
+		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denomination must start with a letter and contain only alphanumeric characters, dash, underscore, slash, or dot")
+	}
+
+	return nil
+}
 
 // Ensure all message types implement the sdk.Msg interface
 var (
@@ -32,8 +93,12 @@ func (msg MsgCreatePool) ValidateBasic() error {
 		return sdkerrors.Wrapf(ErrInvalidAddress, "invalid creator address: %s", err)
 	}
 
-	if msg.TokenA == "" || msg.TokenB == "" {
-		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denominations cannot be empty")
+	// Validate token denominations for security
+	if err := validateTokenDenom(msg.TokenA); err != nil {
+		return sdkerrors.Wrap(err, "invalid token A")
+	}
+	if err := validateTokenDenom(msg.TokenB); err != nil {
+		return sdkerrors.Wrap(err, "invalid token B")
 	}
 
 	if msg.TokenA == msg.TokenB {
@@ -133,8 +198,12 @@ func (msg MsgSwap) ValidateBasic() error {
 		return sdkerrors.Wrap(ErrInvalidPoolID, "pool ID must be positive")
 	}
 
-	if msg.TokenIn == "" || msg.TokenOut == "" {
-		return sdkerrors.Wrap(ErrInvalidTokenDenom, "token denominations cannot be empty")
+	// Validate token denominations for security
+	if err := validateTokenDenom(msg.TokenIn); err != nil {
+		return sdkerrors.Wrap(err, "invalid token in")
+	}
+	if err := validateTokenDenom(msg.TokenOut); err != nil {
+		return sdkerrors.Wrap(err, "invalid token out")
 	}
 
 	if msg.TokenIn == msg.TokenOut {

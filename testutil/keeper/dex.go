@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -19,6 +20,46 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
+// mockBankKeeper is a simple mock implementation for testing
+type mockBankKeeper struct {
+	balances map[string]sdk.Coins
+}
+
+func (m *mockBankKeeper) SendCoins(ctx context.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	// Simple implementation - just track balances
+	fromKey := fromAddr.String()
+	toKey := toAddr.String()
+
+	// Initialize if needed
+	if m.balances[fromKey] == nil {
+		m.balances[fromKey] = sdk.NewCoins()
+	}
+	if m.balances[toKey] == nil {
+		m.balances[toKey] = sdk.NewCoins()
+	}
+
+	// Add coins to recipient
+	m.balances[toKey] = m.balances[toKey].Add(amt...)
+
+	return nil
+}
+
+func (m *mockBankKeeper) GetBalance(ctx context.Context, addr sdk.AccAddress, denom string) sdk.Coin {
+	key := addr.String()
+	if m.balances[key] == nil {
+		return sdk.NewCoin(denom, math.ZeroInt())
+	}
+	return sdk.NewCoin(denom, m.balances[key].AmountOf(denom))
+}
+
+func (m *mockBankKeeper) GetAllBalances(ctx context.Context, addr sdk.AccAddress) sdk.Coins {
+	key := addr.String()
+	if m.balances[key] == nil {
+		return sdk.NewCoins()
+	}
+	return m.balances[key]
+}
+
 // DexKeeper creates a test keeper for the DEX module with mock dependencies
 func DexKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
@@ -33,10 +74,15 @@ func DexKeeper(t testing.TB) (keeper.Keeper, sdk.Context) {
 	registry := codectypes.NewInterfaceRegistry()
 	cdc := codec.NewProtoCodec(registry)
 
+	// Create a mock bank keeper
+	mockBankKeeper := &mockBankKeeper{
+		balances: make(map[string]sdk.Coins),
+	}
+
 	k := keeper.NewKeeper(
 		cdc,
 		storeKey,
-		nil, // TODO: Add mock bank keeper
+		mockBankKeeper,
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())

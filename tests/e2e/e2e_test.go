@@ -3,16 +3,13 @@ package e2e_test
 import (
 	"testing"
 
-	"cosmossdk.io/log"
 	"cosmossdk.io/math"
-	dbm "github.com/cosmos/cosmos-db"
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
-	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/app"
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -31,8 +28,7 @@ type E2ETestSuite struct {
 }
 
 func (suite *E2ETestSuite) SetupSuite() {
-	suite.app = suite.setupApp()
-	suite.ctx = suite.app.BaseApp.NewContext(false).WithChainID("paw-e2e-1")
+	suite.app, suite.ctx = keepertest.SetupTestApp(suite.T())
 
 	// Create test accounts
 	suite.dexUser = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
@@ -51,18 +47,6 @@ func (suite *E2ETestSuite) SetupSuite() {
 	suite.fundAccount(suite.provider, sdk.NewCoins(
 		sdk.NewCoin("upaw", math.NewInt(10000000)),
 	))
-}
-
-func (suite *E2ETestSuite) setupApp() *app.PAWApp {
-	db := dbm.NewMemDB()
-	return app.NewPAWApp(
-		log.NewNopLogger(),
-		db,
-		nil,
-		true,
-		simtestutil.EmptyAppOptions{},
-		baseapp.SetChainID("paw-e2e-1"),
-	)
 }
 
 func (suite *E2ETestSuite) fundAccount(addr sdk.AccAddress, coins sdk.Coins) {
@@ -116,14 +100,14 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 	suite.Require().NoError(err)
 	suite.Require().True(liquidityTokens.GT(math.ZeroInt()))
 
-	// Step 3: Execute swap
+	// Step 3: Execute swap (use smaller amount to keep price impact under 5%)
 	msgSwap := &dextypes.MsgSwap{
 		Trader:       suite.trader.String(),
 		PoolId:       poolId,
 		TokenIn:      "upaw",
 		TokenOut:     "uusdt",
-		AmountIn:     math.NewInt(1000000),
-		MinAmountOut: math.NewInt(1800000),
+		AmountIn:     math.NewInt(500000), // Reduced to 500k to keep price impact low
+		MinAmountOut: math.NewInt(900000), // Adjusted accordingly
 	}
 
 	amountOut, err := suite.app.DEXKeeper.Swap(

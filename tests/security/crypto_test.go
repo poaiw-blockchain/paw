@@ -189,9 +189,17 @@ func (suite *CryptoSecurityTestSuite) TestBIP39_MnemonicGeneration() {
 			suite.Require().True(valid, "Generated mnemonic should be valid")
 
 			// Verify entropy can be recovered
+			// Note: MnemonicToByteArray returns entropy + checksum, not just entropy
+			// The checksum is entropy_bits/32 bits, rounded up to nearest byte
 			recoveredEntropy, err := bip39.MnemonicToByteArray(mnemonic)
 			suite.Require().NoError(err, "Entropy recovery should succeed")
-			suite.Require().Equal(len(entropy), len(recoveredEntropy), "Recovered entropy should have same length as original")
+
+			// Expected length = ceil((entropy + checksum) / 8) bytes
+			// checksum size in bits = entropy size in bits / 32
+			checksumBits := entropySize / 32
+			totalBits := entropySize + checksumBits
+			expectedBytes := (totalBits + 7) / 8 // Round up to nearest byte
+			suite.Require().Equal(expectedBytes, len(recoveredEntropy), "Recovered entropy+checksum should be correct length")
 		})
 	}
 }

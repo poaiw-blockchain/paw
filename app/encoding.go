@@ -20,6 +20,13 @@ type EncodingConfig struct {
 func MakeEncodingConfig() EncodingConfig {
 	amino := codec.NewLegacyAmino()
 	interfaceRegistry := types.NewInterfaceRegistry()
+
+	// Register standard interfaces first (includes crypto types)
+	std.RegisterInterfaces(interfaceRegistry)
+
+	// Register all module interfaces
+	ModuleBasics.RegisterInterfaces(interfaceRegistry)
+
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	txCfg := tx.NewTxConfig(cdc, tx.DefaultSignModes)
 

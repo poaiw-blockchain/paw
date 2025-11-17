@@ -1,19 +1,21 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/go-bip39"
-	"github.com/stretchr/testify/require"
-
 	"github.com/paw-chain/paw/app"
+	"github.com/stretchr/testify/require"
 )
 
 // Test that we can generate valid 12-word mnemonics
@@ -104,14 +106,7 @@ func TestMnemonicValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Proper validation using NewSeedWithErrorChecking which validates checksum
-			var isValid bool
-			if tt.mnemonic == "" {
-				isValid = false
-			} else {
-				_, err := bip39.NewSeedWithErrorChecking(tt.mnemonic, "")
-				isValid = err == nil
-			}
+			isValid := bip39.IsMnemonicValid(tt.mnemonic)
 			require.Equal(t, tt.valid, isValid)
 
 			words := strings.Fields(tt.mnemonic)
@@ -204,30 +199,38 @@ func TestAddKeyCommand12Words(t *testing.T) {
 	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	// Generate 12-word mnemonic directly
-	entropy := make([]byte, 16) // 128 bits for 12 words
-	_, err = rand.Read(entropy)
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flagMnemonicLength, "12")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "true") // Don't display mnemonic in test
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
 	require.NoError(t, err)
 
-	mnemonic, err := bip39.NewMnemonic(entropy)
+	// Execute command
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
 	require.NoError(t, err)
 
-	// Validate it's a 12-word mnemonic
-	words := strings.Fields(mnemonic)
-	require.Equal(t, 12, len(words))
-
-	// Create account with the mnemonic
-	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-	key, err := kr.NewAccount("testkey", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	// Verify key was created
+	key, err := kr.Key("testkey")
 	require.NoError(t, err)
 	require.NotNil(t, key)
 	require.Equal(t, "testkey", key.Name)
-
-	// Verify key was created
-	retrievedKey, err := kr.Key("testkey")
-	require.NoError(t, err)
-	require.NotNil(t, retrievedKey)
-	require.Equal(t, "testkey", retrievedKey.Name)
 }
 
 // Test AddKeyCommand with 24-word mnemonic
@@ -242,76 +245,78 @@ func TestAddKeyCommand24Words(t *testing.T) {
 	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	// Generate 24-word mnemonic directly
-	entropy := make([]byte, 32) // 256 bits for 24 words
-	_, err = rand.Read(entropy)
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flagMnemonicLength, "24")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "true")
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
 	require.NoError(t, err)
 
-	mnemonic, err := bip39.NewMnemonic(entropy)
+	// Execute command
+	cmd.SetArgs([]string{"testkey24"})
+	err = cmd.Execute()
 	require.NoError(t, err)
 
-	// Validate it's a 24-word mnemonic
-	words := strings.Fields(mnemonic)
-	require.Equal(t, 24, len(words))
-
-	// Create account with the mnemonic
-	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-	key, err := kr.NewAccount("testkey24", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	// Verify key was created
+	key, err := kr.Key("testkey24")
 	require.NoError(t, err)
 	require.NotNil(t, key)
 	require.Equal(t, "testkey24", key.Name)
-
-	// Verify key was created
-	retrievedKey, err := kr.Key("testkey24")
-	require.NoError(t, err)
-	require.NotNil(t, retrievedKey)
-	require.Equal(t, "testkey24", retrievedKey.Name)
 }
 
 // Test AddKeyCommand with invalid mnemonic length
 func TestAddKeyCommandInvalidLength(t *testing.T) {
-	// Test that generateMnemonic helper validates length correctly
-	// by directly testing the mnemonic generation logic
+	// Create temporary keyring
+	tmpDir := t.TempDir()
 
 	// Initialize SDK config
 	initSDKConfig()
 
-	// Test invalid length - should fail with BIP39
-	// BIP39 only supports specific entropy sizes that map to 12/15/18/21/24 words
-	// 18 words would require 192 bits of entropy, but we validate only 12 or 24
-
-	// Valid case: 12 words (128 bits)
-	entropy12 := make([]byte, 16)
-	_, err := rand.Read(entropy12)
+	// Create keyring
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	mnemonic12, err := bip39.NewMnemonic(entropy12)
-	require.NoError(t, err)
-	words12 := strings.Fields(mnemonic12)
-	require.Equal(t, 12, len(words12))
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
 
-	// Valid case: 24 words (256 bits)
-	entropy24 := make([]byte, 32)
-	_, err = rand.Read(entropy24)
+	// Create command
+	cmd := AddKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags with invalid length
+	cmd.Flags().Set(flagMnemonicLength, "18")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
 	require.NoError(t, err)
 
-	mnemonic24, err := bip39.NewMnemonic(entropy24)
-	require.NoError(t, err)
-	words24 := strings.Fields(mnemonic24)
-	require.Equal(t, 24, len(words24))
-
-	// Invalid case: 18 words (192 bits) - this would be valid BIP39 but we only support 12/24
-	// We verify that our code would reject non-standard lengths
-	entropy18 := make([]byte, 24) // 192 bits
-	_, err = rand.Read(entropy18)
-	require.NoError(t, err)
-
-	mnemonic18, err := bip39.NewMnemonic(entropy18)
-	require.NoError(t, err) // BIP39 lib accepts it
-	words18 := strings.Fields(mnemonic18)
-	require.Equal(t, 18, len(words18)) // But we verify it's not 12 or 24
-	require.NotEqual(t, 12, len(words18))
-	require.NotEqual(t, 24, len(words18))
+	// Execute command - should fail
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "mnemonic length must be 12 or 24 words")
 }
 
 // Test RecoverKeyCommand with valid mnemonic
@@ -322,36 +327,42 @@ func TestRecoverKeyCommand(t *testing.T) {
 	// Initialize SDK config
 	initSDKConfig()
 
-	// Create encoding config
-	encodingConfig := app.MakeEncodingConfig()
-
 	// Create keyring
-	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, encodingConfig.Codec)
+	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	// Test the key recovery functionality directly without the command framework
-	// This avoids the complex client context initialization issues
-	mnemonic := "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec).
+		WithInput(strings.NewReader("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\n"))
 
-	// Recover key using keyring directly
-	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-	key, err := kr.NewAccount("recoveredkey", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	// Create command
+	cmd := RecoverKeyCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetIn(strings.NewReader("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about\n"))
+
+	// Set flags
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	cmd.SetArgs([]string{"recoveredkey"})
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Verify key was recovered
+	key, err := kr.Key("recoveredkey")
 	require.NoError(t, err)
 	require.NotNil(t, key)
 	require.Equal(t, "recoveredkey", key.Name)
-
-	// Verify key was recovered correctly
-	retrievedKey, err := kr.Key("recoveredkey")
-	require.NoError(t, err)
-	require.NotNil(t, retrievedKey)
-	require.Equal(t, "recoveredkey", retrievedKey.Name)
-
-	// Verify addresses match
-	addr1, err := key.GetAddress()
-	require.NoError(t, err)
-	addr2, err := retrievedKey.GetAddress()
-	require.NoError(t, err)
-	require.Equal(t, addr1, addr2)
 }
 
 // Test that recovered keys have consistent addresses
@@ -402,39 +413,42 @@ func TestListKeysCommand(t *testing.T) {
 	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	// Add some test keys with different mnemonics to avoid duplicate addresses
+	// Add some test keys
 	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-
-	// Generate first key with standard test mnemonic
-	entropy1 := make([]byte, 32)
-	_, err = rand.Read(entropy1)
-	require.NoError(t, err)
-	mnemonic1, err := bip39.NewMnemonic(entropy1)
-	require.NoError(t, err)
-	_, err = kr.NewAccount("key1", mnemonic1, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	_, err = kr.NewAccount("key1", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
 	require.NoError(t, err)
 
-	// Generate second key with different mnemonic
-	entropy2 := make([]byte, 32)
-	_, err = rand.Read(entropy2)
-	require.NoError(t, err)
-	mnemonic2, err := bip39.NewMnemonic(entropy2)
-	require.NoError(t, err)
-	_, err = kr.NewAccount("key2", mnemonic2, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
+	_, err = kr.NewAccount("key2", "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
 	require.NoError(t, err)
 
-	// Test the list keys functionality by listing from keyring
-	keys, err := kr.List()
-	require.NoError(t, err)
-	require.Len(t, keys, 2)
+	// Create client context
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
 
-	// Verify both keys are present
-	keyNames := make(map[string]bool)
-	for _, key := range keys {
-		keyNames[key.Name] = true
-	}
-	require.True(t, keyNames["key1"], "key1 should be in the keyring")
-	require.True(t, keyNames["key2"], "key2 should be in the keyring")
+	// Create command
+	cmd := ListKeysCommand()
+
+	// Set up command context
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Set flags
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+
+	// Set client context
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
+	require.NoError(t, err)
+
+	// Execute command
+	err = cmd.Execute()
+	require.NoError(t, err)
+
+	// Check output contains both keys
+	output := buf.String()
+	require.Contains(t, output, "key1")
+	require.Contains(t, output, "key2")
 }
 
 // Benchmark mnemonic generation
@@ -462,36 +476,37 @@ func BenchmarkMnemonicValidation(b *testing.B) {
 	}
 }
 
-// Test that mnemonic generation works correctly
+// Test that mnemonic backup warning is displayed when no-backup is false
 func TestMnemonicBackupWarning(t *testing.T) {
 	tmpDir := t.TempDir()
 	initSDKConfig()
 
-	// Create keyring
 	kr, err := keyring.New("test", keyring.BackendTest, tmpDir, nil, app.MakeEncodingConfig().Codec)
 	require.NoError(t, err)
 
-	// Generate a 12-word mnemonic
-	entropy := make([]byte, 16) // 128 bits for 12 words
-	_, err = rand.Read(entropy)
+	clientCtx := client.Context{}.
+		WithKeyring(kr).
+		WithCodec(app.MakeEncodingConfig().Codec)
+
+	cmd := AddKeyCommand()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	cmd.Flags().Set(flagMnemonicLength, "12")
+	cmd.Flags().Set(flags.FlagKeyringBackend, keyring.BackendTest)
+	cmd.Flags().Set(flagNoBackup, "false") // Display mnemonic
+
+	err = client.SetCmdClientContextHandler(clientCtx, cmd)
 	require.NoError(t, err)
 
-	mnemonic, err := bip39.NewMnemonic(entropy)
+	cmd.SetArgs([]string{"testkey"})
+	err = cmd.Execute()
 	require.NoError(t, err)
 
-	// Validate mnemonic
-	require.True(t, bip39.IsMnemonicValid(mnemonic), "Generated mnemonic should be valid")
-
-	// Verify it's a 12-word mnemonic
-	words := strings.Fields(mnemonic)
-	require.Equal(t, 12, len(words), "Should generate 12-word mnemonic")
-
-	// Create account with the mnemonic
-	hdPath := hd.CreateHDPath(sdk.GetConfig().GetCoinType(), 0, 0)
-	key, err := kr.NewAccount("testkey", mnemonic, keyring.DefaultBIP39Passphrase, hdPath.String(), hd.Secp256k1)
-	require.NoError(t, err)
-	require.NotNil(t, key)
-	require.Equal(t, "testkey", key.Name)
+	output := buf.String()
+	require.Contains(t, output, "IMPORTANT")
+	require.Contains(t, output, "mnemonic phrase")
 }
 
 // Test export and import key functionality

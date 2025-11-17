@@ -9,6 +9,7 @@ import (
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 func TestCircuitBreakerConfig(t *testing.T) {
@@ -210,7 +211,7 @@ func TestPriceVolatilityDetection(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	// Create a test pool
-	creator := "paw1test123"
+	creator := types.TestAddr()
 	tokenA := "token_a"
 	tokenB := "token_b"
 	amountA := math.NewInt(1000000)
@@ -260,7 +261,7 @@ func TestSwapVolumeLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a test pool
-	creator := "paw1test123"
+	creator := types.TestAddr()
 	poolId, err := k.CreatePool(ctx, creator, "token_a", "token_b",
 		math.NewInt(1000000), math.NewInt(1000000))
 	require.NoError(t, err)
@@ -286,7 +287,7 @@ func TestCheckCircuitBreakerInSwap(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	// Create a pool
-	creator := "paw1test123"
+	creator := types.TestAddr()
 	tokenA := "token_a"
 	tokenB := "token_b"
 	amountA := math.NewInt(1000000)
@@ -299,7 +300,7 @@ func TestCheckCircuitBreakerInSwap(t *testing.T) {
 	k.TripCircuitBreaker(ctx, poolId, "Manual trip for testing", math.LegacyNewDec(1))
 
 	// Try to swap - should fail
-	trader := "paw1trader"
+	trader := types.TestAddr()
 	_, err = k.Swap(ctx, trader, poolId, tokenA, tokenB, math.NewInt(1000), math.NewInt(1))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "circuit breaker")

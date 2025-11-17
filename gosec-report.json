@@ -1,0 +1,5212 @@
+{
+	"Golang errors": {},
+	"Issues": [
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e uint8",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "394: \tfor v \u003e= 1\u003c\u003c7 {\n395: \t\tdAtA[offset] = uint8(v\u00260x7f | 0x80)\n396: \t\tv \u003e\u003e= 7\n",
+			"line": "395",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e uint8",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1078: \tfor v \u003e= 1\u003c\u003c7 {\n1079: \t\tdAtA[offset] = uint8(v\u00260x7f | 0x80)\n1080: \t\tv \u003e\u003e= 7\n",
+			"line": "1079",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e uint8",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1372: \tfor v \u003e= 1\u003c\u003c7 {\n1373: \t\tdAtA[offset] = uint8(v\u00260x7f | 0x80)\n1374: \t\tv \u003e\u003e= 7\n",
+			"line": "1373",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e uint8",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "467: \tfor v \u003e= 1\u003c\u003c7 {\n468: \t\tdAtA[offset] = uint8(v\u00260x7f | 0x80)\n469: \t\tv \u003e\u003e= 7\n",
+			"line": "468",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e uint8",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "481: \tfor v \u003e= 1\u003c\u003c7 {\n482: \t\tdAtA[offset] = uint8(v\u00260x7f | 0x80)\n483: \t\tv \u003e\u003e= 7\n",
+			"line": "482",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\price.go",
+			"code": "141: \tpriceTime := time.Unix(a.Timestamp, 0)\n142: \treturn currentTime.Sub(priceTime) \u003e time.Duration(expiryDuration)*time.Second\n143: }\n",
+			"line": "142",
+			"column": "51",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\price.go",
+			"code": "81: \t}\n82: \treturn math.LegacyNewDec(int64(v.AccurateSubmissions)).QuoInt64(int64(v.TotalSubmissions))\n83: }\n",
+			"line": "82",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\price.go",
+			"code": "81: \t}\n82: \treturn math.LegacyNewDec(int64(v.AccurateSubmissions)).QuoInt64(int64(v.TotalSubmissions))\n83: }\n",
+			"line": "82",
+			"column": "71",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\price.go",
+			"code": "53: \tsubmissionTime := time.Unix(v.Timestamp, 0)\n54: \treturn currentTime.Sub(submissionTime) \u003e time.Duration(expiryDuration)*time.Second\n55: }\n",
+			"line": "54",
+			"column": "56",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "464: func sozOracle(x uint64) (n int) {\n465: \treturn sovOracle(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n466: }\n",
+			"line": "465",
+			"column": "50",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\keeper\\validator.go",
+			"code": "239: \tcurrentTime := ctx.BlockTime()\n240: \tmaxAgeSeconds := time.Duration(maxAge) * time.Second\n241: \n",
+			"line": "240",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\keeper\\validator.go",
+			"code": "118: \ttimeSinceLastSubmission := ctx.BlockTime().Sub(lastSubmissionTime)\n119: \tminInterval := time.Duration(updateInterval) * time.Second\n120: \n",
+			"line": "119",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\keeper\\price.go",
+			"code": "102: \n103: \treturn currentTime.Sub(priceTime) \u003e time.Duration(params.ExpiryDuration)*time.Second\n104: }\n",
+			"line": "103",
+			"column": "51",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1227: func sozTx(x uint64) (n int) {\n1228: \treturn sovTx(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n1229: }\n",
+			"line": "1228",
+			"column": "46",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1546: func sozQuery(x uint64) (n int) {\n1547: \treturn sovQuery(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n1548: }\n",
+			"line": "1547",
+			"column": "49",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "547: func sozDex(x uint64) (n int) {\n548: \treturn sovDex(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n549: }\n",
+			"line": "548",
+			"column": "47",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\transaction_ordering.go",
+			"code": "336: \t}\n337: \treturn int64(sdk.BigEndianToUint64(bz))\n338: }\n",
+			"line": "337",
+			"column": "14",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "569: func sozCompute(x uint64) (n int) {\n570: \treturn sovCompute(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n571: }\n",
+			"line": "570",
+			"column": "51",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\tests\\load\\gotester\\main.go",
+			"code": "112: \tif m.TotalTxSubmitted \u003e 0 {\n113: \t\tavgLatency = time.Duration(m.TotalLatency / int64(m.TotalTxSubmitted))\n114: \t}\n",
+			"line": "113",
+			"column": "52",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\app\\genesis.go",
+			"code": "45: \tslashingGenesis.Params.SlashFractionDowntime = math.LegacyMustNewDecFromStr(config.DowntimePenalty)\n46: \tslashingGenesis.Params.SignedBlocksWindow = int64(config.DowntimeWindowBlocks)\n47: \tslashingGenesis.Params.DowntimeJailDuration = time.Duration(config.DowntimeJailDurationSeconds) * time.Second\n",
+			"line": "46",
+			"column": "51",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "760: \t\t}\n761: \t\tfieldNum := int32(wire \u003e\u003e 3)\n762: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "761",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "593: \t\t}\n594: \t\tfieldNum := int32(wire \u003e\u003e 3)\n595: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "594",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "486: \t\t}\n487: \t\tfieldNum := int32(wire \u003e\u003e 3)\n488: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "487",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2271: \t\t}\n2272: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2273: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2272",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2038: \t\t}\n2039: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2040: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2039",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1920: \t\t}\n1921: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1922: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1921",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1785: \t\t}\n1786: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1787: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1786",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1701: \t\t}\n1702: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1703: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1702",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1532: \t\t}\n1533: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1534: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1533",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1463: \t\t}\n1464: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1465: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1464",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1249: \t\t}\n1250: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1251: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1250",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2608: \t\t}\n2609: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2610: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2609",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2441: \t\t}\n2442: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2443: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2442",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2357: \t\t}\n2358: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2359: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2358",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2256: \t\t}\n2257: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2258: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2257",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2173: \t\t}\n2174: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2175: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2174",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2059: \t\t}\n2060: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2061: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "2060",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1939: \t\t}\n1940: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1941: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1940",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1853: \t\t}\n1854: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1855: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1854",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1770: \t\t}\n1771: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1772: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1771",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1701: \t\t}\n1702: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1703: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1702",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1618: \t\t}\n1619: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1620: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1619",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1568: \t\t}\n1569: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1570: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1569",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "1056: \t\t}\n1057: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1058: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1057",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "789: \t\t}\n790: \t\tfieldNum := int32(wire \u003e\u003e 3)\n791: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "790",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "569: \t\t}\n570: \t\tfieldNum := int32(wire \u003e\u003e 3)\n571: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "570",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "1018: \t\t}\n1019: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1020: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "1019",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "713: \t\t}\n714: \t\tfieldNum := int32(wire \u003e\u003e 3)\n715: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "714",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "591: \t\t}\n592: \t\tfieldNum := int32(wire \u003e\u003e 3)\n593: \t\twireType := int(wire \u0026 0x7)\n",
+			"line": "592",
+			"column": "20",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "877: \t\t}\n878: \t\twireType := int(wire \u0026 0x7)\n879: \t\tswitch wireType {\n",
+			"line": "878",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "761: \t\tfieldNum := int32(wire \u003e\u003e 3)\n762: \t\twireType := int(wire \u0026 0x7)\n763: \t\tif wireType == 4 {\n",
+			"line": "762",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "706: \t\t\t}\n707: \t\t\tintStringLen := int(stringLen)\n708: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "707",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "653: \t\t\t}\n654: \t\t\tintStringLen := int(stringLen)\n655: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "654",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "621: \t\t\t}\n622: \t\t\tintStringLen := int(stringLen)\n623: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "622",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "594: \t\tfieldNum := int32(wire \u003e\u003e 3)\n595: \t\twireType := int(wire \u0026 0x7)\n596: \t\tif wireType == 4 {\n",
+			"line": "595",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "487: \t\tfieldNum := int32(wire \u003e\u003e 3)\n488: \t\twireType := int(wire \u0026 0x7)\n489: \t\tif wireType == 4 {\n",
+			"line": "488",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2355: \t\t}\n2356: \t\twireType := int(wire \u0026 0x7)\n2357: \t\tswitch wireType {\n",
+			"line": "2356",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2299: \t\t\t}\n2300: \t\t\tintStringLen := int(stringLen)\n2301: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2300",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2272: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2273: \t\twireType := int(wire \u0026 0x7)\n2274: \t\tif wireType == 4 {\n",
+			"line": "2273",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2215: \t\t\t}\n2216: \t\t\tintStringLen := int(stringLen)\n2217: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2216",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2181: \t\t\t}\n2182: \t\t\tintStringLen := int(stringLen)\n2183: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2182",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2149: \t\t\t}\n2150: \t\t\tintStringLen := int(stringLen)\n2151: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2150",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2117: \t\t\t}\n2118: \t\t\tintStringLen := int(stringLen)\n2119: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2118",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2066: \t\t\t}\n2067: \t\t\tintStringLen := int(stringLen)\n2068: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2067",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "2039: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2040: \t\twireType := int(wire \u0026 0x7)\n2041: \t\tif wireType == 4 {\n",
+			"line": "2040",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1982: \t\t\t}\n1983: \t\t\tintStringLen := int(stringLen)\n1984: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1983",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1948: \t\t\t}\n1949: \t\t\tintStringLen := int(stringLen)\n1950: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1949",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1921: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1922: \t\twireType := int(wire \u0026 0x7)\n1923: \t\tif wireType == 4 {\n",
+			"line": "1922",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1864: \t\t\t}\n1865: \t\t\tintStringLen := int(stringLen)\n1866: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1865",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1813: \t\t\t}\n1814: \t\t\tintStringLen := int(stringLen)\n1815: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1814",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1786: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1787: \t\twireType := int(wire \u0026 0x7)\n1788: \t\tif wireType == 4 {\n",
+			"line": "1787",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1729: \t\t\t}\n1730: \t\t\tintStringLen := int(stringLen)\n1731: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1730",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1702: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1703: \t\twireType := int(wire \u0026 0x7)\n1704: \t\tif wireType == 4 {\n",
+			"line": "1703",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1645: \t\t\t}\n1646: \t\t\tintStringLen := int(stringLen)\n1647: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1646",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1611: \t\t\t}\n1612: \t\t\tintStringLen := int(stringLen)\n1613: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1612",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1560: \t\t\t}\n1561: \t\t\tintStringLen := int(stringLen)\n1562: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1561",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1533: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1534: \t\twireType := int(wire \u0026 0x7)\n1535: \t\tif wireType == 4 {\n",
+			"line": "1534",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1464: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1465: \t\twireType := int(wire \u0026 0x7)\n1466: \t\tif wireType == 4 {\n",
+			"line": "1465",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1407: \t\t\t}\n1408: \t\t\tintStringLen := int(stringLen)\n1409: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1408",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1373: \t\t\t}\n1374: \t\t\tintStringLen := int(stringLen)\n1375: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1374",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1341: \t\t\t}\n1342: \t\t\tintStringLen := int(stringLen)\n1343: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1342",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1309: \t\t\t}\n1310: \t\t\tintStringLen := int(stringLen)\n1311: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1310",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1277: \t\t\t}\n1278: \t\t\tintStringLen := int(stringLen)\n1279: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1278",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1250: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1251: \t\twireType := int(wire \u0026 0x7)\n1252: \t\tif wireType == 4 {\n",
+			"line": "1251",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2692: \t\t}\n2693: \t\twireType := int(wire \u0026 0x7)\n2694: \t\tswitch wireType {\n",
+			"line": "2693",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2636: \t\t\t}\n2637: \t\t\tintStringLen := int(stringLen)\n2638: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2637",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2609: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2610: \t\twireType := int(wire \u0026 0x7)\n2611: \t\tif wireType == 4 {\n",
+			"line": "2610",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2552: \t\t\t}\n2553: \t\t\tintStringLen := int(stringLen)\n2554: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2553",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2520: \t\t\t}\n2521: \t\t\tintStringLen := int(stringLen)\n2522: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2521",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2488: \t\t\t}\n2489: \t\t\tintStringLen := int(stringLen)\n2490: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2489",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2442: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2443: \t\twireType := int(wire \u0026 0x7)\n2444: \t\tif wireType == 4 {\n",
+			"line": "2443",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2385: \t\t\t}\n2386: \t\t\tintStringLen := int(stringLen)\n2387: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2386",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2358: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2359: \t\twireType := int(wire \u0026 0x7)\n2360: \t\tif wireType == 4 {\n",
+			"line": "2359",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2303: \t\t\t}\n2304: \t\t\tintStringLen := int(stringLen)\n2305: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2304",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2257: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2258: \t\twireType := int(wire \u0026 0x7)\n2259: \t\tif wireType == 4 {\n",
+			"line": "2258",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2174: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2175: \t\twireType := int(wire \u0026 0x7)\n2176: \t\tif wireType == 4 {\n",
+			"line": "2175",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2119: \t\t\t}\n2120: \t\t\tintStringLen := int(stringLen)\n2121: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2120",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2087: \t\t\t}\n2088: \t\t\tintStringLen := int(stringLen)\n2089: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "2088",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "2060: \t\tfieldNum := int32(wire \u003e\u003e 3)\n2061: \t\twireType := int(wire \u0026 0x7)\n2062: \t\tif wireType == 4 {\n",
+			"line": "2061",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1940: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1941: \t\twireType := int(wire \u0026 0x7)\n1942: \t\tif wireType == 4 {\n",
+			"line": "1941",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1854: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1855: \t\twireType := int(wire \u0026 0x7)\n1856: \t\tif wireType == 4 {\n",
+			"line": "1855",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1771: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1772: \t\twireType := int(wire \u0026 0x7)\n1773: \t\tif wireType == 4 {\n",
+			"line": "1772",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1702: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1703: \t\twireType := int(wire \u0026 0x7)\n1704: \t\tif wireType == 4 {\n",
+			"line": "1703",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1619: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1620: \t\twireType := int(wire \u0026 0x7)\n1621: \t\tif wireType == 4 {\n",
+			"line": "1620",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1569: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1570: \t\twireType := int(wire \u0026 0x7)\n1571: \t\tif wireType == 4 {\n",
+			"line": "1570",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "1192: \t\t}\n1193: \t\twireType := int(wire \u0026 0x7)\n1194: \t\tswitch wireType {\n",
+			"line": "1193",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "1057: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1058: \t\twireType := int(wire \u0026 0x7)\n1059: \t\tif wireType == 4 {\n",
+			"line": "1058",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "1002: \t\t\t}\n1003: \t\t\tintStringLen := int(stringLen)\n1004: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "1003",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "968: \t\t\t}\n969: \t\t\tintStringLen := int(stringLen)\n970: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "969",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "934: \t\t\t}\n935: \t\t\tintStringLen := int(stringLen)\n936: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "935",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "900: \t\t\t}\n901: \t\t\tintStringLen := int(stringLen)\n902: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "901",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "868: \t\t\t}\n869: \t\t\tintStringLen := int(stringLen)\n870: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "869",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "836: \t\t\t}\n837: \t\t\tintStringLen := int(stringLen)\n838: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "837",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "790: \t\tfieldNum := int32(wire \u003e\u003e 3)\n791: \t\twireType := int(wire \u0026 0x7)\n792: \t\tif wireType == 4 {\n",
+			"line": "791",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "733: \t\t\t}\n734: \t\t\tintStringLen := int(stringLen)\n735: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "734",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "699: \t\t\t}\n700: \t\t\tintStringLen := int(stringLen)\n701: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "700",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "665: \t\t\t}\n666: \t\t\tintStringLen := int(stringLen)\n667: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "666",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "631: \t\t\t}\n632: \t\t\tintStringLen := int(stringLen)\n633: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "632",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "597: \t\t\t}\n598: \t\t\tintStringLen := int(stringLen)\n599: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "598",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "570: \t\tfieldNum := int32(wire \u003e\u003e 3)\n571: \t\twireType := int(wire \u0026 0x7)\n572: \t\tif wireType == 4 {\n",
+			"line": "571",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\flashloan.go",
+			"code": "209: \n210: \treturn int(sdk.BigEndianToUint64(bz))\n211: }\n",
+			"line": "210",
+			"column": "12",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\flashloan.go",
+			"code": "190: \n191: \treturn int(sdk.BigEndianToUint64(bz))\n192: }\n",
+			"line": "191",
+			"column": "12",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "1154: \t\t}\n1155: \t\twireType := int(wire \u0026 0x7)\n1156: \t\tswitch wireType {\n",
+			"line": "1155",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "1019: \t\tfieldNum := int32(wire \u003e\u003e 3)\n1020: \t\twireType := int(wire \u0026 0x7)\n1021: \t\tif wireType == 4 {\n",
+			"line": "1020",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "926: \t\t\t}\n927: \t\t\tintStringLen := int(stringLen)\n928: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "927",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "892: \t\t\t}\n893: \t\t\tintStringLen := int(stringLen)\n894: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "893",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "792: \t\t\t}\n793: \t\t\tintStringLen := int(stringLen)\n794: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "793",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "760: \t\t\t}\n761: \t\t\tintStringLen := int(stringLen)\n762: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "761",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "714: \t\tfieldNum := int32(wire \u003e\u003e 3)\n715: \t\twireType := int(wire \u0026 0x7)\n716: \t\tif wireType == 4 {\n",
+			"line": "715",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "619: \t\t\t}\n620: \t\t\tintStringLen := int(stringLen)\n621: \t\t\tif intStringLen \u003c 0 {\n",
+			"line": "620",
+			"column": "23",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion uint64 -\u003e int",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "592: \t\tfieldNum := int32(wire \u003e\u003e 3)\n593: \t\twireType := int(wire \u0026 0x7)\n594: \t\tif wireType == 4 {\n",
+			"line": "593",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "464: func sozOracle(x uint64) (n int) {\n465: \treturn sovOracle(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n466: }\n",
+			"line": "465",
+			"column": "43",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "432: \tif m.Timestamp != 0 {\n433: \t\tn += 1 + sovOracle(uint64(m.Timestamp))\n434: \t}\n",
+			"line": "433",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "319: \tif m.Timestamp != 0 {\n320: \t\ti = encodeVarintOracle(dAtA, i, uint64(m.Timestamp))\n321: \t\ti--\n",
+			"line": "320",
+			"column": "41",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1227: func sozTx(x uint64) (n int) {\n1228: \treturn sovTx(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n1229: }\n",
+			"line": "1228",
+			"column": "39",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1546: func sozQuery(x uint64) (n int) {\n1547: \treturn sovQuery(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n1548: }\n",
+			"line": "1547",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "195: \tblockBz := make([]byte, 8)\n196: \tbinary.BigEndian.PutUint64(blockBz, uint64(blockHeight))\n197: \treturn append(append(append(SandwichPatternKeyPrefix, poolIdBz...), blockBz...), []byte(txHash)...)\n",
+			"line": "196",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "179: \tblockBz := make([]byte, 8)\n180: \tbinary.BigEndian.PutUint64(blockBz, uint64(blockHeight))\n181: \treturn append(append(append(RecentTransactionKeyPrefix, poolIdBz...), blockBz...), []byte(txHash)...)\n",
+			"line": "180",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "163: \tblockBz := make([]byte, 8)\n164: \tbinary.BigEndian.PutUint64(blockBz, uint64(blockHeight))\n165: \treturn append(append(append(TransactionRecordKeyPrefix, poolIdBz...), blockBz...), []byte(txHash)...)\n",
+			"line": "164",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "147: \tblockBz := make([]byte, 8)\n148: \tbinary.BigEndian.PutUint64(blockBz, uint64(blockHeight))\n149: \treturn append(append(LargeSwapCountKey, []byte(address)...), blockBz...)\n",
+			"line": "148",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "140: \tblockBz := make([]byte, 8)\n141: \tbinary.BigEndian.PutUint64(blockBz, uint64(blockHeight))\n142: \treturn append(append(append(SwapCountKey, []byte(address)...), poolIdBz...), blockBz...)\n",
+			"line": "141",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "547: func sozDex(x uint64) (n int) {\n548: \treturn sovDex(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n549: }\n",
+			"line": "548",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\transaction_ordering.go",
+			"code": "343: \tkey := types.GetLastTransactionTimestampKey(poolID)\n344: \tstore.Set(key, sdk.Uint64ToBigEndian(uint64(timestamp)))\n345: }\n",
+			"line": "344",
+			"column": "45",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "569: func sozCompute(x uint64) (n int) {\n570: \treturn sovCompute(uint64((x \u003c\u003c 1) ^ uint64((int64(x) \u003e\u003e 63))))\n571: }\n",
+			"line": "570",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "540: \tif m.VerifiedAt != 0 {\n541: \t\tn += 1 + sovCompute(uint64(m.VerifiedAt))\n542: \t}\n",
+			"line": "541",
+			"column": "29",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "537: \tif m.CreatedAt != 0 {\n538: \t\tn += 1 + sovCompute(uint64(m.CreatedAt))\n539: \t}\n",
+			"line": "538",
+			"column": "29",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "368: \tif m.CreatedAt != 0 {\n369: \t\ti = encodeVarintCompute(dAtA, i, uint64(m.CreatedAt))\n370: \t\ti--\n",
+			"line": "369",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int64 -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "363: \tif m.VerifiedAt != 0 {\n364: \t\ti = encodeVarintCompute(dAtA, i, uint64(m.VerifiedAt))\n365: \t\ti--\n",
+			"line": "364",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "454: \t\t\tl = e.Size()\n455: \t\t\tn += 1 + l + sovOracle(uint64(l))\n456: \t\t}\n",
+			"line": "455",
+			"column": "33",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "450: \tl = m.Params.Size()\n451: \tn += 1 + l + sovOracle(uint64(l))\n452: \tif len(m.PriceFeeds) \u003e 0 {\n",
+			"line": "451",
+			"column": "31",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "430: \tl = m.Price.Size()\n431: \tn += 1 + l + sovOracle(uint64(l))\n432: \tif m.Timestamp != 0 {\n",
+			"line": "431",
+			"column": "31",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "383: \t\ti -= size\n384: \t\ti = encodeVarintOracle(dAtA, i, uint64(size))\n385: \t}\n",
+			"line": "384",
+			"column": "41",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "371: \t\t\t\ti -= size\n372: \t\t\t\ti = encodeVarintOracle(dAtA, i, uint64(size))\n373: \t\t\t}\n",
+			"line": "372",
+			"column": "43",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\oracle.pb.go",
+			"code": "329: \t\t}\n330: \t\ti = encodeVarintOracle(dAtA, i, uint64(size))\n331: \t}\n",
+			"line": "330",
+			"column": "41",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1219: \tl = m.AmountOut.Size()\n1220: \tn += 1 + l + sovTx(uint64(l))\n1221: \treturn n\n",
+			"line": "1220",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1208: \tl = m.MinAmountOut.Size()\n1209: \tn += 1 + l + sovTx(uint64(l))\n1210: \treturn n\n",
+			"line": "1209",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1206: \tl = m.AmountIn.Size()\n1207: \tn += 1 + l + sovTx(uint64(l))\n1208: \tl = m.MinAmountOut.Size()\n",
+			"line": "1207",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1180: \tl = m.AmountB.Size()\n1181: \tn += 1 + l + sovTx(uint64(l))\n1182: \treturn n\n",
+			"line": "1181",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1178: \tl = m.AmountA.Size()\n1179: \tn += 1 + l + sovTx(uint64(l))\n1180: \tl = m.AmountB.Size()\n",
+			"line": "1179",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1167: \tl = m.Shares.Size()\n1168: \tn += 1 + l + sovTx(uint64(l))\n1169: \treturn n\n",
+			"line": "1168",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1149: \tl = m.Shares.Size()\n1150: \tn += 1 + l + sovTx(uint64(l))\n1151: \treturn n\n",
+			"line": "1150",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1138: \tl = m.AmountB.Size()\n1139: \tn += 1 + l + sovTx(uint64(l))\n1140: \treturn n\n",
+			"line": "1139",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1136: \tl = m.AmountA.Size()\n1137: \tn += 1 + l + sovTx(uint64(l))\n1138: \tl = m.AmountB.Size()\n",
+			"line": "1137",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1106: \tl = m.AmountB.Size()\n1107: \tn += 1 + l + sovTx(uint64(l))\n1108: \treturn n\n",
+			"line": "1107",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1104: \tl = m.AmountA.Size()\n1105: \tn += 1 + l + sovTx(uint64(l))\n1106: \tl = m.AmountB.Size()\n",
+			"line": "1105",
+			"column": "27",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1067: \t\t}\n1068: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n1069: \t}\n",
+			"line": "1068",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "1008: \t\t}\n1009: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n1010: \t}\n",
+			"line": "1009",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "998: \t\t}\n999: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n1000: \t}\n",
+			"line": "999",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "965: \t\t}\n966: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n967: \t}\n",
+			"line": "966",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "955: \t\t}\n956: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n957: \t}\n",
+			"line": "956",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "910: \t\t}\n911: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n912: \t}\n",
+			"line": "911",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "877: \t\t}\n878: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n879: \t}\n",
+			"line": "878",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "832: \t\t}\n833: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n834: \t}\n",
+			"line": "833",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "822: \t\t}\n823: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n824: \t}\n",
+			"line": "823",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "740: \t\t}\n741: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n742: \t}\n",
+			"line": "741",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\tx.pb.go",
+			"code": "730: \t\t}\n731: \t\ti = encodeVarintTx(dAtA, i, uint64(size))\n732: \t}\n",
+			"line": "731",
+			"column": "37",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1538: \tl = m.AmountOut.Size()\n1539: \tn += 1 + l + sovQuery(uint64(l))\n1540: \treturn n\n",
+			"line": "1539",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1527: \tl = m.AmountIn.Size()\n1528: \tn += 1 + l + sovQuery(uint64(l))\n1529: \treturn n\n",
+			"line": "1528",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1505: \tl = m.Shares.Size()\n1506: \tn += 1 + l + sovQuery(uint64(l))\n1507: \treturn n\n",
+			"line": "1506",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1478: \tl = m.Pool.Size()\n1479: \tn += 1 + l + sovQuery(uint64(l))\n1480: \treturn n\n",
+			"line": "1479",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1449: \t\tl = m.Pagination.Size()\n1450: \t\tn += 1 + l + sovQuery(uint64(l))\n1451: \t}\n",
+			"line": "1450",
+			"column": "31",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1444: \t\t\tl = e.Size()\n1445: \t\t\tn += 1 + l + sovQuery(uint64(l))\n1446: \t\t}\n",
+			"line": "1445",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1430: \t\tl = m.Pagination.Size()\n1431: \t\tn += 1 + l + sovQuery(uint64(l))\n1432: \t}\n",
+			"line": "1431",
+			"column": "31",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1418: \tl = m.Pool.Size()\n1419: \tn += 1 + l + sovQuery(uint64(l))\n1420: \treturn n\n",
+			"line": "1419",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1395: \tl = m.Params.Size()\n1396: \tn += 1 + l + sovQuery(uint64(l))\n1397: \treturn n\n",
+			"line": "1396",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1361: \t\t}\n1362: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1363: \t}\n",
+			"line": "1362",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1309: \t\t}\n1310: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1311: \t}\n",
+			"line": "1310",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1276: \t\t}\n1277: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1278: \t}\n",
+			"line": "1277",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1208: \t\ti -= size\n1209: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1210: \t}\n",
+			"line": "1209",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1136: \t\t\t\ti -= size\n1137: \t\t\t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1138: \t\t\t}\n",
+			"line": "1137",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1123: \t\t\ti -= size\n1124: \t\t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1125: \t\t}\n",
+			"line": "1124",
+			"column": "41",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1088: \t\t\ti -= size\n1089: \t\t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1090: \t\t}\n",
+			"line": "1089",
+			"column": "41",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "1054: \t\ti -= size\n1055: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n1056: \t}\n",
+			"line": "1055",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\query.pb.go",
+			"code": "993: \t\ti -= size\n994: \t\ti = encodeVarintQuery(dAtA, i, uint64(size))\n995: \t}\n",
+			"line": "994",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "534: \t\t\tl = e.Size()\n535: \t\t\tn += 1 + l + sovDex(uint64(l))\n536: \t\t}\n",
+			"line": "535",
+			"column": "30",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "530: \tl = m.Params.Size()\n531: \tn += 1 + l + sovDex(uint64(l))\n532: \tif len(m.Pools) \u003e 0 {\n",
+			"line": "531",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "515: \tl = m.TotalShares.Size()\n516: \tn += 1 + l + sovDex(uint64(l))\n517: \tl = len(m.Creator)\n",
+			"line": "516",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "513: \tl = m.ReserveB.Size()\n514: \tn += 1 + l + sovDex(uint64(l))\n515: \tl = m.TotalShares.Size()\n",
+			"line": "514",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "511: \tl = m.ReserveA.Size()\n512: \tn += 1 + l + sovDex(uint64(l))\n513: \tl = m.ReserveB.Size()\n",
+			"line": "512",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "489: \tl = m.MaxSlippagePercent.Size()\n490: \tn += 1 + l + sovDex(uint64(l))\n491: \treturn n\n",
+			"line": "490",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "487: \tl = m.MinLiquidity.Size()\n488: \tn += 1 + l + sovDex(uint64(l))\n489: \tl = m.MaxSlippagePercent.Size()\n",
+			"line": "488",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "485: \tl = m.ProtocolFee.Size()\n486: \tn += 1 + l + sovDex(uint64(l))\n487: \tl = m.MinLiquidity.Size()\n",
+			"line": "486",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "483: \tl = m.LpFee.Size()\n484: \tn += 1 + l + sovDex(uint64(l))\n485: \tl = m.ProtocolFee.Size()\n",
+			"line": "484",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "481: \tl = m.SwapFee.Size()\n482: \tn += 1 + l + sovDex(uint64(l))\n483: \tl = m.LpFee.Size()\n",
+			"line": "482",
+			"column": "28",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "456: \t\ti -= size\n457: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n458: \t}\n",
+			"line": "457",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "444: \t\t\t\ti -= size\n445: \t\t\t\ti = encodeVarintDex(dAtA, i, uint64(size))\n446: \t\t\t}\n",
+			"line": "445",
+			"column": "40",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "385: \t\t}\n386: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n387: \t}\n",
+			"line": "386",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "375: \t\t}\n376: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n377: \t}\n",
+			"line": "376",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "365: \t\t}\n366: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n367: \t}\n",
+			"line": "366",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "325: \t\t}\n326: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n327: \t}\n",
+			"line": "326",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "315: \t\t}\n316: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n317: \t}\n",
+			"line": "316",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "305: \t\t}\n306: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n307: \t}\n",
+			"line": "306",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "295: \t\t}\n296: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n297: \t}\n",
+			"line": "296",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex.pb.go",
+			"code": "285: \t\t}\n286: \t\ti = encodeVarintDex(dAtA, i, uint64(size))\n287: \t}\n",
+			"line": "286",
+			"column": "38",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\flashloan.go",
+			"code": "216: \tkey := types.GetLargeSwapCountKey(address, blockHeight)\n217: \tstore.Set(key, sdk.Uint64ToBigEndian(uint64(count+1)))\n218: }\n",
+			"line": "217",
+			"column": "45",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\flashloan.go",
+			"code": "197: \tkey := types.GetSwapCountKey(address, poolId, blockHeight)\n198: \tstore.Set(key, sdk.Uint64ToBigEndian(uint64(count+1)))\n199: }\n",
+			"line": "198",
+			"column": "45",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "556: \t\t\tl = e.Size()\n557: \t\t\tn += 1 + l + sovCompute(uint64(l))\n558: \t\t}\n",
+			"line": "557",
+			"column": "34",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "552: \tl = m.Params.Size()\n553: \tn += 1 + l + sovCompute(uint64(l))\n554: \tif len(m.Tasks) \u003e 0 {\n",
+			"line": "553",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "531: \tl = m.Reward.Size()\n532: \tn += 1 + l + sovCompute(uint64(l))\n533: \tl = len(m.Status)\n",
+			"line": "532",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "495: \tl = m.MinStake.Size()\n496: \tn += 1 + l + sovCompute(uint64(l))\n497: \tif m.VerificationTimeout != 0 {\n",
+			"line": "496",
+			"column": "32",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "470: \t\ti -= size\n471: \t\ti = encodeVarintCompute(dAtA, i, uint64(size))\n472: \t}\n",
+			"line": "471",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "458: \t\t\t\ti -= size\n459: \t\t\t\ti = encodeVarintCompute(dAtA, i, uint64(size))\n460: \t\t\t}\n",
+			"line": "459",
+			"column": "44",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "385: \t\t}\n386: \t\ti = encodeVarintCompute(dAtA, i, uint64(size))\n387: \t}\n",
+			"line": "386",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\compute\\types\\compute.pb.go",
+			"code": "335: \t\t}\n336: \t\ti = encodeVarintCompute(dAtA, i, uint64(size))\n337: \t}\n",
+			"line": "336",
+			"column": "42",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\testutil\\integration\\network.go",
+			"code": "175: \tfor _, val := range n.Validators {\n176: \t\tbaseAcc := authtypes.NewBaseAccount(val.Address, val.PubKey, uint64(val.Index), 0)\n177: \t\taccounts = append(accounts, baseAcc)\n",
+			"line": "176",
+			"column": "70",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_wallet.go",
+			"code": "305: \toffset := uint64((pagination.Page - 1) * pagination.PageSize)\n306: \tlimit := uint64(pagination.PageSize)\n307: \n",
+			"line": "306",
+			"column": "17",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint64",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_wallet.go",
+			"code": "304: \t// Calculate offset for pagination\n305: \toffset := uint64((pagination.Page - 1) * pagination.PageSize)\n306: \tlimit := uint64(pagination.PageSize)\n",
+			"line": "305",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\oracle\\types\\price.go",
+			"code": "114: \t\tBlockHeight:             blockHeight,\n115: \t\tSubmissionCount:         uint32(len(validators)),\n116: \t}\n",
+			"line": "115",
+			"column": "34",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "905: \t\t\tTimestamp:  time.Now().Unix(),\n906: \t\t\tPayloadLen: uint32(len(payload)),\n907: \t\t\tChecksum:   checksum,\n",
+			"line": "906",
+			"column": "22",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "846: \n847: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Message))); err != nil {\n848: \t\treturn nil, err\n",
+			"line": "847",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "748: \n749: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.BestHash))); err != nil {\n750: \t\treturn nil, err\n",
+			"line": "749",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "650: \n651: \t\tif err := binary.Write(buf, binary.BigEndian, uint32(len(peer.IP))); err != nil {\n652: \t\t\treturn nil, err\n",
+			"line": "651",
+			"column": "55",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "643: \tfor _, peer := range m.Peers {\n644: \t\tif err := binary.Write(buf, binary.BigEndian, uint32(len(peer.ID))); err != nil {\n645: \t\t\treturn nil, err\n",
+			"line": "644",
+			"column": "55",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "638: \n639: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Peers))); err != nil {\n640: \t\treturn nil, err\n",
+			"line": "639",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "560: \n561: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Source))); err != nil {\n562: \t\treturn nil, err\n",
+			"line": "561",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "553: \n554: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.TxData))); err != nil {\n555: \t\treturn nil, err\n",
+			"line": "554",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "546: \n547: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.TxHash))); err != nil {\n548: \t\treturn nil, err\n",
+			"line": "547",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "464: \n465: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Source))); err != nil {\n466: \t\treturn nil, err\n",
+			"line": "465",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "457: \n458: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.BlockData))); err != nil {\n459: \t\treturn nil, err\n",
+			"line": "458",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "450: \n451: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Hash))); err != nil {\n452: \t\treturn nil, err\n",
+			"line": "451",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "366: \twriteString := func(s string) error {\n367: \t\tif err := binary.Write(buf, binary.BigEndian, uint32(len(s))); err != nil {\n368: \t\t\treturn err\n",
+			"line": "367",
+			"column": "55",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "237: \t}\n238: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.BestHash))); err != nil {\n239: \t\treturn nil, err\n",
+			"line": "238",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "226: \t// Write genesis hash\n227: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.GenesisHash))); err != nil {\n228: \t\treturn nil, err\n",
+			"line": "227",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "216: \t// Write capabilities\n217: \tif err := binary.Write(buf, binary.BigEndian, uint32(len(m.Capabilities))); err != nil {\n218: \t\treturn nil, err\n",
+			"line": "217",
+			"column": "54",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "198: \twriteString := func(s string) error {\n199: \t\tif err := binary.Write(buf, binary.BigEndian, uint32(len(s))); err != nil {\n200: \t\t\treturn err\n",
+			"line": "199",
+			"column": "55",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e uint",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\peer_manager.go",
+			"code": "633: \t\t\t// Exponential backoff\n634: \t\t\tbackoff := time.Duration(1\u003c\u003cuint(attempts)) * time.Second\n635: \t\t\tif backoff \u003e 10*time.Minute {\n",
+			"line": "634",
+			"column": "36",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "761: \t}\n762: \tif err := binary.Write(buf, binary.BigEndian, int32(m.PeerCount)); err != nil {\n763: \t\treturn nil, err\n",
+			"line": "762",
+			"column": "53",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "190",
+				"url": "https://cwe.mitre.org/data/definitions/190.html"
+			},
+			"rule_id": "G115",
+			"details": "integer overflow conversion int -\u003e int32",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\messages.go",
+			"code": "758: \t}\n759: \tif err := binary.Write(buf, binary.BigEndian, int32(m.TxPoolSize)); err != nil {\n760: \t\treturn nil, err\n",
+			"line": "759",
+			"column": "53",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "MEDIUM",
+			"cwe": {
+				"id": "338",
+				"url": "https://cwe.mitre.org/data/definitions/338.html"
+			},
+			"rule_id": "G404",
+			"details": "Use of weak random number generator (math/rand or math/rand/v2 instead of crypto/rand)",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\address_book.go",
+			"code": "59: \t\tstopChan:     make(chan struct{}),\n60: \t\trng:          rand.New(rand.NewSource(time.Now().UnixNano())),\n61: \t}\n",
+			"line": "60",
+			"column": "17",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "HIGH",
+			"confidence": "LOW",
+			"cwe": {
+				"id": "798",
+				"url": "https://cwe.mitre.org/data/definitions/798.html"
+			},
+			"rule_id": "G101",
+			"details": "Potential hardcoded credentials",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\types\\dex_keys.go",
+			"code": "43: \t// PoolByTokensKeyPrefix is the prefix for pool lookup by tokens\n44: \tPoolByTokensKeyPrefix = \"Pool/by-tokens/\"\n45: )\n",
+			"line": "44",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\testutil\\integration\\contracts.go",
+			"code": "42: \n43: \twasmCode, err := os.ReadFile(absPath)\n44: \tif err != nil {\n",
+			"line": "43",
+			"column": "19",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\storage.go",
+			"code": "258: \tfilePath := filepath.Join(fs.snapshotDir, latestEntry.Name())\n259: \tdata, err := os.ReadFile(filePath)\n260: \tif err != nil {\n",
+			"line": "259",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\storage.go",
+			"code": "167: \t\tfilePath := filepath.Join(fs.dataDir, entry.Name())\n168: \t\tdata, err := os.ReadFile(filePath)\n169: \t\tif err != nil {\n",
+			"line": "168",
+			"column": "16",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\storage.go",
+			"code": "132: \tfilePath := fs.getPeerFilePath(peerID)\n133: \tdata, err := os.ReadFile(filePath)\n134: \tif err != nil {\n",
+			"line": "133",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\config.go",
+			"code": "203: func LoadConfig(filePath string) (*Config, error) {\n204: \tdata, err := os.ReadFile(filePath)\n205: \tif err != nil {\n",
+			"line": "204",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\address_book.go",
+			"code": "516: \n517: \tdata, err := os.ReadFile(filePath)\n518: \tif err != nil {\n",
+			"line": "517",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\cmd\\pawd\\cmd\\keys.go",
+			"code": "447: \t\t\t// Read key file\n448: \t\t\tarmor, err := os.ReadFile(keyfile)\n449: \t\t\tif err != nil {\n",
+			"line": "448",
+			"column": "18",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\cmd\\pawd\\cmd\\collect_gentxs.go",
+			"code": "74: \t\t\t\t\t// Read gentx file\n75: \t\t\t\t\tgentxBz, err := os.ReadFile(gentxPath)\n76: \t\t\t\t\tif err != nil {\n",
+			"line": "75",
+			"column": "22",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "22",
+				"url": "https://cwe.mitre.org/data/definitions/22.html"
+			},
+			"rule_id": "G304",
+			"details": "Potential file inclusion via variable",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "119: \t// Open new log file\n120: \tfile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)\n121: \tif err != nil {\n",
+			"line": "120",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G302",
+			"details": "Expect file permissions to be 0600 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "119: \t// Open new log file\n120: \tfile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)\n121: \tif err != nil {\n",
+			"line": "120",
+			"column": "15",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G301",
+			"details": "Expect directory permissions to be 0750 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\cmd\\pawd\\cmd\\init.go",
+			"code": "105: \t\t\tdataDir := filepath.Join(clientCtx.HomeDir, \"data\")\n106: \t\t\tif err := os.MkdirAll(dataDir, 0755); err != nil {\n107: \t\t\t\treturn fmt.Errorf(\"failed to create data directory: %w\", err)\n",
+			"line": "106",
+			"column": "14",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G301",
+			"details": "Expect directory permissions to be 0750 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\cmd\\pawd\\cmd\\gentx.go",
+			"code": "187: \t\t\tgentxDir := filepath.Join(config.RootDir, \"config\", \"gentx\")\n188: \t\t\tif err := os.MkdirAll(gentxDir, 0755); err != nil {\n189: \t\t\t\treturn fmt.Errorf(\"failed to create gentx dir: %w\", err)\n",
+			"line": "188",
+			"column": "14",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G301",
+			"details": "Expect directory permissions to be 0750 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "47: \t// Create log directory if it doesn't exist\n48: \tif err := os.MkdirAll(logDir, 0755); err != nil {\n49: \t\treturn nil, fmt.Errorf(\"failed to create audit log directory: %w\", err)\n",
+			"line": "48",
+			"column": "12",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G306",
+			"details": "Expect WriteFile permissions to be 0600 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\tests\\load\\gotester\\main.go",
+			"code": "284: \n285: \tif err := os.WriteFile(filename, data, 0644); err != nil {\n286: \t\treturn fmt.Errorf(\"failed to write report: %w\", err)\n",
+			"line": "285",
+			"column": "12",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "MEDIUM",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "276",
+				"url": "https://cwe.mitre.org/data/definitions/276.html"
+			},
+			"rule_id": "G306",
+			"details": "Expect WriteFile permissions to be 0600 or less",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\cmd\\pawd\\cmd\\gentx.go",
+			"code": "192: \t\t\tgentxFile := filepath.Join(gentxDir, fmt.Sprintf(\"gentx-%s.json\", nodeID))\n193: \t\t\tif err := os.WriteFile(gentxFile, txBz, 0644); err != nil {\n194: \t\t\t\treturn fmt.Errorf(\"failed to write gentx file: %w\", err)\n",
+			"line": "193",
+			"column": "14",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\x\\dex\\keeper\\keeper.go",
+			"code": "353: \t// Record price for TWAP after the swap\n354: \tk.RecordPrice(ctx, poolId)\n355: \n",
+			"line": "354",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\testutil\\integration\\network.go",
+			"code": "248: \tfor _, val := range n.Validators {\n249: \t\tval.App.Close()\n250: \t}\n",
+			"line": "249",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\testutil\\integration\\network.go",
+			"code": "159: \t\trequire.NoError(t, err)\n160: \t\tval.App.Commit()\n161: \t}\n",
+			"line": "160",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\http_handlers.go",
+			"code": "352: \tw.WriteHeader(status)\n353: \tjson.NewEncoder(w).Encode(data)\n354: }\n",
+			"line": "353",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\http_handlers.go",
+			"code": "267: \tw.WriteHeader(http.StatusOK)\n268: \tw.Write([]byte(output))\n269: }\n",
+			"line": "268",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\cli.go",
+			"code": "304: \n305: \tw.Flush()\n306: \treturn nil\n",
+			"line": "305",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\reputation\\cli.go",
+			"code": "96: \n97: \tw.Flush()\n98: \treturn nil\n",
+			"line": "97",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "706: \t\tpm.logger.Info(\"disconnecting idle peer\", \"peer_id\", id)\n707: \t\tpm.DisconnectPeer(id)\n708: \t}\n",
+			"line": "707",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "665: \t\tpeer.wg.Wait()\n666: \t\tpeer.Conn.Close()\n667: \t}\n",
+			"line": "666",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "633: \t\t\t\tpm.logger.Error(\"write error\", \"peer_id\", peer.ID, \"error\", err)\n634: \t\t\t\tpm.DisconnectPeer(peer.ID)\n635: \t\t\t\treturn\n",
+			"line": "634",
+			"column": "5",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "623: \t\t\t// Set write deadline\n624: \t\t\tpeer.Conn.SetWriteDeadline(time.Now().Add(pm.config.WriteTimeout))\n625: \n",
+			"line": "624",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "585: \t\t\t}\n586: \t\t\tpm.DisconnectPeer(peer.ID)\n587: \t\t\treturn\n",
+			"line": "586",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "578: \t\t// Set read deadline\n579: \t\tpeer.Conn.SetReadDeadline(time.Now().Add(pm.config.ReadTimeout))\n580: \n",
+			"line": "579",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "561: \t// Add to gossip network\n562: \tpm.gossip.AddPeer(peerID, peer.Address, !inbound)\n563: \n",
+			"line": "562",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "533: \t// Clear deadline\n534: \tconn.SetDeadline(time.Time{})\n535: \n",
+			"line": "534",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "435: \t// Set deadline for handshake\n436: \tconn.SetDeadline(time.Now().Add(pm.config.HandshakeTimeout))\n437: \n",
+			"line": "436",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "418: \t\t\t\tpm.logger.Error(\"failed to setup peer\", \"error\", err)\n419: \t\t\t\tconn.Close()\n420: \t\t\t\tpm.peersMu.Lock()\n",
+			"line": "419",
+			"column": "5",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "407: \t\t\tpm.peersMu.Unlock()\n408: \t\t\tconn.Close()\n409: \t\t\tcontinue\n",
+			"line": "408",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "383: \tif pm.listener != nil {\n384: \t\tpm.listener.Close()\n385: \t\tpm.listener = nil\n",
+			"line": "384",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "266: \tpeer.wg.Wait()\n267: \tpeer.Conn.Close()\n268: \n",
+			"line": "267",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\protocol\\manager.go",
+			"code": "231: \tif err != nil {\n232: \t\tconn.Close()\n233: \t\tpm.peersMu.Lock()\n",
+			"line": "232",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\node.go",
+			"code": "188: \t\tif repManager != nil {\n189: \t\t\trepManager.Close()\n190: \t\t}\n",
+			"line": "189",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\peer_manager.go",
+			"code": "221: \tif pm.repManager != nil {\n222: \t\tpm.repManager.RecordEvent(reputation.PeerEvent{\n223: \t\t\tPeerID:    peerID,\n224: \t\t\tEventType: reputation.EventTypeDisconnected,\n225: \t\t\tTimestamp: time.Now(),\n226: \t\t})\n227: \t}\n",
+			"line": "222-226",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\peer_manager.go",
+			"code": "179: \tif pm.repManager != nil {\n180: \t\tpm.repManager.RecordEvent(reputation.PeerEvent{\n181: \t\t\tPeerID:    peerID,\n182: \t\t\tEventType: reputation.EventTypeConnected,\n183: \t\t\tTimestamp: time.Now(),\n184: \t\t})\n185: \t}\n",
+			"line": "180-184",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\discovery.go",
+			"code": "310: \tif s.repManager != nil {\n311: \t\ts.repManager.UnbanPeer(peerID)\n312: \t}\n",
+			"line": "311",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\p2p\\discovery\\discovery.go",
+			"code": "301: \tif s.repManager != nil {\n302: \t\ts.repManager.BanPeer(peerID, duration, \"manual ban\")\n303: \t}\n",
+			"line": "302",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\external\\crypto\\exchange-frontend\\node_modules\\snyk\\dist\\gosrc\\resolve-deps.go",
+			"code": "18: \te.SetIndent(\"\", \"  \")\n19: \te.Encode(j)\n20: }\n",
+			"line": "19",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\app\\app.go",
+			"code": "557: \tif apiConfig.Swagger {\n558: \t\tserver.RegisterSwaggerAPI(clientCtx, apiSvr.Router, apiConfig.Swagger)\n559: \t}\n",
+			"line": "558",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "248: \t\tcase \u003c-ticker.C:\n249: \t\t\tc.conn.SetWriteDeadline(time.Now().Add(writeWait))\n250: \t\t\tif err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {\n",
+			"line": "249",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "238: \t\t\t\t// The hub closed the channel\n239: \t\t\t\tc.conn.WriteMessage(websocket.CloseMessage, []byte{})\n240: \t\t\t\treturn\n",
+			"line": "239",
+			"column": "5",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "235: \t\tcase message, ok := \u003c-c.send:\n236: \t\t\tc.conn.SetWriteDeadline(time.Now().Add(writeWait))\n237: \t\t\tif !ok {\n",
+			"line": "236",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "229: \t\tticker.Stop()\n230: \t\tc.conn.Close()\n231: \t}()\n",
+			"line": "230",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "199: \tc.conn.SetPongHandler(func(string) error {\n200: \t\tc.conn.SetReadDeadline(time.Now().Add(pongWait))\n201: \t\treturn nil\n",
+			"line": "200",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "196: \n197: \tc.conn.SetReadDeadline(time.Now().Add(pongWait))\n198: \tc.conn.SetReadLimit(maxMessageSize)\n",
+			"line": "197",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "193: \t\tc.hub.unregister \u003c- c\n194: \t\tc.conn.Close()\n195: \t}()\n",
+			"line": "194",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\websocket.go",
+			"code": "144: \tfor client := range h.clients {\n145: \t\tclient.conn.Close()\n146: \t\tdelete(h.clients, client)\n",
+			"line": "145",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\validation.go",
+			"code": "421: \t\tif regexp.MustCompile(`^[0-9]+$`).MatchString(limitStr) {\n422: \t\t\tfmt.Sscanf(limitStr, \"%d\", \u0026limit)\n423: \t\t}\n",
+			"line": "422",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\server.go",
+			"code": "282: \tif s.auditLogger != nil {\n283: \t\ts.auditLogger.Close()\n284: \t}\n",
+			"line": "283",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\health\\health.go",
+			"code": "183: \t\tw.WriteHeader(http.StatusServiceUnavailable)\n184: \t\tjson.NewEncoder(w).Encode(map[string]interface{}{\n185: \t\t\t\"status\":    \"not_ready\",\n186: \t\t\t\"reason\":    response.Status,\n187: \t\t\t\"timestamp\": time.Now(),\n188: \t\t})\n189: \t}\n",
+			"line": "184-188",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\health\\health.go",
+			"code": "177: \t\tw.WriteHeader(http.StatusOK)\n178: \t\tjson.NewEncoder(w).Encode(map[string]interface{}{\n179: \t\t\t\"status\":    \"ready\",\n180: \t\t\t\"timestamp\": time.Now(),\n181: \t\t})\n182: \t} else {\n",
+			"line": "178-181",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\health\\health.go",
+			"code": "162: \tw.WriteHeader(http.StatusOK)\n163: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n164: \t\t\"status\":    \"alive\",\n165: \t\t\"timestamp\": time.Now(),\n166: \t})\n167: }\n",
+			"line": "163-166",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\health\\health.go",
+			"code": "155: \tw.WriteHeader(statusCode)\n156: \tjson.NewEncoder(w).Encode(response)\n157: }\n",
+			"line": "156",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_trading.go",
+			"code": "489: \tb := make([]byte, 16)\n490: \trand.Read(b)\n491: \treturn \"TRD-\" + hex.EncodeToString(b)[:16]\n",
+			"line": "490",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_trading.go",
+			"code": "483: \tb := make([]byte, 16)\n484: \trand.Read(b)\n485: \treturn \"ORD-\" + hex.EncodeToString(b)[:16]\n",
+			"line": "484",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_trading.go",
+			"code": "115: \tif l, ok := c.GetQuery(\"limit\"); ok {\n116: \t\tfmt.Sscanf(l, \"%d\", \u0026limit)\n117: \t}\n",
+			"line": "116",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_swap.go",
+			"code": "393: \tb := make([]byte, 16)\n394: \trand.Read(b)\n395: \treturn \"SWAP-\" + hex.EncodeToString(b)[:16]\n",
+			"line": "394",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_auth.go",
+			"code": "539: \tb := make([]byte, 20)\n540: \trand.Read(b)\n541: \treturn \"paw1\" + hex.EncodeToString(b)[:38]\n",
+			"line": "540",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_auth.go",
+			"code": "530: \tb := make([]byte, 16)\n531: \trand.Read(b)\n532: \treturn hex.EncodeToString(b)\n",
+			"line": "531",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\handlers_auth.go",
+			"code": "363: \tb := make([]byte, 16)\n364: \trand.Read(b)\n365: \treturn hex.EncodeToString(b)\n",
+			"line": "364",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "271: func (al *AuditLogger) LogSuspiciousActivity(c *gin.Context, userID, activityType, details string) {\n272: \tal.Log(AuditEvent{\n273: \t\tEventType: \"suspicious_activity\",\n274: \t\tSeverity:  \"critical\",\n275: \t\tUserID:    userID,\n276: \t\tIPAddress: c.ClientIP(),\n277: \t\tAction:    activityType,\n278: \t\tStatus:    \"detected\",\n279: \t\tDetails: map[string]interface{}{\n280: \t\t\t\"details\": details,\n281: \t\t},\n282: \t\tUserAgent: c.Request.UserAgent(),\n283: \t})\n284: }\n",
+			"line": "272-283",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "255: func (al *AuditLogger) LogRateLimitExceeded(c *gin.Context, userID, limit string) {\n256: \tal.Log(AuditEvent{\n257: \t\tEventType: \"rate_limit_exceeded\",\n258: \t\tSeverity:  \"warning\",\n259: \t\tUserID:    userID,\n260: \t\tIPAddress: c.ClientIP(),\n261: \t\tAction:    c.Request.Method + \" \" + c.Request.URL.Path,\n262: \t\tStatus:    \"blocked\",\n263: \t\tDetails: map[string]interface{}{\n264: \t\t\t\"limit\": limit,\n265: \t\t},\n266: \t\tUserAgent: c.Request.UserAgent(),\n267: \t})\n268: }\n",
+			"line": "256-267",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "234: \n235: \tal.Log(AuditEvent{\n236: \t\tEventType: \"api_access\",\n237: \t\tSeverity:  severity,\n238: \t\tUserID:    userID,\n239: \t\tIPAddress: c.ClientIP(),\n240: \t\tAction:    c.Request.Method + \" \" + c.Request.URL.Path,\n241: \t\tStatus:    status,\n242: \t\tDetails: map[string]interface{}{\n243: \t\t\t\"status_code\":   statusCode,\n244: \t\t\t\"duration_ms\":   duration.Milliseconds(),\n245: \t\t\t\"request_size\":  c.Request.ContentLength,\n246: \t\t\t\"response_size\": c.Writer.Size(),\n247: \t\t\t\"query_params\":  c.Request.URL.Query(),\n248: \t\t},\n249: \t\tUserAgent: c.Request.UserAgent(),\n250: \t\tRequestID: c.GetString(\"request_id\"),\n251: \t})\n252: }\n",
+			"line": "235-251",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "209: func (al *AuditLogger) LogSecurityEvent(eventType, severity, action, status, details string, metadata map[string]interface{}) {\n210: \tal.Log(AuditEvent{\n211: \t\tEventType: eventType,\n212: \t\tSeverity:  severity,\n213: \t\tAction:    action,\n214: \t\tStatus:    status,\n215: \t\tDetails: map[string]interface{}{\n216: \t\t\t\"details\":  details,\n217: \t\t\t\"metadata\": metadata,\n218: \t\t},\n219: \t})\n220: }\n",
+			"line": "210-219",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "193: func (al *AuditLogger) LogTransaction(userID, txHash, txType string, amount int64, status, details string) {\n194: \tal.Log(AuditEvent{\n195: \t\tEventType: \"transaction\",\n196: \t\tSeverity:  \"info\",\n197: \t\tUserID:    userID,\n198: \t\tAction:    txType,\n199: \t\tStatus:    status,\n200: \t\tDetails: map[string]interface{}{\n201: \t\t\t\"tx_hash\": txHash,\n202: \t\t\t\"amount\":  amount,\n203: \t\t\t\"details\": details,\n204: \t\t},\n205: \t})\n206: }\n",
+			"line": "194-205",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "179: func (al *AuditLogger) LogAuthorization(c *gin.Context, userID, resource, action, status string) {\n180: \tal.Log(AuditEvent{\n181: \t\tEventType: \"authorization\",\n182: \t\tSeverity:  al.getSeverityForStatus(status),\n183: \t\tUserID:    userID,\n184: \t\tIPAddress: c.ClientIP(),\n185: \t\tAction:    action,\n186: \t\tResource:  resource,\n187: \t\tStatus:    status,\n188: \t\tUserAgent: c.Request.UserAgent(),\n189: \t})\n190: }\n",
+			"line": "180-189",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "162: func (al *AuditLogger) LogAuthentication(c *gin.Context, username, userID, status, details string) {\n163: \tal.Log(AuditEvent{\n164: \t\tEventType: \"authentication\",\n165: \t\tSeverity:  al.getSeverityForAuth(status),\n166: \t\tUsername:  username,\n167: \t\tUserID:    userID,\n168: \t\tIPAddress: c.ClientIP(),\n169: \t\tAction:    c.Request.Method + \" \" + c.Request.URL.Path,\n170: \t\tStatus:    status,\n171: \t\tDetails: map[string]interface{}{\n172: \t\t\t\"details\": details,\n173: \t\t},\n174: \t\tUserAgent: c.Request.UserAgent(),\n175: \t})\n176: }\n",
+			"line": "163-175",
+			"column": "2",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "143: \t\tfor i := 0; i \u003c len(files)-al.maxFiles; i++ {\n144: \t\t\tos.Remove(files[i])\n145: \t\t}\n",
+			"line": "144",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "111: \tif al.logFile != nil {\n112: \t\tal.logFile.Close()\n113: \t}\n",
+			"line": "112",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "101: \tif event.Severity == \"critical\" {\n102: \t\tal.logFile.Sync()\n103: \t}\n",
+			"line": "102",
+			"column": "3",
+			"nosec": false,
+			"suppressions": null
+		},
+		{
+			"severity": "LOW",
+			"confidence": "HIGH",
+			"cwe": {
+				"id": "703",
+				"url": "https://cwe.mitre.org/data/definitions/703.html"
+			},
+			"rule_id": "G104",
+			"details": "Errors unhandled",
+			"file": "C:\\Users\\decri\\GitClones\\PAW\\api\\audit_logger.go",
+			"code": "84: \t\tif err == nil \u0026\u0026 info.Size() \u003e= al.maxSize {\n85: \t\t\tal.rotateLogFile()\n86: \t\t}\n",
+			"line": "85",
+			"column": "4",
+			"nosec": false,
+			"suppressions": null
+		}
+	],
+	"Stats": {
+		"files": 118,
+		"lines": 40837,
+		"nosec": 0,
+		"found": 325
+	},
+	"GosecVersion": "dev"
+}
