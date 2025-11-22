@@ -1,0 +1,25 @@
+name: Devnet Smoke
+on:
+  workflow_dispatch:
+  push:
+    branches: ["master"]
+jobs:
+  devnet-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.4"
+      - name: Build pawd binary
+        run: go build -o ./pawd ./cmd/pawd
+      - name: Start devnet
+        run: docker compose -f docker-compose.devnet.yml up -d
+      - name: Wait for boot
+        run: sleep 15
+      - name: Smoke test
+        run: ./scripts/devnet/smoke.sh
+      - name: Teardown
+        if: always()
+        run: docker compose -f docker-compose.devnet.yml down -v
+

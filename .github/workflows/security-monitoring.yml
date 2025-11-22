@@ -1,0 +1,503 @@
+name: Continuous Security Monitoring
+
+on:
+  push:
+    branches: [master, main, develop]
+  pull_request:
+    branches: [master, main, develop]
+  schedule:
+    # Daily vulnerability scan at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Weekly comprehensive report on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  # Python Security Scanning
+  python-security:
+    name: Python Security Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety pip-audit semgrep pyyaml
+
+      - name: Run Python security monitor
+        run: |
+          python scripts/security_monitor.py
+        continue-on-error: true
+
+      - name: Upload Python security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-security-report
+          path: |
+            bandit-report.json
+            security-report.json
+            security-report.md
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-report.sarif
+          category: python-security
+
+  # Go Security Scanning
+  go-security:
+    name: Go Security Scan
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install security tools
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install github.com/sonatype-nexus-community/nancy@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Build security monitor
+        run: |
+          go build -o security-monitor scripts/security_monitor.go
+
+      - name: Run Go security monitor
+        run: |
+          ./security-monitor
+        continue-on-error: true
+
+      - name: Upload Go security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: go-security-report
+          path: |
+            gosec-report.json
+            security-report.json
+            security-report.md
+            security-report.sarif
+
+      - name: Upload to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-report.sarif
+          category: go-security
+
+  # Bandit Analysis
+  bandit:
+    name: Bandit Security Analysis
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  # Safety Check
+  safety-check:
+    name: Dependency Safety Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Run Safety check
+        run: |
+          safety check --json || true
+
+  # GoSec Scanner
+  gosec:
+    name: GoSec Scanner
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run GoSec
+        uses: securego/gosec@master
+        with:
+          args: '-conf .security/.gosec.yml -fmt json -out gosec-report.json ./...'
+        continue-on-error: true
+
+      - name: Upload GoSec report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gosec-report
+          path: gosec-report.json
+
+  # Nancy Dependency Check
+  nancy:
+    name: Nancy Dependency Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install Nancy
+        run: |
+          go install github.com/sonatype-nexus-community/nancy@latest
+
+      - name: Run Nancy
+        run: |
+          go list -json -m all | nancy sleuth || true
+
+  # Gov ulncheck
+  govulncheck:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./... || true
+
+  # Trivy Scanner
+  trivy:
+    name: Trivy Vulnerability Scanner
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy FS scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-config.sarif'
+
+      - name: Run Trivy JSON report
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'trivy-report.json'
+
+      - name: Upload Trivy FS results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Upload Trivy config results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+  # GitLeaks Secret Scanner
+  gitleaks:
+    name: GitLeaks Secret Scanner
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # CodeQL Analysis
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['go', 'python', 'javascript']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+
+  # OWASP Dependency-Check
+  dependency-check:
+    name: OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          path: '.'
+          format: 'JSON'
+          args: >
+            --enableVerbose
+            --suppression .security/dependency-check-suppressions.xml
+
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: reports/
+
+  # TruffleHog Secret Detection
+  trufflehog:
+    name: TruffleHog Secret Detection
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --json
+
+  # Generate Security Alerts
+  security-alerts:
+    name: Process Security Alerts
+    runs-on: ubuntu-latest
+    needs: [python-security, go-security, bandit]
+    if: always()
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: security-reports
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml requests
+
+      - name: Process security alerts
+        run: |
+          python scripts/security_alerts.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SECURITY_SLACK_WEBHOOK: ${{ secrets.SECURITY_SLACK_WEBHOOK }}
+        continue-on-error: true
+
+  # Generate Dashboard
+  security-dashboard:
+    name: Generate Security Dashboard
+    runs-on: ubuntu-latest
+    needs: [python-security, go-security]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download security reports
+        uses: actions/download-artifact@v4
+        with:
+          path: security-reports
+
+      - name: Generate dashboard
+        run: |
+          echo "# Security Dashboard - $(date)" > SECURITY-DASHBOARD.md
+          echo "" >> SECURITY-DASHBOARD.md
+          echo "## Report Summary" >> SECURITY-DASHBOARD.md
+          echo "" >> SECURITY-DASHBOARD.md
+
+          if [ -f security-reports/python-security-report/security-report.md ]; then
+            echo "### Python Security Report" >> SECURITY-DASHBOARD.md
+            cat security-reports/python-security-report/security-report.md >> SECURITY-DASHBOARD.md
+            echo "" >> SECURITY-DASHBOARD.md
+          fi
+
+          if [ -f security-reports/go-security-report/security-report.md ]; then
+            echo "### Go Security Report" >> SECURITY-DASHBOARD.md
+            cat security-reports/go-security-report/security-report.md >> SECURITY-DASHBOARD.md
+            echo "" >> SECURITY-DASHBOARD.md
+          fi
+
+      - name: Upload dashboard
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-dashboard
+          path: SECURITY-DASHBOARD.md
+
+  # Summary Report
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [
+      python-security,
+      go-security,
+      bandit,
+      safety-check,
+      gosec,
+      nancy,
+      govulncheck,
+      trivy,
+      gitleaks,
+      codeql,
+      dependency-check,
+      trufflehog
+    ]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+
+      - name: Generate comprehensive summary
+        run: |
+          echo "# Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tool | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Security | ${{ needs.python-security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Security | ${{ needs.go-security.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bandit | ${{ needs.bandit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Safety Check | ${{ needs.safety-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GoSec | ${{ needs.gosec.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Nancy | ${{ needs.nancy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| govulncheck | ${{ needs.govulncheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy | ${{ needs.trivy.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitLeaks | ${{ needs.gitleaks.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL | ${{ needs.codeql.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency-Check | ${{ needs.dependency-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| TruffleHog | ${{ needs.trufflehog.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Details" >> $GITHUB_STEP_SUMMARY
+          echo "- All security reports have been uploaded to the artifacts section" >> $GITHUB_STEP_SUMMARY
+          echo "- For detailed findings, check individual tool reports" >> $GITHUB_STEP_SUMMARY
+          echo "- Security dashboard available in artifacts" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for critical failures
+        run: |
+          if [ "${{ needs.gitleaks.result }}" = "failure" ]; then
+            echo "::warning::Secrets may have been detected by GitLeaks"
+          fi
