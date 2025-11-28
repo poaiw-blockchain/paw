@@ -1,0 +1,107 @@
+# Pre-commit hooks for code quality and security
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-json
+        name: Check JSON syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+        args: ['--fix=lf']
+
+  # Go formatting
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: Go format
+        entry: gofmt -w
+        language: system
+        types: [go]
+
+      - id: go-vet
+        name: Go vet
+        entry: go vet ./...
+        language: system
+        types: [go]
+        pass_filenames: false
+
+      - id: go-mod-tidy
+        name: Go mod tidy
+        entry: go mod tidy
+        language: system
+        pass_filenames: false
+        stages: [commit]
+
+  # Go linting with golangci-lint
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.55.2
+    hooks:
+      - id: golangci-lint
+        name: Lint with golangci-lint
+        args: ['--timeout=5m']
+
+  # Go security scanning with gosec
+  - repo: https://github.com/securego/gosec
+    rev: v2.18.2
+    hooks:
+      - id: gosec
+        name: Security scan with gosec
+        args: ['-exclude=G104', './...']
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '.*_test\.go$'
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown files
+        args: ['--disable', 'MD013', 'MD033', 'MD041']
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        name: Lint YAML files
+        args: ['-d', '{extends: relaxed, rules: {line-length: {max: 150}}}']
+
+  # Protobuf linting
+  - repo: https://github.com/bufbuild/buf
+    rev: v1.28.1
+    hooks:
+      - id: buf-lint
+        name: Lint Protobuf files
+        args: ['lint']
+
+# Exclude patterns
+exclude: |
+  (?x)^(
+    vendor/|
+    \.git/|
+    node_modules/|
+    archive/|
+    build/
+  )$
