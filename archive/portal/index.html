@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PAW Blockchain - Complete documentation for users, developers, and validators">
+    <meta name="keywords" content="PAW, blockchain, documentation, cryptocurrency, DeFi, DEX">
+    <meta property="og:title" content="PAW Blockchain Documentation">
+    <meta property="og:description" content="Complete guide to PAW Blockchain">
+    <meta property="og:type" content="website">
+    <title>PAW Blockchain Documentation</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <circle cx="20" cy="20" r="18" fill="#6366f1"/>
+                        <path d="M20 10 L25 20 L20 15 L15 20 Z" fill="white"/>
+                        <path d="M20 25 L25 20 L20 30 L15 20 Z" fill="white" opacity="0.7"/>
+                    </svg>
+                    <span class="logo-text">PAW Blockchain</span>
+                </div>
+                <nav class="nav-desktop">
+                    <a href="#getting-started">Getting Started</a>
+                    <a href="#user-guide">User Guide</a>
+                    <a href="#developer-guide">Developer</a>
+                    <a href="#api-reference">API</a>
+                    <a href="#tutorials">Tutorials</a>
+                    <a href="#faq">FAQ</a>
+                </nav>
+                <div class="header-actions">
+                    <button id="searchBtn" class="btn-icon" aria-label="Search">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/>
+                        </svg>
+                    </button>
+                    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+                        <svg class="sun-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
+                        </svg>
+                        <svg class="moon-icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style="display: none;">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                    </button>
+                    <button id="versionSelector" class="btn-secondary">v1.0.0</button>
+                    <button id="mobileMenuToggle" class="btn-icon mobile-menu-toggle">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <nav class="mobile-menu" id="mobileMenu">
+        <a href="#getting-started">Getting Started</a>
+        <a href="#user-guide">User Guide</a>
+        <a href="#developer-guide">Developer</a>
+        <a href="#api-reference">API</a>
+        <a href="#tutorials">Tutorials</a>
+        <a href="#faq">FAQ</a>
+    </nav>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content search-modal-content">
+            <div class="search-header">
+                <input type="text" id="searchInput" placeholder="Search documentation..." autofocus>
+                <button id="closeSearch" class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <nav class="sidebar-nav">
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Getting Started</h3>
+                        <a href="#what-is-paw" class="nav-link">What is PAW</a>
+                        <a href="#quick-start" class="nav-link">Quick Start</a>
+                        <a href="#installation" class="nav-link">Installation</a>
+                        <a href="#first-transaction" class="nav-link">First Transaction</a>
+                    </div>
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">User Guide</h3>
+                        <a href="#wallet-setup" class="nav-link">Wallet Setup</a>
+                        <a href="#sending-receiving" class="nav-link">Sending & Receiving</a>
+                        <a href="#using-dex" class="nav-link">Using the DEX</a>
+                        <a href="#staking-guide" class="nav-link">Staking</a>
+                        <a href="#governance" class="nav-link">Governance</a>
+                        <a href="#security" class="nav-link">Security</a>
+                    </div>
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Developer</h3>
+                        <a href="#dev-environment" class="nav-link">Development Setup</a>
+                        <a href="#building-on-paw" class="nav-link">Building on PAW</a>
+                        <a href="#sdk-usage" class="nav-link">SDK Usage</a>
+                        <a href="#api-integration" class="nav-link">API Integration</a>
+                        <a href="#testing-guide" class="nav-link">Testing</a>
+                        <a href="#deployment" class="nav-link">Deployment</a>
+                    </div>
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Resources</h3>
+                        <a href="#tutorials" class="nav-link">Tutorials</a>
+                        <a href="#api-reference" class="nav-link">API Reference</a>
+                        <a href="#faq" class="nav-link">FAQ</a>
+                        <a href="#glossary" class="nav-link">Glossary</a>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content" id="content">
+            <!-- Content will be dynamically loaded here -->
+        </main>
+
+        <!-- Table of Contents -->
+        <aside class="toc" id="toc">
+            <div class="toc-content">
+                <h4 class="toc-title">On this page</h4>
+                <nav id="tocNav" class="toc-nav">
+                    <!-- TOC will be dynamically generated -->
+                </nav>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Documentation</h4>
+                    <a href="#getting-started">Getting Started</a>
+                    <a href="#user-guide">User Guide</a>
+                    <a href="#developer-guide">Developer Guide</a>
+                    <a href="#api-reference">API Reference</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <a href="https://example.com/paw-chain" target="_blank"></a>
+                    <a href="https://twitter.com/pawchain" target="_blank">Twitter</a>
+                    <a href="https://discord.gg/pawchain" target="_blank">Discord</a>
+                    <a href="https://t.me/pawchain" target="_blank">Telegram</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <a href="#tutorials">Tutorials</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="https://blog.pawchain.io" target="_blank">Blog</a>
+                    <a href="https://status.pawchain.io" target="_blank">Status</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <a href="#privacy">Privacy Policy</a>
+                    <a href="#terms">Terms of Service</a>
+                    <a href="#security">Security</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 PAW Blockchain. All rights reserved.</p>
+                <p>Built with ❤️ by the PAW community</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Breadcrumbs Template (hidden, used by JS) -->
+    <template id="breadcrumbsTemplate">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+            <ol class="breadcrumb-list">
+                <li><a href="#home">Home</a></li>
+            </ol>
+        </nav>
+    </template>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>

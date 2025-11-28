@@ -1,0 +1,19 @@
+# Ignore verification results and temporary files
+verification_results/
+*.st
+*.dot
+metadir/
+*.log
+
+# Ignore documentation (already in image)
+README.md
+CHECKLIST.md
+VERIFICATION_SUMMARY.md
+QUICK_START.md
+
+# Ignore proofs directory (not needed for verification)
+proofs/
+
+# Ignore git
+.git/
+.gitignore

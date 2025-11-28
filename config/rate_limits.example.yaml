@@ -1,0 +1,49 @@
+# PAW API Advanced Rate Limiting - Example Configuration
+# Copy this file to rate_limits.yaml and customize for your environment
+
+enabled: true
+default_rps: 50
+default_burst: 100
+cleanup_interval: 5m
+
+endpoint_limits:
+  /api/auth/login:
+    path: "/api/auth/login"
+    method: "POST"
+    rps: 5
+    burst: 10
+    enabled: true
+    custom_message: "Login rate limit exceeded. Please try again in a few minutes."
+
+account_tiers:
+  free:
+    name: "free"
+    requests_per_minute: 20
+    requests_per_hour: 1000
+    requests_per_day: 10000
+    burst_size: 50
+    concurrent_requests: 10
+    priority: 1
+
+adaptive:
+  enabled: true
+  trust_threshold: 100
+  suspicion_threshold: 10
+  trust_multiplier: 2.0
+  suspicion_multiplier: 0.5
+  decay_interval: 1h
+  max_trust_level: 5
+  max_suspicion_level: 5
+  reset_after_good_period: 24h
+
+ip_config:
+  enabled: true
+  default_rps: 100
+  default_burst: 200
+  whitelist_cidrs:
+    - "127.0.0.0/8"
+    - "::1/128"
+  block_duration: 1h
+  auto_block_threshold: 100
+
+audit_enabled: true

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain Playground</title>
+    <meta name="description" content="Interactive developer playground for PAW blockchain - Test APIs, build transactions, and learn blockchain development">
+
+    <!-- Monaco Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/editor/editor.main.css">
+
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐾%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+    <!-- Header -->
+    <header class="playground-header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🐾</span>
+                <h1>PAW Playground</h1>
+            </div>
+
+            <div class="header-controls">
+                <!-- Network Selector -->
+                <div class="network-selector">
+                    <label for="network">Network:</label>
+                    <select id="network" class="network-select">
+                        <option value="local">Local (http://localhost:1317)</option>
+                        <option value="testnet" selected>Testnet</option>
+                        <option value="mainnet">Mainnet</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+
+                <!-- Custom Endpoint Input -->
+                <div id="customEndpoint" class="custom-endpoint" style="display: none;">
+                    <input type="text" id="customEndpointUrl" placeholder="Enter custom endpoint URL">
+                    <button id="setCustomEndpoint" class="btn-sm">Set</button>
+                </div>
+
+                <!-- Wallet Connection -->
+                <button id="connectWallet" class="btn-primary">Connect Wallet</button>
+                <div id="walletInfo" class="wallet-info" style="display: none;">
+                    <span id="walletAddress" class="wallet-address"></span>
+                    <button id="disconnectWallet" class="btn-sm btn-secondary">Disconnect</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="playground-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-tabs">
+                <button class="tab-btn active" data-tab="examples">Examples</button>
+                <button class="tab-btn" data-tab="snippets">My Snippets</button>
+            </div>
+
+            <!-- Examples Tab -->
+            <div id="examplesTab" class="tab-content active">
+                <div class="search-box">
+                    <input type="text" id="exampleSearch" placeholder="Search examples...">
+                </div>
+
+                <div class="example-categories">
+                    <div class="category">
+                        <h3 class="category-title">Getting Started</h3>
+                        <ul class="example-list" data-category="getting-started">
+                            <li class="example-item" data-example="hello-world">
+                                <span class="example-icon">👋</span>
+                                <span class="example-name">Hello World</span>
+                            </li>
+                            <li class="example-item" data-example="query-balance">
+                                <span class="example-icon">💰</span>
+                                <span class="example-name">Query Balance</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h3 class="category-title">Bank Module</h3>
+                        <ul class="example-list" data-category="bank">
+                            <li class="example-item" data-example="bank-transfer">
+                                <span class="example-icon">💸</span>
+                                <span class="example-name">Send Tokens</span>
+                            </li>
+                            <li class="example-item" data-example="multi-send">
+                                <span class="example-icon">📤</span>
+                                <span class="example-name">Multi Send</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h3 class="category-title">DEX Module</h3>
+                        <ul class="example-list" data-category="dex">
+                            <li class="example-item" data-example="dex-swap">
+                                <span class="example-icon">🔄</span>
+                                <span class="example-name">Token Swap</span>
+                            </li>
+                            <li class="example-item" data-example="add-liquidity">
+                                <span class="example-icon">💧</span>
+                                <span class="example-name">Add Liquidity</span>
+                            </li>
+                            <li class="example-item" data-example="remove-liquidity">
+                                <span class="example-icon">💦</span>
+                                <span class="example-name">Remove Liquidity</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h3 class="category-title">Staking</h3>
+                        <ul class="example-list" data-category="staking">
+                            <li class="example-item" data-example="staking">
+                                <span class="example-icon">🔒</span>
+                                <span class="example-name">Delegate Tokens</span>
+                            </li>
+                            <li class="example-item" data-example="unstaking">
+                                <span class="example-icon">🔓</span>
+                                <span class="example-name">Undelegate</span>
+                            </li>
+                            <li class="example-item" data-example="claim-rewards">
+                                <span class="example-icon">🎁</span>
+                                <span class="example-name">Claim Rewards</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h3 class="category-title">Governance</h3>
+                        <ul class="example-list" data-category="governance">
+                            <li class="example-item" data-example="governance">
+                                <span class="example-icon">🗳️</span>
+                                <span class="example-name">Submit Proposal</span>
+                            </li>
+                            <li class="example-item" data-example="vote">
+                                <span class="example-icon">✅</span>
+                                <span class="example-name">Vote on Proposal</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Snippets Tab -->
+            <div id="snippetsTab" class="tab-content">
+                <div class="snippets-header">
+                    <h3>Saved Snippets</h3>
+                    <button id="saveSnippet" class="btn-sm">Save Current</button>
+                </div>
+                <div id="snippetsList" class="snippets-list">
+                    <div class="empty-state">
+                        <p>No saved snippets yet</p>
+                        <p class="text-muted">Save your code to access it later</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Editor Section -->
+            <section class="editor-section">
+                <div class="editor-header">
+                    <div class="editor-tabs">
+                        <button class="editor-tab active" data-lang="javascript">JavaScript</button>
+                        <button class="editor-tab" data-lang="python">Python</button>
+                        <button class="editor-tab" data-lang="go">Go</button>
+                        <button class="editor-tab" data-lang="shell">cURL</button>
+                    </div>
+
+                    <div class="editor-actions">
+                        <button id="formatCode" class="btn-icon" title="Format Code">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <button id="shareCode" class="btn-icon" title="Share Code">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M13 7.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM5.5 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm6-6a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+                                <path d="M10.38 6.38L6.62 8.62m3.76 2.38L6.62 8.62"/>
+                            </svg>
+                        </button>
+                        <button id="clearEditor" class="btn-icon" title="Clear Editor">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="editorContainer" class="editor-container"></div>
+
+                <div class="editor-footer">
+                    <div class="editor-info">
+                        <span id="editorLanguage">JavaScript</span>
+                        <span class="separator">•</span>
+                        <span id="editorLines">0 lines</span>
+                    </div>
+                    <button id="runCode" class="btn-run">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4 2l8 6-8 6z"/>
+                        </svg>
+                        Run Code
+                    </button>
+                </div>
+            </section>
+
+            <!-- Output Section -->
+            <section class="output-section">
+                <div class="output-tabs">
+                    <button class="output-tab active" data-output="console">Console</button>
+                    <button class="output-tab" data-output="response">Response</button>
+                    <button class="output-tab" data-output="transaction">Transaction</button>
+                </div>
+
+                <div class="output-content">
+                    <!-- Console Output -->
+                    <div id="consoleOutput" class="output-panel active">
+                        <div class="console-header">
+                            <span>Console Output</span>
+                            <button id="clearConsole" class="btn-icon-sm">Clear</button>
+                        </div>
+                        <div id="consoleMessages" class="console-messages">
+                            <div class="console-message info">
+                                <span class="console-icon">ℹ️</span>
+                                <span>Ready to execute code. Select an example or write your own.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Response Output -->
+                    <div id="responseOutput" class="output-panel">
+                        <div class="response-header">
+                            <span>API Response</span>
+                            <button id="copyResponse" class="btn-icon-sm">Copy</button>
+                        </div>
+                        <div id="responseContent" class="response-content">
+                            <div class="empty-state">
+                                <p>No response yet</p>
+                                <p class="text-muted">Run code to see API responses</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Builder -->
+                    <div id="transactionOutput" class="output-panel">
+                        <div class="transaction-header">
+                            <span>Transaction Builder</span>
+                            <button id="buildTx" class="btn-sm">Build Transaction</button>
+                        </div>
+                        <div id="transactionContent" class="transaction-content">
+                            <div class="empty-state">
+                                <p>No transaction data</p>
+                                <p class="text-muted">Build a transaction to see details</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+
+    <!-- Highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Getting Started",
+    "content": "Welcome to PAW Blockchain documentation. PAW is a high-performance blockchain platform designed for DeFi with built-in DEX staking governance. Create wallet download install tokens make first transaction send receive. Quick start guide installation instructions tutorial examples.",
+    "url": "#getting-started",
+    "category": "Getting Started",
+    "tags": ["introduction", "setup", "wallet", "installation"]
+  },
+  {
+    "id": "user-guide",
+    "title": "User Guide",
+    "content": "Complete guide for PAW users. Wallet management browser extension desktop mobile creating importing backup recovery. Sending receiving tokens addresses transactions fees. Using DEX swap tokens add liquidity remove liquidity trading. Staking delegate undelegate validators rewards APY. Governance voting proposals community.",
+    "url": "#user-guide",
+    "category": "User Guide",
+    "tags": ["wallet", "transactions", "dex", "staking", "governance"]
+  },
+  {
+    "id": "developer-guide",
+    "title": "Developer Guide",
+    "content": "Build on PAW Blockchain. Development environment setup Node.js Go prerequisites. SDK usage JavaScript TypeScript Python Go examples. Smart contracts CosmWasm. API integration REST WebSocket. Testing unit integration E2E. Deployment testnet mainnet best practices.",
+    "url": "#developer-guide",
+    "category": "Developer",
+    "tags": ["development", "sdk", "api", "testing", "deployment"]
+  },
+  {
+    "id": "api-reference",
+    "title": "API Reference",
+    "content": "Complete API documentation. Bank module balances send tokens. DEX module pools swap liquidity. Staking module validators delegate undelegate. Distribution rewards withdraw. Governance proposals vote. Tendermint RPC blocks transactions. WebSocket subscriptions events. Rate limits authentication.",
+    "url": "#api-reference",
+    "category": "API",
+    "tags": ["api", "rest", "websocket", "endpoints", "reference"]
+  },
+  {
+    "id": "tutorials",
+    "title": "Tutorials",
+    "content": "Step-by-step tutorials. Creating first wallet backup recovery phrase. Making first transaction send receive. Using DEX swap tokens slippage. Providing liquidity pools impermanent loss. Staking tokens validators rewards claiming. Building dApp application development. Video tutorials guides examples.",
+    "url": "#tutorials",
+    "category": "Tutorials",
+    "tags": ["tutorials", "guides", "examples", "videos", "walkthroughs"]
+  },
+  {
+    "id": "faq",
+    "title": "FAQ",
+    "content": "Frequently asked questions. What is PAW blockchain features benefits. Wallet questions recovery phrase backup security. Transaction questions fees speed confirmation. DEX questions slippage liquidity impermanent loss. Staking questions APY validators unbonding. Governance questions voting proposals. Security troubleshooting support help.",
+    "url": "#faq",
+    "category": "FAQ",
+    "tags": ["faq", "questions", "help", "troubleshooting", "support"]
+  },
+  {
+    "id": "wallet-setup",
+    "title": "Wallet Setup",
+    "content": "How to set up PAW wallet. Browser extension installation. Desktop wallet Windows macOS Linux. Mobile wallet iOS Android. Creating new wallet importing existing wallet. Backup recovery phrase security best practices. Multi-device access wallet management.",
+    "url": "#wallet-setup",
+    "category": "User Guide",
+    "tags": ["wallet", "setup", "installation", "security"]
+  },
+  {
+    "id": "using-dex",
+    "title": "Using the DEX",
+    "content": "Trade on PAW decentralized exchange. Swap tokens token pairs exchange rates. Slippage tolerance price impact. Add liquidity pools liquidity provider LP tokens. Remove liquidity withdraw. Earn trading fees APY returns. Impermanent loss risks mitigation.",
+    "url": "#using-dex",
+    "category": "User Guide",
+    "tags": ["dex", "trading", "swap", "liquidity", "pools"]
+  },
+  {
+    "id": "staking-guide",
+    "title": "Staking Guide",
+    "content": "Stake PAW tokens earn rewards. How staking works proof of stake consensus. Choose validators voting power commission uptime. Delegate tokens staking rewards APY. Claim rewards restaking compounding. Undelegate unbonding period. Redelegate change validators. Validator selection strategies.",
+    "url": "#staking-guide",
+    "category": "User Guide",
+    "tags": ["staking", "validators", "rewards", "delegation"]
+  },
+  {
+    "id": "governance",
+    "title": "Governance",
+    "content": "Participate in PAW governance. On-chain governance voting proposals. Proposal types text parameter change software upgrade community spend. Vote yes no abstain veto. Create proposals submit voting period. Community pool treasury funding. Governance process participation.",
+    "url": "#governance",
+    "category": "User Guide",
+    "tags": ["governance", "voting", "proposals", "community"]
+  },
+  {
+    "id": "sdk-usage",
+    "title": "SDK Usage",
+    "content": "Use PAW SDKs build applications. JavaScript TypeScript SDK installation examples. Python SDK async await usage. Go SDK client helpers. Connect network create wallets. Send transactions query data. DEX operations swap liquidity. Staking operations delegate claim. Error handling best practices.",
+    "url": "#sdk-usage",
+    "category": "Developer",
+    "tags": ["sdk", "javascript", "python", "go", "development"]
+  },
+  {
+    "id": "api-integration",
+    "title": "API Integration",
+    "content": "Integrate with PAW API. REST API endpoints base URL authentication. Bank module balance send tokens. DEX pools swap liquidity. Staking validators delegate. Distribution rewards. Governance proposals vote. WebSocket subscriptions real-time events. Rate limits error handling.",
+    "url": "#api-integration",
+    "category": "Developer",
+    "tags": ["api", "integration", "rest", "websocket"]
+  },
+  {
+    "id": "testing-guide",
+    "title": "Testing Guide",
+    "content": "Test PAW applications. Unit tests testing frameworks. Integration tests test environment setup. End-to-end tests E2E workflows. Testnet deployment testing. Mock data fixtures. Continuous integration CI/CD. Test coverage best practices quality assurance.",
+    "url": "#testing-guide",
+    "category": "Developer",
+    "tags": ["testing", "unit-tests", "integration", "e2e"]
+  },
+  {
+    "id": "security",
+    "title": "Security Best Practices",
+    "content": "Secure your PAW assets. Wallet security strong passwords recovery phrase backup. Transaction security verify addresses check amounts. Common scams phishing impersonation. If compromised move funds report. Security measures hardware wallets. Best practices guidelines recommendations protection.",
+    "url": "#security",
+    "category": "User Guide",
+    "tags": ["security", "safety", "scams", "protection"]
+  }
+]

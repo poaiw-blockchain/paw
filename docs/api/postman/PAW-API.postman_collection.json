@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "PAW Blockchain API",
+    "description": "Complete API collection for PAW Blockchain - DEX, Oracle, Compute, and Cosmos SDK endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:1317",
+      "type": "string"
+    },
+    {
+      "key": "my_address",
+      "value": "paw1abc123...",
+      "type": "string"
+    },
+    {
+      "key": "validator_address",
+      "value": "pawvaloper1abc...",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "DEX Module",
+      "item": [
+        {
+          "name": "List All Pools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/pools",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "pools"]
+            }
+          }
+        },
+        {
+          "name": "Get Pool by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/pools/1",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "pools", "1"]
+            }
+          }
+        },
+        {
+          "name": "Get Pool Price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/pools/1/price",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "pools", "1", "price"]
+            }
+          }
+        },
+        {
+          "name": "Estimate Swap",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pool_id\": 1,\n  \"token_in\": \"uapaw\",\n  \"amount_in\": \"1000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/estimate_swap",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "estimate_swap"]
+            }
+          }
+        },
+        {
+          "name": "Create Pool",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"creator\": \"{{my_address}}\",\n  \"token_a\": \"uapaw\",\n  \"token_b\": \"ubtc\",\n  \"amount_a\": \"1000000000\",\n  \"amount_b\": \"500000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/create_pool",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "create_pool"]
+            }
+          }
+        },
+        {
+          "name": "Swap Tokens",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"{{my_address}}\",\n  \"pool_id\": 1,\n  \"token_in\": \"uapaw\",\n  \"amount_in\": \"1000000\",\n  \"min_amount_out\": \"450000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/paw/dex/v1/swap",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "dex", "v1", "swap"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Oracle Module",
+      "item": [
+        {
+          "name": "List Price Feeds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/oracle/v1/prices",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "oracle", "v1", "prices"]
+            }
+          }
+        },
+        {
+          "name": "Get Price for Asset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/oracle/v1/prices/BTC%2FUSD",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "oracle", "v1", "prices", "BTC%2FUSD"]
+            }
+          }
+        },
+        {
+          "name": "Get Oracle Parameters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/oracle/v1/params",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "oracle", "v1", "params"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Compute Module",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/compute/v1/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "compute", "v1", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/compute/v1/tasks/1",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "compute", "v1", "tasks", "1"]
+            }
+          }
+        },
+        {
+          "name": "List Providers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/paw/compute/v1/providers",
+              "host": ["{{base_url}}"],
+              "path": ["paw", "compute", "v1", "providers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bank Module",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/bank/v1beta1/balances/{{my_address}}",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "bank", "v1beta1", "balances", "{{my_address}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Total Supply",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/bank/v1beta1/supply",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "bank", "v1beta1", "supply"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staking Module",
+      "item": [
+        {
+          "name": "List Validators",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/staking/v1beta1/validators",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "staking", "v1beta1", "validators"]
+            }
+          }
+        },
+        {
+          "name": "Get Validator",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/staking/v1beta1/validators/{{validator_address}}",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "staking", "v1beta1", "validators", "{{validator_address}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Delegations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/staking/v1beta1/delegations/{{my_address}}",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "staking", "v1beta1", "delegations", "{{my_address}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Governance Module",
+      "item": [
+        {
+          "name": "List Proposals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/gov/v1beta1/proposals",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "gov", "v1beta1", "proposals"]
+            }
+          }
+        },
+        {
+          "name": "Get Proposal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cosmos/gov/v1beta1/proposals/1",
+              "host": ["{{base_url}}"],
+              "path": ["cosmos", "gov", "v1beta1", "proposals", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tendermint RPC",
+      "item": [
+        {
+          "name": "Node Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["status"]
+            }
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Get Latest Block",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/block",
+              "host": ["{{base_url}}"],
+              "path": ["block"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

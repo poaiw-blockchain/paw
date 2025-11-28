@@ -1,0 +1,384 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "paw/compute/v1/state.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// Query defines the gRPC query service for the compute module.
+service Query {
+  // Params queries the module parameters
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/paw/compute/v1/params";
+  }
+
+  // Provider queries a single provider by address
+  rpc Provider(QueryProviderRequest) returns (QueryProviderResponse) {
+    option (google.api.http).get = "/paw/compute/v1/providers/{address}";
+  }
+
+  // Providers queries all registered providers
+  rpc Providers(QueryProvidersRequest) returns (QueryProvidersResponse) {
+    option (google.api.http).get = "/paw/compute/v1/providers";
+  }
+
+  // ActiveProviders queries all active providers
+  rpc ActiveProviders(QueryActiveProvidersRequest) returns (QueryActiveProvidersResponse) {
+    option (google.api.http).get = "/paw/compute/v1/providers/active";
+  }
+
+  // Request queries a single compute request by ID
+  rpc Request(QueryRequestRequest) returns (QueryRequestResponse) {
+    option (google.api.http).get = "/paw/compute/v1/requests/{id}";
+  }
+
+  // Requests queries compute requests with optional filters
+  rpc Requests(QueryRequestsRequest) returns (QueryRequestsResponse) {
+    option (google.api.http).get = "/paw/compute/v1/requests";
+  }
+
+  // RequestsByRequester queries all requests by a specific requester
+  rpc RequestsByRequester(QueryRequestsByRequesterRequest) returns (QueryRequestsByRequesterResponse) {
+    option (google.api.http).get = "/paw/compute/v1/requests/requester/{requester}";
+  }
+
+  // RequestsByProvider queries all requests assigned to a specific provider
+  rpc RequestsByProvider(QueryRequestsByProviderRequest) returns (QueryRequestsByProviderResponse) {
+    option (google.api.http).get = "/paw/compute/v1/requests/provider/{provider}";
+  }
+
+  // RequestsByStatus queries all requests with a specific status
+  rpc RequestsByStatus(QueryRequestsByStatusRequest) returns (QueryRequestsByStatusResponse) {
+    option (google.api.http).get = "/paw/compute/v1/requests/status/{status}";
+  }
+
+  // Result queries the result of a specific request
+  rpc Result(QueryResultRequest) returns (QueryResultResponse) {
+    option (google.api.http).get = "/paw/compute/v1/results/{request_id}";
+  }
+
+  // EstimateCost estimates the cost of a compute request
+  rpc EstimateCost(QueryEstimateCostRequest) returns (QueryEstimateCostResponse) {
+    option (google.api.http).post = "/paw/compute/v1/estimate";
+    option (google.api.http).body = "*";
+  }
+
+  // Dispute queries a single dispute by ID
+  rpc Dispute(QueryDisputeRequest) returns (QueryDisputeResponse) {
+    option (google.api.http).get = "/paw/compute/v1/disputes/{dispute_id}";
+  }
+
+  // Disputes queries all disputes with optional filters
+  rpc Disputes(QueryDisputesRequest) returns (QueryDisputesResponse) {
+    option (google.api.http).get = "/paw/compute/v1/disputes";
+  }
+
+  // DisputesByRequest queries disputes for a specific request
+  rpc DisputesByRequest(QueryDisputesByRequestRequest) returns (QueryDisputesByRequestResponse) {
+    option (google.api.http).get = "/paw/compute/v1/disputes/request/{request_id}";
+  }
+
+  // DisputesByStatus queries disputes by status
+  rpc DisputesByStatus(QueryDisputesByStatusRequest) returns (QueryDisputesByStatusResponse) {
+    option (google.api.http).get = "/paw/compute/v1/disputes/status/{status}";
+  }
+
+  // Evidence queries evidence for a dispute
+  rpc Evidence(QueryEvidenceRequest) returns (QueryEvidenceResponse) {
+    option (google.api.http).get = "/paw/compute/v1/disputes/{dispute_id}/evidence";
+  }
+
+  // SlashRecord queries a single slash record by ID
+  rpc SlashRecord(QuerySlashRecordRequest) returns (QuerySlashRecordResponse) {
+    option (google.api.http).get = "/paw/compute/v1/slashes/{slash_id}";
+  }
+
+  // SlashRecords queries all slash records
+  rpc SlashRecords(QuerySlashRecordsRequest) returns (QuerySlashRecordsResponse) {
+    option (google.api.http).get = "/paw/compute/v1/slashes";
+  }
+
+  // SlashRecordsByProvider queries slash records for a specific provider
+  rpc SlashRecordsByProvider(QuerySlashRecordsByProviderRequest) returns (QuerySlashRecordsByProviderResponse) {
+    option (google.api.http).get = "/paw/compute/v1/slashes/provider/{provider}";
+  }
+
+  // Appeal queries a single appeal by ID
+  rpc Appeal(QueryAppealRequest) returns (QueryAppealResponse) {
+    option (google.api.http).get = "/paw/compute/v1/appeals/{appeal_id}";
+  }
+
+  // Appeals queries all appeals
+  rpc Appeals(QueryAppealsRequest) returns (QueryAppealsResponse) {
+    option (google.api.http).get = "/paw/compute/v1/appeals";
+  }
+
+  // AppealsByStatus queries appeals by status
+  rpc AppealsByStatus(QueryAppealsByStatusRequest) returns (QueryAppealsByStatusResponse) {
+    option (google.api.http).get = "/paw/compute/v1/appeals/status/{status}";
+  }
+
+  // GovernanceParams queries governance parameters
+  rpc GovernanceParams(QueryGovernanceParamsRequest) returns (QueryGovernanceParamsResponse) {
+    option (google.api.http).get = "/paw/compute/v1/governance/params";
+  }
+}
+
+// QueryParamsRequest is the request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  Params params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryProviderRequest is the request type for the Query/Provider RPC method.
+message QueryProviderRequest {
+  string address = 1;
+}
+
+// QueryProviderResponse is the response type for the Query/Provider RPC method.
+message QueryProviderResponse {
+  Provider provider = 1;
+}
+
+// QueryProvidersRequest is the request type for the Query/Providers RPC method.
+message QueryProvidersRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryProvidersResponse is the response type for the Query/Providers RPC method.
+message QueryProvidersResponse {
+  repeated Provider providers = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryActiveProvidersRequest is the request type for the Query/ActiveProviders RPC method.
+message QueryActiveProvidersRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryActiveProvidersResponse is the response type for the Query/ActiveProviders RPC method.
+message QueryActiveProvidersResponse {
+  repeated Provider providers = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryRequestRequest is the request type for the Query/Request RPC method.
+message QueryRequestRequest {
+  uint64 id = 1;
+}
+
+// QueryRequestResponse is the response type for the Query/Request RPC method.
+message QueryRequestResponse {
+  Request request = 1;
+}
+
+// QueryRequestsRequest is the request type for the Query/Requests RPC method.
+message QueryRequestsRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryRequestsResponse is the response type for the Query/Requests RPC method.
+message QueryRequestsResponse {
+  repeated Request requests = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryRequestsByRequesterRequest is the request type for the Query/RequestsByRequester RPC method.
+message QueryRequestsByRequesterRequest {
+  string requester = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryRequestsByRequesterResponse is the response type for the Query/RequestsByRequester RPC method.
+message QueryRequestsByRequesterResponse {
+  repeated Request requests = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryRequestsByProviderRequest is the request type for the Query/RequestsByProvider RPC method.
+message QueryRequestsByProviderRequest {
+  string provider = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryRequestsByProviderResponse is the response type for the Query/RequestsByProvider RPC method.
+message QueryRequestsByProviderResponse {
+  repeated Request requests = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryRequestsByStatusRequest is the request type for the Query/RequestsByStatus RPC method.
+message QueryRequestsByStatusRequest {
+  RequestStatus status = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryRequestsByStatusResponse is the response type for the Query/RequestsByStatus RPC method.
+message QueryRequestsByStatusResponse {
+  repeated Request requests = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryResultRequest is the request type for the Query/Result RPC method.
+message QueryResultRequest {
+  uint64 request_id = 1;
+}
+
+// QueryResultResponse is the response type for the Query/Result RPC method.
+message QueryResultResponse {
+  Result result = 1;
+}
+
+// QueryEstimateCostRequest is the request type for the Query/EstimateCost RPC method.
+message QueryEstimateCostRequest {
+  ComputeSpec specs = 1 [(gogoproto.nullable) = false];
+  string provider_address = 2;
+}
+
+// QueryEstimateCostResponse is the response type for the Query/EstimateCost RPC method.
+message QueryEstimateCostResponse {
+  string estimated_cost = 1 [
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string cost_per_hour = 2 [
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QueryDisputeRequest is the request type for the Query/Dispute RPC method.
+message QueryDisputeRequest {
+  uint64 dispute_id = 1;
+}
+
+// QueryDisputeResponse is the response type for the Query/Dispute RPC method.
+message QueryDisputeResponse {
+  Dispute dispute = 1;
+}
+
+// QueryDisputesRequest is the request type for the Query/Disputes RPC method.
+message QueryDisputesRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryDisputesResponse is the response type for the Query/Disputes RPC method.
+message QueryDisputesResponse {
+  repeated Dispute disputes = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryDisputesByRequestRequest is the request type for the Query/DisputesByRequest RPC method.
+message QueryDisputesByRequestRequest {
+  uint64 request_id = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryDisputesByRequestResponse is the response type for the Query/DisputesByRequest RPC method.
+message QueryDisputesByRequestResponse {
+  repeated Dispute disputes = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryDisputesByStatusRequest is the request type for the Query/DisputesByStatus RPC method.
+message QueryDisputesByStatusRequest {
+  DisputeStatus status = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryDisputesByStatusResponse is the response type for the Query/DisputesByStatus RPC method.
+message QueryDisputesByStatusResponse {
+  repeated Dispute disputes = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryEvidenceRequest is the request type for the Query/Evidence RPC method.
+message QueryEvidenceRequest {
+  uint64 dispute_id = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryEvidenceResponse is the response type for the Query/Evidence RPC method.
+message QueryEvidenceResponse {
+  repeated Evidence evidence = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QuerySlashRecordRequest is the request type for the Query/SlashRecord RPC method.
+message QuerySlashRecordRequest {
+  uint64 slash_id = 1;
+}
+
+// QuerySlashRecordResponse is the response type for the Query/SlashRecord RPC method.
+message QuerySlashRecordResponse {
+  SlashRecord slash_record = 1;
+}
+
+// QuerySlashRecordsRequest is the request type for the Query/SlashRecords RPC method.
+message QuerySlashRecordsRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QuerySlashRecordsResponse is the response type for the Query/SlashRecords RPC method.
+message QuerySlashRecordsResponse {
+  repeated SlashRecord slash_records = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QuerySlashRecordsByProviderRequest is the request type for the Query/SlashRecordsByProvider RPC method.
+message QuerySlashRecordsByProviderRequest {
+  string provider = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QuerySlashRecordsByProviderResponse is the response type for the Query/SlashRecordsByProvider RPC method.
+message QuerySlashRecordsByProviderResponse {
+  repeated SlashRecord slash_records = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryAppealRequest is the request type for the Query/Appeal RPC method.
+message QueryAppealRequest {
+  uint64 appeal_id = 1;
+}
+
+// QueryAppealResponse is the response type for the Query/Appeal RPC method.
+message QueryAppealResponse {
+  Appeal appeal = 1;
+}
+
+// QueryAppealsRequest is the request type for the Query/Appeals RPC method.
+message QueryAppealsRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryAppealsResponse is the response type for the Query/Appeals RPC method.
+message QueryAppealsResponse {
+  repeated Appeal appeals = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryAppealsByStatusRequest is the request type for the Query/AppealsByStatus RPC method.
+message QueryAppealsByStatusRequest {
+  AppealStatus status = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryAppealsByStatusResponse is the response type for the Query/AppealsByStatus RPC method.
+message QueryAppealsByStatusResponse {
+  repeated Appeal appeals = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryGovernanceParamsRequest is the request type for the Query/GovernanceParams RPC method.
+message QueryGovernanceParamsRequest {}
+
+// QueryGovernanceParamsResponse is the response type for the Query/GovernanceParams RPC method.
+message QueryGovernanceParamsResponse {
+  GovernanceParams params = 1 [(gogoproto.nullable) = false];
+}

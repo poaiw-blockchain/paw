@@ -1,0 +1,119 @@
+syntax = "proto3";
+package paw.dex.v1;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "cosmos_proto/cosmos.proto";
+import "paw/dex/v1/dex.proto";
+
+option go_package = "github.com/paw-chain/paw/x/dex/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Params queries the parameters of the dex module.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/paw/dex/v1/params";
+  }
+
+  // Pool queries a pool by ID
+  rpc Pool(QueryPoolRequest) returns (QueryPoolResponse) {
+    option (google.api.http).get = "/paw/dex/v1/pools/{pool_id}";
+  }
+
+  // Pools queries all pools
+  rpc Pools(QueryPoolsRequest) returns (QueryPoolsResponse) {
+    option (google.api.http).get = "/paw/dex/v1/pools";
+  }
+
+  // PoolByTokens queries a pool by token pair
+  rpc PoolByTokens(QueryPoolByTokensRequest) returns (QueryPoolByTokensResponse) {
+    option (google.api.http).get = "/paw/dex/v1/pools/by-tokens/{token_a}/{token_b}";
+  }
+
+  // Liquidity queries a user's liquidity in a pool
+  rpc Liquidity(QueryLiquidityRequest) returns (QueryLiquidityResponse) {
+    option (google.api.http).get = "/paw/dex/v1/liquidity/{pool_id}/{provider}";
+  }
+
+  // SimulateSwap simulates a swap without executing it
+  rpc SimulateSwap(QuerySimulateSwapRequest) returns (QuerySimulateSwapResponse) {
+    option (google.api.http).get = "/paw/dex/v1/simulate-swap/{pool_id}";
+  }
+}
+
+// QueryParamsRequest is the request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  Params params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryPoolRequest is the request type for the Query/Pool RPC method.
+message QueryPoolRequest {
+  uint64 pool_id = 1;
+}
+
+// QueryPoolResponse is the response type for the Query/Pool RPC method.
+message QueryPoolResponse {
+  Pool pool = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryPoolsRequest is the request type for the Query/Pools RPC method.
+message QueryPoolsRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryPoolsResponse is the response type for the Query/Pools RPC method.
+message QueryPoolsResponse {
+  repeated Pool pools = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryPoolByTokensRequest is the request type for the Query/PoolByTokens RPC method.
+message QueryPoolByTokensRequest {
+  string token_a = 1;
+  string token_b = 2;
+}
+
+// QueryPoolByTokensResponse is the response type for the Query/PoolByTokens RPC method.
+message QueryPoolByTokensResponse {
+  Pool pool = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryLiquidityRequest is the request type for the Query/Liquidity RPC method.
+message QueryLiquidityRequest {
+  uint64 pool_id = 1;
+  string provider = 2;
+}
+
+// QueryLiquidityResponse is the response type for the Query/Liquidity RPC method.
+message QueryLiquidityResponse {
+  string shares = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QuerySimulateSwapRequest is the request type for the Query/SimulateSwap RPC method.
+message QuerySimulateSwapRequest {
+  uint64 pool_id = 1;
+  string token_in = 2;
+  string token_out = 3;
+  string amount_in = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QuerySimulateSwapResponse is the response type for the Query/SimulateSwap RPC method.
+message QuerySimulateSwapResponse {
+  string amount_out = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}

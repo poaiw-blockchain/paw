@@ -1,0 +1,58 @@
+# Nancy Configuration - Go Dependency Vulnerability Scanner
+# For PAW Blockchain Project
+
+# Exclude known false positives or accepted risks
+# Format: CVE-YYYY-NNNNN
+exclude:
+  # Add CVEs to exclude here as needed
+  # Example:
+  # - CVE-2020-14040  # golang.org/x/text - Low severity, accepted risk
+
+# Note: Keep this list minimal and document why each CVE is excluded
+
+# IQ Server configuration (if using Nexus IQ)
+# iq-server:
+#   url: https://your-iq-server.com
+#   application: paw-blockchain
+#   stage: build
+
+# Output format
+output:
+  # Options: text, json, csv
+  format: text
+
+  # Show only vulnerabilities above this level
+  # Options: none, low, medium, high, critical
+  min-severity: low
+
+# Logging
+log-level: info # Options: trace, debug, info, warn, error
+
+# Proxy settings (if needed)
+# proxy:
+#   url: http://proxy.github.com:8080
+#   username: user
+#   password: pass
+
+# Fail build on vulnerabilities
+fail-on-vulnerability: true
+
+# Exclude development dependencies
+exclude-dev-dependencies: false
+
+# Path configuration
+# These paths are scanned for dependencies
+scan-paths:
+  - go.mod
+  - go.sum
+
+# Custom vulnerability database
+# db-url: https://custom-vuln-db.github.com
+
+# Timeout settings (in seconds)
+timeout: 300
+
+# Retry settings
+retry:
+  max-attempts: 3
+  delay-seconds: 5

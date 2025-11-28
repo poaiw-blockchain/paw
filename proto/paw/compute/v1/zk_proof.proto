@@ -1,0 +1,114 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// ZKProof represents a zero-knowledge proof for compute result verification.
+// This uses Groth16 proving system for efficient on-chain verification.
+message ZKProof {
+  // proof is the serialized Groth16 proof
+  bytes proof = 1;
+
+  // public_inputs are the public parameters of the circuit:
+  // - requestID (uint64)
+  // - resultHash (bytes32)
+  // - providerAddress (bytes20)
+  bytes public_inputs = 2;
+
+  // proof_system identifies the proving system (currently "groth16")
+  string proof_system = 3;
+
+  // circuit_id identifies which verification circuit was used
+  string circuit_id = 4;
+
+  // generated_at is when the proof was generated
+  google.protobuf.Timestamp generated_at = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// VerifyingKey represents the verification key for a ZK circuit.
+// This is stored in module params and used to verify all proofs.
+message VerifyingKey {
+  // vk_data is the serialized verifying key
+  bytes vk_data = 1;
+
+  // circuit_id identifies which circuit this key verifies
+  string circuit_id = 2;
+
+  // curve identifies the elliptic curve (e.g., "bn254", "bls12-381")
+  string curve = 3;
+
+  // proof_system identifies the proving system (e.g., "groth16")
+  string proof_system = 4;
+
+  // created_at is when this key was created
+  google.protobuf.Timestamp created_at = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // public_input_count is the number of public inputs expected
+  uint32 public_input_count = 6;
+}
+
+// CircuitParams defines the parameters for the compute verification circuit.
+message CircuitParams {
+  // circuit_id is the unique identifier for this circuit
+  string circuit_id = 1;
+
+  // description describes what this circuit verifies
+  string description = 2;
+
+  // verifying_key is the key used to verify proofs from this circuit
+  VerifyingKey verifying_key = 3 [(gogoproto.nullable) = false];
+
+  // max_proof_size is the maximum allowed size for proofs (bytes)
+  uint32 max_proof_size = 4;
+
+  // gas_cost is the gas cost for verifying a proof from this circuit
+  uint64 gas_cost = 5;
+
+  // enabled indicates whether this circuit is currently active
+  bool enabled = 6;
+}
+
+// ZKMetrics tracks ZK proof verification statistics.
+message ZKMetrics {
+  // total_proofs_generated is the total number of proofs generated
+  uint64 total_proofs_generated = 1;
+
+  // total_proofs_verified is the total number of proofs successfully verified
+  uint64 total_proofs_verified = 2;
+
+  // total_proofs_failed is the total number of proofs that failed verification
+  uint64 total_proofs_failed = 3;
+
+  // average_verification_time_ms is the average time to verify a proof
+  uint64 average_verification_time_ms = 4;
+
+  // total_gas_consumed is the total gas consumed for proof verification
+  uint64 total_gas_consumed = 5;
+
+  // last_updated is when these metrics were last updated
+  google.protobuf.Timestamp last_updated = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// ProofGenerationMetadata contains metadata about proof generation.
+message ProofGenerationMetadata {
+  // request_id is the ID of the compute request
+  uint64 request_id = 1;
+
+  // provider is the address of the provider generating the proof
+  string provider = 2;
+
+  // computation_hash is the hash of the actual computation performed
+  bytes computation_hash = 3;
+
+  // witness_data is the private witness data (not stored on-chain)
+  bytes witness_data = 4;
+
+  // proving_time_ms is how long it took to generate the proof
+  uint64 proving_time_ms = 5;
+
+  // proof_size is the size of the generated proof in bytes
+  uint32 proof_size = 6;
+}

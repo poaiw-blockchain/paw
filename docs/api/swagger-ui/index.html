@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui.css">
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .swagger-ui .topbar {
+            background-color: #6366f1;
+            padding: 10px 0;
+        }
+
+        .swagger-ui .topbar .download-url-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .custom-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .custom-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .custom-header p {
+            margin: 0 0 1rem 0;
+            opacity: 0.9;
+        }
+
+        .custom-header a {
+            color: white;
+            text-decoration: none;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .custom-header a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #swagger-ui {
+            max-width: 1460px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>PAW Blockchain API Documentation</h1>
+        <p>Interactive API explorer - Try out the PAW blockchain endpoints</p>
+        <div>
+            <a href="../index.html">← Back to Portal</a>
+            <a href="../redoc/index.html">View in Redoc</a>
+            <a href="../openapi.yaml" download>Download OpenAPI Spec</a>
+        </div>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            // Get the OpenAPI spec URL (relative to this file)
+            const specUrl = '../openapi.yaml';
+
+            // Initialize Swagger UI
+            window.ui = SwaggerUIBundle({
+                url: specUrl,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: 'list',
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: true,
+                requestInterceptor: (request) => {
+                    // Add custom headers if needed
+                    console.log('API Request:', request);
+                    return request;
+                },
+                responseInterceptor: (response) => {
+                    console.log('API Response:', response);
+                    return response;
+                },
+                onComplete: () => {
+                    console.log('Swagger UI loaded successfully');
+                },
+                syntaxHighlight: {
+                    activate: true,
+                    theme: 'monokai'
+                }
+            });
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + K to focus search
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    const searchInput = document.querySelector('.operation-filter-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }
+            });
+        };
+    </script>
+</body>
+</html>

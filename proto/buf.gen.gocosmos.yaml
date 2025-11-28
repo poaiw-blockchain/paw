@@ -1,0 +1,14 @@
+version: v1
+managed:
+  enabled: false
+plugins:
+  - name: gocosmos
+    out: ..
+    opt:
+      - plugins=grpc
+      - Mgoogle/protobuf/any.proto=github.com/cosmos/cosmos-sdk/codec/types
+  - name: grpc-gateway
+    out: ..
+    opt:
+      - paths=source_relative
+      - generate_unbound_methods=true

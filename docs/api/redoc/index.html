@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain API - Redoc Documentation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .custom-header {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.75rem;
+        }
+
+        .custom-header .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .custom-header a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .custom-header a:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #redoc-container {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="custom-header">
+        <h1>PAW Blockchain API Documentation</h1>
+        <div class="nav-links">
+            <a href="../index.html">← Back to Portal</a>
+            <a href="../swagger-ui/index.html">Swagger UI</a>
+            <a href="../openapi.yaml" download>Download OpenAPI Spec</a>
+        </div>
+    </div>
+
+    <div id="redoc-container"></div>
+
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+        // Initialize Redoc
+        Redoc.init(
+            '../openapi.yaml',
+            {
+                scrollYOffset: '.custom-header',
+                hideDownloadButton: false,
+                hideLoading: false,
+                hideHostname: false,
+                expandResponses: '200,201',
+                jsonSampleExpandLevel: 2,
+                hideSingleRequestSampleTab: true,
+                menuToggle: true,
+                nativeScrollbars: false,
+                noAutoAuth: false,
+                onlyRequiredInSamples: false,
+                pathInMiddlePanel: false,
+                requiredPropsFirst: true,
+                sortPropsAlphabetically: false,
+                expandDefaultServerVariables: true,
+                maxDisplayedEnumValues: 5,
+                showExtensions: true,
+                theme: {
+                    spacing: {
+                        unit: 5,
+                        sectionHorizontal: ({ spacing }) => spacing.unit * 8,
+                        sectionVertical: ({ spacing }) => spacing.unit * 8
+                    },
+                    breakpoints: {
+                        small: '50rem',
+                        medium: '85rem',
+                        large: '105rem'
+                    },
+                    colors: {
+                        primary: {
+                            main: '#6366f1'
+                        },
+                        success: {
+                            main: '#10b981'
+                        },
+                        warning: {
+                            main: '#f59e0b'
+                        },
+                        error: {
+                            main: '#ef4444'
+                        },
+                        text: {
+                            primary: '#1e293b',
+                            secondary: '#64748b'
+                        },
+                        http: {
+                            get: '#10b981',
+                            post: '#6366f1',
+                            put: '#f59e0b',
+                            delete: '#ef4444',
+                            patch: '#8b5cf6',
+                            options: '#64748b',
+                            head: '#94a3b8'
+                        }
+                    },
+                    typography: {
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        fontWeightRegular: '400',
+                        fontWeightBold: '600',
+                        fontWeightLight: '300',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                        smoothing: 'antialiased',
+                        optimizeSpeed: true,
+                        headings: {
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                            fontWeight: '600'
+                        },
+                        code: {
+                            fontSize: '13px',
+                            fontFamily: 'Courier New, monospace',
+                            lineHeight: ({ typography }) => typography.lineHeight,
+                            fontWeight: ({ typography }) => typography.fontWeightRegular,
+                            color: '#e83e8c',
+                            backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                            wrap: false
+                        },
+                        links: {
+                            color: '#6366f1',
+                            visited: '#8b5cf6',
+                            hover: '#4f46e5'
+                        }
+                    },
+                    sidebar: {
+                        width: '260px',
+                        backgroundColor: '#fafafa',
+                        textColor: '#1e293b',
+                        activeTextColor: '#6366f1',
+                        groupItems: {
+                            textTransform: 'uppercase'
+                        },
+                        level1Items: {
+                            textTransform: 'none'
+                        },
+                        arrow: {
+                            size: '1.5em',
+                            color: '#64748b'
+                        }
+                    },
+                    logo: {
+                        maxHeight: '50px',
+                        maxWidth: '200px',
+                        gutter: '20px'
+                    },
+                    rightPanel: {
+                        backgroundColor: '#1e1e1e',
+                        width: '40%',
+                        textColor: '#ffffff'
+                    },
+                    codeBlock: {
+                        backgroundColor: '#1e1e1e'
+                    }
+                }
+            },
+            document.getElementById('redoc-container')
+        );
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                const searchInput = document.querySelector('[role="search"] input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

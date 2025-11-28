@@ -1,0 +1,386 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "paw/compute/v1/state.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // RegisterProvider registers a new compute provider
+  rpc RegisterProvider(MsgRegisterProvider) returns (MsgRegisterProviderResponse);
+
+  // UpdateProvider updates an existing provider's information
+  rpc UpdateProvider(MsgUpdateProvider) returns (MsgUpdateProviderResponse);
+
+  // DeactivateProvider deactivates a provider
+  rpc DeactivateProvider(MsgDeactivateProvider) returns (MsgDeactivateProviderResponse);
+
+  // SubmitRequest submits a new compute request
+  rpc SubmitRequest(MsgSubmitRequest) returns (MsgSubmitRequestResponse);
+
+  // CancelRequest cancels a pending compute request
+  rpc CancelRequest(MsgCancelRequest) returns (MsgCancelRequestResponse);
+
+  // SubmitResult submits the result for a compute request
+  rpc SubmitResult(MsgSubmitResult) returns (MsgSubmitResultResponse);
+
+  // UpdateParams updates module parameters
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+
+  // CreateDispute creates a new dispute against a provider
+  rpc CreateDispute(MsgCreateDispute) returns (MsgCreateDisputeResponse);
+
+  // VoteOnDispute allows validators to vote on a dispute
+  rpc VoteOnDispute(MsgVoteOnDispute) returns (MsgVoteOnDisputeResponse);
+
+  // ResolveDispute resolves a dispute and executes the outcome
+  rpc ResolveDispute(MsgResolveDispute) returns (MsgResolveDisputeResponse);
+
+  // SubmitEvidence submits evidence for a dispute
+  rpc SubmitEvidence(MsgSubmitEvidence) returns (MsgSubmitEvidenceResponse);
+
+  // AppealSlashing appeals a slashing event
+  rpc AppealSlashing(MsgAppealSlashing) returns (MsgAppealSlashingResponse);
+
+  // VoteOnAppeal allows validators to vote on an appeal
+  rpc VoteOnAppeal(MsgVoteOnAppeal) returns (MsgVoteOnAppealResponse);
+
+  // ResolveAppeal resolves an appeal
+  rpc ResolveAppeal(MsgResolveAppeal) returns (MsgResolveAppealResponse);
+
+  // UpdateGovernanceParams updates governance parameters
+  rpc UpdateGovernanceParams(MsgUpdateGovernanceParams) returns (MsgUpdateGovernanceParamsResponse);
+}
+
+// MsgRegisterProvider registers a new compute provider.
+message MsgRegisterProvider {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgRegisterProvider";
+
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // moniker is a human-readable name for the provider
+  string moniker = 2;
+
+  // endpoint is the URL where the provider's compute service is accessible
+  string endpoint = 3;
+
+  // available_specs describes the provider's available compute resources
+  ComputeSpec available_specs = 4 [(gogoproto.nullable) = false];
+
+  // pricing defines the cost per unit of compute
+  Pricing pricing = 5 [(gogoproto.nullable) = false];
+
+  // stake is the amount of tokens to stake
+  string stake = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+message MsgRegisterProviderResponse {}
+
+// MsgUpdateProvider updates an existing provider's information.
+message MsgUpdateProvider {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgUpdateProvider";
+
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // moniker is the updated human-readable name
+  string moniker = 2;
+
+  // endpoint is the updated service endpoint
+  string endpoint = 3;
+
+  // available_specs are the updated resource specifications
+  ComputeSpec available_specs = 4;
+
+  // pricing is the updated pricing structure
+  Pricing pricing = 5;
+}
+
+message MsgUpdateProviderResponse {}
+
+// MsgDeactivateProvider deactivates a provider.
+message MsgDeactivateProvider {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgDeactivateProvider";
+
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+message MsgDeactivateProviderResponse {}
+
+// MsgSubmitRequest submits a new compute request.
+message MsgSubmitRequest {
+  option (cosmos.msg.v1.signer) = "requester";
+  option (amino.name) = "paw/compute/MsgSubmitRequest";
+
+  // requester is the bech32 address of the user requesting compute
+  string requester = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // specs defines the required compute resources
+  ComputeSpec specs = 2 [(gogoproto.nullable) = false];
+
+  // container_image is the Docker image to execute
+  string container_image = 3;
+
+  // command is the command to run in the container
+  repeated string command = 4;
+
+  // env_vars are environment variables to set in the container
+  map<string, string> env_vars = 5;
+
+  // max_payment is the maximum amount the requester is willing to pay
+  string max_payment = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // preferred_provider is an optional preferred provider address
+  string preferred_provider = 7 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+message MsgSubmitRequestResponse {
+  // request_id is the unique identifier assigned to the request
+  uint64 request_id = 1;
+}
+
+// MsgCancelRequest cancels a pending compute request.
+message MsgCancelRequest {
+  option (cosmos.msg.v1.signer) = "requester";
+  option (amino.name) = "paw/compute/MsgCancelRequest";
+
+  // requester is the bech32 address of the requester
+  string requester = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // request_id is the ID of the request to cancel
+  uint64 request_id = 2;
+}
+
+message MsgCancelRequestResponse {}
+
+// MsgSubmitResult submits the result for a compute request.
+message MsgSubmitResult {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgSubmitResult";
+
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // request_id is the ID of the request
+  uint64 request_id = 2;
+
+  // output_hash is the hash of the computation output
+  string output_hash = 3;
+
+  // output_url is the URL where the output can be retrieved
+  string output_url = 4;
+
+  // exit_code is the exit code of the computation
+  int32 exit_code = 5;
+
+  // logs_url is the URL where execution logs can be retrieved
+  string logs_url = 6;
+
+  // verification_proof is the cryptographic proof of correct execution
+  bytes verification_proof = 7;
+}
+
+message MsgSubmitResultResponse {}
+
+// MsgUpdateParams updates the module parameters.
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/compute/MsgUpdateParams";
+
+  // authority is the address that controls the module (defaults to x/gov module account)
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // params are the new module parameters
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+message MsgUpdateParamsResponse {}
+
+// MsgCreateDispute creates a new dispute against a provider.
+message MsgCreateDispute {
+  option (cosmos.msg.v1.signer) = "requester";
+  option (amino.name) = "paw/compute/MsgCreateDispute";
+
+  // requester is the address filing the dispute
+  string requester = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // request_id is the ID of the disputed request
+  uint64 request_id = 2;
+
+  // reason is the human-readable reason for the dispute
+  string reason = 3;
+
+  // evidence is the initial evidence data
+  bytes evidence = 4;
+
+  // deposit_amount is the deposit paid to file the dispute
+  string deposit_amount = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+message MsgCreateDisputeResponse {
+  // dispute_id is the ID of the newly created dispute
+  uint64 dispute_id = 1;
+}
+
+// MsgVoteOnDispute allows validators to vote on a dispute.
+message MsgVoteOnDispute {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name) = "paw/compute/MsgVoteOnDispute";
+
+  // validator is the address of the validator voting
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // dispute_id is the ID of the dispute
+  uint64 dispute_id = 2;
+
+  // vote is the validator's vote
+  DisputeVoteOption vote = 3;
+
+  // justification is the validator's reasoning
+  string justification = 4;
+}
+
+message MsgVoteOnDisputeResponse {}
+
+// MsgResolveDispute resolves a dispute and executes the outcome.
+message MsgResolveDispute {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/compute/MsgResolveDispute";
+
+  // authority is the governance module address
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // dispute_id is the ID of the dispute to resolve
+  uint64 dispute_id = 2;
+}
+
+message MsgResolveDisputeResponse {
+  // resolution is the outcome of the dispute
+  DisputeResolution resolution = 1;
+}
+
+// MsgSubmitEvidence submits evidence for a dispute.
+message MsgSubmitEvidence {
+  option (cosmos.msg.v1.signer) = "submitter";
+  option (amino.name) = "paw/compute/MsgSubmitEvidence";
+
+  // submitter is the address submitting evidence
+  string submitter = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // dispute_id is the ID of the dispute
+  uint64 dispute_id = 2;
+
+  // evidence_type describes the type of evidence
+  string evidence_type = 3;
+
+  // data is the evidence data
+  bytes data = 4;
+
+  // description is a human-readable description
+  string description = 5;
+}
+
+message MsgSubmitEvidenceResponse {}
+
+// MsgAppealSlashing appeals a slashing event.
+message MsgAppealSlashing {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/compute/MsgAppealSlashing";
+
+  // provider is the address of the slashed provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // slash_id is the ID of the slash record being appealed
+  uint64 slash_id = 2;
+
+  // justification is the provider's argument for appeal
+  string justification = 3;
+
+  // deposit_amount is the deposit paid to file the appeal
+  string deposit_amount = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+message MsgAppealSlashingResponse {
+  // appeal_id is the ID of the newly created appeal
+  uint64 appeal_id = 1;
+}
+
+// MsgVoteOnAppeal allows validators to vote on an appeal.
+message MsgVoteOnAppeal {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name) = "paw/compute/MsgVoteOnAppeal";
+
+  // validator is the address of the validator voting
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // appeal_id is the ID of the appeal
+  uint64 appeal_id = 2;
+
+  // approve indicates whether the validator approves the appeal
+  bool approve = 3;
+
+  // justification is the validator's reasoning
+  string justification = 4;
+}
+
+message MsgVoteOnAppealResponse {}
+
+// MsgResolveAppeal resolves an appeal.
+message MsgResolveAppeal {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/compute/MsgResolveAppeal";
+
+  // authority is the governance module address
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // appeal_id is the ID of the appeal to resolve
+  uint64 appeal_id = 2;
+}
+
+message MsgResolveAppealResponse {
+  // approved indicates whether the appeal was approved
+  bool approved = 1;
+}
+
+// MsgUpdateGovernanceParams updates governance parameters.
+message MsgUpdateGovernanceParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/compute/MsgUpdateGovernanceParams";
+
+  // authority is the address that controls the module (defaults to x/gov module account)
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // params are the new governance parameters
+  GovernanceParams params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+message MsgUpdateGovernanceParamsResponse {}

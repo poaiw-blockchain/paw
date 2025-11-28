@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Validator Dashboard</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="logo-section">
+                <h1><i class="fas fa-shield-alt"></i> PAW Validator Dashboard</h1>
+            </div>
+            <div class="connection-status">
+                <span id="connectionStatus" class="status-indicator">
+                    <i class="fas fa-circle"></i> Connecting...
+                </span>
+            </div>
+            <div class="validator-selector">
+                <select id="validatorSelect" class="validator-dropdown">
+                    <option value="">Select Validator...</option>
+                </select>
+                <button id="addValidatorBtn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Validator
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Sidebar -->
+            <aside class="dashboard-sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#overview" class="nav-link active" data-section="overview">
+                        <i class="fas fa-tachometer-alt"></i> Overview
+                    </a>
+                    <a href="#delegation" class="nav-link" data-section="delegation">
+                        <i class="fas fa-users"></i> Delegations
+                    </a>
+                    <a href="#rewards" class="nav-link" data-section="rewards">
+                        <i class="fas fa-coins"></i> Rewards
+                    </a>
+                    <a href="#performance" class="nav-link" data-section="performance">
+                        <i class="fas fa-chart-line"></i> Performance
+                    </a>
+                    <a href="#uptime" class="nav-link" data-section="uptime">
+                        <i class="fas fa-clock"></i> Uptime
+                    </a>
+                    <a href="#signing" class="nav-link" data-section="signing">
+                        <i class="fas fa-signature"></i> Signing Stats
+                    </a>
+                    <a href="#slashing" class="nav-link" data-section="slashing">
+                        <i class="fas fa-exclamation-triangle"></i> Slash Events
+                    </a>
+                    <a href="#settings" class="nav-link" data-section="settings">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="dashboard-content">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section active">
+                    <h2>Validator Overview</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Status</div>
+                                <div class="stat-value" id="validatorStatus">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Total Staked</div>
+                                <div class="stat-value" id="totalStaked">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-percent"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Commission</div>
+                                <div class="stat-value" id="commission">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-award"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Total Rewards</div>
+                                <div class="stat-value" id="totalRewards">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Delegators</div>
+                                <div class="stat-value" id="delegatorCount">-</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-content">
+                                <div class="stat-label">Uptime</div>
+                                <div class="stat-value" id="uptime">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="validator-details-card">
+                        <h3>Validator Information</h3>
+                        <div id="validatorInfo"></div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <h3>Recent Activity</h3>
+                        <div id="recentActivity" class="activity-list"></div>
+                    </div>
+                </section>
+
+                <!-- Delegation Section -->
+                <section id="delegation" class="content-section">
+                    <h2>Delegation Management</h2>
+                    <div class="delegation-controls">
+                        <input type="text" id="delegationSearch" placeholder="Search delegators..." class="search-input">
+                        <select id="delegationSort" class="sort-select">
+                            <option value="amount">Sort by Amount</option>
+                            <option value="date">Sort by Date</option>
+                            <option value="rewards">Sort by Rewards</option>
+                        </select>
+                    </div>
+                    <div id="delegationList" class="delegation-list"></div>
+                </section>
+
+                <!-- Rewards Section -->
+                <section id="rewards" class="content-section">
+                    <h2>Rewards Tracking</h2>
+                    <div class="rewards-summary">
+                        <div class="reward-stat">
+                            <span class="label">Total Distributed:</span>
+                            <span class="value" id="totalDistributed">-</span>
+                        </div>
+                        <div class="reward-stat">
+                            <span class="label">Pending Rewards:</span>
+                            <span class="value" id="pendingRewards">-</span>
+                        </div>
+                        <div class="reward-stat">
+                            <span class="label">Commission Earned:</span>
+                            <span class="value" id="commissionEarned">-</span>
+                        </div>
+                    </div>
+                    <div id="rewardsChart" class="chart-container"></div>
+                    <div id="rewardHistory" class="reward-history"></div>
+                </section>
+
+                <!-- Performance Section -->
+                <section id="performance" class="content-section">
+                    <h2>Performance Metrics</h2>
+                    <div class="performance-grid">
+                        <div class="performance-card">
+                            <h3>Voting Power</h3>
+                            <div id="votingPowerChart" class="mini-chart"></div>
+                            <div class="metric-value" id="votingPower">-</div>
+                        </div>
+                        <div class="performance-card">
+                            <h3>Block Proposals</h3>
+                            <div id="blockProposalsChart" class="mini-chart"></div>
+                            <div class="metric-value" id="blockProposals">-</div>
+                        </div>
+                        <div class="performance-card">
+                            <h3>Miss Rate</h3>
+                            <div id="missRateChart" class="mini-chart"></div>
+                            <div class="metric-value" id="missRate">-</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Uptime Section -->
+                <section id="uptime" class="content-section">
+                    <h2>Uptime Monitoring</h2>
+                    <div id="uptimeMonitor" class="uptime-monitor"></div>
+                    <div class="uptime-alerts">
+                        <h3>Uptime Alerts</h3>
+                        <div id="uptimeAlerts" class="alerts-list"></div>
+                    </div>
+                </section>
+
+                <!-- Signing Stats Section -->
+                <section id="signing" class="content-section">
+                    <h2>Signing Statistics</h2>
+                    <div class="signing-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Blocks Signed</div>
+                            <div class="stat-value" id="blocksSigned">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Blocks Missed</div>
+                            <div class="stat-value" id="blocksMissed">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Sign Rate</div>
+                            <div class="stat-value" id="signRate">-</div>
+                        </div>
+                    </div>
+                    <div id="signingHistory" class="signing-history"></div>
+                </section>
+
+                <!-- Slashing Section -->
+                <section id="slashing" class="content-section">
+                    <h2>Slash Events</h2>
+                    <div id="slashEvents" class="slash-events-list"></div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settings" class="content-section">
+                    <h2>Validator Settings</h2>
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="commissionRate">Commission Rate (%)</label>
+                            <input type="number" id="commissionRate" min="0" max="100" step="0.01">
+                            <button id="updateCommission" class="btn btn-primary">Update Commission</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="moniker">Moniker</label>
+                            <input type="text" id="moniker" placeholder="Validator name">
+                        </div>
+                        <div class="form-group">
+                            <label for="website">Website</label>
+                            <input type="url" id="website" placeholder="https://validator.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="details">Details</label>
+                            <textarea id="details" rows="4" placeholder="Validator description"></textarea>
+                        </div>
+                        <button id="saveSettings" class="btn btn-success">Save Settings</button>
+                    </div>
+
+                    <div class="alert-settings">
+                        <h3>Alert Settings</h3>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="emailAlerts">
+                                Enable Email Alerts
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="alertEmail">Alert Email</label>
+                            <input type="email" id="alertEmail" placeholder="alerts@validator.com">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="uptimeAlerts">
+                                Uptime Alerts (notify when uptime < 95%)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="slashingAlerts">
+                                Slashing Alerts
+                            </label>
+                        </div>
+                        <button id="saveAlertSettings" class="btn btn-success">Save Alert Settings</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Add Validator Modal -->
+        <div id="addValidatorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Validator</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newValidatorAddress">Validator Address</label>
+                        <input type="text" id="newValidatorAddress" placeholder="pawvaloper...">
+                    </div>
+                    <div class="form-group">
+                        <label for="newValidatorName">Display Name (optional)</label>
+                        <input type="text" id="newValidatorName" placeholder="My Validator">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary modal-close">Cancel</button>
+                    <button id="confirmAddValidator" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="components/ValidatorCard.js"></script>
+    <script src="components/DelegationList.js"></script>
+    <script src="components/RewardsChart.js"></script>
+    <script src="components/UptimeMonitor.js"></script>
+    <script src="services/validatorAPI.js"></script>
+    <script src="services/websocket.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

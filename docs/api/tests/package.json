@@ -1,0 +1,16 @@
+{
+  "name": "paw-api-docs-tests",
+  "version": "1.0.0",
+  "description": "Test suite for PAW Blockchain API documentation",
+  "scripts": {
+    "test": "node run-all-tests.js",
+    "test:openapi": "node openapi-validation.test.js",
+    "test:examples": "node examples.test.js",
+    "test:links": "node links.test.js"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1"
+  }
+}

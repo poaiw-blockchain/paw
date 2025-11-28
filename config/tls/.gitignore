@@ -1,0 +1,15 @@
+# Ignore all certificate and key files
+certs/
+mtls/
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+*.conf
+
+# Keep templates and documentation
+!README.md
+!*.sh
+!.gitignore
+!nginx.conf.template

@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  big-dipper:
+    image: forbole/big-dipper:latest
+    container_name: paw-big-dipper
+    environment:
+      - CHAIN_ID=paw-testnet
+      - RPC_URL=http://paw-node:26657
+      - API_URL=http://paw-node:1317
+      - GENESIS_URL=http://paw-node:26657/genesis
+    ports:
+      - '3001:3000'
+    networks:
+      - paw-network
+    restart: unless-stopped
+    depends_on:
+      - big-dipper-db
+
+  big-dipper-db:
+    image: postgres:14-alpine
+    container_name: paw-explorer-db
+    environment:
+      - POSTGRES_USER=bigdipper
+      - POSTGRES_PASSWORD=bigdipper
+      - POSTGRES_DB=bigdipper
+    volumes:
+      - explorer-db-data:/var/lib/postgresql/data
+    networks:
+      - paw-network
+    restart: unless-stopped
+
+  mintscan-backend:
+    image: cosmostation/mintscan-backend:latest
+    container_name: paw-mintscan
+    environment:
+      - CHAIN_ID=paw-testnet
+      - RPC_ENDPOINT=http://paw-node:26657
+      - LCD_ENDPOINT=http://paw-node:1317
+      - GRPC_ENDPOINT=paw-node:9090
+      - DATABASE_URL=postgresql://mintscan:mintscan@mintscan-db:5432/mintscan
+    ports:
+      - '8080:8080'
+    networks:
+      - paw-network
+    restart: unless-stopped
+    depends_on:
+      - mintscan-db
+
+  mintscan-db:
+    image: postgres:14-alpine
+    container_name: paw-mintscan-db
+    environment:
+      - POSTGRES_USER=mintscan
+      - POSTGRES_PASSWORD=mintscan
+      - POSTGRES_DB=mintscan
+    volumes:
+      - mintscan-db-data:/var/lib/postgresql/data
+    networks:
+      - paw-network
+    restart: unless-stopped
+
+networks:
+  paw-network:
+    external: true
+
+volumes:
+  explorer-db-data:
+  mintscan-db-data:

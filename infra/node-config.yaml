@@ -1,0 +1,180 @@
+chain_id: paw-testnet
+moniker: paw-controller
+initial_height: 1
+validators:
+  - name: validator-1
+    address: 'PAW1VALIDATOR0000000000000000000000000000'
+    commission_rate: 0.10
+    max_commission_rate: 0.15
+    max_change_rate: 0.01
+  - name: validator-2
+    address: 'PAW1VALIDATOR0000000000000000000000000001'
+    commission_rate: 0.08
+    max_commission_rate: 0.15
+    max_change_rate: 0.02
+emission:
+  year1_per_day: 2870
+  halving_schedule:
+    - year: 2
+      per_day: 1435
+    - year: 3
+      per_day: 717
+    - year: 6
+      per_day: 65
+tokenomics:
+  total_supply: 50000000
+  reserve: 15000000
+  inflation_cap: 0.05
+  reward_pool:
+    validators: 30
+    node_operators: 30
+    compute_agents: 30
+    treasury: 5
+roadmap:
+  - stage: genesis
+    description: controller chain launch, mobile wallet, DEX frontend
+  - stage: adoption
+    description: connect compute agents, Guardian DAO voting pools
+  - stage: extension
+    description: unlock shards, zkML, interoperability bridges
+
+consensus:
+  # Tendermint BFT parameters
+  block_time_seconds: 4
+  timeout_propose: 3000ms
+  timeout_propose_delta: 500ms
+  timeout_prevote: 1000ms
+  timeout_prevote_delta: 500ms
+  timeout_precommit: 1000ms
+  timeout_precommit_delta: 500ms
+  timeout_commit: 4000ms
+
+  # Validator set
+  max_validators: 125
+  genesis_validators: 25
+  validator_rotation_epoch: 100800 # ~weekly at 4s blocks
+
+  # Block limits
+  max_block_size_bytes: 2097152 # 2 MB
+  max_gas_per_block: 100000000
+  target_block_utilization: 0.50
+
+slashing:
+  # Double-signing (Byzantine behavior)
+  double_sign_penalty: 0.05 # 5% of stake
+  double_sign_jail_duration: 0 # Permanent tombstone
+
+  # Downtime (liveness)
+  downtime_threshold_blocks: 500 # Miss 500/10000 blocks = 5%
+  downtime_window_blocks: 10000
+  downtime_penalty: 0.001 # 0.1% of stake
+  downtime_jail_duration_seconds: 86400 # 24 hours
+  downtime_max_jails: 3 # After 3 jails, escalate
+  downtime_escalated_penalty: 0.01 # 1% stake
+
+  # Oracle misconduct
+  oracle_deviation_threshold: 0.05 # 5% from consensus
+  oracle_max_strikes: 3
+  oracle_penalty: 0.01 # 1% of stake
+
+  # Compute attestation fraud
+  compute_fraud_penalty: 0.10 # 10% of stake
+  compute_proof_timeout_seconds: 21600 # 6 hours
+  compute_timeout_penalty: 0.05 # 5% for missing proofs
+
+staking:
+  min_validator_stake: 10000 # 10,000 PAW minimum
+  unbonding_period_seconds: 1814400 # 21 days
+  max_delegations_per_account: 50
+  validator_commission_max: 0.20 # 20% max commission
+  validator_commission_default: 0.10 # 10% default
+  validator_commission_change_max: 0.01 # Max 1% change per day
+
+fees:
+  # Gas pricing
+  min_gas_price: 0.001 # 0.001 PAW per gas unit
+
+  # EIP-1559 style dynamic fees
+  base_fee_initial: 0.001
+  base_fee_max_change_denominator: 8 # 12.5% max change
+  elasticity_multiplier: 2
+
+  # Fee distribution
+  burn_percentage: 0.50 # 50% burned
+  validator_percentage: 0.30 # 30% to block validator
+  treasury_percentage: 0.20 # 20% to treasury
+
+  # Gas costs (sample operations)
+  gas_costs:
+    transfer: 21000
+    contract_deploy_base: 53000
+    contract_deploy_per_byte: 200
+    contract_call_base: 21000
+    dex_swap: 150000
+    stake: 75000
+    unstake: 75000
+    vote: 50000
+    oracle_submit: 30000
+
+oracle:
+  # Price feed configuration
+  update_frequency_blocks: 100 # ~7 minutes at 4s blocks
+  min_validator_submissions: 17 # 2/3 of 25 validators
+  deviation_threshold: 0.20 # 20% outlier removal
+  twap_window_blocks: 150 # 10 minute TWAP
+  staleness_threshold_seconds: 86400 # 24 hours max staleness
+
+  data_sources:
+    - name: binance
+      weight: 1
+    - name: coinbase
+      weight: 1
+    - name: kraken
+      weight: 1
+    - name: okx
+      weight: 1
+    - name: coingecko
+      weight: 1
+
+governance:
+  # Proposal parameters
+  min_deposit: 10000 # 10,000 PAW
+  min_deposit_total: 100000 # 100,000 PAW
+  deposit_period_seconds: 604800 # 7 days
+  voting_period_seconds: 1209600 # 14 days
+
+  # Voting rules
+  quorum: 0.40 # 40% participation
+  threshold: 0.667 # 66.7% approval
+  veto_threshold: 0.333 # 33.3% veto
+
+  # VRF committee
+  vrf_committee_size: 100
+  vrf_stake_cap: 0.05 # Max 5% probability per staker
+  vrf_epoch_length: 100800 # ~weekly
+
+  # Timelocks (seconds)
+  timelock_parameter_change: 172800 # 48 hours
+  timelock_software_upgrade: 604800 # 7 days
+  timelock_treasury_spend: 259200 # 72 hours
+
+  # Guardian multisig
+  guardian_threshold: 5
+  guardian_total: 9
+  guardian_term_months: 12
+
+compute:
+  # Task parameters
+  min_agent_stake: 10000 # 10,000 PAW
+  challenge_period_seconds: 86400 # 24 hours
+  challenge_bond: 1000 # 1,000 PAW
+  fraud_proof_reward: 0.20 # 20% of slashed stake
+
+  # TEE whitelist (enclave measurements)
+  trusted_enclaves:
+    - type: aws_nitro
+      measurement: '000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'
+      version: '1.0'
+    - type: intel_sgx
+      measurement: '1f1e1d1c1b1a191817161514131211100f0e0d0c0b0a09080706050403020100'
+      version: '2.5'

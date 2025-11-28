@@ -1,0 +1,9 @@
+{
+  "name": "paw-examples-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Test suite for PAW blockchain examples",
+  "scripts": {
+    "test": "node run-all-tests.js"
+  }
+}

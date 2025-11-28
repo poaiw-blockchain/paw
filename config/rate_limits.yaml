@@ -1,0 +1,277 @@
+# PAW API Advanced Rate Limiting Configuration
+# This file configures all aspects of the advanced rate limiting system
+
+# Global rate limiting settings
+enabled: true
+default_rps: 50          # Default requests per second
+default_burst: 100       # Default burst capacity
+cleanup_interval: 5m     # How often to clean up inactive limiters
+
+# Per-endpoint rate limits
+# Configure specific limits for different API endpoints
+endpoint_limits:
+  # Authentication endpoints (stricter limits to prevent abuse)
+  /api/auth/login:
+    path: "/api/auth/login"
+    method: "POST"
+    rps: 5
+    burst: 10
+    enabled: true
+    require_auth: false
+    skip_ip_limit: false
+    custom_message: "Login rate limit exceeded. Please try again in a few minutes."
+
+  /api/auth/register:
+    path: "/api/auth/register"
+    method: "POST"
+    rps: 2
+    burst: 5
+    enabled: true
+    require_auth: false
+    custom_message: "Registration rate limit exceeded. Please wait before trying again."
+
+  /api/auth/refresh:
+    path: "/api/auth/refresh"
+    method: "POST"
+    rps: 10
+    burst: 20
+    enabled: true
+    require_auth: false
+
+  # Trading endpoints (moderate limits)
+  /api/orders/create:
+    path: "/api/orders/create"
+    method: "POST"
+    rps: 10
+    burst: 20
+    enabled: true
+    require_auth: true
+    custom_message: "Order creation rate limit exceeded."
+
+  /api/orders/book:
+    path: "/api/orders/book"
+    method: "GET"
+    rps: 50
+    burst: 100
+    enabled: true
+    require_auth: false
+
+  # Wallet endpoints (strict limits for security)
+  /api/wallet/send:
+    path: "/api/wallet/send"
+    method: "POST"
+    rps: 5
+    burst: 10
+    enabled: true
+    require_auth: true
+    custom_message: "Transaction rate limit exceeded. Please wait before sending more transactions."
+
+  /api/wallet/balance:
+    path: "/api/wallet/balance"
+    method: "GET"
+    rps: 20
+    burst: 40
+    enabled: true
+    require_auth: true
+
+  # Swap endpoints
+  /api/atomic-swap/prepare:
+    path: "/api/atomic-swap/prepare"
+    method: "POST"
+    rps: 10
+    burst: 20
+    enabled: true
+    require_auth: true
+
+  /api/atomic-swap/commit:
+    path: "/api/atomic-swap/commit"
+    method: "POST"
+    rps: 10
+    burst: 20
+    enabled: true
+    require_auth: true
+
+  # Pool endpoints
+  /api/pools:
+    path: "/api/pools"
+    method: "GET"
+    rps: 100
+    burst: 200
+    enabled: true
+    require_auth: false
+
+  /api/pools/add-liquidity:
+    path: "/api/pools/add-liquidity"
+    method: "POST"
+    rps: 10
+    burst: 20
+    enabled: true
+    require_auth: true
+
+  # Market data endpoints (high throughput)
+  /api/market/price:
+    path: "/api/market/price"
+    method: "GET"
+    rps: 100
+    burst: 200
+    enabled: true
+    require_auth: false
+
+  /api/market/stats:
+    path: "/api/market/stats"
+    method: "GET"
+    rps: 100
+    burst: 200
+    enabled: true
+    require_auth: false
+
+  # Light client endpoints
+  /api/light-client/headers:
+    path: "/api/light-client/headers"
+    method: "GET"
+    rps: 50
+    burst: 100
+    enabled: true
+    require_auth: false
+
+  # Health check (no limit)
+  /health:
+    path: "/health"
+    method: "GET"
+    rps: 1000
+    burst: 2000
+    enabled: false  # No rate limiting on health checks
+
+# Account tier-based limits
+# Different subscription tiers get different rate limits
+account_tiers:
+  # Free tier - basic limits for non-paying users
+  free:
+    name: "free"
+    requests_per_minute: 20
+    requests_per_hour: 1000
+    requests_per_day: 10000
+    burst_size: 50
+    concurrent_requests: 10
+    priority: 1
+
+  # Premium tier - enhanced limits for premium subscribers
+  premium:
+    name: "premium"
+    requests_per_minute: 100
+    requests_per_hour: 10000
+    requests_per_day: 100000
+    burst_size: 200
+    concurrent_requests: 50
+    priority: 5
+
+  # Enterprise tier - highest limits for enterprise customers
+  enterprise:
+    name: "enterprise"
+    requests_per_minute: 1000
+    requests_per_hour: 100000
+    requests_per_day: 1000000
+    burst_size: 2000
+    concurrent_requests: 200
+    priority: 10
+
+  # VIP tier - for special partners and high-volume users
+  vip:
+    name: "vip"
+    requests_per_minute: 5000
+    requests_per_hour: 500000
+    requests_per_day: 5000000
+    burst_size: 10000
+    concurrent_requests: 1000
+    priority: 20
+
+# Adaptive rate limiting configuration
+# Automatically adjusts limits based on user behavior
+adaptive:
+  enabled: true
+  trust_threshold: 100            # Successful requests before trust increase
+  suspicion_threshold: 10         # Failed requests before rate decrease
+  trust_multiplier: 2.0           # Increase limit by this factor for trusted users
+  suspicion_multiplier: 0.5       # Decrease limit by this factor for suspicious users
+  decay_interval: 1h              # How often to decay trust/suspicion scores
+  max_trust_level: 5              # Maximum trust level
+  max_suspicion_level: 5          # Maximum suspicion level
+  reset_after_good_period: 24h    # Reset suspicion after this period of good behavior
+
+# IP-based rate limiting configuration
+ip_config:
+  enabled: true
+  default_rps: 100
+  default_burst: 200
+
+  # Whitelisted IP addresses (no rate limiting)
+  whitelist_ips:
+    - "127.0.0.1"
+    # Add your trusted IPs here
+    # - "203.0.113.10"
+
+  # Blacklisted IP addresses (always blocked)
+  blacklist_ips: []
+    # Add malicious IPs here
+    # - "198.51.100.100"
+
+  # Whitelisted CIDR ranges
+  whitelist_cidrs:
+    - "127.0.0.0/8"     # Localhost IPv4
+    - "::1/128"         # Localhost IPv6
+    # Add your office/VPN networks here
+    # - "10.0.0.0/8"
+    # - "172.16.0.0/12"
+    # - "192.168.0.0/16"
+
+  # Blacklisted CIDR ranges
+  blacklist_cidrs: []
+    # Add malicious networks here
+
+  # Auto-blocking configuration
+  block_duration: 1h              # How long to block IPs that exceed threshold
+  auto_block_threshold: 100       # Auto-block after this many violations
+
+# Audit logging for rate limiting events
+audit_enabled: true
+
+# Environment-specific overrides
+# You can override settings for different environments
+
+# Example for development:
+# development:
+#   enabled: true
+#   default_rps: 1000
+#   adaptive:
+#     enabled: false
+#   ip_config:
+#     enabled: false
+
+# Example for staging:
+# staging:
+#   enabled: true
+#   default_rps: 200
+#   account_tiers:
+#     free:
+#       requests_per_minute: 50
+
+# Example for production:
+# production:
+#   enabled: true
+#   default_rps: 50
+#   adaptive:
+#     enabled: true
+#     trust_multiplier: 1.5
+#   ip_config:
+#     auto_block_threshold: 50
+#     block_duration: 2h
+
+# Notes:
+# 1. Rate limits are enforced in order: IP -> Endpoint -> Account
+# 2. Whitelisted IPs bypass all rate limits
+# 3. Blacklisted IPs are always blocked
+# 4. Adaptive rate limiting adjusts limits based on user behavior
+# 5. Set enabled: false on an endpoint to disable rate limiting for that endpoint
+# 6. All time durations support: ns, us, ms, s, m, h (e.g., "5m", "1h30m")
+# 7. Burst allows temporary spikes above the sustained rate
+# 8. Priority determines tier precedence when users have multiple tiers

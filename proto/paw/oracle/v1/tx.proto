@@ -1,0 +1,79 @@
+syntax = "proto3";
+package paw.oracle.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+import "paw/oracle/v1/oracle.proto";
+
+option go_package = "github.com/paw-chain/paw/x/oracle/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // SubmitPrice submits a price feed update
+  rpc SubmitPrice(MsgSubmitPrice) returns (MsgSubmitPriceResponse);
+
+  // DelegateFeedConsent allows a validator to delegate price submission to another address
+  rpc DelegateFeedConsent(MsgDelegateFeedConsent) returns (MsgDelegateFeedConsentResponse);
+
+  // UpdateParams updates the module parameters (governance only)
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+// MsgSubmitPrice submits a price feed update
+message MsgSubmitPrice {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name) = "paw/oracle/MsgSubmitPrice";
+
+  // validator is the validator address submitting the price
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.ValidatorAddressString"];
+
+  // feeder is the feeder address (may be different from validator if delegated)
+  string feeder = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // asset is the asset identifier
+  string asset = 3;
+
+  // price is the submitted price value
+  string price = 4 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgSubmitPriceResponse defines the response for MsgSubmitPrice
+message MsgSubmitPriceResponse {}
+
+// MsgDelegateFeedConsent allows a validator to delegate price submission
+message MsgDelegateFeedConsent {
+  option (cosmos.msg.v1.signer) = "validator";
+  option (amino.name) = "paw/oracle/MsgDelegateFeedConsent";
+
+  // validator is the validator address delegating
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.ValidatorAddressString"];
+
+  // delegate is the address being delegated to
+  string delegate = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// MsgDelegateFeedConsentResponse defines the response for MsgDelegateFeedConsent
+message MsgDelegateFeedConsentResponse {}
+
+// MsgUpdateParams updates the module parameters (governance only)
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "paw/oracle/MsgUpdateParams";
+
+  // authority is the address that controls the module (defaults to x/gov unless overwritten)
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // params defines the parameters to update
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
+}
+
+// MsgUpdateParamsResponse defines the response for MsgUpdateParams
+message MsgUpdateParamsResponse {}

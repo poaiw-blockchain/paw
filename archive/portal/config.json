@@ -1,0 +1,126 @@
+{
+  "siteName": "PAW Blockchain Documentation",
+  "version": "1.0.0",
+  "description": "Complete documentation for PAW Blockchain - users, developers, and validators",
+  "baseUrl": "https://docs.pawchain.io",
+  "contentPath": "content/",
+  "languages": ["en"],
+  "defaultLanguage": "en",
+  "theme": {
+    "defaultMode": "dark",
+    "primary": "#6366f1",
+    "secondary": "#8b5cf6"
+  },
+  "navigation": {
+    "header": [
+      { "text": "Getting Started", "link": "#getting-started" },
+      { "text": "User Guide", "link": "#user-guide" },
+      { "text": "Developer", "link": "#developer-guide" },
+      { "text": "API", "link": "#api-reference" },
+      { "text": "Tutorials", "link": "#tutorials" },
+      { "text": "FAQ", "link": "#faq" }
+    ],
+    "sidebar": [
+      {
+        "title": "Getting Started",
+        "items": [
+          { "text": "What is PAW", "link": "#what-is-paw" },
+          { "text": "Quick Start", "link": "#quick-start" },
+          { "text": "Installation", "link": "#installation" },
+          { "text": "First Transaction", "link": "#first-transaction" }
+        ]
+      },
+      {
+        "title": "User Guide",
+        "items": [
+          { "text": "Wallet Setup", "link": "#wallet-setup" },
+          { "text": "Sending & Receiving", "link": "#sending-receiving" },
+          { "text": "Using the DEX", "link": "#using-dex" },
+          { "text": "Staking", "link": "#staking-guide" },
+          { "text": "Governance", "link": "#governance" },
+          { "text": "Security", "link": "#security" }
+        ]
+      },
+      {
+        "title": "Developer",
+        "items": [
+          { "text": "Development Setup", "link": "#dev-environment" },
+          { "text": "Building on PAW", "link": "#building-on-paw" },
+          { "text": "SDK Usage", "link": "#sdk-usage" },
+          { "text": "API Integration", "link": "#api-integration" },
+          { "text": "Testing", "link": "#testing-guide" },
+          { "text": "Deployment", "link": "#deployment" }
+        ]
+      },
+      {
+        "title": "Resources",
+        "items": [
+          { "text": "Tutorials", "link": "#tutorials" },
+          { "text": "API Reference", "link": "#api-reference" },
+          { "text": "FAQ", "link": "#faq" },
+          { "text": "Glossary", "link": "#glossary" }
+        ]
+      }
+    ],
+    "footer": [
+      {
+        "title": "Documentation",
+        "items": [
+          { "text": "Getting Started", "link": "#getting-started" },
+          { "text": "User Guide", "link": "#user-guide" },
+          { "text": "Developer Guide", "link": "#developer-guide" },
+          { "text": "API Reference", "link": "#api-reference" }
+        ]
+      },
+      {
+        "title": "Community",
+        "items": [
+          { "text": "", "link": "https://example.com/paw-chain" },
+          { "text": "Discord", "link": "https://discord.gg/pawchain" },
+          { "text": "Twitter", "link": "https://twitter.com/pawchain" },
+          { "text": "Forum", "link": "https://forum.pawchain.io" }
+        ]
+      },
+      {
+        "title": "Resources",
+        "items": [
+          { "text": "Tutorials", "link": "#tutorials" },
+          { "text": "FAQ", "link": "#faq" },
+          { "text": "Blog", "link": "https://blog.pawchain.io" },
+          { "text": "Status", "link": "https://status.pawchain.io" }
+        ]
+      }
+    ]
+  },
+  "search": {
+    "enabled": true,
+    "placeholder": "Search documentation...",
+    "maxResults": 10,
+    "minChars": 2
+  },
+  "social": {
+    "twitter": "https://twitter.com/pawchain",
+    "discord": "https://discord.gg/pawchain",
+    "telegram": "https://t.me/pawchain",
+    "medium": "https://medium.com/pawchain"
+  },
+  "versions": [
+    { "version": "v1.0.0", "link": "/" },
+    { "version": "v0.9.0", "link": "/v0.9/" },
+    { "version": "v0.8.0", "link": "/v0.8/" }
+  ],
+  "analytics": {
+    "enabled": false,
+    "googleAnalyticsId": "",
+    "plausibleDomain": ""
+  },
+  "features": {
+    "darkMode": true,
+    "multiLanguage": true,
+    "versionSelector": true,
+    "editOn": true,
+    "tableOfContents": true,
+    "breadcrumbs": true,
+    "search": true
+  }
+}

@@ -1,0 +1,105 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: 'alerts@paw-chain.io'
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_auth_username: 'alerts@paw-chain.io'
+  smtp_auth_password: '' # Set via secret in K8s or env var
+  smtp_require_tls: true
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Root route
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  routes:
+    # Critical alerts
+    - match:
+        severity: critical
+      receiver: 'critical'
+      continue: true
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning'
+      group_wait: 30s
+      repeat_interval: 6h
+
+    # Blockchain-specific alerts
+    - match:
+        component: blockchain
+      receiver: 'blockchain-team'
+      continue: true
+
+    # API alerts
+    - match:
+        component: api
+      receiver: 'api-team'
+
+# Inhibition rules
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Alert receivers
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'ops@paw-chain.io'
+        headers:
+          Subject: '[PAW Alert] {{ .GroupLabels.alertname }}'
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <body>
+            <h2>PAW Blockchain Alert</h2>
+            <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+            <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+            <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+            <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+            <p><strong>Time:</strong> {{ .StartsAt }}</p>
+          </body>
+          </html>
+
+  - name: 'critical'
+    email_configs:
+      - to: 'critical@paw-chain.io,on-call@paw-chain.io'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+          Priority: '1'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        send_resolved: true
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ .CommonAnnotations.description }}'
+
+  - name: 'warning'
+    email_configs:
+      - to: 'warnings@paw-chain.io'
+        send_resolved: true
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        send_resolved: true
+
+  - name: 'blockchain-team'
+    email_configs:
+      - to: 'blockchain-team@paw-chain.io'
+        send_resolved: true
+
+  - name: 'api-team'
+    email_configs:
+      - to: 'api-team@paw-chain.io'
+        send_resolved: true

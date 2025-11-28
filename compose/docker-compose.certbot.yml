@@ -1,0 +1,95 @@
+version: '3.8'
+
+# Docker Compose configuration for Let's Encrypt Certbot
+# This setup handles SSL certificate generation and renewal
+
+services:
+  certbot:
+    image: certbot/certbot:latest
+    container_name: paw-certbot
+    volumes:
+      # Certificate storage
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      # Webroot for ACME challenge
+      - certbot-webroot:/var/www/certbot
+      # Logs
+      - certbot-logs:/var/log/letsencrypt
+    # Initial certificate generation
+    command: >
+      certonly --webroot
+      --webroot-path=/var/www/certbot
+      --email ${CERTBOT_EMAIL:-admin@pawchain.network}
+      --agree-tos
+      --no-eff-email
+      --force-renewal
+      -d ${DOMAIN:-explorer.pawchain.network}
+    networks:
+      - paw-network
+    restart: "no"
+
+  # Certbot renewal service - runs periodically
+  certbot-renew:
+    image: certbot/certbot:latest
+    container_name: paw-certbot-renew
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - certbot-webroot:/var/www/certbot
+      - certbot-logs:/var/log/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --deploy-hook \"docker exec paw-nginx nginx -s reload\"; sleep 12h & wait $${!}; done;'"
+    networks:
+      - paw-network
+    restart: unless-stopped
+
+  # NGINX with SSL support
+  nginx-ssl:
+    image: nginx:alpine
+    container_name: paw-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # NGINX configuration
+      - ../explorer/nginx.conf:/etc/nginx/nginx.conf:ro
+      # SSL certificates
+      - certbot-etc:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot:ro
+      # DH parameters
+      - ./ssl/dhparam.pem:/etc/nginx/ssl/dhparam.pem:ro
+      # Logs
+      - nginx-logs:/var/log/nginx
+    networks:
+      - paw-network
+    depends_on:
+      - certbot
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  certbot-etc:
+    name: paw-certbot-etc
+    driver: local
+  certbot-var:
+    name: paw-certbot-var
+    driver: local
+  certbot-webroot:
+    name: paw-certbot-webroot
+    driver: local
+  certbot-logs:
+    name: paw-certbot-logs
+    driver: local
+  nginx-logs:
+    name: paw-nginx-logs
+    driver: local
+
+networks:
+  paw-network:
+    name: paw-network
+    driver: bridge

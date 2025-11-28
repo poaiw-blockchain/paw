@@ -1,0 +1,458 @@
+package keeper
+
+import (
+	"context"
+	"fmt"
+
+	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/paw-chain/paw/x/compute/types"
+)
+
+// RegisterProvider registers a new compute provider with the required stake
+func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, moniker, endpoint string, specs types.ComputeSpec, pricing types.Pricing, stake math.Int) error {
+	// Validate parameters
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	if stake.LT(params.MinProviderStake) {
+		return fmt.Errorf("stake %s is less than minimum required %s", stake.String(), params.MinProviderStake.String())
+	}
+
+	// Check if provider already exists
+	existing, err := k.GetProvider(ctx, provider)
+	if err == nil && existing != nil {
+		return fmt.Errorf("provider %s already registered", provider.String())
+	}
+
+	// Validate specs
+	if err := k.validateComputeSpec(specs); err != nil {
+		return fmt.Errorf("invalid compute specs: %w", err)
+	}
+
+	// Validate pricing
+	if err := k.validatePricing(pricing); err != nil {
+		return fmt.Errorf("invalid pricing: %w", err)
+	}
+
+	// Transfer stake from provider to module account
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	coins := sdk.NewCoins(sdk.NewCoin("upaw", stake))
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(sdkCtx, provider, types.ModuleName, coins); err != nil {
+		return fmt.Errorf("failed to escrow stake: %w", err)
+	}
+
+	// Create provider record
+	now := sdkCtx.BlockTime()
+	providerRecord := types.Provider{
+		Address:                provider.String(),
+		Moniker:                moniker,
+		Endpoint:               endpoint,
+		AvailableSpecs:         specs,
+		Pricing:                pricing,
+		Stake:                  stake,
+		Reputation:             100, // Start with perfect reputation
+		TotalRequestsCompleted: 0,
+		TotalRequestsFailed:    0,
+		Active:                 true,
+		RegisteredAt:           now,
+		LastActiveAt:           now,
+	}
+
+	// Store provider
+	if err := k.SetProvider(ctx, providerRecord); err != nil {
+		return fmt.Errorf("failed to store provider: %w", err)
+	}
+
+	// Add to active providers index
+	if err := k.setActiveProviderIndex(ctx, provider, true); err != nil {
+		return fmt.Errorf("failed to set active provider index: %w", err)
+	}
+
+	// Emit event
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"provider_registered",
+			sdk.NewAttribute("provider", provider.String()),
+			sdk.NewAttribute("moniker", moniker),
+			sdk.NewAttribute("stake", stake.String()),
+			sdk.NewAttribute("endpoint", endpoint),
+		),
+	)
+
+	return nil
+}
+
+// UpdateProvider updates an existing provider's information
+func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, moniker, endpoint string, specs *types.ComputeSpec, pricing *types.Pricing) error {
+	// Get existing provider
+	existing, err := k.GetProvider(ctx, provider)
+	if err != nil {
+		return fmt.Errorf("provider not found: %w", err)
+	}
+
+	// Update fields if provided
+	if moniker != "" {
+		existing.Moniker = moniker
+	}
+	if endpoint != "" {
+		existing.Endpoint = endpoint
+	}
+	if specs != nil {
+		if err := k.validateComputeSpec(*specs); err != nil {
+			return fmt.Errorf("invalid compute specs: %w", err)
+		}
+		existing.AvailableSpecs = *specs
+	}
+	if pricing != nil {
+		if err := k.validatePricing(*pricing); err != nil {
+			return fmt.Errorf("invalid pricing: %w", err)
+		}
+		existing.Pricing = *pricing
+	}
+
+	// Update last active timestamp
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	existing.LastActiveAt = sdkCtx.BlockTime()
+
+	// Store updated provider
+	if err := k.SetProvider(ctx, *existing); err != nil {
+		return fmt.Errorf("failed to update provider: %w", err)
+	}
+
+	// Emit event
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"provider_updated",
+			sdk.NewAttribute("provider", provider.String()),
+		),
+	)
+
+	return nil
+}
+
+// DeactivateProvider deactivates a provider and returns their stake
+func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress) error {
+	// Get existing provider
+	existing, err := k.GetProvider(ctx, provider)
+	if err != nil {
+		return fmt.Errorf("provider not found: %w", err)
+	}
+
+	if !existing.Active {
+		return fmt.Errorf("provider already inactive")
+	}
+
+	// Mark as inactive
+	existing.Active = false
+
+	// Store updated provider
+	if err := k.SetProvider(ctx, *existing); err != nil {
+		return fmt.Errorf("failed to deactivate provider: %w", err)
+	}
+
+	// Remove from active providers index
+	if err := k.setActiveProviderIndex(ctx, provider, false); err != nil {
+		return fmt.Errorf("failed to update active provider index: %w", err)
+	}
+
+	// Return stake to provider
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	coins := sdk.NewCoins(sdk.NewCoin("upaw", existing.Stake))
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
+		return fmt.Errorf("failed to return stake: %w", err)
+	}
+
+	// Emit event
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"provider_deactivated",
+			sdk.NewAttribute("provider", provider.String()),
+			sdk.NewAttribute("stake_returned", existing.Stake.String()),
+		),
+	)
+
+	return nil
+}
+
+// GetProvider retrieves a provider by address
+func (k Keeper) GetProvider(ctx context.Context, address sdk.AccAddress) (*types.Provider, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(ProviderKey(address))
+
+	if bz == nil {
+		return nil, fmt.Errorf("provider not found")
+	}
+
+	var provider types.Provider
+	if err := k.cdc.Unmarshal(bz, &provider); err != nil {
+		return nil, err
+	}
+
+	return &provider, nil
+}
+
+// SetProvider stores a provider record
+func (k Keeper) SetProvider(ctx context.Context, provider types.Provider) error {
+	store := k.getStore(ctx)
+	bz, err := k.cdc.Marshal(&provider)
+	if err != nil {
+		return err
+	}
+
+	addr, err := sdk.AccAddressFromBech32(provider.Address)
+	if err != nil {
+		return err
+	}
+
+	store.Set(ProviderKey(addr), bz)
+	return nil
+}
+
+// IterateProviders iterates over all providers
+func (k Keeper) IterateProviders(ctx context.Context, cb func(provider types.Provider) (stop bool, err error)) error {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, ProviderKeyPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var provider types.Provider
+		if err := k.cdc.Unmarshal(iterator.Value(), &provider); err != nil {
+			return err
+		}
+
+		stop, err := cb(provider)
+		if err != nil {
+			return err
+		}
+		if stop {
+			break
+		}
+	}
+
+	return nil
+}
+
+// IterateActiveProviders iterates over all active providers
+func (k Keeper) IterateActiveProviders(ctx context.Context, cb func(provider types.Provider) (stop bool, err error)) error {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, ActiveProvidersPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// The value is the provider address
+		address := sdk.AccAddress(iterator.Value())
+		provider, err := k.GetProvider(ctx, address)
+		if err != nil {
+			continue // Skip if provider not found
+		}
+
+		stop, err := cb(*provider)
+		if err != nil {
+			return err
+		}
+		if stop {
+			break
+		}
+	}
+
+	return nil
+}
+
+// UpdateProviderReputation updates a provider's reputation score
+func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAddress, success bool) error {
+	providerRecord, err := k.GetProvider(ctx, provider)
+	if err != nil {
+		return err
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	if success {
+		providerRecord.TotalRequestsCompleted++
+		// Gradually improve reputation towards 100
+		if providerRecord.Reputation < 100 {
+			providerRecord.Reputation++
+		}
+	} else {
+		providerRecord.TotalRequestsFailed++
+		// Slash reputation
+		slashAmount := uint32(params.ReputationSlashPercentage)
+		if providerRecord.Reputation > slashAmount {
+			providerRecord.Reputation -= slashAmount
+		} else {
+			providerRecord.Reputation = 0
+		}
+	}
+
+	// Update last active timestamp
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	providerRecord.LastActiveAt = sdkCtx.BlockTime()
+
+	return k.SetProvider(ctx, *providerRecord)
+}
+
+// setActiveProviderIndex sets or removes a provider from the active providers index
+func (k Keeper) setActiveProviderIndex(ctx context.Context, provider sdk.AccAddress, active bool) error {
+	store := k.getStore(ctx)
+	key := ActiveProviderKey(provider)
+
+	if active {
+		store.Set(key, provider.Bytes())
+	} else {
+		store.Delete(key)
+	}
+	return nil
+}
+
+// validateComputeSpec validates compute specifications
+func (k Keeper) validateComputeSpec(spec types.ComputeSpec) error {
+	if spec.CpuCores == 0 {
+		return fmt.Errorf("cpu_cores must be greater than 0")
+	}
+	if spec.MemoryMb == 0 {
+		return fmt.Errorf("memory_mb must be greater than 0")
+	}
+	if spec.TimeoutSeconds == 0 {
+		return fmt.Errorf("timeout_seconds must be greater than 0")
+	}
+
+	params, err := k.GetParams(context.Background())
+	if err != nil {
+		return err
+	}
+
+	if spec.TimeoutSeconds > params.MaxRequestTimeoutSeconds {
+		return fmt.Errorf("timeout_seconds %d exceeds maximum %d", spec.TimeoutSeconds, params.MaxRequestTimeoutSeconds)
+	}
+
+	return nil
+}
+
+// validatePricing validates pricing structure
+func (k Keeper) validatePricing(pricing types.Pricing) error {
+	if pricing.CpuPricePerMcoreHour.IsNegative() {
+		return fmt.Errorf("cpu_price_per_mcore_hour cannot be negative")
+	}
+	if pricing.MemoryPricePerMbHour.IsNegative() {
+		return fmt.Errorf("memory_price_per_mb_hour cannot be negative")
+	}
+	if pricing.GpuPricePerHour.IsNegative() {
+		return fmt.Errorf("gpu_price_per_hour cannot be negative")
+	}
+	if pricing.StoragePricePerGbHour.IsNegative() {
+		return fmt.Errorf("storage_price_per_gb_hour cannot be negative")
+	}
+
+	return nil
+}
+
+// FindSuitableProvider finds a suitable provider for the given specs
+func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpec, preferredProvider string) (sdk.AccAddress, error) {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// If preferred provider is specified and valid, try to use it
+	if preferredProvider != "" {
+		addr, err := sdk.AccAddressFromBech32(preferredProvider)
+		if err == nil {
+			provider, err := k.GetProvider(ctx, addr)
+			if err == nil && provider.Active && provider.Reputation >= params.MinReputationScore {
+				if k.canProviderHandleSpecs(*provider, specs) {
+					return addr, nil
+				}
+			}
+		}
+	}
+
+	// Find best provider based on reputation and capability
+	var bestProvider *types.Provider
+	var bestAddr sdk.AccAddress
+
+	err = k.IterateActiveProviders(ctx, func(provider types.Provider) (bool, error) {
+		if provider.Reputation < params.MinReputationScore {
+			return false, nil
+		}
+
+		if !k.canProviderHandleSpecs(provider, specs) {
+			return false, nil
+		}
+
+		if bestProvider == nil || provider.Reputation > bestProvider.Reputation {
+			bestProvider = &provider
+			addr, err := sdk.AccAddressFromBech32(provider.Address)
+			if err != nil {
+				return false, err
+			}
+			bestAddr = addr
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bestProvider == nil {
+		return nil, fmt.Errorf("no suitable provider found for requested specs")
+	}
+
+	return bestAddr, nil
+}
+
+// canProviderHandleSpecs checks if a provider can handle the requested specs
+func (k Keeper) canProviderHandleSpecs(provider types.Provider, specs types.ComputeSpec) bool {
+	if provider.AvailableSpecs.CpuCores < specs.CpuCores {
+		return false
+	}
+	if provider.AvailableSpecs.MemoryMb < specs.MemoryMb {
+		return false
+	}
+	if specs.GpuCount > 0 {
+		if provider.AvailableSpecs.GpuCount < specs.GpuCount {
+			return false
+		}
+		if specs.GpuType != "" && provider.AvailableSpecs.GpuType != specs.GpuType {
+			return false
+		}
+	}
+	if provider.AvailableSpecs.StorageGb < specs.StorageGb {
+		return false
+	}
+
+	return true
+}
+
+// EstimateCost estimates the cost of a compute request based on provider pricing
+func (k Keeper) EstimateCost(ctx context.Context, providerAddr sdk.AccAddress, specs types.ComputeSpec) (math.Int, math.LegacyDec, error) {
+	provider, err := k.GetProvider(ctx, providerAddr)
+	if err != nil {
+		return math.Int{}, math.LegacyDec{}, err
+	}
+
+	// Calculate cost per hour
+	cpuCost := provider.Pricing.CpuPricePerMcoreHour.MulInt64(int64(specs.CpuCores))
+	memoryCost := provider.Pricing.MemoryPricePerMbHour.MulInt64(int64(specs.MemoryMb))
+	gpuCost := provider.Pricing.GpuPricePerHour.MulInt64(int64(specs.GpuCount))
+	storageCost := provider.Pricing.StoragePricePerGbHour.MulInt64(int64(specs.StorageGb))
+
+	costPerHour := cpuCost.Add(memoryCost).Add(gpuCost).Add(storageCost)
+
+	// Calculate total cost based on timeout
+	hours := math.LegacyNewDec(int64(specs.TimeoutSeconds)).QuoInt64(3600)
+	totalCost := costPerHour.Mul(hours)
+
+	// Convert to integer (round up)
+	totalCostInt := totalCost.Ceil().TruncateInt()
+
+	return totalCostInt, costPerHour, nil
+}

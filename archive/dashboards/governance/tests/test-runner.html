@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Governance Portal - Test Runner</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #ffffff;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2196F3;
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 1rem;
+        }
+        .test-output {
+            background: #16213e;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+        }
+        .pass {
+            color: #4CAF50;
+        }
+        .fail {
+            color: #f44336;
+        }
+        .summary {
+            background: #0f1419;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>PAW Governance Portal - Test Runner</h1>
+        <p>Comprehensive test suite for all governance portal components</p>
+
+        <button onclick="runTests()">Run All Tests</button>
+
+        <div id="testOutput" class="test-output">
+            Click "Run All Tests" to execute the test suite...
+        </div>
+
+        <div id="testSummary" class="summary" style="display: none;"></div>
+    </div>
+
+    <!-- Load dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="../services/governanceAPI.js"></script>
+    <script src="../components/ProposalList.js"></script>
+    <script src="../components/ProposalDetail.js"></script>
+    <script src="../components/CreateProposal.js"></script>
+    <script src="../components/VotingPanel.js"></script>
+    <script src="../components/TallyChart.js"></script>
+
+    <script>
+        // Override console.log to capture output
+        const originalLog = console.log;
+        let logOutput = '';
+
+        console.log = function(...args) {
+            const message = args.join(' ');
+            logOutput += message + '\n';
+
+            // Format the output with colors
+            const outputDiv = document.getElementById('testOutput');
+            if (message.includes('✓ PASS')) {
+                logOutput = logOutput.replace(message, `<span class="pass">${message}</span>`);
+            } else if (message.includes('✗ FAIL')) {
+                logOutput = logOutput.replace(message, `<span class="fail">${message}</span>`);
+            }
+
+            outputDiv.innerHTML = logOutput;
+            originalLog.apply(console, args);
+        };
+
+        async function runTests() {
+            logOutput = '';
+            document.getElementById('testOutput').innerHTML = 'Running tests...\n';
+            document.getElementById('testSummary').style.display = 'none';
+
+            // Load and run the test suite
+            const script = document.createElement('script');
+            script.src = 'governance.test.js';
+            script.onload = async () => {
+                // Tests will run automatically
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Show summary
+                const summaryDiv = document.getElementById('testSummary');
+                summaryDiv.style.display = 'block';
+
+                if (logOutput.includes('All tests passed')) {
+                    summaryDiv.innerHTML = '<span class="pass">✓ All tests passed successfully!</span>';
+                    summaryDiv.style.background = 'rgba(76, 175, 80, 0.2)';
+                } else {
+                    summaryDiv.innerHTML = '<span class="fail">✗ Some tests failed. Review output above.</span>';
+                    summaryDiv.style.background = 'rgba(244, 67, 54, 0.2)';
+                }
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>

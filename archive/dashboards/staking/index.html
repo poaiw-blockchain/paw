@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain - Staking Dashboard</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo">
+                        <i class="fas fa-paw"></i>
+                        <h1>PAW Staking</h1>
+                    </div>
+                    <nav class="nav">
+                        <button class="nav-item active" data-view="portfolio">
+                            <i class="fas fa-wallet"></i> Portfolio
+                        </button>
+                        <button class="nav-item" data-view="validators">
+                            <i class="fas fa-server"></i> Validators
+                        </button>
+                        <button class="nav-item" data-view="calculator">
+                            <i class="fas fa-calculator"></i> Calculator
+                        </button>
+                        <button class="nav-item" data-view="comparison">
+                            <i class="fas fa-chart-bar"></i> Comparison
+                        </button>
+                    </nav>
+                    <div class="wallet-info">
+                        <button id="connect-wallet" class="btn btn-primary">
+                            <i class="fas fa-wallet"></i> Connect Wallet
+                        </button>
+                        <div id="wallet-connected" class="wallet-connected" style="display: none;">
+                            <span class="wallet-address"></span>
+                            <button id="disconnect-wallet" class="btn btn-secondary">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <!-- Network Stats Banner -->
+                <div class="network-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Staked</div>
+                            <div class="stat-value" id="total-staked">0 PAW</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Average APY</div>
+                            <div class="stat-value" id="avg-apy">0%</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-server"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Active Validators</div>
+                            <div class="stat-value" id="active-validators">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-label">Inflation Rate</div>
+                            <div class="stat-value" id="inflation-rate">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Portfolio View -->
+                <div id="portfolio-view" class="view-container active">
+                    <div class="portfolio-header">
+                        <h2>My Staking Portfolio</h2>
+                        <div class="portfolio-actions">
+                            <button class="btn btn-primary" id="refresh-portfolio">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div id="portfolio-content" class="portfolio-content">
+                        <!-- Loaded by PortfolioView component -->
+                    </div>
+                </div>
+
+                <!-- Validators View -->
+                <div id="validators-view" class="view-container">
+                    <div class="validators-header">
+                        <h2>Validator List</h2>
+                        <div class="validators-controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="validator-search" placeholder="Search validators...">
+                            </div>
+                            <select id="validator-sort" class="select-input">
+                                <option value="voting_power">Voting Power</option>
+                                <option value="commission">Commission</option>
+                                <option value="apy">APY</option>
+                                <option value="uptime">Uptime</option>
+                            </select>
+                            <div class="filter-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="filter-active"> Active Only
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="validators-content" class="validators-content">
+                        <!-- Loaded by ValidatorList component -->
+                    </div>
+                </div>
+
+                <!-- Calculator View -->
+                <div id="calculator-view" class="view-container">
+                    <div class="calculator-header">
+                        <h2>Staking Calculator</h2>
+                        <p class="subtitle">Estimate your staking rewards</p>
+                    </div>
+                    <div id="calculator-content" class="calculator-content">
+                        <!-- Loaded by StakingCalculator component -->
+                    </div>
+                </div>
+
+                <!-- Comparison View -->
+                <div id="comparison-view" class="view-container">
+                    <div class="comparison-header">
+                        <h2>Validator Comparison</h2>
+                        <p class="subtitle">Compare up to 4 validators side by side</p>
+                    </div>
+                    <div id="comparison-content" class="comparison-content">
+                        <!-- Loaded by ValidatorComparison component -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modals -->
+        <!-- Delegation Modal -->
+        <div id="delegation-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Delegate to Validator</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div id="delegation-panel" class="modal-body">
+                    <!-- Loaded by DelegationPanel component -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Rewards Modal -->
+        <div id="rewards-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Claim Rewards</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div id="rewards-panel" class="modal-body">
+                    <!-- Loaded by RewardsPanel component -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <div class="loading-text">Processing...</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>

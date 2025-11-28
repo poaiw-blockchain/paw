@@ -1,0 +1,85 @@
+# PAW Blockchain - Validator Node Configuration Template
+# This is a security-hardened configuration for validator nodes
+# Copy to ~/.paw/config/config.toml and customize
+
+moniker = "paw-validator"
+db_backend = "goleveldb"
+db_dir = "data"
+log_level = "info"
+log_format = "json"
+
+genesis_file = "config/genesis.json"
+priv_validator_key_file = "config/priv_validator_key.json"
+priv_validator_state_file = "data/priv_validator_state.json"
+node_key_file = "config/node_key.json"
+abci = "socket"
+
+# Filter peers for security
+filter_peers = true
+
+[rpc]
+# IMPORTANT: Restrict RPC access for validators
+laddr = "tcp://127.0.0.1:26657"
+cors_allowed_origins = []
+grpc_laddr = ""
+grpc_max_open_connections = 100
+unsafe = false
+max_open_connections = 100
+max_subscription_clients = 10
+max_subscriptions_per_client = 5
+
+[p2p]
+laddr = "tcp://0.0.0.0:26656"
+external_address = ""
+seeds = ""
+persistent_peers = ""
+upnp = false
+addr_book_strict = true
+
+# Validator-optimized P2P settings
+max_num_inbound_peers = 20
+max_num_outbound_peers = 10
+send_rate = 10240000
+recv_rate = 10240000
+pex = true
+seed_mode = false
+
+# Use for sentry architecture (add sentry node IDs)
+private_peer_ids = ""
+
+[mempool]
+version = "v0"
+recheck = true
+broadcast = true
+size = 10000
+max_txs_bytes = 2147483648
+cache_size = 20000
+max_tx_bytes = 1048576
+
+[statesync]
+enable = false
+
+[consensus]
+timeout_propose = "3s"
+timeout_propose_delta = "500ms"
+timeout_prevote = "1s"
+timeout_prevote_delta = "500ms"
+timeout_precommit = "1s"
+timeout_precommit_delta = "500ms"
+timeout_commit = "4s"
+
+# Double sign protection
+double_sign_check_height = 10
+
+skip_timeout_commit = false
+create_empty_blocks = true
+create_empty_blocks_interval = "0s"
+
+[tx_index]
+indexer = "kv"
+
+[instrumentation]
+prometheus = true
+prometheus_listen_addr = ":26660"
+max_open_connections = 3
+namespace = "cometbft"

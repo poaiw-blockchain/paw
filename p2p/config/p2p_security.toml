@@ -1,0 +1,194 @@
+# PAW P2P Security Configuration
+# This file configures the peer reputation system and P2P security features
+
+[reputation]
+# Enable or disable the reputation system
+enabled = true
+
+[reputation.storage]
+# Storage type: "file" or "memory"
+type = "file"
+
+# Directory for storing reputation data
+# Relative paths are relative to the node's home directory
+data_dir = "data/p2p/reputation"
+
+# Cache size (number of peers to keep in memory)
+cache_size = 1000
+
+# How often to flush cache to disk (in seconds)
+flush_interval = "30s"
+
+# Enable write caching for better performance
+enable_cache = true
+
+[reputation.scoring]
+# Scoring weights (must sum to 1.0 for ViolationPenalty calculation)
+uptime_weight = 0.25
+message_validity_weight = 0.30
+latency_weight = 0.20
+block_propagation_weight = 0.15
+violation_penalty = 0.10
+
+# Score decay settings
+score_decay_period = "24h"        # How often to apply decay
+score_decay_factor = 0.95         # Multiplier for decay (0.0-1.0)
+min_score_history = "168h"        # Min time to keep historical data (7 days)
+
+# Thresholds for good behavior
+min_uptime_for_good_score = "1h"
+max_latency_for_good_score = "500ms"
+min_valid_message_ratio = 0.95    # 95% valid messages
+fast_block_threshold = "1s"       # Blocks propagated within 1s are "fast"
+
+# Penalties (score deductions)
+violation_penalty_score = 5.0
+double_sign_penalty = 100.0       # Instant permanent ban
+invalid_block_penalty = 20.0
+spam_penalty = 10.0
+malformed_message_penalty = 2.0
+
+# Score range
+max_score = 100.0
+min_score = 0.0
+new_peer_start_score = 50.0       # New peers start neutral
+
+[reputation.manager]
+# Connection limits per network segment
+max_peers_per_subnet = 10         # Max peers from same /24 subnet
+max_peers_per_country = 50        # Max peers from same country
+min_geographic_diversity = 3      # Min number of different countries required
+max_peers_per_asn = 15            # Max peers from same Autonomous System
+
+# Ban settings
+enable_auto_ban = true            # Automatically ban misbehaving peers
+temp_ban_duration = "24h"         # Default temporary ban duration
+max_temp_bans = 3                 # Convert to permanent after N temp bans
+
+# Maintenance intervals
+snapshot_interval = "1h"          # Save reputation snapshot every hour
+cleanup_interval = "24h"          # Clean up old data daily
+cleanup_age = "720h"              # Remove data older than 30 days
+score_decay_interval = "1h"       # Apply score decay every hour
+
+# Geographic lookup (requires external service - disabled by default)
+enable_geo_lookup = false
+geo_lookup_cache_duration = "168h" # Cache geo data for 7 days
+
+[reputation.security]
+# Sybil attack prevention
+max_new_peers_per_hour = 100      # Max new peers accepted per hour
+max_peers_from_new_subnets = 20   # Max peers from previously unseen subnets
+new_peer_score_threshold = 30.0   # Min score for new peers to stay connected
+
+# Eclipse attack prevention
+require_geo_diversity = true      # Require geographic diversity
+min_different_countries = 3       # Min number of different countries
+max_percent_from_country = 0.40   # Max 40% of peers from one country
+
+# Rate limiting
+enable_rate_limiting = true
+max_messages_per_second = 100     # Per peer message rate limit
+max_blocks_per_second = 10        # Per peer block rate limit
+rate_limit_window_duration = "10s" # Time window for rate limiting
+
+# Connection limits
+max_inbound_connections = 50      # Max incoming P2P connections
+max_outbound_connections = 50     # Max outgoing P2P connections
+
+# Whitelisted peers (never banned, always trusted)
+# Format: ["peer_id_1", "peer_id_2", ...]
+# These should be your own nodes or highly trusted validators
+[reputation.whitelist]
+peers = []
+
+# Example whitelist entries:
+# peers = [
+#   "16Uiu2HAm...",  # Your validator node
+#   "16Uiu2HAm...",  # Trusted partner node
+# ]
+
+# Blacklisted peers (permanently banned)
+# These peers will never be accepted
+[reputation.blacklist]
+peers = []
+
+# CometBFT P2P Configuration Recommendations
+#
+# To integrate with the reputation system, configure CometBFT p2p settings:
+#
+# [p2p]
+# # Max number of inbound peers (should match max_inbound_connections above)
+# max_num_inbound_peers = 50
+#
+# # Max number of outbound peers (should match max_outbound_connections above)
+# max_num_outbound_peers = 50
+#
+# # Persistent peers (comma-separated list of trusted peers)
+# persistent_peers = ""
+#
+# # Private peer IDs (won't be gossiped)
+# private_peer_ids = ""
+#
+# # Unconditional peers (always try to connect)
+# unconditional_peer_ids = ""
+#
+# # Enable peer exchange reactor
+# pex = true
+#
+# # Seed mode (for dedicated seed nodes)
+# seed_mode = false
+#
+# # Seeds (comma-separated list)
+# seeds = ""
+#
+# # Maximum pause when redialing a persistent peer (if zero, exponential backoff is used)
+# persistent_peers_max_dial_period = "0s"
+#
+# # Address book settings
+# addr_book_strict = true
+#
+# # Maximum number of connection attempts
+# max_packet_msg_payload_size = 1024
+#
+# # Send rate (bytes/sec)
+# send_rate = 5120000
+#
+# # Receive rate (bytes/sec)
+# recv_rate = 5120000
+
+# Security Best Practices:
+#
+# 1. WHITELIST TRUSTED NODES
+#    - Add your own validator nodes to the whitelist
+#    - Add trusted partner validators
+#
+# 2. MONITOR REPUTATION SCORES
+#    - Regularly check peer scores via API/CLI
+#    - Investigate peers with declining scores
+#
+# 3. ADJUST LIMITS FOR YOUR NETWORK
+#    - Smaller networks: reduce max_peers_per_subnet
+#    - Larger networks: increase connection limits
+#
+# 4. ENABLE GEOGRAPHIC DIVERSITY
+#    - Helps prevent eclipse attacks
+#    - Requires geo lookup service or manual configuration
+#
+# 5. TUNE SCORING WEIGHTS
+#    - Adjust based on your network's priorities
+#    - Higher message_validity_weight for spam-prone networks
+#    - Higher latency_weight for performance-critical chains
+#
+# 6. REGULAR BACKUPS
+#    - Backup reputation data periodically
+#    - Helps preserve peer history across restarts
+#
+# 7. RATE LIMITING
+#    - Keep enabled to prevent DoS attacks
+#    - Adjust limits based on expected traffic
+#
+# 8. BAN POLICIES
+#    - Enable auto-ban for automated protection
+#    - Review ban list periodically
+#    - Consider appeals process for false positives

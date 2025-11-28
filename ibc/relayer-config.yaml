@@ -1,0 +1,315 @@
+# Hermes IBC Relayer Configuration for PAW Blockchain
+#
+# This configuration file sets up the Hermes relayer to relay IBC packets
+# between PAW and other Cosmos chains (Osmosis, Cosmos Hub, Celestia, etc.)
+#
+# Usage:
+#   hermes --config ibc/relayer-config.yaml start
+
+[global]
+log_level = 'info'
+
+# Telemetry configuration
+[telemetry]
+enabled = true
+host = '127.0.0.1'
+port = 3001
+
+[telemetry.buckets]
+latency_submitted = { start = 500, end = 20000, buckets = 10 }
+latency_confirmed = { start = 1000, end = 30000, buckets = 10 }
+
+# REST API configuration
+[rest]
+enabled = true
+host = '127.0.0.1'
+port = 3000
+
+# Mode configuration
+[mode]
+
+# Clients mode
+[mode.clients]
+enabled = true
+refresh = true
+misbehaviour = true
+
+# Connections mode
+[mode.connections]
+enabled = true
+
+# Channels mode
+[mode.channels]
+enabled = true
+
+# Packets mode
+[mode.packets]
+enabled = true
+clear_interval = 100
+clear_on_start = true
+tx_confirmation = true
+auto_register_counterparty_payee = false
+
+# ====================================
+# Chain Configurations
+# ====================================
+
+# PAW Chain Configuration
+# SECURITY: Production-ready configuration with secure key storage
+[[chains]]
+id = 'paw-1'
+type = 'CosmosSdk'
+rpc_addr = 'http://localhost:26657'
+grpc_addr = 'http://localhost:9090'
+event_source = { mode = 'push', url = 'ws://localhost:26657/websocket', batch_delay = '500ms' }
+rpc_timeout = '10s'
+trusted_node = true
+account_prefix = 'paw'
+key_name = 'relayer'
+# SECURITY FIX: Use OS keychain for production instead of Test keystore
+# Options: 'os' (OS keychain - most secure), 'file' (encrypted file)
+# For production, use 'os' on macOS/Windows or 'file' on Linux with proper permissions
+key_store_type = 'os'
+store_prefix = 'ibc'
+default_gas = 100000
+max_gas = 4000000
+gas_multiplier = 1.1
+max_msg_num = 30
+max_tx_size = 2097152
+max_grpc_decoding_size = 33554432
+clock_drift = '5s'
+max_block_time = '30s'
+ccv_consumer_chain = false
+memo_prefix = 'Relayed by Hermes'
+sequential_batch_tx = false
+
+[chains.trust_threshold]
+numerator = '1'
+denominator = '3'
+
+[chains.gas_price]
+price = 0.025
+denom = 'upaw'
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', '*'],
+  ['icacontroller-*', '*'],
+  ['icahost', '*'],
+  ['dex', '*'],
+  ['oracle', '*'],
+  ['compute', '*'],
+]
+
+[chains.address_type]
+derivation = 'cosmos'
+
+# Osmosis Configuration
+[[chains]]
+id = 'osmosis-1'
+type = 'CosmosSdk'
+rpc_addr = 'https://rpc.osmosis.zone:443'
+grpc_addr = 'https://grpc.osmosis.zone:9090'
+event_source = { mode = 'push', url = 'wss://rpc.osmosis.zone/websocket', batch_delay = '500ms' }
+rpc_timeout = '10s'
+trusted_node = false
+account_prefix = 'osmo'
+key_name = 'relayer'
+# SECURITY FIX: Use secure key storage
+key_store_type = 'os'
+store_prefix = 'ibc'
+default_gas = 100000
+max_gas = 4000000
+gas_multiplier = 1.1
+max_msg_num = 30
+max_tx_size = 2097152
+max_grpc_decoding_size = 33554432
+clock_drift = '5s'
+max_block_time = '30s'
+ccv_consumer_chain = false
+memo_prefix = 'Relayed by Hermes'
+sequential_batch_tx = false
+
+[chains.trust_threshold]
+numerator = '1'
+denominator = '3'
+
+[chains.gas_price]
+price = 0.025
+denom = 'uosmo'
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', '*'],
+  ['dex', '*'],
+]
+
+[chains.address_type]
+derivation = 'cosmos'
+
+# Cosmos Hub Configuration
+[[chains]]
+id = 'cosmoshub-4'
+type = 'CosmosSdk'
+rpc_addr = 'https://rpc.cosmos.network:443'
+grpc_addr = 'https://grpc.cosmos.network:9090'
+event_source = { mode = 'push', url = 'wss://rpc.cosmos.network/websocket', batch_delay = '500ms' }
+rpc_timeout = '10s'
+trusted_node = false
+account_prefix = 'cosmos'
+key_name = 'relayer'
+# SECURITY FIX: Use secure key storage
+key_store_type = 'os'
+store_prefix = 'ibc'
+default_gas = 100000
+max_gas = 4000000
+gas_multiplier = 1.1
+max_msg_num = 30
+max_tx_size = 2097152
+max_grpc_decoding_size = 33554432
+clock_drift = '5s'
+max_block_time = '30s'
+ccv_consumer_chain = false
+memo_prefix = 'Relayed by Hermes'
+sequential_batch_tx = false
+
+[chains.trust_threshold]
+numerator = '1'
+denominator = '3'
+
+[chains.gas_price]
+price = 0.025
+denom = 'uatom'
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', '*'],
+  ['icacontroller-*', '*'],
+  ['oracle', '*'],
+]
+
+[chains.address_type]
+derivation = 'cosmos'
+
+# Celestia Configuration
+[[chains]]
+id = 'celestia'
+type = 'CosmosSdk'
+rpc_addr = 'https://rpc.celestia.pops.one:443'
+grpc_addr = 'https://grpc.celestia.pops.one:9090'
+event_source = { mode = 'push', url = 'wss://rpc.celestia.pops.one/websocket', batch_delay = '500ms' }
+rpc_timeout = '10s'
+trusted_node = false
+account_prefix = 'celestia'
+key_name = 'relayer'
+# SECURITY FIX: Use secure key storage
+key_store_type = 'os'
+store_prefix = 'ibc'
+default_gas = 100000
+max_gas = 4000000
+gas_multiplier = 1.1
+max_msg_num = 30
+max_tx_size = 2097152
+max_grpc_decoding_size = 33554432
+clock_drift = '5s'
+max_block_time = '30s'
+ccv_consumer_chain = false
+memo_prefix = 'Relayed by Hermes'
+sequential_batch_tx = false
+
+[chains.trust_threshold]
+numerator = '1'
+denominator = '3'
+
+[chains.gas_price]
+price = 0.002
+denom = 'utia'
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', '*'],
+  ['compute', '*'],
+]
+
+[chains.address_type]
+derivation = 'cosmos'
+
+# Injective Configuration
+[[chains]]
+id = 'injective-1'
+type = 'CosmosSdk'
+rpc_addr = 'https://sentry.tm.injective.network:443'
+grpc_addr = 'https://sentry.chain.grpc.injective.network:443'
+event_source = { mode = 'push', url = 'wss://sentry.tm.injective.network/websocket', batch_delay = '500ms' }
+rpc_timeout = '10s'
+trusted_node = false
+account_prefix = 'inj'
+key_name = 'relayer'
+# SECURITY FIX: Use secure key storage
+key_store_type = 'os'
+store_prefix = 'ibc'
+default_gas = 100000
+max_gas = 4000000
+gas_multiplier = 1.1
+max_msg_num = 30
+max_tx_size = 2097152
+max_grpc_decoding_size = 33554432
+clock_drift = '5s'
+max_block_time = '30s'
+ccv_consumer_chain = false
+memo_prefix = 'Relayed by Hermes'
+sequential_batch_tx = false
+
+[chains.trust_threshold]
+numerator = '1'
+denominator = '3'
+
+[chains.gas_price]
+price = 500000000
+denom = 'inj'
+
+[chains.packet_filter]
+policy = 'allow'
+list = [
+  ['transfer', '*'],
+  ['dex', '*'],
+]
+
+[chains.address_type]
+derivation = 'injective'
+
+# ====================================
+# Connection & Channel Tracking
+# ====================================
+
+# Track specific connections and channels
+# These will be automatically created if they don't exist
+
+# PAW <-> Osmosis
+# Connection: connection-0
+# Channels:
+#   - channel-0 (transfer)
+#   - channel-1 (dex)
+
+# PAW <-> Cosmos Hub
+# Connection: connection-1
+# Channels:
+#   - channel-2 (transfer)
+#   - channel-3 (oracle)
+#   - channel-4 (icacontroller)
+
+# PAW <-> Celestia
+# Connection: connection-2
+# Channels:
+#   - channel-5 (transfer)
+#   - channel-6 (compute)
+
+# PAW <-> Injective
+# Connection: connection-3
+# Channels:
+#   - channel-7 (transfer)
+#   - channel-8 (dex)

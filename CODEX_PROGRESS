@@ -1,0 +1,45 @@
+Project Restructure and Documentation Overhaul
+Owner: Codex CLI Assistant
+Status: In Progress
+
+Scope
+- Keep all blockchain modules under `x/` (compute, dex, oracle, privacy) intact.
+- Restructure repository to a professional Cosmos SDK chain layout.
+- Archive or delete extraneous assets not required for a core chain repo.
+- Update README and core docs to reflect current codebase.
+- Draft a new whitepaper reflecting the current design and implementation.
+
+Plan
+1) Inventory codebase structure [COMPLETED]
+   - Scanned root, app/, cmd/, x/, proto/, scripts/, docs/, etc.
+2) Propose professional repository scaffold [COMPLETED]
+   - Target layout: app/, cmd/, x/, proto/, scripts/, docs/, ibc/, docker/, compose/, infra/, k8s/.
+3) Archive extraneous components [COMPLETED]
+   - Moved `external/` to `archive/clients_and_experiments/`.
+   - Moved legacy docs to `archive/docs_legacy/`.
+   - Moved CLI quick ref to `docs/guides/` and IBC diagram to `docs/ibc/`.
+   - Moved certificate docs to `docs/security/` and removed root `certs/` dir.
+4) Refactor layout and configs [COMPLETED]
+   - Removed non-essential root configs: `.mutation-testing.yml`, Python/Node linting configs, `package.json`.
+   - Removed committed binary in `build/` and empty `bin/`.
+5) Regenerate minimal docs [COMPLETED]
+   - Updated root README to reflect modules, config, and structure.
+6) Draft new whitepaper [COMPLETED]
+   - Create docs/WHITEPAPER.md reflecting current modules and architecture.
+7) Build and verify [N/A]
+   - Local Go toolchain unavailable in this environment; wiring reviewed.
+8) Finalize cleanup + verify [COMPLETED]
+   - Removed residual references in README; curated docs/README.
+   - Kept ops directories (compose/, docker/, infra/, k8s/) for professional deployments.
+   - Confirmed `x/` modules and `app/` wiring untouched.
+
+Summary of changes
+- Removed: `.claude/`, `.mutation-testing.yml`, `.pylintrc`, `pyproject.toml`, `requirements-dev.txt`, `package.json`, `.eslintrc.json`, `.prettierrc.json`, `build/` binary, empty `bin/`.
+- Moved: `external/` → `archive/clients_and_experiments/`; legacy docs → `archive/docs_legacy/`.
+- Moved: certificate docs → `docs/security/`; CLI quick reference → `docs/guides/`; IBC diagram → `docs/ibc/`.
+- Kept: P2P stack `p2p/` at repository root (restored as requested).
+- Updated: `README.md` (current structure and parameters), `docs/README.md` (lean map), added `docs/WHITEPAPER.md`.
+
+Notes
+- All modules under `x/` will remain untouched.
+- Git/GitHub traces previously removed per instruction.

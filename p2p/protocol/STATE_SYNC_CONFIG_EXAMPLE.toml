@@ -1,0 +1,293 @@
+# PAW State Sync Configuration Example
+# This file demonstrates all available state sync configuration options
+
+# =============================================================================
+# MAINNET CONFIGURATION (High Security)
+# =============================================================================
+[mainnet.state_sync]
+# Enable state sync for fast bootstrapping
+enable = true
+
+# Trust parameters - CRITICAL FOR SECURITY
+# Get these from a trusted source (explorer, documentation, trusted node)
+trust_height = 5000000                    # Recent finalized block height
+trust_hash = "A1B2C3D4E5F6789..."        # Block hash at trust_height (hex)
+trust_period = "168h"                     # 7 days - how long to trust light client
+
+# RPC servers for light client verification (optional but recommended)
+rpc_servers = [
+    "https://rpc1.paw.network:443",
+    "https://rpc2.paw.network:443",
+    "https://rpc3.paw.network:443"
+]
+
+# Discovery settings
+discovery_time = "30s"                    # Time to discover snapshots from peers
+min_snapshot_offers = 5                   # Minimum peer offers before selection
+
+# Download settings
+chunk_request_timeout = "60s"             # Timeout per chunk request
+chunk_fetchers = 4                        # Parallel chunk downloads (4-8 recommended)
+
+# Snapshot creation (for serving snapshots to network)
+snapshot_interval = 10000                 # Create snapshot every 10000 blocks
+snapshot_keep_recent = 5                  # Keep 5 most recent snapshots
+snapshot_dir = ""                         # Auto: <data_dir>/snapshots
+
+
+# =============================================================================
+# TESTNET CONFIGURATION (Fast Sync)
+# =============================================================================
+[testnet.state_sync]
+enable = true
+
+# Trust parameters (less critical for testnet)
+trust_height = 100000
+trust_hash = "ABC123DEF456..."
+trust_period = "24h"                      # 1 day
+
+# RPC servers
+rpc_servers = [
+    "https://testnet-rpc1.paw.network:443",
+    "https://testnet-rpc2.paw.network:443"
+]
+
+# Discovery settings (faster for testnet)
+discovery_time = "10s"
+min_snapshot_offers = 2
+
+# Download settings (more aggressive)
+chunk_request_timeout = "30s"
+chunk_fetchers = 8                        # More fetchers for faster sync
+
+# Snapshot settings (more frequent)
+snapshot_interval = 1000                  # Every 1000 blocks
+snapshot_keep_recent = 10                 # Keep more snapshots
+
+
+# =============================================================================
+# LOCAL DEVELOPMENT CONFIGURATION
+# =============================================================================
+[development.state_sync]
+enable = true
+
+# Trust parameters (minimal for local)
+trust_height = 0                          # Trust from genesis
+trust_hash = ""                           # Empty = trust genesis
+trust_period = "1h"
+
+# No RPC servers needed for local
+rpc_servers = []
+
+# Discovery settings (minimal delay)
+discovery_time = "5s"
+min_snapshot_offers = 1                   # Accept from single peer
+
+# Download settings
+chunk_request_timeout = "10s"
+chunk_fetchers = 2                        # Fewer fetchers for local
+
+# Snapshot settings (frequent for testing)
+snapshot_interval = 100                   # Every 100 blocks
+snapshot_keep_recent = 3                  # Keep minimal
+
+
+# =============================================================================
+# ARCHIVE NODE CONFIGURATION
+# =============================================================================
+[archive.state_sync]
+enable = false                            # Archive nodes don't use state sync
+
+# Snapshot settings (create and serve to network)
+snapshot_interval = 5000                  # Every 5000 blocks
+snapshot_keep_recent = 50                 # Keep many snapshots
+snapshot_dir = "/mnt/fast-storage/snapshots"  # Dedicated SSD
+
+
+# =============================================================================
+# VALIDATOR NODE CONFIGURATION
+# =============================================================================
+[validator.state_sync]
+enable = true                             # Use state sync for initial bootstrap
+
+# Trust parameters (maximum security)
+trust_height = 5000000
+trust_hash = "A1B2C3D4E5F6789..."
+trust_period = "168h"
+
+# Multiple trusted RPC servers
+rpc_servers = [
+    "https://rpc1.paw.network:443",
+    "https://rpc2.paw.network:443",
+    "https://rpc3.paw.network:443",
+    "https://rpc4.paw.network:443"
+]
+
+# Discovery settings (conservative)
+discovery_time = "60s"                    # Wait longer for offers
+min_snapshot_offers = 7                   # Require agreement from many peers
+
+# Download settings
+chunk_request_timeout = "90s"             # Longer timeout for reliability
+chunk_fetchers = 4
+
+# Snapshot settings (serve to network)
+snapshot_interval = 10000
+snapshot_keep_recent = 10
+
+
+# =============================================================================
+# SEED NODE CONFIGURATION
+# =============================================================================
+[seed.state_sync]
+enable = false                            # Seed nodes don't sync state
+
+# Snapshot settings (serve snapshots to help network)
+snapshot_interval = 5000
+snapshot_keep_recent = 20                 # Keep many for variety
+snapshot_dir = "/mnt/snapshots"
+
+
+# =============================================================================
+# ADVANCED CONFIGURATION OPTIONS
+# =============================================================================
+
+# Byzantine fault tolerance settings (advanced)
+[advanced.state_sync]
+enable = true
+trust_height = 1000000
+trust_hash = "ABC..."
+trust_period = "168h"
+
+# BFT parameters
+min_peer_agreement = 0.67                 # 2/3+ peers must agree (DO NOT LOWER)
+max_malicious_peers = 3                   # Max Byzantine peers before abort
+require_bft_proof = true                  # Require validator signatures
+
+# Verification settings
+verify_all_chunks = true                  # Verify every chunk hash (recommended)
+
+# Fallback settings
+fallback_to_block_sync = true            # Fall back to block sync on failure
+state_timeout = "10m"                     # Total timeout for state sync
+
+# Chunk settings
+chunk_size = 16777216                     # 16 MB (default)
+chunk_retry_attempts = 3                  # Retries per chunk
+
+# Discovery
+discovery_time = "15s"
+min_snapshot_offers = 4
+
+# Download
+chunk_request_timeout = "45s"
+chunk_fetchers = 6
+
+# Snapshots
+snapshot_interval = 5000
+snapshot_keep_recent = 15
+snapshot_dir = "/data/paw/snapshots"
+
+
+# =============================================================================
+# PERFORMANCE TUNING GUIDE
+# =============================================================================
+
+# For SLOW networks:
+# - Increase chunk_request_timeout to 90-120s
+# - Reduce chunk_fetchers to 2-3
+# - Increase discovery_time to 30-60s
+
+# For FAST networks (>100 Mbps):
+# - Reduce chunk_request_timeout to 15-30s
+# - Increase chunk_fetchers to 8-16
+# - Reduce discovery_time to 5-10s
+
+# For LARGE state (>100 GB):
+# - Increase chunk_size to 33554432 (32 MB) or 67108864 (64 MB)
+# - Increase chunk_request_timeout to 120s
+# - Increase state_timeout to 30m
+
+# For SMALL state (<1 GB):
+# - Reduce chunk_size to 4194304 (4 MB) or 8388608 (8 MB)
+# - Reduce chunk_request_timeout to 15s
+# - Reduce state_timeout to 5m
+
+
+# =============================================================================
+# SECURITY RECOMMENDATIONS
+# =============================================================================
+
+# 1. ALWAYS verify trust_height and trust_hash from multiple sources
+# 2. Use multiple RPC servers from different operators
+# 3. Keep min_peer_agreement at 0.67 (2/3+)
+# 4. Enable require_bft_proof for mainnet
+# 5. Use verify_all_chunks = true
+# 6. Monitor malicious peer reports
+# 7. Update trust_height periodically (weekly recommended)
+
+
+# =============================================================================
+# RESOURCE REQUIREMENTS
+# =============================================================================
+
+# Disk Space:
+# - Snapshots: ~2x state size during download
+# - Each snapshot: ~1x state size
+# - Total: Keep (state_size * (snapshot_keep_recent + 2))
+
+# Network Bandwidth:
+# - Initial sync: ~state_size
+# - Ongoing: negligible (only serving chunks to peers)
+
+# Memory:
+# - State sync: ~100-500 MB
+# - Chunk buffers: chunk_size * chunk_fetchers
+# - Total: ~512 MB recommended
+
+# CPU:
+# - Minimal (hash verification only)
+# - 2+ cores recommended for chunk_fetchers > 4
+
+
+# =============================================================================
+# MONITORING & METRICS
+# =============================================================================
+
+# Monitor these metrics:
+# - snapshots_discovered: Should be > min_snapshot_offers
+# - chunks_downloaded: Should reach num_chunks
+# - bytes_downloaded: Track progress
+# - malicious_peers_found: Should be low (<10%)
+# - download_time: Benchmark sync speed
+# - verification_time: Should be <10% of download_time
+
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+# "No snapshots available":
+# - Increase discovery_time
+# - Check peer connections
+# - Verify peers have snapshots enabled
+
+# "Snapshot verification failed":
+# - Verify trust_height and trust_hash
+# - Check chain_id matches
+# - Update RPC servers
+
+# "Chunk download timeout":
+# - Increase chunk_request_timeout
+# - Reduce chunk_fetchers
+# - Check network connectivity
+
+# "Too many malicious peers":
+# - Change seed nodes
+# - Update RPC servers
+# - Report to network operators
+
+# "State sync timeout":
+# - Increase state_timeout
+# - Check network speed
+# - Consider block sync for slow networks

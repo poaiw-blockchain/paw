@@ -1,0 +1,43 @@
+{
+  "name": "paw-documentation-portal",
+  "version": "1.0.0",
+  "description": "Comprehensive documentation portal for PAW Blockchain",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "test": "npm run test:links && npm run test:content && npm run test:search-functionality && npm run test:build && npm run test:search",
+    "test:links": "node tests/link-validation.test.js",
+    "test:content": "node tests/content-validation.test.js",
+    "test:search-functionality": "node tests/search-functionality.test.js",
+    "test:build": "npm run build",
+    "test:search": "node tests/search.test.js",
+    "serve": "vitepress serve"
+  },
+  "keywords": [
+    "blockchain",
+    "documentation",
+    "paw",
+    "dex",
+    "staking",
+    "governance"
+  ],
+  "author": "PAW Blockchain Team",
+  "license": "MIT",
+  "dependencies": {
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "markdown-it": "^14.0.0",
+    "markdown-it-container": "^4.0.0",
+    "cheerio": "^1.0.0-rc.12",
+    "glob": "^10.3.10",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

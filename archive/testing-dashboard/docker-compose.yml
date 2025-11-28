@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Testing Dashboard Web Server
+  dashboard:
+    image: nginx:alpine
+    container_name: paw-testing-dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - paw-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Local PAW Node (for testing)
+  paw-node:
+    image: paw-blockchain:latest
+    container_name: paw-local-node
+    ports:
+      - "26657:26657"  # RPC
+      - "1317:1317"    # REST API
+      - "9090:9090"    # gRPC
+    volumes:
+      - paw-data:/root/.paw
+    networks:
+      - paw-network
+    restart: unless-stopped
+    environment:
+      - CHAIN_ID=paw-local-1
+      - MONIKER=local-node
+    profiles:
+      - with-node
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:26657/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Optional: Faucet Service
+  faucet:
+    image: paw-faucet:latest
+    container_name: paw-faucet
+    ports:
+      - "8000:8000"
+    networks:
+      - paw-network
+    environment:
+      - NODE_URL=http://paw-node:26657
+      - FAUCET_AMOUNT=1000000000
+      - RATE_LIMIT=10
+    depends_on:
+      - paw-node
+    profiles:
+      - with-faucet
+    restart: unless-stopped
+
+networks:
+  paw-network:
+    driver: bridge
+    name: paw-testing-network
+
+volumes:
+  paw-data:
+    name: paw-local-data

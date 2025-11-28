@@ -1,0 +1,141 @@
+syntax = "proto3";
+package paw.dex.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos/base/v1beta1/coin.proto";
+import "cosmos_proto/cosmos.proto";
+import "cosmos/msg/v1/msg.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/paw-chain/paw/x/dex/types";
+
+// Msg defines the dex Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // CreatePool defines a method for creating a new liquidity pool
+  rpc CreatePool(MsgCreatePool) returns (MsgCreatePoolResponse);
+
+  // AddLiquidity defines a method for adding liquidity to an existing pool
+  rpc AddLiquidity(MsgAddLiquidity) returns (MsgAddLiquidityResponse);
+
+  // RemoveLiquidity defines a method for removing liquidity from a pool
+  rpc RemoveLiquidity(MsgRemoveLiquidity) returns (MsgRemoveLiquidityResponse);
+
+  // Swap defines a method for swapping tokens using AMM
+  rpc Swap(MsgSwap) returns (MsgSwapResponse);
+}
+
+// MsgCreatePool defines the message for creating a new liquidity pool
+message MsgCreatePool {
+  option (cosmos.msg.v1.signer) = "creator";
+  option (amino.name) = "paw/dex/MsgCreatePool";
+
+  string creator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string token_a = 2;
+  string token_b = 3;
+  string amount_a = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string amount_b = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgCreatePoolResponse defines the response for MsgCreatePool
+message MsgCreatePoolResponse {
+  uint64 pool_id = 1;
+}
+
+// MsgAddLiquidity defines the message for adding liquidity to a pool
+message MsgAddLiquidity {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/dex/MsgAddLiquidity";
+
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  uint64 pool_id = 2;
+  string amount_a = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string amount_b = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgAddLiquidityResponse defines the response for MsgAddLiquidity
+message MsgAddLiquidityResponse {
+  string shares = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgRemoveLiquidity defines the message for removing liquidity from a pool
+message MsgRemoveLiquidity {
+  option (cosmos.msg.v1.signer) = "provider";
+  option (amino.name) = "paw/dex/MsgRemoveLiquidity";
+
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  uint64 pool_id = 2;
+  string shares = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgRemoveLiquidityResponse defines the response for MsgRemoveLiquidity
+message MsgRemoveLiquidityResponse {
+  string amount_a = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string amount_b = 2 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgSwap defines the message for swapping tokens
+message MsgSwap {
+  option (cosmos.msg.v1.signer) = "trader";
+  option (amino.name) = "paw/dex/MsgSwap";
+
+  string trader = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  uint64 pool_id = 2;
+  string token_in = 3;
+  string token_out = 4;
+  string amount_in = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string min_amount_out = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  // deadline is the unix timestamp (in seconds) after which the swap is no longer valid
+  // This protects against transaction delays that could result in unfavorable execution
+  int64 deadline = 7;
+}
+
+// MsgSwapResponse defines the response for MsgSwap
+message MsgSwapResponse {
+  string amount_out = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}

@@ -1,0 +1,146 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # PAW node logs
+  - job_name: paw-node
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: paw-node
+          chain: paw-testnet
+          component: blockchain
+          __path__: /var/log/paw/node.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+) (?P<level>\S+) (?P<module>\S+) (?P<message>.*)$'
+      - labels:
+          level:
+          module:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+  # Tendermint/CometBFT logs
+  - job_name: tendermint
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: tendermint
+          chain: paw-testnet
+          component: consensus
+          __path__: /var/log/paw/tendermint.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: time
+            level: level
+            module: module
+            message: msg
+      - labels:
+          level:
+          module:
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  # DEX module logs
+  - job_name: paw-dex
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: paw-dex
+          chain: paw-testnet
+          component: dex
+          __path__: /var/log/paw/dex.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            pool_id: pool_id
+            tx_hash: tx_hash
+            message: message
+      - labels:
+          level:
+          pool_id:
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  # API logs
+  - job_name: paw-api
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: paw-api
+          chain: paw-testnet
+          component: api
+          __path__: /var/log/paw/api.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: time
+            method: method
+            path: path
+            status: status
+            latency: latency
+            ip: ip
+      - labels:
+          method:
+          status:
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  # Error logs (all components)
+  - job_name: paw-errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: paw-errors
+          chain: paw-testnet
+          severity: error
+          __path__: /var/log/paw/error.log
+    pipeline_stages:
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2}'
+          max_lines: 100
+      - regex:
+          expression: '^(?P<timestamp>\S+) (?P<level>ERROR|FATAL) (?P<module>\S+) (?P<message>.*?)(?P<stack>(?:\n.*)*)'
+      - labels:
+          level:
+          module:
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+  # System logs (docker/systemd)
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\S+\s+\d+\s+\S+) (?P<host>\S+) (?P<process>\S+): (?P<message>.*)$'
+      - labels:
+          host:
+          process:
+      - timestamp:
+          source: timestamp
+          format: 'Jan 02 15:04:05'

@@ -1,0 +1,361 @@
+# Gas Limits Configuration for PAW Blockchain
+#
+# This file defines gas limits for all operations across all modules.
+# These limits are enforced in tests and should be used as guidelines
+# for transaction gas estimation in production.
+#
+# Format:
+#   operation_name:
+#     min: minimum expected gas usage
+#     max: maximum allowed gas usage
+#     baseline: typical gas usage under normal conditions
+#     notes: additional context
+
+version: "1.0"
+last_updated: "2025-11-25"
+
+# ============================================================================
+# x/compute Module Gas Limits
+# ============================================================================
+compute:
+  register_provider:
+    min: 50000
+    max: 150000
+    baseline: 100000
+    notes: "State write for provider registration, scales with metadata size"
+
+  submit_request:
+    min: 80000
+    max: 200000
+    baseline: 120000
+    notes: "Scales linearly with input data size (~200 gas/byte)"
+    scaling:
+      base_cost: 80000
+      per_byte: 200
+
+  submit_result:
+    min: 100000
+    max: 300000
+    baseline: 150000
+    notes: "Scales with result + proof size (~500 gas/byte for proofs)"
+    scaling:
+      base_cost: 100000
+      per_result_byte: 200
+      per_proof_byte: 500
+
+  zk_verification:
+    min: 1000000
+    max: 5000000
+    baseline: 2500000
+    notes: "Most expensive operation, cryptographic proof verification"
+    warning: "High gas operation - validate inputs carefully"
+
+  lock_escrow:
+    min: 30000
+    max: 80000
+    baseline: 50000
+    notes: "Bank transfer + state update for escrow lock"
+
+  release_escrow:
+    min: 40000
+    max: 100000
+    baseline: 60000
+    notes: "Bank transfer + state cleanup for escrow release"
+
+  refund_escrow:
+    min: 40000
+    max: 100000
+    baseline: 60000
+    notes: "Bank transfer + state cleanup for escrow refund"
+
+  update_provider:
+    min: 30000
+    max: 80000
+    baseline: 50000
+    notes: "State update for provider information"
+
+  deactivate_provider:
+    min: 25000
+    max: 60000
+    baseline: 40000
+    notes: "State cleanup for provider deactivation"
+
+# ============================================================================
+# x/dex Module Gas Limits
+# ============================================================================
+dex:
+  create_pool:
+    min: 80000
+    max: 200000
+    baseline: 120000
+    notes: "Initial liquidity pool setup with state writes"
+
+  swap:
+    min: 60000
+    max: 150000
+    baseline: 80000
+    notes: "Token swap with constant product calculation"
+    scaling:
+      base_cost: 60000
+      per_byte_input: 100
+
+  add_liquidity:
+    min: 50000
+    max: 120000
+    baseline: 70000
+    notes: "Add liquidity and mint LP tokens"
+
+  remove_liquidity:
+    min: 50000
+    max: 120000
+    baseline: 70000
+    notes: "Burn LP tokens and withdraw liquidity"
+
+  constant_product_calc:
+    min: 5000
+    max: 10000
+    baseline: 7000
+    notes: "Pure math operation for AMM calculation"
+
+  circuit_breaker_check:
+    min: 10000
+    max: 30000
+    baseline: 20000
+    notes: "Price impact and circuit breaker validation"
+
+  update_pool_params:
+    min: 20000
+    max: 50000
+    baseline: 30000
+    notes: "Governance-only pool parameter updates"
+
+  calculate_price_impact:
+    min: 8000
+    max: 20000
+    baseline: 12000
+    notes: "Price impact calculation for large swaps"
+
+  calculate_swap_output:
+    min: 6000
+    max: 15000
+    baseline: 10000
+    notes: "Expected output calculation for swaps"
+
+# ============================================================================
+# x/oracle Module Gas Limits
+# ============================================================================
+oracle:
+  register_oracle:
+    min: 40000
+    max: 100000
+    baseline: 60000
+    notes: "Validator oracle registration"
+
+  submit_price:
+    min: 30000
+    max: 100000
+    baseline: 50000
+    notes: "Single price feed submission"
+
+  aggregate_votes:
+    min: 100000
+    max: 3000000
+    baseline: 250000  # For 7 validators
+    notes: "Scales linearly with validator count"
+    scaling:
+      base_cost: 100000
+      per_validator_min: 20000
+      per_validator_max: 30000
+      formula: "base_cost + (validator_count * per_validator_cost)"
+    examples:
+      7_validators: 250000
+      21_validators: 700000
+      50_validators: 1600000
+      100_validators: 3000000
+
+  outlier_detection:
+    min: 200000
+    max: 1000000
+    baseline: 400000
+    notes: "Statistical outlier detection (MAD/IQR/Grubbs)"
+    warning: "Expensive statistical computation"
+    scaling:
+      base_cost: 200000
+      per_price: 8000
+
+  twap_calculation:
+    min: 50000
+    max: 200000
+    baseline: 100000
+    notes: "Time-weighted average price calculation"
+    scaling:
+      base_cost: 50000
+      per_block: 3000
+
+  volatility_calculation:
+    min: 100000
+    max: 500000
+    baseline: 250000
+    notes: "Rolling standard deviation calculation"
+    warning: "Expensive statistical computation"
+    scaling:
+      base_cost: 100000
+      per_block: 5000
+
+  slash_oracle:
+    min: 80000
+    max: 200000
+    baseline: 120000
+    notes: "Slash oracle for misbehavior"
+
+  calculate_median:
+    min: 30000
+    max: 300000
+    baseline: 80000
+    notes: "Median price calculation"
+    scaling:
+      base_cost: 30000
+      per_oracle: 2500
+
+  price_age_check:
+    min: 3000
+    max: 10000
+    baseline: 5000
+    notes: "Check if price is fresh (simple state read)"
+
+# ============================================================================
+# Cross-Module Operations
+# ============================================================================
+cross_module:
+  ibc_packet_send:
+    min: 100000
+    max: 300000
+    baseline: 150000
+    notes: "IBC packet creation and sending"
+
+  ibc_packet_receive:
+    min: 100000
+    max: 300000
+    baseline: 150000
+    notes: "IBC packet reception and processing"
+
+  ibc_packet_ack:
+    min: 50000
+    max: 150000
+    baseline: 80000
+    notes: "IBC packet acknowledgement"
+
+# ============================================================================
+# State Operations (Generic)
+# ============================================================================
+state_operations:
+  simple_read:
+    min: 1000
+    max: 5000
+    baseline: 2000
+    notes: "Single state key-value read"
+
+  simple_write:
+    min: 5000
+    max: 20000
+    baseline: 10000
+    notes: "Single state key-value write"
+
+  delete:
+    min: 3000
+    max: 15000
+    baseline: 7000
+    notes: "Delete state entry"
+
+  iterator_per_item:
+    min: 500
+    max: 5000
+    baseline: 2000
+    notes: "Gas per item when iterating state"
+
+# ============================================================================
+# DoS Prevention Limits
+# ============================================================================
+dos_prevention:
+  max_input_size_bytes: 1048576  # 1MB
+  max_proof_size_bytes: 262144   # 256KB
+  max_batch_operations: 100
+  max_iteration_count: 1000
+  max_nested_calls: 10
+
+  circuit_breakers:
+    max_price_impact_percent: 10.0
+    max_swap_size_percent_of_pool: 30.0
+    max_volatility_threshold: 50.0
+
+# ============================================================================
+# Block Limits
+# ============================================================================
+block_limits:
+  max_gas_per_block: 50000000  # 50M gas per block
+  max_gas_per_tx: 10000000     # 10M gas per transaction
+  recommended_gas_buffer: 1.2  # 20% buffer for gas estimation
+
+# ============================================================================
+# Gas Price Recommendations
+# ============================================================================
+gas_prices:
+  minimum: "0.025upaw"
+  low: "0.05upaw"
+  average: "0.1upaw"
+  high: "0.5upaw"
+
+  priority_tiers:
+    low_priority: "0.025upaw"
+    medium_priority: "0.1upaw"
+    high_priority: "0.5upaw"
+    urgent: "1.0upaw"
+
+# ============================================================================
+# Monitoring Thresholds
+# ============================================================================
+monitoring:
+  alert_on_gas_usage_exceeding_percent: 80
+  alert_on_operation_gas_change_percent: 20  # Alert if gas usage changes by 20%
+
+  baseline_deviation_tolerance: 0.15  # 15% tolerance from baseline
+
+  high_gas_operations:
+    - zk_verification
+    - aggregate_votes
+    - outlier_detection
+    - volatility_calculation
+
+# ============================================================================
+# Testing Configuration
+# ============================================================================
+testing:
+  regression_tolerance_gas: 15000  # Allow 15k gas variance for regression tests
+  regression_tolerance_percent: 0.15  # Allow 15% variance
+
+  benchmark_iterations: 100
+
+  dos_test_multipliers:
+    normal: 1
+    stress: 10
+    extreme: 100
+
+# ============================================================================
+# Optimization Notes
+# ============================================================================
+optimization_notes:
+  - "ZK verification is the most expensive operation - cache results when possible"
+  - "Oracle vote aggregation scales linearly with validator count - consider batching"
+  - "DEX swaps are optimized for constant product calculation"
+  - "State iterations are bounded by gas limits - use pagination"
+  - "Outlier detection uses efficient statistical algorithms (MAD preferred over Grubbs)"
+  - "TWAP calculations cache intermediate results"
+
+# ============================================================================
+# Version History
+# ============================================================================
+version_history:
+  - version: "1.0"
+    date: "2025-11-25"
+    changes: "Initial gas limits configuration based on comprehensive testing"
+    author: "PAW Blockchain Testing Team"

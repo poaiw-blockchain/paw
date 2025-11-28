@@ -1,0 +1,65 @@
+package types
+
+import (
+	"encoding/binary"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+var (
+	// PoolKeyPrefix is the prefix for pool store keys
+	PoolKeyPrefix = []byte{0x01}
+
+	// PoolCountKey is the key for the next pool ID counter
+	PoolCountKey = []byte{0x02}
+
+	// PoolByTokensKeyPrefix is the prefix for indexing pools by token pair
+	PoolByTokensKeyPrefix = []byte{0x03}
+
+	// LiquidityKeyPrefix is the prefix for liquidity position store keys
+	LiquidityKeyPrefix = []byte{0x04}
+
+	// ParamsKey is the key for module parameters
+	ParamsKey = []byte{0x05}
+
+	// CircuitBreakerKeyPrefix is the prefix for circuit breaker state keys
+	CircuitBreakerKeyPrefix = []byte{0x06}
+
+	// LastLiquidityActionKeyPrefix is the prefix for tracking last liquidity action block
+	LastLiquidityActionKeyPrefix = []byte{0x07}
+
+	// ReentrancyLockKeyPrefix is the prefix for reentrancy protection locks
+	ReentrancyLockKeyPrefix = []byte{0x08}
+
+	// PoolLPFeeKeyPrefix is the prefix for LP fees per pool
+	PoolLPFeeKeyPrefix = []byte{0x09}
+
+	// ProtocolFeeKeyPrefix is the prefix for protocol fees
+	ProtocolFeeKeyPrefix = []byte{0x0A}
+
+	// LiquidityShareKeyPrefix is the prefix for liquidity shares
+	LiquidityShareKeyPrefix = []byte{0x0B}
+)
+
+// GetPoolLPFeeKey returns the store key for LP fees for a pool and token
+func GetPoolLPFeeKey(poolID uint64, token string) []byte {
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	key := append(PoolLPFeeKeyPrefix, poolIDBytes...)
+	key = append(key, []byte(token)...)
+	return key
+}
+
+// GetProtocolFeeKey returns the store key for protocol fees for a token
+func GetProtocolFeeKey(token string) []byte {
+	return append(ProtocolFeeKeyPrefix, []byte(token)...)
+}
+
+// GetLiquidityShareKey returns the store key for liquidity shares
+func GetLiquidityShareKey(poolID uint64, provider sdk.AccAddress) []byte {
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	key := append(LiquidityShareKeyPrefix, poolIDBytes...)
+	key = append(key, provider.Bytes()...)
+	return key
+}

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain - Network Status</title>
+    <meta name="description" content="Real-time status monitoring for PAW blockchain network and services">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="alternate" type="application/rss+xml" title="PAW Status Updates" href="/api/v1/status/rss">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>PAW Blockchain Status</h1>
+                    <p class="tagline">Real-time Network Monitoring</p>
+                </div>
+                <div class="header-actions">
+                    <button id="subscribeBtn" class="btn btn-secondary">
+                        <span class="icon">🔔</span>
+                        Subscribe to Updates
+                    </button>
+                    <a href="/api/v1/status/rss" class="btn btn-secondary">
+                        <span class="icon">📡</span>
+                        RSS Feed
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Overall Status Banner -->
+    <section class="status-banner" id="statusBanner">
+        <div class="container">
+            <div class="status-banner-content">
+                <div class="status-indicator" id="overallStatus">
+                    <span class="status-icon">●</span>
+                    <span class="status-text">Loading...</span>
+                </div>
+                <div class="status-message" id="statusMessage">
+                    Checking system status...
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+
+            <!-- Current Status Section -->
+            <section class="section">
+                <h2 class="section-title">Current Status</h2>
+                <div class="components-grid" id="componentsGrid">
+                    <!-- Component cards will be inserted here -->
+                </div>
+            </section>
+
+            <!-- Active Incidents Section -->
+            <section class="section" id="activeIncidentsSection">
+                <h2 class="section-title">Active Incidents</h2>
+                <div id="activeIncidents">
+                    <div class="no-incidents">
+                        <span class="icon">✓</span>
+                        <p>No active incidents. All systems operational.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Performance Metrics Section -->
+            <section class="section">
+                <h2 class="section-title">Performance Metrics</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <h3>Transactions Per Second</h3>
+                            <span class="metric-icon">⚡</span>
+                        </div>
+                        <div class="metric-value" id="tpsValue">--</div>
+                        <div class="metric-change" id="tpsChange">--</div>
+                        <canvas id="tpsChart" class="metric-chart"></canvas>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <h3>Block Time</h3>
+                            <span class="metric-icon">⏱️</span>
+                        </div>
+                        <div class="metric-value" id="blockTimeValue">--</div>
+                        <div class="metric-change" id="blockTimeChange">--</div>
+                        <canvas id="blockTimeChart" class="metric-chart"></canvas>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <h3>Connected Peers</h3>
+                            <span class="metric-icon">🌐</span>
+                        </div>
+                        <div class="metric-value" id="peersValue">--</div>
+                        <div class="metric-change" id="peersChange">--</div>
+                        <canvas id="peersChart" class="metric-chart"></canvas>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <h3>API Response Time</h3>
+                            <span class="metric-icon">📊</span>
+                        </div>
+                        <div class="metric-value" id="responseTimeValue">--</div>
+                        <div class="metric-change" id="responseTimeChange">--</div>
+                        <canvas id="responseTimeChart" class="metric-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Network Statistics -->
+            <section class="section">
+                <h2 class="section-title">Network Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Block Height</div>
+                        <div class="stat-value" id="blockHeight">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Validators</div>
+                        <div class="stat-value" id="totalValidators">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Validators</div>
+                        <div class="stat-value" id="activeValidators">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Network Hash Rate</div>
+                        <div class="stat-value" id="hashRate">--</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Uptime Section -->
+            <section class="section">
+                <h2 class="section-title">30-Day Uptime</h2>
+                <div class="uptime-container">
+                    <div class="uptime-summary">
+                        <div class="uptime-percentage" id="uptimePercentage">99.99%</div>
+                        <div class="uptime-label">Overall Uptime</div>
+                    </div>
+                    <div class="uptime-calendar" id="uptimeCalendar">
+                        <!-- Uptime bars will be inserted here -->
+                    </div>
+                    <div class="uptime-legend">
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: var(--success);"></span>
+                            <span>Operational</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: var(--warning);"></span>
+                            <span>Degraded</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background: var(--danger);"></span>
+                            <span>Down</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Incident History -->
+            <section class="section">
+                <h2 class="section-title">Incident History</h2>
+                <div class="timeline" id="incidentTimeline">
+                    <!-- Incidents will be inserted here -->
+                </div>
+            </section>
+
+            <!-- Service Dependencies -->
+            <section class="section">
+                <h2 class="section-title">Service Dependencies</h2>
+                <div class="dependencies-graph" id="dependenciesGraph">
+                    <svg id="dependenciesSvg" width="100%" height="400"></svg>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="/api/v1/status">API</a>
+                    <a href="/api/v1/status/history">Status History</a>
+                    <a href="/api/v1/health">Health Check</a>
+                    
+                </div>
+                <div class="footer-info">
+                    <p>Last updated: <span id="lastUpdated">--</span></p>
+                    <p>Monitoring since 2025</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Subscribe Modal -->
+    <div id="subscribeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Subscribe to Status Updates</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Get notified when incidents occur or are resolved.</p>
+                <form id="subscribeForm">
+                    <div class="form-group">
+                        <label for="subscriberEmail">Email Address</label>
+                        <input type="email" id="subscriberEmail" required
+                               placeholder="your.email@domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="subscribeIncidents" checked>
+                            Notify about incidents
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="subscribeMaintenance">
+                            Notify about scheduled maintenance
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Subscribe</button>
+                        <button type="button" class="btn btn-secondary" id="cancelSubscribe">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js for metrics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

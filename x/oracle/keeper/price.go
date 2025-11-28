@@ -1,0 +1,249 @@
+package keeper
+
+import (
+	"context"
+	"fmt"
+
+	storetypes "cosmossdk.io/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/paw-chain/paw/x/oracle/types"
+)
+
+// SetPrice sets the current aggregated price for an asset
+func (k Keeper) SetPrice(ctx context.Context, price types.Price) error {
+	store := k.getStore(ctx)
+	bz, err := k.cdc.Marshal(&price)
+	if err != nil {
+		return err
+	}
+	store.Set(GetPriceKey(price.Asset), bz)
+
+	// Emit event
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"price_updated",
+			sdk.NewAttribute("asset", price.Asset),
+			sdk.NewAttribute("price", price.Price.String()),
+			sdk.NewAttribute("block_height", fmt.Sprintf("%d", price.BlockHeight)),
+			sdk.NewAttribute("num_validators", fmt.Sprintf("%d", price.NumValidators)),
+		),
+	)
+
+	return nil
+}
+
+// GetPrice retrieves the current price for an asset
+func (k Keeper) GetPrice(ctx context.Context, asset string) (types.Price, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(GetPriceKey(asset))
+	if bz == nil {
+		return types.Price{}, fmt.Errorf("price not found for asset: %s", asset)
+	}
+
+	var price types.Price
+	if err := k.cdc.Unmarshal(bz, &price); err != nil {
+		return types.Price{}, err
+	}
+	return price, nil
+}
+
+// DeletePrice removes a price from the store
+func (k Keeper) DeletePrice(ctx context.Context, asset string) {
+	store := k.getStore(ctx)
+	store.Delete(GetPriceKey(asset))
+}
+
+// IteratePrices iterates over all prices in the store
+func (k Keeper) IteratePrices(ctx context.Context, cb func(price types.Price) (stop bool)) error {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, PriceKeyPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var price types.Price
+		if err := k.cdc.Unmarshal(iterator.Value(), &price); err != nil {
+			return err
+		}
+		if cb(price) {
+			break
+		}
+	}
+	return nil
+}
+
+// GetAllPrices returns all current prices
+func (k Keeper) GetAllPrices(ctx context.Context) ([]types.Price, error) {
+	prices := []types.Price{}
+	err := k.IteratePrices(ctx, func(price types.Price) bool {
+		prices = append(prices, price)
+		return false
+	})
+	return prices, err
+}
+
+// SetValidatorPrice sets a validator's price submission for an asset
+func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.ValidatorPrice) error {
+	valAddr, err := sdk.ValAddressFromBech32(validatorPrice.ValidatorAddr)
+	if err != nil {
+		return err
+	}
+
+	store := k.getStore(ctx)
+	bz, err := k.cdc.Marshal(&validatorPrice)
+	if err != nil {
+		return err
+	}
+	store.Set(GetValidatorPriceKey(valAddr, validatorPrice.Asset), bz)
+
+	return nil
+}
+
+// GetValidatorPrice retrieves a validator's price submission for an asset
+func (k Keeper) GetValidatorPrice(ctx context.Context, validatorAddr sdk.ValAddress, asset string) (types.ValidatorPrice, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(GetValidatorPriceKey(validatorAddr, asset))
+	if bz == nil {
+		return types.ValidatorPrice{}, fmt.Errorf("validator price not found")
+	}
+
+	var validatorPrice types.ValidatorPrice
+	if err := k.cdc.Unmarshal(bz, &validatorPrice); err != nil {
+		return types.ValidatorPrice{}, err
+	}
+	return validatorPrice, nil
+}
+
+// DeleteValidatorPrice removes a validator's price submission
+func (k Keeper) DeleteValidatorPrice(ctx context.Context, validatorAddr sdk.ValAddress, asset string) {
+	store := k.getStore(ctx)
+	store.Delete(GetValidatorPriceKey(validatorAddr, asset))
+}
+
+// IterateValidatorPrices iterates over all validator prices for an asset
+func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb func(validatorPrice types.ValidatorPrice) (stop bool)) error {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var validatorPrice types.ValidatorPrice
+		if err := k.cdc.Unmarshal(iterator.Value(), &validatorPrice); err != nil {
+			return err
+		}
+		// Filter by asset if specified
+		if asset != "" && validatorPrice.Asset != asset {
+			continue
+		}
+		if cb(validatorPrice) {
+			break
+		}
+	}
+	return nil
+}
+
+// GetValidatorPricesByAsset returns all validator price submissions for an asset
+func (k Keeper) GetValidatorPricesByAsset(ctx context.Context, asset string) ([]types.ValidatorPrice, error) {
+	validatorPrices := []types.ValidatorPrice{}
+	err := k.IterateValidatorPrices(ctx, asset, func(vp types.ValidatorPrice) bool {
+		validatorPrices = append(validatorPrices, vp)
+		return false
+	})
+	return validatorPrices, err
+}
+
+// SetPriceSnapshot stores a price snapshot for TWAP calculation
+func (k Keeper) SetPriceSnapshot(ctx context.Context, snapshot types.PriceSnapshot) error {
+	store := k.getStore(ctx)
+	bz, err := k.cdc.Marshal(&snapshot)
+	if err != nil {
+		return err
+	}
+	store.Set(GetPriceSnapshotKey(snapshot.Asset, snapshot.BlockHeight), bz)
+	return nil
+}
+
+// GetPriceSnapshot retrieves a specific price snapshot
+func (k Keeper) GetPriceSnapshot(ctx context.Context, asset string, blockHeight int64) (types.PriceSnapshot, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(GetPriceSnapshotKey(asset, blockHeight))
+	if bz == nil {
+		return types.PriceSnapshot{}, fmt.Errorf("price snapshot not found")
+	}
+
+	var snapshot types.PriceSnapshot
+	if err := k.cdc.Unmarshal(bz, &snapshot); err != nil {
+		return types.PriceSnapshot{}, err
+	}
+	return snapshot, nil
+}
+
+// IteratePriceSnapshots iterates over price snapshots for an asset
+func (k Keeper) IteratePriceSnapshots(ctx context.Context, asset string, cb func(snapshot types.PriceSnapshot) (stop bool)) error {
+	store := k.getStore(ctx)
+	prefix := GetPriceSnapshotsByAssetKey(asset)
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var snapshot types.PriceSnapshot
+		if err := k.cdc.Unmarshal(iterator.Value(), &snapshot); err != nil {
+			return err
+		}
+		if cb(snapshot) {
+			break
+		}
+	}
+	return nil
+}
+
+// DeleteOldSnapshots removes snapshots older than the lookback window
+func (k Keeper) DeleteOldSnapshots(ctx context.Context, asset string, minBlockHeight int64) error {
+	store := k.getStore(ctx)
+	prefix := GetPriceSnapshotsByAssetKey(asset)
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	var keysToDelete [][]byte
+	for ; iterator.Valid(); iterator.Next() {
+		var snapshot types.PriceSnapshot
+		if err := k.cdc.Unmarshal(iterator.Value(), &snapshot); err != nil {
+			return err
+		}
+		if snapshot.BlockHeight < minBlockHeight {
+			keysToDelete = append(keysToDelete, iterator.Key())
+		}
+	}
+
+	// Delete outside iteration
+	for _, key := range keysToDelete {
+		store.Delete(key)
+	}
+
+	return nil
+}
+
+// SetFeederDelegation sets a feeder delegation for a validator
+func (k Keeper) SetFeederDelegation(ctx context.Context, validatorAddr sdk.ValAddress, feederAddr sdk.AccAddress) error {
+	store := k.getStore(ctx)
+	store.Set(GetFeederDelegationKey(validatorAddr), feederAddr.Bytes())
+	return nil
+}
+
+// GetFeederDelegation retrieves the feeder address for a validator
+func (k Keeper) GetFeederDelegation(ctx context.Context, validatorAddr sdk.ValAddress) (sdk.AccAddress, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(GetFeederDelegationKey(validatorAddr))
+	if bz == nil {
+		// No delegation, validator must submit themselves
+		return nil, nil
+	}
+	return sdk.AccAddress(bz), nil
+}
+
+// DeleteFeederDelegation removes a feeder delegation
+func (k Keeper) DeleteFeederDelegation(ctx context.Context, validatorAddr sdk.ValAddress) {
+	store := k.getStore(ctx)
+	store.Delete(GetFeederDelegationKey(validatorAddr))
+}

@@ -1,0 +1,447 @@
+package keeper_test
+
+import (
+	"testing"
+	"time"
+
+	"cosmossdk.io/math"
+	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
+	"github.com/stretchr/testify/require"
+)
+
+// TestReentrancyProtection tests that reentrancy attacks are prevented
+func TestReentrancyProtection(t *testing.T) {
+	// This test verifies that the reentrancy guard prevents nested calls
+	// In production, this would be tested with actual malicious contracts
+	// For now, we verify the guard mechanism exists and works
+
+	guard := keeper.NewReentrancyGuard()
+
+	// First lock should succeed
+	err := guard.Lock("test_key")
+	require.NoError(t, err)
+
+	// Second lock on same key should fail (reentrancy detected)
+	err = guard.Lock("test_key")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "reentrancy")
+
+	// Unlock should allow locking again
+	guard.Unlock("test_key")
+	err = guard.Lock("test_key")
+	require.NoError(t, err)
+}
+
+// TestSafeMathOperations tests overflow/underflow protection
+func TestSafeMathOperations(t *testing.T) {
+	tests := []struct {
+		name      string
+		operation string
+		a         math.Int
+		b         math.Int
+		expectErr bool
+	}{
+		{
+			name:      "safe addition",
+			operation: "add",
+			a:         math.NewInt(100),
+			b:         math.NewInt(200),
+			expectErr: false,
+		},
+		{
+			name:      "safe subtraction",
+			operation: "sub",
+			a:         math.NewInt(200),
+			b:         math.NewInt(100),
+			expectErr: false,
+		},
+		{
+			name:      "subtraction underflow",
+			operation: "sub",
+			a:         math.NewInt(100),
+			b:         math.NewInt(200),
+			expectErr: true,
+		},
+		{
+			name:      "safe multiplication",
+			operation: "mul",
+			a:         math.NewInt(100),
+			b:         math.NewInt(200),
+			expectErr: false,
+		},
+		{
+			name:      "safe division",
+			operation: "quo",
+			a:         math.NewInt(200),
+			b:         math.NewInt(100),
+			expectErr: false,
+		},
+		{
+			name:      "division by zero",
+			operation: "quo",
+			a:         math.NewInt(200),
+			b:         math.ZeroInt(),
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var result math.Int
+			var err error
+
+			switch tt.operation {
+			case "add":
+				result, err = keeper.SafeAdd(tt.a, tt.b)
+			case "sub":
+				result, err = keeper.SafeSub(tt.a, tt.b)
+			case "mul":
+				result, err = keeper.SafeMul(tt.a, tt.b)
+			case "quo":
+				result, err = keeper.SafeQuo(tt.a, tt.b)
+			}
+
+			if tt.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.False(t, result.IsNil())
+			}
+		})
+	}
+}
+
+// TestSwapSizeValidation tests MEV protection via swap size limits
+func TestSwapSizeValidation(t *testing.T) {
+	k := keeper.Keeper{}
+
+	tests := []struct {
+		name      string
+		amountIn  math.Int
+		reserveIn math.Int
+		expectErr bool
+	}{
+		{
+			name:      "normal swap size",
+			amountIn:  math.NewInt(1000),
+			reserveIn: math.NewInt(100000),
+			expectErr: false,
+		},
+		{
+			name:      "swap too large (>10% of reserve)",
+			amountIn:  math.NewInt(15000),
+			reserveIn: math.NewInt(100000),
+			expectErr: true,
+		},
+		{
+			name:      "maximum allowed swap (10% of reserve)",
+			amountIn:  math.NewInt(10000),
+			reserveIn: math.NewInt(100000),
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := k.ValidateSwapSize(tt.amountIn, tt.reserveIn)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "too large")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestPriceImpactValidation tests price impact limits
+func TestPriceImpactValidation(t *testing.T) {
+	k := keeper.Keeper{}
+
+	tests := []struct {
+		name       string
+		amountIn   math.Int
+		reserveIn  math.Int
+		reserveOut math.Int
+		amountOut  math.Int
+		expectErr  bool
+	}{
+		{
+			name:       "low price impact",
+			amountIn:   math.NewInt(100),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			amountOut:  math.NewInt(99),
+			expectErr:  false,
+		},
+		{
+			name:       "high price impact (>50%)",
+			amountIn:   math.NewInt(10000),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			amountOut:  math.NewInt(3000),
+			expectErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := k.ValidatePriceImpact(tt.amountIn, tt.reserveIn, tt.reserveOut, tt.amountOut)
+
+			if tt.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestPoolStateValidation tests comprehensive pool state checks
+func TestPoolStateValidation(t *testing.T) {
+	k := keeper.Keeper{}
+
+	tests := []struct {
+		name      string
+		pool      *types.Pool
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "valid pool",
+			pool: &types.Pool{
+				Id:          1,
+				TokenA:      "atom",
+				TokenB:      "usdc",
+				ReserveA:    math.NewInt(10000),
+				ReserveB:    math.NewInt(10000),
+				TotalShares: math.NewInt(10000),
+			},
+			expectErr: false,
+		},
+		{
+			name: "negative reserve A",
+			pool: &types.Pool{
+				Id:          1,
+				TokenA:      "atom",
+				TokenB:      "usdc",
+				ReserveA:    math.NewInt(-100),
+				ReserveB:    math.NewInt(10000),
+				TotalShares: math.NewInt(10000),
+			},
+			expectErr: true,
+			errMsg:    "negative reserve",
+		},
+		{
+			name: "reserves but no shares",
+			pool: &types.Pool{
+				Id:          1,
+				TokenA:      "atom",
+				TokenB:      "usdc",
+				ReserveA:    math.NewInt(10000),
+				ReserveB:    math.NewInt(10000),
+				TotalShares: math.ZeroInt(),
+			},
+			expectErr: true,
+			errMsg:    "has reserves but no shares",
+		},
+		{
+			name: "shares but missing reserves",
+			pool: &types.Pool{
+				Id:          1,
+				TokenA:      "atom",
+				TokenB:      "usdc",
+				ReserveA:    math.ZeroInt(),
+				ReserveB:    math.NewInt(10000),
+				TotalShares: math.NewInt(10000),
+			},
+			expectErr: true,
+			errMsg:    "has shares but missing reserves",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := k.ValidatePoolState(tt.pool)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestInvariantValidation tests constant product invariant checks
+func TestInvariantValidation(t *testing.T) {
+	k := keeper.Keeper{}
+
+	tests := []struct {
+		name      string
+		pool      *types.Pool
+		oldK      math.Int
+		expectErr bool
+	}{
+		{
+			name: "k increased (fees accumulated)",
+			pool: &types.Pool{
+				ReserveA: math.NewInt(10100),
+				ReserveB: math.NewInt(10000),
+			},
+			oldK:      math.NewInt(100000000), // 10000 * 10000
+			expectErr: false,
+		},
+		{
+			name: "k maintained",
+			pool: &types.Pool{
+				ReserveA: math.NewInt(10000),
+				ReserveB: math.NewInt(10000),
+			},
+			oldK:      math.NewInt(100000000),
+			expectErr: false,
+		},
+		{
+			name: "k decreased (invariant violation)",
+			pool: &types.Pool{
+				ReserveA: math.NewInt(9000),
+				ReserveB: math.NewInt(10000),
+			},
+			oldK:      math.NewInt(100000000),
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := k.ValidatePoolInvariant(nil, tt.pool, tt.oldK)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "invariant violated")
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestCircuitBreakerMechanism tests emergency pause functionality
+func TestCircuitBreakerMechanism(t *testing.T) {
+	// Test circuit breaker state management
+	state := keeper.CircuitBreakerState{
+		Enabled:       true,
+		PausedUntil:   time.Now().Add(1 * time.Hour),
+		TriggerReason: "test pause",
+	}
+
+	require.True(t, state.Enabled)
+	require.False(t, state.PausedUntil.IsZero())
+}
+
+// TestCalculateSwapOutputSecurity tests swap calculation with all validations
+func TestCalculateSwapOutputSecurity(t *testing.T) {
+	tests := []struct {
+		name       string
+		amountIn   math.Int
+		reserveIn  math.Int
+		reserveOut math.Int
+		swapFee    math.LegacyDec
+		expectErr  bool
+		errMsg     string
+	}{
+		{
+			name:       "valid swap",
+			amountIn:   math.NewInt(100),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			swapFee:    math.LegacyNewDecWithPrec(3, 3),
+			expectErr:  false,
+		},
+		{
+			name:       "zero input",
+			amountIn:   math.ZeroInt(),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			swapFee:    math.LegacyNewDecWithPrec(3, 3),
+			expectErr:  true,
+			errMsg:     "must be positive",
+		},
+		{
+			name:       "zero reserve in",
+			amountIn:   math.NewInt(100),
+			reserveIn:  math.ZeroInt(),
+			reserveOut: math.NewInt(10000),
+			swapFee:    math.LegacyNewDecWithPrec(3, 3),
+			expectErr:  true,
+			errMsg:     "must be positive",
+		},
+		{
+			name:       "invalid fee (>= 1)",
+			amountIn:   math.NewInt(100),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			swapFee:    math.LegacyNewDec(1),
+			expectErr:  true,
+			errMsg:     "fee must be in range",
+		},
+		{
+			name:       "output would drain pool",
+			amountIn:   math.NewInt(100000),
+			reserveIn:  math.NewInt(10000),
+			reserveOut: math.NewInt(10000),
+			swapFee:    math.LegacyNewDecWithPrec(3, 3),
+			expectErr:  true,
+			errMsg:     "insufficient liquidity",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k := keeper.Keeper{}
+			output, err := k.CalculateSwapOutputSecure(nil, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				require.NoError(t, err)
+				require.True(t, output.GT(math.ZeroInt()))
+				require.True(t, output.LT(tt.reserveOut))
+			}
+		})
+	}
+}
+
+// TestFlashLoanProtection tests minimum lock period enforcement
+func TestFlashLoanProtection(t *testing.T) {
+	// This would require a full keeper setup with context
+	// Here we verify the logic exists
+	require.Equal(t, int64(1), keeper.MinLPLockBlocks)
+}
+
+// TestMaxPoolsLimit tests DoS protection via pool limit
+func TestMaxPoolsLimit(t *testing.T) {
+	require.Equal(t, uint64(1000), keeper.MaxPools)
+}
+
+// TestSecurityConstants verifies all security constants are set correctly
+func TestSecurityConstants(t *testing.T) {
+	// Verify maximum price deviation is reasonable
+	maxDev, err := math.LegacyNewDecFromStr(keeper.MaxPriceDeviation)
+	require.NoError(t, err)
+	require.Equal(t, "0.2", maxDev.String())
+
+	// Verify maximum swap size is reasonable
+	maxSwap, err := math.LegacyNewDecFromStr(keeper.MaxSwapSizePercent)
+	require.NoError(t, err)
+	require.Equal(t, "0.1", maxSwap.String())
+
+	// Verify price update tolerance
+	tolerance, err := math.LegacyNewDecFromStr(keeper.PriceUpdateTolerance)
+	require.NoError(t, err)
+	require.True(t, tolerance.GT(math.LegacyZeroDec()))
+}

@@ -1,0 +1,374 @@
+{
+  "genesis_time": "2025-12-15T00:00:00Z",
+  "chain_id": "paw-mainnet-1",
+  "initial_height": "1",
+  "consensus_params": {
+    "block": {
+      "max_bytes": "2097152",
+      "max_gas": "100000000"
+    },
+    "evidence": {
+      "max_age_num_blocks": "100000",
+      "max_age_duration": "172800000000000",
+      "max_bytes": "1048576"
+    },
+    "validator": {
+      "pub_key_types": [
+        "ed25519"
+      ]
+    },
+    "version": {
+      "app": "1"
+    }
+  },
+  "app_hash": "",
+  "app_state": {
+    "auth": {
+      "params": {
+        "max_memo_characters": "256",
+        "tx_sig_limit": "7",
+        "tx_size_cost_per_byte": "10",
+        "sig_verify_cost_ed25519": "590",
+        "sig_verify_cost_secp256k1": "1000"
+      },
+      "accounts": [
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1foundation000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "0",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1ecosystem0000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "1",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1reserve00000000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "2",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1team000000000000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "3",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1apidonors00000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "4",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1miningrewards00000000000000000000000000",
+          "pub_key": null,
+          "account_number": "5",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "paw1publicsale0000000000000000000000000000",
+          "pub_key": null,
+          "account_number": "6",
+          "sequence": "0"
+        }
+      ]
+    },
+    "bank": {
+      "params": {
+        "send_enabled": [],
+        "default_send_enabled": true
+      },
+      "balances": [
+        {
+          "address": "paw1publicsale0000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "7000000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1miningrewards00000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "10500000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1apidonors00000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "8400000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1team000000000000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "3500000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1foundation000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "3500000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1ecosystem0000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "2100000000000"
+            }
+          ]
+        },
+        {
+          "address": "paw1reserve00000000000000000000000000000000",
+          "coins": [
+            {
+              "denom": "upaw",
+              "amount": "15000000000000"
+            }
+          ]
+        }
+      ],
+      "supply": [
+        {
+          "denom": "upaw",
+          "amount": "50000000000000"
+        }
+      ],
+      "denom_metadata": [
+        {
+          "description": "The native staking and governance token of the PAW blockchain",
+          "denom_units": [
+            {
+              "denom": "upaw",
+              "exponent": 0,
+              "aliases": [
+                "micropaw"
+              ]
+            },
+            {
+              "denom": "mpaw",
+              "exponent": 3,
+              "aliases": [
+                "millipaw"
+              ]
+            },
+            {
+              "denom": "paw",
+              "exponent": 6,
+              "aliases": []
+            }
+          ],
+          "base": "upaw",
+          "display": "paw",
+          "name": "PAW Token",
+          "symbol": "PAW"
+        }
+      ]
+    },
+    "staking": {
+      "params": {
+        "unbonding_time": "1814400s",
+        "max_validators": 125,
+        "max_entries": 7,
+        "historical_entries": 10000,
+        "bond_denom": "upaw",
+        "min_commission_rate": "0.050000000000000000"
+      },
+      "last_total_power": "0",
+      "last_validator_powers": [],
+      "validators": [],
+      "delegations": [],
+      "unbonding_delegations": [],
+      "redelegations": [],
+      "exported": false
+    },
+    "distribution": {
+      "params": {
+        "community_tax": "0.020000000000000000",
+        "base_proposer_reward": "0.000000000000000000",
+        "bonus_proposer_reward": "0.000000000000000000",
+        "withdraw_addr_enabled": true
+      },
+      "fee_pool": {
+        "community_pool": []
+      },
+      "delegator_withdraw_infos": [],
+      "previous_proposer": "",
+      "outstanding_rewards": [],
+      "validator_accumulated_commissions": [],
+      "validator_historical_rewards": [],
+      "validator_current_rewards": [],
+      "delegator_starting_infos": [],
+      "validator_slash_events": []
+    },
+    "gov": {
+      "starting_proposal_id": "1",
+      "deposits": [],
+      "votes": [],
+      "proposals": [],
+      "deposit_params": {
+        "min_deposit": [
+          {
+            "denom": "upaw",
+            "amount": "10000000000"
+          }
+        ],
+        "max_deposit_period": "604800s"
+      },
+      "voting_params": {
+        "voting_period": "1209600s"
+      },
+      "tally_params": {
+        "quorum": "0.400000000000000000",
+        "threshold": "0.667000000000000000",
+        "veto_threshold": "0.333000000000000000"
+      }
+    },
+    "mint": {
+      "minter": {
+        "inflation": "0.050000000000000000",
+        "annual_provisions": "2500000000000.000000000000000000"
+      },
+      "params": {
+        "mint_denom": "upaw",
+        "inflation_rate_change": "0.000000000000000000",
+        "inflation_max": "0.050000000000000000",
+        "inflation_min": "0.000000000000000000",
+        "goal_bonded": "0.670000000000000000",
+        "blocks_per_year": "7884000"
+      }
+    },
+    "slashing": {
+      "params": {
+        "signed_blocks_window": "10000",
+        "min_signed_per_window": "0.950000000000000000",
+        "downtime_jail_duration": "86400s",
+        "slash_fraction_double_sign": "0.050000000000000000",
+        "slash_fraction_downtime": "0.001000000000000000"
+      },
+      "signing_infos": [],
+      "missed_blocks": []
+    },
+    "crisis": {
+      "constant_fee": {
+        "denom": "upaw",
+        "amount": "1000000000"
+      }
+    },
+    "evidence": {
+      "evidence": []
+    },
+    "feegrant": {
+      "allowances": []
+    },
+    "genutil": {
+      "gen_txs": []
+    },
+    "params": null,
+    "upgrade": {},
+    "vesting": {},
+    "consensus": {
+      "params": {
+        "block": {
+          "max_bytes": "2097152",
+          "max_gas": "100000000"
+        },
+        "evidence": {
+          "max_age_num_blocks": "100000",
+          "max_age_duration": "172800000000000",
+          "max_bytes": "1048576"
+        },
+        "validator": {
+          "pub_key_types": [
+            "ed25519"
+          ]
+        },
+        "version": {
+          "app": "1"
+        }
+      }
+    },
+    "dex": {
+      "params": {
+        "swap_fee": "0.003000000000000000",
+        "lp_fee": "0.002500000000000000",
+        "protocol_fee": "0.000500000000000000",
+        "min_liquidity": "1000",
+        "max_slippage_percent": "0.100000000000000000"
+      },
+      "pools": [
+        {
+          "id": "1",
+          "token_a": "upaw",
+          "token_b": "uusdc",
+          "reserve_a": "1000000000000",
+          "reserve_b": "1000000000000",
+          "total_shares": "1000000000000",
+          "creator": "paw1ecosystem0000000000000000000000000000"
+        }
+      ],
+      "next_pool_id": "2"
+    },
+    "oracle": {
+      "params": {
+        "min_validators": 17,
+        "update_interval": "100",
+        "expiry_duration": "86400"
+      },
+      "price_feeds": [
+        {
+          "asset": "PAW/USD",
+          "price": "1.000000000000000000",
+          "timestamp": "0",
+          "validators": []
+        },
+        {
+          "asset": "BTC/USD",
+          "price": "50000.000000000000000000",
+          "timestamp": "0",
+          "validators": []
+        },
+        {
+          "asset": "ETH/USD",
+          "price": "3000.000000000000000000",
+          "timestamp": "0",
+          "validators": []
+        }
+      ]
+    },
+    "compute": {
+      "params": {
+        "min_stake": "10000000000",
+        "verification_timeout": "300",
+        "max_retries": 3
+      },
+      "tasks": [],
+      "next_task_id": "1"
+    }
+  }
+}

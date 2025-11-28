@@ -1,0 +1,310 @@
+# PAW Blockchain Security Monitoring Configuration
+# Defines security scan schedules, thresholds, and rules for both Go and Python
+
+# Global configuration
+global:
+  project_name: "PAW Blockchain"
+  notification_email: "security-alerts@github.com"
+  slack_webhook: null  # Set via environment variable: SECURITY_SLACK_WEBHOOK
+  github_repository: "PAW-org/paw"
+
+# Scan schedules - cron expressions (UTC)
+schedules:
+  # Daily vulnerability scan at 2 AM UTC
+  daily_vulnerability_scan: "0 2 * * *"
+  # Weekly comprehensive security report on Sundays at 3 AM UTC
+  weekly_comprehensive: "0 3 * * 0"
+  # Monthly detailed analysis on 1st of month at 4 AM UTC
+  monthly_analysis: "0 4 1 * *"
+
+# Severity thresholds (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+severity_thresholds:
+  # Fail the build on these severities
+  fail_on:
+    - CRITICAL
+    - HIGH
+  # Create GitHub issues on these severities
+  create_issue_on:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+  # Send email alerts on these
+  email_alert_on:
+    - CRITICAL
+    - HIGH
+  # Send Slack alerts on these
+  slack_alert_on:
+    - CRITICAL
+    - HIGH
+
+# Go-specific security rules
+go_security:
+  enabled: true
+  tools:
+    # GoSec - Static analysis for Go security issues
+    gosec:
+      enabled: true
+      severity: "medium"
+      config_file: ".security/.gosec.yml"
+      fail_on_issues: true
+      timeout: "10m"
+
+    # Nancy - Dependency vulnerability checker
+    nancy:
+      enabled: true
+      fail_on_vulnerability: true
+      usedb: true
+
+    # Govulncheck - Official Go vulnerability database
+    govulncheck:
+      enabled: true
+      fail_on_vulnerability: true
+
+    # Golangci-lint with security rules
+    golangci_lint:
+      enabled: true
+      timeout: "15m"
+      security_checks:
+        - gosec
+        - staticcheck
+        - gas
+
+  # Go-specific exclusions
+  exclusions:
+    paths:
+      - "vendor/"
+      - "*_test.go"
+      - "testutil/"
+    rules:
+      - "G101"  # Look for hardcoded credentials (too many false positives)
+
+# Python-specific security rules
+python_security:
+  enabled: true
+  tools:
+    # Bandit - Security linting for Python
+    bandit:
+      enabled: true
+      severity: "medium"
+      confidence: "medium"
+      fail_on_issues: true
+      skip_tests:
+        - "B101"  # assert_used (testing context)
+        - "B601"  # paramiko_calls (intentional for tests)
+
+    # Safety - Dependency vulnerability checker for Python
+    safety:
+      enabled: true
+      fail_on_vulnerability: true
+      database_path: null  # Use default PyUp DB
+
+    # pip-audit - Audits Python packages
+    pip_audit:
+      enabled: true
+      fail_on_vulnerability: true
+      skip_editable: false
+
+    # Semgrep - Static analysis and SAST
+    semgrep:
+      enabled: true
+      config: "p/security-audit"
+      fail_on_findings: true
+
+  # Python-specific exclusions
+  exclusions:
+    paths:
+      - "venv/"
+      - "tests/"
+      - "*_test.py"
+    rules:
+      - "B008"  # Function call in default argument
+
+# Universal security tools
+universal_security:
+  enabled: true
+  tools:
+    # CodeQL - Code analysis and SAST
+    codeql:
+      enabled: true
+      languages:
+        - go
+        - python
+        - javascript
+      query_suites:
+        - security-extended
+        - security-and-quality
+
+    # Trivy - Container and dependency scanner
+    trivy:
+      enabled: true
+      scan_types:
+        - fs  # Filesystem scan
+        - config  # Configuration scan
+      severity: "MEDIUM,HIGH,CRITICAL"
+      security_checks:
+        - vuln
+        - config
+        - secret
+
+    # TruffleHog - Secret detection
+    trufflehog:
+      enabled: true
+      entropy_threshold: 4.5
+      regex_threshold: 5.0
+      max_depth: 10000000
+      exclude_paths:
+        - ".git"
+        - "vendor"
+        - "node_modules"
+        - ".venv"
+
+    # OWASP Dependency-Check
+    dependency_check:
+      enabled: true
+      fail_on_severity: "MEDIUM"
+      suppression_file: ".security/dependency-check-suppressions.xml"
+
+# GitHub configuration
+github:
+  # Create security issues on these events
+  create_issue: true
+  issue_labels:
+    - "security"
+    - "vulnerability"
+
+  # Auto-assign security issues
+  auto_assign:
+    enabled: true
+    assignees:
+      - "security-team"
+
+  # Security branch protection rules
+  branch_protection:
+    require_status_checks:
+      - "gosec"
+      - "bandit"
+      - "codeql"
+      - "trivy"
+      - "dependency-check"
+
+# Alert routing - which tool findings go to which recipient
+alert_routing:
+  # Findings by severity
+  CRITICAL:
+    channels:
+      - email
+      - slack
+      - github_issue
+      - pagerduty  # Optional: requires integration
+
+  HIGH:
+    channels:
+      - email
+      - slack
+      - github_issue
+
+  MEDIUM:
+    channels:
+      - slack
+      - github_issue
+
+  LOW:
+    channels:
+      - github_issue
+
+  # Tool-specific routing
+  tool_specific:
+    gosec:
+      channels: [email, slack, github_issue]
+
+    bandit:
+      channels: [email, slack, github_issue]
+
+    trufflehog:
+      channels: [email, slack, pagerduty]  # Secret leaks are critical
+
+    codeql:
+      channels: [email, slack, github_issue]
+
+    trivy:
+      channels: [slack, github_issue]
+
+# Reporting
+reporting:
+  # Generate dashboard report
+  dashboard:
+    enabled: true
+    path: "SECURITY-DASHBOARD.md"
+    refresh_interval: "daily"  # daily, weekly, monthly
+    include_trends: true
+    include_metrics: true
+
+  # Generate detailed reports
+  detailed_reports:
+    enabled: true
+    path: "security-reports/"
+    format:
+      - "json"
+      - "html"
+      - "markdown"
+
+  # Email reports
+  email_reports:
+    enabled: true
+    recipients:
+      - "security-team@github.com"
+    frequency: "weekly"  # weekly, monthly
+    include_metrics: true
+    include_trends: true
+
+# Exclusions and suppressions
+exclusions:
+  # Global file patterns to exclude from all scans
+  patterns:
+    - "*.pb.go"
+    - "*.pb.gw.go"
+    - "*_test.go"
+    - "*_test.py"
+    - "vendor/**"
+    - "testutil/**"
+    - ".venv/**"
+    - "node_modules/**"
+    - "*.lock"
+    - "*.sum"
+
+# CI/CD Integration
+ci_integration:
+  # Fail the build on these conditions
+  fail_build_on:
+    - critical_vulnerabilities
+    - secrets_detected
+    - dependency_vulnerabilities
+
+  # Warning conditions (don't fail)
+  warn_on:
+    - high_vulnerabilities
+    - medium_vulnerabilities
+    - outdated_dependencies
+
+# Language-specific configurations
+language_configs:
+  go:
+    # Go version for security checks
+    min_version: "1.21"
+    # Specific security rules
+    security_rules:
+      - "CWE-89"   # SQL Injection
+      - "CWE-22"   # Path Traversal
+      - "CWE-79"   # XSS
+      - "CWE-94"   # Code Injection
+
+  python:
+    # Python version for security checks
+    min_version: "3.11"
+    # Specific security rules
+    security_rules:
+      - "B201"  # flask_debug_true
+      - "B301"  # pickle
+      - "B302"  # marshal
+      - "B303"  # md5
+      - "B304"  # des

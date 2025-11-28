@@ -1,0 +1,170 @@
+---
+# PAW Genesis Configuration
+# CRITICAL SECURITY: This ConfigMap contains genesis file locations and checksums
+# All values must be verified by multiple independent parties before deployment
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: genesis-config
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: genesis
+    security: critical
+  annotations:
+    description: "Genesis file verification configuration"
+    security-level: "critical"
+    last-verified: "2024-01-01T00:00:00Z"  # UPDATE THIS WHEN VERIFYING
+data:
+  # Genesis File URLs
+  # IMPORTANT: Use official, trusted sources only
+  # Recommended:  releases with tag verification
+  GENESIS_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json"
+
+  # Genesis Checksum URL (contains SHA256 hash)
+  # Format: <hash>  genesis.json
+  GENESIS_CHECKSUM_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json.sha256"
+
+  # Genesis GPG Signature URL
+  # Used for cryptographic verification of authenticity
+  GENESIS_SIG_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json.sig"
+
+  # Genesis SHA256 Checksum (hex format)
+  # CRITICAL: This hash must be independently verified by multiple validators
+  # HOW TO VERIFY:
+  #   1. Download genesis.json from GENESIS_URL
+  #   2. Run: sha256sum genesis.json
+  #   3. Compare with value below
+  #   4. Verify with other validators before updating
+  #
+  # EXAMPLE (REPLACE WITH ACTUAL HASH):
+  GENESIS_CHECKSUM: "0000000000000000000000000000000000000000000000000000000000000000"
+
+  # Alternative Genesis Sources (backup mirrors)
+  # Use only if primary source is unavailable
+  GENESIS_BACKUP_URL_1: "https://snapshots.paw-chain.org/genesis.json"
+  GENESIS_BACKUP_URL_2: "https://genesis.paw-validators.org/mainnet-v1.0.0/genesis.json"
+
+  # Chain Configuration
+  # Used for additional verification
+  EXPECTED_CHAIN_ID: "paw-1"
+  EXPECTED_GENESIS_TIME: "2024-01-01T00:00:00Z"
+
+  # Validator Set Information
+  # Minimum expected validators in genesis
+  MIN_GENESIS_VALIDATORS: "4"
+
+  # RPC Endpoints for verification
+  # Use to cross-check genesis hash with running nodes
+  RPC_ENDPOINTS: |
+    https://rpc.paw-chain.org:443
+    https://rpc2.paw-chain.org:443
+    https://rpc-backup.paw-chain.org:443
+
+---
+# Genesis Verification Instructions
+# This ConfigMap provides step-by-step verification instructions
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: genesis-verification-guide
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: documentation
+data:
+  README.txt: |
+    ========================================
+    PAW GENESIS VERIFICATION GUIDE
+    ========================================
+
+    CRITICAL: Genesis file compromise could destroy the entire blockchain.
+    ALL validators MUST independently verify the genesis file.
+
+    VERIFICATION STEPS:
+
+    1. DOWNLOAD GENESIS
+       wget https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json
+
+    2. VERIFY SHA256 CHECKSUM
+       sha256sum genesis.json
+       Compare with GENESIS_CHECKSUM in genesis-config ConfigMap
+
+    3. VERIFY GPG SIGNATURE (MANDATORY FOR VALIDATORS)
+       wget https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json.sig
+       gpg --import <trusted-public-key>
+       gpg --verify genesis.json.sig genesis.json
+
+    4. VERIFY CHAIN ID
+       jq -r '.chain_id' genesis.json
+       Must match: paw-1
+
+    5. VERIFY WITH OTHER VALIDATORS
+       Contact at least 3 other validators
+       Compare SHA256 hashes
+       Confirm everyone has the same genesis
+
+    6. VERIFY GENESIS TIME
+       jq -r '.genesis_time' genesis.json
+       Confirm network launch time
+
+    7. VERIFY VALIDATOR SET
+       jq '.validators | length' genesis.json
+       Confirm expected number of validators
+
+    8. CROSS-CHECK WITH RUNNING NODES (after launch)
+       curl https://rpc.paw-chain.org:443/genesis | jq -r '.result.genesis' | sha256sum
+
+    EMERGENCY CONTACTS:
+    - Security Team: security@paw-chain.org
+    - Validator Coordination: validators@paw-chain.org
+    - Emergency Hotline: (Discord channel or other contact)
+
+    DO NOT PROCEED if:
+    - Checksum doesn't match
+    - GPG signature verification fails
+    - Chain ID is incorrect
+    - Other validators report different hashes
+    - You have any doubts about authenticity
+
+    ========================================
+
+  manual-verification.sh: |
+    #!/bin/bash
+    # Manual Genesis Verification Script
+    set -e
+
+    GENESIS_URL="https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json"
+    EXPECTED_HASH="0000000000000000000000000000000000000000000000000000000000000000"
+    EXPECTED_CHAIN_ID="paw-1"
+
+    echo "Downloading genesis..."
+    wget -O genesis.json "$GENESIS_URL"
+
+    echo "Verifying checksum..."
+    ACTUAL_HASH=$(sha256sum genesis.json | awk '{print $1}')
+
+    if [ "$ACTUAL_HASH" = "$EXPECTED_HASH" ]; then
+      echo "✓ Checksum verified: $ACTUAL_HASH"
+    else
+      echo "❌ CHECKSUM MISMATCH!"
+      echo "Expected: $EXPECTED_HASH"
+      echo "Actual:   $ACTUAL_HASH"
+      exit 1
+    fi
+
+    echo "Verifying chain ID..."
+    CHAIN_ID=$(jq -r '.chain_id' genesis.json)
+
+    if [ "$CHAIN_ID" = "$EXPECTED_CHAIN_ID" ]; then
+      echo "✓ Chain ID verified: $CHAIN_ID"
+    else
+      echo "❌ CHAIN ID MISMATCH!"
+      exit 1
+    fi
+
+    echo ""
+    echo "✅ Genesis verification complete"
+    echo "Share this hash with other validators:"
+    echo "$ACTUAL_HASH"

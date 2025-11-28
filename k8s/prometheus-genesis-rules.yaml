@@ -1,0 +1,538 @@
+---
+# PAW Genesis Verification Prometheus Rules
+# CRITICAL SECURITY: Alerts for genesis file verification failures
+#
+# These alerts monitor the genesis verification process and trigger
+# on any security issues related to genesis file integrity.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: genesis-verification-alerts
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: monitoring
+    security: critical
+    prometheus: kube-prometheus
+spec:
+  groups:
+    # Genesis Verification Failures
+    - name: genesis.verification
+      interval: 30s
+      rules:
+        # CRITICAL: Genesis verification init container failed
+        - alert: GenesisVerificationFailed
+          expr: |
+            kube_pod_init_container_status_terminated_reason{
+              namespace="paw-blockchain",
+              container="verify-genesis",
+              reason="Error"
+            } > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: genesis
+            team: security
+            escalation: immediate
+          annotations:
+            summary: "CRITICAL: Genesis file verification FAILED on {{ $labels.pod }}"
+            description: |
+              Genesis verification init container failed on pod {{ $labels.pod }}.
+              This is a CRITICAL security issue - the genesis file may be compromised.
+
+              Pod: {{ $labels.pod }}
+              Namespace: {{ $labels.namespace }}
+              Container: {{ $labels.container }}
+              Reason: {{ $labels.reason }}
+
+              IMMEDIATE ACTIONS REQUIRED:
+              1. DO NOT allow this pod to start
+              2. Check init container logs: kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} -c verify-genesis
+              3. Verify genesis-config ConfigMap checksum
+              4. Contact other validators to confirm genesis hash
+              5. Investigate potential compromise
+
+              This could indicate:
+              - Corrupted genesis file download
+              - Checksum mismatch (file tampering)
+              - GPG signature verification failure
+              - Chain ID mismatch
+              - Network configuration error
+
+              DO NOT PROCEED until root cause is identified and resolved.
+            runbook_url: "https://docs.paw-chain.org/runbooks/genesis-verification-failed"
+            dashboard_url: "https://grafana.paw-chain.org/d/genesis-security"
+
+        # High restart rate of init containers (repeated failures)
+        - alert: GenesisVerificationRepeatedFailures
+          expr: |
+            rate(kube_pod_init_container_status_restarts_total{
+              namespace="paw-blockchain",
+              container="verify-genesis"
+            }[5m]) > 0.5
+          for: 2m
+          labels:
+            severity: critical
+            component: genesis
+            team: security
+          annotations:
+            summary: "Genesis verification container repeatedly failing on {{ $labels.pod }}"
+            description: |
+              Genesis verification init container is failing repeatedly on {{ $labels.pod }}.
+              Restart rate: {{ $value | humanize }}/sec
+
+              This indicates a persistent issue with genesis verification.
+              Check ConfigMap and Secret configuration.
+
+        # Init container taking too long (possible network issue)
+        - alert: GenesisVerificationSlow
+          expr: |
+            kube_pod_init_container_info{
+              namespace="paw-blockchain",
+              container="verify-genesis"
+            } unless on(pod, namespace) (
+              kube_pod_init_container_status_terminated{
+                namespace="paw-blockchain",
+                container="verify-genesis"
+              }
+            )
+          for: 10m
+          labels:
+            severity: warning
+            component: genesis
+            team: ops
+          annotations:
+            summary: "Genesis verification taking too long on {{ $labels.pod }}"
+            description: |
+              Genesis verification init container has been running for >10 minutes on {{ $labels.pod }}.
+
+              Possible causes:
+              - Slow network download
+              - Large genesis file
+              - GPG verification issues
+              - Container resource constraints
+
+              Check logs: kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} -c verify-genesis
+
+    # ConfigMap/Secret Configuration Issues
+    - name: genesis.configuration
+      interval: 1m
+      rules:
+        # Genesis ConfigMap missing
+        - alert: GenesisConfigMapMissing
+          expr: |
+            absent(kube_configmap_info{
+              namespace="paw-blockchain",
+              configmap="genesis-config"
+            })
+          for: 1m
+          labels:
+            severity: critical
+            component: genesis
+            team: ops
+          annotations:
+            summary: "CRITICAL: genesis-config ConfigMap is missing"
+            description: |
+              The genesis-config ConfigMap is missing from paw-blockchain namespace.
+              All nodes will fail to start without genesis configuration.
+
+              Deploy ConfigMap:
+              kubectl apply -f k8s/genesis-config.yaml
+
+        # Genesis Secret missing
+        - alert: GenesisSecretMissing
+          expr: |
+            absent(kube_secret_info{
+              namespace="paw-blockchain",
+              secret="paw-secrets"
+            })
+          for: 1m
+          labels:
+            severity: warning
+            component: genesis
+            team: ops
+          annotations:
+            summary: "Genesis secret (GPG public key) is missing"
+            description: |
+              The paw-secrets Secret is missing from paw-blockchain namespace.
+              GPG signature verification will be skipped (security risk for validators).
+
+              Deploy Secret:
+              kubectl apply -f k8s/genesis-secret.yaml
+
+        # ConfigMap was recently modified (potential security issue)
+        - alert: GenesisConfigMapModified
+          expr: |
+            time() - kube_configmap_metadata_resource_version{
+              namespace="paw-blockchain",
+              configmap="genesis-config"
+            } < 300
+          for: 1m
+          labels:
+            severity: warning
+            component: genesis
+            team: security
+          annotations:
+            summary: "Genesis ConfigMap was recently modified"
+            description: |
+              The genesis-config ConfigMap was modified within the last 5 minutes.
+
+              ConfigMap: {{ $labels.configmap }}
+              Namespace: {{ $labels.namespace }}
+
+              Verify the change is authorized and checksums are correct.
+              All pods using this ConfigMap should be verified.
+
+    # Pod Readiness Issues Related to Genesis
+    - name: genesis.readiness
+      interval: 30s
+      rules:
+        # Pods stuck in Init state
+        - alert: PodStuckInInit
+          expr: |
+            kube_pod_status_phase{
+              namespace="paw-blockchain",
+              phase="Pending"
+            } and on(pod, namespace) (
+              kube_pod_init_container_info{
+                namespace="paw-blockchain"
+              }
+            )
+          for: 15m
+          labels:
+            severity: warning
+            component: deployment
+            team: ops
+          annotations:
+            summary: "Pod {{ $labels.pod }} stuck in Init phase"
+            description: |
+              Pod {{ $labels.pod }} has been stuck in Init phase for >15 minutes.
+
+              Check init container status:
+              kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}
+
+              Check init container logs:
+              kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} -c verify-genesis
+
+        # Node not ready due to genesis issues
+        - alert: NodeNotReadyGenesisIssue
+          expr: |
+            kube_pod_status_ready{
+              namespace="paw-blockchain",
+              condition="false"
+            } and on(pod, namespace) (
+              kube_pod_labels{
+                namespace="paw-blockchain",
+                label_app="paw"
+              }
+            )
+          for: 10m
+          labels:
+            severity: warning
+            component: node
+            team: ops
+          annotations:
+            summary: "PAW node {{ $labels.pod }} not ready"
+            description: |
+              PAW node {{ $labels.pod }} has been in not-ready state for >10 minutes.
+
+              Possible genesis-related causes:
+              - Genesis file not found
+              - Genesis checksum mismatch in readiness probe
+              - Chain ID verification failure
+
+              Check readiness probe:
+              kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}
+
+    # Validator-Specific Genesis Alerts
+    - name: genesis.validators
+      interval: 30s
+      rules:
+        # Validator failed GPG verification (CRITICAL)
+        - alert: ValidatorGenesisGPGVerificationFailed
+          expr: |
+            kube_pod_init_container_status_terminated_reason{
+              namespace="paw-blockchain",
+              container="verify-genesis",
+              reason="Error"
+            } and on(pod, namespace) (
+              kube_pod_labels{
+                namespace="paw-blockchain",
+                label_component="validator"
+              }
+            ) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: validator
+            team: security
+            escalation: page
+          annotations:
+            summary: "CRITICAL: Validator {{ $labels.pod }} FAILED genesis GPG verification"
+            description: |
+              CRITICAL SECURITY ALERT
+
+              Validator {{ $labels.pod }} FAILED GPG signature verification for genesis file.
+
+              This is a CRITICAL security issue for validators:
+              - Genesis file may be compromised
+              - GPG signature invalid or missing
+              - Wrong genesis file downloaded
+              - Public key mismatch
+
+              IMMEDIATE ACTIONS:
+              1. HALT this validator - DO NOT allow it to start
+              2. Check logs: kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} -c verify-genesis
+              3. Verify genesis-config ConfigMap
+              4. Verify paw-secrets Secret contains correct GPG public key
+              5. Contact other validators immediately
+              6. Verify genesis checksum through multiple channels
+              7. Investigate potential security compromise
+
+              DO NOT BYPASS GPG VERIFICATION FOR VALIDATORS.
+
+        # Multiple validators failing genesis verification
+        - alert: MultipleValidatorsGenesisVerificationFailed
+          expr: |
+            count(
+              kube_pod_init_container_status_terminated_reason{
+                namespace="paw-blockchain",
+                container="verify-genesis",
+                reason="Error"
+              } and on(pod, namespace) (
+                kube_pod_labels{
+                  namespace="paw-blockchain",
+                  label_component="validator"
+                }
+              )
+            ) > 1
+          for: 1m
+          labels:
+            severity: critical
+            component: validator
+            team: security
+            escalation: page
+          annotations:
+            summary: "CRITICAL: Multiple validators failing genesis verification"
+            description: |
+              CRITICAL NETWORK SECURITY ALERT
+
+              {{ $value }} validators are failing genesis verification.
+
+              This indicates a systemic issue:
+              - Genesis file may be compromised across the network
+              - ConfigMap/Secret misconfiguration
+              - Network-wide attack attempt
+              - Invalid genesis file distributed
+
+              IMMEDIATE NETWORK-WIDE ACTIONS:
+              1. HALT all validator deployments
+              2. Emergency validator coordination call
+              3. Verify genesis through out-of-band channels
+              4. Check all validators have identical checksums
+              5. Investigate potential network compromise
+              6. Do not restart network until verified
+
+    # Genesis File Integrity Monitoring
+    - name: genesis.integrity
+      interval: 5m
+      rules:
+        # Monitor for genesis file changes on running nodes (should never happen)
+        - alert: GenesisFileModifiedOnRunningNode
+          expr: |
+            changes(
+              kube_pod_status_phase{
+                namespace="paw-blockchain",
+                phase="Running"
+              }[10m]
+            ) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: security
+            team: security
+            escalation: immediate
+          annotations:
+            summary: "CRITICAL: Pod {{ $labels.pod }} restarted - verify genesis integrity"
+            description: |
+              Pod {{ $labels.pod }} has restarted.
+
+              After any pod restart, genesis file integrity MUST be verified.
+              Check that genesis checksum matches expected value.
+
+              Verify genesis:
+              kubectl exec -it {{ $labels.pod }} -n {{ $labels.namespace }} -- \
+                sha256sum /paw/.paw/config/genesis.json
+
+              Expected checksum: See genesis-config ConfigMap
+
+---
+# Genesis Verification Metrics Recording Rules
+# These rules create useful metrics for dashboards and analysis
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: genesis-verification-recording-rules
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: monitoring
+spec:
+  groups:
+    - name: genesis.metrics
+      interval: 30s
+      rules:
+        # Count of pods with successful genesis verification
+        - record: paw:genesis_verification:success:count
+          expr: |
+            count(
+              kube_pod_init_container_status_terminated_reason{
+                namespace="paw-blockchain",
+                container="verify-genesis",
+                reason="Completed"
+              }
+            ) or vector(0)
+
+        # Count of pods with failed genesis verification
+        - record: paw:genesis_verification:failed:count
+          expr: |
+            count(
+              kube_pod_init_container_status_terminated_reason{
+                namespace="paw-blockchain",
+                container="verify-genesis",
+                reason="Error"
+              }
+            ) or vector(0)
+
+        # Genesis verification success rate
+        - record: paw:genesis_verification:success_rate
+          expr: |
+            (
+              paw:genesis_verification:success:count /
+              (
+                paw:genesis_verification:success:count +
+                paw:genesis_verification:failed:count
+              )
+            ) or vector(1)
+
+        # Count of validators with successful genesis verification
+        - record: paw:genesis_verification:validators:success:count
+          expr: |
+            count(
+              kube_pod_init_container_status_terminated_reason{
+                namespace="paw-blockchain",
+                container="verify-genesis",
+                reason="Completed"
+              } and on(pod, namespace) (
+                kube_pod_labels{
+                  namespace="paw-blockchain",
+                  label_component="validator"
+                }
+              )
+            ) or vector(0)
+
+        # Average genesis verification duration
+        - record: paw:genesis_verification:duration:seconds
+          expr: |
+            avg(
+              kube_pod_init_container_status_terminated_at{
+                namespace="paw-blockchain",
+                container="verify-genesis"
+              } - kube_pod_init_container_status_started_at{
+                namespace="paw-blockchain",
+                container="verify-genesis"
+              }
+            )
+
+---
+# Alert Manager Configuration for Genesis Alerts
+# Routes critical genesis alerts to appropriate channels
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: genesis-alertmanager-config
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    component: monitoring
+data:
+  alertmanager.yml: |
+    # Genesis Alert Routing Configuration
+
+    route:
+      receiver: 'default'
+      group_by: ['alertname', 'severity', 'component']
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 12h
+
+      # Route critical genesis alerts immediately
+      routes:
+        # CRITICAL security alerts - page immediately
+        - match:
+            severity: critical
+            component: genesis
+          receiver: 'pager-security'
+          group_wait: 0s
+          repeat_interval: 5m
+
+        # CRITICAL validator alerts - page immediately
+        - match:
+            severity: critical
+            component: validator
+          receiver: 'pager-validators'
+          group_wait: 0s
+          repeat_interval: 5m
+
+        # Warning level genesis issues
+        - match:
+            severity: warning
+            component: genesis
+          receiver: 'slack-ops'
+          group_wait: 30s
+          repeat_interval: 1h
+
+    receivers:
+      # Default receiver
+      - name: 'default'
+        slack_configs:
+          - api_url: '<SLACK_WEBHOOK_URL>'
+            channel: '#paw-alerts'
+            title: 'PAW Blockchain Alert'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+      # Critical security team pager
+      - name: 'pager-security'
+        pagerduty_configs:
+          - service_key: '<PAGERDUTY_SECURITY_KEY>'
+            severity: 'critical'
+            description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+
+      # Validator team pager
+      - name: 'pager-validators'
+        pagerduty_configs:
+          - service_key: '<PAGERDUTY_VALIDATOR_KEY>'
+            severity: 'critical'
+        slack_configs:
+          - api_url: '<SLACK_WEBHOOK_URL>'
+            channel: '#validators-emergency'
+            title: 'CRITICAL VALIDATOR ALERT'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+      # Operations team Slack
+      - name: 'slack-ops'
+        slack_configs:
+          - api_url: '<SLACK_WEBHOOK_URL>'
+            channel: '#paw-ops'
+            title: 'PAW Operations Alert'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+    # Alert silencing/inhibition rules
+    inhibit_rules:
+      # If genesis ConfigMap is missing, suppress other genesis alerts
+      - source_match:
+          alertname: 'GenesisConfigMapMissing'
+        target_match_re:
+          alertname: 'Genesis.*'
+        equal: ['namespace']

@@ -1,0 +1,366 @@
+package oracle
+
+import (
+	"fmt"
+
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+
+	"github.com/paw-chain/paw/x/oracle/keeper"
+	"github.com/paw-chain/paw/x/oracle/types"
+)
+
+var (
+	_ porttypes.IBCModule = (*IBCModule)(nil)
+)
+
+// IBCModule implements the ICS26 interface for the oracle module.
+// This enables cross-chain price feed aggregation and oracle data sharing.
+type IBCModule struct {
+	keeper keeper.Keeper
+	cdc    codec.Codec
+}
+
+// NewIBCModule creates a new IBCModule given the keeper and codec
+func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
+	return IBCModule{
+		keeper: keeper,
+		cdc:    cdc,
+	}
+}
+
+// OnChanOpenInit implements the IBCModule interface
+// Validates the channel creation for oracle operations
+func (im IBCModule) OnChanOpenInit(
+	ctx sdk.Context,
+	order channeltypes.Order,
+	connectionHops []string,
+	portID string,
+	channelID string,
+	chanCap *capabilitytypes.Capability,
+	counterparty channeltypes.Counterparty,
+	version string,
+) (string, error) {
+	// Oracle can use unordered channels for better performance
+	if order != channeltypes.UNORDERED {
+		return "", sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering,
+			"expected %s channel, got %s", channeltypes.UNORDERED, order)
+	}
+
+	// Validate version
+	if version != types.IBCVersion {
+		return "", sdkerrors.Wrapf(types.ErrInvalidPacket,
+			"expected version %s, got %s", types.IBCVersion, version)
+	}
+
+	// Validate port
+	if portID != types.PortID {
+		return "", sdkerrors.Wrapf(porttypes.ErrInvalidPort,
+			"expected port %s, got %s", types.PortID, portID)
+	}
+
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeChannelOpen,
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyCounterpartyPortID, counterparty.PortId),
+			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterparty.ChannelId),
+		),
+	)
+
+	return version, nil
+}
+
+// OnChanOpenTry implements the IBCModule interface
+func (im IBCModule) OnChanOpenTry(
+	ctx sdk.Context,
+	order channeltypes.Order,
+	connectionHops []string,
+	portID,
+	channelID string,
+	chanCap *capabilitytypes.Capability,
+	counterparty channeltypes.Counterparty,
+	counterpartyVersion string,
+) (string, error) {
+	// Validate channel ordering
+	if order != channeltypes.UNORDERED {
+		return "", sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering,
+			"expected %s channel, got %s", channeltypes.UNORDERED, order)
+	}
+
+	// Validate version
+	if counterpartyVersion != types.IBCVersion {
+		return "", sdkerrors.Wrapf(types.ErrInvalidPacket,
+			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
+	}
+
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeChannelOpen,
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyCounterpartyPortID, counterparty.PortId),
+			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterparty.ChannelId),
+		),
+	)
+
+	return types.IBCVersion, nil
+}
+
+// OnChanOpenAck implements the IBCModule interface
+func (im IBCModule) OnChanOpenAck(
+	ctx sdk.Context,
+	portID,
+	channelID string,
+	counterpartyChannelID string,
+	counterpartyVersion string,
+) error {
+	// Validate counterparty version
+	if counterpartyVersion != types.IBCVersion {
+		return sdkerrors.Wrapf(types.ErrInvalidPacket,
+			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
+	}
+
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeChannelOpenAck,
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterpartyChannelID),
+		),
+	)
+
+	return nil
+}
+
+// OnChanOpenConfirm implements the IBCModule interface
+func (im IBCModule) OnChanOpenConfirm(
+	ctx sdk.Context,
+	portID,
+	channelID string,
+) error {
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeChannelOpenConfirm,
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+		),
+	)
+
+	return nil
+}
+
+// OnChanCloseInit implements the IBCModule interface
+func (im IBCModule) OnChanCloseInit(
+	ctx sdk.Context,
+	portID,
+	channelID string,
+) error {
+	// Disallow user-initiated channel closing for oracle
+	return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "user cannot close channel")
+}
+
+// OnChanCloseConfirm implements the IBCModule interface
+func (im IBCModule) OnChanCloseConfirm(
+	ctx sdk.Context,
+	portID,
+	channelID string,
+) error {
+	// Emit event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeChannelClose,
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+		),
+	)
+
+	return nil
+}
+
+// OnRecvPacket implements the IBCModule interface
+// Handles incoming oracle packets (price updates, heartbeats, queries)
+func (im IBCModule) OnRecvPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	relayer sdk.AccAddress,
+) ibcexported.Acknowledgement {
+	// Parse packet data
+	packetData, err := types.ParsePacketData(packet.Data)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(
+			sdkerrors.Wrapf(types.ErrInvalidPacket, "failed to parse packet data: %s", err.Error()))
+	}
+
+	// Validate packet
+	if err := packetData.ValidateBasic(); err != nil {
+		return channeltypes.NewErrorAcknowledgement(
+			sdkerrors.Wrap(types.ErrInvalidPacket, err.Error()))
+	}
+
+	// Route packet based on type
+	var ack ibcexported.Acknowledgement
+	switch packetData.GetType() {
+	case types.SubscribePricesType:
+		// Handle price subscription request
+		ack = im.handleSubscribePrices(ctx, packet, packetData)
+
+	case types.QueryPriceType:
+		// Handle price query
+		ack = im.handleQueryPrice(ctx, packet, packetData)
+
+	case types.PriceUpdateType:
+		// Handle price update broadcast
+		ack = im.handlePriceUpdate(ctx, packet, packetData)
+
+	case types.OracleHeartbeatType:
+		// Handle oracle heartbeat
+		ack = im.handleOracleHeartbeat(ctx, packet, packetData)
+
+	default:
+		return channeltypes.NewErrorAcknowledgement(
+			sdkerrors.Wrapf(types.ErrInvalidPacket, "unknown packet type: %s", packetData.GetType()))
+	}
+
+	// Emit receive event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypePacketReceive,
+			sdk.NewAttribute(types.AttributeKeyPacketType, packetData.GetType()),
+			sdk.NewAttribute(types.AttributeKeyChannelID, packet.DestinationChannel),
+			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
+		),
+	)
+
+	return ack
+}
+
+// OnAcknowledgementPacket implements the IBCModule interface
+// Handles acknowledgements for sent packets
+func (im IBCModule) OnAcknowledgementPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	acknowledgement []byte,
+	relayer sdk.AccAddress,
+) error {
+	var ack channeltypes.Acknowledgement
+	if err := im.cdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest,
+			"cannot unmarshal packet acknowledgement: %v", err)
+	}
+
+	// Delegate to keeper's acknowledgement handler
+	if err := im.keeper.OnAcknowledgementPacket(ctx, packet, ack); err != nil {
+		return err
+	}
+
+	// Emit acknowledgement event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypePacketAck,
+			sdk.NewAttribute(types.AttributeKeyChannelID, packet.SourceChannel),
+			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
+			sdk.NewAttribute(types.AttributeKeyAckSuccess, fmt.Sprintf("%t", ack.Success())),
+		),
+	)
+
+	return nil
+}
+
+// OnTimeoutPacket implements the IBCModule interface
+// Handles packet timeout
+func (im IBCModule) OnTimeoutPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	relayer sdk.AccAddress,
+) error {
+	// Delegate to keeper's timeout handler
+	if err := im.keeper.OnTimeoutPacket(ctx, packet); err != nil {
+		return err
+	}
+
+	// Emit timeout event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypePacketTimeout,
+			sdk.NewAttribute(types.AttributeKeyChannelID, packet.SourceChannel),
+			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
+		),
+	)
+
+	return nil
+}
+
+// Helper functions for packet handling
+
+func (im IBCModule) handleSubscribePrices(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.IBCPacketData,
+) ibcexported.Acknowledgement {
+	// Handle price subscription
+	ackData := types.SubscribePricesAcknowledgement{
+		Success: true,
+	}
+
+	ackBytes, err := ackData.GetBytes()
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackBytes)
+}
+
+func (im IBCModule) handleQueryPrice(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.IBCPacketData,
+) ibcexported.Acknowledgement {
+	// Query local price data
+	ackData := types.QueryPriceAcknowledgement{
+		Success: true,
+	}
+
+	ackBytes, err := ackData.GetBytes()
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackBytes)
+}
+
+func (im IBCModule) handlePriceUpdate(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.IBCPacketData,
+) ibcexported.Acknowledgement {
+	// Delegate to keeper
+	ack, err := im.keeper.OnRecvPacket(ctx, packet)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+	return ack
+}
+
+func (im IBCModule) handleOracleHeartbeat(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.IBCPacketData,
+) ibcexported.Acknowledgement {
+	// Delegate to keeper
+	ack, err := im.keeper.OnRecvPacket(ctx, packet)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+	return ack
+}

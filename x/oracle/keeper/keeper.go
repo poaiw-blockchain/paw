@@ -1,0 +1,43 @@
+package keeper
+
+import (
+	"context"
+
+	storetypes "cosmossdk.io/store/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
+	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+)
+
+// Keeper of the oracle store
+type Keeper struct {
+	storeKey       storetypes.StoreKey
+	cdc            codec.BinaryCodec
+	bankKeeper     bankkeeper.Keeper
+	stakingKeeper  *stakingkeeper.Keeper
+	slashingKeeper slashingkeeper.Keeper
+	ibcKeeper      *ibckeeper.Keeper
+	authority      string
+}
+
+// NewKeeper creates a new oracle Keeper instance
+func NewKeeper(cdc codec.BinaryCodec, key storetypes.StoreKey, bankKeeper bankkeeper.Keeper, stakingKeeper *stakingkeeper.Keeper, slashingKeeper slashingkeeper.Keeper, ibcKeeper *ibckeeper.Keeper, authority string) *Keeper {
+	return &Keeper{
+		storeKey:       key,
+		cdc:            cdc,
+		bankKeeper:     bankKeeper,
+		stakingKeeper:  stakingKeeper,
+		slashingKeeper: slashingKeeper,
+		ibcKeeper:      ibcKeeper,
+		authority:      authority,
+	}
+}
+
+// getStore returns the KVStore for the oracle module
+func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	return sdkCtx.KVStore(k.storeKey)
+}

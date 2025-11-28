@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  api-docs:
+    image: nginx:alpine
+    container_name: paw-api-docs
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - paw-docs
+
+  # Optional: Swagger UI standalone
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: paw-swagger-ui
+    ports:
+      - "8081:8080"
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+      BASE_URL: /swagger-ui
+    volumes:
+      - ./openapi.yaml:/openapi.yaml:ro
+    restart: unless-stopped
+    networks:
+      - paw-docs
+
+  # Optional: Redoc standalone
+  redoc:
+    image: redocly/redoc:latest
+    container_name: paw-redoc
+    ports:
+      - "8082:80"
+    environment:
+      SPEC_URL: /openapi.yaml
+    volumes:
+      - ./openapi.yaml:/usr/share/nginx/html/openapi.yaml:ro
+    restart: unless-stopped
+    networks:
+      - paw-docs
+
+networks:
+  paw-docs:
+    driver: bridge
+
+volumes:
+  docs-data:

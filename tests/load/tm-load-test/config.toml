@@ -1,0 +1,105 @@
+# Tendermint Load Testing Configuration
+# This configuration is used with tm-load-test tool to stress test the Tendermint consensus layer
+
+[global]
+# Total number of transactions to send
+total_txs = 10000
+
+# Rate at which to send transactions (txs per second)
+tx_rate = 100
+
+# Broadcast method: sync, async, or commit
+# - async: fastest, returns immediately
+# - sync: waits for CheckTx
+# - commit: waits for DeliverTx (slowest but most reliable)
+broadcast_tx_method = "async"
+
+# Size of each transaction in bytes (default: 250)
+tx_size = 250
+
+# Number of connections to maintain to each endpoint
+connections = 10
+
+# Send duration in seconds (0 = unlimited, stops after total_txs)
+send_duration = 0
+
+# Statistics output interval in seconds
+stats_output_interval = 10
+
+[client]
+# RPC endpoints to connect to (can specify multiple for load balancing)
+endpoints = [
+    "http://localhost:26657",
+]
+
+# Timeout for RPC requests in seconds
+timeout = 10
+
+# Maximum number of pending transactions
+max_pending = 1000
+
+[transaction]
+# Transaction payload type
+# Options: random, ping, kvstore
+payload_type = "random"
+
+# For kvstore transactions, key prefix
+kvstore_key_prefix = "loadtest"
+
+# For kvstore transactions, value size
+kvstore_value_size = 100
+
+[monitoring]
+# Enable Prometheus metrics
+prometheus_enabled = true
+
+# Prometheus listen address
+prometheus_listen_addr = ":26660"
+
+# Export detailed metrics
+detailed_metrics = true
+
+[output]
+# Output format: json, csv, or text
+format = "json"
+
+# Output file path (empty = stdout)
+output_file = "tests/load/reports/tm-load-test-results.json"
+
+# Enable verbose logging
+verbose = true
+
+# Log file path
+log_file = "tests/load/reports/tm-load-test.log"
+
+# Scenarios for different test configurations
+[[scenarios]]
+name = "light_load"
+total_txs = 1000
+tx_rate = 50
+duration = 20
+
+[[scenarios]]
+name = "normal_load"
+total_txs = 10000
+tx_rate = 100
+duration = 100
+
+[[scenarios]]
+name = "heavy_load"
+total_txs = 50000
+tx_rate = 500
+duration = 100
+
+[[scenarios]]
+name = "stress_test"
+total_txs = 100000
+tx_rate = 1000
+duration = 100
+
+[[scenarios]]
+name = "burst_test"
+# Simulate burst traffic
+total_txs = 5000
+tx_rate = 2000
+duration = 3

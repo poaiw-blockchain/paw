@@ -1,0 +1,143 @@
+---
+# PAW Blockchain Storage Classes
+# Define different storage tiers for different workloads
+
+# Fast SSD Storage for Validators
+# High IOPS, low latency for consensus-critical operations
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-storage-ssd
+  labels:
+    app: paw
+    tier: fast
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: '16000'
+  throughput: '1000'
+  fsType: ext4
+  encrypted: 'true'
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# Fast Storage for Full Nodes
+# Good balance of performance and cost
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-storage-fast
+  labels:
+    app: paw
+    tier: medium
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: '8000'
+  throughput: '500'
+  fsType: ext4
+  encrypted: 'true'
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+
+---
+# Standard Storage for Backups
+# Cost-effective for infrequent access
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-storage-standard
+  labels:
+    app: paw
+    tier: backup
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: st1
+  fsType: ext4
+  encrypted: 'true'
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+
+---
+# Persistent Volume Claim for Snapshots
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paw-snapshots
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    purpose: snapshots
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: paw-storage-standard
+  resources:
+    requests:
+      storage: 2Ti
+
+---
+# Volume Snapshot Class for Backups
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: paw-snapshot-class
+  labels:
+    app: paw
+driver: ebs.csi.aws.com
+deletionPolicy: Retain
+parameters:
+  encrypted: 'true'
+
+---
+# Example Volume Snapshot
+# To create a snapshot of validator data:
+# apiVersion: snapshot.storage.k8s.io/v1
+# kind: VolumeSnapshot
+# metadata:
+#   name: paw-validator-0-snapshot
+#   namespace: paw-blockchain
+# spec:
+#   volumeSnapshotClassName: paw-snapshot-class
+#   source:
+#     persistentVolumeClaimName: data-paw-validator-0
+
+---
+# Backup PVC for State Exports
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paw-backup-storage
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    purpose: backup
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: paw-storage-standard
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# PVC for Chain Snapshots (for fast sync)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paw-chain-snapshots
+  namespace: paw-blockchain
+  labels:
+    app: paw
+    purpose: fast-sync
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: paw-storage-fast
+  resources:
+    requests:
+      storage: 1Ti

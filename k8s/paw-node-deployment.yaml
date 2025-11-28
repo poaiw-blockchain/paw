@@ -1,0 +1,346 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+    component: blockchain
+    tier: node
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: paw-node
+  template:
+    metadata:
+      labels:
+        app: paw-node
+        component: blockchain
+        tier: node
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '26660'
+        prometheus.io/path: '/metrics'
+    spec:
+      serviceAccountName: paw-node
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: verify-genesis
+          image: alpine:3.20
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              set -e
+
+              echo "========================================="
+              echo "PAW Genesis Verification (Multi-layer)"
+              echo "========================================="
+
+              # Install dependencies
+              echo "Installing verification tools..."
+              apk add --no-cache gnupg wget jq
+
+              # Create config directory if needed
+              mkdir -p /paw/.paw/config
+
+              # Check if genesis already exists and is valid
+              if [ -f /paw/.paw/config/genesis.json ]; then
+                echo "Genesis file exists, verifying..."
+                EXISTING_HASH=$(sha256sum /paw/.paw/config/genesis.json | awk '{print $1}')
+                if [ "$EXISTING_HASH" = "$GENESIS_CHECKSUM" ]; then
+                  echo "✓ Existing genesis file is valid (checksum match)"
+                  exit 0
+                else
+                  echo "⚠ Existing genesis checksum mismatch, re-downloading..."
+                  rm -f /paw/.paw/config/genesis.json
+                fi
+              fi
+
+              echo ""
+              echo "Downloading genesis file from: $GENESIS_URL"
+              wget -O /paw/.paw/config/genesis.json "$GENESIS_URL" || {
+                echo "❌ ERROR: Failed to download genesis file!"
+                exit 1
+              }
+
+              echo "✓ Genesis file downloaded"
+              echo ""
+
+              # SECURITY LAYER 1: SHA256 Checksum Verification
+              echo "Security Layer 1: SHA256 Checksum Verification"
+              echo "Expected: $GENESIS_CHECKSUM"
+              ACTUAL_HASH=$(sha256sum /paw/.paw/config/genesis.json | awk '{print $1}')
+              echo "Actual:   $ACTUAL_HASH"
+
+              if [ "$ACTUAL_HASH" != "$GENESIS_CHECKSUM" ]; then
+                echo "❌ CRITICAL ERROR: Genesis checksum verification FAILED!"
+                echo "This could indicate a compromised genesis file."
+                echo "DO NOT proceed with this file!"
+                rm -f /paw/.paw/config/genesis.json
+                exit 1
+              fi
+              echo "✓ Checksum verification PASSED"
+              echo ""
+
+              # SECURITY LAYER 2: GPG Signature Verification
+              if [ -n "$TRUSTED_PUBLIC_KEY" ]; then
+                echo "Security Layer 2: GPG Signature Verification"
+
+                # Import trusted public key
+                echo "$TRUSTED_PUBLIC_KEY" | gpg --import 2>/dev/null || {
+                  echo "❌ ERROR: Failed to import GPG public key!"
+                  exit 1
+                }
+                echo "✓ GPG public key imported"
+
+                # Download signature
+                echo "Downloading genesis signature..."
+                wget -O /tmp/genesis.json.sig "$GENESIS_SIG_URL" || {
+                  echo "❌ ERROR: Failed to download genesis signature!"
+                  exit 1
+                }
+
+                # Verify signature
+                gpg --verify /tmp/genesis.json.sig /paw/.paw/config/genesis.json 2>&1 | tee /tmp/gpg_output.txt
+
+                if grep -q "Good signature" /tmp/gpg_output.txt; then
+                  echo "✓ GPG signature verification PASSED"
+                else
+                  echo "❌ CRITICAL ERROR: GPG signature verification FAILED!"
+                  echo "Genesis file may be tampered or unauthorized!"
+                  rm -f /paw/.paw/config/genesis.json
+                  exit 1
+                fi
+                echo ""
+              else
+                echo "⚠ Warning: GPG verification skipped (no public key provided)"
+                echo ""
+              fi
+
+              # SECURITY LAYER 3: Chain ID Verification
+              echo "Security Layer 3: Chain ID Verification"
+              CHAIN_ID=$(jq -r '.chain_id' /paw/.paw/config/genesis.json)
+              echo "Chain ID: $CHAIN_ID"
+              echo "Expected: $EXPECTED_CHAIN_ID"
+
+              if [ "$CHAIN_ID" != "$EXPECTED_CHAIN_ID" ]; then
+                echo "❌ CRITICAL ERROR: Chain ID mismatch!"
+                echo "Expected: $EXPECTED_CHAIN_ID"
+                echo "Got: $CHAIN_ID"
+                rm -f /paw/.paw/config/genesis.json
+                exit 1
+              fi
+              echo "✓ Chain ID verification PASSED"
+              echo ""
+
+              # SECURITY LAYER 4: JSON Structure Validation
+              echo "Security Layer 4: JSON Structure Validation"
+              jq empty /paw/.paw/config/genesis.json || {
+                echo "❌ CRITICAL ERROR: Invalid JSON structure!"
+                rm -f /paw/.paw/config/genesis.json
+                exit 1
+              }
+              echo "✓ JSON structure validation PASSED"
+              echo ""
+
+              # Additional validations
+              echo "Additional Validations:"
+              GENESIS_TIME=$(jq -r '.genesis_time' /paw/.paw/config/genesis.json)
+              echo "  Genesis Time: $GENESIS_TIME"
+
+              VALIDATORS=$(jq '.validators | length' /paw/.paw/config/genesis.json)
+              echo "  Genesis Validators: $VALIDATORS"
+
+              echo ""
+              echo "========================================="
+              echo "✅ GENESIS VERIFICATION COMPLETE"
+              echo "========================================="
+              echo "Genesis file is VERIFIED and SAFE to use"
+              echo "Hash: $ACTUAL_HASH"
+              echo "Chain: $CHAIN_ID"
+              echo "========================================="
+          env:
+            - name: GENESIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: genesis-config
+                  key: GENESIS_URL
+            - name: GENESIS_SIG_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: genesis-config
+                  key: GENESIS_SIG_URL
+                  optional: true
+            - name: GENESIS_CHECKSUM
+              valueFrom:
+                configMapKeyRef:
+                  name: genesis-config
+                  key: GENESIS_CHECKSUM
+            - name: EXPECTED_CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+            - name: TRUSTED_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paw-secrets
+                  key: gpg-public-key
+                  optional: true
+          volumeMounts:
+            - name: paw-data
+              mountPath: /paw/.paw
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: paw-node
+          image: paw-chain/paw:latest
+          imagePullPolicy: Always
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+            - name: MONIKER
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MINIMUM_GAS_PRICES
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: MINIMUM_GAS_PRICES
+            - name: PRUNING
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: PRUNING
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: LOG_LEVEL
+            - name: EXPECTED_CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+            - name: STATE_SYNC_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-node-config
+                  key: STATE_SYNC_ENABLED
+          volumeMounts:
+            - name: paw-data
+              mountPath: /paw/.paw
+            - name: config
+              mountPath: /paw/.paw/config
+          resources:
+            requests:
+              cpu: '2'
+              memory: '4Gi'
+            limits:
+              cpu: '4'
+              memory: '8Gi'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Check genesis file exists
+                  [ -f /paw/.paw/config/genesis.json ] || exit 1
+
+                  # Verify chain-id matches (requires jq in container)
+                  if command -v jq >/dev/null 2>&1; then
+                    CHAIN_ID=$(jq -r '.chain_id' /paw/.paw/config/genesis.json)
+                    [ "$CHAIN_ID" = "$EXPECTED_CHAIN_ID" ] || exit 1
+                  fi
+
+                  # Check node health endpoint
+                  curl -f http://localhost:26657/health || exit 1
+
+                  exit 0
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: paw-node-config
+        - name: paw-data
+          persistentVolumeClaim:
+            claimName: paw-node-data
+      nodeSelector:
+        node-type: blockchain
+      tolerations:
+        - key: 'blockchain'
+          operator: 'Equal'
+          value: 'true'
+          effect: 'NoSchedule'
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - paw-node
+                topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node

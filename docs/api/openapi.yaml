@@ -1,0 +1,1281 @@
+openapi: 3.0.3
+info:
+  title: PAW Blockchain API
+  version: 1.0.0
+  description: |
+    # PAW Blockchain REST API Documentation
+
+    Complete API reference for the PAW Blockchain - a lean Layer-1 blockchain with built-in DEX,
+    secure compute aggregation, and mobile-ready wallets.
+
+    ## Features
+    - **Native DEX**: Atomic swaps and AMM pools
+    - **Oracle Module**: Decentralized price feeds
+    - **Compute Module**: TEE-protected API aggregation
+    - **Standard Cosmos SDK**: Bank, staking, governance, auth endpoints
+
+    ## Base URLs
+    - **Mainnet**: `https://api.paw.network`
+    - **Testnet**: `https://testnet-api.paw.network`
+    - **Local**: `http://localhost:1317`
+
+    ## Authentication
+    Most read endpoints are public. Write operations require transaction signing with your private key.
+
+    ## Rate Limits
+    - Public endpoints: 100 requests/minute
+    - Authenticated endpoints: 1000 requests/minute
+
+    ## Versioning
+    Current API version: v1. Breaking changes will increment the major version.
+
+  contact:
+    name: PAW Blockchain Team
+    url: https://paw.network
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:1317
+    description: Local development server
+  - url: https://testnet-api.paw.network
+    description: Testnet server
+  - url: https://api.paw.network
+    description: Mainnet production server
+
+tags:
+  - name: DEX
+    description: Decentralized exchange operations (pools, swaps, liquidity)
+  - name: Oracle
+    description: Price feed management and queries
+  - name: Compute
+    description: Secure compute task management
+  - name: Bank
+    description: Token transfers and balance queries
+  - name: Staking
+    description: Validator staking and delegation
+  - name: Governance
+    description: Proposal creation and voting
+  - name: Auth
+    description: Account information and authentication
+  - name: Tendermint
+    description: Blockchain consensus and node information
+  - name: WebSocket
+    description: Real-time event subscriptions
+
+paths:
+  # DEX Endpoints
+  /paw/dex/v1/pools:
+    get:
+      tags: [DEX]
+      summary: List all liquidity pools
+      description: Returns all active liquidity pools with their reserves and metadata
+      operationId: listPools
+      parameters:
+        - name: pagination.limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: pagination.offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pools:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pool'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /paw/dex/v1/pools/{pool_id}:
+    get:
+      tags: [DEX]
+      summary: Get pool by ID
+      description: Returns detailed information about a specific liquidity pool
+      operationId: getPool
+      parameters:
+        - name: pool_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pool:
+                    $ref: '#/components/schemas/Pool'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /paw/dex/v1/pools/{pool_id}/price:
+    get:
+      tags: [DEX]
+      summary: Get current pool price
+      description: Returns the current exchange rate for a pool (tokenA/tokenB)
+      operationId: getPoolPrice
+      parameters:
+        - name: pool_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  price:
+                    type: string
+                    example: "1.523456"
+                  inverse_price:
+                    type: string
+                    example: "0.656324"
+                  last_updated:
+                    type: string
+                    format: date-time
+
+  /paw/dex/v1/estimate_swap:
+    post:
+      tags: [DEX]
+      summary: Estimate swap output
+      description: Calculate expected output amount for a swap (read-only, no state change)
+      operationId: estimateSwap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pool_id, token_in, amount_in]
+              properties:
+                pool_id:
+                  type: integer
+                  format: uint64
+                token_in:
+                  type: string
+                  example: "uapaw"
+                amount_in:
+                  type: string
+                  example: "1000000"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  amount_out:
+                    type: string
+                  price_impact:
+                    type: string
+                  fee:
+                    type: string
+
+  /paw/dex/v1/create_pool:
+    post:
+      tags: [DEX]
+      summary: Create a new liquidity pool
+      description: Creates a new AMM pool for a token pair (requires signed transaction)
+      operationId: createPool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePoolRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  /paw/dex/v1/swap:
+    post:
+      tags: [DEX]
+      summary: Execute token swap
+      description: Swap tokens in a liquidity pool (requires signed transaction)
+      operationId: swap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwapRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  /paw/dex/v1/add_liquidity:
+    post:
+      tags: [DEX]
+      summary: Add liquidity to pool
+      description: Add liquidity to an existing pool and receive LP tokens
+      operationId: addLiquidity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLiquidityRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  /paw/dex/v1/remove_liquidity:
+    post:
+      tags: [DEX]
+      summary: Remove liquidity from pool
+      description: Burn LP tokens to withdraw liquidity from pool
+      operationId: removeLiquidity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveLiquidityRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  # Oracle Endpoints
+  /paw/oracle/v1/prices:
+    get:
+      tags: [Oracle]
+      summary: List all price feeds
+      description: Returns current prices for all tracked assets
+      operationId: listPrices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  price_feeds:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PriceFeed'
+
+  /paw/oracle/v1/prices/{asset}:
+    get:
+      tags: [Oracle]
+      summary: Get price for specific asset
+      description: Returns current price feed for a specific asset
+      operationId: getPrice
+      parameters:
+        - name: asset
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "BTC/USD"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  price_feed:
+                    $ref: '#/components/schemas/PriceFeed'
+
+  /paw/oracle/v1/submit_price:
+    post:
+      tags: [Oracle]
+      summary: Submit price feed (validators only)
+      description: Submit a price feed for an asset (validator-only operation)
+      operationId: submitPrice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitPriceRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  /paw/oracle/v1/params:
+    get:
+      tags: [Oracle]
+      summary: Get oracle parameters
+      description: Returns oracle module parameters (update frequency, slashing config, etc.)
+      operationId: getOracleParams
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  params:
+                    $ref: '#/components/schemas/OracleParams'
+
+  # Compute Endpoints
+  /paw/compute/v1/tasks:
+    get:
+      tags: [Compute]
+      summary: List compute tasks
+      description: Returns all compute tasks (optionally filtered by status)
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, assigned, completed, failed]
+        - name: requester
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComputeTask'
+
+  /paw/compute/v1/tasks/{task_id}:
+    get:
+      tags: [Compute]
+      summary: Get task by ID
+      description: Returns detailed information about a specific compute task
+      operationId: getTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: '#/components/schemas/ComputeTask'
+
+  /paw/compute/v1/submit_task:
+    post:
+      tags: [Compute]
+      summary: Submit compute task
+      description: Submit a new compute task for processing
+      operationId: submitTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitTaskRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  /paw/compute/v1/providers:
+    get:
+      tags: [Compute]
+      summary: List compute providers
+      description: Returns all registered compute providers
+      operationId: listProviders
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ComputeProvider'
+
+  # Bank Endpoints (Cosmos SDK standard)
+  /cosmos/bank/v1beta1/balances/{address}:
+    get:
+      tags: [Bank]
+      summary: Get account balances
+      description: Returns all token balances for an address
+      operationId: getBalances
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "paw1abc123..."
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balances:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Coin'
+
+  /cosmos/bank/v1beta1/supply:
+    get:
+      tags: [Bank]
+      summary: Get total supply
+      description: Returns total supply of all tokens
+      operationId: getTotalSupply
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supply:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Coin'
+
+  /cosmos/bank/v1beta1/send:
+    post:
+      tags: [Bank]
+      summary: Send tokens
+      description: Transfer tokens to another address
+      operationId: sendTokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  # Staking Endpoints
+  /cosmos/staking/v1beta1/validators:
+    get:
+      tags: [Staking]
+      summary: List validators
+      description: Returns all validators (active and inactive)
+      operationId: listValidators
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [BOND_STATUS_BONDED, BOND_STATUS_UNBONDING, BOND_STATUS_UNBONDED]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  validators:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Validator'
+
+  /cosmos/staking/v1beta1/validators/{validator_addr}:
+    get:
+      tags: [Staking]
+      summary: Get validator details
+      description: Returns detailed information about a specific validator
+      operationId: getValidator
+      parameters:
+        - name: validator_addr
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  validator:
+                    $ref: '#/components/schemas/Validator'
+
+  /cosmos/staking/v1beta1/delegations/{delegator_addr}:
+    get:
+      tags: [Staking]
+      summary: Get delegations
+      description: Returns all delegations for a delegator address
+      operationId: getDelegations
+      parameters:
+        - name: delegator_addr
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delegation_responses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Delegation'
+
+  /cosmos/staking/v1beta1/delegate:
+    post:
+      tags: [Staking]
+      summary: Delegate tokens
+      description: Delegate tokens to a validator
+      operationId: delegate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelegateRequest'
+      responses:
+        '200':
+          description: Transaction broadcast successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+  # Governance Endpoints
+  /cosmos/gov/v1beta1/proposals:
+    get:
+      tags: [Governance]
+      summary: List proposals
+      description: Returns all governance proposals
+      operationId: listProposals
+      parameters:
+        - name: proposal_status
+          in: query
+          schema:
+            type: integer
+            enum: [1, 2, 3, 4, 5]
+            description: 1=DepositPeriod, 2=VotingPeriod, 3=Passed, 4=Rejected, 5=Failed
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Proposal'
+
+  /cosmos/gov/v1beta1/proposals/{proposal_id}:
+    get:
+      tags: [Governance]
+      summary: Get proposal details
+      description: Returns detailed information about a specific proposal
+      operationId: getProposal
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposal:
+                    $ref: '#/components/schemas/Proposal'
+
+  /cosmos/gov/v1beta1/proposals/{proposal_id}/votes:
+    get:
+      tags: [Governance]
+      summary: Get proposal votes
+      description: Returns all votes for a proposal
+      operationId: getProposalVotes
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  votes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vote'
+
+  # Auth Endpoints
+  /cosmos/auth/v1beta1/accounts/{address}:
+    get:
+      tags: [Auth]
+      summary: Get account info
+      description: Returns account information including sequence number
+      operationId: getAccount
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    $ref: '#/components/schemas/Account'
+
+  # Tendermint RPC
+  /status:
+    get:
+      tags: [Tendermint]
+      summary: Get node status
+      description: Returns current node status and sync information
+      operationId: getStatus
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeStatus'
+
+  /health:
+    get:
+      tags: [Tendermint]
+      summary: Health check
+      description: Returns node health status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Node is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /block:
+    get:
+      tags: [Tendermint]
+      summary: Get latest block
+      description: Returns the latest block
+      operationId: getLatestBlock
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Block'
+
+  /block/{height}:
+    get:
+      tags: [Tendermint]
+      summary: Get block by height
+      description: Returns block at specific height
+      operationId: getBlockByHeight
+      parameters:
+        - name: height
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Block'
+
+  /tx:
+    get:
+      tags: [Tendermint]
+      summary: Query transaction
+      description: Query transaction by hash
+      operationId: getTx
+      parameters:
+        - name: hash
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "0xABC123..."
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TxResponse'
+
+components:
+  schemas:
+    Pool:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        token_a:
+          type: string
+          example: "uapaw"
+        token_b:
+          type: string
+          example: "ubtc"
+        reserve_a:
+          type: string
+          example: "1000000000"
+        reserve_b:
+          type: string
+          example: "500000000"
+        total_shares:
+          type: string
+          example: "707106781"
+        fee_rate:
+          type: string
+          example: "0.003"
+        created_at:
+          type: string
+          format: date-time
+
+    PriceFeed:
+      type: object
+      properties:
+        asset:
+          type: string
+          example: "BTC/USD"
+        price:
+          type: string
+          example: "45000.50"
+        source:
+          type: string
+          example: "median"
+        updated_at:
+          type: string
+          format: date-time
+        validators_voted:
+          type: integer
+        total_validators:
+          type: integer
+
+    ComputeTask:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: uint64
+        requester:
+          type: string
+        task_type:
+          type: string
+          example: "api_call"
+        status:
+          type: string
+          enum: [pending, assigned, completed, failed]
+        provider:
+          type: string
+        fee:
+          $ref: '#/components/schemas/Coin'
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    ComputeProvider:
+      type: object
+      properties:
+        address:
+          type: string
+        stake:
+          $ref: '#/components/schemas/Coin'
+        reputation_score:
+          type: number
+          format: float
+        tasks_completed:
+          type: integer
+        tee_attestation:
+          type: string
+
+    Coin:
+      type: object
+      properties:
+        denom:
+          type: string
+          example: "uapaw"
+        amount:
+          type: string
+          example: "1000000"
+
+    Validator:
+      type: object
+      properties:
+        operator_address:
+          type: string
+        consensus_pubkey:
+          type: object
+        jailed:
+          type: boolean
+        status:
+          type: string
+        tokens:
+          type: string
+        delegator_shares:
+          type: string
+        description:
+          type: object
+          properties:
+            moniker:
+              type: string
+            identity:
+              type: string
+            website:
+              type: string
+            details:
+              type: string
+        commission:
+          type: object
+          properties:
+            rate:
+              type: string
+            max_rate:
+              type: string
+            max_change_rate:
+              type: string
+
+    Delegation:
+      type: object
+      properties:
+        delegator_address:
+          type: string
+        validator_address:
+          type: string
+        shares:
+          type: string
+        balance:
+          $ref: '#/components/schemas/Coin'
+
+    Proposal:
+      type: object
+      properties:
+        proposal_id:
+          type: integer
+          format: uint64
+        content:
+          type: object
+        status:
+          type: string
+        final_tally_result:
+          type: object
+          properties:
+            yes:
+              type: string
+            abstain:
+              type: string
+            no:
+              type: string
+            no_with_veto:
+              type: string
+        submit_time:
+          type: string
+          format: date-time
+        deposit_end_time:
+          type: string
+          format: date-time
+        total_deposit:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coin'
+        voting_start_time:
+          type: string
+          format: date-time
+        voting_end_time:
+          type: string
+          format: date-time
+
+    Vote:
+      type: object
+      properties:
+        proposal_id:
+          type: integer
+          format: uint64
+        voter:
+          type: string
+        option:
+          type: string
+          enum: [VOTE_OPTION_YES, VOTE_OPTION_NO, VOTE_OPTION_ABSTAIN, VOTE_OPTION_NO_WITH_VETO]
+
+    Account:
+      type: object
+      properties:
+        address:
+          type: string
+        pub_key:
+          type: object
+        account_number:
+          type: integer
+          format: uint64
+        sequence:
+          type: integer
+          format: uint64
+
+    TxResponse:
+      type: object
+      properties:
+        height:
+          type: integer
+          format: int64
+        txhash:
+          type: string
+        codespace:
+          type: string
+        code:
+          type: integer
+        data:
+          type: string
+        raw_log:
+          type: string
+        logs:
+          type: array
+          items:
+            type: object
+        info:
+          type: string
+        gas_wanted:
+          type: integer
+          format: int64
+        gas_used:
+          type: integer
+          format: int64
+        tx:
+          type: object
+        timestamp:
+          type: string
+
+    NodeStatus:
+      type: object
+      properties:
+        node_info:
+          type: object
+          properties:
+            protocol_version:
+              type: object
+            id:
+              type: string
+            listen_addr:
+              type: string
+            network:
+              type: string
+            version:
+              type: string
+            channels:
+              type: string
+            moniker:
+              type: string
+        sync_info:
+          type: object
+          properties:
+            latest_block_hash:
+              type: string
+            latest_app_hash:
+              type: string
+            latest_block_height:
+              type: integer
+              format: int64
+            latest_block_time:
+              type: string
+              format: date-time
+            catching_up:
+              type: boolean
+
+    Block:
+      type: object
+      properties:
+        block_id:
+          type: object
+        block:
+          type: object
+          properties:
+            header:
+              type: object
+            data:
+              type: object
+            evidence:
+              type: object
+            last_commit:
+              type: object
+
+    Pagination:
+      type: object
+      properties:
+        next_key:
+          type: string
+        total:
+          type: integer
+          format: uint64
+
+    OracleParams:
+      type: object
+      properties:
+        update_frequency:
+          type: integer
+          format: int64
+        slash_fraction:
+          type: string
+        min_validators:
+          type: integer
+
+    CreatePoolRequest:
+      type: object
+      required: [creator, token_a, token_b, amount_a, amount_b]
+      properties:
+        creator:
+          type: string
+        token_a:
+          type: string
+        token_b:
+          type: string
+        amount_a:
+          type: string
+        amount_b:
+          type: string
+
+    SwapRequest:
+      type: object
+      required: [sender, pool_id, token_in, amount_in, min_amount_out]
+      properties:
+        sender:
+          type: string
+        pool_id:
+          type: integer
+          format: uint64
+        token_in:
+          type: string
+        amount_in:
+          type: string
+        min_amount_out:
+          type: string
+
+    AddLiquidityRequest:
+      type: object
+      required: [sender, pool_id, amount_a, amount_b, min_shares]
+      properties:
+        sender:
+          type: string
+        pool_id:
+          type: integer
+          format: uint64
+        amount_a:
+          type: string
+        amount_b:
+          type: string
+        min_shares:
+          type: string
+
+    RemoveLiquidityRequest:
+      type: object
+      required: [sender, pool_id, shares, min_amount_a, min_amount_b]
+      properties:
+        sender:
+          type: string
+        pool_id:
+          type: integer
+          format: uint64
+        shares:
+          type: string
+        min_amount_a:
+          type: string
+        min_amount_b:
+          type: string
+
+    SubmitPriceRequest:
+      type: object
+      required: [validator, asset, price]
+      properties:
+        validator:
+          type: string
+        asset:
+          type: string
+        price:
+          type: string
+
+    SubmitTaskRequest:
+      type: object
+      required: [requester, task_type, fee]
+      properties:
+        requester:
+          type: string
+        task_type:
+          type: string
+        task_data:
+          type: object
+        fee:
+          $ref: '#/components/schemas/Coin'
+
+    SendRequest:
+      type: object
+      required: [from_address, to_address, amount]
+      properties:
+        from_address:
+          type: string
+        to_address:
+          type: string
+        amount:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coin'
+
+    DelegateRequest:
+      type: object
+      required: [delegator_address, validator_address, amount]
+      properties:
+        delegator_address:
+          type: string
+        validator_address:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Coin'
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        details:
+          type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 404
+            message: "Resource not found"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 500
+            message: "Internal server error"
+
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 400
+            message: "Invalid request parameters"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authenticated endpoints (optional for public data)
+
+security:
+  - ApiKeyAuth: []

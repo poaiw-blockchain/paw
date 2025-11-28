@@ -1,0 +1,611 @@
+syntax = "proto3";
+package paw.compute.v1;
+
+import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/paw-chain/paw/x/compute/types";
+
+// RequestStatus defines lifecycle states for compute requests.
+enum RequestStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  REQUEST_STATUS_PENDING = 1;
+  REQUEST_STATUS_ASSIGNED = 2;
+  REQUEST_STATUS_PROCESSING = 3;
+  REQUEST_STATUS_COMPLETED = 4;
+  REQUEST_STATUS_FAILED = 5;
+  REQUEST_STATUS_CANCELLED = 6;
+}
+
+// EscrowStatus defines the lifecycle states for escrow accounts.
+enum EscrowStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  ESCROW_STATUS_UNSPECIFIED = 0;
+  ESCROW_STATUS_LOCKED = 1;       // Funds are locked in escrow
+  ESCROW_STATUS_CHALLENGED = 2;   // Release initiated, in challenge period
+  ESCROW_STATUS_RELEASED = 3;     // Funds released to provider
+  ESCROW_STATUS_REFUNDED = 4;     // Funds refunded to requester
+  ESCROW_STATUS_DISPUTED = 5;     // Dispute filed, funds frozen
+}
+
+// ComputeSpec defines the resource specifications for compute requests.
+message ComputeSpec {
+  // cpu_cores is the number of CPU cores required (in millicores, e.g., 1000 = 1 core)
+  uint64 cpu_cores = 1;
+
+  // memory_mb is the amount of memory required in megabytes
+  uint64 memory_mb = 2;
+
+  // gpu_count is the number of GPUs required
+  uint32 gpu_count = 3;
+
+  // gpu_type is the specific GPU model required (optional)
+  string gpu_type = 4;
+
+  // storage_gb is the amount of storage required in gigabytes
+  uint64 storage_gb = 5;
+
+  // timeout_seconds is the maximum execution time in seconds
+  uint64 timeout_seconds = 6;
+}
+
+// Provider represents a registered compute provider.
+message Provider {
+  // address is the bech32 address of the provider
+  string address = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // moniker is a human-readable name for the provider
+  string moniker = 2;
+
+  // endpoint is the URL where the provider's compute service is accessible
+  string endpoint = 3;
+
+  // available_specs describes the provider's available compute resources
+  ComputeSpec available_specs = 4 [(gogoproto.nullable) = false];
+
+  // pricing defines the cost per unit of compute
+  Pricing pricing = 5 [(gogoproto.nullable) = false];
+
+  // stake is the amount of tokens staked by the provider
+  string stake = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // reputation is the provider's reputation score (0-100)
+  uint32 reputation = 7;
+
+  // total_requests_completed is the total number of successfully completed requests
+  uint64 total_requests_completed = 8;
+
+  // total_requests_failed is the total number of failed requests
+  uint64 total_requests_failed = 9;
+
+  // active indicates whether the provider is currently accepting requests
+  bool active = 10;
+
+  // registered_at is the timestamp when the provider registered
+  google.protobuf.Timestamp registered_at = 11 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // last_active_at is the timestamp of the provider's last activity
+  google.protobuf.Timestamp last_active_at = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// Pricing defines the cost structure for compute resources.
+message Pricing {
+  // cpu_price_per_mcore_hour is the price per millicore-hour
+  string cpu_price_per_mcore_hour = 1 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // memory_price_per_mb_hour is the price per megabyte-hour
+  string memory_price_per_mb_hour = 2 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // gpu_price_per_hour is the price per GPU-hour
+  string gpu_price_per_hour = 3 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // storage_price_per_gb_hour is the price per gigabyte-hour
+  string storage_price_per_gb_hour = 4 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// Request represents a compute request submitted by a user.
+message Request {
+  // id is the unique identifier for the request
+  uint64 id = 1;
+
+  // requester is the bech32 address of the user requesting compute
+  string requester = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // provider is the bech32 address of the assigned provider (if assigned)
+  string provider = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // specs defines the required compute resources
+  ComputeSpec specs = 4 [(gogoproto.nullable) = false];
+
+  // container_image is the Docker image to execute
+  string container_image = 5;
+
+  // command is the command to run in the container
+  repeated string command = 6;
+
+  // env_vars are environment variables to set in the container
+  map<string, string> env_vars = 7;
+
+  // status is the current status of the request
+  RequestStatus status = 8;
+
+  // max_payment is the maximum amount the requester is willing to pay
+  string max_payment = 9 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // escrowed_amount is the amount currently held in escrow
+  string escrowed_amount = 10 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // created_at is the timestamp when the request was created
+  google.protobuf.Timestamp created_at = 11 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // assigned_at is the timestamp when the request was assigned to a provider
+  google.protobuf.Timestamp assigned_at = 12 [(gogoproto.stdtime) = true];
+
+  // completed_at is the timestamp when the request was completed
+  google.protobuf.Timestamp completed_at = 13 [(gogoproto.stdtime) = true];
+
+  // result_hash is the hash of the computation result
+  string result_hash = 14;
+
+  // result_url is the URL where the result can be retrieved
+  string result_url = 15;
+
+  // error_message contains error details if the request failed
+  string error_message = 16;
+}
+
+// Result represents the output of a completed compute request.
+message Result {
+  // request_id is the ID of the request this result corresponds to
+  uint64 request_id = 1;
+
+  // provider is the address of the provider that produced the result
+  string provider = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // output_hash is the hash of the computation output
+  string output_hash = 3;
+
+  // output_url is the URL where the output can be retrieved
+  string output_url = 4;
+
+  // exit_code is the exit code of the computation
+  int32 exit_code = 5;
+
+  // logs_url is the URL where execution logs can be retrieved
+  string logs_url = 6;
+
+  // verification_proof is the cryptographic proof of correct execution
+  bytes verification_proof = 7;
+
+  // submitted_at is the timestamp when the result was submitted
+  google.protobuf.Timestamp submitted_at = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // verified indicates whether the result has been verified
+  bool verified = 9;
+
+  // verification_score is the confidence score of the verification (0-100)
+  uint32 verification_score = 10;
+}
+
+// EscrowState represents the state of escrowed funds for a compute request.
+message EscrowState {
+  // request_id is the ID of the request this escrow is for
+  uint64 request_id = 1;
+
+  // requester is the address that deposited the funds
+  string requester = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // provider is the address that will receive the funds on completion
+  string provider = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // amount is the total amount held in escrow
+  string amount = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // status is the current status of the escrow
+  EscrowStatus status = 5;
+
+  // locked_at is when the funds were locked
+  google.protobuf.Timestamp locked_at = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // expires_at is when the escrow will automatically refund if not completed
+  google.protobuf.Timestamp expires_at = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // released_at is when the funds were released to provider
+  google.protobuf.Timestamp released_at = 8 [(gogoproto.stdtime) = true];
+
+  // refunded_at is when the funds were refunded to requester
+  google.protobuf.Timestamp refunded_at = 9 [(gogoproto.stdtime) = true];
+
+  // dispute_id is the ID of any associated dispute (0 if none)
+  uint64 dispute_id = 10;
+
+  // challenge_ends_at is when the challenge period ends (if in CHALLENGED status)
+  google.protobuf.Timestamp challenge_ends_at = 11 [(gogoproto.stdtime) = true];
+
+  // release_attempts tracks the number of release attempts (double-spend prevention)
+  uint32 release_attempts = 12;
+
+  // nonce is a unique identifier for this escrow operation
+  uint64 nonce = 13;
+}
+
+// Params defines the parameters for the compute module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // min_provider_stake is the minimum stake required to register as a provider
+  string min_provider_stake = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // verification_timeout_seconds is the timeout for result verification
+  uint64 verification_timeout_seconds = 2;
+
+  // max_request_timeout_seconds is the maximum allowed timeout for a request
+  uint64 max_request_timeout_seconds = 3;
+
+  // reputation_slash_percentage is the percentage to slash from reputation on failure
+  uint32 reputation_slash_percentage = 4;
+
+  // stake_slash_percentage is the percentage to slash from stake on malicious behavior
+  uint32 stake_slash_percentage = 5;
+
+  // min_reputation_score is the minimum reputation required to accept requests
+  uint32 min_reputation_score = 6;
+
+  // escrow_release_delay_seconds is the delay before releasing escrowed funds
+  uint64 escrow_release_delay_seconds = 7;
+}
+
+// DisputeStatus defines the lifecycle states for disputes.
+enum DisputeStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  DISPUTE_STATUS_UNSPECIFIED = 0;
+  DISPUTE_STATUS_EVIDENCE_SUBMISSION = 1;  // Parties can submit evidence
+  DISPUTE_STATUS_VOTING = 2;                // Validators vote on dispute
+  DISPUTE_STATUS_TALLYING = 3;              // Counting votes
+  DISPUTE_STATUS_RESOLVED = 4;              // Dispute resolved
+  DISPUTE_STATUS_APPEALED = 5;              // Appeal filed
+}
+
+// DisputeVoteOption defines the voting options for disputes.
+enum DisputeVoteOption {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  DISPUTE_VOTE_UNSPECIFIED = 0;
+  DISPUTE_VOTE_PROVIDER_FAULT = 1;          // Provider was at fault
+  DISPUTE_VOTE_REQUESTER_FAULT = 2;         // Requester was at fault
+  DISPUTE_VOTE_INSUFFICIENT_EVIDENCE = 3;   // Not enough evidence to decide
+  DISPUTE_VOTE_NO_FAULT = 4;                // Technical issue, no party at fault
+}
+
+// DisputeResolution defines the outcome of a resolved dispute.
+enum DisputeResolution {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  DISPUTE_RESOLUTION_UNSPECIFIED = 0;
+  DISPUTE_RESOLUTION_SLASH_PROVIDER = 1;    // Slash provider, refund requester
+  DISPUTE_RESOLUTION_NO_REFUND = 2;         // Requester was at fault
+  DISPUTE_RESOLUTION_PARTIAL_REFUND = 3;    // Split responsibility
+  DISPUTE_RESOLUTION_TECHNICAL_ISSUE = 4;   // Refund, no slash
+}
+
+// AppealStatus defines the lifecycle states for appeals.
+enum AppealStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  APPEAL_STATUS_UNSPECIFIED = 0;
+  APPEAL_STATUS_PENDING = 1;
+  APPEAL_STATUS_VOTING = 2;
+  APPEAL_STATUS_RESOLVED = 3;
+}
+
+// Dispute represents a dispute filed against a provider.
+message Dispute {
+  // id is the unique identifier for the dispute
+  uint64 id = 1;
+
+  // request_id is the ID of the disputed request
+  uint64 request_id = 2;
+
+  // requester is the address of the party filing the dispute
+  string requester = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // provider is the address of the disputed provider
+  string provider = 4 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // reason is the human-readable reason for the dispute
+  string reason = 5;
+
+  // status is the current status of the dispute
+  DisputeStatus status = 6;
+
+  // deposit is the deposit paid to file the dispute
+  string deposit = 7 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // created_at is the timestamp when the dispute was created
+  google.protobuf.Timestamp created_at = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // evidence_ends_at is when the evidence submission period ends
+  google.protobuf.Timestamp evidence_ends_at = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // voting_ends_at is when the voting period ends
+  google.protobuf.Timestamp voting_ends_at = 10 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // votes are the votes cast by validators
+  repeated DisputeVote votes = 11 [(gogoproto.nullable) = false];
+
+  // resolution is the final outcome of the dispute
+  DisputeResolution resolution = 12;
+
+  // resolved_at is when the dispute was resolved
+  google.protobuf.Timestamp resolved_at = 13 [(gogoproto.stdtime) = true];
+}
+
+// DisputeVote represents a validator's vote on a dispute.
+message DisputeVote {
+  // validator is the address of the validator
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // option is the vote choice
+  DisputeVoteOption option = 2;
+
+  // justification is the validator's reasoning (optional)
+  string justification = 3;
+
+  // voting_power is the validator's voting power at the time of vote
+  string voting_power = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // voted_at is when the vote was cast
+  google.protobuf.Timestamp voted_at = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// Evidence represents evidence submitted for a dispute.
+message Evidence {
+  // dispute_id is the ID of the dispute this evidence is for
+  uint64 dispute_id = 1;
+
+  // submitter is the address of the party submitting evidence
+  string submitter = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // evidence_type describes the type of evidence (logs, screenshots, etc.)
+  string evidence_type = 3;
+
+  // data is the evidence data (could be a hash or URL)
+  bytes data = 4;
+
+  // description is a human-readable description
+  string description = 5;
+
+  // submitted_at is when the evidence was submitted
+  google.protobuf.Timestamp submitted_at = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// SlashRecord represents a slashing event that can be appealed.
+message SlashRecord {
+  // id is the unique identifier for the slash record
+  uint64 id = 1;
+
+  // provider is the address of the slashed provider
+  string provider = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // request_id is the ID of the request that caused the slash (optional)
+  uint64 request_id = 3;
+
+  // dispute_id is the ID of the dispute that caused the slash (optional)
+  uint64 dispute_id = 4;
+
+  // amount is the amount slashed
+  string amount = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // reason is the reason for slashing
+  string reason = 6;
+
+  // slashed_at is when the slashing occurred
+  google.protobuf.Timestamp slashed_at = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // appealed indicates whether this slash has been appealed
+  bool appealed = 8;
+
+  // appeal_id is the ID of the appeal (if appealed)
+  uint64 appeal_id = 9;
+}
+
+// Appeal represents an appeal of a slashing event.
+message Appeal {
+  // id is the unique identifier for the appeal
+  uint64 id = 1;
+
+  // slash_id is the ID of the slash record being appealed
+  uint64 slash_id = 2;
+
+  // provider is the address of the provider appealing
+  string provider = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // justification is the provider's argument for appeal
+  string justification = 4;
+
+  // status is the current status of the appeal
+  AppealStatus status = 5;
+
+  // deposit is the deposit paid to file the appeal
+  string deposit = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // created_at is when the appeal was filed
+  google.protobuf.Timestamp created_at = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // voting_ends_at is when the voting period ends
+  google.protobuf.Timestamp voting_ends_at = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // votes are the votes cast on the appeal
+  repeated AppealVote votes = 9 [(gogoproto.nullable) = false];
+
+  // approved indicates whether the appeal was approved
+  bool approved = 10;
+
+  // resolved_at is when the appeal was resolved
+  google.protobuf.Timestamp resolved_at = 11 [(gogoproto.stdtime) = true];
+}
+
+// AppealVote represents a vote on an appeal.
+message AppealVote {
+  // validator is the address of the validator
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // approve indicates whether the validator approves the appeal
+  bool approve = 2;
+
+  // justification is the validator's reasoning
+  string justification = 3;
+
+  // voting_power is the validator's voting power at the time of vote
+  string voting_power = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // voted_at is when the vote was cast
+  google.protobuf.Timestamp voted_at = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// GovernanceParams defines governance-specific parameters.
+message GovernanceParams {
+  // dispute_deposit is the required deposit to file a dispute
+  string dispute_deposit = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // evidence_period_seconds is the duration of the evidence submission period
+  uint64 evidence_period_seconds = 2;
+
+  // voting_period_seconds is the duration of the voting period
+  uint64 voting_period_seconds = 3;
+
+  // quorum_percentage is the minimum percentage of bonded stake that must vote
+  string quorum_percentage = 4 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // consensus_threshold is the percentage required for a decision
+  string consensus_threshold = 5 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // slash_percentage is the percentage of stake to slash on provider fault
+  string slash_percentage = 6 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // appeal_deposit_percentage is the deposit required for appeals (% of slash amount)
+  string appeal_deposit_percentage = 7 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // max_evidence_size is the maximum size of evidence in bytes
+  uint64 max_evidence_size = 8;
+}
+
+// GenesisState defines the compute module's genesis state.
+message GenesisState {
+  // params defines the module parameters at genesis
+  Params params = 1 [(gogoproto.nullable) = false];
+
+  // governance_params defines governance-specific parameters
+  GovernanceParams governance_params = 2 [(gogoproto.nullable) = false];
+
+  // providers is the list of registered providers at genesis
+  repeated Provider providers = 3 [(gogoproto.nullable) = false];
+
+  // requests is the list of compute requests at genesis
+  repeated Request requests = 4 [(gogoproto.nullable) = false];
+
+  // results is the list of results at genesis
+  repeated Result results = 5 [(gogoproto.nullable) = false];
+
+  // disputes is the list of disputes at genesis
+  repeated Dispute disputes = 6 [(gogoproto.nullable) = false];
+
+  // slash_records is the list of slash records at genesis
+  repeated SlashRecord slash_records = 7 [(gogoproto.nullable) = false];
+
+  // appeals is the list of appeals at genesis
+  repeated Appeal appeals = 8 [(gogoproto.nullable) = false];
+
+  // next_request_id is the next request ID to be assigned
+  uint64 next_request_id = 9;
+
+  // next_dispute_id is the next dispute ID to be assigned
+  uint64 next_dispute_id = 10;
+
+  // next_slash_id is the next slash record ID to be assigned
+  uint64 next_slash_id = 11;
+
+  // next_appeal_id is the next appeal ID to be assigned
+  uint64 next_appeal_id = 12;
+}
