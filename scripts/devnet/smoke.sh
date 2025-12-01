@@ -142,6 +142,52 @@ pawd tx gov vote "$PROPOSAL_ID" yes \
   --yes \
   --broadcast-mode block
 
+# ============================
+# Oracle Module Tests
+# ============================
+log "oracle: submit price"
+pawd tx oracle submit-price BTC/USD 50000.00 \
+  --from validator \
+  --chain-id "$CHAIN_ID" \
+  --keyring-backend "$KEYRING_BACKEND" \
+  --home "$HOME_DIR" \
+  --yes \
+  --broadcast-mode block || log "oracle submit-price failed (may need validator registration)"
+
+log "oracle: query price"
+pawd query oracle price BTC/USD --node "$NODE_RPC" --home "$HOME_DIR" || log "oracle price query failed (expected if no aggregation yet)"
+
+# ============================
+# Compute Module Tests
+# ============================
+log "compute: register provider"
+pawd tx compute register-provider \
+  --endpoint "https://compute.local:8080" \
+  --capabilities "cpu,memory" \
+  --price-per-unit 100 \
+  --from smoke-trader \
+  --chain-id "$CHAIN_ID" \
+  --keyring-backend "$KEYRING_BACKEND" \
+  --home "$HOME_DIR" \
+  --yes \
+  --broadcast-mode block || log "compute register-provider failed (may need stake)"
+
+log "compute: submit job"
+pawd tx compute submit-job \
+  --container "docker.io/library/alpine:latest" \
+  --command "echo hello" \
+  --resources '{"cpu":1,"memory":256}' \
+  --max-price 1000 \
+  --from smoke-trader \
+  --chain-id "$CHAIN_ID" \
+  --keyring-backend "$KEYRING_BACKEND" \
+  --home "$HOME_DIR" \
+  --yes \
+  --broadcast-mode block || log "compute submit-job failed (may need registered providers)"
+
+log "compute: list jobs"
+pawd query compute jobs --node "$NODE_RPC" --home "$HOME_DIR" || log "compute jobs query failed"
+
 log "balances after"
 pawd query bank balances "$TRADER" --node "$NODE_RPC" --home "$HOME_DIR"
 pawd query bank balances "$COUNTERPARTY" --node "$NODE_RPC" --home "$HOME_DIR"
