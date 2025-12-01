@@ -371,13 +371,43 @@ func (k Keeper) setEscrowTimeoutIndex(ctx context.Context, requestID uint64, exp
 	key := EscrowTimeoutKey(expiresAt, requestID)
 	store.Set(key, []byte{})
 
+	// Also set reverse index: requestID -> timestamp (for O(1) deletion)
+	reverseKey := EscrowTimeoutReverseKey(requestID)
+	timestampBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestampBz, uint64(expiresAt.Unix()))
+	store.Set(reverseKey, timestampBz)
+
 	return nil
 }
 
-// removeEscrowTimeoutIndex removes the timeout index entry
+// removeEscrowTimeoutIndex removes the timeout index entry using the reverse index
+// for O(1) lookup instead of iterating over all timeout entries.
 func (k Keeper) removeEscrowTimeoutIndex(ctx context.Context, requestID uint64) {
-	// We need to find and delete the timeout index
-	// For now, we'll iterate to find it (TODO: optimize with reverse index)
+	store := k.getStore(ctx)
+
+	// Use reverse index to find timestamp in O(1)
+	reverseKey := EscrowTimeoutReverseKey(requestID)
+	timestampBz := store.Get(reverseKey)
+
+	if timestampBz == nil {
+		// Reverse index not found, fall back to iteration for backward compatibility
+		k.removeEscrowTimeoutIndexSlow(ctx, requestID)
+		return
+	}
+
+	// Reconstruct the timeout key and delete
+	timestamp := binary.BigEndian.Uint64(timestampBz)
+	expiresAt := time.Unix(int64(timestamp), 0)
+	timeoutKey := EscrowTimeoutKey(expiresAt, requestID)
+
+	// Delete both the timeout index and the reverse index
+	store.Delete(timeoutKey)
+	store.Delete(reverseKey)
+}
+
+// removeEscrowTimeoutIndexSlow is the fallback O(n) method for escrows created
+// before the reverse index was added. It iterates to find the timeout entry.
+func (k Keeper) removeEscrowTimeoutIndexSlow(ctx context.Context, requestID uint64) {
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, EscrowTimeoutPrefix)
 	defer iterator.Close()

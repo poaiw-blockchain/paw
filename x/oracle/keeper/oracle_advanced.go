@@ -661,11 +661,16 @@ func (k Keeper) DistributeOracleRewards(ctx context.Context) error {
 
 	// Calculate scores based on accuracy and participation
 	for valAddr, count := range submissions {
-		// Base score from participation
-		score := math.LegacyNewDec(int64(count))
+		// Base score from participation (50% of score)
+		participationScore := math.LegacyNewDec(int64(count))
 
-		// TODO: Add accuracy bonus based on price accuracy
-		// For now, use participation as primary metric
+		// Accuracy bonus based on historical price accuracy (50% of score)
+		// Validators who submit prices closer to the final aggregated price
+		// receive higher accuracy scores
+		accuracyScore := k.calculateValidatorAccuracy(ctx, valAddr)
+
+		// Combined score: participation (1x weight) + accuracy (1x weight)
+		score := participationScore.Add(accuracyScore)
 
 		validatorScores[valAddr] = score
 	}
@@ -716,6 +721,27 @@ func (k Keeper) GetRecentSubmissions(ctx context.Context, blocks int64) map[stri
 	// In production, query actual submission history
 	// For now, return empty map
 	return make(map[string]int)
+}
+
+// calculateValidatorAccuracy returns an accuracy score for a validator address string.
+// The score is normalized to a 0-10 scale based on the validator's AccuracyScore (0-100).
+// This is used internally for reward distribution scoring.
+func (k Keeper) calculateValidatorAccuracy(ctx context.Context, valAddrStr string) math.LegacyDec {
+	valAddr, err := sdk.ValAddressFromBech32(valAddrStr)
+	if err != nil {
+		// Invalid address, return base score
+		return math.LegacyNewDec(5) // Neutral score
+	}
+
+	accuracy, err := k.GetValidatorAccuracy(ctx, valAddr)
+	if err != nil {
+		// No accuracy data, return neutral score
+		return math.LegacyNewDec(5)
+	}
+
+	// Convert 0-100 accuracy score to 0-10 scale for reward calculation
+	// This keeps accuracy bonus weight equal to participation weight
+	return accuracy.AccuracyScore.QuoInt64(10)
 }
 
 // ValidatorAccuracy tracks validator accuracy statistics for bonus calculation

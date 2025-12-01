@@ -93,6 +93,11 @@ var (
 
 	// ProviderStatsKeyPrefix is the prefix for provider performance statistics
 	ProviderStatsKeyPrefix = []byte{0x1C}
+
+	// EscrowTimeoutReversePrefix is the reverse index for escrow timeout lookup by request ID.
+	// Key: prefix + requestID -> timeout timestamp
+	// This enables O(1) lookup when removing timeout indexes.
+	EscrowTimeoutReversePrefix = []byte{0x1D}
 )
 
 // ProviderKey returns the store key for a provider
@@ -290,4 +295,12 @@ func NonceByHeightPrefixForHeight(height int64) []byte {
 // ProviderStatsKey returns the store key for provider statistics
 func ProviderStatsKey(providerAddr string) []byte {
 	return append(ProviderStatsKeyPrefix, []byte(providerAddr)...)
+}
+
+// EscrowTimeoutReverseKey returns the reverse index key for escrow timeout lookup.
+// This enables O(1) deletion of timeout entries by request ID.
+func EscrowTimeoutReverseKey(requestID uint64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, requestID)
+	return append(EscrowTimeoutReversePrefix, bz...)
 }

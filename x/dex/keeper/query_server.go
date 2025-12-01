@@ -194,7 +194,17 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 		return nil, err
 	}
 
-	internalOrders, err := qs.Keeper.GetOrdersByOwner(goCtx, owner)
+	// Extract pagination parameters
+	var pageKey []byte
+	var limit uint64 = 100
+	if req.Pagination != nil {
+		pageKey = req.Pagination.Key
+		if req.Pagination.Limit > 0 {
+			limit = req.Pagination.Limit
+		}
+	}
+
+	internalOrders, nextKey, total, err := qs.Keeper.GetOrdersByOwnerPaginated(goCtx, owner, pageKey, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +215,11 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 	}
 
 	return &types.QueryLimitOrdersByOwnerResponse{
-		Orders:     orders,
-		Pagination: nil, // TODO: Implement pagination in GetOrdersByOwner
+		Orders: orders,
+		Pagination: &query.PageResponse{
+			NextKey: nextKey,
+			Total:   total,
+		},
 	}, nil
 }
 
@@ -216,7 +229,17 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 		return nil, ErrInvalidRequest
 	}
 
-	internalOrders, err := qs.Keeper.GetOrdersByPool(goCtx, req.PoolId)
+	// Extract pagination parameters
+	var pageKey []byte
+	var limit uint64 = 100
+	if req.Pagination != nil {
+		pageKey = req.Pagination.Key
+		if req.Pagination.Limit > 0 {
+			limit = req.Pagination.Limit
+		}
+	}
+
+	internalOrders, nextKey, total, err := qs.Keeper.GetOrdersByPoolPaginated(goCtx, req.PoolId, pageKey, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +250,11 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 	}
 
 	return &types.QueryLimitOrdersByPoolResponse{
-		Orders:     orders,
-		Pagination: nil, // TODO: Implement pagination in GetOrdersByPool
+		Orders: orders,
+		Pagination: &query.PageResponse{
+			NextKey: nextKey,
+			Total:   total,
+		},
 	}, nil
 }
 

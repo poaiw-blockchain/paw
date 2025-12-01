@@ -577,6 +577,66 @@ func (k Keeper) GetOrdersByOwner(ctx context.Context, owner sdk.AccAddress) ([]*
 	return orders, nil
 }
 
+// GetOrdersByOwnerPaginated returns orders for an owner with pagination support.
+// Returns orders, next page key, and total count.
+func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddress, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
+	store := k.getStore(ctx)
+	var orders []*LimitOrder
+	var nextKey []byte
+	var count uint64
+
+	if limit == 0 {
+		limit = 100 // Default limit
+	}
+	if limit > 1000 {
+		limit = 1000 // Max limit
+	}
+
+	prefix := append(LimitOrderByOwnerPrefix, owner.Bytes()...)
+
+	// First count total
+	countIter := storetypes.KVStorePrefixIterator(store, prefix)
+	for ; countIter.Valid(); countIter.Next() {
+		count++
+	}
+	countIter.Close()
+
+	// Then paginate
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	// Skip to page key if provided
+	if len(pageKey) > 0 {
+		for ; iterator.Valid(); iterator.Next() {
+			if string(iterator.Key()) >= string(pageKey) {
+				break
+			}
+		}
+	}
+
+	var collected uint64
+	for ; iterator.Valid() && collected < limit; iterator.Next() {
+		orderID := binary.BigEndian.Uint64(iterator.Key()[len(prefix):])
+		order, err := k.GetLimitOrder(ctx, orderID)
+		if err != nil {
+			continue
+		}
+		orders = append(orders, order)
+		collected++
+
+		// Peek at next for page key
+		if collected == limit {
+			iterator.Next()
+			if iterator.Valid() {
+				nextKey = iterator.Key()
+			}
+			break
+		}
+	}
+
+	return orders, nextKey, count, nil
+}
+
 // GetOrdersByPool returns all orders for a specific pool
 func (k Keeper) GetOrdersByPool(ctx context.Context, poolID uint64) ([]*LimitOrder, error) {
 	store := k.getStore(ctx)
@@ -599,6 +659,68 @@ func (k Keeper) GetOrdersByPool(ctx context.Context, poolID uint64) ([]*LimitOrd
 	}
 
 	return orders, nil
+}
+
+// GetOrdersByPoolPaginated returns orders for a pool with pagination support.
+// Returns orders, next page key, and total count.
+func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
+	store := k.getStore(ctx)
+	var orders []*LimitOrder
+	var nextKey []byte
+	var count uint64
+
+	if limit == 0 {
+		limit = 100 // Default limit
+	}
+	if limit > 1000 {
+		limit = 1000 // Max limit
+	}
+
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	prefix := append(LimitOrderByPoolPrefix, poolIDBytes...)
+
+	// First count total
+	countIter := storetypes.KVStorePrefixIterator(store, prefix)
+	for ; countIter.Valid(); countIter.Next() {
+		count++
+	}
+	countIter.Close()
+
+	// Then paginate
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	// Skip to page key if provided
+	if len(pageKey) > 0 {
+		for ; iterator.Valid(); iterator.Next() {
+			if string(iterator.Key()) >= string(pageKey) {
+				break
+			}
+		}
+	}
+
+	var collected uint64
+	for ; iterator.Valid() && collected < limit; iterator.Next() {
+		orderID := binary.BigEndian.Uint64(iterator.Key()[len(prefix):])
+		order, err := k.GetLimitOrder(ctx, orderID)
+		if err != nil {
+			continue
+		}
+		orders = append(orders, order)
+		collected++
+
+		// Peek at next for page key
+		if collected == limit {
+			iterator.Next()
+			if iterator.Valid() {
+				nextKey = iterator.Key()
+			}
+			break
+		}
+	}
+
+	return orders, nextKey, count, nil
 }
 
 // GetOpenOrders returns all open orders
