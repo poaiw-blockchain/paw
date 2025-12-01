@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
+	sdked25519 "github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/testutil/keeper"
@@ -23,6 +25,7 @@ type ComputeSecuritySuite struct {
 	suite.Suite
 	ctx        sdk.Context
 	keeper     *computekeeper.Keeper
+	bankKeeper bankkeeper.Keeper
 	app        interface{}
 	providers  []sdk.AccAddress
 	requesters []sdk.AccAddress
@@ -36,7 +39,8 @@ func (suite *ComputeSecuritySuite) SetupTest() {
 	testApp, ctx := keeper.SetupTestApp(suite.T())
 	suite.app = testApp
 	suite.ctx = ctx
-	suite.keeper = &testApp.ComputeKeeper
+	suite.keeper = testApp.ComputeKeeper
+	suite.bankKeeper = testApp.BankKeeper
 	suite.providerKeys = make(map[string]ed25519.PrivateKey)
 
 	// Create 10 providers with varying stakes and reputations
@@ -49,13 +53,23 @@ func (suite *ComputeSecuritySuite) SetupTest() {
 		_, privKey, err := ed25519.GenerateKey(rand.Reader)
 		suite.Require().NoError(err)
 		suite.providerKeys[addr.String()] = privKey
+		pubKey := privKey.Public().(ed25519.PublicKey)
+		var sdkPubKey sdked25519.PubKey
+		sdkPubKey.Key = make([]byte, len(pubKey))
+		copy(sdkPubKey.Key, pubKey)
+		acc := testApp.AccountKeeper.GetAccount(suite.ctx, addr)
+		if acc == nil {
+			acc = testApp.AccountKeeper.NewAccountWithAddress(suite.ctx, addr)
+		}
+		acc.SetPubKey(&sdkPubKey)
+		testApp.AccountKeeper.SetAccount(suite.ctx, acc)
 
 		// Fund provider account for staking
 		stakeAmount := math.NewInt(1000000 + int64(i*100000)) // 1-2M tokens
 		coins := sdk.NewCoins(sdk.NewCoin("upaw", stakeAmount))
-		err = suite.keeper.BankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
+		err = suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
 		suite.Require().NoError(err)
-		err = suite.keeper.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
+		err = suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
 		suite.Require().NoError(err)
 
 		// Register provider with different specs
@@ -82,7 +96,7 @@ func (suite *ComputeSecuritySuite) SetupTest() {
 			"http://provider"+string(rune('0'+i))+".github.com",
 			specs,
 			pricing,
-			stakeAmount.QuoRaw(2), // Stake half
+			stakeAmount, // Stake full allocation to satisfy min stake requirements
 		)
 		suite.Require().NoError(err)
 	}
@@ -96,9 +110,9 @@ func (suite *ComputeSecuritySuite) SetupTest() {
 		// Fund requester account
 		fundAmount := math.NewInt(10000000) // 10M tokens
 		coins := sdk.NewCoins(sdk.NewCoin("upaw", fundAmount))
-		err := suite.keeper.BankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
+		err := suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
 		suite.Require().NoError(err)
-		err = suite.keeper.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
+		err = suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
 		suite.Require().NoError(err)
 	}
 }
@@ -135,7 +149,7 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_DoubleSpend() {
 	suite.Require().NoError(err)
 
 	// Get provider balance before
-	providerBalanceBefore := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceBefore := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Submit valid result
 	outputHash := "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
@@ -152,30 +166,29 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_DoubleSpend() {
 		proof,
 	)
 	suite.Require().NoError(err)
-
 	// First release should succeed
 	request, err := suite.keeper.GetRequest(suite.ctx, requestID)
 	suite.Require().NoError(err)
-	suite.Require().Equal(types.RequestStatus_REQUEST_STATUS_COMPLETED, request.Status)
+	suite.Require().Equal(types.REQUEST_STATUS_COMPLETED, request.Status)
 
 	// Verify provider received payment
-	providerBalanceAfter := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 	suite.Require().True(providerBalanceAfter.Amount.GT(providerBalanceBefore.Amount))
 
 	// ATTACK: Try to release escrow again by manipulating request state
 	// This should fail because request is already completed
-	request.Status = types.RequestStatus_REQUEST_STATUS_PROCESSING
+	request.Status = types.REQUEST_STATUS_PROCESSING
 	err = suite.keeper.SetRequest(suite.ctx, *request)
 	suite.Require().NoError(err)
 
 	// Attempt second withdrawal
-	providerBalanceBeforeAttack := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceBeforeAttack := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Try to complete request again
 	err = suite.keeper.CompleteRequest(suite.ctx, requestID, true)
 	// Should fail or not change balance
 
-	providerBalanceAfterAttack := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceAfterAttack := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Balance should not change (double-spend prevented)
 	suite.Require().Equal(providerBalanceBeforeAttack.Amount, providerBalanceAfterAttack.Amount,
@@ -208,13 +221,13 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_PrematureWithdrawal() {
 	)
 	suite.Require().NoError(err)
 
-	providerBalanceBefore := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceBefore := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// ATTACK: Try to complete request without submitting result
 	err = suite.keeper.CompleteRequest(suite.ctx, requestID, true)
 	// This may or may not error, but balance should not increase
 
-	providerBalanceAfter := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Verify no payment was released
 	suite.Require().Equal(providerBalanceBefore.Amount, providerBalanceAfter.Amount,
@@ -247,7 +260,8 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_TimeoutExploit() {
 	)
 	suite.Require().NoError(err)
 
-	requesterBalanceBefore := suite.keeper.BankKeeper.GetBalance(suite.ctx, requester, "upaw")
+	requesterBalanceBefore := suite.bankKeeper.GetBalance(suite.ctx, requester, "upaw")
+	providerBalanceBefore := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Advance time past timeout
 	suite.ctx = suite.ctx.WithBlockTime(suite.ctx.BlockTime().Add(15 * time.Second))
@@ -272,15 +286,23 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_TimeoutExploit() {
 	)
 
 	// Submission after timeout should fail or not pay provider
-	providerBalance := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
-	requesterBalanceAfter := suite.keeper.BankKeeper.GetBalance(suite.ctx, requester, "upaw")
+	providerBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	requesterBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, requester, "upaw")
+	request, err = suite.keeper.GetRequest(suite.ctx, requestID)
+	suite.Require().NoError(err)
+	suite.Require().True(providerBalanceAfter.Amount.LTE(providerBalanceBefore.Amount))
 
 	// Either request should be failed/cancelled, or requester should have been refunded
 	suite.Require().True(
-		request.Status == types.RequestStatus_REQUEST_STATUS_FAILED ||
-			request.Status == types.RequestStatus_REQUEST_STATUS_CANCELLED ||
+		request.Status == types.REQUEST_STATUS_FAILED ||
+			request.Status == types.REQUEST_STATUS_CANCELLED ||
 			requesterBalanceAfter.Amount.GT(requesterBalanceBefore.Amount),
 		"Timeout exploit succeeded - provider paid after timeout!",
+	)
+
+	suite.Require().True(
+		providerBalanceAfter.Amount.Equal(providerBalanceBefore.Amount),
+		"provider balance should not increase on late submission",
 	)
 }
 
@@ -720,9 +742,9 @@ func (suite *ComputeSecuritySuite) TestReputationGaming_SybilProviders() {
 		// Fund with exactly minimum stake
 		minStake := params.MinProviderStake
 		coins := sdk.NewCoins(sdk.NewCoin("upaw", minStake.MulRaw(2)))
-		err := suite.keeper.BankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
+		err := suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
 		suite.Require().NoError(err)
-		err = suite.keeper.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
+		err = suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins)
 		suite.Require().NoError(err)
 
 		specs := types.ComputeSpec{
@@ -865,9 +887,9 @@ func (suite *ComputeSecuritySuite) TestStakeSlashing_InsufficientStake() {
 	params, _ := suite.keeper.GetParams(suite.ctx)
 
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", params.MinProviderStake.MulRaw(2)))
-	err := suite.keeper.BankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
+	err := suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, coins)
 	suite.Require().NoError(err)
-	err = suite.keeper.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, lowStakeProvider, coins)
+	err = suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, lowStakeProvider, coins)
 	suite.Require().NoError(err)
 
 	specs := types.ComputeSpec{
@@ -986,19 +1008,19 @@ func (suite *ComputeSecuritySuite) TestPaymentTheft_ChallengeBypass() {
 	params, _ := suite.keeper.GetParams(suite.ctx)
 	releaseDelay := time.Duration(params.EscrowReleaseDelaySeconds) * time.Second
 
-	providerBalanceBefore := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	providerBalanceBefore := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// ATTACK: Try to bypass challenge period by advancing time manually
 	// This tests that the system properly enforces the delay
 
 	// Should not be able to withdraw immediately
-	immediateBalance := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	immediateBalance := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Advance time past release delay
 	suite.ctx = suite.ctx.WithBlockTime(suite.ctx.BlockTime().Add(releaseDelay + time.Second))
 
 	// Now payment should be releasable
-	finalBalance := suite.keeper.BankKeeper.GetBalance(suite.ctx, provider, "upaw")
+	finalBalance := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
 	// Either payment was already released (good) or it's released after delay (good)
 	// But it should NOT be released before the delay

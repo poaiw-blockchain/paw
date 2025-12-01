@@ -161,10 +161,10 @@ func (k Keeper) ApplyReputationDecayToAll(ctx context.Context) error {
 
 // TASK 113: Provider performance tracking
 type ProviderPerformanceMetrics struct {
-	Provider              string
-	JobsCompleted         uint64
-	JobsFailed            uint64
-	AverageResponseTime   time.Duration
+	Provider                 string
+	JobsCompleted            uint64
+	JobsFailed               uint64
+	AverageResponseTime      time.Duration
 	AverageVerificationScore float64
 	Uptime                   float64 // Percentage
 	LastActiveTimestamp      time.Time
@@ -220,11 +220,11 @@ func (k Keeper) TrackProviderPerformance(
 
 	// Store updated metrics
 	metricsData := map[string]interface{}{
-		"provider":         metrics.Provider,
-		"jobs_completed":   metrics.JobsCompleted,
-		"jobs_failed":      metrics.JobsFailed,
-		"avg_response_ms":  metrics.AverageResponseTime.Milliseconds(),
-		"last_active":      metrics.LastActiveTimestamp.Unix(),
+		"provider":        metrics.Provider,
+		"jobs_completed":  metrics.JobsCompleted,
+		"jobs_failed":     metrics.JobsFailed,
+		"avg_response_ms": metrics.AverageResponseTime.Milliseconds(),
+		"last_active":     metrics.LastActiveTimestamp.Unix(),
 	}
 
 	bz, err := json.Marshal(metricsData)
@@ -303,7 +303,6 @@ func (k Keeper) MonitorProviderAvailability(ctx context.Context) error {
 
 // TASK 116: Resource quota enforcement
 
-
 func (k Keeper) EnforceResourceQuota(
 	ctx context.Context,
 	providerAddr sdk.AccAddress,
@@ -323,7 +322,7 @@ func (k Keeper) EnforceResourceQuota(
 	}
 
 	// Check resource-specific quotas
-	if specs.GpuCount > 0 && quota.CurrentGPUs+uint64(specs.GpuCount) > quota.MaxTotalGPUs {
+	if specs.GpuCount > 0 && quota.CurrentGpus+uint64(specs.GpuCount) > quota.MaxTotalGpus {
 		return fmt.Errorf("provider at maximum GPU capacity")
 	}
 
@@ -360,15 +359,15 @@ func (k Keeper) UpdateResourceQuota(
 	}
 
 	if deltaCPU > 0 {
-		quota.CurrentCPU += uint64(deltaCPU)
-	} else if deltaCPU < 0 && quota.CurrentCPU >= uint64(-deltaCPU) {
-		quota.CurrentCPU -= uint64(-deltaCPU)
+		quota.CurrentCpu += uint64(deltaCPU)
+	} else if deltaCPU < 0 && quota.CurrentCpu >= uint64(-deltaCPU) {
+		quota.CurrentCpu -= uint64(-deltaCPU)
 	}
 
 	if deltaGPU > 0 {
-		quota.CurrentGPUs += uint64(deltaGPU)
-	} else if deltaGPU < 0 && quota.CurrentGPUs >= uint64(-deltaGPU) {
-		quota.CurrentGPUs -= uint64(-deltaGPU)
+		quota.CurrentGpus += uint64(deltaGPU)
+	} else if deltaGPU < 0 && quota.CurrentGpus >= uint64(-deltaGPU) {
+		quota.CurrentGpus -= uint64(-deltaGPU)
 	}
 
 	quota.LastUpdated = time.Now()
@@ -468,7 +467,7 @@ func (k Keeper) HandleRequestTimeout(ctx context.Context, requestID uint64) erro
 	// }
 
 	// Update request status
-	request.Status = types.RequestStatus_REQUEST_STATUS_FAILED // timeout -> failed
+	request.Status = types.REQUEST_STATUS_FAILED // timeout -> failed
 	k.SetRequest(ctx, *request)
 
 	// Emit timeout event
@@ -487,9 +486,9 @@ func (k Keeper) HandleRequestTimeout(ctx context.Context, requestID uint64) erro
 type RequestPriority uint8
 
 const (
-	PriorityLow    RequestPriority = 0
-	PriorityNormal RequestPriority = 1
-	PriorityHigh   RequestPriority = 2
+	PriorityLow      RequestPriority = 0
+	PriorityNormal   RequestPriority = 1
+	PriorityHigh     RequestPriority = 2
 	PriorityCritical RequestPriority = 3
 )
 

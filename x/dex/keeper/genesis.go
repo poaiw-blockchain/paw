@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // InitGenesis initializes the dex module's state from a genesis state
 func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	if err := k.BindPort(sdkCtx); err != nil {
+		return fmt.Errorf("failed to bind IBC port: %w", err)
+	}
+
 	// Set parameters
 	if err := k.SetParams(ctx, genState.Params); err != nil {
 		return fmt.Errorf("failed to set params: %w", err)
@@ -47,32 +51,32 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 
 	// Initialize circuit breaker states
 	/*
-	for _, cbState := range genState.CircuitBreakerStates {
-		if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, CircuitBreakerState{
-			Enabled:       cbState.Enabled,
-			PausedUntil:   cbState.PausedUntil,
-			LastPrice:     cbState.LastPrice,
-			TriggeredBy:   cbState.TriggeredBy,
-			TriggerReason: cbState.TriggerReason,
-		}); err != nil {
-			return fmt.Errorf("failed to set circuit breaker state for pool %d: %w", cbState.PoolId, err)
+		for _, cbState := range genState.CircuitBreakerStates {
+			if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, CircuitBreakerState{
+				Enabled:       cbState.Enabled,
+				PausedUntil:   cbState.PausedUntil,
+				LastPrice:     cbState.LastPrice,
+				TriggeredBy:   cbState.TriggeredBy,
+				TriggerReason: cbState.TriggerReason,
+			}); err != nil {
+				return fmt.Errorf("failed to set circuit breaker state for pool %d: %w", cbState.PoolId, err)
+			}
 		}
-	}
 	*/
 
 	// Initialize liquidity positions
 	/*
-	for _, liqPos := range genState.LiquidityPositions {
-		provider, err := sdk.AccAddressFromBech32(liqPos.Provider)
-		if err != nil {
-			return fmt.Errorf("invalid liquidity provider address %s: %w", liqPos.Provider, err)
-		}
+		for _, liqPos := range genState.LiquidityPositions {
+			provider, err := sdk.AccAddressFromBech32(liqPos.Provider)
+			if err != nil {
+				return fmt.Errorf("invalid liquidity provider address %s: %w", liqPos.Provider, err)
+			}
 
-		if err := k.SetLiquidity(ctx, liqPos.PoolId, provider, liqPos.Shares); err != nil {
-			return fmt.Errorf("failed to set liquidity position for pool %d, provider %s: %w",
-				liqPos.PoolId, liqPos.Provider, err)
+			if err := k.SetLiquidity(ctx, liqPos.PoolId, provider, liqPos.Shares); err != nil {
+				return fmt.Errorf("failed to set liquidity position for pool %d, provider %s: %w",
+					liqPos.PoolId, liqPos.Provider, err)
+			}
 		}
-	}
 	*/
 
 	return nil
@@ -105,46 +109,46 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 
 	// Export circuit breaker states for all pools
 	/*
-	var cbStates []types.CircuitBreakerStateExport
-	for _, pool := range pools {
-		cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
-		if err == nil {
-			cbStates = append(cbStates, types.CircuitBreakerStateExport{
-				PoolId:        pool.Id,
-				Enabled:       cbState.Enabled,
-				PausedUntil:   cbState.PausedUntil,
-				LastPrice:     cbState.LastPrice,
-				TriggeredBy:   cbState.TriggeredBy,
-				TriggerReason: cbState.TriggerReason,
-			})
+		var cbStates []types.CircuitBreakerStateExport
+		for _, pool := range pools {
+			cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
+			if err == nil {
+				cbStates = append(cbStates, types.CircuitBreakerStateExport{
+					PoolId:        pool.Id,
+					Enabled:       cbState.Enabled,
+					PausedUntil:   cbState.PausedUntil,
+					LastPrice:     cbState.LastPrice,
+					TriggeredBy:   cbState.TriggeredBy,
+					TriggerReason: cbState.TriggerReason,
+				})
+			}
 		}
-	}
 	*/
 
 	// Export all liquidity positions
 	/*
-	var liqPositions []types.LiquidityPositionExport
-	for _, pool := range pools {
-		// Iterate over all liquidity providers for this pool
-		if err := k.IterateLiquidityPositions(ctx, pool.Id, func(provider sdk.AccAddress, shares math.Int) bool {
-			liqPositions = append(liqPositions, types.LiquidityPositionExport{
-				PoolId:   pool.Id,
-				Provider: provider.String(),
-				Shares:   shares,
-			})
-			return false
-		}); err != nil {
-			// Log but don't fail export
-			sdkCtx := sdk.UnwrapSDKContext(ctx)
-			sdkCtx.Logger().Error("failed to iterate liquidity positions", "pool_id", pool.Id, "error", err)
+		var liqPositions []types.LiquidityPositionExport
+		for _, pool := range pools {
+			// Iterate over all liquidity providers for this pool
+			if err := k.IterateLiquidityPositions(ctx, pool.Id, func(provider sdk.AccAddress, shares math.Int) bool {
+				liqPositions = append(liqPositions, types.LiquidityPositionExport{
+					PoolId:   pool.Id,
+					Provider: provider.String(),
+					Shares:   shares,
+				})
+				return false
+			}); err != nil {
+				// Log but don't fail export
+				sdkCtx := sdk.UnwrapSDKContext(ctx)
+				sdkCtx.Logger().Error("failed to iterate liquidity positions", "pool_id", pool.Id, "error", err)
+			}
 		}
-	}
 	*/
 
 	return &types.GenesisState{
-		Params:                params,
-		Pools:                 pools,
-		NextPoolId:            nextPoolID,
+		Params:     params,
+		Pools:      pools,
+		NextPoolId: nextPoolID,
 		// CircuitBreakerStates:  cbStates,
 		// LiquidityPositions:    liqPositions,
 	}, nil

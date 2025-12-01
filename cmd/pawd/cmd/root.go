@@ -19,10 +19,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -35,11 +36,13 @@ func NewRootCmd() *cobra.Command {
 	// Set config for prefixes
 	initSDKConfig()
 
+	encodingConfig := app.MakeEncodingConfig()
+
 	initClientCtx := client.Context{}.
-		WithCodec(app.MakeEncodingConfig().Codec).
-		WithInterfaceRegistry(app.MakeEncodingConfig().InterfaceRegistry).
-		WithTxConfig(app.MakeEncodingConfig().TxConfig).
-		WithLegacyAmino(app.MakeEncodingConfig().Amino).
+		WithCodec(encodingConfig.Codec).
+		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
+		WithTxConfig(encodingConfig.TxConfig).
+		WithLegacyAmino(encodingConfig.Amino).
 		WithInput(os.Stdin).
 		WithHomeDir(app.DefaultNodeHome).
 		WithViper("")
@@ -76,23 +79,20 @@ with a built-in DEX, secure API compute aggregation, and multi-device wallet sup
 		},
 	}
 
-	initRootCmd(rootCmd, initClientCtx)
+	initRootCmd(rootCmd, initClientCtx, encodingConfig)
 
 	return rootCmd
 }
 
-func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context) {
+func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context, encodingConfig app.EncodingConfig) {
 	rootCmd.AddCommand(
-		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
-		// TODO: Update genutil CLI commands for SDK v0.50 signatures
-		// genutilcli.CollectGenTxsCmd(app.DefaultNodeHome),
-		// genutilcli.MigrateGenesisCmd(),
-		// genutilcli.GenTxCmd(app.ModuleBasics, clientCtx.TxConfig, app.DefaultNodeHome),
+		InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
 		AddGenesisAccountCmd(app.DefaultNodeHome),
+		GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
+		CollectGenTxsCmd(app.ModuleBasics, app.DefaultNodeHome, banktypes.GenesisBalancesIterator{}, genutiltypes.DefaultMessageValidator),
 		debug.Cmd(),
-		// TODO: Update config.Cmd() for SDK v0.50
-		// config.Cmd(),
+		// Configuration is managed via `pawd config` in v0.50; re-enable here once upstream exposes a replacement helper.
 		pruning.Cmd(newApp, app.DefaultNodeHome),
 		// snapshot.Cmd(newApp),
 	)
@@ -222,19 +222,9 @@ var sdkConfigOnce sync.Once
 
 func initSDKConfig() {
 	sdkConfigOnce.Do(func() {
-		// Set prefixes
-		accountPubKeyPrefix := app.AccountAddressPrefix + "pub"
-		validatorAddressPrefix := app.AccountAddressPrefix + "valoper"
-		validatorPubKeyPrefix := app.AccountAddressPrefix + "valoperpub"
-		consNodeAddressPrefix := app.AccountAddressPrefix + "valcons"
-		consNodePubKeyPrefix := app.AccountAddressPrefix + "valconspub"
-
-		// Set and seal config
-		config := sdk.GetConfig()
-		config.SetBech32PrefixForAccount(app.AccountAddressPrefix, accountPubKeyPrefix)
-		config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
-		config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
-		config.Seal()
+		// Delegate to the shared app configuration, which is idempotent and
+		// avoids panicking if the config has already been sealed elsewhere.
+		app.SetConfig()
 	})
 }
 

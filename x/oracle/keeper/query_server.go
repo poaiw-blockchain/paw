@@ -39,7 +39,7 @@ func (qs queryServer) Price(goCtx context.Context, req *types.QueryPriceRequest)
 		return nil, err
 	}
 
-	return &types.QueryPriceResponse{Price: price}, nil
+	return &types.QueryPriceResponse{Price: &price}, nil
 }
 
 // Prices queries all current prices
@@ -91,7 +91,7 @@ func (qs queryServer) Validator(goCtx context.Context, req *types.QueryValidator
 		return nil, err
 	}
 
-	return &types.QueryValidatorResponse{Validator: validatorOracle}, nil
+	return &types.QueryValidatorResponse{Validator: &validatorOracle}, nil
 }
 
 // Validators queries all oracle validators
@@ -147,7 +147,7 @@ func (qs queryServer) ValidatorPrice(goCtx context.Context, req *types.QueryVali
 		return nil, err
 	}
 
-	return &types.QueryValidatorPriceResponse{ValidatorPrice: validatorPrice}, nil
+	return &types.QueryValidatorPriceResponse{ValidatorPrice: &validatorPrice}, nil
 }
 
 // Params queries the oracle module parameters

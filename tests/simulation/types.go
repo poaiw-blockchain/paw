@@ -4,10 +4,11 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
-	computetypes "github.com/paw-chain/paw/x/compute/types"
 )
 
 // AccountKeeper defines the expected account keeper interface
@@ -28,28 +29,28 @@ type BankKeeper interface {
 
 // StakingKeeper defines the expected staking keeper interface
 type StakingKeeper interface {
-	GetValidator(ctx context.Context, addr sdk.ValAddress) (validator sdk.ValidatorI, err error)
-	GetAllValidators(ctx context.Context) (validators []sdk.ValidatorI, err error)
-	IterateBondedValidatorsByPower(ctx context.Context, fn func(index int64, validator sdk.ValidatorI) (stop bool)) error
+	GetValidator(ctx context.Context, addr sdk.ValAddress) (validator stakingtypes.ValidatorI, err error)
+	GetAllValidators(ctx context.Context) ([]stakingtypes.ValidatorI, error)
+	IterateBondedValidatorsByPower(ctx context.Context, fn func(index int64, validator stakingtypes.ValidatorI) (stop bool)) error
 }
 
 // DEXKeeper defines the expected DEX keeper interface for simulation
 type DEXKeeper interface {
-	GetAllPools(ctx sdk.Context) []dextypes.Pool
-	GetPool(ctx sdk.Context, poolId uint64) (dextypes.Pool, bool)
-	GetParams(ctx sdk.Context) dextypes.Params
+	GetAllPools(ctx context.Context) ([]dextypes.Pool, error)
+	GetPool(ctx context.Context, poolID uint64) (*dextypes.Pool, error)
+	GetParams(ctx context.Context) (dextypes.Params, error)
 }
 
 // OracleKeeper defines the expected Oracle keeper interface for simulation
 type OracleKeeper interface {
-	GetAllPrices(ctx sdk.Context) []oracletypes.Price
-	GetValidatorPrices(ctx sdk.Context, asset string) []oracletypes.ValidatorPrice
-	GetParams(ctx sdk.Context) oracletypes.Params
+	GetAllPrices(ctx context.Context) ([]oracletypes.Price, error)
+	GetValidatorPrices(ctx context.Context, asset string) ([]oracletypes.ValidatorPrice, error)
+	GetParams(ctx context.Context) (oracletypes.Params, error)
 }
 
 // ComputeKeeper defines the expected Compute keeper interface for simulation
 type ComputeKeeper interface {
-	GetAllRequests(ctx sdk.Context) []computetypes.Request
-	GetAllProviders(ctx sdk.Context) []computetypes.Provider
-	GetParams(ctx sdk.Context) computetypes.Params
+	GetAllRequests(ctx context.Context) ([]computetypes.Request, error)
+	GetAllProviders(ctx context.Context) ([]computetypes.Provider, error)
+	GetParams(ctx context.Context) (computetypes.Params, error)
 }

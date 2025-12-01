@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 
+	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
@@ -15,12 +15,12 @@ import (
 func (k Keeper) OnTimeoutSwapPacket(ctx sdk.Context, packet channeltypes.Packet) error {
 	var packetData map[string]interface{}
 	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
-		return sdkerrors.Wrap(err, "failed to unmarshal packet data")
+		return errorsmod.Wrap(err, "failed to unmarshal packet data")
 	}
 
 	swapID, ok := packetData["swap_id"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidType, "missing swap_id in packet")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidType, "missing swap_id in packet")
 	}
 
 	ctx.Logger().Error("cross-chain swap timed out",
@@ -67,7 +67,7 @@ func (k Keeper) OnAcknowledgementSwapPacket(
 ) error {
 	var ackData map[string]interface{}
 	if err := json.Unmarshal(ack.GetResult(), &ackData); err != nil {
-		return sdkerrors.Wrap(err, "failed to unmarshal acknowledgement")
+		return errorsmod.Wrap(err, "failed to unmarshal acknowledgement")
 	}
 
 	// Check for error acknowledgement

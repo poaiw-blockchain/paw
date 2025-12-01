@@ -42,4 +42,14 @@ const (
 	// Vote flags
 	FlagVote          = "vote"
 	FlagJustification = "justification"
+
+	// Governance parameter flags
+	FlagDisputeDeposit          = "dispute-deposit"
+	FlagEvidencePeriod          = "evidence-period"
+	FlagVotingPeriod            = "voting-period"
+	FlagQuorumPercentage        = "quorum"
+	FlagConsensusThreshold      = "consensus-threshold"
+	FlagSlashPercentage         = "slash-percentage"
+	FlagAppealDepositPercentage = "appeal-deposit-percentage"
+	FlagMaxEvidenceSize         = "max-evidence-size"
 )

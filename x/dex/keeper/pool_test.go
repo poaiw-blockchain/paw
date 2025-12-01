@@ -283,9 +283,6 @@ func TestPoolID_Increment(t *testing.T) {
 
 // TestPoolReserveOrdering tests that reserves match token ordering
 func TestPoolReserveOrdering(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	creator := types.TestAddr()
-
 	tests := []struct {
 		name           string
 		tokenA         string
@@ -317,6 +314,9 @@ func TestPoolReserveOrdering(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			k, ctx := keepertest.DexKeeper(t)
+			creator := types.TestAddr()
+
 			pool, err := k.CreatePool(ctx, creator, tt.tokenA, tt.tokenB, tt.amountA, tt.amountB)
 			require.NoError(t, err)
 			require.Equal(t, tt.expectedTokenA, pool.TokenA)
@@ -331,7 +331,6 @@ func TestPoolReserveOrdering(t *testing.T) {
 				require.Equal(t, tt.amountA, pool.ReserveB)
 			}
 
-			// Use different token pair for next test to avoid duplicate error
 			_ = i
 		})
 	}

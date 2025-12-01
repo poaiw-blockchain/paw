@@ -1,23 +1,26 @@
+//go:build integration
+// +build integration
+
 package upgrade_test
 
 import (
 	"testing"
 
 	"cosmossdk.io/math"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/app"
-	"github.com/paw-chain/paw/testutil"
+	testkeeper "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // UpgradeTestSuite tests blockchain upgrade mechanisms
 type UpgradeTestSuite struct {
 	suite.Suite
 
-	app *app.App
+	app *app.PAWApp
 	ctx sdk.Context
 }
 
@@ -26,8 +29,7 @@ func TestUpgradeTestSuite(t *testing.T) {
 }
 
 func (suite *UpgradeTestSuite) SetupTest() {
-	suite.app = testutil.Setup(suite.T(), false)
-	suite.ctx = suite.app.BaseApp.NewContext(false)
+	suite.app, suite.ctx = testkeeper.SetupTestApp(suite.T())
 }
 
 // TestUpgradeFromV1ToV2 tests upgrade from version 1 to version 2

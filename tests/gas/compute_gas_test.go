@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
@@ -12,42 +13,43 @@ import (
 
 // Gas limits for compute operations
 const (
-	GasRegisterProviderMin    = 50000
-	GasRegisterProviderMax    = 150000
-	GasSubmitRequestMin       = 80000
-	GasSubmitRequestMax       = 200000
-	GasSubmitResultMin        = 100000
-	GasSubmitResultMax        = 300000
-	GasZKVerificationMin      = 1000000
-	GasZKVerificationMax      = 5000000
-	GasLockEscrowMin          = 30000
-	GasLockEscrowMax          = 80000
-	GasReleaseEscrowMin       = 40000
-	GasReleaseEscrowMax       = 100000
-	GasRefundEscrowMin        = 40000
-	GasRefundEscrowMax        = 100000
-	GasUpdateProviderMin      = 30000
-	GasUpdateProviderMax      = 80000
-	GasDeactivateProviderMin  = 25000
-	GasDeactivateProviderMax  = 60000
+	GasRegisterProviderMin   = 50000
+	GasRegisterProviderMax   = 150000
+	GasSubmitRequestMin      = 80000
+	GasSubmitRequestMax      = 200000
+	GasSubmitResultMin       = 100000
+	GasSubmitResultMax       = 300000
+	GasZKVerificationMin     = 1000000
+	GasZKVerificationMax     = 5000000
+	GasLockEscrowMin         = 30000
+	GasLockEscrowMax         = 80000
+	GasReleaseEscrowMin      = 40000
+	GasReleaseEscrowMax      = 100000
+	GasRefundEscrowMin       = 40000
+	GasRefundEscrowMax       = 100000
+	GasUpdateProviderMin     = 30000
+	GasUpdateProviderMax     = 80000
+	GasDeactivateProviderMin = 25000
+	GasDeactivateProviderMax = 60000
 )
 
 func TestComputeGas_RegisterProvider(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Set gas meter with sufficient limit
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(1000000))
+	ctx = ctx.WithGasMeter(storetypes.NewGasMeter(1000000))
 
 	// Create test provider
 	provider := sdk.AccAddress("provider1__________")
 
 	// Register provider - this performs state write operations
 	err := k.RegisterProvider(ctx, provider.String(), "Test Provider", "https://provider.github.com", ResourceSpecs{
-		CPUCores:  16,
-		MemoryMB:  32768,
-		DiskGB:    1000,
-		GPUCount:  2,
-		GPUModel:  "NVIDIA A100",
+		CPUCores: 16,
+		MemoryMB: 32768,
+		DiskGB:   1000,
+		GPUCount: 2,
+		GPUModel: "NVIDIA A100",
 	})
 	require.NoError(t, err)
 
@@ -64,7 +66,8 @@ func TestComputeGas_RegisterProvider(t *testing.T) {
 }
 
 func TestComputeGas_SubmitRequest(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Register provider first
 	provider := sdk.AccAddress("provider1__________")
@@ -76,10 +79,10 @@ func TestComputeGas_SubmitRequest(t *testing.T) {
 
 	// Test different request sizes
 	tests := []struct {
-		name          string
-		inputSize     int
-		maxGas        uint64
-		description   string
+		name        string
+		inputSize   int
+		maxGas      uint64
+		description string
 	}{
 		{"small request", 1024, 120000, "1KB input"},
 		{"medium request", 10240, 150000, "10KB input"},
@@ -89,7 +92,7 @@ func TestComputeGas_SubmitRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset gas meter for each test
-			ctx = ctx.WithGasMeter(sdk.NewGasMeter(500000))
+			ctx = ctx.WithGasMeter(storetypes.NewGasMeter(500000))
 
 			requester := sdk.AccAddress("requester1_________")
 			inputData := make([]byte, tt.inputSize)
@@ -121,7 +124,8 @@ func TestComputeGas_SubmitRequest(t *testing.T) {
 }
 
 func TestComputeGas_SubmitResult(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Setup: Register provider and submit request
 	provider := sdk.AccAddress("provider1__________")
@@ -152,7 +156,7 @@ func TestComputeGas_SubmitResult(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx = ctx.WithGasMeter(sdk.NewGasMeter(1000000))
+			ctx = ctx.WithGasMeter(storetypes.NewGasMeter(1000000))
 
 			result := make([]byte, tt.resultSize)
 			proof := make([]byte, tt.proofSize)
@@ -174,17 +178,18 @@ func TestComputeGas_SubmitResult(t *testing.T) {
 }
 
 func TestComputeGas_ZKVerification(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	_, ctx := keepertest.ComputeKeeper(t)
 
 	// ZK verification is the most expensive operation
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+	ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 	// Create mock ZK proof
 	proof := ZKProof{
-		ProofData: make([]byte, 2048), // Typical proof size
+		ProofData:    make([]byte, 2048), // Typical proof size
 		PublicInputs: []string{"input1", "input2"},
-		CircuitID: "groth16",
+		CircuitID:    "groth16",
 	}
+	_ = proof
 
 	// Verify proof (mock verification for testing)
 	gasBeforeVerify := ctx.GasMeter().GasConsumed()
@@ -204,7 +209,8 @@ func TestComputeGas_ZKVerification(t *testing.T) {
 }
 
 func TestComputeGas_EscrowOperations(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Setup: Register provider and submit request
 	provider := sdk.AccAddress("provider1__________")
@@ -224,37 +230,37 @@ func TestComputeGas_EscrowOperations(t *testing.T) {
 	escrowAmount := sdk.NewCoins(sdk.NewCoin("upaw", math.NewInt(1000000)))
 
 	tests := []struct {
-		name         string
-		operation    func(ctx sdk.Context, k *keepertest.ComputeKeeper) error
-		maxGas       uint64
-		minGas       uint64
-		description  string
+		name        string
+		operation   func(ctx sdk.Context, k *ComputeGasKeeper) error
+		maxGas      uint64
+		minGas      uint64
+		description string
 	}{
 		{
 			name: "lock escrow",
-			operation: func(ctx sdk.Context, keeper *keepertest.ComputeKeeper) error {
+			operation: func(ctx sdk.Context, keeper *ComputeGasKeeper) error {
 				return keeper.LockEscrow(ctx, requestID, requester.String(), escrowAmount)
 			},
-			maxGas: GasLockEscrowMax,
-			minGas: GasLockEscrowMin,
+			maxGas:      GasLockEscrowMax,
+			minGas:      GasLockEscrowMin,
 			description: "Lock funds in escrow",
 		},
 		{
 			name: "release escrow",
-			operation: func(ctx sdk.Context, keeper *keepertest.ComputeKeeper) error {
+			operation: func(ctx sdk.Context, keeper *ComputeGasKeeper) error {
 				return keeper.ReleaseEscrow(ctx, requestID, provider.String())
 			},
-			maxGas: GasReleaseEscrowMax,
-			minGas: GasReleaseEscrowMin,
+			maxGas:      GasReleaseEscrowMax,
+			minGas:      GasReleaseEscrowMin,
 			description: "Release escrowed funds to provider",
 		},
 		{
 			name: "refund escrow",
-			operation: func(ctx sdk.Context, keeper *keepertest.ComputeKeeper) error {
+			operation: func(ctx sdk.Context, keeper *ComputeGasKeeper) error {
 				return keeper.RefundEscrow(ctx, requestID, requester.String())
 			},
-			maxGas: GasRefundEscrowMax,
-			minGas: GasRefundEscrowMin,
+			maxGas:      GasRefundEscrowMax,
+			minGas:      GasRefundEscrowMin,
 			description: "Refund escrowed funds to requester",
 		},
 	}
@@ -262,7 +268,7 @@ func TestComputeGas_EscrowOperations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset gas meter
-			ctx = ctx.WithGasMeter(sdk.NewGasMeter(200000))
+			ctx = ctx.WithGasMeter(storetypes.NewGasMeter(200000))
 
 			err := tt.operation(ctx, k)
 			// Some operations may fail due to state, that's ok for gas testing
@@ -285,7 +291,8 @@ func TestComputeGas_EscrowOperations(t *testing.T) {
 }
 
 func TestComputeGas_UpdateProvider(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Register provider first
 	provider := sdk.AccAddress("provider1__________")
@@ -296,7 +303,7 @@ func TestComputeGas_UpdateProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	// Update provider info
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(200000))
+	ctx = ctx.WithGasMeter(storetypes.NewGasMeter(200000))
 
 	err = k.UpdateProvider(ctx, provider.String(), "Updated Provider", "https://new-provider.github.com", ResourceSpecs{
 		CPUCores: 32,
@@ -316,7 +323,8 @@ func TestComputeGas_UpdateProvider(t *testing.T) {
 }
 
 func TestComputeGas_DeactivateProvider(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Register provider first
 	provider := sdk.AccAddress("provider1__________")
@@ -327,7 +335,7 @@ func TestComputeGas_DeactivateProvider(t *testing.T) {
 	require.NoError(t, err)
 
 	// Deactivate provider
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(150000))
+	ctx = ctx.WithGasMeter(storetypes.NewGasMeter(150000))
 
 	err = k.DeactivateProvider(ctx, provider.String())
 	require.NoError(t, err)
@@ -343,7 +351,8 @@ func TestComputeGas_DeactivateProvider(t *testing.T) {
 }
 
 func TestComputeGas_InputSizeScaling(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Register provider
 	provider := sdk.AccAddress("provider1__________")
@@ -360,7 +369,7 @@ func TestComputeGas_InputSizeScaling(t *testing.T) {
 	gasUsages := make([]uint64, len(inputSizes))
 
 	for i, size := range inputSizes {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(500000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(500000))
 
 		input := make([]byte, size)
 		_, err := k.SubmitRequest(ctx, requester.String(), provider.String(), input, ResourceRequirements{
@@ -389,7 +398,8 @@ func TestComputeGas_InputSizeScaling(t *testing.T) {
 }
 
 func TestComputeGas_GasRegression(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
+	rawKeeper, ctx := keepertest.ComputeKeeper(t)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Baseline gas values from initial implementation
 	// These should be updated if intentional optimizations are made
@@ -402,7 +412,7 @@ func TestComputeGas_GasRegression(t *testing.T) {
 	tolerance := uint64(20000) // 20k gas tolerance
 
 	t.Run("RegisterProvider baseline", func(t *testing.T) {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(1000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(1000000))
 
 		provider := sdk.AccAddress("provider1__________")
 		err := k.RegisterProvider(ctx, provider.String(), "Test", "https://test.com", ResourceSpecs{

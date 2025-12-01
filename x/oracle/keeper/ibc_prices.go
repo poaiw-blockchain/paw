@@ -8,12 +8,12 @@ import (
 
 	"cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -70,54 +70,54 @@ var (
 
 // CrossChainOracleSource represents an oracle network on another chain
 type CrossChainOracleSource struct {
-	ChainID          string         `json:"chain_id"`
-	OracleType       string         `json:"oracle_type"` // "band", "slinky", "uma"
-	ConnectionID     string         `json:"connection_id"`
-	ChannelID        string         `json:"channel_id"`
-	Reputation       math.LegacyDec        `json:"reputation"` // 0.0 - 1.0
-	LastHeartbeat    time.Time      `json:"last_heartbeat"`
-	TotalQueries     uint64         `json:"total_queries"`
-	SuccessfulQueries uint64        `json:"successful_queries"`
-	Active           bool           `json:"active"`
+	ChainID           string         `json:"chain_id"`
+	OracleType        string         `json:"oracle_type"` // "band", "slinky", "uma"
+	ConnectionID      string         `json:"connection_id"`
+	ChannelID         string         `json:"channel_id"`
+	Reputation        math.LegacyDec `json:"reputation"` // 0.0 - 1.0
+	LastHeartbeat     time.Time      `json:"last_heartbeat"`
+	TotalQueries      uint64         `json:"total_queries"`
+	SuccessfulQueries uint64         `json:"successful_queries"`
+	Active            bool           `json:"active"`
 }
 
 // CrossChainPriceData represents a price from a remote oracle
 type CrossChainPriceData struct {
-	Source       string         `json:"source"`      // Chain ID
-	Symbol       string         `json:"symbol"`      // e.g., "BTC/USD"
-	Price        math.LegacyDec        `json:"price"`
-	Volume24h    math.Int       `json:"volume_24h"`
-	Timestamp    time.Time      `json:"timestamp"`
-	Confidence   math.LegacyDec        `json:"confidence"`  // 0.0 - 1.0
-	OracleCount  uint32         `json:"oracle_count"` // Number of oracles that reported
+	Source      string         `json:"source"` // Chain ID
+	Symbol      string         `json:"symbol"` // e.g., "BTC/USD"
+	Price       math.LegacyDec `json:"price"`
+	Volume24h   math.Int       `json:"volume_24h"`
+	Timestamp   time.Time      `json:"timestamp"`
+	Confidence  math.LegacyDec `json:"confidence"`   // 0.0 - 1.0
+	OracleCount uint32         `json:"oracle_count"` // Number of oracles that reported
 }
 
 // AggregatedCrossChainPrice represents the final aggregated price
 type AggregatedCrossChainPrice struct {
-	Symbol           string              `json:"symbol"`
-	WeightedPrice    math.LegacyDec             `json:"weighted_price"`
-	MedianPrice      math.LegacyDec             `json:"median_price"`
-	Sources          []CrossChainPriceData `json:"sources"`
-	TotalWeight      math.LegacyDec             `json:"total_weight"`
-	Confidence       math.LegacyDec             `json:"confidence"`
-	LastUpdate       time.Time           `json:"last_update"`
-	ByzantineSafe    bool                `json:"byzantine_safe"` // True if 2/3+ sources agree
+	Symbol        string                `json:"symbol"`
+	WeightedPrice math.LegacyDec        `json:"weighted_price"`
+	MedianPrice   math.LegacyDec        `json:"median_price"`
+	Sources       []CrossChainPriceData `json:"sources"`
+	TotalWeight   math.LegacyDec        `json:"total_weight"`
+	Confidence    math.LegacyDec        `json:"confidence"`
+	LastUpdate    time.Time             `json:"last_update"`
+	ByzantineSafe bool                  `json:"byzantine_safe"` // True if 2/3+ sources agree
 }
 
 // IBC Packet Data Structures
 
 // SubscribePricesPacketData subscribes to price feeds from a remote oracle
 type SubscribePricesPacketData struct {
-	Type    string   `json:"type"` // "subscribe_prices"
-	Symbols []string `json:"symbols"`
-	UpdateInterval uint64 `json:"update_interval"` // seconds
+	Type           string   `json:"type"` // "subscribe_prices"
+	Symbols        []string `json:"symbols"`
+	UpdateInterval uint64   `json:"update_interval"` // seconds
 }
 
 // SubscribePricesPacketAck acknowledges price subscription
 type SubscribePricesPacketAck struct {
-	Success        bool     `json:"success"`
+	Success           bool     `json:"success"`
 	SubscribedSymbols []string `json:"subscribed_symbols"`
-	Error          string   `json:"error,omitempty"`
+	Error             string   `json:"error,omitempty"`
 }
 
 // QueryPricePacketData queries current price from remote oracle
@@ -128,9 +128,9 @@ type QueryPricePacketData struct {
 
 // QueryPricePacketAck returns price data
 type QueryPricePacketAck struct {
-	Success    bool                 `json:"success"`
-	PriceData  CrossChainPriceData  `json:"price_data"`
-	Error      string               `json:"error,omitempty"`
+	Success   bool                `json:"success"`
+	PriceData CrossChainPriceData `json:"price_data"`
+	Error     string              `json:"error,omitempty"`
 }
 
 // PriceUpdatePacketData is sent by remote oracle with price updates
@@ -142,9 +142,9 @@ type PriceUpdatePacketData struct {
 
 // OracleHeartbeatPacketData for liveness monitoring
 type OracleHeartbeatPacketData struct {
-	Type         string `json:"type"` // "oracle_heartbeat"
-	ChainID      string `json:"chain_id"`
-	Timestamp    int64  `json:"timestamp"`
+	Type          string `json:"type"` // "oracle_heartbeat"
+	ChainID       string `json:"chain_id"`
+	Timestamp     int64  `json:"timestamp"`
 	ActiveOracles uint32 `json:"active_oracles"`
 }
 
@@ -160,15 +160,15 @@ func (k Keeper) RegisterCrossChainOracleSource(
 
 	// Create oracle source
 	source := CrossChainOracleSource{
-		ChainID:          chainID,
-		OracleType:       oracleType,
-		ConnectionID:     connectionID,
-		ChannelID:        channelID,
-		Reputation:       math.LegacyNewDec(100).Quo(math.LegacyNewDec(100)), // Start with 1.0 reputation
-		LastHeartbeat:    sdkCtx.BlockTime(),
-		TotalQueries:     0,
+		ChainID:           chainID,
+		OracleType:        oracleType,
+		ConnectionID:      connectionID,
+		ChannelID:         channelID,
+		Reputation:        math.LegacyNewDec(100).Quo(math.LegacyNewDec(100)), // Start with 1.0 reputation
+		LastHeartbeat:     sdkCtx.BlockTime(),
+		TotalQueries:      0,
 		SuccessfulQueries: 0,
-		Active:           true,
+		Active:            true,
 	}
 
 	// Store oracle source
@@ -474,20 +474,21 @@ func (k Keeper) sendOracleIBCPacket(
 ) (uint64, error) {
 	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
 
-	sourcePort := "oracle"
+	sourcePort := types.PortID
+
+	channelCap, found := k.GetChannelCapability(ctx, sourcePort, channelID)
+	if !found {
+		return 0, errors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "port: %s, channel: %s", sourcePort, channelID)
+	}
 
 	sequence, err := k.ibcKeeper.ChannelKeeper.SendPacket(
 		ctx,
-		&channeltypes.Packet{
-			Sequence:          0,
-			SourcePort:        sourcePort,
-			SourceChannel:     channelID,
-			DestinationPort:   "oracle",
-			DestinationChannel: "",
-			Data:              data,
-			TimeoutHeight:     clienttypes.ZeroHeight(),
-			TimeoutTimestamp:  timeoutTimestamp,
-		},
+		channelCap,
+		sourcePort,
+		channelID,
+		clienttypes.ZeroHeight(),
+		timeoutTimestamp,
+		data,
 	)
 
 	if err != nil {
@@ -524,7 +525,7 @@ func (k Keeper) getCrossChainOracleSource(ctx sdk.Context, chainID string) (*Cro
 
 func (k Keeper) getAllActiveSources(ctx sdk.Context) []CrossChainOracleSource {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, []byte("oracle_source_"))
+	iterator := storetypes.KVStorePrefixIterator(store, []byte("oracle_source_"))
 	defer iterator.Close()
 
 	var sources []CrossChainOracleSource
@@ -730,15 +731,15 @@ func extractSourceChain(packet channeltypes.Packet) string {
 	// Map of known channel IDs to chain IDs
 	// This would be dynamically queried in production from the IBC module
 	knownChannels := map[string]string{
-		"channel-0":            OsmosisChainID,   // Osmosis
-		"channel-1":            InjectiveChainID, // Injective
-		"channel-2":            BandProtocolChainID,
-		"channel-3":            SlinkyChainID,
-		"channel-osmosis":      OsmosisChainID,
-		"channel-injective":    InjectiveChainID,
-		"channel-band":         BandProtocolChainID,
-		"channel-slinky":       SlinkyChainID,
-		"channel-uma":          UmaProtocolChainID,
+		"channel-0":         OsmosisChainID,   // Osmosis
+		"channel-1":         InjectiveChainID, // Injective
+		"channel-2":         BandProtocolChainID,
+		"channel-3":         SlinkyChainID,
+		"channel-osmosis":   OsmosisChainID,
+		"channel-injective": InjectiveChainID,
+		"channel-band":      BandProtocolChainID,
+		"channel-slinky":    SlinkyChainID,
+		"channel-uma":       UmaProtocolChainID,
 	}
 
 	// Look up chain ID from channel
@@ -839,7 +840,7 @@ func filterAnomalies(prices []CrossChainPriceData, medianPrice math.LegacyDec) [
 
 func calculateAggregatedConfidence(prices []CrossChainPriceData, totalWeight math.LegacyDec) math.LegacyDec {
 	if len(prices) == 0 || totalWeight.IsZero() {
-		return sdk.ZeroDec()
+		return math.LegacyZeroDec()
 	}
 
 	var weightedConfidence math.LegacyDec

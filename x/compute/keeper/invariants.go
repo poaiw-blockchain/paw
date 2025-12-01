@@ -18,6 +18,10 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 		RequestStatusInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "nonce-uniqueness",
 		NonceUniquenessInvariant(k))
+	ir.RegisterRoute(types.ModuleName, "dispute-index",
+		DisputeIndexInvariant(k))
+	ir.RegisterRoute(types.ModuleName, "appeal-index",
+		AppealIndexInvariant(k))
 }
 
 // AllInvariants runs all invariants of the compute module
@@ -35,7 +39,15 @@ func AllInvariants(k Keeper) sdk.Invariant {
 		if stop {
 			return res, stop
 		}
-		return NonceUniquenessInvariant(k)(ctx)
+		res, stop = NonceUniquenessInvariant(k)(ctx)
+		if stop {
+			return res, stop
+		}
+		res, stop = DisputeIndexInvariant(k)(ctx)
+		if stop {
+			return res, stop
+		}
+		return AppealIndexInvariant(k)(ctx)
 	}
 }
 
@@ -54,8 +66,8 @@ func EscrowBalanceInvariant(k Keeper) sdk.Invariant {
 
 		// Sum all escrow amounts from active requests
 		err := k.IterateRequests(ctx, func(request types.Request) (bool, error) {
-			if request.Status == types.RequestStatus_REQUEST_STATUS_PENDING ||
-			   request.Status == types.RequestStatus_REQUEST_STATUS_PROCESSING {
+			if request.Status == types.REQUEST_STATUS_PENDING ||
+				request.Status == types.REQUEST_STATUS_PROCESSING {
 				totalEscrow = totalEscrow.Add(sdk.NewCoin("upaw", request.EscrowedAmount))
 			}
 			return false, nil
@@ -169,8 +181,8 @@ func RequestStatusInvariant(k Keeper) sdk.Invariant {
 
 		err := k.IterateRequests(ctx, func(request types.Request) (bool, error) {
 			// Check that completed or failed requests have results
-			if request.Status == types.RequestStatus_REQUEST_STATUS_COMPLETED ||
-			   request.Status == types.RequestStatus_REQUEST_STATUS_FAILED {
+			if request.Status == types.REQUEST_STATUS_COMPLETED ||
+				request.Status == types.REQUEST_STATUS_FAILED {
 				result, err := k.GetResult(ctx, request.Id)
 				if err != nil || result == nil {
 					issues = append(issues, fmt.Sprintf(
@@ -182,7 +194,7 @@ func RequestStatusInvariant(k Keeper) sdk.Invariant {
 			}
 
 			// Check that processing requests have assigned providers
-			if request.Status == types.RequestStatus_REQUEST_STATUS_PROCESSING {
+			if request.Status == types.REQUEST_STATUS_PROCESSING {
 				if request.Provider == "" {
 					issues = append(issues, fmt.Sprintf(
 						"request %d is processing but has no assigned provider",
@@ -193,8 +205,8 @@ func RequestStatusInvariant(k Keeper) sdk.Invariant {
 			}
 
 			// Check that escrow amounts are positive for active requests
-			if request.Status == types.RequestStatus_REQUEST_STATUS_PENDING ||
-			   request.Status == types.RequestStatus_REQUEST_STATUS_PROCESSING {
+			if request.Status == types.REQUEST_STATUS_PENDING ||
+				request.Status == types.REQUEST_STATUS_PROCESSING {
 				if request.EscrowedAmount.IsZero() {
 					issues = append(issues, fmt.Sprintf(
 						"request %d is active but has zero escrow",
@@ -277,5 +289,120 @@ func NonceUniquenessInvariant(k Keeper) sdk.Invariant {
 			types.ModuleName, "nonce-uniqueness",
 			msg,
 		), broken
+	}
+}
+
+// DisputeIndexInvariant ensures disputes have valid indexes and counters.
+func DisputeIndexInvariant(k Keeper) sdk.Invariant {
+	return func(ctx sdk.Context) (string, bool) {
+		store := k.getStore(ctx)
+		iter := storetypes.KVStorePrefixIterator(store, DisputeKeyPrefix)
+		defer iter.Close()
+
+		var (
+			broken    bool
+			msg       string
+			maxID     uint64
+			failCount int
+		)
+
+		for ; iter.Valid(); iter.Next() {
+			var dispute types.Dispute
+			if err := k.cdc.Unmarshal(iter.Value(), &dispute); err != nil {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("failed to unmarshal dispute: %v\n", err)
+				continue
+			}
+
+			if dispute.Id > maxID {
+				maxID = dispute.Id
+			}
+
+			// verify request index exists
+			if !store.Has(DisputeByRequestKey(dispute.RequestId, dispute.Id)) {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("missing dispute-by-request index for dispute %d\n", dispute.Id)
+			}
+
+			// verify status index exists
+			if !store.Has(DisputeByStatusKey(uint32(dispute.Status), dispute.Id)) {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("missing dispute-by-status index for dispute %d\n", dispute.Id)
+			}
+		}
+
+		// ensure next ID counter is ahead of max ID
+		nextID, err := k.getNextDisputeIDForExport(ctx)
+		if err == nil && nextID <= maxID {
+			broken = true
+			failCount++
+			msg += fmt.Sprintf("next dispute id %d not greater than max id %d\n", nextID, maxID)
+		}
+
+		if failCount > 0 && msg == "" {
+			msg = "dispute index invariant failed"
+		}
+
+		return sdk.FormatInvariant(types.ModuleName, "dispute-index", msg), broken
+	}
+}
+
+// AppealIndexInvariant ensures appeals have valid indexes and references.
+func AppealIndexInvariant(k Keeper) sdk.Invariant {
+	return func(ctx sdk.Context) (string, bool) {
+		store := k.getStore(ctx)
+		iter := storetypes.KVStorePrefixIterator(store, AppealKeyPrefix)
+		defer iter.Close()
+
+		var (
+			broken    bool
+			msg       string
+			maxID     uint64
+			failCount int
+		)
+
+		for ; iter.Valid(); iter.Next() {
+			var appeal types.Appeal
+			if err := k.cdc.Unmarshal(iter.Value(), &appeal); err != nil {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("failed to unmarshal appeal: %v\n", err)
+				continue
+			}
+
+			if appeal.Id > maxID {
+				maxID = appeal.Id
+			}
+
+			// status index must exist
+			if !store.Has(AppealByStatusKey(uint32(appeal.Status), appeal.Id)) {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("missing appeal-by-status index for appeal %d\n", appeal.Id)
+			}
+
+			// referenced slash record must exist
+			if _, err := k.getSlashRecord(ctx, appeal.SlashId); err != nil {
+				broken = true
+				failCount++
+				msg += fmt.Sprintf("appeal %d references missing slash record %d\n", appeal.Id, appeal.SlashId)
+			}
+		}
+
+		nextID, err := k.getNextAppealIDForExport(ctx)
+		if err == nil && nextID <= maxID {
+			broken = true
+			failCount++
+			msg += fmt.Sprintf("next appeal id %d not greater than max id %d\n", nextID, maxID)
+		}
+
+		if failCount > 0 && msg == "" {
+			msg = "appeal index invariant failed"
+		}
+
+		return sdk.FormatInvariant(types.ModuleName, "appeal-index", msg), broken
 	}
 }

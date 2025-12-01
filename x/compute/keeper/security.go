@@ -141,26 +141,26 @@ func (k Keeper) CheckResourceQuota(ctx context.Context, account sdk.AccAddress, 
 	}
 
 	// Check if adding this request would exceed quotas
-	totalCPU := quota.CurrentCPU + specs.CpuCores
-	if totalCPU > quota.MaxTotalCPUCores {
-		return fmt.Errorf("CPU quota exceeded: requesting %d cores would exceed limit of %d", specs.CpuCores, quota.MaxTotalCPUCores)
+	totalCPU := quota.CurrentCpu + specs.CpuCores
+	if totalCPU > quota.MaxTotalCpuCores {
+		return fmt.Errorf("CPU quota exceeded: requesting %d cores would exceed limit of %d", specs.CpuCores, quota.MaxTotalCpuCores)
 	}
 
 	totalMemory := quota.CurrentMemory + specs.MemoryMb
-	if totalMemory > quota.MaxTotalMemoryMB {
-		return fmt.Errorf("memory quota exceeded: requesting %d MB would exceed limit of %d MB", specs.MemoryMb, quota.MaxTotalMemoryMB)
+	if totalMemory > quota.MaxTotalMemoryMb {
+		return fmt.Errorf("memory quota exceeded: requesting %d MB would exceed limit of %d MB", specs.MemoryMb, quota.MaxTotalMemoryMb)
 	}
 
 	if specs.GpuCount > 0 {
-		totalGPUs := quota.CurrentGPUs + uint64(specs.GpuCount)
-		if totalGPUs > quota.MaxTotalGPUs {
-			return fmt.Errorf("GPU quota exceeded: requesting %d GPUs would exceed limit of %d", specs.GpuCount, quota.MaxTotalGPUs)
+		totalGPUs := quota.CurrentGpus + uint64(specs.GpuCount)
+		if totalGPUs > quota.MaxTotalGpus {
+			return fmt.Errorf("GPU quota exceeded: requesting %d GPUs would exceed limit of %d", specs.GpuCount, quota.MaxTotalGpus)
 		}
 	}
 
-	totalStorage := quota.CurrentStorage + specs.StorageGb
-	if totalStorage > quota.MaxTotalStorageGB {
-		return fmt.Errorf("storage quota exceeded: requesting %d GB would exceed limit of %d GB", specs.StorageGb, quota.MaxTotalStorageGB)
+	totalStorage := quota.CurrentStorage + uint64(specs.StorageGb)
+	if totalStorage > quota.MaxTotalStorageGb {
+		return fmt.Errorf("storage quota exceeded: requesting %d GB would exceed limit of %d GB", specs.StorageGb, quota.MaxTotalStorageGb)
 	}
 
 	return nil
@@ -177,9 +177,9 @@ func (k Keeper) AllocateResources(ctx context.Context, account sdk.AccAddress, s
 
 	// Allocate resources
 	quota.CurrentRequests++
-	quota.CurrentCPU += specs.CpuCores
+	quota.CurrentCpu += specs.CpuCores
 	quota.CurrentMemory += specs.MemoryMb
-	quota.CurrentGPUs += uint64(specs.GpuCount)
+	quota.CurrentGpus += uint64(specs.GpuCount)
 	quota.CurrentStorage += specs.StorageGb
 	quota.LastUpdated = sdkCtx.BlockTime()
 
@@ -215,20 +215,20 @@ func (k Keeper) ReleaseResources(ctx context.Context, account sdk.AccAddress, sp
 	if quota.CurrentRequests > 0 {
 		quota.CurrentRequests--
 	}
-	if quota.CurrentCPU >= specs.CpuCores {
-		quota.CurrentCPU -= specs.CpuCores
+	if quota.CurrentCpu >= specs.CpuCores {
+		quota.CurrentCpu -= specs.CpuCores
 	} else {
-		quota.CurrentCPU = 0
+		quota.CurrentCpu = 0
 	}
 	if quota.CurrentMemory >= specs.MemoryMb {
 		quota.CurrentMemory -= specs.MemoryMb
 	} else {
 		quota.CurrentMemory = 0
 	}
-	if quota.CurrentGPUs >= uint64(specs.GpuCount) {
-		quota.CurrentGPUs -= uint64(specs.GpuCount)
+	if quota.CurrentGpus >= uint64(specs.GpuCount) {
+		quota.CurrentGpus -= uint64(specs.GpuCount)
 	} else {
-		quota.CurrentGPUs = 0
+		quota.CurrentGpus = 0
 	}
 	if quota.CurrentStorage >= specs.StorageGb {
 		quota.CurrentStorage -= specs.StorageGb
@@ -264,12 +264,12 @@ func (k Keeper) CheckProviderCapacity(ctx context.Context, provider sdk.AccAddre
 			Provider:              provider.String(),
 			MaxConcurrentRequests: config.MaxProviderLoad,
 			CurrentRequests:       0,
-			TotalCPUCores:         providerRecord.AvailableSpecs.CpuCores,
-			UsedCPUCores:          0,
-			TotalMemoryMB:         providerRecord.AvailableSpecs.MemoryMb,
-			UsedMemoryMB:          0,
-			TotalGPUs:             uint64(providerRecord.AvailableSpecs.GpuCount),
-			UsedGPUs:              0,
+			TotalCpuCores:         providerRecord.AvailableSpecs.CpuCores,
+			UsedCpuCores:          0,
+			TotalMemoryMb:         providerRecord.AvailableSpecs.MemoryMb,
+			UsedMemoryMb:          0,
+			TotalGpus:             uint64(providerRecord.AvailableSpecs.GpuCount),
+			UsedGpus:              0,
 			LastUpdated:           sdk.UnwrapSDKContext(ctx).BlockTime(),
 		}
 	}
@@ -280,15 +280,15 @@ func (k Keeper) CheckProviderCapacity(ctx context.Context, provider sdk.AccAddre
 	}
 
 	// Check resource availability
-	if tracker.UsedCPUCores+specs.CpuCores > tracker.TotalCPUCores {
+	if tracker.UsedCpuCores+specs.CpuCores > tracker.TotalCpuCores {
 		return fmt.Errorf("provider CPU capacity exceeded")
 	}
 
-	if tracker.UsedMemoryMB+specs.MemoryMb > tracker.TotalMemoryMB {
+	if tracker.UsedMemoryMb+specs.MemoryMb > tracker.TotalMemoryMb {
 		return fmt.Errorf("provider memory capacity exceeded")
 	}
 
-	if specs.GpuCount > 0 && tracker.UsedGPUs+uint64(specs.GpuCount) > tracker.TotalGPUs {
+	if specs.GpuCount > 0 && tracker.UsedGpus+uint64(specs.GpuCount) > tracker.TotalGpus {
 		return fmt.Errorf("provider GPU capacity exceeded")
 	}
 
@@ -305,9 +305,9 @@ func (k Keeper) AllocateProviderResources(ctx context.Context, provider sdk.AccA
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	tracker.CurrentRequests++
-	tracker.UsedCPUCores += specs.CpuCores
-	tracker.UsedMemoryMB += specs.MemoryMb
-	tracker.UsedGPUs += uint64(specs.GpuCount)
+	tracker.UsedCpuCores += specs.CpuCores
+	tracker.UsedMemoryMb += specs.MemoryMb
+	tracker.UsedGpus += uint64(specs.GpuCount)
 	tracker.LastUpdated = sdkCtx.BlockTime()
 
 	if err := k.SetProviderLoadTracker(ctx, *tracker); err != nil {
@@ -329,20 +329,20 @@ func (k Keeper) ReleaseProviderResources(ctx context.Context, provider sdk.AccAd
 	if tracker.CurrentRequests > 0 {
 		tracker.CurrentRequests--
 	}
-	if tracker.UsedCPUCores >= specs.CpuCores {
-		tracker.UsedCPUCores -= specs.CpuCores
+	if tracker.UsedCpuCores >= specs.CpuCores {
+		tracker.UsedCpuCores -= specs.CpuCores
 	} else {
-		tracker.UsedCPUCores = 0
+		tracker.UsedCpuCores = 0
 	}
-	if tracker.UsedMemoryMB >= specs.MemoryMb {
-		tracker.UsedMemoryMB -= specs.MemoryMb
+	if tracker.UsedMemoryMb >= specs.MemoryMb {
+		tracker.UsedMemoryMb -= specs.MemoryMb
 	} else {
-		tracker.UsedMemoryMB = 0
+		tracker.UsedMemoryMb = 0
 	}
-	if tracker.UsedGPUs >= uint64(specs.GpuCount) {
-		tracker.UsedGPUs -= uint64(specs.GpuCount)
+	if tracker.UsedGpus >= uint64(specs.GpuCount) {
+		tracker.UsedGpus -= uint64(specs.GpuCount)
 	} else {
-		tracker.UsedGPUs = 0
+		tracker.UsedGpus = 0
 	}
 	tracker.LastUpdated = sdkCtx.BlockTime()
 
@@ -444,13 +444,13 @@ func (k Keeper) GetDefaultResourceQuota(account string) *types.ResourceQuota {
 	return &types.ResourceQuota{
 		Account:               account,
 		MaxConcurrentRequests: 10,
-		MaxTotalCPUCores:      100,
-		MaxTotalMemoryMB:      102400, // 100 GB
-		MaxTotalGPUs:          10,
-		MaxTotalStorageGB:     1000, // 1 TB
-		CurrentCPU:            0,
+		MaxTotalCpuCores:      100,
+		MaxTotalMemoryMb:      102400, // 100 GB
+		MaxTotalGpus:          10,
+		MaxTotalStorageGb:     1000, // 1 TB
+		CurrentCpu:            0,
 		CurrentMemory:         0,
-		CurrentGPUs:           0,
+		CurrentGpus:           0,
 		CurrentStorage:        0,
 		CurrentRequests:       0,
 		LastUpdated:           time.Now(),

@@ -16,3 +16,17 @@ func DefaultParams() Params {
 		EscrowReleaseDelaySeconds:  3600,
 	}
 }
+
+// DefaultGovernanceParams returns default dispute/appeal governance parameters.
+func DefaultGovernanceParams() GovernanceParams {
+	return GovernanceParams{
+		DisputeDeposit:          math.NewInt(1_000_000),
+		EvidencePeriodSeconds:   86400,
+		VotingPeriodSeconds:     86400,
+		QuorumPercentage:        math.LegacyMustNewDecFromStr("0.334"),
+		ConsensusThreshold:      math.LegacyMustNewDecFromStr("0.5"),
+		SlashPercentage:         math.LegacyMustNewDecFromStr("0.1"),
+		AppealDepositPercentage: math.LegacyMustNewDecFromStr("0.05"),
+		MaxEvidenceSize:         10 * 1024 * 1024,
+	}
+}

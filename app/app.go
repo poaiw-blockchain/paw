@@ -18,7 +18,9 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -44,7 +46,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	"github.com/cosmos/cosmos-sdk/client/grpc/node"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/types"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/api"
@@ -54,6 +56,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	sdkante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
@@ -103,12 +106,9 @@ import (
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v8/modules/core"
-	ibcclient "github.com/cosmos/ibc-go/v8/modules/core/02-client"
-	ibcclienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
-	ibcconnectiontypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
-	ibctypes "github.com/cosmos/ibc-go/v8/modules/core/types"
 
 	// PAW custom modules
 	dexmodule "github.com/paw-chain/paw/x/dex"
@@ -165,7 +165,7 @@ type PAWApp struct {
 
 	cdc               *codec.LegacyAmino
 	appCodec          codec.Codec
-	interfaceRegistry types.InterfaceRegistry
+	interfaceRegistry codectypes.InterfaceRegistry
 	txConfig          client.TxConfig
 
 	// keys to access the substores
@@ -189,10 +189,10 @@ type PAWApp struct {
 	ConsensusParamsKeeper consensusparamkeeper.Keeper
 
 	// IBC keepers
-	IBCKeeper           *ibckeeper.Keeper
-	TransferKeeper      *ibctransferkeeper.Keeper
-	CapabilityKeeper    capabilitykeeper.Keeper
-	ScopedIBCKeeper     capabilitykeeper.ScopedKeeper
+	IBCKeeper            *ibckeeper.Keeper
+	TransferKeeper       *ibctransferkeeper.Keeper
+	CapabilityKeeper     *capabilitykeeper.Keeper
+	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 
 	// PAW custom keepers
@@ -245,7 +245,7 @@ func NewPAWApp(
 		crisistypes.StoreKey,
 		// IBC modules
 		capabilitytypes.StoreKey,
-		ibctypes.StoreKey,
+		ibcexported.StoreKey,
 		ibctransfertypes.StoreKey,
 		// PAW custom modules
 		dextypes.StoreKey,
@@ -334,12 +334,12 @@ func NewPAWApp(
 	)
 
 	// Initialize IBC Capability Keeper and Scoped Keepers
-	app.CapabilityKeeper,
-		scopedIBCKeeper,
-		scopedTransferKeeper,
-		scopedComputeKeeper,
-		scopedDEXKeeper,
-		scopedOracleKeeper := app.setupIBCCapabilities(appCodec, keys, memKeys)
+	capKeeper, scopedIBCKeeper, scopedTransferKeeper, scopedComputeKeeper, scopedDEXKeeper, scopedOracleKeeper :=
+		app.setupIBCCapabilities(appCodec, keys, memKeys)
+	app.CapabilityKeeper = capKeeper
+	_ = scopedComputeKeeper
+	_ = scopedDEXKeeper
+	_ = scopedOracleKeeper
 
 	// Seal the capability keeper to prevent further scoped keepers from being created
 	app.CapabilityKeeper.Seal()
@@ -347,8 +347,8 @@ func NewPAWApp(
 	// Initialize IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec,
-		keys[ibctypes.StoreKey],
-		app.GetSubspace(ibctypes.ModuleName),
+		keys[ibcexported.StoreKey],
+		app.GetSubspace(ibcexported.ModuleName),
 		app.StakingKeeper,
 		app.UpgradeKeeper,
 		scopedIBCKeeper,
@@ -356,7 +356,7 @@ func NewPAWApp(
 	)
 
 	// Initialize Transfer Keeper
-	app.TransferKeeper = ibctransferkeeper.NewKeeper(
+	transferKeeper := ibctransferkeeper.NewKeeper(
 		appCodec,
 		keys[ibctransfertypes.StoreKey],
 		app.GetSubspace(ibctransfertypes.ModuleName),
@@ -368,6 +368,7 @@ func NewPAWApp(
 		scopedTransferKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
+	app.TransferKeeper = &transferKeeper
 
 	// Store scoped keepers for later use
 	app.ScopedIBCKeeper = scopedIBCKeeper
@@ -379,6 +380,8 @@ func NewPAWApp(
 		keys[dextypes.StoreKey],
 		app.BankKeeper,
 		app.IBCKeeper,
+		app.IBCKeeper.PortKeeper,
+		scopedDEXKeeper,
 	)
 
 	app.ComputeKeeper = computekeeper.NewKeeper(
@@ -389,7 +392,9 @@ func NewPAWApp(
 		app.StakingKeeper,
 		app.SlashingKeeper,
 		app.IBCKeeper,
+		app.IBCKeeper.PortKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		scopedComputeKeeper,
 	)
 
 	app.OracleKeeper = oraclekeeper.NewKeeper(
@@ -399,7 +404,9 @@ func NewPAWApp(
 		app.StakingKeeper,
 		app.SlashingKeeper,
 		app.IBCKeeper,
+		app.IBCKeeper.PortKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		scopedOracleKeeper,
 	)
 
 	// Create IBC Router
@@ -450,14 +457,10 @@ func NewPAWApp(
 		ibctransfer.NewAppModule(*app.TransferKeeper),
 
 		// PAW custom modules
-		dexmodule.NewAppModule(appCodec, app.DEXKeeper),
-		computemodule.NewAppModule(appCodec, app.ComputeKeeper),
-		oraclemodule.NewAppModule(appCodec, app.OracleKeeper),
+		dexmodule.NewAppModule(appCodec, app.DEXKeeper, app.AccountKeeper, app.BankKeeper),
+		computemodule.NewAppModule(appCodec, app.ComputeKeeper, app.AccountKeeper, app.BankKeeper),
+		oraclemodule.NewAppModule(appCodec, app.OracleKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 	)
-
-	// Register module services (msg and query servers)
-	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
-	app.mm.RegisterServices(app.configurator)
 
 	// Build a BasicModuleManager from the fully wired module manager so AppModuleBasic
 	// instances carry the correct codec and address codec wiring for CLI commands.
@@ -485,6 +488,10 @@ func NewPAWApp(
 	RegisterLegacyAminoCodecWithManager(legacyAmino, app.BasicModuleManager)
 	setModuleBasics(app.BasicModuleManager)
 
+	// Register module services (msg and query servers)
+	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.mm.RegisterServices(app.configurator)
+
 	// Set init genesis order
 	// NOTE: The genutil module must occur after staking so that pools are
 	// properly initialized with tokens from genesis accounts.
@@ -507,7 +514,7 @@ func NewPAWApp(
 		vestingtypes.ModuleName,
 		consensusparamtypes.ModuleName,
 		// IBC modules (after capability)
-		ibctypes.ModuleName,
+		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
@@ -524,7 +531,7 @@ func NewPAWApp(
 		stakingtypes.ModuleName,
 		genutiltypes.ModuleName,
 		// IBC modules
-		ibctypes.ModuleName,
+		ibcexported.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
 		computetypes.ModuleName,
@@ -538,7 +545,7 @@ func NewPAWApp(
 		stakingtypes.ModuleName,
 		feegrant.ModuleName,
 		// IBC modules
-		ibctypes.ModuleName,
+		ibcexported.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
 		computetypes.ModuleName,
@@ -558,9 +565,9 @@ func NewPAWApp(
 		evidence.NewAppModule(app.EvidenceKeeper),
 
 		// PAW custom modules
-		dexmodule.NewAppModule(appCodec, app.DEXKeeper),
-		computemodule.NewAppModule(appCodec, app.ComputeKeeper),
-		oraclemodule.NewAppModule(appCodec, app.OracleKeeper),
+		dexmodule.NewAppModule(appCodec, app.DEXKeeper, app.AccountKeeper, app.BankKeeper),
+		computemodule.NewAppModule(appCodec, app.ComputeKeeper, app.AccountKeeper, app.BankKeeper),
+		oraclemodule.NewAppModule(appCodec, app.OracleKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -582,7 +589,7 @@ func NewPAWApp(
 			BankKeeper:      app.BankKeeper,
 			FeegrantKeeper:  app.FeeGrantKeeper,
 			SignModeHandler: txConfig.SignModeHandler(),
-			SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
+			SigGasConsumer:  sdkante.DefaultSigVerificationGasConsumer,
 			IBCKeeper:       app.IBCKeeper,
 			ComputeKeeper:   app.ComputeKeeper,
 			DEXKeeper:       app.DEXKeeper,
@@ -623,7 +630,7 @@ func (app *PAWApp) AppCodec() codec.Codec {
 }
 
 // InterfaceRegistry returns PAW's InterfaceRegistry
-func (app *PAWApp) InterfaceRegistry() types.InterfaceRegistry {
+func (app *PAWApp) InterfaceRegistry() codectypes.InterfaceRegistry {
 	return app.interfaceRegistry
 }
 
@@ -646,6 +653,11 @@ func (app *PAWApp) GetSubspace(moduleName string) paramstypes.Subspace {
 // SimulationManager implements the SimulationApp interface
 func (app *PAWApp) SimulationManager() *module.SimulationManager {
 	return app.sm
+}
+
+// ModuleManager exposes the module manager for simulations and testing.
+func (app *PAWApp) ModuleManager() *module.Manager {
+	return app.mm
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided
@@ -898,7 +910,7 @@ func (app *PAWApp) setupIBCCapabilities(
 	keys map[string]*storetypes.KVStoreKey,
 	memKeys map[string]*storetypes.MemoryStoreKey,
 ) (
-	capabilitykeeper.Keeper,
+	*capabilitykeeper.Keeper,
 	capabilitykeeper.ScopedKeeper, // IBC
 	capabilitykeeper.ScopedKeeper, // Transfer
 	capabilitykeeper.ScopedKeeper, // Compute
@@ -915,7 +927,7 @@ func (app *PAWApp) setupIBCCapabilities(
 
 	// Create scoped keepers for IBC modules
 	// Each IBC module needs its own scoped capability keeper to manage port bindings
-	scopedIBCKeeper := capabilityKeeper.ScopeToModule(ibctypes.ModuleName)
+	scopedIBCKeeper := capabilityKeeper.ScopeToModule(ibcexported.ModuleName)
 	scopedTransferKeeper := capabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	scopedComputeKeeper := capabilityKeeper.ScopeToModule(computetypes.ModuleName)
 	scopedDEXKeeper := capabilityKeeper.ScopeToModule(dextypes.ModuleName)
@@ -942,7 +954,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(govtypes.ModuleName)
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	// IBC modules
-	paramsKeeper.Subspace(ibctypes.ModuleName)
+	paramsKeeper.Subspace(ibcexported.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	// PAW custom modules
 	paramsKeeper.Subspace(dextypes.ModuleName)
@@ -975,14 +987,12 @@ func (app *PAWApp) setupV1_1_0Upgrade() {
 
 	app.UpgradeKeeper.SetUpgradeHandler(
 		upgradeName,
-		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		func(ctx context.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			app.Logger().Info("Running v1.1.0 upgrade handler",
 				"upgrade_name", plan.Name,
 				"upgrade_height", plan.Height,
 			)
 
-			// Run migrations for all modules
-			// This will call the registered migration handlers for each module
 			toVM, err := app.mm.RunMigrations(ctx, app.configurator, fromVM)
 			if err != nil {
 				return nil, err
@@ -1001,7 +1011,7 @@ func (app *PAWApp) setupV1_2_0Upgrade() {
 
 	app.UpgradeKeeper.SetUpgradeHandler(
 		upgradeName,
-		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		func(ctx context.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			app.Logger().Info("Running v1.2.0 upgrade handler",
 				"upgrade_name", plan.Name,
 				"upgrade_height", plan.Height,
@@ -1026,7 +1036,7 @@ func (app *PAWApp) setupV1_3_0Upgrade() {
 
 	app.UpgradeKeeper.SetUpgradeHandler(
 		upgradeName,
-		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		func(ctx context.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			app.Logger().Info("Running v1.3.0 upgrade handler",
 				"upgrade_name", plan.Name,
 				"upgrade_height", plan.Height,
@@ -1145,6 +1155,6 @@ var maccPerms = map[string][]string{
 	ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 	// PAW custom modules
 	dextypes.ModuleName:     {authtypes.Minter, authtypes.Burner},
-	computetypes.ModuleName: nil,
+	computetypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 	oracletypes.ModuleName:  nil,
 }

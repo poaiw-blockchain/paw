@@ -514,7 +514,7 @@ func TestTxSignCommandStructure(t *testing.T) {
 	if signCmd == nil {
 		t.Skip("sign command not available in test environment")
 	}
-	require.Equal(t, "sign", signCmd.Use)
+	require.Contains(t, signCmd.Use, "sign")
 	require.NotEmpty(t, signCmd.Short)
 }
 

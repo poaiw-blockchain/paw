@@ -1,7 +1,9 @@
 package keeper
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/store"
@@ -23,6 +25,9 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/compute/keeper"
@@ -35,6 +40,9 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
 	stakingStoreKey := storetypes.NewKVStoreKey(stakingtypes.StoreKey)
 	slashingStoreKey := storetypes.NewKVStoreKey(slashingtypes.StoreKey)
+	authStoreKey := storetypes.NewKVStoreKey(authtypes.StoreKey)
+	capStoreKey := storetypes.NewKVStoreKey(capabilitytypes.StoreKey)
+	capMemStoreKey := storetypes.NewMemoryStoreKey(capabilitytypes.MemStoreKey)
 
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
@@ -42,11 +50,15 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	stateStore.MountStoreWithDB(bankStoreKey, storetypes.StoreTypeIAVL, db)
 	stateStore.MountStoreWithDB(stakingStoreKey, storetypes.StoreTypeIAVL, db)
 	stateStore.MountStoreWithDB(slashingStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(authStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capMemStoreKey, storetypes.StoreTypeMemory, nil)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
 	banktypes.RegisterInterfaces(registry)
 	stakingtypes.RegisterInterfaces(registry)
+	authtypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
 
@@ -55,11 +67,8 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		authtypes.FeeCollectorName:     nil,
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
-		types.ModuleName:               nil,
+		types.ModuleName:               {authtypes.Minter, authtypes.Burner},
 	}
-
-	authStoreKey := storetypes.NewKVStoreKey(authtypes.StoreKey)
-	stateStore.MountStoreWithDB(authStoreKey, storetypes.StoreTypeIAVL, db)
 
 	accountKeeper := authkeeper.NewAccountKeeper(
 		cdc,
@@ -106,16 +115,54 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		authority.String(),
 	)
 
+	capKeeper := capabilitykeeper.NewKeeper(cdc, capStoreKey, capMemStoreKey)
+	scopedKeeper := capKeeper.ScopeToModule(types.ModuleName)
+	portKeeper := portkeeper.NewKeeper(scopedKeeper)
+	capKeeper.Seal()
+
 	k := keeper.NewKeeper(
 		cdc,
 		storeKey,
 		bankKeeper,
+		accountKeeper,
 		stakingKeeper,
 		slashingKeeper,
+		nil,
+		&portKeeper,
 		authority.String(),
+		scopedKeeper,
 	)
 
-	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+	header := cmtproto.Header{
+		Time: time.Now().UTC(),
+	}
+	ctx := sdk.NewContext(stateStore, header, false, log.NewNopLogger())
+	ctx = ctx.WithContext(context.Background())
+	ctx = ctx.WithBlockTime(time.Now().UTC())
+
+	moduleAccount := accountKeeper.NewAccount(ctx, authtypes.NewEmptyModuleAccount(types.ModuleName, authtypes.Minter, authtypes.Burner)).(*authtypes.ModuleAccount)
+	accountKeeper.SetModuleAccount(ctx, moduleAccount)
+
+	// Prefund common accounts used across compute tests
+	fundCoins := sdk.NewCoins(sdk.NewInt64Coin("upaw", 1_000_000_000))
+	fundAddrs := []sdk.AccAddress{
+		sdk.AccAddress([]byte("test_provider_addr_")),
+		sdk.AccAddress([]byte("test_requester_addr")),
+		sdk.AccAddress([]byte("other_user_address_")),
+		sdk.AccAddress("provider1__________"),
+		sdk.AccAddress("requester1_________"),
+	}
+	for i := 0; i < 5; i++ {
+		addr := make([]byte, 20)
+		copy(addr, []byte("test_provider_"))
+		addr[19] = byte(i)
+		fundAddrs = append(fundAddrs, sdk.AccAddress(addr))
+	}
+
+	for _, addr := range fundAddrs {
+		require.NoError(t, bankKeeper.MintCoins(ctx, types.ModuleName, fundCoins))
+		require.NoError(t, bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, fundCoins))
+	}
 
 	return k, ctx
 }

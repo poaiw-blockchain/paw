@@ -2,7 +2,6 @@ package chaos
 
 import (
 	"context"
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"

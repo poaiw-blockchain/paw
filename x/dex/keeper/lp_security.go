@@ -75,7 +75,10 @@ func (k Keeper) validateShareSupply(pool *types.Pool, totalShares math.Int) erro
 
 	// For very large numbers, use decimal approximation
 	kDec := math.LegacyNewDecFromInt(k_value)
-	sqrtK := kDec.ApproxSqrt()
+	sqrtK, err := kDec.ApproxSqrt()
+	if err != nil {
+		return types.ErrInvalidInput.Wrapf("failed to compute sqrt(k): %v", err)
+	}
 
 	// Total shares should be approximately equal to sqrt(k)
 	// Allow up to 10x variance for rounding and initial liquidity
@@ -167,13 +170,13 @@ func (k Keeper) detectSuspiciousLiquidity(ctx context.Context, pool *types.Pool,
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// 1. Check for rapid consecutive liquidity additions (potential flash loan attack)
-	lastBlock, err := k.GetLastLiquidityActionBlock(ctx, pool.Id, provider)
+	lastBlock, found, err := k.GetLastLiquidityActionBlock(ctx, pool.Id, provider)
 	if err != nil {
 		return err
 	}
 
 	currentHeight := sdkCtx.BlockHeight()
-	if lastBlock > 0 && currentHeight-lastBlock < 5 {
+	if found && currentHeight-lastBlock < 5 {
 		// Require at least 5 blocks between liquidity actions
 		return types.ErrFlashLoanDetected.Wrapf(
 			"liquidity actions too frequent: last at block %d, current %d",
@@ -268,8 +271,6 @@ func (k Keeper) ValidateLPBurning(ctx context.Context, pool *types.Pool, provide
 
 // LockInitialLiquidity locks the first minimum liquidity permanently
 func (k Keeper) LockInitialLiquidity(ctx context.Context, poolID uint64) error {
-	store := k.getStore(ctx)
-
 	// Create a burn address for locked liquidity
 	burnAddr := sdk.AccAddress([]byte("locked_liquidity___"))
 
@@ -293,21 +294,21 @@ func (k Keeper) LockInitialLiquidity(ctx context.Context, poolID uint64) error {
 }
 
 // GetLastLiquidityActionBlock returns the last block when provider added/removed liquidity
-func (k Keeper) GetLastLiquidityActionBlock(ctx context.Context, poolID uint64, provider sdk.AccAddress) (int64, error) {
+func (k Keeper) GetLastLiquidityActionBlock(ctx context.Context, poolID uint64, provider sdk.AccAddress) (int64, bool, error) {
 	store := k.getStore(ctx)
 	key := LastLiquidityActionKey(poolID, provider)
 
 	bz := store.Get(key)
 	if bz == nil {
-		return 0, nil
+		return 0, false, nil
 	}
 
 	if len(bz) != 8 {
-		return 0, types.ErrInvalidState.Wrap("invalid block height data")
+		return 0, false, types.ErrInvalidState.Wrap("invalid block height data")
 	}
 
 	height := int64(sdk.BigEndianToUint64(bz))
-	return height, nil
+	return height, true, nil
 }
 
 // SetLastLiquidityActionBlock records the block when provider added/removed liquidity
@@ -344,7 +345,11 @@ func (k Keeper) ValidateInitialLiquidity(amountA, amountB math.Int) error {
 	// Calculate initial shares (sqrt of product)
 	product := amountA.Mul(amountB)
 	productDec := math.LegacyNewDecFromInt(product)
-	initialShares := productDec.ApproxSqrt().TruncateInt()
+	sqrtProd, err := productDec.ApproxSqrt()
+	if err != nil {
+		return types.ErrInvalidInput.Wrapf("failed to compute initial liquidity sqrt: %v", err)
+	}
+	initialShares := sqrtProd.TruncateInt()
 
 	// Ensure initial shares meet minimum
 	if initialShares.LT(math.NewInt(MinimumLiquidity)) {

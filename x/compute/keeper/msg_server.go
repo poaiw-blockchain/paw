@@ -222,3 +222,171 @@ func (ms msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdatePara
 
 	return &types.MsgUpdateParamsResponse{}, nil
 }
+
+// CreateDispute handles dispute creation with deposit locking and evidence capture.
+func (ms msgServer) CreateDispute(goCtx context.Context, msg *types.MsgCreateDispute) (*types.MsgCreateDisputeResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	requester, err := sdk.AccAddressFromBech32(msg.Requester)
+	if err != nil {
+		return nil, fmt.Errorf("invalid requester: %w", err)
+	}
+
+	disputeID, err := ms.Keeper.CreateDispute(ctx, requester, msg.RequestId, msg.Reason, msg.Evidence, msg.DepositAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.MsgCreateDisputeResponse{DisputeId: disputeID}, nil
+}
+
+// VoteOnDispute records validator votes with justification and power.
+func (ms msgServer) VoteOnDispute(goCtx context.Context, msg *types.MsgVoteOnDispute) (*types.MsgVoteOnDisputeResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	validator, err := sdk.ValAddressFromBech32(msg.Validator)
+	if err != nil {
+		return nil, fmt.Errorf("invalid validator: %w", err)
+	}
+
+	if err := ms.Keeper.VoteOnDispute(ctx, validator, msg.DisputeId, msg.Vote, msg.Justification); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgVoteOnDisputeResponse{}, nil
+}
+
+// ResolveDispute settles a dispute, applies slashing/refunds, and finalizes escrow.
+func (ms msgServer) ResolveDispute(goCtx context.Context, msg *types.MsgResolveDispute) (*types.MsgResolveDisputeResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	authority, err := sdk.AccAddressFromBech32(msg.Authority)
+	if err != nil {
+		return nil, fmt.Errorf("invalid authority: %w", err)
+	}
+
+	resolution, err := ms.Keeper.ResolveDispute(ctx, authority, msg.DisputeId)
+	if err != nil {
+		return nil, err
+	}
+
+	// Post-resolution settlement: handle escrow and slashing in keeper
+	if err := ms.Keeper.SettleDisputeOutcome(ctx, msg.DisputeId, resolution); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgResolveDisputeResponse{Resolution: resolution}, nil
+}
+
+// SubmitEvidence attaches additional evidence to an active dispute.
+func (ms msgServer) SubmitEvidence(goCtx context.Context, msg *types.MsgSubmitEvidence) (*types.MsgSubmitEvidenceResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	submitter, err := sdk.AccAddressFromBech32(msg.Submitter)
+	if err != nil {
+		return nil, fmt.Errorf("invalid submitter: %w", err)
+	}
+
+	if err := ms.Keeper.SubmitEvidence(ctx, submitter, msg.DisputeId, msg.EvidenceType, msg.Data, msg.Description); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgSubmitEvidenceResponse{}, nil
+}
+
+// AppealSlashing lets providers challenge a slash with a weighted vote appeal.
+func (ms msgServer) AppealSlashing(goCtx context.Context, msg *types.MsgAppealSlashing) (*types.MsgAppealSlashingResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	provider, err := sdk.AccAddressFromBech32(msg.Provider)
+	if err != nil {
+		return nil, fmt.Errorf("invalid provider: %w", err)
+	}
+
+	appealID, err := ms.Keeper.CreateAppeal(ctx, provider, msg.SlashId, msg.Justification, msg.DepositAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.MsgAppealSlashingResponse{AppealId: appealID}, nil
+}
+
+// VoteOnAppeal records validator votes on an appeal.
+func (ms msgServer) VoteOnAppeal(goCtx context.Context, msg *types.MsgVoteOnAppeal) (*types.MsgVoteOnAppealResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	validator, err := sdk.ValAddressFromBech32(msg.Validator)
+	if err != nil {
+		return nil, fmt.Errorf("invalid validator: %w", err)
+	}
+
+	if err := ms.Keeper.VoteOnAppeal(ctx, validator, msg.AppealId, msg.Approve, msg.Justification); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgVoteOnAppealResponse{}, nil
+}
+
+// ResolveAppeal finalizes an appeal and applies state changes to the slash record.
+func (ms msgServer) ResolveAppeal(goCtx context.Context, msg *types.MsgResolveAppeal) (*types.MsgResolveAppealResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	authority, err := sdk.AccAddressFromBech32(msg.Authority)
+	if err != nil {
+		return nil, fmt.Errorf("invalid authority: %w", err)
+	}
+
+	approved, err := ms.Keeper.ResolveAppeal(ctx, authority, msg.AppealId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ms.Keeper.ApplyAppealOutcome(ctx, msg.AppealId, approved); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgResolveAppealResponse{Approved: approved}, nil
+}
+
+// UpdateGovernanceParams updates dispute/appeal governance settings.
+func (ms msgServer) UpdateGovernanceParams(goCtx context.Context, msg *types.MsgUpdateGovernanceParams) (*types.MsgUpdateGovernanceParamsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	authority, err := sdk.AccAddressFromBech32(msg.Authority)
+	if err != nil {
+		return nil, fmt.Errorf("invalid authority: %w", err)
+	}
+	if authority.String() != ms.Keeper.authority {
+		return nil, fmt.Errorf("unauthorized governance params update: expected %s", ms.Keeper.authority)
+	}
+
+	if err := ms.Keeper.SetGovernanceParams(ctx, msg.Params); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgUpdateGovernanceParamsResponse{}, nil
+}

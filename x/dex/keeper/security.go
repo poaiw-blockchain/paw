@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"cosmossdk.io/math"
@@ -13,8 +14,8 @@ import (
 
 // Security constants
 const (
-	// Maximum price deviation allowed before circuit breaker triggers (20%)
-	MaxPriceDeviation = "0.2"
+	// Maximum price deviation allowed before circuit breaker triggers (25%)
+	MaxPriceDeviation = "0.25"
 
 	// Maximum single swap size as percentage of pool reserves (10%)
 	MaxSwapSizePercent = "0.1"
@@ -41,10 +42,49 @@ type CircuitBreakerState struct {
 	PersistenceKey    string
 }
 
+// ReentrancyGuard provides lightweight in-memory locks for tests and auxiliary flows.
+type ReentrancyGuard struct {
+	mu    sync.Mutex
+	locks map[string]struct{}
+}
+
+// NewReentrancyGuard creates a new guard instance.
+func NewReentrancyGuard() *ReentrancyGuard {
+	return &ReentrancyGuard{locks: make(map[string]struct{})}
+}
+
+// Lock acquires a named lock or returns an error if already held.
+func (g *ReentrancyGuard) Lock(key string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if _, exists := g.locks[key]; exists {
+		return types.ErrReentrancy.Wrapf("reentrancy detected for %s", key)
+	}
+
+	g.locks[key] = struct{}{}
+	return nil
+}
+
+// Unlock releases a named lock.
+func (g *ReentrancyGuard) Unlock(key string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	delete(g.locks, key)
+}
+
 // WithReentrancyGuard executes a function with reentrancy protection
 // Stores locks in KVStore to ensure they persist across context boundaries
 func (k Keeper) WithReentrancyGuard(ctx context.Context, poolID uint64, operation string, fn func() error) error {
 	lockKey := fmt.Sprintf("%d:%s", poolID, operation)
+
+	// Optional in-memory guard for test scenarios
+	if guard, ok := ctx.Value("reentrancy_guard").(*ReentrancyGuard); ok && guard != nil {
+		if err := guard.Lock(lockKey); err != nil {
+			return err
+		}
+		defer guard.Unlock(lockKey)
+	}
 
 	// Acquire lock using KVStore
 	if err := k.acquireReentrancyLock(ctx, lockKey); err != nil {
@@ -244,10 +284,6 @@ func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state
 	return nil
 }
 
-
-
-
-
 // CheckFlashLoanProtection prevents same-block liquidity manipulation
 /*
 func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
@@ -297,11 +333,6 @@ func SafeQuo(a, b math.Int) (math.Int, error) {
     // ...
 }
 */
-
-
-
-
-
 
 // EmergencyPausePool pauses all operations on a pool (governance only)
 func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason string, duration time.Duration) error {

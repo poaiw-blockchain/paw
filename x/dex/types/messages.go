@@ -120,6 +120,10 @@ func (m *MsgRemoveLiquidity) GetSigners() []sdk.AccAddress {
 
 // ValidateBasic performs basic validation of MsgSwap
 func (m *MsgSwap) ValidateBasic() error {
+	if m.Trader == "" {
+		return fmt.Errorf("trader address cannot be empty")
+	}
+
 	if _, err := sdk.AccAddressFromBech32(m.Trader); err != nil {
 		return fmt.Errorf("invalid trader address: %w", err)
 	}
@@ -136,12 +140,20 @@ func (m *MsgSwap) ValidateBasic() error {
 		return fmt.Errorf("token_out cannot be empty")
 	}
 
+	if err := sdk.ValidateDenom(m.TokenIn); err != nil {
+		return fmt.Errorf("invalid denom for token_in: %w", err)
+	}
+
+	if err := sdk.ValidateDenom(m.TokenOut); err != nil {
+		return fmt.Errorf("invalid denom for token_out: %w", err)
+	}
+
 	if m.TokenIn == m.TokenOut {
-		return fmt.Errorf("tokens must be different")
+		return fmt.Errorf("cannot swap the same token denomination")
 	}
 
 	if m.AmountIn.IsZero() || m.AmountIn.IsNegative() {
-		return fmt.Errorf("amount_in must be positive")
+		return fmt.Errorf("invalid amount: amount_in must be positive")
 	}
 
 	if m.MinAmountOut.IsNegative() {

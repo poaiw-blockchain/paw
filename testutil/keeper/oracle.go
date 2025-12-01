@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -13,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -24,11 +26,42 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
+	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
+
+var oracleStakingKeeper *stakingkeeper.Keeper
+
+// EnsureBondedValidator seeds a bonded validator into the oracle staking keeper for tests.
+func EnsureBondedValidator(ctx sdk.Context, valAddr sdk.ValAddress) error {
+	if oracleStakingKeeper == nil {
+		return fmt.Errorf("staking keeper not initialized")
+	}
+
+	if val, err := oracleStakingKeeper.GetValidator(ctx, valAddr); err == nil && val.IsBonded() {
+		return nil
+	}
+
+	pubKey := ed25519.GenPrivKey().PubKey()
+	validatorObj, err := stakingtypes.NewValidator(valAddr.String(), pubKey, stakingtypes.Description{Moniker: "oracle-gas"})
+	if err != nil {
+		return err
+	}
+	validatorObj.Status = stakingtypes.Bonded
+	validatorObj.Tokens = math.NewInt(1_000_000)
+	validatorObj.DelegatorShares = math.LegacyNewDecFromInt(validatorObj.Tokens)
+
+	if err := oracleStakingKeeper.SetValidator(ctx, validatorObj); err != nil {
+		return err
+	}
+	return oracleStakingKeeper.SetNewValidatorByPowerIndex(ctx, validatorObj)
+}
 
 // OracleKeeper creates a test keeper for the Oracle module with mock dependencies
 func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
@@ -36,6 +69,8 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
 	stakingStoreKey := storetypes.NewKVStoreKey(stakingtypes.StoreKey)
 	slashingStoreKey := storetypes.NewKVStoreKey(slashingtypes.StoreKey)
+	capStoreKey := storetypes.NewKVStoreKey(capabilitytypes.StoreKey)
+	capMemStoreKey := storetypes.NewMemoryStoreKey(capabilitytypes.MemStoreKey)
 
 	db := dbm.NewMemDB()
 	stateStore := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
@@ -43,6 +78,8 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	stateStore.MountStoreWithDB(bankStoreKey, storetypes.StoreTypeIAVL, db)
 	stateStore.MountStoreWithDB(stakingStoreKey, storetypes.StoreTypeIAVL, db)
 	stateStore.MountStoreWithDB(slashingStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capMemStoreKey, storetypes.StoreTypeMemory, nil)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
@@ -107,36 +144,57 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		authority.String(),
 	)
 
+	capKeeper := capabilitykeeper.NewKeeper(cdc, capStoreKey, capMemStoreKey)
+	scopedOracleKeeper := capKeeper.ScopeToModule(types.ModuleName)
+	oracleStakingKeeper = stakingKeeper
+
+	var ibcKeeper *ibckeeper.Keeper
+	var portKeeper *portkeeper.Keeper
+
 	k := keeper.NewKeeper(
 		cdc,
 		storeKey,
 		bankKeeper,
 		stakingKeeper,
 		slashingKeeper,
+		ibcKeeper,
+		portKeeper,
 		authority.String(),
+		scopedOracleKeeper,
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 
 	return k, ctx
 }
 
 // RegisterTestOracle registers a test oracle validator
 func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validator string) {
-	msgRegister := &types.MsgRegisterOracle{
-		Validator: validator,
-	}
-	_, err := k.RegisterOracle(ctx, msgRegister)
+	valAddr, err := sdk.ValAddressFromBech32(validator)
 	require.NoError(t, err)
+
+	require.NotNil(t, oracleStakingKeeper)
+
+	pubKey := ed25519.GenPrivKey().PubKey()
+	validatorObj, err := stakingtypes.NewValidator(valAddr.String(), pubKey, stakingtypes.Description{})
+	require.NoError(t, err)
+	validatorObj.Status = stakingtypes.Bonded
+	validatorObj.Tokens = math.NewInt(1_000_000)
+	validatorObj.DelegatorShares = math.LegacyNewDecFromInt(validatorObj.Tokens)
+
+	oracleStakingKeeper.SetValidator(ctx, validatorObj)
+	oracleStakingKeeper.SetNewValidatorByPowerIndex(ctx, validatorObj)
 }
 
 // SubmitTestPrice submits a test price feed
 func SubmitTestPrice(t testing.TB, k *keeper.Keeper, ctx sdk.Context, oracle, asset string, price math.LegacyDec) {
-	msgSubmit := &types.MsgSubmitPrice{
-		Oracle: oracle,
-		Asset:  asset,
-		Price:  price,
+	msg := &types.MsgSubmitPrice{
+		Validator: oracle,
+		Feeder:    sdk.MustAccAddressFromBech32(oracle).String(),
+		Asset:     asset,
+		Price:     price,
 	}
-	_, err := k.SubmitPrice(ctx, msgSubmit)
+	_, err := keeper.NewMsgServerImpl(*k).SubmitPrice(sdk.WrapSDKContext(ctx), msg)
 	require.NoError(t, err)
 }

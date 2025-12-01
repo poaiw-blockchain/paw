@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -494,4 +495,42 @@ func TestPriceSnapshot_TimeSeriesData(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, 100, count)
+}
+
+// TestCalculateTWAP verifies TWAP over a controlled snapshot window.
+func TestCalculateTWAP(t *testing.T) {
+	k, ctx := keepertest.OracleKeeper(t)
+
+	// Ensure lookback window covers our snapshots
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	params.TwapLookbackWindow = 10
+	require.NoError(t, k.SetParams(ctx, params))
+
+	now := time.Now().UTC()
+	ctx = ctx.WithBlockTime(now.Add(20 * time.Second))
+
+	// Two snapshots spaced 10s apart: TWAP should equal time-weighted average (here arithmetic mean).
+	snapshots := []types.PriceSnapshot{
+		{
+			Asset:       "ATOM/USD",
+			Price:       math.LegacyMustNewDecFromStr("10.0"),
+			BlockHeight: 100,
+			BlockTime:   now.Unix(),
+		},
+		{
+			Asset:       "ATOM/USD",
+			Price:       math.LegacyMustNewDecFromStr("20.0"),
+			BlockHeight: 101,
+			BlockTime:   now.Add(10 * time.Second).Unix(),
+		},
+	}
+
+	for _, snap := range snapshots {
+		require.NoError(t, k.SetPriceSnapshot(ctx, snap))
+	}
+
+	twap, err := k.CalculateTWAP(ctx, "ATOM/USD")
+	require.NoError(t, err)
+	require.Equal(t, math.LegacyMustNewDecFromStr("15.0"), twap)
 }

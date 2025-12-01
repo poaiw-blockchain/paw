@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -51,14 +52,14 @@ const (
 
 // CrossChainPoolInfo represents liquidity info from a remote chain
 type CrossChainPoolInfo struct {
-	ChainID     string    `json:"chain_id"`
-	PoolID      string    `json:"pool_id"`
-	TokenA      string    `json:"token_a"`
-	TokenB      string    `json:"token_b"`
-	ReserveA    math.Int  `json:"reserve_a"`
-	ReserveB    math.Int  `json:"reserve_b"`
-	SwapFee     math.LegacyDec   `json:"swap_fee"`
-	LastUpdated time.Time `json:"last_updated"`
+	ChainID     string         `json:"chain_id"`
+	PoolID      string         `json:"pool_id"`
+	TokenA      string         `json:"token_a"`
+	TokenB      string         `json:"token_b"`
+	ReserveA    math.Int       `json:"reserve_a"`
+	ReserveB    math.Int       `json:"reserve_b"`
+	SwapFee     math.LegacyDec `json:"swap_fee"`
+	LastUpdated time.Time      `json:"last_updated"`
 }
 
 // CrossChainSwapRoute represents an execution path across multiple chains
@@ -139,7 +140,7 @@ func (k Keeper) QueryCrossChainPools(
 
 		packetBytes, err := json.Marshal(packetData)
 		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "failed to marshal packet data")
+			return nil, errorsmod.Wrapf(err, "failed to marshal packet data")
 		}
 
 		// Send IBC packet
@@ -178,30 +179,38 @@ func (k Keeper) ExecuteCrossChainSwap(
 
 	// Validate route
 	if len(route.Steps) == 0 {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "empty swap route")
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "empty swap route")
 	}
 
 	// Execute first step on local chain (if applicable)
 	var currentAmount math.Int
 	var currentToken string
+	priceImpactAcc := math.LegacyZeroDec()
+	totalFee := math.ZeroInt()
+	lastPoolPrice := math.LegacyZeroDec()
 
 	for i, step := range route.Steps {
+		var result *types.SwapResult
+		var err error
+
 		if step.ChainID == sdkCtx.ChainID() {
 			// Execute locally
-			result, err := k.executeLocalSwap(sdkCtx, sender, step)
-			if err != nil {
-				return nil, sdkerrors.Wrapf(err, "failed to execute local swap at step %d", i)
-			}
-			currentAmount = result.AmountOut
-			currentToken = step.TokenOut
+			result, err = k.executeLocalSwap(sdkCtx, sender, step)
 		} else {
 			// Execute on remote chain via IBC
-			result, err := k.executeRemoteSwap(sdkCtx, sender, step, currentAmount, currentToken)
-			if err != nil {
-				return nil, sdkerrors.Wrapf(err, "failed to execute remote swap at step %d", i)
-			}
-			currentAmount = result.AmountOut
-			currentToken = step.TokenOut
+			result, err = k.executeRemoteSwap(sdkCtx, sender, step, currentAmount, currentToken)
+		}
+
+		if err != nil {
+			return nil, errorsmod.Wrapf(err, "failed to execute swap at step %d", i)
+		}
+
+		currentAmount = result.AmountOut
+		currentToken = step.TokenOut
+		priceImpactAcc = priceImpactAcc.Add(result.PriceImpact)
+		totalFee = totalFee.Add(result.Fee)
+		if !result.NewPoolPrice.IsZero() {
+			lastPoolPrice = result.NewPoolPrice
 		}
 	}
 
@@ -209,7 +218,7 @@ func (k Keeper) ExecuteCrossChainSwap(
 	finalStep := route.Steps[len(route.Steps)-1]
 	actualSlippage := calculateSlippage(finalStep.MinAmountOut, currentAmount)
 	if actualSlippage.GT(maxSlippage) {
-		return nil, sdkerrors.Wrapf(
+		return nil, errorsmod.Wrapf(
 			types.ErrSlippageExceeded,
 			"slippage %s exceeds max %s",
 			actualSlippage.String(),
@@ -218,10 +227,13 @@ func (k Keeper) ExecuteCrossChainSwap(
 	}
 
 	return &types.SwapResult{
-		AmountIn:  route.Steps[0].AmountIn,
-		AmountOut: currentAmount,
-		Route:     formatRoute(route),
-		Slippage:  actualSlippage,
+		AmountIn:     route.Steps[0].AmountIn,
+		AmountOut:    currentAmount,
+		Route:        formatRoute(route),
+		Slippage:     actualSlippage,
+		PriceImpact:  priceImpactAcc,
+		Fee:          totalFee,
+		NewPoolPrice: lastPoolPrice,
 	}, nil
 }
 
@@ -250,7 +262,7 @@ func (k Keeper) FindBestCrossChainRoute(
 	// 4. Run routing algorithm to find best path
 	bestRoute := k.findOptimalRoute(sdkCtx, allPools, tokenIn, tokenOut, amountIn)
 	if bestRoute == nil {
-		return nil, sdkerrors.Wrap(types.ErrNoLiquidity, "no valid route found")
+		return nil, errorsmod.Wrap(types.ErrInsufficientLiquidity, "no valid route found")
 	}
 
 	return bestRoute, nil
@@ -264,18 +276,18 @@ func (k Keeper) OnAcknowledgementPacket(
 ) error {
 	var ackData interface{}
 	if err := json.Unmarshal(ack.GetResult(), &ackData); err != nil {
-		return sdkerrors.Wrap(err, "failed to unmarshal acknowledgement")
+		return errorsmod.Wrap(err, "failed to unmarshal acknowledgement")
 	}
 
 	// Handle based on packet type
 	var packetData map[string]interface{}
 	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
-		return sdkerrors.Wrap(err, "failed to unmarshal packet data")
+		return errorsmod.Wrap(err, "failed to unmarshal packet data")
 	}
 
 	packetType, ok := packetData["type"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidType, "missing packet type")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidType, "missing packet type")
 	}
 
 	switch packetType {
@@ -284,7 +296,7 @@ func (k Keeper) OnAcknowledgementPacket(
 	case PacketTypeExecuteSwap:
 		return k.handleExecuteSwapAck(ctx, packet, ackData)
 	default:
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
+		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
 	}
 }
 
@@ -295,12 +307,12 @@ func (k Keeper) OnTimeoutPacket(
 ) error {
 	var packetData map[string]interface{}
 	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
-		return sdkerrors.Wrap(err, "failed to unmarshal packet data")
+		return errorsmod.Wrap(err, "failed to unmarshal packet data")
 	}
 
 	packetType, ok := packetData["type"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidType, "missing packet type")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidType, "missing packet type")
 	}
 
 	switch packetType {
@@ -312,7 +324,7 @@ func (k Keeper) OnTimeoutPacket(
 		// Swap timeout - refund user
 		return k.refundSwap(ctx, packet)
 	default:
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
+		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
 	}
 }
 
@@ -358,31 +370,33 @@ func (k Keeper) sendIBCPacket(
 	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
 
 	// Get the source port for DEX module
-	sourcePort := "dex"
+	sourcePort := types.PortID
+
+	channelCap, found := k.GetChannelCapability(ctx, sourcePort, channelID)
+	if !found {
+		return 0, errorsmod.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "port: %s, channel: %s", sourcePort, channelID)
+	}
 
 	// Send packet via IBC keeper
 	sequence, err := k.ibcKeeper.ChannelKeeper.SendPacket(
 		ctx,
-		&channeltypes.Packet{
-			Sequence:           0, // Will be set by keeper
-			SourcePort:         sourcePort,
-			SourceChannel:      channelID,
-			DestinationPort:    "dex",
-			DestinationChannel: "", // Will be filled by IBC
-			Data:              data,
-			TimeoutHeight:     clienttypes.ZeroHeight(), // Use timestamp-based timeout
-			TimeoutTimestamp:  timeoutTimestamp,
-		},
+		channelCap,
+		sourcePort,
+		channelID,
+		clienttypes.ZeroHeight(), // Use timestamp-based timeout
+		timeoutTimestamp,
+		data,
 	)
 
 	if err != nil {
-		return 0, sdkerrors.Wrapf(err, "failed to send IBC packet")
+		return 0, errorsmod.Wrapf(err, "failed to send IBC packet")
 	}
 
 	// Emit event for monitoring
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"dex_ibc_packet_sent",
+			sdk.NewAttribute("connection", connectionID),
 			sdk.NewAttribute("channel", channelID),
 			sdk.NewAttribute("sequence", fmt.Sprintf("%d", sequence)),
 			sdk.NewAttribute("timeout", timeout.String()),
@@ -411,7 +425,7 @@ func (k Keeper) getCachedPools(ctx sdk.Context, tokenA, tokenB string) []CrossCh
 
 	// Iterate through all cached pools
 	prefix := []byte("cached_pool_")
-	iterator := sdk.KVStorePrefixIterator(store, prefix)
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
 	var pools []CrossChainPoolInfo
@@ -424,7 +438,7 @@ func (k Keeper) getCachedPools(ctx sdk.Context, tokenA, tokenB string) []CrossCh
 
 		// Filter by token pair (in either order)
 		if (pool.TokenA == tokenA && pool.TokenB == tokenB) ||
-		   (pool.TokenA == tokenB && pool.TokenB == tokenA) {
+			(pool.TokenA == tokenB && pool.TokenB == tokenA) {
 			// Check if cache is fresh (within 5 minutes)
 			if ctx.BlockTime().Sub(pool.LastUpdated) < 5*time.Minute {
 				pools = append(pools, pool)
@@ -441,7 +455,7 @@ func (k Keeper) getLocalPools(ctx sdk.Context, tokenIn, tokenOut string) []Cross
 
 	// Iterate through all local pools
 	prefix := []byte("pool_")
-	iterator := sdk.KVStorePrefixIterator(store, prefix)
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
 	var pools []CrossChainPoolInfo
@@ -450,12 +464,12 @@ func (k Keeper) getLocalPools(ctx sdk.Context, tokenIn, tokenOut string) []Cross
 	for ; iterator.Valid(); iterator.Next() {
 		// Parse pool data - assuming pools are stored with a specific structure
 		var poolData struct {
-			PoolID   string   `json:"pool_id"`
-			TokenA   string   `json:"token_a"`
-			TokenB   string   `json:"token_b"`
-			ReserveA math.Int `json:"reserve_a"`
-			ReserveB math.Int `json:"reserve_b"`
-			SwapFee  math.LegacyDec  `json:"swap_fee"`
+			PoolID   string         `json:"pool_id"`
+			TokenA   string         `json:"token_a"`
+			TokenB   string         `json:"token_b"`
+			ReserveA math.Int       `json:"reserve_a"`
+			ReserveB math.Int       `json:"reserve_b"`
+			SwapFee  math.LegacyDec `json:"swap_fee"`
 		}
 
 		if err := json.Unmarshal(iterator.Value(), &poolData); err != nil {
@@ -464,7 +478,7 @@ func (k Keeper) getLocalPools(ctx sdk.Context, tokenIn, tokenOut string) []Cross
 
 		// Filter by token pair
 		if (poolData.TokenA == tokenIn && poolData.TokenB == tokenOut) ||
-		   (poolData.TokenA == tokenOut && poolData.TokenB == tokenIn) {
+			(poolData.TokenA == tokenOut && poolData.TokenB == tokenIn) {
 			pool := CrossChainPoolInfo{
 				ChainID:     chainID,
 				PoolID:      poolData.PoolID,
@@ -490,20 +504,20 @@ func (k Keeper) executeLocalSwap(ctx sdk.Context, sender sdk.AccAddress, step Sw
 	poolKey := []byte(fmt.Sprintf("pool_%s", step.PoolID))
 	poolBytes := store.Get(poolKey)
 	if poolBytes == nil {
-		return nil, sdkerrors.Wrapf(types.ErrNotFound, "pool not found: %s", step.PoolID)
+		return nil, errorsmod.Wrapf(types.ErrPoolNotFound, "pool not found: %s", step.PoolID)
 	}
 
 	var pool struct {
-		PoolID   string   `json:"pool_id"`
-		TokenA   string   `json:"token_a"`
-		TokenB   string   `json:"token_b"`
-		ReserveA math.Int `json:"reserve_a"`
-		ReserveB math.Int `json:"reserve_b"`
-		SwapFee  math.LegacyDec  `json:"swap_fee"`
+		PoolID   string         `json:"pool_id"`
+		TokenA   string         `json:"token_a"`
+		TokenB   string         `json:"token_b"`
+		ReserveA math.Int       `json:"reserve_a"`
+		ReserveB math.Int       `json:"reserve_b"`
+		SwapFee  math.LegacyDec `json:"swap_fee"`
 	}
 
 	if err := json.Unmarshal(poolBytes, &pool); err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to unmarshal pool")
+		return nil, errorsmod.Wrapf(err, "failed to unmarshal pool")
 	}
 
 	// Validate swap direction
@@ -515,20 +529,23 @@ func (k Keeper) executeLocalSwap(ctx sdk.Context, sender sdk.AccAddress, step Sw
 		reserveIn = pool.ReserveB
 		reserveOut = pool.ReserveA
 	} else {
-		return nil, sdkerrors.Wrap(types.ErrInvalidRequest, "invalid token pair for pool")
+		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid token pair for pool")
 	}
+
+	reserveInBefore := reserveIn
+	reserveOutBefore := reserveOut
 
 	// Calculate output amount using constant product formula
 	// amountOut = (amountIn * (1 - fee) * reserveOut) / (reserveIn + amountIn * (1 - fee))
-	oneFee := sdk.OneDec().Sub(pool.SwapFee)
-	amountInWithFee := sdk.NewDecFromInt(step.AmountIn).Mul(oneFee)
-	numerator := amountInWithFee.Mul(sdk.NewDecFromInt(reserveOut))
-	denominator := sdk.NewDecFromInt(reserveIn).Add(amountInWithFee)
+	oneFee := math.LegacyOneDec().Sub(pool.SwapFee)
+	amountInWithFee := math.LegacyNewDecFromInt(step.AmountIn).Mul(oneFee)
+	numerator := amountInWithFee.Mul(math.LegacyNewDecFromInt(reserveOut))
+	denominator := math.LegacyNewDecFromInt(reserveIn).Add(amountInWithFee)
 	amountOut := numerator.Quo(denominator).TruncateInt()
 
 	// Check slippage protection
 	if amountOut.LT(step.MinAmountOut) {
-		return nil, sdkerrors.Wrapf(types.ErrSlippageExceeded,
+		return nil, errorsmod.Wrapf(types.ErrSlippageExceeded,
 			"output %s less than minimum %s", amountOut.String(), step.MinAmountOut.String())
 	}
 
@@ -536,13 +553,13 @@ func (k Keeper) executeLocalSwap(ctx sdk.Context, sender sdk.AccAddress, step Sw
 	tokenInCoin := sdk.NewCoin(step.TokenIn, step.AmountIn)
 	poolAddr := k.getPoolAddress(step.PoolID)
 	if err := k.bankKeeper.SendCoins(ctx, sender, poolAddr, sdk.NewCoins(tokenInCoin)); err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to send tokens to pool")
+		return nil, errorsmod.Wrapf(err, "failed to send tokens to pool")
 	}
 
 	// Transfer tokens from pool to sender
 	tokenOutCoin := sdk.NewCoin(step.TokenOut, amountOut)
 	if err := k.bankKeeper.SendCoins(ctx, poolAddr, sender, sdk.NewCoins(tokenOutCoin)); err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to send tokens from pool")
+		return nil, errorsmod.Wrapf(err, "failed to send tokens from pool")
 	}
 
 	// Update pool reserves
@@ -569,9 +586,29 @@ func (k Keeper) executeLocalSwap(ctx sdk.Context, sender sdk.AccAddress, step Sw
 		),
 	)
 
+	newRouteString := fmt.Sprintf("%s -> %s (pool %s)", step.TokenIn, step.TokenOut, step.PoolID)
+	slippage := calculateSlippage(step.MinAmountOut, amountOut)
+	priceImpact := calculateSwapPriceImpact(step.AmountIn, reserveInBefore, reserveOutBefore, amountOut)
+	swapFee := calculateSwapFee(step.AmountIn, pool.SwapFee)
+
+	var updatedReserveIn, updatedReserveOut math.Int
+	if pool.TokenA == step.TokenIn {
+		updatedReserveIn = pool.ReserveA
+		updatedReserveOut = pool.ReserveB
+	} else {
+		updatedReserveIn = pool.ReserveB
+		updatedReserveOut = pool.ReserveA
+	}
+	newPoolPrice := calculatePoolPrice(updatedReserveIn, updatedReserveOut)
+
 	return &types.SwapResult{
-		AmountIn:  step.AmountIn,
-		AmountOut: amountOut,
+		AmountIn:     step.AmountIn,
+		AmountOut:    amountOut,
+		Route:        newRouteString,
+		Slippage:     slippage,
+		PriceImpact:  priceImpact,
+		Fee:          swapFee,
+		NewPoolPrice: newPoolPrice,
 	}, nil
 }
 
@@ -594,30 +631,30 @@ func (k Keeper) executeRemoteSwap(
 	// Step 1: Get IBC connection for target chain
 	connectionID, channelID, err := k.getIBCConnection(ctx, step.ChainID)
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to get IBC connection for chain %s", step.ChainID)
+		return nil, errorsmod.Wrapf(err, "failed to get IBC connection for chain %s", step.ChainID)
 	}
 
 	// Step 2: Lock tokens in escrow on local chain
 	escrowAddr := sdk.AccAddress([]byte("dex_remote_swap_escrow"))
 	tokenCoin := sdk.NewCoin(tokenIn, amountIn)
 	if err := k.bankKeeper.SendCoins(ctx, sender, escrowAddr, sdk.NewCoins(tokenCoin)); err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to lock tokens in escrow")
+		return nil, errorsmod.Wrapf(err, "failed to lock tokens in escrow")
 	}
 
 	// Step 3: Create IBC transfer packet to send tokens to remote chain
 	// This uses ICS-20 token transfer standard
 	transferData := map[string]interface{}{
-		"type":        "ics20_transfer",
-		"denom":       tokenIn,
-		"amount":      amountIn.String(),
-		"sender":      sender.String(),
-		"receiver":    fmt.Sprintf("%s_swap_module", step.ChainID), // Remote swap module
-		"memo":        fmt.Sprintf("swap:%s:%s:%s", step.PoolID, step.TokenOut, step.MinAmountOut.String()),
+		"type":     "ics20_transfer",
+		"denom":    tokenIn,
+		"amount":   amountIn.String(),
+		"sender":   sender.String(),
+		"receiver": fmt.Sprintf("%s_swap_module", step.ChainID), // Remote swap module
+		"memo":     fmt.Sprintf("swap:%s:%s:%s", step.PoolID, step.TokenOut, step.MinAmountOut.String()),
 	}
 
 	transferBytes, err := json.Marshal(transferData)
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to marshal transfer data")
+		return nil, errorsmod.Wrapf(err, "failed to marshal transfer data")
 	}
 
 	// Send IBC transfer packet
@@ -625,7 +662,7 @@ func (k Keeper) executeRemoteSwap(
 	if err != nil {
 		// Refund escrowed tokens on failure
 		k.bankKeeper.SendCoins(ctx, escrowAddr, sender, sdk.NewCoins(tokenCoin))
-		return nil, sdkerrors.Wrapf(err, "failed to send IBC transfer")
+		return nil, errorsmod.Wrapf(err, "failed to send IBC transfer")
 	}
 
 	// Step 4: Create swap execution packet
@@ -642,13 +679,13 @@ func (k Keeper) executeRemoteSwap(
 
 	swapBytes, err := json.Marshal(swapPacket)
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to marshal swap packet")
+		return nil, errorsmod.Wrapf(err, "failed to marshal swap packet")
 	}
 
 	// Send IBC swap execution packet
 	swapSeq, err := k.sendIBCPacket(ctx, connectionID, channelID, swapBytes, DefaultIBCTimeout)
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "failed to send IBC swap packet")
+		return nil, errorsmod.Wrapf(err, "failed to send IBC swap packet")
 	}
 
 	// Store pending remote swap for acknowledgement handling
@@ -669,8 +706,13 @@ func (k Keeper) executeRemoteSwap(
 	// Return estimated result (actual result comes via IBC acknowledgement)
 	// The MinAmountOut is the guaranteed minimum due to slippage protection
 	return &types.SwapResult{
-		AmountIn:  amountIn,
-		AmountOut: step.MinAmountOut, // Conservative estimate
+		AmountIn:     amountIn,
+		AmountOut:    step.MinAmountOut, // Conservative estimate
+		Route:        fmt.Sprintf("remote:%s -> %s (%s)", step.TokenIn, step.TokenOut, step.ChainID),
+		Slippage:     math.LegacyZeroDec(),
+		PriceImpact:  math.LegacyZeroDec(),
+		Fee:          math.ZeroInt(),
+		NewPoolPrice: math.LegacyZeroDec(),
 	}, nil
 }
 
@@ -680,14 +722,14 @@ func (k Keeper) storePendingRemoteSwap(ctx sdk.Context, swapSeq, transferSeq uin
 	key := []byte(fmt.Sprintf("pending_remote_swap_%d", swapSeq))
 
 	data := map[string]interface{}{
-		"swap_seq":      swapSeq,
-		"transfer_seq":  transferSeq,
-		"sender":        sender,
-		"amount_in":     amountIn.String(),
-		"chain_id":      step.ChainID,
-		"pool_id":       step.PoolID,
-		"token_in":      step.TokenIn,
-		"token_out":     step.TokenOut,
+		"swap_seq":       swapSeq,
+		"transfer_seq":   transferSeq,
+		"sender":         sender,
+		"amount_in":      amountIn.String(),
+		"chain_id":       step.ChainID,
+		"pool_id":        step.PoolID,
+		"token_in":       step.TokenIn,
+		"token_out":      step.TokenOut,
 		"min_amount_out": step.MinAmountOut.String(),
 	}
 
@@ -727,11 +769,11 @@ func (k Keeper) handleQueryPoolsAck(ctx sdk.Context, packet channeltypes.Packet,
 	var ack QueryPoolsPacketAck
 	ackBytes, err := json.Marshal(ackData)
 	if err != nil {
-		return sdkerrors.Wrapf(err, "failed to marshal ack data")
+		return errorsmod.Wrapf(err, "failed to marshal ack data")
 	}
 
 	if err := json.Unmarshal(ackBytes, &ack); err != nil {
-		return sdkerrors.Wrapf(err, "failed to unmarshal query pools ack")
+		return errorsmod.Wrapf(err, "failed to unmarshal query pools ack")
 	}
 
 	if ack.Success {
@@ -782,11 +824,11 @@ func (k Keeper) handleExecuteSwapAck(ctx sdk.Context, packet channeltypes.Packet
 	var ack ExecuteSwapPacketAck
 	ackBytes, err := json.Marshal(ackData)
 	if err != nil {
-		return sdkerrors.Wrapf(err, "failed to marshal ack data")
+		return errorsmod.Wrapf(err, "failed to marshal ack data")
 	}
 
 	if err := json.Unmarshal(ackBytes, &ack); err != nil {
-		return sdkerrors.Wrapf(err, "failed to unmarshal execute swap ack")
+		return errorsmod.Wrapf(err, "failed to unmarshal execute swap ack")
 	}
 
 	// Get pending swap info
@@ -861,33 +903,33 @@ func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
 
 	var pendingSwap map[string]interface{}
 	if err := json.Unmarshal(swapData, &pendingSwap); err != nil {
-		return sdkerrors.Wrapf(err, "failed to unmarshal pending swap data")
+		return errorsmod.Wrapf(err, "failed to unmarshal pending swap data")
 	}
 
 	// Extract swap details
 	senderStr, ok := pendingSwap["sender"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "invalid sender in pending swap")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid sender in pending swap")
 	}
 
 	sender, err := sdk.AccAddressFromBech32(senderStr)
 	if err != nil {
-		return sdkerrors.Wrapf(err, "invalid sender address")
+		return errorsmod.Wrapf(err, "invalid sender address")
 	}
 
 	amountInStr, ok := pendingSwap["amount_in"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "invalid amount_in in pending swap")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid amount_in in pending swap")
 	}
 
 	amountIn, ok := math.NewIntFromString(amountInStr)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "failed to parse amount_in")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "failed to parse amount_in")
 	}
 
 	tokenIn, ok := pendingSwap["token_in"].(string)
 	if !ok {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "invalid token_in in pending swap")
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid token_in in pending swap")
 	}
 
 	// Refund tokens from escrow back to sender
@@ -895,7 +937,7 @@ func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
 	refundCoin := sdk.NewCoin(tokenIn, amountIn)
 
 	if err := k.bankKeeper.SendCoins(ctx, escrowAddr, sender, sdk.NewCoins(refundCoin)); err != nil {
-		return sdkerrors.Wrapf(err, "failed to refund tokens")
+		return errorsmod.Wrapf(err, "failed to refund tokens")
 	}
 
 	// Emit refund event
@@ -924,20 +966,48 @@ func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
 
 func calculateSlippage(expected, actual math.Int) math.LegacyDec {
 	if expected.IsZero() {
-		return sdk.ZeroDec()
+		return math.LegacyZeroDec()
 	}
 	diff := expected.Sub(actual).Abs()
-	return sdk.NewDecFromInt(diff).Quo(sdk.NewDecFromInt(expected))
+	return math.LegacyNewDecFromInt(diff).Quo(math.LegacyNewDecFromInt(expected))
 }
 
 func calculateMinAmountOut(amountIn, reserveIn, reserveOut math.Int, fee math.LegacyDec) math.Int {
 	// Constant product formula: x * y = k
 	// amountOut = (amountIn * (1 - fee) * reserveOut) / (reserveIn + amountIn * (1 - fee))
-	oneFee := sdk.OneDec().Sub(fee)
-	amountInWithFee := sdk.NewDecFromInt(amountIn).Mul(oneFee)
-	numerator := amountInWithFee.Mul(sdk.NewDecFromInt(reserveOut))
-	denominator := sdk.NewDecFromInt(reserveIn).Add(amountInWithFee)
+	oneFee := math.LegacyOneDec().Sub(fee)
+	amountInWithFee := math.LegacyNewDecFromInt(amountIn).Mul(oneFee)
+	numerator := amountInWithFee.Mul(math.LegacyNewDecFromInt(reserveOut))
+	denominator := math.LegacyNewDecFromInt(reserveIn).Add(amountInWithFee)
 	return numerator.Quo(denominator).TruncateInt()
+}
+
+func calculateSwapPriceImpact(amountIn, reserveIn, reserveOut, amountOut math.Int) math.LegacyDec {
+	if amountIn.IsZero() || reserveIn.IsZero() || reserveOut.IsZero() || amountOut.IsZero() {
+		return math.LegacyZeroDec()
+	}
+
+	priceIn := math.LegacyNewDecFromInt(amountIn).Quo(math.LegacyNewDecFromInt(reserveIn))
+	if priceIn.IsZero() {
+		return math.LegacyZeroDec()
+	}
+
+	priceOut := math.LegacyNewDecFromInt(amountOut).Quo(math.LegacyNewDecFromInt(reserveOut))
+	return math.LegacyOneDec().Sub(priceOut.Quo(priceIn))
+}
+
+func calculateSwapFee(amountIn math.Int, feeRate math.LegacyDec) math.Int {
+	if amountIn.IsZero() || feeRate.IsZero() {
+		return math.ZeroInt()
+	}
+	return math.LegacyNewDecFromInt(amountIn).Mul(feeRate).TruncateInt()
+}
+
+func calculatePoolPrice(reserveIn, reserveOut math.Int) math.LegacyDec {
+	if reserveIn.IsZero() {
+		return math.LegacyZeroDec()
+	}
+	return math.LegacyNewDecFromInt(reserveOut).Quo(math.LegacyNewDecFromInt(reserveIn))
 }
 
 func formatRoute(route CrossChainSwapRoute) string {

@@ -16,6 +16,8 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
+const maxProofFutureSkew = 5 * time.Minute
+
 // SubmitResult processes a result submission from a provider with institutional-grade verification.
 func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, requestID uint64, outputHash, outputURL string, exitCode int32, logsURL string, verificationProof []byte) error {
 	request, err := k.GetRequest(ctx, requestID)
@@ -27,8 +29,8 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 		return fmt.Errorf("unauthorized: provider %s not assigned to request %d", provider.String(), requestID)
 	}
 
-	if request.Status != types.RequestStatus_REQUEST_STATUS_ASSIGNED &&
-		request.Status != types.RequestStatus_REQUEST_STATUS_PROCESSING {
+	if request.Status != types.REQUEST_STATUS_ASSIGNED &&
+		request.Status != types.REQUEST_STATUS_PROCESSING {
 		return fmt.Errorf("request is not in a state to accept results: %s", request.Status.String())
 	}
 
@@ -40,6 +42,59 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	deadline, err := k.requestDeadline(ctx, *request, sdkCtx.BlockTime())
+	if err != nil {
+		return fmt.Errorf("failed to compute request deadline: %w", err)
+	}
+	if sdkCtx.BlockTime().After(deadline) {
+		if err := k.CompleteRequest(ctx, requestID, false); err != nil {
+			return fmt.Errorf("request exceeded timeout and refund failed: %w", err)
+		}
+		return fmt.Errorf("request %d exceeded timeout window", requestID)
+	}
+
+	proofHash := sha256.Sum256(verificationProof)
+	var proof *types.VerificationProof
+	if parsedProof, err := k.parseVerificationProof(verificationProof); err == nil {
+		if err := parsedProof.Validate(); err == nil {
+			proof = parsedProof
+		}
+	}
+
+	nonceReplay := false
+	proofReplay := k.hasProofHash(ctx, provider, proofHash[:])
+	futureTimestamp := false
+	keyMismatch := false
+	if proof != nil {
+		nonceReplay = k.checkReplayAttack(ctx, provider, proof.Nonce)
+		futureTimestamp = proof.Timestamp > sdkCtx.BlockTime().Add(maxProofFutureSkew).Unix()
+		if nonceReplay || proofReplay {
+			k.recordReplayAttempt(ctx, provider, proof.Nonce)
+		}
+		if futureTimestamp {
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"verification_future_timestamp",
+					sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+					sdk.NewAttribute("provider", provider.String()),
+					sdk.NewAttribute("timestamp", fmt.Sprintf("%d", proof.Timestamp)),
+				),
+			)
+		}
+		if !k.verifyProviderSigningKey(ctx, provider, proof.PublicKey) {
+			keyMismatch = true
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"verification_public_key_mismatch",
+					sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+					sdk.NewAttribute("provider", provider.String()),
+				),
+			)
+		}
+	}
+	forceFailure := nonceReplay || proofReplay || futureTimestamp || keyMismatch
+
 	now := sdkCtx.BlockTime()
 	result := types.Result{
 		RequestId:         requestID,
@@ -60,7 +115,7 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 
 	request.ResultHash = outputHash
 	request.ResultUrl = outputURL
-	request.Status = types.RequestStatus_REQUEST_STATUS_PROCESSING
+	request.Status = types.REQUEST_STATUS_PROCESSING
 
 	if err := k.SetRequest(ctx, *request); err != nil {
 		return fmt.Errorf("failed to update request: %w", err)
@@ -70,12 +125,23 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 		return fmt.Errorf("failed to update request status index: %w", err)
 	}
 
-	verified, score := k.verifyResult(ctx, result, *request)
+	verified, score := k.verifyResult(ctx, result, *request, proof)
+	if forceFailure {
+		verified = false
+		score = 0
+	}
 	result.Verified = verified
 	result.VerificationScore = score
 
 	if err := k.SetResult(ctx, &result); err != nil {
 		return fmt.Errorf("failed to update result with verification: %w", err)
+	}
+
+	if proof != nil && !nonceReplay {
+		k.recordNonceUsage(ctx, provider, proof.Nonce)
+	}
+	if !proofReplay {
+		k.recordProofHashUsage(ctx, provider, proofHash[:], sdkCtx.BlockTime())
 	}
 
 	sdkCtx.EventManager().EmitEvent(
@@ -116,10 +182,9 @@ func (k Keeper) GetResult(ctx context.Context, requestID uint64) (*types.Result,
 }
 
 // SetResult stores a result record.
-/*
-func (k Keeper) SetResult(ctx context.Context, result types.Result) error {
+func (k Keeper) SetResult(ctx context.Context, result *types.Result) error {
 	store := k.getStore(ctx)
-	bz, err := k.cdc.Marshal(&result)
+	bz, err := k.cdc.Marshal(result)
 	if err != nil {
 		return err
 	}
@@ -127,11 +192,10 @@ func (k Keeper) SetResult(ctx context.Context, result types.Result) error {
 	store.Set(ResultKey(result.RequestId), bz)
 	return nil
 }
-*/
 
 // verifyResult performs cryptographic verification of the submitted result using ZK-SNARKs.
 // This replaces the old scoring system with actual zero-knowledge proof verification.
-func (k Keeper) verifyResult(ctx context.Context, result types.Result, request types.Request) (verified bool, score uint32) {
+func (k Keeper) verifyResult(ctx context.Context, result types.Result, request types.Request, proof *types.VerificationProof) (verified bool, score uint32) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Priority 1: ZK-SNARK proof verification (if available)
@@ -197,31 +261,35 @@ func (k Keeper) verifyResult(ctx context.Context, result types.Result, request t
 	if len(result.OutputHash) == 64 {
 		if _, err := hex.DecodeString(result.OutputHash); err == nil {
 			scoreBreakdown["hash_format"] = 10
+			score += 10
 		}
 	}
 
+	var proofComponentScore uint32
+	var merkleValid bool
 	if len(result.VerificationProof) > 0 {
-		proofScore, proofBreakdown := k.validateVerificationProof(ctx, result, request)
-		scoreBreakdown["cryptographic_proof"] = proofScore
+		proofScore, proofBreakdown, merkleOk := k.validateVerificationProof(ctx, result, request, proof)
+		merkleValid = merkleOk
+		proofComponentScore = proofScore
 		for key, val := range proofBreakdown {
 			scoreBreakdown[key] = val
 		}
+		score += proofScore
 	}
 
-	provider, err := sdk.AccAddressFromBech32(result.Provider)
-	if err == nil {
-		providerRecord, err := k.GetProvider(ctx, provider)
+	if merkleValid && proofComponentScore > 0 {
+		provider, err := sdk.AccAddressFromBech32(result.Provider)
 		if err == nil {
-			reputationBonus := uint32(providerRecord.Reputation / 10)
-			if reputationBonus > 10 {
-				reputationBonus = 10
+			providerRecord, err := k.GetProvider(ctx, provider)
+			if err == nil {
+				reputationBonus := uint32(providerRecord.Reputation / 10)
+				if reputationBonus > 10 {
+					reputationBonus = 10
+				}
+				scoreBreakdown["provider_reputation"] = reputationBonus
+				score += reputationBonus
 			}
-			scoreBreakdown["provider_reputation"] = reputationBonus
 		}
-	}
-
-	for _, points := range scoreBreakdown {
-		score += points
 	}
 
 	if score > types.MaxVerificationScore {
@@ -240,6 +308,14 @@ func (k Keeper) verifyResult(ctx context.Context, result types.Result, request t
 			sdk.NewAttribute("method", "legacy_fallback"),
 		),
 	)
+
+	if !verified && (score == 0 || proofComponentScore == 0) {
+		if provider, err := sdk.AccAddressFromBech32(result.Provider); err == nil {
+			if slashErr := k.slashProviderForInvalidProof(ctx, provider, "verification score below threshold"); slashErr != nil {
+				sdkCtx.Logger().Error("failed to slash provider for invalid proof", "error", slashErr)
+			}
+		}
+	}
 
 	return verified, score
 }
@@ -274,32 +350,35 @@ func (k Keeper) verifyResultZKProof(ctx sdk.Context, result types.Result, reques
 }
 
 // validateVerificationProof performs sophisticated cryptographic validation of the verification proof.
-// Returns the proof score and detailed breakdown of verification components.
-func (k Keeper) validateVerificationProof(ctx context.Context, result types.Result, request types.Request) (uint32, map[string]uint32) {
+// Returns the proof score, detailed breakdown, and whether the merkle proof was valid.
+func (k Keeper) validateVerificationProof(ctx context.Context, result types.Result, request types.Request, proof *types.VerificationProof) (uint32, map[string]uint32, bool) {
 	var totalScore uint32 = 0
 	breakdown := make(map[string]uint32)
+	merkleValid := false
 
-	proof, err := k.parseVerificationProof(result.VerificationProof)
-	if err != nil {
-		breakdown["parse_error"] = 0
-		return 0, breakdown
-	}
-
-	if err := proof.Validate(); err != nil {
-		breakdown["validation_error"] = 0
-		return 0, breakdown
+	if proof == nil {
+		parsed, err := k.parseVerificationProof(result.VerificationProof)
+		if err != nil {
+			breakdown["parse_error"] = 0
+			return 0, breakdown, false
+		}
+		if err := parsed.Validate(); err != nil {
+			breakdown["validation_error"] = 0
+			return 0, breakdown, false
+		}
+		proof = parsed
 	}
 
 	provider, err := sdk.AccAddressFromBech32(result.Provider)
 	if err != nil {
 		breakdown["provider_address_error"] = 0
-		return 0, breakdown
+		return 0, breakdown, false
 	}
 
-	if k.checkReplayAttack(ctx, provider, proof.Nonce) {
-		breakdown["replay_attack_detected"] = 0
-		k.recordReplayAttempt(ctx, provider, proof.Nonce)
-		return 0, breakdown
+	now := sdk.UnwrapSDKContext(ctx).BlockTime()
+	if proof.Timestamp > now.Add(maxProofFutureSkew).Unix() {
+		breakdown["timestamp_future"] = 0
+		return 0, breakdown, false
 	}
 
 	if k.verifyEd25519Signature(proof, result, request) {
@@ -312,8 +391,12 @@ func (k Keeper) validateVerificationProof(ctx context.Context, result types.Resu
 	merkleScore := k.validateMerkleProof(proof, result)
 	breakdown["merkle_proof"] = merkleScore
 	totalScore += merkleScore
+	merkleValid = merkleScore > 0
 
-	stateScore := k.verifyStateTransition(proof, result, request)
+	stateScore := uint32(0)
+	if merkleScore > 0 {
+		stateScore = k.verifyStateTransition(proof, result, request)
+	}
 	breakdown["state_transition"] = stateScore
 	totalScore += stateScore
 
@@ -321,9 +404,15 @@ func (k Keeper) validateVerificationProof(ctx context.Context, result types.Resu
 	breakdown["deterministic_execution"] = deterministicScore
 	totalScore += deterministicScore
 
+	if merkleValid {
+		const coreBonus = 10
+		breakdown["core_consistency_bonus"] = coreBonus
+		totalScore += coreBonus
+	}
+
 	k.recordNonceUsage(ctx, provider, proof.Nonce)
 
-	return totalScore, breakdown
+	return totalScore, breakdown, merkleValid
 }
 
 // parseVerificationProof deserializes and parses the raw verification proof bytes.
@@ -423,8 +512,14 @@ func (k Keeper) validateMerkleProof(proof *types.VerificationProof, result types
 		return 0
 	}
 
-	leafHash := sha256.Sum256(proof.ExecutionTrace)
-	currentHash := leafHash[:]
+	var currentHash []byte
+	if len(proof.ExecutionTrace) == 32 {
+		currentHash = make([]byte, 32)
+		copy(currentHash, proof.ExecutionTrace)
+	} else {
+		leafHash := sha256.Sum256(proof.ExecutionTrace)
+		currentHash = leafHash[:]
+	}
 
 	for _, sibling := range proof.MerkleProof {
 		if len(sibling) != 32 {
@@ -432,13 +527,8 @@ func (k Keeper) validateMerkleProof(proof *types.VerificationProof, result types
 		}
 
 		hasher := sha256.New()
-		if bytes.Compare(currentHash, sibling) < 0 {
-			hasher.Write(currentHash)
-			hasher.Write(sibling)
-		} else {
-			hasher.Write(sibling)
-			hasher.Write(currentHash)
-		}
+		hasher.Write(currentHash)
+		hasher.Write(sibling)
 		currentHash = hasher.Sum(nil)
 	}
 
@@ -465,7 +555,7 @@ func (k Keeper) verifyStateTransition(proof *types.VerificationProof, result typ
 	expectedCommitment := hasher.Sum(nil)
 
 	if bytes.Equal(proof.StateCommitment, expectedCommitment) {
-		return 15
+		return 25
 	}
 
 	partialMatch := 0
@@ -476,9 +566,9 @@ func (k Keeper) verifyStateTransition(proof *types.VerificationProof, result typ
 	}
 
 	if partialMatch >= 24 {
-		return 10
+		return 15
 	} else if partialMatch >= 16 {
-		return 5
+		return 8
 	}
 
 	return 0
@@ -535,6 +625,41 @@ func (k Keeper) recordReplayAttempt(ctx context.Context, provider sdk.AccAddress
 	)
 }
 
+// hasProofHash checks whether a verification proof hash has already been used.
+func (k Keeper) hasProofHash(ctx context.Context, provider sdk.AccAddress, hash []byte) bool {
+	store := k.getStore(ctx)
+	return store.Has(ProofHashKey(provider, hash))
+}
+
+// recordProofHashUsage stores the fact that a provider has used a specific verification proof.
+func (k Keeper) recordProofHashUsage(ctx context.Context, provider sdk.AccAddress, hash []byte, timestamp time.Time) {
+	store := k.getStore(ctx)
+	timeBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(timeBz, uint64(timestamp.Unix()))
+	store.Set(ProofHashKey(provider, hash), timeBz)
+}
+
+// verifyProviderSigningKey ensures the provided key matches the provider's registered signing key.
+func (k Keeper) verifyProviderSigningKey(ctx context.Context, provider sdk.AccAddress, pubKey []byte) bool {
+	account := k.accountKeeper.GetAccount(ctx, provider)
+	if account != nil && account.GetPubKey() != nil {
+		return bytes.Equal(account.GetPubKey().Bytes(), pubKey)
+	}
+
+	store := k.getStore(ctx)
+	key := ProviderSigningKeyKey(provider)
+	stored := store.Get(key)
+	if len(stored) == 0 {
+		// No key recorded yet, persist this key as the canonical signer
+		stored = make([]byte, len(pubKey))
+		copy(stored, pubKey)
+		store.Set(key, stored)
+		return true
+	}
+
+	return bytes.Equal(stored, pubKey)
+}
+
 // slashProviderForInvalidProof slashes a provider's stake for submitting invalid verification proofs.
 func (k Keeper) slashProviderForInvalidProof(ctx context.Context, provider sdk.AccAddress, reason string) error {
 	providerRecord, err := k.GetProvider(ctx, provider)
@@ -588,5 +713,5 @@ func (k Keeper) slashProviderForInvalidProof(ctx context.Context, provider sdk.A
 	return nil
 }
 
-// VerifyZKProof verifies a ZK proof for result data. Currently a placeholder that always succeeds.
-
+// VerifyZKProof is implemented in zk_enhancements.go and calls the ZKVerifier from zk_verification.go.
+// The implementation performs actual Groth16 ZK-SNARK verification using the gnark library.

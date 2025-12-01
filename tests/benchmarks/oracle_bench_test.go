@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
-	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -37,7 +36,7 @@ func BenchmarkGetPrice(b *testing.B) {
 	keepertest.SubmitTestPrice(b, k, ctx, validator, "PAW/USD", math.LegacyNewDec(100))
 
 	// Aggregate price to make it available
-	k.AggregatePrices(ctx, "PAW/USD")
+	_ = k.AggregatePrices(sdk.WrapSDKContext(ctx))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -76,7 +75,7 @@ func BenchmarkAggregateMedian(b *testing.B) {
 		b.StartTimer()
 
 		// Aggregate prices (calculates median)
-		err := k.AggregatePrices(ctx, "PAW/USD")
+		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -134,7 +133,7 @@ func BenchmarkPriceUpdate(b *testing.B) {
 		keepertest.SubmitTestPrice(b, k, ctx, validator, "PAW/USD", price)
 		b.StartTimer()
 
-		err := k.AggregatePrices(ctx, "PAW/USD")
+		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -169,11 +168,9 @@ func BenchmarkMultiSourceAggregation(b *testing.B) {
 		b.StartTimer()
 
 		// Aggregate all assets
-		for _, asset := range assets {
-			err := k.AggregatePrices(ctx, asset)
-			if err != nil {
-				b.Fatal(err)
-			}
+		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
 }
@@ -424,7 +421,7 @@ func BenchmarkOutlierDetection(b *testing.B) {
 		b.StartTimer()
 
 		// Aggregation includes outlier detection
-		err := k.AggregatePrices(ctx, "PAW/USD")
+		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
 		if err != nil {
 			b.Fatal(err)
 		}

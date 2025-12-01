@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -367,7 +368,7 @@ func (suite *WalletIntegrationTestSuite) TestDEXSwapTransactions() {
 			amountIn:     math.NewInt(1000000),
 			minAmountOut: math.NewInt(1900000),
 			expectError:  true,
-			errorMsg:     "suspicious SQL pattern",
+			errorMsg:     "invalid denom",
 		},
 	}
 
@@ -382,6 +383,7 @@ func (suite *WalletIntegrationTestSuite) TestDEXSwapTransactions() {
 				AmountIn:     tt.amountIn,
 				MinAmountOut: tt.minAmountOut,
 			}
+			msg.Deadline = time.Now().Add(time.Minute).Unix()
 
 			// Validate message
 			err := msg.ValidateBasic()

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -100,6 +102,89 @@ func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.Vali
 	return nil
 }
 
+// SubmitPrice records a validator price submission with full validation and aggregation triggers.
+func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset string, price math.LegacyDec, feeders ...sdk.AccAddress) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	if asset == "" {
+		return sdkerrors.ErrInvalidRequest.Wrap("asset identifier cannot be empty")
+	}
+
+	if price.IsNil() || price.LTE(math.LegacyZeroDec()) {
+		return sdkerrors.ErrInvalidRequest.Wrap("price must be positive")
+	}
+
+	isActive, err := k.IsActiveValidator(ctx, validator)
+	if err != nil {
+		return err
+	}
+	if !isActive {
+		return fmt.Errorf("validator %s is not bonded", validator.String())
+	}
+
+	if err := k.ValidatePriceSubmission(ctx, validator, asset, price); err != nil {
+		return err
+	}
+
+	votingPower, err := k.GetValidatorVotingPower(ctx, validator)
+	if err != nil {
+		return err
+	}
+
+	validatorPrice := types.ValidatorPrice{
+		ValidatorAddr: validator.String(),
+		Asset:         asset,
+		Price:         price,
+		BlockHeight:   sdkCtx.BlockHeight(),
+		VotingPower:   votingPower,
+	}
+
+	if err := k.SetValidatorPrice(ctx, validatorPrice); err != nil {
+		return err
+	}
+
+	if err := k.IncrementSubmissionCount(ctx, validator.String()); err != nil {
+		return err
+	}
+
+	if err := k.ResetMissCounter(ctx, validator.String()); err != nil {
+		return err
+	}
+
+	if err := k.RecordSubmission(ctx, validator.String()); err != nil {
+		sdkCtx.Logger().Error("failed to record submission", "validator", validator.String(), "error", err)
+	}
+
+	attrs := []sdk.Attribute{
+		sdk.NewAttribute("validator", validator.String()),
+		sdk.NewAttribute("asset", asset),
+		sdk.NewAttribute("price", price.String()),
+		sdk.NewAttribute("voting_power", fmt.Sprintf("%d", votingPower)),
+	}
+
+	if len(feeders) > 0 && feeders[0] != nil {
+		attrs = append(attrs, sdk.NewAttribute("feeder", feeders[0].String()))
+	}
+
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"price_submitted",
+			attrs...,
+		),
+	)
+
+	// Trigger aggregation at vote period boundaries
+	if params, err := k.GetParams(ctx); err == nil && params.VotePeriod > 0 {
+		if sdkCtx.BlockHeight()%int64(params.VotePeriod) == 0 {
+			if err := k.AggregatePrices(ctx); err != nil {
+				sdkCtx.Logger().Debug("price aggregation not ready", "asset", asset, "error", err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
 // GetValidatorPrice retrieves a validator's price submission for an asset
 func (k Keeper) GetValidatorPrice(ctx context.Context, validatorAddr sdk.ValAddress, asset string) (types.ValidatorPrice, error) {
 	store := k.getStore(ctx)
@@ -145,6 +230,16 @@ func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb fun
 
 // GetValidatorPricesByAsset returns all validator price submissions for an asset
 func (k Keeper) GetValidatorPricesByAsset(ctx context.Context, asset string) ([]types.ValidatorPrice, error) {
+	validatorPrices := []types.ValidatorPrice{}
+	err := k.IterateValidatorPrices(ctx, asset, func(vp types.ValidatorPrice) bool {
+		validatorPrices = append(validatorPrices, vp)
+		return false
+	})
+	return validatorPrices, err
+}
+
+// GetAllValidatorPrices returns validator prices, optionally filtered by asset.
+func (k Keeper) GetAllValidatorPrices(ctx context.Context, asset string) ([]types.ValidatorPrice, error) {
 	validatorPrices := []types.ValidatorPrice{}
 	err := k.IterateValidatorPrices(ctx, asset, func(vp types.ValidatorPrice) bool {
 		validatorPrices = append(validatorPrices, vp)

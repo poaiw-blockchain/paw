@@ -3,13 +3,13 @@ package ante
 import (
 	"fmt"
 
+	storetypes "cosmossdk.io/store/types"
 	feegrantkeeper "cosmossdk.io/x/feegrant/keeper"
+	txsigning "cosmossdk.io/x/tx/signing"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	"github.com/cosmos/cosmos-sdk/x/auth/ante"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	sdkante "github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	ibcante "github.com/cosmos/ibc-go/v8/modules/core/ante"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 
@@ -20,11 +20,11 @@ import (
 
 // HandlerOptions are the options required for constructing a default SDK AnteHandler.
 type HandlerOptions struct {
-	AccountKeeper   authkeeper.AccountKeeper
-	BankKeeper      bankkeeper.Keeper
+	AccountKeeper   sdkante.AccountKeeper
+	BankKeeper      authtypes.BankKeeper
 	FeegrantKeeper  feegrantkeeper.Keeper
-	SignModeHandler *signing.HandlerMap
-	SigGasConsumer  func(meter sdk.GasMeter, sig signing.SignatureV2, params authtypes.Params) error
+	SignModeHandler *txsigning.HandlerMap
+	SigGasConsumer  func(meter storetypes.GasMeter, sig signingtypes.SignatureV2, params authtypes.Params) error
 	IBCKeeper       *ibckeeper.Keeper
 	ComputeKeeper   *computekeeper.Keeper
 	DEXKeeper       *dexkeeper.Keeper
@@ -48,18 +48,18 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 	}
 
 	anteDecorators := []sdk.AnteDecorator{
-		ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-		ante.NewExtensionOptionsDecorator(nil),
-		ante.NewValidateBasicDecorator(),
-		ante.NewTxTimeoutHeightDecorator(),
-		ante.NewValidateMemoDecorator(options.AccountKeeper),
-		ante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
-		ante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper, nil),
-		ante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators
-		ante.NewValidateSigCountDecorator(options.AccountKeeper),
-		ante.NewSigGasConsumeDecorator(options.AccountKeeper, options.SigGasConsumer),
-		ante.NewSigVerificationDecorator(options.AccountKeeper, options.SignModeHandler),
-		ante.NewIncrementSequenceDecorator(options.AccountKeeper),
+		sdkante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+		sdkante.NewExtensionOptionsDecorator(nil),
+		sdkante.NewValidateBasicDecorator(),
+		sdkante.NewTxTimeoutHeightDecorator(),
+		sdkante.NewValidateMemoDecorator(options.AccountKeeper),
+		sdkante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
+		sdkante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper, nil),
+		sdkante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators
+		sdkante.NewValidateSigCountDecorator(options.AccountKeeper),
+		sdkante.NewSigGasConsumeDecorator(options.AccountKeeper, options.SigGasConsumer),
+		sdkante.NewSigVerificationDecorator(options.AccountKeeper, options.SignModeHandler),
+		sdkante.NewIncrementSequenceDecorator(options.AccountKeeper),
 		ibcante.NewRedundantRelayDecorator(options.IBCKeeper),
 	}
 

@@ -1,13 +1,11 @@
 package property_test
 
 import (
-	"math"
 	"math/rand"
 	"sort"
 	"testing"
 	"testing/quick"
 
-	sdkmath "cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 )
 
@@ -162,7 +160,6 @@ func TestPropertySlashingMonotonicity(t *testing.T) {
 	property := func(seed int64) bool {
 		rng := rand.New(rand.NewSource(seed))
 
-		referencePrice := uint64(1000000)
 		threshold := uint64(5000) // 5% threshold
 
 		// Two deviations with different severities

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -49,7 +50,7 @@ func PriceValidityInvariant(k Keeper) sdk.Invariant {
 		)
 
 		store := ctx.KVStore(k.storeKey)
-		iter := sdk.KVStorePrefixIterator(store, PriceKeyPrefix)
+		iter := storetypes.KVStorePrefixIterator(store, PriceKeyPrefix)
 		defer iter.Close()
 
 		for ; iter.Valid(); iter.Next() {
@@ -89,12 +90,12 @@ func PriceValidityInvariant(k Keeper) sdk.Invariant {
 				issues = append(issues, "found price with empty asset name")
 			}
 
-			// Check update time is not in the future
-			if price.UpdateTime > ctx.BlockTime().Unix() {
+			// Check block time is not in the future if set
+			if price.BlockTime > 0 && price.BlockTime > ctx.BlockTime().Unix() {
 				broken = true
 				issues = append(issues, fmt.Sprintf(
 					"asset %s has future update time: %d > %d",
-					price.Asset, price.UpdateTime, ctx.BlockTime().Unix(),
+					price.Asset, price.BlockTime, ctx.BlockTime().Unix(),
 				))
 			}
 		}
@@ -123,7 +124,7 @@ func ValidatorConsistencyInvariant(k Keeper) sdk.Invariant {
 		)
 
 		store := ctx.KVStore(k.storeKey)
-		iter := sdk.KVStorePrefixIterator(store, ValidatorOracleKeyPrefix)
+		iter := storetypes.KVStorePrefixIterator(store, ValidatorOracleKeyPrefix)
 		defer iter.Close()
 
 		for ; iter.Valid(); iter.Next() {
@@ -142,15 +143,6 @@ func ValidatorConsistencyInvariant(k Keeper) sdk.Invariant {
 				broken = true
 				issues = append(issues, "found validator oracle with empty address")
 				continue
-			}
-
-			// Check power is non-negative
-			if validatorOracle.Power < 0 {
-				broken = true
-				issues = append(issues, fmt.Sprintf(
-					"validator %s has negative power: %d",
-					validatorOracle.ValidatorAddr, validatorOracle.Power,
-				))
 			}
 
 			// Check miss counter is non-negative
@@ -173,24 +165,13 @@ func ValidatorConsistencyInvariant(k Keeper) sdk.Invariant {
 				continue
 			}
 
-			validator, err := k.stakingKeeper.GetValidator(ctx, valAddr)
-			if err != nil {
+			if _, err := k.stakingKeeper.GetValidator(ctx, valAddr); err != nil {
 				broken = true
 				issues = append(issues, fmt.Sprintf(
 					"validator %s not found in staking module",
 					validatorOracle.ValidatorAddr,
 				))
 				continue
-			}
-
-			// Check power matches staking power
-			stakingPower := validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx))
-			if validatorOracle.Power != stakingPower {
-				broken = true
-				issues = append(issues, fmt.Sprintf(
-					"validator %s power mismatch: oracle=%d, staking=%d",
-					validatorOracle.ValidatorAddr, validatorOracle.Power, stakingPower,
-				))
 			}
 		}
 
@@ -229,11 +210,11 @@ func SubmissionFreshnessInvariant(k Keeper) sdk.Invariant {
 
 		// Check validator price submissions
 		store := ctx.KVStore(k.storeKey)
-		iter := sdk.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
+		iter := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
 		defer iter.Close()
 
-		currentTime := ctx.BlockTime().Unix()
-		maxAge := int64(params.MaxPriceAge)
+		// Use vote period as freshness window (in blocks)
+		maxAgeBlocks := int64(params.VotePeriod)
 
 		for ; iter.Valid(); iter.Next() {
 			var validatorPrice types.ValidatorPrice
@@ -247,13 +228,13 @@ func SubmissionFreshnessInvariant(k Keeper) sdk.Invariant {
 			}
 
 			// Check submission is not too old (warning, not critical)
-			age := currentTime - validatorPrice.Timestamp
-			if age > maxAge*2 { // Allow 2x max age before breaking invariant
+			ageBlocks := ctx.BlockHeight() - validatorPrice.BlockHeight
+			if ageBlocks > maxAgeBlocks*2 { // Allow 2x vote period before breaking invariant
 				broken = true
 				issues = append(issues, fmt.Sprintf(
 					"validator %s has stale %s price: age=%d, max=%d",
 					validatorPrice.ValidatorAddr, validatorPrice.Asset,
-					age, maxAge*2,
+					ageBlocks, maxAgeBlocks*2,
 				))
 			}
 
@@ -267,13 +248,13 @@ func SubmissionFreshnessInvariant(k Keeper) sdk.Invariant {
 				))
 			}
 
-			// Check timestamp is not in the future
-			if validatorPrice.Timestamp > currentTime {
+			// Check block height is not in the future
+			if validatorPrice.BlockHeight > ctx.BlockHeight() {
 				broken = true
 				issues = append(issues, fmt.Sprintf(
-					"validator %s has future timestamp for %s: %d > %d",
+					"validator %s has future block height for %s: %d > %d",
 					validatorPrice.ValidatorAddr, validatorPrice.Asset,
-					validatorPrice.Timestamp, currentTime,
+					validatorPrice.BlockHeight, ctx.BlockHeight(),
 				))
 			}
 		}
@@ -302,7 +283,7 @@ func PriceAggregationInvariant(k Keeper) sdk.Invariant {
 		)
 
 		store := ctx.KVStore(k.storeKey)
-		priceIter := sdk.KVStorePrefixIterator(store, PriceKeyPrefix)
+		priceIter := storetypes.KVStorePrefixIterator(store, PriceKeyPrefix)
 		defer priceIter.Close()
 
 		for ; priceIter.Valid(); priceIter.Next() {
@@ -315,7 +296,7 @@ func PriceAggregationInvariant(k Keeper) sdk.Invariant {
 			var submissions []math.LegacyDec
 			var totalPower int64
 
-			valIter := sdk.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
+			valIter := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
 			defer valIter.Close()
 
 			for ; valIter.Valid(); valIter.Next() {

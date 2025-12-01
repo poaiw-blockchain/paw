@@ -2,6 +2,7 @@ package compute
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 
@@ -44,6 +45,20 @@ func (AppModuleBasic) RegisterInterfaces(registry types.InterfaceRegistry) {
 	computetypes.RegisterInterfaces(registry)
 }
 
+// DefaultGenesis returns the default genesis state for the compute module.
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
+	return cdc.MustMarshalJSON(computetypes.DefaultGenesis())
+}
+
+// ValidateGenesis validates the provided genesis state.
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
+	var genState computetypes.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &genState); err != nil {
+		return err
+	}
+	return genState.Validate()
+}
+
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the compute module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {}
 
@@ -60,14 +75,18 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 // AppModule implements an application module for the compute module.
 type AppModule struct {
 	AppModuleBasic
-	keeper *keeper.Keeper
+	keeper        *keeper.Keeper
+	accountKeeper computetypes.AccountKeeper
+	bankKeeper    computetypes.BankKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper) AppModule {
+func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper, ak computetypes.AccountKeeper, bk computetypes.BankKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
+		accountKeeper:  ak,
+		bankKeeper:     bk,
 	}
 }
 
@@ -115,11 +134,33 @@ func (am AppModule) RegisterStoreDecoder(_ simtypes.StoreDecoderRegistry) {
 	// This function is empty now but will be populated with simulation logic later.
 }
 
+// InitGenesis initializes module state from genesis data.
+func (am AppModule) InitGenesis(ctx context.Context, cdc codec.JSONCodec, data json.RawMessage) error {
+	var genState computetypes.GenesisState
+	if err := cdc.UnmarshalJSON(data, &genState); err != nil {
+		return err
+	}
+	return am.keeper.InitGenesis(ctx, genState)
+}
+
+// ExportGenesis exports module state to genesis.
+func (am AppModule) ExportGenesis(ctx context.Context, cdc codec.JSONCodec) (json.RawMessage, error) {
+	genState, err := am.keeper.ExportGenesis(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cdc.MarshalJSON(genState)
+}
+
 // WeightedOperations returns simulation operations for the compute module
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	return simulation.WeightedOperations(
-		simState.AppParams, simState.Cdc, *am.keeper,
-		simState.AccountKeeper, simState.BankKeeper,
+		simState.AppParams,
+		simState.Cdc,
+		simState.TxConfig,
+		*am.keeper,
+		am.accountKeeper,
+		am.bankKeeper,
 	)
 }
 

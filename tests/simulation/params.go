@@ -4,20 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/paw-chain/paw/app"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
-	computetypes "github.com/paw-chain/paw/x/compute/types"
 )
 
 // AppStateFn returns the initial application state using a genesis or the simulation parameters.
@@ -25,7 +29,7 @@ import (
 // If a file is not given for the genesis or the sim params, it creates a randomized one.
 func AppStateFn(cdc codec.JSONCodec, bm module.BasicManager) simtypes.AppStateFn {
 	return func(r *rand.Rand, accs []simtypes.Account, config simtypes.Config,
-	) (appState json.RawMessage, simAccs []simtypes.Account, chainID string, genesisTimestamp int64) {
+	) (appState json.RawMessage, simAccs []simtypes.Account, chainID string, genesisTimestamp time.Time) {
 
 		if config.ExportParamsPath != "" {
 			panic("Params export is not supported")
@@ -50,9 +54,16 @@ func generateGenesisState(
 	accs []simtypes.Account,
 	config simtypes.Config,
 	bm module.BasicManager,
-) (json.RawMessage, []simtypes.Account, string, int64) {
+) (json.RawMessage, []simtypes.Account, string, time.Time) {
 
 	genesisState := bm.DefaultGenesis(cdc)
+
+	appCodec, ok := cdc.(codec.Codec)
+	if !ok {
+		panic("codec does not implement codec.Codec")
+	}
+
+	authGenesis := authtypes.GetGenesisStateFromAppState(appCodec, genesisState)
 
 	// Customize Bank genesis
 	bankGenesis := banktypes.GetGenesisStateFromAppState(cdc, genesisState)
@@ -79,20 +90,111 @@ func generateGenesisState(
 		sdk.NewCoin("uosmo", math.NewInt(100000000*int64(len(accs)))),
 	)
 
+	// Create auth accounts matching funded bank balances
+	var genesisAccounts []authtypes.GenesisAccount
+	for _, acc := range accs {
+		baseAcc := authtypes.NewBaseAccount(acc.Address, acc.PubKey, 0, 0)
+		genesisAccounts = append(genesisAccounts, baseAcc)
+	}
+	packedAccounts, err := authtypes.PackAccounts(genesisAccounts)
+	if err != nil {
+		panic(err)
+	}
+	authGenesis.Accounts = append(authGenesis.Accounts, packedAccounts...)
+
 	genesisState[banktypes.ModuleName] = cdc.MustMarshalJSON(bankGenesis)
 
 	// Customize Staking genesis
 	stakingGenesis := stakingtypes.GetGenesisStateFromAppState(cdc, genesisState)
 	stakingGenesis.Params.BondDenom = sdk.DefaultBondDenom
-	stakingGenesis.Params.UnbondingTime = simtypes.RandTimeDuration(r, 60*60*24*7, 60*60*24*21) // 1-3 weeks
+	unbondSeconds := simtypes.RandIntBetween(r, 60*60*24*7, 60*60*24*21)
+	stakingGenesis.Params.UnbondingTime = time.Duration(unbondSeconds) * time.Second
 	stakingGenesis.Params.MaxValidators = uint32(simtypes.RandIntBetween(r, 50, 100))
 	stakingGenesis.Params.MaxEntries = uint32(simtypes.RandIntBetween(r, 5, 10))
+
+	// Seed bonded validators so InitGenesis never panics on empty validator sets.
+	var (
+		validators  []stakingtypes.Validator
+		delegations []stakingtypes.Delegation
+		lastPowers  []stakingtypes.LastValidatorPower
+		totalPower  = math.ZeroInt()
+	)
+	var slashingGenesis slashingtypes.GenesisState
+	if genesisState[slashingtypes.ModuleName] != nil {
+		cdc.MustUnmarshalJSON(genesisState[slashingtypes.ModuleName], &slashingGenesis)
+	} else {
+		slashingGenesis = *slashingtypes.DefaultGenesisState()
+	}
+
+	bondedValidators := simtypes.RandIntBetween(r, 1, minInt(len(accs), 4))
+	bondAmount := math.NewInt(50_000_000_000) // 50k tokens bonded per validator
+	totalBondedTokens := math.ZeroInt()
+	for i := 0; i < bondedValidators; i++ {
+		acc := accs[i]
+		valAddr := sdk.ValAddress(acc.Address)
+		consAddr := sdk.ConsAddress(acc.ConsKey.PubKey().Address())
+
+		pkAny, err := codectypes.NewAnyWithValue(acc.ConsKey.PubKey())
+		if err != nil {
+			panic(err)
+		}
+
+		validator := stakingtypes.Validator{
+			OperatorAddress: valAddr.String(),
+			ConsensusPubkey: pkAny,
+			Status:          stakingtypes.Bonded,
+			Tokens:          bondAmount,
+			DelegatorShares: math.LegacyNewDecFromInt(bondAmount),
+			Description:     stakingtypes.NewDescription(fmt.Sprintf("validator-%d", i), "", "", "", ""),
+		}
+
+		power := validator.GetConsensusPower(sdk.DefaultPowerReduction)
+		validators = append(validators, validator)
+		lastPowers = append(lastPowers, stakingtypes.LastValidatorPower{
+			Address: valAddr.String(),
+			Power:   power,
+		})
+		totalPower = totalPower.AddRaw(power)
+		totalBondedTokens = totalBondedTokens.Add(bondAmount)
+
+		delegations = append(delegations, stakingtypes.NewDelegation(
+			acc.Address.String(),
+			valAddr.String(),
+			math.LegacyNewDecFromInt(bondAmount),
+		))
+
+		slashingGenesis.SigningInfos = append(slashingGenesis.SigningInfos, slashingtypes.SigningInfo{
+			Address: consAddr.String(),
+			ValidatorSigningInfo: slashingtypes.NewValidatorSigningInfo(
+				consAddr,
+				0, 0, time.Now().UTC(), false, 0,
+			),
+		})
+	}
+
+	// Fund bonded pool so bonded coins match module balance.
+	if bondedValidators > 0 {
+		bondedPoolAddr := authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String()
+		bankGenesis.Balances = append(bankGenesis.Balances, banktypes.Balance{
+			Address: bondedPoolAddr,
+			Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, totalBondedTokens)),
+		})
+		bankGenesis.Supply = bankGenesis.Supply.Add(sdk.NewCoin(sdk.DefaultBondDenom, totalBondedTokens))
+	}
+
+	stakingGenesis.Validators = validators
+	stakingGenesis.Delegations = delegations
+	stakingGenesis.LastValidatorPowers = lastPowers
+	stakingGenesis.LastTotalPower = totalPower
 	genesisState[stakingtypes.ModuleName] = cdc.MustMarshalJSON(stakingGenesis)
+	genesisState[slashingtypes.ModuleName] = cdc.MustMarshalJSON(&slashingGenesis)
+	genesisState[banktypes.ModuleName] = cdc.MustMarshalJSON(bankGenesis)
+	genesisState[authtypes.ModuleName] = cdc.MustMarshalJSON(&authGenesis)
 
 	// Customize DEX genesis
 	dexGenesis := &dextypes.GenesisState{
-		Params: randomDEXParams(r),
-		Pools:  []dextypes.Pool{},
+		Params:     randomDEXParams(r),
+		Pools:      []dextypes.Pool{},
 		NextPoolId: 1,
 	}
 	genesisState[dextypes.ModuleName] = cdc.MustMarshalJSON(dexGenesis)
@@ -106,8 +208,8 @@ func generateGenesisState(
 
 	// Customize Compute genesis
 	computeGenesis := &computetypes.GenesisState{
-		Params: randomComputeParams(r),
-		Requests: []computetypes.Request{},
+		Params:    randomComputeParams(r),
+		Requests:  []computetypes.Request{},
 		Providers: []computetypes.Provider{},
 	}
 	genesisState[computetypes.ModuleName] = cdc.MustMarshalJSON(computeGenesis)
@@ -117,12 +219,12 @@ func generateGenesisState(
 		panic(err)
 	}
 
-	return appState, accs, config.ChainID, config.GenesisTime
+	return appState, accs, config.ChainID, time.Now()
 }
 
 // loadGenesisState loads genesis state from file
 func loadGenesisState(cdc codec.JSONCodec, genesisFile string) (
-	json.RawMessage, []simtypes.Account, string, int64,
+	json.RawMessage, []simtypes.Account, string, time.Time,
 ) {
 	panic("Genesis file loading not implemented for simulation")
 }
@@ -130,44 +232,21 @@ func loadGenesisState(cdc codec.JSONCodec, genesisFile string) (
 // RandomizedParams creates randomized parameter changes for param change proposals
 func RandomizedParams(r *rand.Rand) []simtypes.LegacyParamChange {
 	return []simtypes.LegacyParamChange{
-		// DEX params
-		{
-			Subspace: dextypes.ModuleName,
-			Key:      "SwapFee",
-			SimValue: func(r *rand.Rand) string {
-				return fmt.Sprintf("\"%s\"", randomSwapFee(r))
-			},
-		},
-		{
-			Subspace: dextypes.ModuleName,
-			Key:      "MinLiquidity",
-			SimValue: func(r *rand.Rand) string {
-				return fmt.Sprintf("\"%s\"", randomMinLiquidity(r))
-			},
-		},
-		// Oracle params
-		{
-			Subspace: oracletypes.ModuleName,
-			Key:      "VotePeriod",
-			SimValue: func(r *rand.Rand) string {
-				return fmt.Sprintf("%d", randomVotePeriod(r))
-			},
-		},
-		{
-			Subspace: oracletypes.ModuleName,
-			Key:      "SlashFraction",
-			SimValue: func(r *rand.Rand) string {
-				return fmt.Sprintf("\"%s\"", randomSlashFraction(r))
-			},
-		},
-		// Compute params
-		{
-			Subspace: computetypes.ModuleName,
-			Key:      "MinProviderStake",
-			SimValue: func(r *rand.Rand) string {
-				return fmt.Sprintf("\"%s\"", randomMinProviderStake(r))
-			},
-		},
+		simulation.NewSimLegacyParamChange(dextypes.ModuleName, "SwapFee", func(r *rand.Rand) string {
+			return fmt.Sprintf("\"%s\"", randomSwapFee(r))
+		}),
+		simulation.NewSimLegacyParamChange(dextypes.ModuleName, "MinLiquidity", func(r *rand.Rand) string {
+			return fmt.Sprintf("\"%s\"", randomMinLiquidity(r))
+		}),
+		simulation.NewSimLegacyParamChange(oracletypes.ModuleName, "VotePeriod", func(r *rand.Rand) string {
+			return fmt.Sprintf("%d", randomVotePeriod(r))
+		}),
+		simulation.NewSimLegacyParamChange(oracletypes.ModuleName, "SlashFraction", func(r *rand.Rand) string {
+			return fmt.Sprintf("\"%s\"", randomSlashFraction(r))
+		}),
+		simulation.NewSimLegacyParamChange(computetypes.ModuleName, "MinProviderStake", func(r *rand.Rand) string {
+			return fmt.Sprintf("\"%s\"", randomMinProviderStake(r))
+		}),
 	}
 }
 
@@ -253,11 +332,13 @@ func randomTwapLookback(r *rand.Rand) uint64 {
 // Random parameter generators for Compute
 func randomComputeParams(r *rand.Rand) computetypes.Params {
 	return computetypes.Params{
-		MinProviderStake:    randomMinProviderStake(r),
-		RequestTimeout:      randomRequestTimeout(r),
-		ResultTimeout:       randomResultTimeout(r),
-		MinGasPrice:         randomMinGasPrice(r),
-		MaxRequestsPerBlock: randomMaxRequestsPerBlock(r),
+		MinProviderStake:           randomMinProviderStake(r),
+		VerificationTimeoutSeconds: uint64(simtypes.RandIntBetween(r, 60, 900)),
+		MaxRequestTimeoutSeconds:   uint64(simtypes.RandIntBetween(r, 300, 7200)),
+		ReputationSlashPercentage:  uint32(simtypes.RandIntBetween(r, 1, 20)),
+		StakeSlashPercentage:       uint32(simtypes.RandIntBetween(r, 1, 10)),
+		MinReputationScore:         uint32(simtypes.RandIntBetween(r, 10, 100)),
+		EscrowReleaseDelaySeconds:  uint64(simtypes.RandIntBetween(r, 600, 7200)),
 	}
 }
 
@@ -266,24 +347,11 @@ func randomMinProviderStake(r *rand.Rand) math.Int {
 	return math.NewInt(int64(simtypes.RandIntBetween(r, 1000, 100000)))
 }
 
-func randomRequestTimeout(r *rand.Rand) uint64 {
-	// 100 to 1000 blocks
-	return uint64(simtypes.RandIntBetween(r, 100, 1000))
-}
-
-func randomResultTimeout(r *rand.Rand) uint64 {
-	// 50 to 500 blocks
-	return uint64(simtypes.RandIntBetween(r, 50, 500))
-}
-
-func randomMinGasPrice(r *rand.Rand) math.LegacyDec {
-	// 0.001 to 0.1
-	return math.LegacyNewDecWithPrec(int64(simtypes.RandIntBetween(r, 1, 100)), 3)
-}
-
-func randomMaxRequestsPerBlock(r *rand.Rand) uint64 {
-	// 10 to 100
-	return uint64(simtypes.RandIntBetween(r, 10, 100))
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // BlockedAddresses returns all the app's blocked account addresses.

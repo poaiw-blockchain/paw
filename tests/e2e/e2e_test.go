@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package e2e_test
 
 import (
@@ -71,16 +74,20 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 		AmountB: math.NewInt(20000000), // 20M USDT
 	}
 
-	poolId, err := suite.app.DEXKeeper.CreatePool(
+	creatorAddr, err := sdk.AccAddressFromBech32(msgCreatePool.Creator)
+	suite.Require().NoError(err)
+
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		msgCreatePool.Creator,
+		creatorAddr,
 		msgCreatePool.TokenA,
 		msgCreatePool.TokenB,
 		msgCreatePool.AmountA,
 		msgCreatePool.AmountB,
 	)
 	suite.Require().NoError(err)
-	suite.Require().Greater(poolId, uint64(0))
+	suite.Require().NotNil(pool)
+	poolId := pool.Id
 
 	// Step 2: Add liquidity
 	msgAddLiq := &dextypes.MsgAddLiquidity{
@@ -90,9 +97,12 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 		AmountB:  math.NewInt(2000000),
 	}
 
+	liquidityProvider, err := sdk.AccAddressFromBech32(msgAddLiq.Provider)
+	suite.Require().NoError(err)
+
 	liquidityTokens, err := suite.app.DEXKeeper.AddLiquidity(
 		suite.ctx,
-		msgAddLiq.Provider,
+		liquidityProvider,
 		msgAddLiq.PoolId,
 		msgAddLiq.AmountA,
 		msgAddLiq.AmountB,
@@ -110,9 +120,12 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 		MinAmountOut: math.NewInt(900000), // Adjusted accordingly
 	}
 
-	amountOut, err := suite.app.DEXKeeper.Swap(
+	swapper, err := sdk.AccAddressFromBech32(msgSwap.Trader)
+	suite.Require().NoError(err)
+
+	amountOut, err := suite.app.DEXKeeper.ExecuteSwapSecure(
 		suite.ctx,
-		msgSwap.Trader,
+		swapper,
 		msgSwap.PoolId,
 		msgSwap.TokenIn,
 		msgSwap.TokenOut,
@@ -129,9 +142,10 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 		Shares:   math.NewInt(500000),
 	}
 
+	providerAcc := sdk.MustAccAddressFromBech32(msgRemoveLiq.Provider)
 	amountA, amountB, err := suite.app.DEXKeeper.RemoveLiquidity(
 		suite.ctx,
-		msgRemoveLiq.Provider,
+		providerAcc,
 		msgRemoveLiq.PoolId,
 		msgRemoveLiq.Shares,
 	)
@@ -139,4 +153,3 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 	suite.Require().True(amountA.GT(math.ZeroInt()))
 	suite.Require().True(amountB.GT(math.ZeroInt()))
 }
-

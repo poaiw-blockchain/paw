@@ -1,13 +1,16 @@
+//go:build integration
+// +build integration
+
 package upgrade_test
 
 import (
 	"testing"
 
 	"cosmossdk.io/log"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/app"

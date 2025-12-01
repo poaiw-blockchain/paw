@@ -40,6 +40,31 @@ service Query {
   rpc SimulateSwap(QuerySimulateSwapRequest) returns (QuerySimulateSwapResponse) {
     option (google.api.http).get = "/paw/dex/v1/simulate-swap/{pool_id}";
   }
+
+  // LimitOrder queries a limit order by ID
+  rpc LimitOrder(QueryLimitOrderRequest) returns (QueryLimitOrderResponse) {
+    option (google.api.http).get = "/paw/dex/v1/limit-orders/{order_id}";
+  }
+
+  // LimitOrders queries all limit orders with pagination
+  rpc LimitOrders(QueryLimitOrdersRequest) returns (QueryLimitOrdersResponse) {
+    option (google.api.http).get = "/paw/dex/v1/limit-orders";
+  }
+
+  // LimitOrdersByOwner queries limit orders by owner address
+  rpc LimitOrdersByOwner(QueryLimitOrdersByOwnerRequest) returns (QueryLimitOrdersByOwnerResponse) {
+    option (google.api.http).get = "/paw/dex/v1/limit-orders/owner/{owner}";
+  }
+
+  // LimitOrdersByPool queries limit orders by pool ID
+  rpc LimitOrdersByPool(QueryLimitOrdersByPoolRequest) returns (QueryLimitOrdersByPoolResponse) {
+    option (google.api.http).get = "/paw/dex/v1/limit-orders/pool/{pool_id}";
+  }
+
+  // OrderBook queries the order book for a pool
+  rpc OrderBook(QueryOrderBookRequest) returns (QueryOrderBookResponse) {
+    option (google.api.http).get = "/paw/dex/v1/order-book/{pool_id}";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -116,4 +141,61 @@ message QuerySimulateSwapResponse {
     (gogoproto.customtype) = "cosmossdk.io/math.Int",
     (gogoproto.nullable) = false
   ];
+}
+
+// QueryLimitOrderRequest is the request type for the Query/LimitOrder RPC method.
+message QueryLimitOrderRequest {
+  uint64 order_id = 1;
+}
+
+// QueryLimitOrderResponse is the response type for the Query/LimitOrder RPC method.
+message QueryLimitOrderResponse {
+  LimitOrder order = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryLimitOrdersRequest is the request type for the Query/LimitOrders RPC method.
+message QueryLimitOrdersRequest {
+  cosmos.base.query.v1beta1.PageRequest pagination = 1;
+}
+
+// QueryLimitOrdersResponse is the response type for the Query/LimitOrders RPC method.
+message QueryLimitOrdersResponse {
+  repeated LimitOrder orders = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryLimitOrdersByOwnerRequest is the request type for the Query/LimitOrdersByOwner RPC method.
+message QueryLimitOrdersByOwnerRequest {
+  string owner = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryLimitOrdersByOwnerResponse is the response type for the Query/LimitOrdersByOwner RPC method.
+message QueryLimitOrdersByOwnerResponse {
+  repeated LimitOrder orders = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryLimitOrdersByPoolRequest is the request type for the Query/LimitOrdersByPool RPC method.
+message QueryLimitOrdersByPoolRequest {
+  uint64 pool_id = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryLimitOrdersByPoolResponse is the response type for the Query/LimitOrdersByPool RPC method.
+message QueryLimitOrdersByPoolResponse {
+  repeated LimitOrder orders = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryOrderBookRequest is the request type for the Query/OrderBook RPC method.
+message QueryOrderBookRequest {
+  uint64 pool_id = 1;
+  uint32 limit = 2;  // Maximum number of orders per side (default 50)
+}
+
+// QueryOrderBookResponse is the response type for the Query/OrderBook RPC method.
+message QueryOrderBookResponse {
+  repeated LimitOrder buy_orders = 1 [(gogoproto.nullable) = false];
+  repeated LimitOrder sell_orders = 2 [(gogoproto.nullable) = false];
 }

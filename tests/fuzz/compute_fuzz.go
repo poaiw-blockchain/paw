@@ -26,12 +26,12 @@ type ComputeFuzzInput struct {
 func FuzzComputeEscrowLifecycle(f *testing.F) {
 	// Seed with edge cases
 	seeds := [][]byte{
-		encodeEscrowInput(1000000, 500000, 100, true),  // Normal case
-		encodeEscrowInput(0, 500000, 100, true),        // Zero escrow
-		encodeEscrowInput(1000000, 0, 100, true),       // Zero stake
+		encodeEscrowInput(1000000, 500000, 100, true),      // Normal case
+		encodeEscrowInput(0, 500000, 100, true),            // Zero escrow
+		encodeEscrowInput(1000000, 0, 100, true),           // Zero stake
 		encodeEscrowInput(^uint64(0)-1, 500000, 100, true), // Max escrow
-		encodeEscrowInput(1000000, 500000, 0, true),    // Instant execution
-		encodeEscrowInput(1000000, 500000, 86400, true), // 24h execution
+		encodeEscrowInput(1000000, 500000, 0, true),        // Instant execution
+		encodeEscrowInput(1000000, 500000, 86400, true),    // 24h execution
 	}
 
 	for _, seed := range seeds {
@@ -145,7 +145,7 @@ func FuzzComputeVerificationProof(f *testing.F) {
 func FuzzComputeNonceReplayProtection(f *testing.F) {
 	seeds := [][]byte{
 		encodeNonceInput(1, 1000),
-		encodeNonceInput(0, 1000),     // Zero nonce (should fail)
+		encodeNonceInput(0, 1000), // Zero nonce (should fail)
 		encodeNonceInput(12345, 1000),
 		encodeNonceInput(^uint64(0), 1000), // Max nonce
 	}
@@ -527,7 +527,7 @@ func encodeEscrowInput(escrow, stake uint64, execTime uint32, success bool) []by
 	return buf
 }
 
-func generateValidProofSeed(pubKey, privKey ed25519.PrivateKey, requestID uint64, resultHash string) []byte {
+func generateValidProofSeed(pubKey ed25519.PublicKey, privKey ed25519.PrivateKey, requestID uint64, resultHash string) []byte {
 	merkleRoot := sha256.Sum256([]byte(resultHash))
 	nonce := uint64(12345)
 
@@ -551,7 +551,7 @@ func generateInvalidProofSeed() []byte {
 	return buf
 }
 
-func generateTamperedProofSeed(pubKey, privKey ed25519.PrivateKey, requestID uint64, resultHash string) []byte {
+func generateTamperedProofSeed(pubKey ed25519.PublicKey, privKey ed25519.PrivateKey, requestID uint64, resultHash string) []byte {
 	seed := generateValidProofSeed(pubKey, privKey, requestID, resultHash)
 	// Tamper with signature
 	seed[50] ^= 0xFF

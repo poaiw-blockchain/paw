@@ -27,6 +27,15 @@ var (
 
 	// SubmissionByHeightPrefix is the prefix for indexing submissions by block height for cleanup
 	SubmissionByHeightPrefix = []byte{0x07}
+
+	// ValidatorAccuracyKeyPrefix is the prefix for validator accuracy statistics
+	ValidatorAccuracyKeyPrefix = []byte{0x08}
+
+	// AccuracyBonusPoolKey is the key for the accuracy bonus pool
+	AccuracyBonusPoolKey = []byte{0x09}
+
+	// GeographicInfoKeyPrefix is the prefix for validator geographic information
+	GeographicInfoKeyPrefix = []byte{0x0A}
 )
 
 // GetPriceKey returns the store key for a price by asset
@@ -85,4 +94,14 @@ func GetSubmissionByHeightPrefixForHeight(height int64) []byte {
 	heightBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(heightBz, uint64(height))
 	return append(SubmissionByHeightPrefix, heightBz...)
+}
+
+// GetValidatorAccuracyKey returns the store key for validator accuracy statistics
+func GetValidatorAccuracyKey(validatorAddr sdk.ValAddress) []byte {
+	return append(ValidatorAccuracyKeyPrefix, []byte(validatorAddr.String())...)
+}
+
+// GetGeographicInfoKey returns the store key for validator geographic information
+func GetGeographicInfoKey(validatorAddr sdk.ValAddress) []byte {
+	return append(GeographicInfoKeyPrefix, []byte(validatorAddr.String())...)
 }

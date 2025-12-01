@@ -4,32 +4,719 @@
 package types
 
 import (
-	math "cosmossdk.io/math"
+	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
 	_ "github.com/cosmos/cosmos-proto"
 	_ "github.com/cosmos/cosmos-sdk/types/tx/amino"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
+	io "io"
+	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
+var _ = math.Inf
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Params defines the parameters for the oracle module.
 type Params struct {
-	VotePeriod         uint64         `protobuf:"varint,1,opt,name=vote_period,json=votePeriod,proto3" json:"vote_period,omitempty"`
-	VoteThreshold      math.LegacyDec `protobuf:"bytes,2,opt,name=vote_threshold,json=voteThreshold,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"vote_threshold"`
-	SlashFraction      math.LegacyDec `protobuf:"bytes,3,opt,name=slash_fraction,json=slashFraction,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"slash_fraction"`
-	SlashWindow        uint64         `protobuf:"varint,4,opt,name=slash_window,json=slashWindow,proto3" json:"slash_window,omitempty"`
-	MinValidPerWindow  uint64         `protobuf:"varint,5,opt,name=min_valid_per_window,json=minValidPerWindow,proto3" json:"min_valid_per_window,omitempty"`
-	TwapLookbackWindow uint64         `protobuf:"varint,6,opt,name=twap_lookback_window,json=twapLookbackWindow,proto3" json:"twap_lookback_window,omitempty"`
+	// vote_period is the number of blocks during which voting takes place
+	VotePeriod uint64 `protobuf:"varint,1,opt,name=vote_period,json=votePeriod,proto3" json:"vote_period,omitempty"`
+	// vote_threshold is the minimum percentage of votes required (as a decimal string)
+	VoteThreshold cosmossdk_io_math.LegacyDec `protobuf:"bytes,2,opt,name=vote_threshold,json=voteThreshold,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"vote_threshold"`
+	// slash_fraction is the fraction slashed for missing votes
+	SlashFraction cosmossdk_io_math.LegacyDec `protobuf:"bytes,3,opt,name=slash_fraction,json=slashFraction,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"slash_fraction"`
+	// slash_window is the window of blocks for tracking miss votes
+	SlashWindow uint64 `protobuf:"varint,4,opt,name=slash_window,json=slashWindow,proto3" json:"slash_window,omitempty"`
+	// min_valid_per_window is minimum number of valid votes per window
+	MinValidPerWindow uint64 `protobuf:"varint,5,opt,name=min_valid_per_window,json=minValidPerWindow,proto3" json:"min_valid_per_window,omitempty"`
+	// twap_lookback_window is the number of blocks to look back for TWAP calculation
+	TwapLookbackWindow uint64 `protobuf:"varint,6,opt,name=twap_lookback_window,json=twapLookbackWindow,proto3" json:"twap_lookback_window,omitempty"`
 }
 
 func (m *Params) Reset()         { *m = Params{} }
 func (m *Params) String() string { return proto.CompactTextString(m) }
 func (*Params) ProtoMessage()    {}
+func (*Params) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{0}
+}
+func (m *Params) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Params) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Params.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Params) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Params.Merge(m, src)
+}
+func (m *Params) XXX_Size() int {
+	return m.Size()
+}
+func (m *Params) XXX_DiscardUnknown() {
+	xxx_messageInfo_Params.DiscardUnknown(m)
+}
 
+var xxx_messageInfo_Params proto.InternalMessageInfo
+
+func (m *Params) GetVotePeriod() uint64 {
+	if m != nil {
+		return m.VotePeriod
+	}
+	return 0
+}
+
+func (m *Params) GetSlashWindow() uint64 {
+	if m != nil {
+		return m.SlashWindow
+	}
+	return 0
+}
+
+func (m *Params) GetMinValidPerWindow() uint64 {
+	if m != nil {
+		return m.MinValidPerWindow
+	}
+	return 0
+}
+
+func (m *Params) GetTwapLookbackWindow() uint64 {
+	if m != nil {
+		return m.TwapLookbackWindow
+	}
+	return 0
+}
+
+// Price represents the aggregated price for an asset
+type Price struct {
+	// asset is the identifier of the asset (e.g., "BTC", "ETH")
+	Asset string `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	// price is the aggregated price value
+	Price cosmossdk_io_math.LegacyDec `protobuf:"bytes,2,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
+	// block_height is the block when this price was set
+	BlockHeight int64 `protobuf:"varint,3,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	// block_time is the timestamp when this price was set
+	BlockTime int64 `protobuf:"varint,4,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+	// num_validators is the number of validators who voted
+	NumValidators uint32 `protobuf:"varint,5,opt,name=num_validators,json=numValidators,proto3" json:"num_validators,omitempty"`
+}
+
+func (m *Price) Reset()         { *m = Price{} }
+func (m *Price) String() string { return proto.CompactTextString(m) }
+func (*Price) ProtoMessage()    {}
+func (*Price) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{1}
+}
+func (m *Price) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Price) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Price.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Price) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Price.Merge(m, src)
+}
+func (m *Price) XXX_Size() int {
+	return m.Size()
+}
+func (m *Price) XXX_DiscardUnknown() {
+	xxx_messageInfo_Price.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Price proto.InternalMessageInfo
+
+func (m *Price) GetAsset() string {
+	if m != nil {
+		return m.Asset
+	}
+	return ""
+}
+
+func (m *Price) GetBlockHeight() int64 {
+	if m != nil {
+		return m.BlockHeight
+	}
+	return 0
+}
+
+func (m *Price) GetBlockTime() int64 {
+	if m != nil {
+		return m.BlockTime
+	}
+	return 0
+}
+
+func (m *Price) GetNumValidators() uint32 {
+	if m != nil {
+		return m.NumValidators
+	}
+	return 0
+}
+
+// ValidatorPrice represents a price submission by a validator
+type ValidatorPrice struct {
+	// validator_addr is the address of the validator
+	ValidatorAddr string `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
+	// asset is the asset identifier
+	Asset string `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
+	// price is the submitted price
+	Price cosmossdk_io_math.LegacyDec `protobuf:"bytes,3,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
+	// block_height is when the price was submitted
+	BlockHeight int64 `protobuf:"varint,4,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	// voting_power is the validator's voting power at submission time
+	VotingPower int64 `protobuf:"varint,5,opt,name=voting_power,json=votingPower,proto3" json:"voting_power,omitempty"`
+}
+
+func (m *ValidatorPrice) Reset()         { *m = ValidatorPrice{} }
+func (m *ValidatorPrice) String() string { return proto.CompactTextString(m) }
+func (*ValidatorPrice) ProtoMessage()    {}
+func (*ValidatorPrice) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{2}
+}
+func (m *ValidatorPrice) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ValidatorPrice) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ValidatorPrice.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ValidatorPrice) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidatorPrice.Merge(m, src)
+}
+func (m *ValidatorPrice) XXX_Size() int {
+	return m.Size()
+}
+func (m *ValidatorPrice) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidatorPrice.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidatorPrice proto.InternalMessageInfo
+
+func (m *ValidatorPrice) GetValidatorAddr() string {
+	if m != nil {
+		return m.ValidatorAddr
+	}
+	return ""
+}
+
+func (m *ValidatorPrice) GetAsset() string {
+	if m != nil {
+		return m.Asset
+	}
+	return ""
+}
+
+func (m *ValidatorPrice) GetBlockHeight() int64 {
+	if m != nil {
+		return m.BlockHeight
+	}
+	return 0
+}
+
+func (m *ValidatorPrice) GetVotingPower() int64 {
+	if m != nil {
+		return m.VotingPower
+	}
+	return 0
+}
+
+// ValidatorOracle represents oracle information for a validator
+type ValidatorOracle struct {
+	// validator_addr is the address of the validator
+	ValidatorAddr string `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
+	// miss_counter tracks consecutive missed votes
+	MissCounter uint64 `protobuf:"varint,2,opt,name=miss_counter,json=missCounter,proto3" json:"miss_counter,omitempty"`
+	// total_submissions is the total number of price submissions
+	TotalSubmissions uint64 `protobuf:"varint,3,opt,name=total_submissions,json=totalSubmissions,proto3" json:"total_submissions,omitempty"`
+	// is_active indicates if the validator is actively participating
+	IsActive bool `protobuf:"varint,4,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+}
+
+func (m *ValidatorOracle) Reset()         { *m = ValidatorOracle{} }
+func (m *ValidatorOracle) String() string { return proto.CompactTextString(m) }
+func (*ValidatorOracle) ProtoMessage()    {}
+func (*ValidatorOracle) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{3}
+}
+func (m *ValidatorOracle) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ValidatorOracle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ValidatorOracle.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ValidatorOracle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidatorOracle.Merge(m, src)
+}
+func (m *ValidatorOracle) XXX_Size() int {
+	return m.Size()
+}
+func (m *ValidatorOracle) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidatorOracle.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidatorOracle proto.InternalMessageInfo
+
+func (m *ValidatorOracle) GetValidatorAddr() string {
+	if m != nil {
+		return m.ValidatorAddr
+	}
+	return ""
+}
+
+func (m *ValidatorOracle) GetMissCounter() uint64 {
+	if m != nil {
+		return m.MissCounter
+	}
+	return 0
+}
+
+func (m *ValidatorOracle) GetTotalSubmissions() uint64 {
+	if m != nil {
+		return m.TotalSubmissions
+	}
+	return 0
+}
+
+func (m *ValidatorOracle) GetIsActive() bool {
+	if m != nil {
+		return m.IsActive
+	}
+	return false
+}
+
+// PriceSnapshot represents a historical price snapshot for TWAP
+type PriceSnapshot struct {
+	// asset is the asset identifier
+	Asset string `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
+	// price is the price at this snapshot
+	Price cosmossdk_io_math.LegacyDec `protobuf:"bytes,2,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
+	// block_height is when this snapshot was taken
+	BlockHeight int64 `protobuf:"varint,3,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	// block_time is the timestamp of this snapshot
+	BlockTime int64 `protobuf:"varint,4,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
+}
+
+func (m *PriceSnapshot) Reset()         { *m = PriceSnapshot{} }
+func (m *PriceSnapshot) String() string { return proto.CompactTextString(m) }
+func (*PriceSnapshot) ProtoMessage()    {}
+func (*PriceSnapshot) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{4}
+}
+func (m *PriceSnapshot) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *PriceSnapshot) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_PriceSnapshot.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *PriceSnapshot) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PriceSnapshot.Merge(m, src)
+}
+func (m *PriceSnapshot) XXX_Size() int {
+	return m.Size()
+}
+func (m *PriceSnapshot) XXX_DiscardUnknown() {
+	xxx_messageInfo_PriceSnapshot.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PriceSnapshot proto.InternalMessageInfo
+
+func (m *PriceSnapshot) GetAsset() string {
+	if m != nil {
+		return m.Asset
+	}
+	return ""
+}
+
+func (m *PriceSnapshot) GetBlockHeight() int64 {
+	if m != nil {
+		return m.BlockHeight
+	}
+	return 0
+}
+
+func (m *PriceSnapshot) GetBlockTime() int64 {
+	if m != nil {
+		return m.BlockTime
+	}
+	return 0
+}
+
+// GenesisState defines the oracle module's genesis state.
+type GenesisState struct {
+	// params defines all the parameters of the module
+	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
+	// prices defines all the current prices
+	Prices []Price `protobuf:"bytes,2,rep,name=prices,proto3" json:"prices"`
+	// validator_prices defines all validator price submissions
+	ValidatorPrices []ValidatorPrice `protobuf:"bytes,3,rep,name=validator_prices,json=validatorPrices,proto3" json:"validator_prices"`
+	// validator_oracles defines all validator oracle info
+	ValidatorOracles []ValidatorOracle `protobuf:"bytes,4,rep,name=validator_oracles,json=validatorOracles,proto3" json:"validator_oracles"`
+	// price_snapshots defines historical price snapshots
+	PriceSnapshots []PriceSnapshot `protobuf:"bytes,5,rep,name=price_snapshots,json=priceSnapshots,proto3" json:"price_snapshots"`
+}
+
+func (m *GenesisState) Reset()         { *m = GenesisState{} }
+func (m *GenesisState) String() string { return proto.CompactTextString(m) }
+func (*GenesisState) ProtoMessage()    {}
+func (*GenesisState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_12b0d32940c9cc63, []int{5}
+}
+func (m *GenesisState) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GenesisState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GenesisState.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GenesisState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GenesisState.Merge(m, src)
+}
+func (m *GenesisState) XXX_Size() int {
+	return m.Size()
+}
+func (m *GenesisState) XXX_DiscardUnknown() {
+	xxx_messageInfo_GenesisState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GenesisState proto.InternalMessageInfo
+
+func (m *GenesisState) GetParams() Params {
+	if m != nil {
+		return m.Params
+	}
+	return Params{}
+}
+
+func (m *GenesisState) GetPrices() []Price {
+	if m != nil {
+		return m.Prices
+	}
+	return nil
+}
+
+func (m *GenesisState) GetValidatorPrices() []ValidatorPrice {
+	if m != nil {
+		return m.ValidatorPrices
+	}
+	return nil
+}
+
+func (m *GenesisState) GetValidatorOracles() []ValidatorOracle {
+	if m != nil {
+		return m.ValidatorOracles
+	}
+	return nil
+}
+
+func (m *GenesisState) GetPriceSnapshots() []PriceSnapshot {
+	if m != nil {
+		return m.PriceSnapshots
+	}
+	return nil
+}
+
+func init() {
+	proto.RegisterType((*Params)(nil), "paw.oracle.v1.Params")
+	proto.RegisterType((*Price)(nil), "paw.oracle.v1.Price")
+	proto.RegisterType((*ValidatorPrice)(nil), "paw.oracle.v1.ValidatorPrice")
+	proto.RegisterType((*ValidatorOracle)(nil), "paw.oracle.v1.ValidatorOracle")
+	proto.RegisterType((*PriceSnapshot)(nil), "paw.oracle.v1.PriceSnapshot")
+	proto.RegisterType((*GenesisState)(nil), "paw.oracle.v1.GenesisState")
+}
+
+func init() { proto.RegisterFile("paw/oracle/v1/oracle.proto", fileDescriptor_12b0d32940c9cc63) }
+
+var fileDescriptor_12b0d32940c9cc63 = []byte{
+	// 801 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x55, 0x3d, 0x4f, 0x23, 0x47,
+	0x18, 0xf6, 0x7a, 0xd7, 0x16, 0x1e, 0x7f, 0x80, 0x27, 0x8e, 0xe4, 0xf0, 0x61, 0x03, 0x52, 0x14,
+	0x44, 0x84, 0x37, 0x90, 0x26, 0xa2, 0x89, 0x70, 0x50, 0x88, 0x14, 0x94, 0x38, 0x6b, 0x44, 0xa2,
+	0x34, 0xab, 0xf1, 0xee, 0xc4, 0x3b, 0xb2, 0x77, 0x67, 0xb5, 0x33, 0xb6, 0x43, 0x99, 0x36, 0x55,
+	0x7e, 0x42, 0xca, 0x2b, 0x29, 0xd0, 0xfd, 0x83, 0x93, 0x28, 0x11, 0xd2, 0x49, 0xa7, 0x2b, 0xd0,
+	0x09, 0x0a, 0xae, 0xb8, 0x9f, 0x70, 0xc5, 0x69, 0x3e, 0x6c, 0x9f, 0x39, 0xae, 0xe1, 0xae, 0xb8,
+	0x06, 0xed, 0x3c, 0xef, 0xfb, 0x3c, 0xbc, 0xcf, 0xf3, 0xee, 0xac, 0xc1, 0x62, 0x8c, 0x46, 0x36,
+	0x4d, 0x90, 0xd7, 0xc7, 0xf6, 0x70, 0x5b, 0x3f, 0x35, 0xe2, 0x84, 0x72, 0x0a, 0x8b, 0x31, 0x1a,
+	0x35, 0x34, 0x32, 0xdc, 0x5e, 0xac, 0x74, 0x69, 0x97, 0xca, 0x8a, 0x2d, 0x9e, 0x54, 0xd3, 0xe2,
+	0x17, 0x1e, 0x65, 0x21, 0x65, 0xae, 0x2a, 0xa8, 0x83, 0x2e, 0x95, 0x51, 0x48, 0x22, 0x6a, 0xcb,
+	0xbf, 0x0a, 0x5a, 0xff, 0xc7, 0x04, 0xd9, 0x16, 0x4a, 0x50, 0xc8, 0x60, 0x1d, 0xe4, 0x87, 0x94,
+	0x63, 0x37, 0xc6, 0x09, 0xa1, 0x7e, 0xd5, 0x58, 0x35, 0x36, 0x2c, 0x07, 0x08, 0xa8, 0x25, 0x11,
+	0xf8, 0x07, 0x28, 0xc9, 0x06, 0x1e, 0x24, 0x98, 0x05, 0xb4, 0xef, 0x57, 0xd3, 0xab, 0xc6, 0x46,
+	0xae, 0xb9, 0x7d, 0x7e, 0x55, 0x4f, 0x3d, 0xbf, 0xaa, 0x2f, 0xa9, 0x7f, 0xc6, 0xfc, 0x5e, 0x83,
+	0x50, 0x3b, 0x44, 0x3c, 0x68, 0x1c, 0xe2, 0x2e, 0xf2, 0x4e, 0xf6, 0xb1, 0x77, 0x79, 0xb6, 0x05,
+	0xf4, 0x2c, 0xfb, 0xd8, 0x73, 0x8a, 0x42, 0xe8, 0x68, 0xac, 0x23, 0x94, 0x59, 0x1f, 0xb1, 0xc0,
+	0xfd, 0x2b, 0x41, 0x1e, 0x27, 0x34, 0xaa, 0x9a, 0x0f, 0x56, 0x96, 0x42, 0x3f, 0x6a, 0x1d, 0xb8,
+	0x06, 0x0a, 0x4a, 0x79, 0x44, 0x22, 0x9f, 0x8e, 0xaa, 0x96, 0x74, 0x95, 0x97, 0xd8, 0xef, 0x12,
+	0x82, 0x36, 0xa8, 0x84, 0x24, 0x72, 0x87, 0xa8, 0x4f, 0x7c, 0x61, 0x7e, 0xdc, 0x9a, 0x91, 0xad,
+	0xe5, 0x90, 0x44, 0xc7, 0xa2, 0xd4, 0xc2, 0x89, 0x26, 0x7c, 0x03, 0x2a, 0x7c, 0x84, 0x62, 0xb7,
+	0x4f, 0x69, 0xaf, 0x83, 0xbc, 0xde, 0x98, 0x90, 0x95, 0x04, 0x28, 0x6a, 0x87, 0xba, 0xa4, 0x18,
+	0xbb, 0xcb, 0x2f, 0xff, 0xaf, 0x1b, 0xff, 0xde, 0x9e, 0x6e, 0x7e, 0x26, 0xb6, 0xfb, 0xf7, 0x78,
+	0xbf, 0x2a, 0xf8, 0xf5, 0xa7, 0x06, 0xc8, 0xb4, 0x12, 0xe2, 0x61, 0x58, 0x01, 0x19, 0xc4, 0x18,
+	0xe6, 0x32, 0xfc, 0x9c, 0xa3, 0x0e, 0xf0, 0x00, 0x64, 0x62, 0x51, 0x7e, 0x78, 0xdc, 0x8a, 0x2f,
+	0xc2, 0xe8, 0xf4, 0xa9, 0xd7, 0x73, 0x03, 0x4c, 0xba, 0x01, 0x97, 0x21, 0x9b, 0x4e, 0x5e, 0x62,
+	0x3f, 0x49, 0x08, 0xae, 0x00, 0xa0, 0x5a, 0x38, 0x09, 0xb1, 0x4c, 0xcb, 0x74, 0x72, 0x12, 0x39,
+	0x22, 0x21, 0x86, 0x5f, 0x82, 0x52, 0x34, 0x08, 0x55, 0x56, 0x88, 0xd3, 0x84, 0xc9, 0x94, 0x8a,
+	0x4e, 0x31, 0x1a, 0x84, 0xc7, 0x13, 0x70, 0xd7, 0x12, 0x7e, 0xd7, 0x5f, 0x1b, 0xa0, 0x34, 0x01,
+	0x95, 0xc1, 0xef, 0x41, 0x69, 0xc2, 0x75, 0x91, 0xef, 0x27, 0xca, 0x69, 0xb3, 0x7a, 0x79, 0xb6,
+	0x55, 0xd1, 0x03, 0xef, 0xf9, 0x7e, 0x82, 0x19, 0x6b, 0xf3, 0x84, 0x44, 0x5d, 0xa7, 0x38, 0xe9,
+	0x17, 0xf8, 0x34, 0xa1, 0xf4, 0xbd, 0x09, 0x99, 0x1f, 0x39, 0x21, 0xeb, 0xdd, 0x84, 0xd6, 0x40,
+	0x61, 0x48, 0x39, 0x89, 0xba, 0x6e, 0x4c, 0x47, 0x38, 0x91, 0x01, 0x98, 0x4e, 0x5e, 0x61, 0x2d,
+	0x01, 0x69, 0xfb, 0x4f, 0x0c, 0x30, 0x3f, 0xb1, 0xff, 0xab, 0xdc, 0xf8, 0x87, 0xfb, 0x5f, 0x03,
+	0x85, 0x90, 0x30, 0xe6, 0x7a, 0x74, 0x10, 0x71, 0x9c, 0xc8, 0x18, 0x2c, 0x27, 0x2f, 0xb0, 0x1f,
+	0x14, 0x04, 0xbf, 0x06, 0x65, 0x4e, 0x39, 0xea, 0xbb, 0x6c, 0xd0, 0x11, 0x38, 0xa1, 0x11, 0x93,
+	0xc1, 0x58, 0xce, 0x82, 0x2c, 0xb4, 0xa7, 0x38, 0x5c, 0x02, 0x39, 0xc2, 0x5c, 0x71, 0x59, 0x86,
+	0x6a, 0xdd, 0x73, 0xce, 0x1c, 0x61, 0x7b, 0xf2, 0xac, 0x7d, 0x3c, 0x36, 0x40, 0x51, 0x6e, 0xaf,
+	0x1d, 0xa1, 0x98, 0x05, 0x94, 0x7f, 0xf2, 0xaf, 0xa9, 0x1e, 0xfc, 0x55, 0x1a, 0x14, 0x0e, 0x70,
+	0x84, 0x19, 0x61, 0x6d, 0x8e, 0x38, 0x86, 0xdf, 0x81, 0x6c, 0x2c, 0xaf, 0x9c, 0x1c, 0x3c, 0xbf,
+	0xf3, 0x79, 0x63, 0xe6, 0x83, 0xda, 0x50, 0xf7, 0xb1, 0x99, 0x13, 0x93, 0x3f, 0xba, 0x3d, 0xdd,
+	0x34, 0x1c, 0xdd, 0x0f, 0x77, 0x40, 0x56, 0xce, 0xc6, 0xaa, 0xe9, 0x55, 0x73, 0x23, 0xbf, 0x53,
+	0xb9, 0xcb, 0x14, 0xc5, 0xa6, 0x25, 0x88, 0x8e, 0xee, 0x84, 0xbf, 0x80, 0x85, 0xe9, 0xae, 0x35,
+	0xdb, 0x94, 0xec, 0x95, 0x3b, 0xec, 0xd9, 0x4b, 0xa2, 0x65, 0xe6, 0x87, 0x33, 0x28, 0x83, 0xbf,
+	0x81, 0xf2, 0x54, 0x4f, 0x91, 0x59, 0xd5, 0x92, 0x82, 0xb5, 0xf7, 0x09, 0xaa, 0xd7, 0x4e, 0x2b,
+	0x4e, 0xc7, 0x51, 0x30, 0x83, 0x3f, 0x83, 0x79, 0x39, 0x98, 0xcb, 0xf4, 0x6a, 0xc5, 0x7d, 0x16,
+	0x82, 0xcb, 0xf7, 0xf9, 0x1b, 0xef, 0x5f, 0xcb, 0x95, 0xe2, 0xb7, 0x41, 0xd6, 0xdc, 0x3b, 0xbf,
+	0xae, 0x19, 0x17, 0xd7, 0x35, 0xe3, 0xc5, 0x75, 0xcd, 0xf8, 0xef, 0xa6, 0x96, 0xba, 0xb8, 0xa9,
+	0xa5, 0x9e, 0xdd, 0xd4, 0x52, 0x7f, 0x7e, 0xd5, 0x25, 0x3c, 0x18, 0x74, 0x1a, 0x1e, 0x0d, 0xed,
+	0x18, 0x8d, 0xb6, 0xbc, 0x00, 0x91, 0xc8, 0x9e, 0xf9, 0x14, 0xf2, 0x93, 0x18, 0xb3, 0x4e, 0x56,
+	0xfe, 0x28, 0x7d, 0xfb, 0x26, 0x00, 0x00, 0xff, 0xff, 0x7c, 0x40, 0x52, 0x92, 0x05, 0x07, 0x00,
+	0x00,
+}
+
+func (this *Params) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Params)
+	if !ok {
+		that2, ok := that.(Params)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.VotePeriod != that1.VotePeriod {
+		return false
+	}
+	if !this.VoteThreshold.Equal(that1.VoteThreshold) {
+		return false
+	}
+	if !this.SlashFraction.Equal(that1.SlashFraction) {
+		return false
+	}
+	if this.SlashWindow != that1.SlashWindow {
+		return false
+	}
+	if this.MinValidPerWindow != that1.MinValidPerWindow {
+		return false
+	}
+	if this.TwapLookbackWindow != that1.TwapLookbackWindow {
+		return false
+	}
+	return true
+}
+func (this *Price) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Price)
+	if !ok {
+		that2, ok := that.(Price)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Asset != that1.Asset {
+		return false
+	}
+	if !this.Price.Equal(that1.Price) {
+		return false
+	}
+	if this.BlockHeight != that1.BlockHeight {
+		return false
+	}
+	if this.BlockTime != that1.BlockTime {
+		return false
+	}
+	if this.NumValidators != that1.NumValidators {
+		return false
+	}
+	return true
+}
+func (this *ValidatorPrice) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ValidatorPrice)
+	if !ok {
+		that2, ok := that.(ValidatorPrice)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ValidatorAddr != that1.ValidatorAddr {
+		return false
+	}
+	if this.Asset != that1.Asset {
+		return false
+	}
+	if !this.Price.Equal(that1.Price) {
+		return false
+	}
+	if this.BlockHeight != that1.BlockHeight {
+		return false
+	}
+	if this.VotingPower != that1.VotingPower {
+		return false
+	}
+	return true
+}
+func (this *ValidatorOracle) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ValidatorOracle)
+	if !ok {
+		that2, ok := that.(ValidatorOracle)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ValidatorAddr != that1.ValidatorAddr {
+		return false
+	}
+	if this.MissCounter != that1.MissCounter {
+		return false
+	}
+	if this.TotalSubmissions != that1.TotalSubmissions {
+		return false
+	}
+	if this.IsActive != that1.IsActive {
+		return false
+	}
+	return true
+}
+func (this *PriceSnapshot) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PriceSnapshot)
+	if !ok {
+		that2, ok := that.(PriceSnapshot)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Asset != that1.Asset {
+		return false
+	}
+	if !this.Price.Equal(that1.Price) {
+		return false
+	}
+	if this.BlockHeight != that1.BlockHeight {
+		return false
+	}
+	if this.BlockTime != that1.BlockTime {
+		return false
+	}
+	return true
+}
 func (m *Params) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -46,29 +733,52 @@ func (m *Params) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.TwapLookbackWindow != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.TwapLookbackWindow))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.MinValidPerWindow != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.MinValidPerWindow))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.SlashWindow != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.SlashWindow))
+		i--
+		dAtA[i] = 0x20
+	}
+	{
+		size := m.SlashFraction.Size()
+		i -= size
+		if _, err := m.SlashFraction.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	{
+		size := m.VoteThreshold.Size()
+		i -= size
+		if _, err := m.VoteThreshold.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if m.VotePeriod != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.VotePeriod))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
 }
-
-func (m *Params) Size() (n int) {
-	return 0
-}
-
-func (m *Params) Unmarshal(dAtA []byte) error {
-	return nil
-}
-
-// Price represents the aggregated price for an asset
-type Price struct {
-	Asset         string         `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
-	Price         math.LegacyDec `protobuf:"bytes,2,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
-	BlockHeight   int64          `protobuf:"varint,3,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	BlockTime     int64          `protobuf:"varint,4,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-	NumValidators uint32         `protobuf:"varint,5,opt,name=num_validators,json=numValidators,proto3" json:"num_validators,omitempty"`
-}
-
-func (m *Price) Reset()         { *m = Price{} }
-func (m *Price) String() string { return proto.CompactTextString(m) }
-func (*Price) ProtoMessage()    {}
 
 func (m *Price) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -86,29 +796,44 @@ func (m *Price) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Price) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.NumValidators != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.NumValidators))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.BlockTime != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.BlockTime))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.BlockHeight != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x18
+	}
+	{
+		size := m.Price.Size()
+		i -= size
+		if _, err := m.Price.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.Asset) > 0 {
+		i -= len(m.Asset)
+		copy(dAtA[i:], m.Asset)
+		i = encodeVarintOracle(dAtA, i, uint64(len(m.Asset)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
-
-func (m *Price) Size() (n int) {
-	return 0
-}
-
-func (m *Price) Unmarshal(dAtA []byte) error {
-	return nil
-}
-
-// ValidatorPrice represents a price submission by a validator
-type ValidatorPrice struct {
-	ValidatorAddr string         `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
-	Asset         string         `protobuf:"bytes,2,opt,name=asset,proto3" json:"asset,omitempty"`
-	Price         math.LegacyDec `protobuf:"bytes,3,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
-	BlockHeight   int64          `protobuf:"varint,4,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	VotingPower   int64          `protobuf:"varint,5,opt,name=voting_power,json=votingPower,proto3" json:"voting_power,omitempty"`
-}
-
-func (m *ValidatorPrice) Reset()         { *m = ValidatorPrice{} }
-func (m *ValidatorPrice) String() string { return proto.CompactTextString(m) }
-func (*ValidatorPrice) ProtoMessage()    {}
 
 func (m *ValidatorPrice) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -126,28 +851,46 @@ func (m *ValidatorPrice) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ValidatorPrice) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.VotingPower != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.VotingPower))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.BlockHeight != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x20
+	}
+	{
+		size := m.Price.Size()
+		i -= size
+		if _, err := m.Price.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	if len(m.Asset) > 0 {
+		i -= len(m.Asset)
+		copy(dAtA[i:], m.Asset)
+		i = encodeVarintOracle(dAtA, i, uint64(len(m.Asset)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ValidatorAddr) > 0 {
+		i -= len(m.ValidatorAddr)
+		copy(dAtA[i:], m.ValidatorAddr)
+		i = encodeVarintOracle(dAtA, i, uint64(len(m.ValidatorAddr)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
-
-func (m *ValidatorPrice) Size() (n int) {
-	return 0
-}
-
-func (m *ValidatorPrice) Unmarshal(dAtA []byte) error {
-	return nil
-}
-
-// ValidatorOracle represents oracle information for a validator
-type ValidatorOracle struct {
-	ValidatorAddr    string `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
-	MissCounter      uint64 `protobuf:"varint,2,opt,name=miss_counter,json=missCounter,proto3" json:"miss_counter,omitempty"`
-	TotalSubmissions uint64 `protobuf:"varint,3,opt,name=total_submissions,json=totalSubmissions,proto3" json:"total_submissions,omitempty"`
-	IsActive         bool   `protobuf:"varint,4,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
-}
-
-func (m *ValidatorOracle) Reset()         { *m = ValidatorOracle{} }
-func (m *ValidatorOracle) String() string { return proto.CompactTextString(m) }
-func (*ValidatorOracle) ProtoMessage()    {}
 
 func (m *ValidatorOracle) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -165,28 +908,39 @@ func (m *ValidatorOracle) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *ValidatorOracle) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.IsActive {
+		i--
+		if m.IsActive {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.TotalSubmissions != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.TotalSubmissions))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.MissCounter != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.MissCounter))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ValidatorAddr) > 0 {
+		i -= len(m.ValidatorAddr)
+		copy(dAtA[i:], m.ValidatorAddr)
+		i = encodeVarintOracle(dAtA, i, uint64(len(m.ValidatorAddr)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
-
-func (m *ValidatorOracle) Size() (n int) {
-	return 0
-}
-
-func (m *ValidatorOracle) Unmarshal(dAtA []byte) error {
-	return nil
-}
-
-// PriceSnapshot represents a historical price snapshot for TWAP
-type PriceSnapshot struct {
-	Asset       string         `protobuf:"bytes,1,opt,name=asset,proto3" json:"asset,omitempty"`
-	Price       math.LegacyDec `protobuf:"bytes,2,opt,name=price,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"price"`
-	BlockHeight int64          `protobuf:"varint,3,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
-	BlockTime   int64          `protobuf:"varint,4,opt,name=block_time,json=blockTime,proto3" json:"block_time,omitempty"`
-}
-
-func (m *PriceSnapshot) Reset()         { *m = PriceSnapshot{} }
-func (m *PriceSnapshot) String() string { return proto.CompactTextString(m) }
-func (*PriceSnapshot) ProtoMessage()    {}
 
 func (m *PriceSnapshot) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -204,29 +958,39 @@ func (m *PriceSnapshot) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *PriceSnapshot) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.BlockTime != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.BlockTime))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.BlockHeight != 0 {
+		i = encodeVarintOracle(dAtA, i, uint64(m.BlockHeight))
+		i--
+		dAtA[i] = 0x18
+	}
+	{
+		size := m.Price.Size()
+		i -= size
+		if _, err := m.Price.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.Asset) > 0 {
+		i -= len(m.Asset)
+		copy(dAtA[i:], m.Asset)
+		i = encodeVarintOracle(dAtA, i, uint64(len(m.Asset)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
-
-func (m *PriceSnapshot) Size() (n int) {
-	return 0
-}
-
-func (m *PriceSnapshot) Unmarshal(dAtA []byte) error {
-	return nil
-}
-
-// GenesisState defines the oracle module's genesis state.
-type GenesisState struct {
-	Params           Params            `protobuf:"bytes,1,opt,name=params,proto3" json:"params"`
-	Prices           []Price           `protobuf:"bytes,2,rep,name=prices,proto3" json:"prices"`
-	ValidatorPrices  []ValidatorPrice  `protobuf:"bytes,3,rep,name=validator_prices,json=validatorPrices,proto3" json:"validator_prices"`
-	ValidatorOracles []ValidatorOracle `protobuf:"bytes,4,rep,name=validator_oracles,json=validatorOracles,proto3" json:"validator_oracles"`
-	PriceSnapshots   []PriceSnapshot   `protobuf:"bytes,5,rep,name=price_snapshots,json=priceSnapshots,proto3" json:"price_snapshots"`
-}
-
-func (m *GenesisState) Reset()         { *m = GenesisState{} }
-func (m *GenesisState) String() string { return proto.CompactTextString(m) }
-func (*GenesisState) ProtoMessage()    {}
 
 func (m *GenesisState) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
@@ -244,22 +1008,1395 @@ func (m *GenesisState) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	return 0, nil
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.PriceSnapshots) > 0 {
+		for iNdEx := len(m.PriceSnapshots) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.PriceSnapshots[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintOracle(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.ValidatorOracles) > 0 {
+		for iNdEx := len(m.ValidatorOracles) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.ValidatorOracles[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintOracle(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.ValidatorPrices) > 0 {
+		for iNdEx := len(m.ValidatorPrices) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.ValidatorPrices[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintOracle(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Prices) > 0 {
+		for iNdEx := len(m.Prices) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Prices[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintOracle(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	{
+		size, err := m.Params.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintOracle(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func encodeVarintOracle(dAtA []byte, offset int, v uint64) int {
+	offset -= sovOracle(v)
+	base := offset
+	for v >= 1<<7 {
+		dAtA[offset] = uint8(v&0x7f | 0x80)
+		v >>= 7
+		offset++
+	}
+	dAtA[offset] = uint8(v)
+	return base
+}
+func (m *Params) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.VotePeriod != 0 {
+		n += 1 + sovOracle(uint64(m.VotePeriod))
+	}
+	l = m.VoteThreshold.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	l = m.SlashFraction.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	if m.SlashWindow != 0 {
+		n += 1 + sovOracle(uint64(m.SlashWindow))
+	}
+	if m.MinValidPerWindow != 0 {
+		n += 1 + sovOracle(uint64(m.MinValidPerWindow))
+	}
+	if m.TwapLookbackWindow != 0 {
+		n += 1 + sovOracle(uint64(m.TwapLookbackWindow))
+	}
+	return n
+}
+
+func (m *Price) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Asset)
+	if l > 0 {
+		n += 1 + l + sovOracle(uint64(l))
+	}
+	l = m.Price.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	if m.BlockHeight != 0 {
+		n += 1 + sovOracle(uint64(m.BlockHeight))
+	}
+	if m.BlockTime != 0 {
+		n += 1 + sovOracle(uint64(m.BlockTime))
+	}
+	if m.NumValidators != 0 {
+		n += 1 + sovOracle(uint64(m.NumValidators))
+	}
+	return n
+}
+
+func (m *ValidatorPrice) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ValidatorAddr)
+	if l > 0 {
+		n += 1 + l + sovOracle(uint64(l))
+	}
+	l = len(m.Asset)
+	if l > 0 {
+		n += 1 + l + sovOracle(uint64(l))
+	}
+	l = m.Price.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	if m.BlockHeight != 0 {
+		n += 1 + sovOracle(uint64(m.BlockHeight))
+	}
+	if m.VotingPower != 0 {
+		n += 1 + sovOracle(uint64(m.VotingPower))
+	}
+	return n
+}
+
+func (m *ValidatorOracle) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.ValidatorAddr)
+	if l > 0 {
+		n += 1 + l + sovOracle(uint64(l))
+	}
+	if m.MissCounter != 0 {
+		n += 1 + sovOracle(uint64(m.MissCounter))
+	}
+	if m.TotalSubmissions != 0 {
+		n += 1 + sovOracle(uint64(m.TotalSubmissions))
+	}
+	if m.IsActive {
+		n += 2
+	}
+	return n
+}
+
+func (m *PriceSnapshot) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Asset)
+	if l > 0 {
+		n += 1 + l + sovOracle(uint64(l))
+	}
+	l = m.Price.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	if m.BlockHeight != 0 {
+		n += 1 + sovOracle(uint64(m.BlockHeight))
+	}
+	if m.BlockTime != 0 {
+		n += 1 + sovOracle(uint64(m.BlockTime))
+	}
+	return n
 }
 
 func (m *GenesisState) Size() (n int) {
-	return 0
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Params.Size()
+	n += 1 + l + sovOracle(uint64(l))
+	if len(m.Prices) > 0 {
+		for _, e := range m.Prices {
+			l = e.Size()
+			n += 1 + l + sovOracle(uint64(l))
+		}
+	}
+	if len(m.ValidatorPrices) > 0 {
+		for _, e := range m.ValidatorPrices {
+			l = e.Size()
+			n += 1 + l + sovOracle(uint64(l))
+		}
+	}
+	if len(m.ValidatorOracles) > 0 {
+		for _, e := range m.ValidatorOracles {
+			l = e.Size()
+			n += 1 + l + sovOracle(uint64(l))
+		}
+	}
+	if len(m.PriceSnapshots) > 0 {
+		for _, e := range m.PriceSnapshots {
+			l = e.Size()
+			n += 1 + l + sovOracle(uint64(l))
+		}
+	}
+	return n
 }
 
-func (m *GenesisState) Unmarshal(dAtA []byte) error {
+func sovOracle(x uint64) (n int) {
+	return (math_bits.Len64(x|1) + 6) / 7
+}
+func sozOracle(x uint64) (n int) {
+	return sovOracle(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *Params) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Params: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Params: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VotePeriod", wireType)
+			}
+			m.VotePeriod = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.VotePeriod |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VoteThreshold", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.VoteThreshold.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SlashFraction", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.SlashFraction.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SlashWindow", wireType)
+			}
+			m.SlashWindow = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SlashWindow |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinValidPerWindow", wireType)
+			}
+			m.MinValidPerWindow = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinValidPerWindow |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TwapLookbackWindow", wireType)
+			}
+			m.TwapLookbackWindow = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TwapLookbackWindow |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }
+func (m *Price) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Price: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Price: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Asset", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Asset = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Price", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Price.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
+			}
+			m.BlockHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockHeight |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockTime", wireType)
+			}
+			m.BlockTime = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockTime |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumValidators", wireType)
+			}
+			m.NumValidators = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumValidators |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
 
-func init() {
-	proto.RegisterType((*Params)(nil), "paw.oracle.v1.Params")
-	proto.RegisterType((*Price)(nil), "paw.oracle.v1.Price")
-	proto.RegisterType((*ValidatorPrice)(nil), "paw.oracle.v1.ValidatorPrice")
-	proto.RegisterType((*ValidatorOracle)(nil), "paw.oracle.v1.ValidatorOracle")
-	proto.RegisterType((*PriceSnapshot)(nil), "paw.oracle.v1.PriceSnapshot")
-	proto.RegisterType((*GenesisState)(nil), "paw.oracle.v1.GenesisState")
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
+func (m *ValidatorPrice) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidatorPrice: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidatorPrice: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidatorAddr = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Asset", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Asset = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Price", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Price.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
+			}
+			m.BlockHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockHeight |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VotingPower", wireType)
+			}
+			m.VotingPower = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.VotingPower |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ValidatorOracle) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidatorOracle: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidatorOracle: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidatorAddr = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MissCounter", wireType)
+			}
+			m.MissCounter = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MissCounter |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalSubmissions", wireType)
+			}
+			m.TotalSubmissions = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalSubmissions |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IsActive", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.IsActive = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PriceSnapshot) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PriceSnapshot: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PriceSnapshot: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Asset", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Asset = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Price", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Price.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
+			}
+			m.BlockHeight = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockHeight |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockTime", wireType)
+			}
+			m.BlockTime = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockTime |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GenesisState) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GenesisState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GenesisState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Prices", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Prices = append(m.Prices, Price{})
+			if err := m.Prices[len(m.Prices)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorPrices", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidatorPrices = append(m.ValidatorPrices, ValidatorPrice{})
+			if err := m.ValidatorPrices[len(m.ValidatorPrices)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorOracles", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ValidatorOracles = append(m.ValidatorOracles, ValidatorOracle{})
+			if err := m.ValidatorOracles[len(m.ValidatorOracles)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PriceSnapshots", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthOracle
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PriceSnapshots = append(m.PriceSnapshots, PriceSnapshot{})
+			if err := m.PriceSnapshots[len(m.PriceSnapshots)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipOracle(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthOracle
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func skipOracle(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
+	iNdEx := 0
+	depth := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return 0, ErrIntOverflowOracle
+			}
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if dAtA[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+		case 1:
+			iNdEx += 8
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowOracle
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if length < 0 {
+				return 0, ErrInvalidLengthOracle
+			}
+			iNdEx += length
+		case 3:
+			depth++
+		case 4:
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupOracle
+			}
+			depth--
+		case 5:
+			iNdEx += 4
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthOracle
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
+	}
+	return 0, io.ErrUnexpectedEOF
+}
+
+var (
+	ErrInvalidLengthOracle        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowOracle          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupOracle = fmt.Errorf("proto: unexpected end of group")
+)

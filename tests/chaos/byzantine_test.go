@@ -3,7 +3,6 @@ package chaos
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -286,9 +285,6 @@ func (suite *ByzantineTestSuite) TestLongRangeAttack() {
 func (suite *ByzantineTestSuite) TestBriberyAttack() {
 	attacker := suite.nodes[0]
 	bribedNodes := suite.nodes[1:3]
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
 
 	// Attacker attempts to bribe validators to vote for invalid block
 	invalidBlock := suite.createBlock(1, "bribed-block", attacker.ID)

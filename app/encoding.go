@@ -3,15 +3,21 @@ package app
 import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/codec/address"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	"github.com/cosmos/gogoproto/proto"
+
+	tendermintclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
+
+	"cosmossdk.io/x/tx/signing"
 )
 
 // EncodingConfig specifies the concrete encoding types to use for a given app.
 type EncodingConfig struct {
-	InterfaceRegistry types.InterfaceRegistry
+	InterfaceRegistry codectypes.InterfaceRegistry
 	Codec             codec.Codec
 	TxConfig          client.TxConfig
 	Amino             *codec.LegacyAmino
@@ -22,10 +28,20 @@ type EncodingConfig struct {
 // manager is initialized to ensure module basics have their codec wiring set.
 func makeBaseEncodingConfig() EncodingConfig {
 	amino := codec.NewLegacyAmino()
-	interfaceRegistry := types.NewInterfaceRegistry()
+	interfaceRegistry, err := codectypes.NewInterfaceRegistryWithOptions(codectypes.InterfaceRegistryOptions{
+		ProtoFiles: proto.HybridResolver,
+		SigningOptions: signing.Options{
+			AddressCodec:          address.NewBech32Codec(Bech32PrefixAccAddr),
+			ValidatorAddressCodec: address.NewBech32Codec(Bech32PrefixValAddr),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
 
 	// Register standard interfaces first (includes crypto types)
 	std.RegisterInterfaces(interfaceRegistry)
+	tendermintclient.RegisterInterfaces(interfaceRegistry)
 
 	cdc := codec.NewProtoCodec(interfaceRegistry)
 	txCfg := tx.NewTxConfig(cdc, tx.DefaultSignModes)

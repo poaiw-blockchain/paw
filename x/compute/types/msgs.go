@@ -15,6 +15,14 @@ const (
 	TypeMsgCancelRequest      = "cancel_request"
 	TypeMsgSubmitResult       = "submit_result"
 	TypeMsgUpdateParams       = "update_params"
+	TypeMsgCreateDispute      = "create_dispute"
+	TypeMsgVoteOnDispute      = "vote_on_dispute"
+	TypeMsgResolveDispute     = "resolve_dispute"
+	TypeMsgSubmitEvidence     = "submit_evidence"
+	TypeMsgAppealSlashing     = "appeal_slashing"
+	TypeMsgVoteOnAppeal       = "vote_on_appeal"
+	TypeMsgResolveAppeal      = "resolve_appeal"
+	TypeMsgUpdateGovParams    = "update_governance_params"
 )
 
 var (
@@ -25,6 +33,14 @@ var (
 	_ sdk.Msg = &MsgCancelRequest{}
 	_ sdk.Msg = &MsgSubmitResult{}
 	_ sdk.Msg = &MsgUpdateParams{}
+	_ sdk.Msg = &MsgCreateDispute{}
+	_ sdk.Msg = &MsgVoteOnDispute{}
+	_ sdk.Msg = &MsgResolveDispute{}
+	_ sdk.Msg = &MsgSubmitEvidence{}
+	_ sdk.Msg = &MsgAppealSlashing{}
+	_ sdk.Msg = &MsgVoteOnAppeal{}
+	_ sdk.Msg = &MsgResolveAppeal{}
+	_ sdk.Msg = &MsgUpdateGovernanceParams{}
 )
 
 // GetSigners implementations - these assume addresses are valid (validated in ValidateBasic)
@@ -69,6 +85,54 @@ func (msg *MsgSubmitResult) GetSigners() []sdk.AccAddress {
 func (msg *MsgUpdateParams) GetSigners() []sdk.AccAddress {
 	authority, _ := sdk.AccAddressFromBech32(msg.Authority)
 	return []sdk.AccAddress{authority}
+}
+
+// GetSigners returns the expected signers for MsgCreateDispute
+func (msg *MsgCreateDispute) GetSigners() []sdk.AccAddress {
+	req, _ := sdk.AccAddressFromBech32(msg.Requester)
+	return []sdk.AccAddress{req}
+}
+
+// GetSigners returns the expected signers for MsgVoteOnDispute
+func (msg *MsgVoteOnDispute) GetSigners() []sdk.AccAddress {
+	val, _ := sdk.ValAddressFromBech32(msg.Validator)
+	return []sdk.AccAddress{sdk.AccAddress(val)}
+}
+
+// GetSigners returns the expected signers for MsgResolveDispute
+func (msg *MsgResolveDispute) GetSigners() []sdk.AccAddress {
+	auth, _ := sdk.AccAddressFromBech32(msg.Authority)
+	return []sdk.AccAddress{auth}
+}
+
+// GetSigners returns the expected signers for MsgSubmitEvidence
+func (msg *MsgSubmitEvidence) GetSigners() []sdk.AccAddress {
+	submitter, _ := sdk.AccAddressFromBech32(msg.Submitter)
+	return []sdk.AccAddress{submitter}
+}
+
+// GetSigners returns the expected signers for MsgAppealSlashing
+func (msg *MsgAppealSlashing) GetSigners() []sdk.AccAddress {
+	provider, _ := sdk.AccAddressFromBech32(msg.Provider)
+	return []sdk.AccAddress{provider}
+}
+
+// GetSigners returns the expected signers for MsgVoteOnAppeal
+func (msg *MsgVoteOnAppeal) GetSigners() []sdk.AccAddress {
+	val, _ := sdk.ValAddressFromBech32(msg.Validator)
+	return []sdk.AccAddress{sdk.AccAddress(val)}
+}
+
+// GetSigners returns the expected signers for MsgResolveAppeal
+func (msg *MsgResolveAppeal) GetSigners() []sdk.AccAddress {
+	auth, _ := sdk.AccAddressFromBech32(msg.Authority)
+	return []sdk.AccAddress{auth}
+}
+
+// GetSigners returns the expected signers for MsgUpdateGovernanceParams
+func (msg *MsgUpdateGovernanceParams) GetSigners() []sdk.AccAddress {
+	auth, _ := sdk.AccAddressFromBech32(msg.Authority)
+	return []sdk.AccAddress{auth}
 }
 
 // ValidateBasic performs basic validation of MsgRegisterProvider
@@ -223,6 +287,106 @@ func validateComputeSpec(spec ComputeSpec) error {
 		return fmt.Errorf("timeout_seconds must be greater than 0")
 	}
 
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgCreateDispute
+func (msg *MsgCreateDispute) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Requester); err != nil {
+		return fmt.Errorf("invalid requester address: %w", err)
+	}
+	if msg.RequestId == 0 {
+		return fmt.Errorf("request ID must be greater than 0")
+	}
+	if msg.DepositAmount.IsNil() || !msg.DepositAmount.IsPositive() {
+		return fmt.Errorf("deposit must be positive")
+	}
+	if msg.Reason == "" {
+		return fmt.Errorf("reason is required")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgVoteOnDispute
+func (msg *MsgVoteOnDispute) ValidateBasic() error {
+	if _, err := sdk.ValAddressFromBech32(msg.Validator); err != nil {
+		return fmt.Errorf("invalid validator address: %w", err)
+	}
+	if msg.DisputeId == 0 {
+		return fmt.Errorf("dispute ID must be greater than 0")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgResolveDispute
+func (msg *MsgResolveDispute) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
+		return fmt.Errorf("invalid authority address: %w", err)
+	}
+	if msg.DisputeId == 0 {
+		return fmt.Errorf("dispute ID must be greater than 0")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgSubmitEvidence
+func (msg *MsgSubmitEvidence) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Submitter); err != nil {
+		return fmt.Errorf("invalid submitter address: %w", err)
+	}
+	if msg.DisputeId == 0 {
+		return fmt.Errorf("dispute ID must be greater than 0")
+	}
+	if len(msg.Data) == 0 {
+		return fmt.Errorf("evidence data cannot be empty")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgAppealSlashing
+func (msg *MsgAppealSlashing) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Provider); err != nil {
+		return fmt.Errorf("invalid provider address: %w", err)
+	}
+	if msg.SlashId == 0 {
+		return fmt.Errorf("slash ID must be greater than 0")
+	}
+	if msg.DepositAmount.IsNil() || !msg.DepositAmount.IsPositive() {
+		return fmt.Errorf("deposit must be positive")
+	}
+	if msg.Justification == "" {
+		return fmt.Errorf("justification is required")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgVoteOnAppeal
+func (msg *MsgVoteOnAppeal) ValidateBasic() error {
+	if _, err := sdk.ValAddressFromBech32(msg.Validator); err != nil {
+		return fmt.Errorf("invalid validator address: %w", err)
+	}
+	if msg.AppealId == 0 {
+		return fmt.Errorf("appeal ID must be greater than 0")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgResolveAppeal
+func (msg *MsgResolveAppeal) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
+		return fmt.Errorf("invalid authority address: %w", err)
+	}
+	if msg.AppealId == 0 {
+		return fmt.Errorf("appeal ID must be greater than 0")
+	}
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgUpdateGovernanceParams
+func (msg *MsgUpdateGovernanceParams) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
+		return fmt.Errorf("invalid authority address: %w", err)
+	}
 	return nil
 }
 

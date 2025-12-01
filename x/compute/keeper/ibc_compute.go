@@ -14,10 +14,11 @@ import (
 	"cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
@@ -52,9 +53,9 @@ const (
 	PacketTypeRefundEscrow      = "refund_escrow"
 
 	// Compute chains
-	AkashChainID     = "akashnet-2"
-	FluxChainID      = "flux-1"
-	RenderChainID    = "render-1"
+	AkashChainID  = "akashnet-2"
+	FluxChainID   = "flux-1"
+	RenderChainID = "render-1"
 
 	// IBC timeout for compute operations
 	ComputeIBCTimeout = 10 * time.Minute
@@ -68,81 +69,81 @@ const (
 
 // RemoteComputeProvider represents a compute provider on another chain
 type RemoteComputeProvider struct {
-	ChainID        string    `json:"chain_id"`
-	ProviderID     string    `json:"provider_id"`
-	Address        string    `json:"address"`
-	Capabilities   []string  `json:"capabilities"` // e.g., ["gpu", "cpu", "tee"]
-	PricePerUnit   math.LegacyDec   `json:"price_per_unit"`
-	Reputation     math.LegacyDec   `json:"reputation"` // 0.0 - 1.0
-	TotalJobs      uint64    `json:"total_jobs"`
-	SuccessfulJobs uint64    `json:"successful_jobs"`
-	Active         bool      `json:"active"`
-	LastSeen       time.Time `json:"last_seen"`
+	ChainID        string         `json:"chain_id"`
+	ProviderID     string         `json:"provider_id"`
+	Address        string         `json:"address"`
+	Capabilities   []string       `json:"capabilities"` // e.g., ["gpu", "cpu", "tee"]
+	PricePerUnit   math.LegacyDec `json:"price_per_unit"`
+	Reputation     math.LegacyDec `json:"reputation"` // 0.0 - 1.0
+	TotalJobs      uint64         `json:"total_jobs"`
+	SuccessfulJobs uint64         `json:"successful_jobs"`
+	Active         bool           `json:"active"`
+	LastSeen       time.Time      `json:"last_seen"`
 }
 
 // CrossChainComputeJob represents a job submitted to a remote chain
 type CrossChainComputeJob struct {
-	JobID          string          `json:"job_id"`
-	SourceChain    string          `json:"source_chain"`
-	TargetChain    string          `json:"target_chain"`
-	Provider       string          `json:"provider"`
-	Requester      string          `json:"requester"`
-	JobType        string          `json:"job_type"` // "wasm", "docker", "tee"
-	JobData        []byte          `json:"job_data"`
-	Requirements   JobRequirements `json:"requirements"`
-	EscrowAmount   math.Int        `json:"escrow_amount"`
-	Status         string          `json:"status"` // "pending", "running", "completed", "failed"
-	SubmittedAt    time.Time       `json:"submitted_at"`
-	CompletedAt    *time.Time      `json:"completed_at,omitempty"`
-	Result         *JobResult      `json:"result,omitempty"`
-	Verified       bool            `json:"verified"`
+	JobID        string          `json:"job_id"`
+	SourceChain  string          `json:"source_chain"`
+	TargetChain  string          `json:"target_chain"`
+	Provider     string          `json:"provider"`
+	Requester    string          `json:"requester"`
+	JobType      string          `json:"job_type"` // "wasm", "docker", "tee"
+	JobData      []byte          `json:"job_data"`
+	Requirements JobRequirements `json:"requirements"`
+	EscrowAmount math.Int        `json:"escrow_amount"`
+	Status       string          `json:"status"` // "pending", "running", "completed", "failed"
+	SubmittedAt  time.Time       `json:"submitted_at"`
+	CompletedAt  *time.Time      `json:"completed_at,omitempty"`
+	Result       *JobResult      `json:"result,omitempty"`
+	Verified     bool            `json:"verified"`
 }
 
 // JobRequirements specifies computational requirements
 type JobRequirements struct {
-	CPUCores     uint32        `json:"cpu_cores"`
-	MemoryMB     uint32        `json:"memory_mb"`
-	StorageGB    uint32        `json:"storage_gb"`
-	GPURequired  bool          `json:"gpu_required"`
-	TEERequired  bool          `json:"tee_required"` // Trusted Execution Environment
-	MaxDuration  time.Duration `json:"max_duration"`
+	CPUCores    uint32        `json:"cpu_cores"`
+	MemoryMB    uint32        `json:"memory_mb"`
+	StorageGB   uint32        `json:"storage_gb"`
+	GPURequired bool          `json:"gpu_required"`
+	TEERequired bool          `json:"tee_required"` // Trusted Execution Environment
+	MaxDuration time.Duration `json:"max_duration"`
 }
 
 // JobResult contains the computation result
 type JobResult struct {
-	ResultData        []byte    `json:"result_data"`
-	ResultHash        string    `json:"result_hash"`
-	ComputeTime       uint64    `json:"compute_time"` // milliseconds
-	ZKProof           []byte    `json:"zk_proof,omitempty"`
-	AttestationSigs   [][]byte  `json:"attestation_sigs,omitempty"`
-	CompletedAt       time.Time `json:"completed_at"`
+	ResultData      []byte    `json:"result_data"`
+	ResultHash      string    `json:"result_hash"`
+	ComputeTime     uint64    `json:"compute_time"` // milliseconds
+	ZKProof         []byte    `json:"zk_proof,omitempty"`
+	AttestationSigs [][]byte  `json:"attestation_sigs,omitempty"`
+	CompletedAt     time.Time `json:"completed_at"`
 }
 
 // CrossChainEscrow manages funds locked for cross-chain compute jobs
 type CrossChainEscrow struct {
-	JobID       string    `json:"job_id"`
-	Requester   string    `json:"requester"`
-	Provider    string    `json:"provider"`
-	Amount      math.Int  `json:"amount"`
-	Status      string    `json:"status"` // "locked", "released", "refunded"
-	LockedAt    time.Time `json:"locked_at"`
-	ReleasedAt  *time.Time `json:"released_at,omitempty"`
+	JobID      string     `json:"job_id"`
+	Requester  string     `json:"requester"`
+	Provider   string     `json:"provider"`
+	Amount     math.Int   `json:"amount"`
+	Status     string     `json:"status"` // "locked", "released", "refunded"
+	LockedAt   time.Time  `json:"locked_at"`
+	ReleasedAt *time.Time `json:"released_at,omitempty"`
 }
 
 // IBC Packet Data Structures
 
 // DiscoverProvidersPacketData discovers compute providers on remote chain
 type DiscoverProvidersPacketData struct {
-	Type         string   `json:"type"` // "discover_providers"
-	Capabilities []string `json:"capabilities,omitempty"`
-	MaxPrice     math.LegacyDec  `json:"max_price,omitempty"`
+	Type         string         `json:"type"` // "discover_providers"
+	Capabilities []string       `json:"capabilities,omitempty"`
+	MaxPrice     math.LegacyDec `json:"max_price,omitempty"`
 }
 
 // DiscoverProvidersPacketAck returns list of providers
 type DiscoverProvidersPacketAck struct {
-	Success   bool                     `json:"success"`
-	Providers []RemoteComputeProvider  `json:"providers"`
-	Error     string                   `json:"error,omitempty"`
+	Success   bool                    `json:"success"`
+	Providers []RemoteComputeProvider `json:"providers"`
+	Error     string                  `json:"error,omitempty"`
 }
 
 // SubmitJobPacketData submits a compute job to remote chain
@@ -167,10 +168,10 @@ type SubmitJobPacketAck struct {
 
 // JobResultPacketData contains computation result
 type JobResultPacketData struct {
-	Type      string    `json:"type"` // "job_result"
-	JobID     string    `json:"job_id"`
-	Result    JobResult `json:"result"`
-	Provider  string    `json:"provider"`
+	Type     string    `json:"type"` // "job_result"
+	JobID    string    `json:"job_id"`
+	Result   JobResult `json:"result"`
+	Provider string    `json:"provider"`
 }
 
 // JobStatusPacketData queries job status
@@ -282,12 +283,9 @@ func (k Keeper) SubmitCrossChainJob(
 	}
 
 	// Lock funds in escrow
-	/*
-	if err := k.ibcKeeper.ChannelKeeper.SendPacket(ctx, &packet); err != nil {
-		return nil, errors.Wrapf(err, "failed to send compute IBC packet")
+	if err := k.lockEscrow(sdkCtx, requester, payment); err != nil {
+		return nil, errors.Wrapf(err, "failed to lock escrow funds")
 	}
-	*/
-	// return nil, nil // This line was causing an early exit, commenting it out to allow the rest of the function to execute
 
 	// Store escrow
 	k.storeEscrow(sdkCtx, jobID, &escrow)
@@ -511,11 +509,30 @@ func (k Keeper) sendComputeIBCPacket(
 	data []byte,
 	timeout time.Duration,
 ) (uint64, error) {
-	// timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
-	// sourcePort := "compute"
+	if k.ibcKeeper == nil {
+		return 0, errors.Wrap(types.ErrInvalidRequest, "ibc keeper not configured for compute module")
+	}
 
-	// Mock sequence for now
-	sequence := uint64(0)
+	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
+	sourcePort := types.PortID
+
+	channelCap, found := k.GetChannelCapability(ctx, sourcePort, channelID)
+	if !found {
+		return 0, errors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "port: %s, channel: %s", sourcePort, channelID)
+	}
+
+	sequence, err := k.ibcKeeper.ChannelKeeper.SendPacket(
+		ctx,
+		channelCap,
+		sourcePort,
+		channelID,
+		clienttypes.ZeroHeight(),
+		timeoutTimestamp,
+		data,
+	)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to send compute IBC packet")
+	}
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -637,18 +654,18 @@ func (k Keeper) createEscrowProof(ctx sdk.Context, escrow *CrossChainEscrow) ([]
 	// Create Merkle proof using the IAVL tree proof system
 	// The proof demonstrates that the escrow exists in the state tree
 	merkleProof := &MerkleEscrowProof{
-		JobID:        escrow.JobID,
-		Key:          escrowKey,
-		Value:        escrowBytes,
-		BlockHeight:  ctx.BlockHeight(),
-		BlockTime:    ctx.BlockTime().Unix(),
+		JobID:       escrow.JobID,
+		Key:         escrowKey,
+		Value:       escrowBytes,
+		BlockHeight: ctx.BlockHeight(),
+		BlockTime:   ctx.BlockTime().Unix(),
 
 		// Include state commitment data
-		Requester:    escrow.Requester,
-		Provider:     escrow.Provider,
-		Amount:       escrow.Amount.String(),
-		Status:       escrow.Status,
-		LockedAt:     escrow.LockedAt.Unix(),
+		Requester: escrow.Requester,
+		Provider:  escrow.Provider,
+		Amount:    escrow.Amount.String(),
+		Status:    escrow.Status,
+		LockedAt:  escrow.LockedAt.Unix(),
 	}
 
 	// Compute the leaf hash: H(key || value)
@@ -680,25 +697,25 @@ func (k Keeper) createEscrowProof(ctx sdk.Context, escrow *CrossChainEscrow) ([]
 // MerkleEscrowProof represents a Merkle inclusion proof for an escrow
 type MerkleEscrowProof struct {
 	// Escrow identification
-	JobID        string `json:"job_id"`
-	Key          []byte `json:"key"`
-	Value        []byte `json:"value"`
+	JobID string `json:"job_id"`
+	Key   []byte `json:"key"`
+	Value []byte `json:"value"`
 
 	// Block context
-	BlockHeight  int64  `json:"block_height"`
-	BlockTime    int64  `json:"block_time"`
+	BlockHeight int64 `json:"block_height"`
+	BlockTime   int64 `json:"block_time"`
 
 	// Escrow data (for verification)
-	Requester    string `json:"requester"`
-	Provider     string `json:"provider"`
-	Amount       string `json:"amount"`
-	Status       string `json:"status"`
-	LockedAt     int64  `json:"locked_at"`
+	Requester string `json:"requester"`
+	Provider  string `json:"provider"`
+	Amount    string `json:"amount"`
+	Status    string `json:"status"`
+	LockedAt  int64  `json:"locked_at"`
 
 	// Cryptographic proof data
-	LeafHash     []byte   `json:"leaf_hash"`
-	ProofOps     [][]byte `json:"proof_ops"`
-	ProofHash    []byte   `json:"proof_hash"`
+	LeafHash  []byte   `json:"leaf_hash"`
+	ProofOps  [][]byte `json:"proof_ops"`
+	ProofHash []byte   `json:"proof_hash"`
 }
 
 // buildMerkleProofPath constructs the Merkle path for verification
@@ -831,9 +848,9 @@ func (k Keeper) verifyIBCZKProof(ctx sdk.Context, proof []byte, publicInputs []b
 
 // Groth16ProofBN254 represents a Groth16 proof on the BN254 curve
 type Groth16ProofBN254 struct {
-	A  bn254.G1Affine // Proof component A
-	B  bn254.G2Affine // Proof component B
-	C  bn254.G1Affine // Proof component C
+	A bn254.G1Affine // Proof component A
+	B bn254.G2Affine // Proof component B
+	C bn254.G1Affine // Proof component C
 }
 
 // Deserialize unmarshals a Groth16 proof from bytes

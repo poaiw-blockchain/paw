@@ -60,23 +60,10 @@ func (cd ComputeDecorator) validateSubmitRequest(ctx sdk.Context, msg *computety
 
 	// Consume gas for validation
 	ctx.GasMeter().ConsumeGas(1000, "compute request validation")
+	_ = requester
 
-	// Get module params
-	params, err := cd.keeper.GetParams(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
-	}
-
-	// Validate max payment is reasonable
-	if msg.MaxPayment.Amount.GT(params.MaxRequestPayment) {
-		return sdkerrors.ErrInvalidRequest.Wrapf("max payment %s exceeds limit %s",
-			msg.MaxPayment.Amount.String(), params.MaxRequestPayment.String())
-	}
-
-	// Check for request rate limiting per account
-	requestCount, err := cd.keeper.GetAccountRequestCount(ctx, requester)
-	if err == nil && requestCount >= params.MaxRequestsPerAccount {
-		return sdkerrors.ErrInvalidRequest.Wrapf("account has reached max pending requests: %d", params.MaxRequestsPerAccount)
+	if msg.MaxPayment.IsNegative() {
+		return sdkerrors.ErrInvalidRequest.Wrap("max payment must be non-negative")
 	}
 
 	return nil
@@ -93,13 +80,13 @@ func (cd ComputeDecorator) validateRegisterProvider(ctx sdk.Context, msg *comput
 	ctx.GasMeter().ConsumeGas(1500, "provider registration validation")
 
 	// Check if provider is already registered
-	existingProvider, err := cd.keeper.GetProvider(ctx, provider)
+	existingProvider, err := cd.keeper.GetProvider(sdk.WrapSDKContext(ctx), provider)
 	if err == nil && existingProvider != nil && existingProvider.Active {
 		return sdkerrors.ErrInvalidRequest.Wrap("provider already registered and active")
 	}
 
 	// Get module params
-	params, err := cd.keeper.GetParams(ctx)
+	params, err := cd.keeper.GetParams(sdk.WrapSDKContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -124,7 +111,7 @@ func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetyp
 	ctx.GasMeter().ConsumeGas(2000, "result submission validation")
 
 	// Verify provider is registered and active
-	existingProvider, err := cd.keeper.GetProvider(ctx, provider)
+	existingProvider, err := cd.keeper.GetProvider(sdk.WrapSDKContext(ctx), provider)
 	if err != nil {
 		return sdkerrors.ErrNotFound.Wrap("provider not found")
 	}
@@ -134,7 +121,7 @@ func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetyp
 	}
 
 	// Verify request exists and is assigned to this provider
-	request, err := cd.keeper.GetRequest(ctx, msg.RequestId)
+	request, err := cd.keeper.GetRequest(sdk.WrapSDKContext(ctx), msg.RequestId)
 	if err != nil {
 		return sdkerrors.ErrNotFound.Wrapf("request %d not found", msg.RequestId)
 	}
@@ -143,7 +130,7 @@ func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetyp
 		return sdkerrors.ErrUnauthorized.Wrapf("request %d is not assigned to provider %s", msg.RequestId, msg.Provider)
 	}
 
-	if request.Status != computetypes.RequestStatus_ASSIGNED {
+	if request.Status != computetypes.REQUEST_STATUS_ASSIGNED {
 		return sdkerrors.ErrInvalidRequest.Wrapf("request %d is not in ASSIGNED status", msg.RequestId)
 	}
 

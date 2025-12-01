@@ -2,9 +2,11 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 
 	"cosmossdk.io/store/prefix"
+	storeprefix "cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/paw-chain/paw/x/compute/types"
@@ -60,7 +62,7 @@ func (qs queryServer) Provider(goCtx context.Context, req *types.QueryProviderRe
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("provider not found: %s", err))
 	}
 
-	return &types.QueryProviderResponse{Provider: *provider}, nil
+	return &types.QueryProviderResponse{Provider: provider}, nil
 }
 
 // Providers returns a list of all registered providers with pagination
@@ -138,7 +140,7 @@ func (qs queryServer) Request(goCtx context.Context, req *types.QueryRequestRequ
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("request not found: %s", err))
 	}
 
-	return &types.QueryRequestResponse{Request: *request}, nil
+	return &types.QueryRequestResponse{Request: request}, nil
 }
 
 // Requests returns a list of all compute requests with pagination
@@ -282,7 +284,7 @@ func (qs queryServer) Result(goCtx context.Context, req *types.QueryResultReques
 		return nil, status.Error(codes.NotFound, fmt.Sprintf("result not found: %s", err))
 	}
 
-	return &types.QueryResultResponse{Result: *result}, nil
+	return &types.QueryResultResponse{Result: result}, nil
 }
 
 // EstimateCost estimates the cost of a compute request
@@ -329,3 +331,238 @@ func (qs queryServer) EstimateCost(goCtx context.Context, req *types.QueryEstima
 }
 
 // Dispute queries a single dispute by ID
+func (qs queryServer) Dispute(goCtx context.Context, req *types.QueryDisputeRequest) (*types.QueryDisputeResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	dispute, err := qs.Keeper.getDispute(ctx, req.DisputeId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+
+	return &types.QueryDisputeResponse{Dispute: dispute}, nil
+}
+
+// Disputes queries all disputes with pagination
+func (qs queryServer) Disputes(goCtx context.Context, req *types.QueryDisputesRequest) (*types.QueryDisputesResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	view := storeprefix.NewStore(store, DisputeKeyPrefix)
+
+	var disputes []types.Dispute
+	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+		var dispute types.Dispute
+		if err := qs.Keeper.cdc.Unmarshal(value, &dispute); err != nil {
+			return err
+		}
+		disputes = append(disputes, dispute)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryDisputesResponse{Disputes: disputes, Pagination: pageRes}, nil
+}
+
+// DisputesByRequest queries disputes associated with a request
+func (qs queryServer) DisputesByRequest(goCtx context.Context, req *types.QueryDisputesByRequestRequest) (*types.QueryDisputesByRequestResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	prefixKey := DisputeByRequestKey(req.RequestId, 0)[:len(DisputesByRequestPrefix)+8]
+	view := storeprefix.NewStore(store, prefixKey)
+
+	var disputes []types.Dispute
+	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+		if len(key) < 8 {
+			return nil
+		}
+		disputeID := binary.BigEndian.Uint64(key[len(key)-8:])
+		dispute, err := qs.Keeper.getDispute(ctx, disputeID)
+		if err != nil {
+			return err
+		}
+		disputes = append(disputes, *dispute)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryDisputesByRequestResponse{Disputes: disputes, Pagination: pageRes}, nil
+}
+
+// DisputesByStatus queries disputes filtered by status
+func (qs queryServer) DisputesByStatus(goCtx context.Context, req *types.QueryDisputesByStatusRequest) (*types.QueryDisputesByStatusResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	statusPrefix := DisputeByStatusKey(uint32(req.Status), 0)[:len(DisputesByStatusPrefix)+4]
+	view := storeprefix.NewStore(store, statusPrefix)
+
+	var disputes []types.Dispute
+	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+		if len(key) < 8 {
+			return nil
+		}
+		disputeID := binary.BigEndian.Uint64(key[len(key)-8:])
+		dispute, err := qs.Keeper.getDispute(ctx, disputeID)
+		if err != nil {
+			return err
+		}
+		disputes = append(disputes, *dispute)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryDisputesByStatusResponse{Disputes: disputes, Pagination: pageRes}, nil
+}
+
+// Evidence queries all evidence for a dispute
+func (qs queryServer) Evidence(goCtx context.Context, req *types.QueryEvidenceRequest) (*types.QueryEvidenceResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	items, pageRes, err := qs.Keeper.ListEvidence(ctx, req.DisputeId, req.Pagination)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &types.QueryEvidenceResponse{Evidence: items, Pagination: pageRes}, nil
+}
+
+// SlashRecord queries a single slash record
+func (qs queryServer) SlashRecord(goCtx context.Context, req *types.QuerySlashRecordRequest) (*types.QuerySlashRecordResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	record, err := qs.Keeper.getSlashRecord(ctx, req.SlashId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return &types.QuerySlashRecordResponse{SlashRecord: record}, nil
+}
+
+// SlashRecords queries all slash records
+func (qs queryServer) SlashRecords(goCtx context.Context, req *types.QuerySlashRecordsRequest) (*types.QuerySlashRecordsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, sdk.AccAddress{}, req.Pagination)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &types.QuerySlashRecordsResponse{SlashRecords: records, Pagination: pageRes}, nil
+}
+
+// SlashRecordsByProvider queries slash records for a provider
+func (qs queryServer) SlashRecordsByProvider(goCtx context.Context, req *types.QuerySlashRecordsByProviderRequest) (*types.QuerySlashRecordsByProviderResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	provider, err := sdk.AccAddressFromBech32(req.Provider)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid provider address")
+	}
+	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, provider, req.Pagination)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &types.QuerySlashRecordsByProviderResponse{SlashRecords: records, Pagination: pageRes}, nil
+}
+
+// Appeal queries a single appeal
+func (qs queryServer) Appeal(goCtx context.Context, req *types.QueryAppealRequest) (*types.QueryAppealResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	appeal, err := qs.Keeper.getAppeal(ctx, req.AppealId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, err.Error())
+	}
+	return &types.QueryAppealResponse{Appeal: appeal}, nil
+}
+
+// Appeals queries all appeals
+func (qs queryServer) Appeals(goCtx context.Context, req *types.QueryAppealsRequest) (*types.QueryAppealsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	view := storeprefix.NewStore(store, AppealKeyPrefix)
+
+	var appeals []types.Appeal
+	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+		var appeal types.Appeal
+		if err := qs.Keeper.cdc.Unmarshal(value, &appeal); err != nil {
+			return err
+		}
+		appeals = append(appeals, appeal)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryAppealsResponse{Appeals: appeals, Pagination: pageRes}, nil
+}
+
+// AppealsByStatus filters appeals by status
+func (qs queryServer) AppealsByStatus(goCtx context.Context, req *types.QueryAppealsByStatusRequest) (*types.QueryAppealsByStatusResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	statusPrefix := AppealByStatusKey(uint32(req.Status), 0)[:len(AppealsByStatusPrefix)+4]
+	view := storeprefix.NewStore(store, statusPrefix)
+
+	var appeals []types.Appeal
+	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+		if len(key) < 8 {
+			return nil
+		}
+		appealID := binary.BigEndian.Uint64(key[len(key)-8:])
+		appeal, err := qs.Keeper.getAppeal(ctx, appealID)
+		if err != nil {
+			return err
+		}
+		appeals = append(appeals, *appeal)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryAppealsByStatusResponse{Appeals: appeals, Pagination: pageRes}, nil
+}
+
+// GovernanceParams queries the dispute/appeal governance parameters
+func (qs queryServer) GovernanceParams(goCtx context.Context, req *types.QueryGovernanceParamsRequest) (*types.QueryGovernanceParamsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	params, err := qs.Keeper.GetGovernanceParams(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &types.QueryGovernanceParamsResponse{Params: params}, nil
+}

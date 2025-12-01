@@ -6,13 +6,16 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 
 	computetypes "github.com/paw-chain/paw/x/compute/types"
+	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
+
+	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // ComputeIBCTestSuite tests cross-chain compute operations
@@ -34,11 +37,15 @@ func (suite *ComputeIBCTestSuite) SetupTest() {
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(2))
 
+	pawibctesting.BindCustomPorts(suite.chainA)
+	pawibctesting.BindCustomPorts(suite.chainB)
+
 	suite.path = ibctesting.NewPath(suite.chainA, suite.chainB)
 	suite.path.EndpointA.ChannelConfig.PortID = "compute"
 	suite.path.EndpointB.ChannelConfig.PortID = "compute"
 	suite.path.EndpointA.ChannelConfig.Version = computetypes.IBCVersion
 	suite.path.EndpointB.ChannelConfig.Version = computetypes.IBCVersion
+	suite.path.SetChannelOrdered()
 
 	suite.coordinator.Setup(suite.path)
 }
@@ -51,7 +58,7 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 	packetData := computetypes.DiscoverProvidersPacketData{
 		Type:         computetypes.DiscoverProvidersType,
 		Capabilities: []string{"gpu", "tee"},
-		MaxPrice:     sdk.MustNewDecFromStr("10.0"),
+		MaxPrice:     math.LegacyMustNewDecFromStr("10.0"),
 		Requester:    requester.String(),
 	}
 
@@ -72,8 +79,9 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -86,8 +94,8 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 				ProviderID:   "provider-1",
 				Address:      "paw1provider1...",
 				Capabilities: []string{"gpu", "tee"},
-				PricePerUnit: sdk.MustNewDecFromStr("5.0"),
-				Reputation:   sdk.MustNewDecFromStr("0.95"),
+				PricePerUnit: math.LegacyMustNewDecFromStr("5.0"),
+				Reputation:   math.LegacyMustNewDecFromStr("0.95"),
 			},
 		},
 	}
@@ -144,8 +152,9 @@ func (suite *ComputeIBCTestSuite) TestSubmitJob() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -244,8 +253,9 @@ func (suite *ComputeIBCTestSuite) TestQueryJobStatus() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -304,8 +314,9 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	// Advance chain B past timeout
 	suite.coordinator.CommitNBlocks(suite.chainB, 10)
@@ -412,7 +423,9 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 		0,
 	)
 
-	suite.path.EndpointA.SendPacket(packet1)
+	sequence, err := suite.path.EndpointA.SendPacket(packet1.TimeoutHeight, packet1.TimeoutTimestamp, packet1.GetData())
+	suite.Require().NoError(err)
+	packet1.Sequence = sequence
 	suite.path.EndpointB.RecvPacket(packet1)
 
 	// Job completes successfully

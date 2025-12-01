@@ -2,15 +2,21 @@ package keeper
 
 import (
 	"context"
+	"errors"
 
 	storetypes "cosmossdk.io/store/types"
-	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 )
 
 // Keeper of the compute store
@@ -22,7 +28,18 @@ type Keeper struct {
 	stakingKeeper  *stakingkeeper.Keeper
 	slashingKeeper slashingkeeper.Keeper
 	ibcKeeper      *ibckeeper.Keeper
+	portKeeper     *portkeeper.Keeper
 	authority      string
+	scopedKeeper   capabilitykeeper.ScopedKeeper
+	portCapability *capabilitytypes.Capability
+
+	// circuitManager handles ZK circuit operations for compute verification.
+	// It is lazily initialized on first use to avoid expensive circuit compilation at startup.
+	circuitManager *CircuitManager
+}
+
+type kvStoreProvider interface {
+	KVStore(key storetypes.StoreKey) storetypes.KVStore
 }
 
 // NewKeeper creates a new compute Keeper instance
@@ -34,7 +51,9 @@ func NewKeeper(
 	stakingKeeper *stakingkeeper.Keeper,
 	slashingKeeper slashingkeeper.Keeper,
 	ibcKeeper *ibckeeper.Keeper,
+	portKeeper *portkeeper.Keeper,
 	authority string,
+	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
 	return &Keeper{
 		storeKey:       key,
@@ -44,12 +63,145 @@ func NewKeeper(
 		stakingKeeper:  stakingKeeper,
 		slashingKeeper: slashingKeeper,
 		ibcKeeper:      ibcKeeper,
+		portKeeper:     portKeeper,
 		authority:      authority,
+		scopedKeeper:   scopedKeeper,
 	}
 }
 
 // getStore returns the KVStore for the compute module
 func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	return sdkCtx.KVStore(k.storeKey)
+	if provider, ok := ctx.(kvStoreProvider); ok {
+		return provider.KVStore(k.storeKey)
+	}
+
+	unwrapped := sdk.UnwrapSDKContext(ctx)
+	return unwrapped.KVStore(k.storeKey)
+}
+
+// ClaimCapability claims a channel capability for the compute module.
+func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
+	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
+}
+
+// GetChannelCapability retrieves a previously claimed channel capability.
+func (k Keeper) GetChannelCapability(ctx sdk.Context, portID, channelID string) (*capabilitytypes.Capability, bool) {
+	return k.scopedKeeper.GetCapability(ctx, host.ChannelCapabilityPath(portID, channelID))
+}
+
+// BindPort binds the compute module's IBC port and claims the capability.
+func (k Keeper) BindPort(ctx sdk.Context) error {
+	if k.portKeeper.IsBound(ctx, computetypes.PortID) {
+		if cap, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(computetypes.PortID)); ok {
+			k.portCapability = cap
+		}
+		return nil
+	}
+
+	portCap := k.portKeeper.BindPort(ctx, computetypes.PortID)
+	if err := k.scopedKeeper.ClaimCapability(ctx, portCap, host.PortPath(computetypes.PortID)); err != nil {
+		if errors.Is(err, capabilitytypes.ErrOwnerClaimed) {
+			k.portCapability = portCap
+			return nil
+		}
+		return err
+	}
+	k.portCapability = portCap
+	return nil
+}
+
+// GetCircuitManager returns the circuit manager, lazily initializing it if needed.
+// The circuit manager handles ZK-SNARK proof verification for compute results.
+func (k *Keeper) GetCircuitManager() *CircuitManager {
+	if k.circuitManager == nil {
+		k.circuitManager = NewCircuitManager(k)
+	}
+	return k.circuitManager
+}
+
+// InitializeCircuits initializes all ZK circuits for the compute module.
+// This is an expensive operation that compiles circuits and generates proving/verifying keys.
+// It should be called during genesis initialization or module setup.
+func (k *Keeper) InitializeCircuits(ctx context.Context) error {
+	cm := k.GetCircuitManager()
+	return cm.Initialize(ctx)
+}
+
+// VerifyComputeProofWithCircuitManager verifies a compute proof using the circuit manager.
+// This provides a higher-level interface for ZK proof verification.
+func (k *Keeper) VerifyComputeProofWithCircuitManager(
+	ctx sdk.Context,
+	proofData []byte,
+	requestID uint64,
+	resultCommitment interface{},
+	providerCommitment interface{},
+	resourceCommitment interface{},
+) (bool, error) {
+	cm := k.GetCircuitManager()
+
+	if !cm.IsInitialized() {
+		// Lazy initialization - this will be slow first time but cached subsequently
+		if err := cm.Initialize(ctx); err != nil {
+			return false, err
+		}
+	}
+
+	return cm.VerifyComputeProof(ctx, proofData, &ComputePublicInputs{
+		RequestID:          requestID,
+		ResultCommitment:   resultCommitment,
+		ProviderCommitment: providerCommitment,
+		ResourceCommitment: resourceCommitment,
+	})
+}
+
+// VerifyEscrowProofWithCircuitManager verifies an escrow release proof.
+func (k *Keeper) VerifyEscrowProofWithCircuitManager(
+	ctx sdk.Context,
+	proofData []byte,
+	requestID uint64,
+	escrowAmount uint64,
+	requesterCommitment interface{},
+	providerCommitment interface{},
+	completionCommitment interface{},
+) (bool, error) {
+	cm := k.GetCircuitManager()
+
+	if !cm.IsInitialized() {
+		if err := cm.Initialize(ctx); err != nil {
+			return false, err
+		}
+	}
+
+	return cm.VerifyEscrowProof(ctx, proofData, &EscrowPublicInputs{
+		RequestID:            requestID,
+		EscrowAmount:         escrowAmount,
+		RequesterCommitment:  requesterCommitment,
+		ProviderCommitment:   providerCommitment,
+		CompletionCommitment: completionCommitment,
+	})
+}
+
+// VerifyResultProofWithCircuitManager verifies a result correctness proof.
+func (k *Keeper) VerifyResultProofWithCircuitManager(
+	ctx sdk.Context,
+	proofData []byte,
+	requestID uint64,
+	resultRootHash interface{},
+	inputRootHash interface{},
+	programHash interface{},
+) (bool, error) {
+	cm := k.GetCircuitManager()
+
+	if !cm.IsInitialized() {
+		if err := cm.Initialize(ctx); err != nil {
+			return false, err
+		}
+	}
+
+	return cm.VerifyResultProof(ctx, proofData, &ResultPublicInputs{
+		RequestID:      requestID,
+		ResultRootHash: resultRootHash,
+		InputRootHash:  inputRootHash,
+		ProgramHash:    programHash,
+	})
 }

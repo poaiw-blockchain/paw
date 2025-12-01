@@ -1,6 +1,12 @@
 package property
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/sha256"
+	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 
 	"pgregory.net/rapid"
@@ -123,7 +129,10 @@ func TestBIP32PathProperties(t *testing.T) {
 		}
 
 		// Property: Path components should be recoverable
-		parsed := parseBIP44Path(path)
+		parsed, ok := parseBIP44Path(path)
+		if !ok {
+			t.Fatalf("failed to parse valid path: %s", path)
+		}
 		if parsed.CoinType != coinType ||
 			parsed.Account != account ||
 			parsed.Change != change ||
@@ -136,39 +145,74 @@ func TestBIP32PathProperties(t *testing.T) {
 // Helper functions for property tests
 
 func generateTestMnemonic(wordCount int) []string {
-	// Simplified: generate dummy words
+	// Generate distinct dummy words to maintain uniqueness guarantees
 	words := make([]string, wordCount)
 	for i := 0; i < wordCount; i++ {
-		words[i] = "word"
+		words[i] = fmt.Sprintf("word-%d", i)
 	}
 	return words
 }
 
 func deriveTestKey(mnemonic []string, path uint32) []byte {
-	// Simplified: deterministic derivation
-	key := make([]byte, 32)
-	for i, word := range mnemonic {
-		key[i%32] ^= byte(len(word) + int(path))
-	}
-	return key
+	payload := fmt.Sprintf("%s-%d", strings.Join(mnemonic, " "), path)
+	sum := sha256.Sum256([]byte(payload))
+	return sum[:]
+}
+
+func derivePasswordKey(password string, nonce []byte) []byte {
+	data := append([]byte(password), nonce...)
+	sum := sha256.Sum256(data)
+	return sum[:]
+}
+
+func computeKeystoreMAC(nonce, ciphertext []byte, password string) []byte {
+	macInput := append(append([]byte{}, nonce...), ciphertext...)
+	macInput = append(macInput, []byte(password)...)
+	sum := sha256.Sum256(macInput)
+	return sum[:]
 }
 
 func encryptTestKeystore(data []byte, password string) []byte {
-	// Simplified encryption (in reality, use AES-GCM)
-	encrypted := make([]byte, len(data))
-	for i := range data {
-		encrypted[i] = data[i] ^ byte(password[i%len(password)])
+	nonce := make([]byte, 12)
+	if _, err := rand.Read(nonce); err != nil {
+		copy(nonce, []byte("paw-fallback"))
 	}
-	return encrypted
+
+	key := derivePasswordKey(password, nonce)
+	ciphertext := make([]byte, len(data))
+	for i := range data {
+		ciphertext[i] = data[i] ^ key[i%len(key)]
+	}
+
+	mac := computeKeystoreMAC(nonce, ciphertext, password)
+
+	out := make([]byte, 0, len(nonce)+len(ciphertext)+len(mac))
+	out = append(out, nonce...)
+	out = append(out, ciphertext...)
+	out = append(out, mac...)
+	return out
 }
 
 func decryptTestKeystore(encrypted []byte, password string) []byte {
-	// Simplified decryption
-	decrypted := make([]byte, len(encrypted))
-	for i := range encrypted {
-		decrypted[i] = encrypted[i] ^ byte(password[i%len(password)])
+	if len(encrypted) < 12+sha256.Size {
+		return nil
 	}
-	return decrypted
+
+	nonce := encrypted[:12]
+	mac := encrypted[len(encrypted)-sha256.Size:]
+	ciphertext := encrypted[12 : len(encrypted)-sha256.Size]
+
+	expectedMac := computeKeystoreMAC(nonce, ciphertext, password)
+	if !bytes.Equal(mac, expectedMac) {
+		return nil
+	}
+
+	key := derivePasswordKey(password, nonce)
+	plaintext := make([]byte, len(ciphertext))
+	for i := range ciphertext {
+		plaintext[i] = ciphertext[i] ^ key[i%len(key)]
+	}
+	return plaintext
 }
 
 func validatePassword(password string) bool {
@@ -177,11 +221,12 @@ func validatePassword(password string) bool {
 
 func makeBIP44Path(coinType, account, change, addressIndex uint32) string {
 	// BIP44 format: m/44'/coin_type'/account'/change/address_index
-	return "m/44'/118'/0'/0/0" // Simplified
+	return fmt.Sprintf("m/44'/%d'/%d'/%d/%d", coinType, account, change, addressIndex)
 }
 
 func validateBIP32Path(path string) bool {
-	return path != ""
+	_, ok := parseBIP44Path(path)
+	return ok
 }
 
 type BIP44Components struct {
@@ -191,14 +236,50 @@ type BIP44Components struct {
 	AddressIndex uint32
 }
 
-func parseBIP44Path(path string) BIP44Components {
-	// Simplified parsing
-	return BIP44Components{
-		CoinType:     118,
-		Account:      0,
-		Change:       0,
-		AddressIndex: 0,
+func parseBIP44Path(path string) (BIP44Components, bool) {
+	parts := strings.Split(path, "/")
+	if len(parts) != 6 || parts[0] != "m" || parts[1] != "44'" {
+		return BIP44Components{}, false
 	}
+
+	coinType, ok := parseHardenedPart(parts[2])
+	if !ok {
+		return BIP44Components{}, false
+	}
+
+	account, ok := parseHardenedPart(parts[3])
+	if !ok {
+		return BIP44Components{}, false
+	}
+
+	change, err := strconv.ParseUint(parts[4], 10, 32)
+	if err != nil {
+		return BIP44Components{}, false
+	}
+
+	addressIndex, err := strconv.ParseUint(parts[5], 10, 32)
+	if err != nil {
+		return BIP44Components{}, false
+	}
+
+	return BIP44Components{
+		CoinType:     coinType,
+		Account:      account,
+		Change:       uint32(change),
+		AddressIndex: uint32(addressIndex),
+	}, true
+}
+
+func parseHardenedPart(part string) (uint32, bool) {
+	if !strings.HasSuffix(part, "'") {
+		return 0, false
+	}
+
+	value, err := strconv.ParseUint(strings.TrimSuffix(part, "'"), 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return uint32(value), true
 }
 
 func bytesEqual(a, b []byte) bool {

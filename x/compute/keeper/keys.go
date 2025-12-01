@@ -79,8 +79,20 @@ var (
 	// ZKMetricsKey is the key for ZK proof verification metrics
 	ZKMetricsKey = []byte{0x18}
 
+	// VerificationProofHashPrefix stores digests of verification proofs to prevent reuse
+	VerificationProofHashPrefix = []byte{0x19}
+
+	// ProviderSigningKeyPrefix stores fallback signing keys registered by providers
+	ProviderSigningKeyPrefix = []byte{0x1A}
+
+	// RequestFinalizedPrefix tracks whether a request has already settled funds
+	RequestFinalizedPrefix = []byte{0x1B}
+
 	// NonceByHeightPrefix is the prefix for indexing nonces by block height for cleanup
 	NonceByHeightPrefix = []byte{0x19}
+
+	// ProviderStatsKeyPrefix is the prefix for provider performance statistics
+	ProviderStatsKeyPrefix = []byte{0x1C}
 )
 
 // ProviderKey returns the store key for a provider
@@ -145,6 +157,27 @@ func NonceKey(provider sdk.AccAddress, nonce uint64) []byte {
 	nonceBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonceBz, nonce)
 	return append(append(NonceKeyPrefix, provider.Bytes()...), nonceBz...)
+}
+
+// ProofHashKey returns the store key for a verification proof digest
+func ProofHashKey(provider sdk.AccAddress, hash []byte) []byte {
+	key := make([]byte, 0, len(VerificationProofHashPrefix)+len(provider.Bytes())+len(hash))
+	key = append(key, VerificationProofHashPrefix...)
+	key = append(key, provider.Bytes()...)
+	key = append(key, hash...)
+	return key
+}
+
+// ProviderSigningKeyKey returns the store key for a provider's registered signing key.
+func ProviderSigningKeyKey(provider sdk.AccAddress) []byte {
+	return append(ProviderSigningKeyPrefix, provider.Bytes()...)
+}
+
+// RequestFinalizedKey returns the store key for a request settlement flag
+func RequestFinalizedKey(requestID uint64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, requestID)
+	return append(RequestFinalizedPrefix, bz...)
 }
 
 // DisputeKey returns the store key for a dispute
@@ -252,4 +285,9 @@ func NonceByHeightPrefixForHeight(height int64) []byte {
 	heightBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(heightBz, uint64(height))
 	return append(NonceByHeightPrefix, heightBz...)
+}
+
+// ProviderStatsKey returns the store key for provider statistics
+func ProviderStatsKey(providerAddr string) []byte {
+	return append(ProviderStatsKeyPrefix, []byte(providerAddr)...)
 }

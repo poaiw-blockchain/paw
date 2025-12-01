@@ -2,6 +2,7 @@ package dex
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 
@@ -44,6 +45,20 @@ func (AppModuleBasic) RegisterInterfaces(registry types.InterfaceRegistry) {
 	dextypes.RegisterInterfaces(registry)
 }
 
+// DefaultGenesis returns the default genesis state for the dex module.
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
+	return cdc.MustMarshalJSON(dextypes.DefaultGenesis())
+}
+
+// ValidateGenesis validates the provided genesis state.
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
+	var genState dextypes.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &genState); err != nil {
+		return err
+	}
+	return genState.Validate()
+}
+
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the dex module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {}
 
@@ -60,14 +75,18 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 // AppModule implements an application module for the dex module.
 type AppModule struct {
 	AppModuleBasic
-	keeper *keeper.Keeper
+	keeper        *keeper.Keeper
+	accountKeeper dextypes.AccountKeeper
+	bankKeeper    dextypes.BankKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper) AppModule {
+func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper, ak dextypes.AccountKeeper, bk dextypes.BankKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
+		accountKeeper:  ak,
+		bankKeeper:     bk,
 	}
 }
 
@@ -116,8 +135,8 @@ func (am AppModule) RegisterStoreDecoder(_ simtypes.StoreDecoderRegistry) {
 // WeightedOperations returns simulation operations for the dex module
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	return simulation.WeightedOperations(
-		simState.AppParams, simState.Cdc, *am.keeper,
-		simState.AccountKeeper, simState.BankKeeper,
+		simState.AppParams, simState.Cdc, simState.TxConfig, *am.keeper,
+		am.accountKeeper, am.bankKeeper,
 	)
 }
 
@@ -131,4 +150,22 @@ func (am AppModule) BeginBlock(ctx context.Context) error {
 // This is called at the end of every block to process time-based operations
 func (am AppModule) EndBlock(ctx context.Context) error {
 	return am.keeper.EndBlocker(ctx)
+}
+
+// InitGenesis initializes module state from genesis data.
+func (am AppModule) InitGenesis(ctx context.Context, cdc codec.JSONCodec, data json.RawMessage) error {
+	var genState dextypes.GenesisState
+	if err := cdc.UnmarshalJSON(data, &genState); err != nil {
+		return err
+	}
+	return am.keeper.InitGenesis(ctx, genState)
+}
+
+// ExportGenesis exports module state to genesis.
+func (am AppModule) ExportGenesis(ctx context.Context, cdc codec.JSONCodec) (json.RawMessage, error) {
+	genState, err := am.keeper.ExportGenesis(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cdc.MarshalJSON(genState)
 }

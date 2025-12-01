@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package security_test
 
 import (
@@ -29,10 +32,6 @@ func (suite *AuthSecurityTestSuite) SetupTest() {
 }
 
 func TestAuthSecurityTestSuite(t *testing.T) {
-	// TODO: Fix SetupTestApp in testutil/keeper/setup.go to properly initialize CommitMultiStore
-	// Current issue: BaseApp.CommitMultiStore is nil causing panic in NewContext
-	// See: testutil/keeper/setup.go line 27
-	t.Skip("Requires SetupTestApp fix - BaseApp store initialization incomplete")
 	suite.Run(t, new(AuthSecurityTestSuite))
 }
 

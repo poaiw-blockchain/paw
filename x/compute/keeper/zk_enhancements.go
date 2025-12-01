@@ -30,21 +30,10 @@ type ZKProofMetadata struct {
 	VerificationGas uint64
 }
 
-// VerifyZKProof verifies a ZK proof for result data. Currently a placeholder that always succeeds.
+// VerifyZKProof verifies a ZK proof for result data using the actual Groth16 verifier.
+// This is the main entry point for ZK proof verification in the compute module.
 func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) error {
-	// Placeholder for actual ZK proof verification logic.
-	// In a real implementation, this would involve:
-	// 1. Deserializing the proof and resultData into appropriate structures.
-	// 2. Loading the verification key for the relevant circuit.
-	// 3. Calling a cryptographic library function to verify the proof against public inputs (derived from resultData).
-	// 4. Handling potential errors from the verification process.
-
-	// For now, we'll just return nil to simulate success.
-	// Future tasks will integrate actual ZK verification.
-	_ = proof      // Use proof to avoid unused variable error
-	_ = resultData // Use resultData to avoid unused variable error
-
-	// Example of a basic check that might be part of a real verification
+	// Basic input validation
 	if len(proof) == 0 {
 		return fmt.Errorf("ZK proof cannot be empty")
 	}
@@ -52,8 +41,83 @@ func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) 
 		return fmt.Errorf("result data cannot be empty for ZK proof verification")
 	}
 
-	// Simulate a successful verification
+	// Parse the result data to extract verification parameters
+	// resultData should contain: requestID (8 bytes) + resultHash (32 bytes) + providerAddress (20 bytes)
+	if len(resultData) < 60 {
+		return fmt.Errorf("result data too short: expected at least 60 bytes, got %d", len(resultData))
+	}
+
+	// Extract request ID
+	requestID := uint64(0)
+	for i := 0; i < 8; i++ {
+		requestID = (requestID << 8) | uint64(resultData[i])
+	}
+
+	// Extract result hash
+	resultHash := resultData[8:40]
+
+	// Extract provider address
+	providerAddress := sdk.AccAddress(resultData[40:60])
+
+	// Create ZKProof struct
+	zkProof := &types.ZKProof{
+		Proof:        proof,
+		PublicInputs: resultData,
+		ProofSystem:  "groth16",
+		CircuitId:    "compute-verification-v1",
+		GeneratedAt:  ctx.BlockTime(),
+	}
+
+	// Get or create ZK verifier
+	verifier := NewZKVerifier(&k)
+
+	// Perform actual verification using the Groth16 verifier
+	verified, err := verifier.VerifyProof(ctx, zkProof, requestID, resultHash, providerAddress)
+	if err != nil {
+		return fmt.Errorf("ZK proof verification error: %w", err)
+	}
+
+	if !verified {
+		return fmt.Errorf("ZK proof verification failed: proof is invalid")
+	}
+
+	// Log successful verification
+	ctx.Logger().Info("ZK proof verified successfully",
+		"request_id", requestID,
+		"provider", providerAddress.String(),
+	)
+
 	return nil
+}
+
+// VerifyZKProofWithParams verifies a ZK proof with explicit parameters.
+// This provides more control over the verification process.
+func (k Keeper) VerifyZKProofWithParams(
+	ctx sdk.Context,
+	zkProof *types.ZKProof,
+	requestID uint64,
+	resultHash []byte,
+	providerAddress sdk.AccAddress,
+) (bool, error) {
+	// Input validation
+	if zkProof == nil {
+		return false, fmt.Errorf("ZK proof cannot be nil")
+	}
+	if len(zkProof.Proof) == 0 {
+		return false, fmt.Errorf("ZK proof data cannot be empty")
+	}
+	if len(resultHash) != 32 {
+		return false, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
+	}
+	if len(providerAddress) == 0 {
+		return false, fmt.Errorf("provider address cannot be empty")
+	}
+
+	// Get or create ZK verifier
+	verifier := NewZKVerifier(&k)
+
+	// Perform verification
+	return verifier.VerifyProof(ctx, zkProof, requestID, resultHash, providerAddress)
 }
 
 func (k Keeper) ValidateZKProofVersion(proof *types.ZKProof) error {

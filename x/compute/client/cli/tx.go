@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
 )
@@ -33,11 +35,14 @@ func GetTxCmd() *cobra.Command {
 		CmdSubmitRequest(),
 		CmdCancelRequest(),
 		CmdSubmitResult(),
-		// CmdCreateDispute(),
-		// CmdVoteOnDispute(),
-		// CmdSubmitEvidence(),
-		// CmdAppealSlashing(),
-		// CmdVoteOnAppeal(),
+		CmdCreateDispute(),
+		CmdVoteOnDispute(),
+		CmdSubmitEvidence(),
+		CmdAppealSlashing(),
+		CmdVoteOnAppeal(),
+		CmdResolveDispute(),
+		CmdResolveAppeal(),
+		CmdUpdateGovernanceParams(),
 	)
 
 	return computeTxCmd
@@ -626,7 +631,6 @@ Example:
 	return cmd
 }
 
-/*
 // CmdCreateDispute returns a CLI command handler for creating a dispute
 func CmdCreateDispute() *cobra.Command {
 	cmd := &cobra.Command{
@@ -676,6 +680,10 @@ Example:
 			if err != nil {
 				return err
 			}
+			if depositAmountStr == "" {
+				return fmt.Errorf("deposit amount is required")
+			}
+
 			depositAmount, ok := math.NewIntFromString(depositAmountStr)
 			if !ok {
 				return fmt.Errorf("invalid deposit amount: %s", depositAmountStr)
@@ -715,11 +723,11 @@ func CmdVoteOnDispute() *cobra.Command {
 		Short: "Vote on a dispute (validators only)",
 		Long: `Vote on a dispute as a validator.
 
-Valid vote options: favor_requester, favor_provider, abstain
+Valid vote options: provider_fault, requester_fault, insufficient_evidence, no_fault
 
 Example:
   $ pawd tx compute vote-dispute 1 \
-    --vote favor_requester \
+    --vote provider_fault \
     --justification "Evidence supports requester's claim" \
     --from validator-key`,
 		Args: cobra.ExactArgs(1),
@@ -748,8 +756,10 @@ Example:
 				return err
 			}
 
+			valAddr := sdk.ValAddress(clientCtx.GetFromAddress())
+
 			msg := &types.MsgVoteOnDispute{
-				Validator:     clientCtx.GetFromAddress().String(),
+				Validator:     valAddr.String(),
 				DisputeId:     disputeID,
 				Vote:          vote,
 				Justification: justification,
@@ -763,7 +773,7 @@ Example:
 		},
 	}
 
-	cmd.Flags().String(FlagVote, "", "Vote option (favor_requester, favor_provider, abstain)")
+	cmd.Flags().String(FlagVote, "", "Vote option (provider_fault, requester_fault, insufficient_evidence, no_fault)")
 	cmd.Flags().String(FlagJustification, "", "Justification for the vote")
 
 	cmd.MarkFlagRequired(FlagVote)
@@ -875,6 +885,10 @@ Example:
 			if err != nil {
 				return err
 			}
+			if depositAmountStr == "" {
+				return fmt.Errorf("deposit amount is required")
+			}
+
 			depositAmount, ok := math.NewIntFromString(depositAmountStr)
 			if !ok {
 				return fmt.Errorf("invalid deposit amount: %s", depositAmountStr)
@@ -933,15 +947,28 @@ Example:
 			if err != nil {
 				return err
 			}
-			approve := voteStr == "approve"
+			if voteStr == "" {
+				return fmt.Errorf("vote option is required")
+			}
+			var approve bool
+			switch strings.ToLower(voteStr) {
+			case "approve", "yes":
+				approve = true
+			case "reject", "no", "deny":
+				approve = false
+			default:
+				return fmt.Errorf("invalid vote option: %s (valid: approve, reject)", voteStr)
+			}
 
 			justification, err := cmd.Flags().GetString(FlagJustification)
 			if err != nil {
 				return err
 			}
 
+			valAddr := sdk.ValAddress(clientCtx.GetFromAddress())
+
 			msg := &types.MsgVoteOnAppeal{
-				Validator:     clientCtx.GetFromAddress().String(),
+				Validator:     valAddr.String(),
 				AppealId:      appealID,
 				Approve:       approve,
 				Justification: justification,
@@ -964,18 +991,230 @@ Example:
 	return cmd
 }
 
+// CmdResolveDispute finalizes a dispute and triggers settlement.
+func CmdResolveDispute() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "resolve-dispute [dispute-id]",
+		Short: "Resolve a dispute (governance/authority only)",
+		Long: `Resolve a dispute and apply the resulting slashing/refund actions.
+
+Example:
+  $ pawd tx compute resolve-dispute 7 --from gov-key`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			disputeID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid dispute ID: %w", err)
+			}
+
+			msg := &types.MsgResolveDispute{
+				Authority: clientCtx.GetFromAddress().String(),
+				DisputeId: disputeID,
+			}
+
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
+}
+
+// CmdResolveAppeal finalizes an appeal result.
+func CmdResolveAppeal() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "resolve-appeal [appeal-id]",
+		Short: "Resolve an appeal (governance/authority only)",
+		Long: `Resolve an appeal and apply the referenced slash refund if approved.
+
+Example:
+  $ pawd tx compute resolve-appeal 3 --from gov-key`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			appealID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid appeal ID: %w", err)
+			}
+
+			msg := &types.MsgResolveAppeal{
+				Authority: clientCtx.GetFromAddress().String(),
+				AppealId:  appealID,
+			}
+
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
+}
+
+// CmdUpdateGovernanceParams updates dispute/appeal governance settings.
+func CmdUpdateGovernanceParams() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update-governance-params",
+		Short: "Update dispute/appeal governance parameters (authority only)",
+		Long: `Update compute governance parameters controlling dispute deposits, voting periods, and thresholds.
+
+Example:
+  $ pawd tx compute update-governance-params \
+      --dispute-deposit 2000000 \
+      --quorum 0.4 \
+      --from gov-key`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			params := types.DefaultGovernanceParams()
+			if res, err := queryClient.GovernanceParams(context.Background(), &types.QueryGovernanceParamsRequest{}); err == nil {
+				params = res.Params
+			}
+
+			if cmd.Flags().Changed(FlagDisputeDeposit) {
+				value, err := cmd.Flags().GetString(FlagDisputeDeposit)
+				if err != nil {
+					return err
+				}
+				amount, ok := math.NewIntFromString(value)
+				if !ok {
+					return fmt.Errorf("invalid dispute deposit: %s", value)
+				}
+				params.DisputeDeposit = amount
+			}
+
+			if cmd.Flags().Changed(FlagEvidencePeriod) {
+				value, err := cmd.Flags().GetUint64(FlagEvidencePeriod)
+				if err != nil {
+					return err
+				}
+				params.EvidencePeriodSeconds = value
+			}
+
+			if cmd.Flags().Changed(FlagVotingPeriod) {
+				value, err := cmd.Flags().GetUint64(FlagVotingPeriod)
+				if err != nil {
+					return err
+				}
+				params.VotingPeriodSeconds = value
+			}
+
+			if cmd.Flags().Changed(FlagQuorumPercentage) {
+				value, err := cmd.Flags().GetString(FlagQuorumPercentage)
+				if err != nil {
+					return err
+				}
+				dec, err := math.LegacyNewDecFromStr(value)
+				if err != nil {
+					return fmt.Errorf("invalid quorum value: %w", err)
+				}
+				params.QuorumPercentage = dec
+			}
+
+			if cmd.Flags().Changed(FlagConsensusThreshold) {
+				value, err := cmd.Flags().GetString(FlagConsensusThreshold)
+				if err != nil {
+					return err
+				}
+				dec, err := math.LegacyNewDecFromStr(value)
+				if err != nil {
+					return fmt.Errorf("invalid consensus threshold: %w", err)
+				}
+				params.ConsensusThreshold = dec
+			}
+
+			if cmd.Flags().Changed(FlagSlashPercentage) {
+				value, err := cmd.Flags().GetString(FlagSlashPercentage)
+				if err != nil {
+					return err
+				}
+				dec, err := math.LegacyNewDecFromStr(value)
+				if err != nil {
+					return fmt.Errorf("invalid slash percentage: %w", err)
+				}
+				params.SlashPercentage = dec
+			}
+
+			if cmd.Flags().Changed(FlagAppealDepositPercentage) {
+				value, err := cmd.Flags().GetString(FlagAppealDepositPercentage)
+				if err != nil {
+					return err
+				}
+				dec, err := math.LegacyNewDecFromStr(value)
+				if err != nil {
+					return fmt.Errorf("invalid appeal deposit percentage: %w", err)
+				}
+				params.AppealDepositPercentage = dec
+			}
+
+			if cmd.Flags().Changed(FlagMaxEvidenceSize) {
+				value, err := cmd.Flags().GetUint64(FlagMaxEvidenceSize)
+				if err != nil {
+					return err
+				}
+				params.MaxEvidenceSize = value
+			}
+
+			msg := &types.MsgUpdateGovernanceParams{
+				Authority: clientCtx.GetFromAddress().String(),
+				Params:    params,
+			}
+
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+
+	cmd.Flags().String(FlagDisputeDeposit, "", "Dispute deposit amount (int, upaw)")
+	cmd.Flags().Uint64(FlagEvidencePeriod, 0, "Evidence period in seconds")
+	cmd.Flags().Uint64(FlagVotingPeriod, 0, "Voting period in seconds")
+	cmd.Flags().String(FlagQuorumPercentage, "", "Quorum percentage (e.g. 0.334)")
+	cmd.Flags().String(FlagConsensusThreshold, "", "Consensus threshold (e.g. 0.5)")
+	cmd.Flags().String(FlagSlashPercentage, "", "Slash percentage to apply to provider stake")
+	cmd.Flags().String(FlagAppealDepositPercentage, "", "Appeal deposit percentage (fraction of slash amount)")
+	cmd.Flags().Uint64(FlagMaxEvidenceSize, 0, "Maximum evidence size in bytes")
+
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
+}
+
 // Helper functions
 
 func parseDisputeVote(vote string) (types.DisputeVoteOption, error) {
-	switch vote {
-	case "favor_requester":
-		return types.DisputeVoteOption_VOTE_OPTION_FAVOR_REQUESTER, nil
-	case "favor_provider":
-		return types.DisputeVoteOption_VOTE_OPTION_FAVOR_PROVIDER, nil
-	case "abstain":
-		return types.DisputeVoteOption_VOTE_OPTION_ABSTAIN, nil
+	switch strings.ToLower(vote) {
+	case "provider_fault":
+		return types.DISPUTE_VOTE_PROVIDER_FAULT, nil
+	case "requester_fault":
+		return types.DISPUTE_VOTE_REQUESTER_FAULT, nil
+	case "insufficient_evidence":
+		return types.DISPUTE_VOTE_INSUFFICIENT_EVIDENCE, nil
+	case "no_fault":
+		return types.DISPUTE_VOTE_NO_FAULT, nil
 	default:
-		return 0, fmt.Errorf("invalid vote option: %s (valid: favor_requester, favor_provider, abstain)", vote)
+		return 0, fmt.Errorf("invalid vote option: %s (valid: provider_fault, requester_fault, insufficient_evidence, no_fault)", vote)
 	}
 }
-*/

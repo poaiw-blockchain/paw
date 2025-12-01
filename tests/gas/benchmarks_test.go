@@ -5,24 +5,25 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
-	"github.com/paw-chain/paw/x/compute/types"
 )
 
 // Gas Benchmarking Suite
 // Measures gas consumption across many iterations to establish baselines
 
 func BenchmarkGas_DEX_CreatePool(b *testing.B) {
-	k, ctx := keepertest.DexKeeper(b)
+	rawKeeper, ctx := keepertest.DexKeeper(b)
+	k := NewDexGasKeeper(rawKeeper)
 
 	creator := sdk.AccAddress("creator1___________")
 	var totalGas uint64
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		tokenA := fmt.Sprintf("token%da", i)
 		tokenB := fmt.Sprintf("token%db", i)
@@ -42,7 +43,8 @@ func BenchmarkGas_DEX_CreatePool(b *testing.B) {
 }
 
 func BenchmarkGas_DEX_Swap(b *testing.B) {
-	k, ctx := keepertest.DexKeeper(b)
+	rawKeeper, ctx := keepertest.DexKeeper(b)
+	k := NewDexGasKeeper(rawKeeper)
 
 	// Setup: Create pool
 	creator := sdk.AccAddress("creator1___________")
@@ -57,7 +59,7 @@ func BenchmarkGas_DEX_Swap(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		_, err := k.Swap(ctx, trader.String(), poolID, "upaw",
 			math.NewInt(1000000), math.NewInt(1))
@@ -74,7 +76,8 @@ func BenchmarkGas_DEX_Swap(b *testing.B) {
 }
 
 func BenchmarkGas_DEX_AddLiquidity(b *testing.B) {
-	k, ctx := keepertest.DexKeeper(b)
+	rawKeeper, ctx := keepertest.DexKeeper(b)
+	k := NewDexGasKeeper(rawKeeper)
 
 	// Setup: Create pool
 	creator := sdk.AccAddress("creator1___________")
@@ -89,7 +92,7 @@ func BenchmarkGas_DEX_AddLiquidity(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		_, err := k.AddLiquidity(ctx, provider.String(), poolID,
 			math.NewInt(1000000), math.NewInt(2000000), math.NewInt(1))
@@ -106,7 +109,8 @@ func BenchmarkGas_DEX_AddLiquidity(b *testing.B) {
 }
 
 func BenchmarkGas_DEX_RemoveLiquidity(b *testing.B) {
-	k, ctx := keepertest.DexKeeper(b)
+	rawKeeper, ctx := keepertest.DexKeeper(b)
+	k := NewDexGasKeeper(rawKeeper)
 
 	// Setup: Create pool and add liquidity
 	creator := sdk.AccAddress("creator1___________")
@@ -128,7 +132,7 @@ func BenchmarkGas_DEX_RemoveLiquidity(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N && i < 100; i++ { // Limit iterations
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		_, _, err := k.RemoveLiquidity(ctx, provider.String(), poolID,
 			removeAmount, math.NewInt(1), math.NewInt(1))
@@ -145,7 +149,8 @@ func BenchmarkGas_DEX_RemoveLiquidity(b *testing.B) {
 }
 
 func BenchmarkGas_Oracle_SubmitPrice(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	rawKeeper, ctx := keepertest.OracleKeeper(b)
+	k := NewOracleGasKeeper(rawKeeper)
 
 	// Setup: Register oracle
 	oracle := sdk.AccAddress("oracle1_____________")
@@ -159,7 +164,7 @@ func BenchmarkGas_Oracle_SubmitPrice(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		asset := fmt.Sprintf("ASSET_%d", i%10) // Rotate through 10 assets
 
@@ -176,13 +181,14 @@ func BenchmarkGas_Oracle_SubmitPrice(b *testing.B) {
 	b.Logf("Average gas per SubmitPrice: %d", avgGas)
 }
 
-func BenchmarkGas_Oracle_AggregateVotes(b *testing.B) {
+func BenchmarkGas_Oracle_AggregatePrices(b *testing.B) {
 	// Test with different validator counts
 	validatorCounts := []int{7, 21, 50, 100}
 
 	for _, numValidators := range validatorCounts {
 		b.Run(fmt.Sprintf("validators_%d", numValidators), func(b *testing.B) {
-			k, ctx := keepertest.OracleKeeper(b)
+			rawKeeper, ctx := keepertest.OracleKeeper(b)
+			k := NewOracleGasKeeper(rawKeeper)
 
 			// Setup: Register oracles and submit prices
 			asset := "BTC"
@@ -209,11 +215,11 @@ func BenchmarkGas_Oracle_AggregateVotes(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+				ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
-				_, err := k.AggregateVotes(ctx, asset)
+				err := k.AggregatePrices(ctx)
 				if err != nil {
-					b.Fatalf("AggregateVotes failed: %v", err)
+					b.Fatalf("AggregatePrices failed: %v", err)
 				}
 
 				totalGas += ctx.GasMeter().GasConsumed()
@@ -224,20 +230,21 @@ func BenchmarkGas_Oracle_AggregateVotes(b *testing.B) {
 
 			b.ReportMetric(float64(avgGas), "gas/op")
 			b.ReportMetric(float64(gasPerValidator), "gas/validator")
-			b.Logf("Average gas per AggregateVotes (%d validators): %d (%.0f gas/validator)",
+			b.Logf("Average gas per AggregatePrices (%d validators): %d (%.0f gas/validator)",
 				numValidators, avgGas, float64(gasPerValidator))
 		})
 	}
 }
 
 func BenchmarkGas_Compute_RegisterProvider(b *testing.B) {
-	k, ctx := keepertest.ComputeKeeper(b)
+	rawKeeper, ctx := keepertest.ComputeKeeper(b)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	var totalGas uint64
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		provider := sdk.AccAddress(fmt.Sprintf("provider%d_________", i))
 
@@ -262,7 +269,8 @@ func BenchmarkGas_Compute_RegisterProvider(b *testing.B) {
 }
 
 func BenchmarkGas_Compute_SubmitRequest(b *testing.B) {
-	k, ctx := keepertest.ComputeKeeper(b)
+	rawKeeper, ctx := keepertest.ComputeKeeper(b)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Setup: Register provider
 	provider := sdk.AccAddress("provider1__________")
@@ -286,7 +294,7 @@ func BenchmarkGas_Compute_SubmitRequest(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+				ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 				_, err := k.SubmitRequest(ctx, requester.String(), provider.String(),
 					input, ResourceRequirements{
@@ -312,7 +320,8 @@ func BenchmarkGas_Compute_SubmitRequest(b *testing.B) {
 }
 
 func BenchmarkGas_Compute_SubmitResult(b *testing.B) {
-	k, ctx := keepertest.ComputeKeeper(b)
+	rawKeeper, ctx := keepertest.ComputeKeeper(b)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	// Setup
 	provider := sdk.AccAddress("provider1__________")
@@ -341,7 +350,7 @@ func BenchmarkGas_Compute_SubmitResult(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N && i < len(requestIDs); i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		err := k.SubmitResult(ctx, requestIDs[i], provider.String(), result, proof)
 		if err != nil {
@@ -359,7 +368,8 @@ func BenchmarkGas_Compute_SubmitResult(b *testing.B) {
 // Comparison benchmarks
 
 func BenchmarkGas_Comparison_StateRead(b *testing.B) {
-	k, ctx := keepertest.DexKeeper(b)
+	rawKeeper, ctx := keepertest.DexKeeper(b)
+	k := NewDexGasKeeper(rawKeeper)
 
 	// Create pool
 	creator := sdk.AccAddress("creator1___________")
@@ -370,7 +380,7 @@ func BenchmarkGas_Comparison_StateRead(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(100000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(100000))
 
 		_, _ = k.GetPool(ctx, poolID)
 
@@ -383,13 +393,14 @@ func BenchmarkGas_Comparison_StateRead(b *testing.B) {
 }
 
 func BenchmarkGas_Comparison_StateWrite(b *testing.B) {
-	k, ctx := keepertest.ComputeKeeper(b)
+	rawKeeper, ctx := keepertest.ComputeKeeper(b)
+	k := NewComputeGasKeeper(rawKeeper)
 
 	var totalGas uint64
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(500000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(500000))
 
 		provider := sdk.AccAddress(fmt.Sprintf("provider%d_________", i))
 		_ = k.RegisterProvider(ctx, provider.String(), "Test", "https://test.com",

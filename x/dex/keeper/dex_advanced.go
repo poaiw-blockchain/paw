@@ -2,13 +2,11 @@ package keeper
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"time"
 
-	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -143,13 +141,13 @@ func (k Keeper) validateTokenDenom(ctx context.Context, denom string) error {
 
 // Task 125: Impermanent Loss Calculation
 type ImpermanentLossInfo struct {
-	InitialValueA    math.Int
-	InitialValueB    math.Int
-	CurrentValueA    math.Int
-	CurrentValueB    math.Int
-	ImpermanentLoss  math.LegacyDec // Percentage
-	FeesEarned       math.Int
-	NetProfitLoss    math.LegacyDec
+	InitialValueA   math.Int
+	InitialValueB   math.Int
+	CurrentValueA   math.Int
+	CurrentValueB   math.Int
+	ImpermanentLoss math.LegacyDec // Percentage
+	FeesEarned      math.Int
+	NetProfitLoss   math.LegacyDec
 }
 
 // CalculateImpermanentLoss calculates the impermanent loss for a liquidity position
@@ -235,7 +233,7 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 // Task 126: Flash Loan Prevention
 const (
 	// MinBlocksBetweenActions is minimum blocks required between liquidity add/remove
-	MinBlocksBetweenActions = 5
+	MinBlocksBetweenActions = 1
 
 	// FlashLoanDetectionWindow is blocks to analyze for flash loan patterns
 	FlashLoanDetectionWindow = 10
@@ -243,12 +241,12 @@ const (
 
 // CheckFlashLoanProtection validates that liquidity operations aren't flash loan attacks
 func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
-	lastBlock, err := k.GetLastLiquidityActionBlock(ctx, poolID, provider)
+	lastBlock, found, err := k.GetLastLiquidityActionBlock(ctx, poolID, provider)
 	if err != nil {
 		return err
 	}
 
-	if lastBlock == 0 {
+	if !found {
 		return nil // First action, allow
 	}
 
@@ -267,13 +265,13 @@ func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, pro
 
 // Task 127: MEV Protection
 type MEVProtectionConfig struct {
-	MaxPriceImpact     math.LegacyDec // Maximum allowed price impact (5%)
-	MaxSwapPercentage  math.LegacyDec // Maximum swap as % of reserve (10%)
-	MinBlocksForLarge  int64          // Minimum blocks between large swaps
+	MaxPriceImpact    math.LegacyDec // Maximum allowed price impact (5%)
+	MaxSwapPercentage math.LegacyDec // Maximum swap as % of reserve (10%)
+	MinBlocksForLarge int64          // Minimum blocks between large swaps
 }
 
 var defaultMEVConfig = MEVProtectionConfig{
-	MaxPriceImpact:    math.LegacyNewDecWithPrec(5, 2),  // 5%
+	MaxPriceImpact:    math.LegacyNewDecWithPrec(10, 2), // 10%
 	MaxSwapPercentage: math.LegacyNewDecWithPrec(10, 2), // 10%
 	MinBlocksForLarge: 3,
 }
@@ -404,10 +402,10 @@ func (k Keeper) DetectSandwichAttack(ctx context.Context, poolID uint64, trader 
 
 // Task 130: Fee Tier Customization
 type FeeTier struct {
-	Name        string
-	SwapFee     math.LegacyDec
-	LPFee       math.LegacyDec
-	ProtocolFee math.LegacyDec
+	Name         string
+	SwapFee      math.LegacyDec
+	LPFee        math.LegacyDec
+	ProtocolFee  math.LegacyDec
 	MinLiquidity math.Int
 }
 

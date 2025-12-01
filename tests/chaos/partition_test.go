@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -180,7 +179,7 @@ func (suite *NetworkPartitionTestSuite) TestSplitBrain() {
 	suite.LessOrEqual(height1-initialHeight, uint64(2), "Split brain should not make significant progress")
 
 	// Arbiter joins partition1, giving it majority
-	suite.network.ConnectNodes(arbiter, partition1...)
+	suite.network.ConnectNodes(append([]*Node{arbiter}, partition1...)...)
 	time.Sleep(5 * time.Second)
 
 	_ = suite.submitTransactions(ctx, partition1, 20)

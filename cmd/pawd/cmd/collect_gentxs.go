@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -127,46 +126,6 @@ Example:
 			// Save updated genutil genesis state
 			genesisState[genutiltypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(genUtilGenesis)
 
-			// Update staking genesis state with validators
-			stakingGenesis := stakingtypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
-
-			// Extract validators from gentxs
-			for _, tx := range genTxs {
-				msgs := tx.GetMsgs()
-				msgCreateVal := msgs[0].(*stakingtypes.MsgCreateValidator)
-
-				// Construct validator manually since Pubkey is already *Any
-				validator := stakingtypes.Validator{
-					OperatorAddress: msgCreateVal.ValidatorAddress,
-					ConsensusPubkey: msgCreateVal.Pubkey,
-					Jailed:          false,
-					Status:          stakingtypes.Bonded,
-					Tokens:          msgCreateVal.Value.Amount,
-					DelegatorShares: math.LegacyNewDecFromInt(msgCreateVal.Value.Amount),
-					Description:     msgCreateVal.Description,
-					UnbondingHeight: 0,
-					UnbondingTime:   genDoc.GenesisTime,
-					Commission: stakingtypes.Commission{
-						CommissionRates: msgCreateVal.Commission,
-						UpdateTime:      genDoc.GenesisTime,
-					},
-					MinSelfDelegation: msgCreateVal.MinSelfDelegation,
-				}
-
-				stakingGenesis.Validators = append(stakingGenesis.Validators, validator)
-
-				// Add delegation
-				delegation := stakingtypes.Delegation{
-					DelegatorAddress: sdk.AccAddress(validator.GetOperator()).String(),
-					ValidatorAddress: validator.GetOperator(),
-					Shares:           validator.DelegatorShares,
-				}
-				stakingGenesis.Delegations = append(stakingGenesis.Delegations, delegation)
-			}
-
-			// Save updated staking genesis state
-			genesisState[stakingtypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(stakingGenesis)
-
 			// Validate genesis state
 			if err = mbm.ValidateGenesis(clientCtx.Codec, clientCtx.TxConfig, genesisState); err != nil {
 				return fmt.Errorf("failed to validate genesis state: %w", err)
@@ -193,8 +152,9 @@ Example:
 			fmt.Fprintf(cmd.OutOrStdout(), "\nSuccessfully collected %d genesis transactions\n", len(genTxs))
 			fmt.Fprintf(cmd.OutOrStdout(), "Genesis file updated: %s\n", genFile)
 			fmt.Fprintf(cmd.OutOrStdout(), "\nValidators:\n")
-			for i, val := range stakingGenesis.Validators {
-				fmt.Fprintf(cmd.OutOrStdout(), "  %d. %s (%s)\n", i+1, val.Description.Moniker, val.OperatorAddress)
+			for i, tx := range genTxs {
+				msgCreateVal := tx.GetMsgs()[0].(*stakingtypes.MsgCreateValidator)
+				fmt.Fprintf(cmd.OutOrStdout(), "  %d. %s (%s)\n", i+1, msgCreateVal.Description.Moniker, msgCreateVal.ValidatorAddress)
 			}
 
 			return nil

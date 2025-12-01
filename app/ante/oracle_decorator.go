@@ -3,6 +3,7 @@ package ante
 import (
 	"fmt"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -36,12 +37,8 @@ func (od OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 			if err := od.validateSubmitPrice(ctx, msg); err != nil {
 				return ctx, err
 			}
-		case *oracletypes.MsgRegisterOracle:
-			if err := od.validateRegisterOracle(ctx, msg); err != nil {
-				return ctx, err
-			}
-		case *oracletypes.MsgRegisterAsset:
-			if err := od.validateRegisterAsset(ctx, msg); err != nil {
+		case *oracletypes.MsgDelegateFeedConsent:
+			if err := od.validateDelegateFeedConsent(ctx, msg); err != nil {
 				return ctx, err
 			}
 		}
@@ -52,148 +49,55 @@ func (od OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 
 // validateSubmitPrice performs additional validation for price submissions
 func (od OracleDecorator) validateSubmitPrice(ctx sdk.Context, msg *oracletypes.MsgSubmitPrice) error {
-	oracle, err := sdk.AccAddressFromBech32(msg.Oracle)
+	validator, err := sdk.ValAddressFromBech32(msg.Validator)
 	if err != nil {
-		return sdkerrors.ErrInvalidAddress.Wrapf("invalid oracle address: %s", err)
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
 
-	// Consume gas for validation
-	ctx.GasMeter().ConsumeGas(1000, "price submission validation")
-
-	// Verify oracle is registered and active
-	oracleInfo, err := od.keeper.GetOracle(ctx, oracle)
+	feeder, err := sdk.AccAddressFromBech32(msg.Feeder)
 	if err != nil {
-		return sdkerrors.ErrNotFound.Wrap("oracle not registered")
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid feeder address: %s", err)
 	}
 
-	if !oracleInfo.Active {
-		return sdkerrors.ErrInvalidRequest.Wrap("oracle is not active")
-	}
-
-	// Verify asset is registered
-	assetExists, err := od.keeper.HasAsset(ctx, msg.AssetId)
-	if err != nil || !assetExists {
-		return sdkerrors.ErrNotFound.Wrapf("asset %s not registered", msg.AssetId)
-	}
-
-	// Get module params
-	params, err := od.keeper.GetParams(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
-	}
-
-	// Check price freshness - ensure price is not too old
-	blockTime := ctx.BlockTime()
-	if msg.Timestamp.Before(blockTime.Add(-params.MaxPriceAge)) {
-		return sdkerrors.ErrInvalidRequest.Wrapf("price timestamp too old: %s", msg.Timestamp)
-	}
-
-	// Prevent future timestamps
-	if msg.Timestamp.After(blockTime.Add(params.MaxClockDrift)) {
-		return sdkerrors.ErrInvalidRequest.Wrapf("price timestamp in future: %s", msg.Timestamp)
+	if msg.Asset == "" {
+		return sdkerrors.ErrInvalidRequest.Wrap("asset cannot be empty")
 	}
 
 	// Validate price is positive
-	if msg.Price.IsNil() || msg.Price.IsZero() || msg.Price.IsNegative() {
+	if msg.Price.IsNil() || msg.Price.LTE(math.LegacyZeroDec()) {
 		return sdkerrors.ErrInvalidRequest.Wrap("price must be positive")
 	}
 
-	// Check for duplicate submissions in same block
-	hasSubmission, err := od.keeper.HasPriceSubmission(ctx, oracle, msg.AssetId, ctx.BlockHeight())
-	if err == nil && hasSubmission {
-		return sdkerrors.ErrInvalidRequest.Wrap("duplicate price submission in same block")
-	}
+	goCtx := sdk.WrapSDKContext(ctx)
 
-	// Rate limiting check
-	submissionCount, err := od.keeper.GetOracleSubmissionCount(ctx, oracle)
-	if err == nil && submissionCount >= params.MaxSubmissionsPerBlock {
-		return sdkerrors.ErrInvalidRequest.Wrapf("oracle has exceeded max submissions per block: %d", params.MaxSubmissionsPerBlock)
-	}
-
-	// Check circuit breaker
-	circuitBroken, err := od.keeper.IsCircuitBroken(ctx)
-	if err == nil && circuitBroken {
-		return sdkerrors.ErrInvalidRequest.Wrap("oracle circuit breaker triggered")
+	if err := od.keeper.ValidateFeeder(goCtx, validator, feeder); err != nil {
+		return sdkerrors.ErrUnauthorized.Wrap(err.Error())
 	}
 
 	return nil
 }
 
-// validateRegisterOracle performs additional validation for oracle registration
-func (od OracleDecorator) validateRegisterOracle(ctx sdk.Context, msg *oracletypes.MsgRegisterOracle) error {
-	oracle, err := sdk.AccAddressFromBech32(msg.Oracle)
+// validateDelegateFeedConsent performs additional validation for feeder delegation
+func (od OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *oracletypes.MsgDelegateFeedConsent) error {
+	validator, err := sdk.ValAddressFromBech32(msg.Validator)
 	if err != nil {
-		return sdkerrors.ErrInvalidAddress.Wrapf("invalid oracle address: %s", err)
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
 
-	// Consume gas for validation
-	ctx.GasMeter().ConsumeGas(1500, "oracle registration validation")
-
-	// Check if oracle is already registered
-	existingOracle, err := od.keeper.GetOracle(ctx, oracle)
-	if err == nil && existingOracle != nil && existingOracle.Active {
-		return sdkerrors.ErrInvalidRequest.Wrap("oracle already registered and active")
-	}
-
-	// Get module params
-	params, err := od.keeper.GetParams(ctx)
+	delegate, err := sdk.AccAddressFromBech32(msg.Delegate)
 	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid delegate address: %s", err)
 	}
+	_ = delegate
 
-	// Validate minimum stake
-	if msg.Stake.LT(params.MinOracleStake) {
-		return sdkerrors.ErrInvalidRequest.Wrapf("stake %s is less than minimum %s",
-			msg.Stake.String(), params.MinOracleStake.String())
-	}
-
-	// Verify oracle is a validator (or has sufficient stake)
-	validator, err := od.keeper.GetStakingKeeper().GetValidator(ctx, sdk.ValAddress(oracle))
-	if err != nil && !params.AllowNonValidatorOracles {
-		return sdkerrors.ErrInvalidRequest.Wrap("oracle must be a validator")
-	}
-
-	// If validator, check voting power threshold
-	if err == nil {
-		votingPower := validator.GetConsensusPower(od.keeper.GetStakingKeeper().PowerReduction(ctx))
-		if votingPower < params.MinValidatorVotingPower {
-			return sdkerrors.ErrInvalidRequest.Wrapf("validator voting power %d below minimum %d",
-				votingPower, params.MinValidatorVotingPower)
-		}
-	}
-
-	return nil
-}
-
-// validateRegisterAsset performs additional validation for asset registration
-func (od OracleDecorator) validateRegisterAsset(ctx sdk.Context, msg *oracletypes.MsgRegisterAsset) error {
-	// Consume gas for validation
-	ctx.GasMeter().ConsumeGas(1000, "asset registration validation")
-
-	// Verify authority (only governance can register assets)
-	params, err := od.keeper.GetParams(ctx)
+	goCtx := sdk.WrapSDKContext(ctx)
+	isActive, err := od.keeper.IsActiveValidator(goCtx, validator)
 	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
+		return fmt.Errorf("failed to verify validator activity: %w", err)
 	}
 
-	if msg.Authority != params.Authority {
-		return sdkerrors.ErrUnauthorized.Wrap("only governance can register assets")
-	}
-
-	// Check if asset already exists
-	exists, err := od.keeper.HasAsset(ctx, msg.AssetId)
-	if err == nil && exists {
-		return sdkerrors.ErrInvalidRequest.Wrapf("asset %s already registered", msg.AssetId)
-	}
-
-	// Validate asset ID format
-	if len(msg.AssetId) == 0 || len(msg.AssetId) > 64 {
-		return sdkerrors.ErrInvalidRequest.Wrap("asset ID must be between 1 and 64 characters")
-	}
-
-	// Validate description
-	if len(msg.Description) > 256 {
-		return sdkerrors.ErrInvalidRequest.Wrap("description must not exceed 256 characters")
+	if !isActive {
+		return sdkerrors.ErrUnauthorized.Wrap("validator is not bonded")
 	}
 
 	return nil

@@ -252,19 +252,42 @@ func (k Keeper) CleanupOldSubmissions(ctx context.Context) error {
 func (k Keeper) AggregatePrices(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Get all tracked prices/assets
+	assetSet := make(map[string]struct{})
+
+	// Track assets that already have aggregated prices
 	prices, err := k.GetAllPrices(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get prices: %w", err)
 	}
+	for _, price := range prices {
+		if price.Asset == "" {
+			continue
+		}
+		assetSet[price.Asset] = struct{}{}
+	}
+
+	// Include assets that only have validator submissions (no aggregated price yet)
+	validatorPrices, err := k.GetAllValidatorPrices(ctx, "")
+	if err != nil {
+		return fmt.Errorf("failed to get validator prices: %w", err)
+	}
+	for _, vp := range validatorPrices {
+		if vp.Asset == "" {
+			continue
+		}
+		assetSet[vp.Asset] = struct{}{}
+	}
+
+	if len(assetSet) == 0 {
+		return nil
+	}
 
 	aggregatedCount := 0
 
-	// Aggregate prices for each asset
-	for _, asset := range prices {
-		if err := k.AggregateAssetPrice(ctx, asset.Asset); err != nil {
+	for asset := range assetSet {
+		if err := k.AggregateAssetPrice(ctx, asset); err != nil {
 			sdkCtx.Logger().Error("failed to aggregate price",
-				"asset", asset.Asset,
+				"asset", asset,
 				"error", err,
 			)
 			continue

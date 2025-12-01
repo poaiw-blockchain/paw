@@ -3,12 +3,14 @@ package oracle
 import (
 	"fmt"
 
+	errorsmod "cosmossdk.io/errors"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 
 	"github.com/paw-chain/paw/x/oracle/keeper"
@@ -48,20 +50,24 @@ func (im IBCModule) OnChanOpenInit(
 ) (string, error) {
 	// Oracle can use unordered channels for better performance
 	if order != channeltypes.UNORDERED {
-		return "", sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering,
+		return "", errorsmod.Wrapf(channeltypes.ErrInvalidChannelOrdering,
 			"expected %s channel, got %s", channeltypes.UNORDERED, order)
 	}
 
 	// Validate version
 	if version != types.IBCVersion {
-		return "", sdkerrors.Wrapf(types.ErrInvalidPacket,
+		return "", errorsmod.Wrapf(types.ErrInvalidPacket,
 			"expected version %s, got %s", types.IBCVersion, version)
 	}
 
 	// Validate port
 	if portID != types.PortID {
-		return "", sdkerrors.Wrapf(porttypes.ErrInvalidPort,
+		return "", errorsmod.Wrapf(porttypes.ErrInvalidPort,
 			"expected port %s, got %s", types.PortID, portID)
+	}
+
+	if err := im.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
+		return "", errorsmod.Wrap(err, "failed to claim channel capability")
 	}
 
 	// Emit event
@@ -91,14 +97,18 @@ func (im IBCModule) OnChanOpenTry(
 ) (string, error) {
 	// Validate channel ordering
 	if order != channeltypes.UNORDERED {
-		return "", sdkerrors.Wrapf(channeltypes.ErrInvalidChannelOrdering,
+		return "", errorsmod.Wrapf(channeltypes.ErrInvalidChannelOrdering,
 			"expected %s channel, got %s", channeltypes.UNORDERED, order)
 	}
 
 	// Validate version
 	if counterpartyVersion != types.IBCVersion {
-		return "", sdkerrors.Wrapf(types.ErrInvalidPacket,
+		return "", errorsmod.Wrapf(types.ErrInvalidPacket,
 			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
+	}
+
+	if err := im.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
+		return "", errorsmod.Wrap(err, "failed to claim channel capability")
 	}
 
 	// Emit event
@@ -125,7 +135,7 @@ func (im IBCModule) OnChanOpenAck(
 ) error {
 	// Validate counterparty version
 	if counterpartyVersion != types.IBCVersion {
-		return sdkerrors.Wrapf(types.ErrInvalidPacket,
+		return errorsmod.Wrapf(types.ErrInvalidPacket,
 			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
 	}
 
@@ -167,7 +177,7 @@ func (im IBCModule) OnChanCloseInit(
 	channelID string,
 ) error {
 	// Disallow user-initiated channel closing for oracle
-	return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "user cannot close channel")
+	return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "user cannot close channel")
 }
 
 // OnChanCloseConfirm implements the IBCModule interface
@@ -199,13 +209,13 @@ func (im IBCModule) OnRecvPacket(
 	packetData, err := types.ParsePacketData(packet.Data)
 	if err != nil {
 		return channeltypes.NewErrorAcknowledgement(
-			sdkerrors.Wrapf(types.ErrInvalidPacket, "failed to parse packet data: %s", err.Error()))
+			errorsmod.Wrapf(types.ErrInvalidPacket, "failed to parse packet data: %s", err.Error()))
 	}
 
 	// Validate packet
 	if err := packetData.ValidateBasic(); err != nil {
 		return channeltypes.NewErrorAcknowledgement(
-			sdkerrors.Wrap(types.ErrInvalidPacket, err.Error()))
+			errorsmod.Wrap(types.ErrInvalidPacket, err.Error()))
 	}
 
 	// Route packet based on type
@@ -229,7 +239,7 @@ func (im IBCModule) OnRecvPacket(
 
 	default:
 		return channeltypes.NewErrorAcknowledgement(
-			sdkerrors.Wrapf(types.ErrInvalidPacket, "unknown packet type: %s", packetData.GetType()))
+			errorsmod.Wrapf(types.ErrInvalidPacket, "unknown packet type: %s", packetData.GetType()))
 	}
 
 	// Emit receive event
@@ -254,8 +264,8 @@ func (im IBCModule) OnAcknowledgementPacket(
 	relayer sdk.AccAddress,
 ) error {
 	var ack channeltypes.Acknowledgement
-	if err := im.cdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest,
+	if err := channeltypes.SubModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest,
 			"cannot unmarshal packet acknowledgement: %v", err)
 	}
 

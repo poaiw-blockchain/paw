@@ -2,7 +2,6 @@ package byzantine
 
 import (
 	"testing"
-	"time"
 
 	"cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
@@ -288,7 +287,6 @@ func TestCensorshipResistance(t *testing.T) {
 	}
 
 	targetTx := &Transaction{Hash: "target_tx"}
-	otherTx := &Transaction{Hash: "other_tx"}
 
 	// Byzantine validator rejects target tx
 	mempool := &Mempool{
@@ -360,7 +358,7 @@ func createValidators(total, byzantine int) []*Validator {
 	for i := 0; i < total; i++ {
 		behavior := HonestValidator
 		if i < byzantine {
-			behavior := ByzantineValidator
+			behavior = ByzantineValidator
 		}
 		validators[i] = &Validator{
 			ID:       i,
@@ -383,7 +381,7 @@ func simulateConsensus(validators []*Validator) *Consensus {
 	}
 
 	honestPower := math.LegacyNewDecFromInt(honestStake).Quo(math.LegacyNewDecFromInt(totalStake))
-	threshold := math.LegacyNewDecWithPrec(67, 2) // 67% (2/3+)
+	threshold := math.LegacyNewDec(2).Quo(math.LegacyNewDec(3)) // 2/3 threshold
 
 	if honestPower.GTE(threshold) {
 		return &Consensus{
@@ -445,7 +443,7 @@ func (n *PartitionedNetwork) AttemptConsensus(partition []int) *Consensus {
 	}
 
 	threshold := len(partition) * 2 / 3
-	if honestCount > threshold {
+	if honestCount >= threshold {
 		return &Consensus{Reached: true, AgreedValue: "block"}
 	}
 	return &Consensus{Reached: false}

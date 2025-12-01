@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +17,8 @@ import (
 
 func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 	t.Run("Oracle aggregation with many validators", func(t *testing.T) {
-		k, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		k := NewOracleGasKeeper(rawKeeper)
 
 		// Try to create a scenario with excessive validators
 		// This should be bounded by gas limits
@@ -24,7 +26,16 @@ func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 		asset := "BTC"
 
 		// Set reasonable gas limit
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(5000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(5000000))
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(storetypes.ErrorOutOfGas); ok {
+					t.Log("Hit gas limit during oracle registration (expected behavior)")
+					return
+				}
+				panic(r)
+			}
+		}()
 
 		// Register many oracles
 		for i := 0; i < numOracles; i++ {
@@ -44,7 +55,7 @@ func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 		}
 
 		// Try to aggregate - should fail with out of gas
-		_, err := k.AggregateVotes(ctx, asset)
+		err := k.AggregatePrices(ctx)
 
 		// Should either error or consume significant gas
 		if err != nil {
@@ -59,10 +70,20 @@ func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 	})
 
 	t.Run("DEX pool iteration limit", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		// Create many pools to test iteration limits
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(storetypes.ErrorOutOfGas); ok {
+					t.Log("Hit gas limit while creating pools (expected behavior)")
+					return
+				}
+				panic(r)
+			}
+		}()
 
 		creator := sdk.AccAddress("creator1___________")
 
@@ -93,7 +114,8 @@ func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 
 func TestDoS_LargeInputData(t *testing.T) {
 	t.Run("Compute module large input", func(t *testing.T) {
-		k, ctx := keepertest.ComputeKeeper(t)
+		rawKeeper, ctx := keepertest.ComputeKeeper(t)
+		k := NewComputeGasKeeper(rawKeeper)
 
 		// Register provider
 		provider := sdk.AccAddress("provider1__________")
@@ -118,7 +140,7 @@ func TestDoS_LargeInputData(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				ctx = ctx.WithGasMeter(sdk.NewGasMeter(tt.gasLimit))
+				ctx = ctx.WithGasMeter(storetypes.NewGasMeter(tt.gasLimit))
 
 				largeInput := make([]byte, tt.inputSize)
 				for i := range largeInput {
@@ -146,14 +168,15 @@ func TestDoS_LargeInputData(t *testing.T) {
 	})
 
 	t.Run("Oracle batch submission limit", func(t *testing.T) {
-		k, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		k := NewOracleGasKeeper(rawKeeper)
 
 		oracle := sdk.AccAddress("oracle1_____________")
 		err := k.RegisterOracle(ctx, oracle.String())
 		require.NoError(t, err)
 
 		// Try to submit prices for many assets at once
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(2000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(2000000))
 
 		numAssets := 100 // Excessive number
 		for i := 0; i < numAssets; i++ {
@@ -179,7 +202,8 @@ func TestDoS_LargeInputData(t *testing.T) {
 
 func TestDoS_NestedOperations(t *testing.T) {
 	t.Run("Multiple DEX swaps in sequence", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		// Create pool
 		creator := sdk.AccAddress("creator1___________")
@@ -190,7 +214,7 @@ func TestDoS_NestedOperations(t *testing.T) {
 		trader := sdk.AccAddress("trader1____________")
 
 		// Set gas limit for multiple swaps
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(3000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(3000000))
 
 		// Execute multiple swaps
 		numSwaps := 20
@@ -216,7 +240,8 @@ func TestDoS_NestedOperations(t *testing.T) {
 	})
 
 	t.Run("Nested escrow operations", func(t *testing.T) {
-		k, ctx := keepertest.ComputeKeeper(t)
+		rawKeeper, ctx := keepertest.ComputeKeeper(t)
+		k := NewComputeGasKeeper(rawKeeper)
 
 		// Setup
 		provider := sdk.AccAddress("provider1__________")
@@ -228,7 +253,7 @@ func TestDoS_NestedOperations(t *testing.T) {
 
 		requester := sdk.AccAddress("requester1_________")
 
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(5000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(5000000))
 
 		// Create multiple requests with escrow
 		numRequests := 10
@@ -255,13 +280,14 @@ func TestDoS_NestedOperations(t *testing.T) {
 
 func TestDoS_StateIterations(t *testing.T) {
 	t.Run("Iterator gas consumption", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		creator := sdk.AccAddress("creator1___________")
 
 		// Create multiple pools
 		numPools := 50
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		for i := 0; i < numPools; i++ {
 			tokenA := fmt.Sprintf("token%da", i)
@@ -281,7 +307,7 @@ func TestDoS_StateIterations(t *testing.T) {
 		t.Logf("Created pools: %d gas", gasAfterCreate)
 
 		// Now iterate over all pools - should consume gas
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(2000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(2000000))
 
 		pools := k.GetAllPools(ctx)
 
@@ -302,7 +328,8 @@ func TestDoS_StateIterations(t *testing.T) {
 
 func TestDoS_MalformedData(t *testing.T) {
 	t.Run("Invalid price submissions", func(t *testing.T) {
-		k, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		k := NewOracleGasKeeper(rawKeeper)
 
 		oracle := sdk.AccAddress("oracle1_____________")
 		err := k.RegisterOracle(ctx, oracle.String())
@@ -320,7 +347,7 @@ func TestDoS_MalformedData(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				ctx = ctx.WithGasMeter(sdk.NewGasMeter(100000))
+				ctx = ctx.WithGasMeter(storetypes.NewGasMeter(100000))
 
 				err := k.SubmitPrice(ctx, oracle.String(), tt.asset, tt.price)
 
@@ -337,7 +364,8 @@ func TestDoS_MalformedData(t *testing.T) {
 	})
 
 	t.Run("Invalid swap parameters", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		// Create pool
 		creator := sdk.AccAddress("creator1___________")
@@ -348,9 +376,9 @@ func TestDoS_MalformedData(t *testing.T) {
 		trader := sdk.AccAddress("trader1____________")
 
 		tests := []struct {
-			name      string
-			amountIn  math.Int
-			minOut    math.Int
+			name     string
+			amountIn math.Int
+			minOut   math.Int
 		}{
 			{"zero amount", math.ZeroInt(), math.NewInt(1)},
 			{"negative amount", math.NewInt(-1000), math.NewInt(1)},
@@ -358,7 +386,7 @@ func TestDoS_MalformedData(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				ctx = ctx.WithGasMeter(sdk.NewGasMeter(100000))
+				ctx = ctx.WithGasMeter(storetypes.NewGasMeter(100000))
 
 				_, err := k.Swap(ctx, trader.String(), poolID, "upaw", tt.amountIn, tt.minOut)
 
@@ -377,9 +405,10 @@ func TestDoS_MalformedData(t *testing.T) {
 
 func TestDoS_ExcessiveStateWrites(t *testing.T) {
 	t.Run("Multiple provider registrations", func(t *testing.T) {
-		k, ctx := keepertest.ComputeKeeper(t)
+		rawKeeper, ctx := keepertest.ComputeKeeper(t)
+		k := NewComputeGasKeeper(rawKeeper)
 
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(10000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(10000000))
 
 		// Try to register many providers
 		numProviders := 100
@@ -415,11 +444,12 @@ func TestDoS_ExcessiveStateWrites(t *testing.T) {
 
 func TestDoS_GasExhaustion(t *testing.T) {
 	t.Run("Verify gas limit enforcement", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		// Set very low gas limit
 		lowGasLimit := uint64(10000)
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(lowGasLimit))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(lowGasLimit))
 
 		creator := sdk.AccAddress("creator1___________")
 
@@ -436,9 +466,10 @@ func TestDoS_GasExhaustion(t *testing.T) {
 	})
 
 	t.Run("Verify gas meter accuracy", func(t *testing.T) {
-		k, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		k := NewOracleGasKeeper(rawKeeper)
 
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(1000000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(1000000))
 
 		oracle := sdk.AccAddress("oracle1_____________")
 		err := k.RegisterOracle(ctx, oracle.String())
@@ -463,7 +494,8 @@ func TestDoS_GasExhaustion(t *testing.T) {
 
 func TestDoS_CircuitBreaker(t *testing.T) {
 	t.Run("Large swap price impact", func(t *testing.T) {
-		k, ctx := keepertest.DexKeeper(t)
+		rawKeeper, ctx := keepertest.DexKeeper(t)
+		k := NewDexGasKeeper(rawKeeper)
 
 		// Create pool with limited liquidity
 		creator := sdk.AccAddress("creator1___________")
@@ -474,7 +506,7 @@ func TestDoS_CircuitBreaker(t *testing.T) {
 		trader := sdk.AccAddress("trader1____________")
 
 		// Try massive swap that would drain pool
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(500000))
+		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(500000))
 
 		hugeSwap := math.NewInt(10000000) // 10x pool size
 

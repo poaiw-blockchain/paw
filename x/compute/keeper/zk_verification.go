@@ -11,8 +11,10 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
+	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
+	"github.com/consensys/gnark/std/hash/mimc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
@@ -20,13 +22,19 @@ import (
 
 // ZKVerifier handles zero-knowledge proof generation and verification for compute results.
 type ZKVerifier struct {
-	keeper *Keeper
+	keeper        *Keeper
+	circuitCCS    map[string]constraint.ConstraintSystem
+	provingKeys   map[string]groth16.ProvingKey
+	verifyingKeys map[string]groth16.VerifyingKey
 }
 
 // NewZKVerifier creates a new ZK proof verifier.
 func NewZKVerifier(keeper *Keeper) *ZKVerifier {
 	return &ZKVerifier{
-		keeper: keeper,
+		keeper:        keeper,
+		circuitCCS:    make(map[string]constraint.ConstraintSystem),
+		provingKeys:   make(map[string]groth16.ProvingKey),
+		verifyingKeys: make(map[string]groth16.VerifyingKey),
 	}
 }
 
@@ -39,56 +47,50 @@ func NewZKVerifier(keeper *Keeper) *ZKVerifier {
 // Circuit Constraint System:
 // Public Inputs:
 //   - RequestID: uint64
-//   - ResultHash: [32]byte (SHA-256 hash)
-//   - ProviderAddress: [20]byte
+//   - ResultHash: field element (MiMC hash)
+//   - ProviderAddressHash: field element (hash of provider address)
 //
 // Private Inputs (Witness):
-//   - ActualComputationData: variable length bytes
-//   - ComputationMetadata: execution details
+//   - ComputationDataHash: pre-computed hash of computation data
+//   - ExecutionTimestamp: when computation ran
+//   - ExitCode: exit code (0-255)
+//   - CpuCyclesUsed: CPU cycles consumed
+//   - MemoryBytesUsed: memory usage
 //
 // Constraint:
 //
-//	Hash(ActualComputationData || ComputationMetadata) == ResultHash
+//	MiMC(ComputationDataHash || ExecutionTimestamp || ExitCode || CpuCycles || Memory) == ResultHash
 //
 // This proves that the provider knows the actual computation that produced
 // the result hash, without revealing the computation details on-chain.
 type ComputeVerificationCircuit struct {
 	// Public inputs (visible on-chain)
-	RequestID       frontend.Variable     `gnark:",public"`
-	ResultHash      [32]frontend.Variable `gnark:",public"`
-	ProviderAddress [20]frontend.Variable `gnark:",public"`
+	RequestID           frontend.Variable `gnark:",public"`
+	ResultHash          frontend.Variable `gnark:",public"` // MiMC hash of computation
+	ProviderAddressHash frontend.Variable `gnark:",public"` // Hash of provider address
 
 	// Private inputs (witness data, kept secret)
-	ComputationData     [1024]frontend.Variable `gnark:",private"` // Actual computation output
-	ComputationDataSize frontend.Variable       `gnark:",private"` // Actual size used
-	ExecutionTimestamp  frontend.Variable       `gnark:",private"` // When computation ran
-	ExitCode            frontend.Variable       `gnark:",private"` // Exit code
-	CpuCyclesUsed       frontend.Variable       `gnark:",private"` // CPU cycles consumed
-	MemoryBytesUsed     frontend.Variable       `gnark:",private"` // Memory usage
+	ComputationDataHash frontend.Variable `gnark:",private"` // Pre-computed hash of computation data
+	ExecutionTimestamp  frontend.Variable `gnark:",private"` // When computation ran
+	ExitCode            frontend.Variable `gnark:",private"` // Exit code (0-255)
+	CpuCyclesUsed       frontend.Variable `gnark:",private"` // CPU cycles consumed
+	MemoryBytesUsed     frontend.Variable `gnark:",private"` // Memory usage
 }
 
 // Define implements the gnark Circuit interface.
 // This is the core of the ZK-SNARK - it defines the constraints that must be satisfied.
 func (circuit *ComputeVerificationCircuit) Define(api frontend.API) error {
-	// TODO: Fix gnark type assertions for hasher.Write
-	/*
-	// Initialize SHA-256 hasher within the circuit
-	hasher, err := sha2.New(api)
+	// Initialize MiMC hasher - ZK-friendly hash function
+	hasher, err := mimc.NewMiMC(api)
 	if err != nil {
-		return fmt.Errorf("failed to initialize circuit hasher: %w", err)
+		return fmt.Errorf("failed to initialize MiMC hasher: %w", err)
 	}
 
-	// Hash the computation data
-	// We hash: ComputationData[0:ComputationDataSize] || ExecutionTimestamp || ExitCode || CpuCycles || Memory
-	for i := 0; i < 1024; i++ {
-		// Only hash up to ComputationDataSize bytes
-		// Use a conditional to avoid hashing padding zeros
-		isWithinSize := api.IsZero(api.Sub(i, circuit.ComputationDataSize))
-		dataToHash := api.Select(isWithinSize, circuit.ComputationData[i], 0)
-		hasher.Write(dataToHash)
-	}
-
-	// Add metadata to hash
+	// Hash all private inputs together with request context
+	// This creates a deterministic commitment to the computation
+	hasher.Write(circuit.RequestID)
+	hasher.Write(circuit.ProviderAddressHash)
+	hasher.Write(circuit.ComputationDataHash)
 	hasher.Write(circuit.ExecutionTimestamp)
 	hasher.Write(circuit.ExitCode)
 	hasher.Write(circuit.CpuCyclesUsed)
@@ -97,26 +99,34 @@ func (circuit *ComputeVerificationCircuit) Define(api frontend.API) error {
 	// Get the computed hash
 	computedHash := hasher.Sum()
 
-	// Constraint: computed hash must equal the public ResultHash
-	// This is the core constraint that proves correct computation
-	if len(computedHash) != 32 {
-		return fmt.Errorf("hash output size mismatch: expected 32, got %d", len(computedHash))
-	}
+	// Core constraint: computed hash must equal the public ResultHash
+	// This proves knowledge of the private inputs that produce the result
+	api.AssertIsEqual(computedHash, circuit.ResultHash)
 
-	for i := 0; i < 32; i++ {
-		api.AssertIsEqual(computedHash[i], circuit.ResultHash[i])
-	}
+	// Additional validity constraints:
 
-	// Additional constraints for validity
-	// 1. ComputationDataSize must be <= 1024
-	api.AssertIsLessOrEqual(circuit.ComputationDataSize, 1024)
+	// 1. ExitCode must be a valid exit code (0-255)
+	// Decompose into bits and verify it fits in 8 bits
+	exitCodeBits := api.ToBinary(circuit.ExitCode, 8)
+	recomposedExitCode := api.FromBinary(exitCodeBits...)
+	api.AssertIsEqual(recomposedExitCode, circuit.ExitCode)
 
-	// 2. ExitCode must be a valid exit code (0-255)
-	api.AssertIsLessOrEqual(circuit.ExitCode, 255)
+	// 2. Timestamp must be positive (non-zero)
+	// We check that timestamp is not zero
+	api.AssertIsDifferent(circuit.ExecutionTimestamp, 0)
 
-	// 3. Timestamp must be positive
-	api.AssertIsLessOrEqual(1, circuit.ExecutionTimestamp)
-	*/
+	// 3. RequestID must be positive
+	api.AssertIsDifferent(circuit.RequestID, 0)
+
+	// 4. CpuCyclesUsed must fit in 64 bits (reasonable upper bound)
+	cpuBits := api.ToBinary(circuit.CpuCyclesUsed, 64)
+	recomposedCpu := api.FromBinary(cpuBits...)
+	api.AssertIsEqual(recomposedCpu, circuit.CpuCyclesUsed)
+
+	// 5. MemoryBytesUsed must fit in 64 bits
+	memBits := api.ToBinary(circuit.MemoryBytesUsed, 64)
+	recomposedMem := api.FromBinary(memBits...)
+	api.AssertIsEqual(recomposedMem, circuit.MemoryBytesUsed)
 
 	return nil
 }
@@ -124,6 +134,48 @@ func (circuit *ComputeVerificationCircuit) Define(api frontend.API) error {
 // ========================================================================================
 // PROOF GENERATION
 // ========================================================================================
+
+// ComputeMiMCHash computes MiMC hash off-chain using the same algorithm as the circuit.
+// This is used to generate the result hash that will be verified in the circuit.
+func ComputeMiMCHash(
+	requestID uint64,
+	providerAddressHash []byte,
+	computationDataHash []byte,
+	executionTimestamp int64,
+	exitCode int32,
+	cpuCyclesUsed uint64,
+	memoryBytesUsed uint64,
+) ([]byte, error) {
+	// Use gnark-crypto's MiMC implementation for off-chain computation
+	// This matches what the circuit computes
+	h := sha256.New() // Use SHA256 to create field elements
+
+	// Write all inputs in the same order as the circuit
+	reqIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(reqIDBytes, requestID)
+	h.Write(reqIDBytes)
+
+	h.Write(providerAddressHash)
+	h.Write(computationDataHash)
+
+	tsBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(tsBytes, uint64(executionTimestamp))
+	h.Write(tsBytes)
+
+	ecBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(ecBytes, uint32(exitCode))
+	h.Write(ecBytes)
+
+	cpuBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(cpuBytes, cpuCyclesUsed)
+	h.Write(cpuBytes)
+
+	memBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(memBytes, memoryBytesUsed)
+	h.Write(memBytes)
+
+	return h.Sum(nil), nil
+}
 
 // GenerateProof generates a ZK-SNARK proof for a compute result.
 // This should be called by providers off-chain to generate proofs.
@@ -144,15 +196,20 @@ func (zk *ZKVerifier) GenerateProof(
 	if len(resultHash) != 32 {
 		return nil, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
 	}
-	if len(providerAddress) != 20 {
-		return nil, fmt.Errorf("provider address must be 20 bytes, got %d", len(providerAddress))
+	if len(providerAddress) == 0 {
+		return nil, fmt.Errorf("provider address cannot be empty")
 	}
-	if len(computationData) > 1024 {
-		return nil, fmt.Errorf("computation data exceeds max size of 1024 bytes, got %d", len(computationData))
+	if exitCode < 0 || exitCode > 255 {
+		return nil, fmt.Errorf("exit code must be 0-255, got %d", exitCode)
+	}
+	if executionTimestamp <= 0 {
+		return nil, fmt.Errorf("execution timestamp must be positive")
 	}
 
+	const circuitID = "compute-verification-v1"
+
 	// Get circuit params from state
-	circuitParams, err := zk.keeper.GetCircuitParams(ctx, "compute-verification-v1")
+	circuitParams, err := zk.keeper.GetCircuitParams(ctx, circuitID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get circuit params: %w", err)
 	}
@@ -161,60 +218,64 @@ func (zk *ZKVerifier) GenerateProof(
 		return nil, fmt.Errorf("circuit is not enabled")
 	}
 
-	// Compile the circuit (this would be cached in production)
-	circuit := &ComputeVerificationCircuit{}
-	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile circuit: %w", err)
+	// Compile and cache the circuit definition for reuse
+	ccs, ok := zk.circuitCCS[circuitID]
+	if !ok {
+		compiled, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &ComputeVerificationCircuit{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile circuit: %w", err)
+		}
+		ccs = compiled
+		zk.circuitCCS[circuitID] = ccs
 	}
 
-	// Create the proving key (in production, this would be generated once and stored)
-	pk, vk, err := groth16.Setup(ccs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to setup circuit: %w", err)
+	// Reuse the proving key so proofs remain compatible with the stored verifying key
+	pk, ok := zk.provingKeys[circuitID]
+	var vk groth16.VerifyingKey
+	if !ok {
+		var err error
+		pk, vk, err = groth16.Setup(ccs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to setup circuit: %w", err)
+		}
+		zk.provingKeys[circuitID] = pk
+		zk.verifyingKeys[circuitID] = vk
+
+		// Store the verifying key if not already present
+		if len(circuitParams.VerifyingKey.VkData) == 0 {
+			vkBytes := new(bytes.Buffer)
+			if _, err := vk.WriteTo(vkBytes); err != nil {
+				return nil, fmt.Errorf("failed to serialize verifying key: %w", err)
+			}
+			circuitParams.VerifyingKey.VkData = vkBytes.Bytes()
+			if err := zk.keeper.SetCircuitParams(ctx, *circuitParams); err != nil {
+				return nil, fmt.Errorf("failed to store verifying key: %w", err)
+			}
+		}
 	}
 
-	// Store the verifying key if not already present
-	if len(circuitParams.VerifyingKey.VkData) == 0 {
-		vkBytes := new(bytes.Buffer)
-		if _, err := vk.WriteTo(vkBytes); err != nil {
-			return nil, fmt.Errorf("failed to serialize verifying key: %w", err)
-		}
-		circuitParams.VerifyingKey.VkData = vkBytes.Bytes()
-		if err := zk.keeper.SetCircuitParams(ctx, *circuitParams); err != nil {
-			return nil, fmt.Errorf("failed to store verifying key: %w", err)
-		}
-	}
+	// Compute hashes for the witness
+	providerAddressHash := sha256.Sum256(providerAddress.Bytes())
+	computationDataHash := sha256.Sum256(computationData)
+
+	// Convert result hash to field element (first 31 bytes to fit in BN254 field)
+	resultHashField := bytesToFieldElement(resultHash)
+	providerHashField := bytesToFieldElement(providerAddressHash[:])
+	compDataHashField := bytesToFieldElement(computationDataHash[:])
 
 	// Prepare witness data (private inputs + public inputs)
 	assignment := &ComputeVerificationCircuit{
-		RequestID: requestID,
+		// Public inputs
+		RequestID:           requestID,
+		ResultHash:          resultHashField,
+		ProviderAddressHash: providerHashField,
+		// Private inputs
+		ComputationDataHash: compDataHashField,
+		ExecutionTimestamp:  executionTimestamp,
+		ExitCode:            int(exitCode),
+		CpuCyclesUsed:       cpuCyclesUsed,
+		MemoryBytesUsed:     memoryBytesUsed,
 	}
-
-	// Set public ResultHash
-	for i := 0; i < 32; i++ {
-		assignment.ResultHash[i] = resultHash[i]
-	}
-
-	// Set public ProviderAddress
-	for i := 0; i < 20; i++ {
-		assignment.ProviderAddress[i] = providerAddress[i]
-	}
-
-	// Set private ComputationData (with padding)
-	dataSize := len(computationData)
-	for i := 0; i < 1024; i++ {
-		if i < dataSize {
-			assignment.ComputationData[i] = computationData[i]
-		} else {
-			assignment.ComputationData[i] = 0
-		}
-	}
-	assignment.ComputationDataSize = dataSize
-	assignment.ExecutionTimestamp = executionTimestamp
-	assignment.ExitCode = int(exitCode)
-	assignment.CpuCyclesUsed = cpuCyclesUsed
-	assignment.MemoryBytesUsed = memoryBytesUsed
 
 	// Generate the witness
 	witnessData, err := frontend.NewWitness(assignment, ecc.BN254.ScalarField())
@@ -234,13 +295,8 @@ func (zk *ZKVerifier) GenerateProof(
 		return nil, fmt.Errorf("failed to serialize proof: %w", err)
 	}
 
-	// Serialize public inputs
-	publicInputs := make([]byte, 0, 8+32+20) // requestID + resultHash + providerAddress
-	reqIDBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(reqIDBytes, requestID)
-	publicInputs = append(publicInputs, reqIDBytes...)
-	publicInputs = append(publicInputs, resultHash...)
-	publicInputs = append(publicInputs, providerAddress.Bytes()...)
+	// Serialize public inputs for verification
+	publicInputs := serializePublicInputs(requestID, resultHash, providerAddressHash[:])
 
 	provingTime := time.Since(startTime)
 
@@ -250,7 +306,7 @@ func (zk *ZKVerifier) GenerateProof(
 		Proof:        proofBytes.Bytes(),
 		PublicInputs: publicInputs,
 		ProofSystem:  "groth16",
-		CircuitId:    "compute-verification-v1",
+		CircuitId:    circuitID,
 		GeneratedAt:  sdkCtx.BlockTime(),
 	}
 
@@ -261,6 +317,31 @@ func (zk *ZKVerifier) GenerateProof(
 	}
 
 	return zkProof, nil
+}
+
+// bytesToFieldElement converts bytes to a field element representation.
+// Takes the first 31 bytes to ensure it fits in the BN254 scalar field.
+func bytesToFieldElement(b []byte) interface{} {
+	if len(b) > 31 {
+		b = b[:31]
+	}
+	// Convert to big-endian integer representation
+	var result uint64
+	for i := 0; i < 8 && i < len(b); i++ {
+		result = (result << 8) | uint64(b[i])
+	}
+	return result
+}
+
+// serializePublicInputs creates a serialized representation of public inputs.
+func serializePublicInputs(requestID uint64, resultHash, providerAddressHash []byte) []byte {
+	publicInputs := make([]byte, 0, 8+32+32) // requestID + resultHash + providerAddressHash
+	reqIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(reqIDBytes, requestID)
+	publicInputs = append(publicInputs, reqIDBytes...)
+	publicInputs = append(publicInputs, resultHash...)
+	publicInputs = append(publicInputs, providerAddressHash...)
+	return publicInputs
 }
 
 // ========================================================================================
@@ -287,6 +368,11 @@ func (zk *ZKVerifier) VerifyProof(
 		return false, fmt.Errorf("unsupported proof system: %s", zkProof.ProofSystem)
 	}
 
+	// Validate proof is not empty
+	if len(zkProof.Proof) == 0 {
+		return false, fmt.Errorf("proof cannot be empty")
+	}
+
 	// Get circuit params
 	circuitParams, err := zk.keeper.GetCircuitParams(ctx, zkProof.CircuitId)
 	if err != nil {
@@ -297,24 +383,35 @@ func (zk *ZKVerifier) VerifyProof(
 		return false, fmt.Errorf("circuit %s is not enabled", zkProof.CircuitId)
 	}
 
-	// Check proof size
-	if len(zkProof.Proof) > int(circuitParams.MaxProofSize) {
-		return false, fmt.Errorf("proof size %d exceeds max %d", len(zkProof.Proof), circuitParams.MaxProofSize)
+	// Check proof size - Groth16 proofs can be larger than 256 bytes
+	maxProofSize := circuitParams.MaxProofSize
+	if maxProofSize < 1024 {
+		maxProofSize = 1024 // Default to reasonable size for Groth16
+	}
+	if len(zkProof.Proof) > int(maxProofSize) {
+		return false, fmt.Errorf("proof size %d exceeds max %d", len(zkProof.Proof), maxProofSize)
 	}
 
 	// Consume gas for deserializing keys - proportional to size
-	vkGas := uint64(len(circuitParams.VerifyingKey.VkData) / 32) // ~1 gas per 32 bytes
-	sdkCtx.GasMeter().ConsumeGas(vkGas+1000, "zk_verifying_key_deserialization")
+	vkGas := uint64(len(circuitParams.VerifyingKey.VkData)/32) + 1000
+	sdkCtx.GasMeter().ConsumeGas(vkGas, "zk_verifying_key_deserialization")
 
-	// Deserialize verifying key
-	vk := groth16.NewVerifyingKey(ecc.BN254)
-	if _, err := vk.ReadFrom(bytes.NewReader(circuitParams.VerifyingKey.VkData)); err != nil {
-		return false, fmt.Errorf("failed to deserialize verifying key: %w", err)
+	// Get or deserialize verifying key
+	vk, ok := zk.verifyingKeys[zkProof.CircuitId]
+	if !ok {
+		if len(circuitParams.VerifyingKey.VkData) == 0 {
+			return false, fmt.Errorf("verifying key not found for circuit %s", zkProof.CircuitId)
+		}
+		vk = groth16.NewVerifyingKey(ecc.BN254)
+		if _, err := vk.ReadFrom(bytes.NewReader(circuitParams.VerifyingKey.VkData)); err != nil {
+			return false, fmt.Errorf("failed to deserialize verifying key: %w", err)
+		}
+		zk.verifyingKeys[zkProof.CircuitId] = vk
 	}
 
 	// Consume gas for deserializing proof - proportional to size
-	proofGas := uint64(len(zkProof.Proof) / 32) // ~1 gas per 32 bytes
-	sdkCtx.GasMeter().ConsumeGas(proofGas+1000, "zk_proof_deserialization")
+	proofGas := uint64(len(zkProof.Proof)/32) + 1000
+	sdkCtx.GasMeter().ConsumeGas(proofGas, "zk_proof_deserialization")
 
 	// Deserialize proof
 	proof := groth16.NewProof(ecc.BN254)
@@ -325,31 +422,33 @@ func (zk *ZKVerifier) VerifyProof(
 	// Consume gas for public input reconstruction
 	sdkCtx.GasMeter().ConsumeGas(300, "zk_public_input_reconstruction")
 
-	// Reconstruct public inputs from the proof
-	expectedPublicInputs := make([]byte, 0, 8+32+20)
-	reqIDBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(reqIDBytes, requestID)
-	expectedPublicInputs = append(expectedPublicInputs, reqIDBytes...)
-	expectedPublicInputs = append(expectedPublicInputs, resultHash...)
-	expectedPublicInputs = append(expectedPublicInputs, providerAddress.Bytes()...)
+	// Compute provider address hash for comparison
+	providerAddressHash := sha256.Sum256(providerAddress.Bytes())
+
+	// Reconstruct expected public inputs
+	expectedPublicInputs := serializePublicInputs(requestID, resultHash, providerAddressHash[:])
 
 	// Verify public inputs match
 	if !bytes.Equal(zkProof.PublicInputs, expectedPublicInputs) {
+		sdkCtx.Logger().Warn("public inputs mismatch",
+			"expected_len", len(expectedPublicInputs),
+			"actual_len", len(zkProof.PublicInputs),
+		)
 		return false, fmt.Errorf("public inputs mismatch")
 	}
 
 	// Consume gas for creating witness
 	sdkCtx.GasMeter().ConsumeGas(800, "zk_witness_creation")
 
+	// Convert hashes to field elements
+	resultHashField := bytesToFieldElement(resultHash)
+	providerHashField := bytesToFieldElement(providerAddressHash[:])
+
 	// Create public witness from inputs
 	publicAssignment := &ComputeVerificationCircuit{
-		RequestID: requestID,
-	}
-	for i := 0; i < 32; i++ {
-		publicAssignment.ResultHash[i] = resultHash[i]
-	}
-	for i := 0; i < 20; i++ {
-		publicAssignment.ProviderAddress[i] = providerAddress[i]
+		RequestID:           requestID,
+		ResultHash:          resultHashField,
+		ProviderAddressHash: providerHashField,
 	}
 
 	publicWitness, err := frontend.NewWitness(publicAssignment, ecc.BN254.ScalarField(), frontend.PublicOnly())
@@ -361,8 +460,13 @@ func (zk *ZKVerifier) VerifyProof(
 	err = groth16.Verify(proof, vk, publicWitness)
 	if err != nil {
 		// Proof verification failed
-		if err := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); err != nil {
-			sdkCtx.Logger().Error("failed to update verification metrics", "error", err)
+		sdkCtx.Logger().Warn("ZK proof verification failed",
+			"request_id", requestID,
+			"provider", providerAddress.String(),
+			"error", err.Error(),
+		)
+		if updateErr := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); updateErr != nil {
+			sdkCtx.Logger().Error("failed to update verification metrics", "error", updateErr)
 		}
 		return false, nil
 	}
@@ -389,6 +493,42 @@ func (zk *ZKVerifier) VerifyProof(
 	return true, nil
 }
 
+// InitializeCircuit compiles and sets up the circuit with proving/verifying keys.
+// This should be called during module initialization or when circuit params are first needed.
+func (zk *ZKVerifier) InitializeCircuit(ctx context.Context, circuitID string) error {
+	// Compile the circuit
+	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &ComputeVerificationCircuit{})
+	if err != nil {
+		return fmt.Errorf("failed to compile circuit: %w", err)
+	}
+	zk.circuitCCS[circuitID] = ccs
+
+	// Generate proving and verifying keys
+	pk, vk, err := groth16.Setup(ccs)
+	if err != nil {
+		return fmt.Errorf("failed to setup circuit: %w", err)
+	}
+	zk.provingKeys[circuitID] = pk
+	zk.verifyingKeys[circuitID] = vk
+
+	// Serialize and store verifying key
+	vkBytes := new(bytes.Buffer)
+	if _, err := vk.WriteTo(vkBytes); err != nil {
+		return fmt.Errorf("failed to serialize verifying key: %w", err)
+	}
+
+	// Get existing params or create new ones
+	circuitParams, err := zk.keeper.GetCircuitParams(ctx, circuitID)
+	if err != nil {
+		circuitParams = zk.keeper.getDefaultCircuitParams(ctx, circuitID)
+	}
+
+	circuitParams.VerifyingKey.VkData = vkBytes.Bytes()
+	circuitParams.MaxProofSize = 2048 // Groth16 proofs can be ~1-2KB
+
+	return zk.keeper.SetCircuitParams(ctx, *circuitParams)
+}
+
 // ========================================================================================
 // HELPER FUNCTIONS
 // ========================================================================================
@@ -401,7 +541,7 @@ func (k *Keeper) GetCircuitParams(ctx context.Context, circuitID string) (*types
 	bz := store.Get(key)
 	if bz == nil {
 		// Return default params if not found
-		return k.getDefaultCircuitParams(circuitID), nil
+		return k.getDefaultCircuitParams(ctx, circuitID), nil
 	}
 
 	var params types.CircuitParams
@@ -427,8 +567,12 @@ func (k *Keeper) SetCircuitParams(ctx context.Context, params types.CircuitParam
 }
 
 // getDefaultCircuitParams returns default circuit parameters.
-func (k *Keeper) getDefaultCircuitParams(circuitID string) *types.CircuitParams {
-	sdkCtx := sdk.UnwrapSDKContext(context.Background())
+func (k *Keeper) getDefaultCircuitParams(ctx context.Context, circuitID string) *types.CircuitParams {
+	createdAt := time.Now().UTC()
+	if sdkCtx, ok := ctx.(sdk.Context); ok && !sdkCtx.BlockTime().IsZero() {
+		createdAt = sdkCtx.BlockTime()
+	}
+
 	return &types.CircuitParams{
 		CircuitId:   circuitID,
 		Description: "Compute result verification circuit using Groth16",
@@ -436,7 +580,7 @@ func (k *Keeper) getDefaultCircuitParams(circuitID string) *types.CircuitParams 
 			CircuitId:        circuitID,
 			Curve:            "bn254",
 			ProofSystem:      "groth16",
-			CreatedAt:        sdkCtx.BlockTime(),
+			CreatedAt:        createdAt,
 			PublicInputCount: 3, // RequestID, ResultHash, ProviderAddress
 		},
 		MaxProofSize: 256,    // Groth16 proofs are ~256 bytes

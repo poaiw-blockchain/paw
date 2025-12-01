@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"go/ast"
@@ -9,7 +8,6 @@ import (
 	"go/printer"
 	"go/token"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -25,11 +23,11 @@ var targetDirs = []string{
 
 // Excluded test patterns (tests that must run sequentially)
 var excludedPatterns = []string{
-	"Suite",           // Suite tests share state
-	"Benchmark",       // Benchmarks don't need t.Parallel()
-	"Example",         // Examples don't need t.Parallel()
+	"Suite",            // Suite tests share state
+	"Benchmark",        // Benchmarks don't need t.Parallel()
+	"Example",          // Examples don't need t.Parallel()
 	"NetworkPartition", // Network tests may share state
-	"TestIBC",         // IBC tests use coordinator (shared state)
+	"TestIBC",          // IBC tests use coordinator (shared state)
 }
 
 func main() {

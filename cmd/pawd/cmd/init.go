@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	cmtbytes "github.com/cometbft/cometbft/libs/bytes"
+	cmtos "github.com/cometbft/cometbft/libs/os"
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -49,9 +53,9 @@ Example:
 
 			// Initialize node validator files
 			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
-			if err != nil {
-				return err
-			}
+	if err != nil {
+		return err
+	}
 
 			config.Moniker = args[0]
 
@@ -78,7 +82,7 @@ Example:
 			// Create genesis doc
 			genDoc := &tmtypes.GenesisDoc{
 				ChainID:         chainID,
-				GenesisTime:     time.Now(),
+				GenesisTime:     time.Now().UTC(),
 				ConsensusParams: tmtypes.DefaultConsensusParams(),
 				AppState:        appState,
 			}
@@ -95,9 +99,54 @@ Example:
 				return fmt.Errorf("failed to validate genesis doc: %w", err)
 			}
 
-			// Save genesis file
-			if err = genDoc.SaveAs(genFile); err != nil {
+			// Canonicalize and save genesis using CometBFT JSON (ints as strings, no null app_hash)
+			genDoc.AppHash = cmtbytes.HexBytes{} // avoid null
+
+			type canonicalGenesis struct {
+				GenesisTime     time.Time                `json:"genesis_time"`
+				ChainID         string                   `json:"chain_id"`
+				InitialHeight   string                   `json:"initial_height"`
+				ConsensusParams *tmtypes.ConsensusParams `json:"consensus_params,omitempty"`
+				Validators      []tmtypes.GenesisValidator `json:"validators,omitempty"`
+				AppHash         string                   `json:"app_hash"`
+				AppState        json.RawMessage          `json:"app_state,omitempty"`
+			}
+
+			canon := canonicalGenesis{
+				GenesisTime:     genDoc.GenesisTime,
+				ChainID:         genDoc.ChainID,
+				InitialHeight:   fmt.Sprintf("%d", genDoc.InitialHeight),
+				ConsensusParams: genDoc.ConsensusParams,
+				Validators:      genDoc.Validators,
+				AppHash:         genDoc.AppHash.String(),
+				AppState:        genDoc.AppState,
+			}
+
+			genDocBytes, err := json.Marshal(canon)
+			if err != nil {
+				return fmt.Errorf("failed to marshal canonical genesis doc: %w", err)
+			}
+			intermediate, err := decodeJSONWithNumbers(genDocBytes)
+			if err != nil {
+				return fmt.Errorf("failed to canonicalize genesis structure: %w", err)
+			}
+			normalized := normalizeNumbersToStrings(intermediate).(map[string]interface{})
+			normalized["initial_height"] = fmt.Sprintf("%d", genDoc.InitialHeight)
+			pretty, err := json.MarshalIndent(normalized, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal canonical genesis doc: %w", err)
+			}
+			if _, err := tmtypes.GenesisDocFromJSON(pretty); err != nil {
+				return fmt.Errorf("canonical genesis marshal validation failed: %w", err)
+			}
+			if err := cmtos.WriteFile(genFile, pretty, 0o644); err != nil {
 				return fmt.Errorf("failed to save genesis file: %w", err)
+			}
+			if err := canonicalizeGenesisFile(genFile); err != nil {
+				return fmt.Errorf("failed to canonicalize final genesis: %w", err)
+			}
+			if err := forceInitialHeightString(genFile); err != nil {
+				return fmt.Errorf("failed to enforce initial_height string encoding: %w", err)
 			}
 
 			// Create config directory structure
@@ -157,6 +206,96 @@ Example:
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "node's home directory")
 
 	return cmd
+}
+
+// normalizeNumbersToStrings walks a decoded JSON structure and turns all numeric values into
+// decimal strings (to satisfy CometBFT's Amino-compatible JSON decoding expectations).
+func normalizeNumbersToStrings(v interface{}) interface{} {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(val))
+		for k, vv := range val {
+			// avoid null app_hash
+			if k == "app_hash" && vv == nil {
+				out[k] = ""
+				continue
+			}
+			out[k] = normalizeNumbersToStrings(vv)
+		}
+		return out
+	case []interface{}:
+		for i, vv := range val {
+			val[i] = normalizeNumbersToStrings(vv)
+		}
+		return val
+	case json.Number:
+		return val.String()
+	case float64:
+		return fmt.Sprintf("%.0f", val)
+	default:
+		return val
+	}
+}
+
+func decodeJSONWithNumbers(bz []byte) (interface{}, error) {
+	dec := json.NewDecoder(bytes.NewReader(bz))
+	dec.UseNumber()
+	var v interface{}
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// canonicalizeGenesisFile rewrites the genesis file ensuring all int64-like fields are encoded as strings,
+// app_hash is non-null, and the result passes CometBFT genesis validation.
+func canonicalizeGenesisFile(path string) error {
+	bz, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read genesis file for canonicalization: %w", err)
+	}
+
+	raw, err := decodeJSONWithNumbers(bz)
+	if err != nil {
+		return fmt.Errorf("failed to decode genesis for canonicalization: %w", err)
+	}
+
+	canonical := normalizeNumbersToStrings(raw)
+	if m, ok := canonical.(map[string]interface{}); ok {
+		if v, exists := m["initial_height"]; exists {
+			m["initial_height"] = fmt.Sprintf("%v", v)
+		}
+		canonical = m
+	}
+	pretty, err := json.MarshalIndent(canonical, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal canonical genesis: %w", err)
+	}
+	prettyStr := strings.ReplaceAll(string(pretty), `"initial_height": 1`, `"initial_height": "1"`)
+	pretty = []byte(prettyStr)
+
+	if _, err := tmtypes.GenesisDocFromJSON(pretty); err != nil {
+		return fmt.Errorf("canonical genesis validation failed: %w", err)
+	}
+
+	if err := cmtos.WriteFile(path, pretty, 0o644); err != nil {
+		return fmt.Errorf("failed to write canonical genesis: %w", err)
+	}
+
+	return nil
+}
+
+// forceInitialHeightString is a hardening pass to ensure initial_height is encoded as a string.
+func forceInitialHeightString(path string) error {
+	bz, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	updated := strings.ReplaceAll(string(bz), `"initial_height": 1`, `"initial_height": "1"`)
+	if _, err := tmtypes.GenesisDocFromJSON([]byte(updated)); err != nil {
+		return fmt.Errorf("post-rewrite genesis validation failed: %w", err)
+	}
+	return cmtos.WriteFile(path, []byte(updated), 0o644)
 }
 
 // fileExists checks if a file exists

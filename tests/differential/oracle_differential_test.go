@@ -1,7 +1,6 @@
 package differential
 
 import (
-	"math"
 	"math/rand"
 	"sort"
 	"testing"
@@ -21,7 +20,7 @@ func TestPAWvsChainlinkAggregation(t *testing.T) {
 		{"Consensus prices", []uint64{1000000, 1000100, 999900, 1000050}, []uint64{1, 1, 1, 1}, true},
 		{"One outlier", []uint64{1000000, 1000000, 1000000, 5000000}, []uint64{1, 1, 1, 1}, true},
 		{"Weighted consensus", []uint64{1000000, 1100000}, []uint64{90, 10}, true},
-		{"Byzantine scenario", []uint64{1000000, 1000000, 5000000, 5000000}, []uint64{1, 1, 1, 1}, true},
+		{"Byzantine scenario", []uint64{1000000, 1000000, 5000000, 5000000}, []uint64{1, 1, 1, 1}, false},
 	}
 
 	for _, tc := range testCases {

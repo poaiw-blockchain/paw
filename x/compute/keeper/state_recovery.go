@@ -16,17 +16,24 @@ import (
 
 // StateBackupData represents a complete backup of compute module state
 type StateBackupData struct {
-	Version         string
-	Timestamp       time.Time
-	BlockHeight     int64
-	Params          types.Params
-	Providers       []types.Provider
-	Requests        []types.Request
-	Results         []types.Result
-	Escrows         map[string]string // request_id -> amount
-	Nonces          map[string]uint64 // provider -> nonce
-	NextRequestID   uint64
-	Checksum        string
+	Version       string
+	Timestamp     time.Time
+	BlockHeight   int64
+	Params        types.Params
+	Governance    types.GovernanceParams
+	Providers     []types.Provider
+	Requests      []types.Request
+	Results       []types.Result
+	Disputes      []types.Dispute
+	SlashRecords  []types.SlashRecord
+	Appeals       []types.Appeal
+	Escrows       map[string]string // request_id -> amount
+	Nonces        map[string]uint64 // provider -> nonce
+	NextRequestID uint64
+	NextDisputeID uint64
+	NextSlashID   uint64
+	NextAppealID  uint64
+	Checksum      string
 }
 
 // ExportState exports the complete compute module state for backup
@@ -48,6 +55,13 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 		return nil, fmt.Errorf("failed to get params: %w", err)
 	}
 	backup.Params = params
+
+	// Export governance params
+	govParams, err := k.GetGovernanceParams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get governance params: %w", err)
+	}
+	backup.Governance = govParams
 
 	// Export providers
 	providerIterator := storetypes.KVStorePrefixIterator(store, types.ProviderKeyPrefix)
@@ -85,6 +99,39 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 		backup.Results = append(backup.Results, result)
 	}
 
+	// Export disputes
+	disputeIterator := storetypes.KVStorePrefixIterator(store, DisputeKeyPrefix)
+	defer disputeIterator.Close()
+	for ; disputeIterator.Valid(); disputeIterator.Next() {
+		var dispute types.Dispute
+		if err := k.cdc.Unmarshal(disputeIterator.Value(), &dispute); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal dispute: %w", err)
+		}
+		backup.Disputes = append(backup.Disputes, dispute)
+	}
+
+	// Export slash records
+	slashIterator := storetypes.KVStorePrefixIterator(store, SlashRecordKeyPrefix)
+	defer slashIterator.Close()
+	for ; slashIterator.Valid(); slashIterator.Next() {
+		var record types.SlashRecord
+		if err := k.cdc.Unmarshal(slashIterator.Value(), &record); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal slash record: %w", err)
+		}
+		backup.SlashRecords = append(backup.SlashRecords, record)
+	}
+
+	// Export appeals
+	appealIterator := storetypes.KVStorePrefixIterator(store, AppealKeyPrefix)
+	defer appealIterator.Close()
+	for ; appealIterator.Valid(); appealIterator.Next() {
+		var appeal types.Appeal
+		if err := k.cdc.Unmarshal(appealIterator.Value(), &appeal); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal appeal: %w", err)
+		}
+		backup.Appeals = append(backup.Appeals, appeal)
+	}
+
 	// Export escrows
 	escrowIterator := storetypes.KVStorePrefixIterator(store, types.EscrowKeyPrefix)
 	defer escrowIterator.Close()
@@ -103,6 +150,19 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 		provider := string(nonceIterator.Key()[len(types.NonceKeyPrefix):])
 		nonce := sdk.BigEndianToUint64(nonceIterator.Value())
 		backup.Nonces[provider] = nonce
+	}
+
+	if nextRequestID, err := k.getNextRequestIDForExport(ctx); err == nil {
+		backup.NextRequestID = nextRequestID
+	}
+	if nextDisputeID, err := k.getNextDisputeIDForExport(ctx); err == nil {
+		backup.NextDisputeID = nextDisputeID
+	}
+	if nextSlashID, err := k.getNextSlashIDForExport(ctx); err == nil {
+		backup.NextSlashID = nextSlashID
+	}
+	if nextAppealID, err := k.getNextAppealIDForExport(ctx); err == nil {
+		backup.NextAppealID = nextAppealID
 	}
 
 	// Calculate checksum
@@ -130,10 +190,35 @@ func (k Keeper) ImportState(ctx context.Context, backup *StateBackupData) error 
 		return fmt.Errorf("failed to set params: %w", err)
 	}
 
+	// Import governance params with defaults if missing
+	govParams := backup.Governance
+	if govParams.DisputeDeposit.IsNil() || !govParams.DisputeDeposit.IsPositive() {
+		govParams = types.DefaultGovernanceParams()
+	}
+	if err := k.SetGovernanceParams(ctx, govParams); err != nil {
+		return fmt.Errorf("failed to set governance params: %w", err)
+	}
+
+	var (
+		maxRequestID uint64
+		maxDisputeID uint64
+		maxSlashID   uint64
+		maxAppealID  uint64
+	)
+
 	// Import providers
 	for _, provider := range backup.Providers {
 		if err := k.SetProvider(ctx, provider); err != nil {
 			return fmt.Errorf("failed to set provider %s: %w", provider.Address, err)
+		}
+
+		if provider.Active {
+			addr, err := sdk.AccAddressFromBech32(provider.Address)
+			if err == nil {
+				if err := k.setActiveProviderIndex(ctx, addr, true); err != nil {
+					return fmt.Errorf("failed to index active provider %s: %w", provider.Address, err)
+				}
+			}
 		}
 	}
 
@@ -142,12 +227,48 @@ func (k Keeper) ImportState(ctx context.Context, backup *StateBackupData) error 
 		if err := k.SetRequest(ctx, request); err != nil {
 			return fmt.Errorf("failed to set request %d: %w", request.Id, err)
 		}
+		if request.Id > maxRequestID {
+			maxRequestID = request.Id
+		}
+		if err := k.setRequestIndexes(ctx, request); err != nil {
+			return fmt.Errorf("failed to set request indexes for %d: %w", request.Id, err)
+		}
 	}
 
 	// Import results
 	for _, result := range backup.Results {
 		if err := k.SetResult(ctx, &result); err != nil {
 			return fmt.Errorf("failed to set result for request %d: %w", result.RequestId, err)
+		}
+	}
+
+	// Import disputes
+	for _, dispute := range backup.Disputes {
+		if dispute.Id > maxDisputeID {
+			maxDisputeID = dispute.Id
+		}
+		if err := k.setDispute(ctx, dispute); err != nil {
+			return fmt.Errorf("failed to set dispute %d: %w", dispute.Id, err)
+		}
+	}
+
+	// Import slash records
+	for _, record := range backup.SlashRecords {
+		if record.Id > maxSlashID {
+			maxSlashID = record.Id
+		}
+		if err := k.setSlashRecord(ctx, record); err != nil {
+			return fmt.Errorf("failed to set slash record %d: %w", record.Id, err)
+		}
+	}
+
+	// Import appeals
+	for _, appeal := range backup.Appeals {
+		if appeal.Id > maxAppealID {
+			maxAppealID = appeal.Id
+		}
+		if err := k.setAppeal(ctx, appeal); err != nil {
+			return fmt.Errorf("failed to set appeal %d: %w", appeal.Id, err)
 		}
 	}
 
@@ -163,12 +284,46 @@ func (k Keeper) ImportState(ctx context.Context, backup *StateBackupData) error 
 		store.Set(key, sdk.Uint64ToBigEndian(nonce))
 	}
 
+	nextRequestID := backup.NextRequestID
+	if nextRequestID == 0 || nextRequestID <= maxRequestID {
+		nextRequestID = maxRequestID + 1
+	}
+	if err := k.setNextRequestID(ctx, nextRequestID); err != nil {
+		return fmt.Errorf("failed to set next request ID: %w", err)
+	}
+
+	nextDisputeID := backup.NextDisputeID
+	if nextDisputeID == 0 || nextDisputeID <= maxDisputeID {
+		nextDisputeID = maxDisputeID + 1
+	}
+	if err := k.setNextDisputeID(ctx, nextDisputeID); err != nil {
+		return fmt.Errorf("failed to set next dispute ID: %w", err)
+	}
+
+	nextSlashID := backup.NextSlashID
+	if nextSlashID == 0 || nextSlashID <= maxSlashID {
+		nextSlashID = maxSlashID + 1
+	}
+	if err := k.setNextSlashID(ctx, nextSlashID); err != nil {
+		return fmt.Errorf("failed to set next slash ID: %w", err)
+	}
+
+	nextAppealID := backup.NextAppealID
+	if nextAppealID == 0 || nextAppealID <= maxAppealID {
+		nextAppealID = maxAppealID + 1
+	}
+	if err := k.setNextAppealID(ctx, nextAppealID); err != nil {
+		return fmt.Errorf("failed to set next appeal ID: %w", err)
+	}
+
 	sdkCtx = sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"compute_state_imported",
 			sdk.NewAttribute("providers_count", fmt.Sprintf("%d", len(backup.Providers))),
 			sdk.NewAttribute("requests_count", fmt.Sprintf("%d", len(backup.Requests))),
+			sdk.NewAttribute("disputes_count", fmt.Sprintf("%d", len(backup.Disputes))),
+			sdk.NewAttribute("appeals_count", fmt.Sprintf("%d", len(backup.Appeals))),
 			sdk.NewAttribute("block_height", fmt.Sprintf("%d", backup.BlockHeight)),
 		),
 	)
@@ -216,7 +371,7 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 			return fmt.Errorf("request %d has empty requester", request.Id)
 		}
 
-		if request.Status == types.RequestStatus_REQUEST_STATUS_UNSPECIFIED {
+		if request.Status == types.REQUEST_STATUS_UNSPECIFIED {
 			return fmt.Errorf("request %d has empty status", request.Id)
 		}
 	}
@@ -236,22 +391,22 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 		// Verify corresponding request exists
 		request, err := k.GetRequest(ctx, requestID)
 		if err != nil {
-			return fmt.Errorf("escrow exists for non-existent request %s", requestID)
+			return fmt.Errorf("escrow exists for non-existent request %d", requestID)
 		}
 
 		// Verify escrow amount is valid
 		var amount math.Int
 		if err := amount.Unmarshal(escrowIterator.Value()); err != nil {
-			return fmt.Errorf("corrupt escrow amount for request %s", requestID)
+			return fmt.Errorf("corrupt escrow amount for request %d", requestID)
 		}
 
 		if amount.IsNil() || amount.IsNegative() {
-			return fmt.Errorf("invalid escrow amount for request %s: %s", requestID, amount)
+			return fmt.Errorf("invalid escrow amount for request %d: %s", requestID, amount)
 		}
 
 		// Verify escrow matches request state
-		if request.Status == types.RequestStatus_REQUEST_STATUS_COMPLETED || request.Status == types.RequestStatus_REQUEST_STATUS_CANCELLED {
-			return fmt.Errorf("escrow should not exist for %s request %s", request.Status, requestID)
+		if request.Status == types.REQUEST_STATUS_COMPLETED || request.Status == types.REQUEST_STATUS_CANCELLED {
+			return fmt.Errorf("escrow should not exist for %s request %d", request.Status, requestID)
 		}
 	}
 
@@ -363,9 +518,13 @@ func (k Keeper) clearComputeState(ctx context.Context) {
 
 	// Clear providers
 	clearStorePrefix(store, types.ProviderKeyPrefix)
+	clearStorePrefix(store, ActiveProvidersPrefix)
 
 	// Clear requests
 	clearStorePrefix(store, types.RequestKeyPrefix)
+	clearStorePrefix(store, RequestsByRequesterPrefix)
+	clearStorePrefix(store, RequestsByProviderPrefix)
+	clearStorePrefix(store, RequestsByStatusPrefix)
 
 	// Clear results
 	clearStorePrefix(store, types.ResultKeyPrefix)
@@ -375,6 +534,24 @@ func (k Keeper) clearComputeState(ctx context.Context) {
 
 	// Clear nonces
 	clearStorePrefix(store, types.NonceKeyPrefix)
+
+	// Clear dispute/appeal state
+	clearStorePrefix(store, DisputeKeyPrefix)
+	clearStorePrefix(store, EvidenceKeyPrefix)
+	clearStorePrefix(store, DisputesByRequestPrefix)
+	clearStorePrefix(store, DisputesByStatusPrefix)
+	clearStorePrefix(store, SlashRecordKeyPrefix)
+	clearStorePrefix(store, SlashRecordsByProviderPrefix)
+	clearStorePrefix(store, AppealKeyPrefix)
+	clearStorePrefix(store, AppealsByStatusPrefix)
+
+	// Clear singleton keys
+	store.Delete(ParamsKey)
+	store.Delete(GovernanceParamsKey)
+	store.Delete(NextRequestIDKey)
+	store.Delete(NextDisputeIDKey)
+	store.Delete(NextSlashIDKey)
+	store.Delete(NextAppealIDKey)
 }
 
 // clearStorePrefix removes all keys with a given prefix
@@ -418,11 +595,6 @@ func (k Keeper) SetRequest(ctx context.Context, request *types.ComputeRequest) e
 	return nil
 }
 */
-func (k Keeper) SetResult(ctx context.Context, result *types.Result) error {
-	// Implementation needed
-	return nil
-}
-
 /*
 func (k Keeper) GetRequest(ctx context.Context, requestID string) (*types.ComputeRequest, error) {
 	// Implementation needed

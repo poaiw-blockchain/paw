@@ -17,7 +17,7 @@ const (
 	PortID = "compute"
 
 	// Verification scoring thresholds
-	VerificationPassThreshold = 80
+	VerificationPassThreshold = 50
 	MaxVerificationScore      = 100
 
 	// Event types

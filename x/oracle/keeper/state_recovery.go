@@ -20,19 +20,19 @@ type OracleStateBackupData struct {
 	BlockHeight        int64
 	Params             types.Params
 	AssetPrices        map[string]types.Price
-	ValidatorPrevotes  map[string]map[string]types.AggregateExchangeRatePrevote  // validator -> asset -> prevote
-	ValidatorVotes     map[string]map[string]types.AggregateExchangeRateVote     // validator -> asset -> vote
-	ValidatorDelegates map[string]string                         // validator -> feeder
-	MissCounters       map[string]uint64                         // validator -> miss_count
-	SlashingInfo       map[string]types.SlashingInfo             // validator -> info
-	TWAPData           map[string][]types.TWAPDataPoint          // asset -> data_points
+	ValidatorPrevotes  map[string]map[string]types.AggregateExchangeRatePrevote // validator -> asset -> prevote
+	ValidatorVotes     map[string]map[string]types.AggregateExchangeRateVote    // validator -> asset -> vote
+	ValidatorDelegates map[string]string                                        // validator -> feeder
+	MissCounters       map[string]uint64                                        // validator -> miss_count
+	SlashingInfo       map[string]types.SlashingInfo                            // validator -> info
+	TWAPData           map[string][]types.TWAPDataPoint                         // asset -> data_points
 	Checksum           string
 }
 
 // ExportState exports the complete oracle module state for backup
 func (k Keeper) ExportState(ctx context.Context) (*OracleStateBackupData, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := k.storeService.OpenKVStore(ctx)
+	store := k.getStore(ctx)
 
 	backup := &OracleStateBackupData{
 		Version:            "1.0.0",
@@ -76,8 +76,8 @@ func (k Keeper) ExportState(ctx context.Context) (*OracleStateBackupData, error)
 		key := prevoteIterator.Key()[len(types.PrevoteKeyPrefix):]
 		validator, asset := parseCompositeKey(key)
 
-		var prevote types.PricePrevote
-		if err := k.cdc.Unmarshal(prevoteIterator.Value(), &prevote); err != nil {
+		var prevote types.AggregateExchangeRatePrevote
+		if err := json.Unmarshal(prevoteIterator.Value(), &prevote); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal prevote: %w", err)
 		}
 
@@ -96,7 +96,7 @@ func (k Keeper) ExportState(ctx context.Context) (*OracleStateBackupData, error)
 		validator, asset := parseCompositeKey(key)
 
 		var vote types.AggregateExchangeRateVote
-		if err := k.cdc.Unmarshal(voteIterator.Value(), &vote); err != nil {
+		if err := json.Unmarshal(voteIterator.Value(), &vote); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal vote: %w", err)
 		}
 
@@ -133,7 +133,7 @@ func (k Keeper) ExportState(ctx context.Context) (*OracleStateBackupData, error)
 	for ; twapIterator.Valid(); twapIterator.Next() {
 		asset := string(twapIterator.Key()[len(types.TWAPKeyPrefix):])
 		var dataPoints []types.TWAPDataPoint
-		if err := k.cdc.Unmarshal(twapIterator.Value(), &dataPoints); err != nil {
+		if err := json.Unmarshal(twapIterator.Value(), &dataPoints); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal TWAP data for %s: %w", asset, err)
 		}
 		backup.TWAPData[asset] = dataPoints
@@ -153,7 +153,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 		return fmt.Errorf("backup checksum mismatch: expected %s, got %s", expectedChecksum, backup.Checksum)
 	}
 
-	store := k.storeService.OpenKVStore(ctx)
+	store := k.getStore(ctx)
 
 	// Clear existing state
 	k.clearOracleState(ctx)
@@ -165,7 +165,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 
 	// Import prices
 	for asset, price := range backup.AssetPrices {
-		if err := k.SetPrice(ctx, asset, price); err != nil {
+		if err := k.SetPrice(ctx, price); err != nil {
 			return fmt.Errorf("failed to set price for %s: %w", asset, err)
 		}
 	}
@@ -174,7 +174,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 	for validator, prevotes := range backup.ValidatorPrevotes {
 		for asset, prevote := range prevotes {
 			key := makeCompositeKey(types.PrevoteKeyPrefix, validator, asset)
-			bz, err := k.cdc.Marshal(&prevote)
+			bz, err := json.Marshal(prevote)
 			if err != nil {
 				return fmt.Errorf("failed to marshal prevote: %w", err)
 			}
@@ -186,7 +186,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 	for validator, votes := range backup.ValidatorVotes {
 		for asset, vote := range votes {
 			key := makeCompositeKey(types.VoteKeyPrefix, validator, asset)
-			bz, err := k.cdc.Marshal(&vote)
+			bz, err := json.Marshal(vote)
 			if err != nil {
 				return fmt.Errorf("failed to marshal vote: %w", err)
 			}
@@ -209,7 +209,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 	// Import TWAP data
 	for asset, dataPoints := range backup.TWAPData {
 		key := append(types.TWAPKeyPrefix, []byte(asset)...)
-		bz, err := k.cdc.Marshal(&dataPoints)
+		bz, err := json.Marshal(dataPoints)
 		if err != nil {
 			return fmt.Errorf("failed to marshal TWAP data: %w", err)
 		}
@@ -231,7 +231,7 @@ func (k Keeper) ImportState(ctx context.Context, backup *OracleStateBackupData) 
 
 // ValidateState performs comprehensive state validation
 func (k Keeper) ValidateState(ctx context.Context) error {
-	store := k.storeService.OpenKVStore(ctx)
+	store := k.getStore(ctx)
 
 	// Validate asset prices
 	priceIterator := storetypes.KVStorePrefixIterator(store, types.PriceKeyPrefix)
@@ -249,8 +249,8 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 			return fmt.Errorf("invalid price for %s: %s", asset, price.Price)
 		}
 
-		if price.Timestamp <= 0 {
-			return fmt.Errorf("invalid timestamp for %s: %d", asset, price.Timestamp)
+		if price.BlockTime <= 0 {
+			return fmt.Errorf("invalid timestamp for %s: %d", asset, price.BlockTime)
 		}
 	}
 
@@ -262,8 +262,8 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 		key := prevoteIterator.Key()[len(types.PrevoteKeyPrefix):]
 		validator, asset := parseCompositeKey(key)
 
-		var prevote types.PricePrevote
-		if err := k.cdc.Unmarshal(prevoteIterator.Value(), &prevote); err != nil {
+		var prevote types.AggregateExchangeRatePrevote
+		if err := json.Unmarshal(prevoteIterator.Value(), &prevote); err != nil {
 			return fmt.Errorf("corrupt prevote data: %w", err)
 		}
 
@@ -280,7 +280,7 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 	for ; twapIterator.Valid(); twapIterator.Next() {
 		asset := string(twapIterator.Key()[len(types.TWAPKeyPrefix):])
 		var dataPoints []types.TWAPDataPoint
-		if err := k.cdc.Unmarshal(twapIterator.Value(), &dataPoints); err != nil {
+		if err := json.Unmarshal(twapIterator.Value(), &dataPoints); err != nil {
 			return fmt.Errorf("corrupt TWAP data for %s: %w", asset, err)
 		}
 
@@ -395,7 +395,7 @@ func calculateOracleChecksum(backup *OracleStateBackupData) string {
 
 // clearOracleState clears all oracle module state (use with caution!)
 func (k Keeper) clearOracleState(ctx context.Context) {
-	store := k.storeService.OpenKVStore(ctx)
+	store := k.getStore(ctx)
 
 	// Clear prices
 	clearOracleStorePrefix(store, types.PriceKeyPrefix)
@@ -459,4 +459,3 @@ func (k Keeper) SetPrice(ctx context.Context, asset string, price types.Price) e
 	return nil
 }
 */
-

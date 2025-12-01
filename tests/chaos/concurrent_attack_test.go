@@ -314,7 +314,7 @@ func (suite *ConcurrentAttackTestSuite) TestPriorityInversionAttack() {
 	suite.Equal(uint64(100), processedHigh, "All high priority transactions should be processed")
 }
 
-func (suite *ConcurrentAttackTestSuite) TestABAProbl em() {
+func (suite *ConcurrentAttackTestSuite) TestABAProblem() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 

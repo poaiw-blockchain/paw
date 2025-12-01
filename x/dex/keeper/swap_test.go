@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -42,7 +43,7 @@ func TestSwap_Valid(t *testing.T) {
 	// Verify pool reserves updated
 	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
-	require.Equal(t, math.NewInt(11000000), pool.ReserveA) // 10M + 1M
+	require.Equal(t, math.NewInt(11000000), pool.ReserveA)   // 10M + 1M
 	require.True(t, pool.ReserveB.LT(math.NewInt(20000000))) // Less than 20M due to output
 }
 
@@ -156,6 +157,29 @@ func TestSwap_ConstantProductInvariant(t *testing.T) {
 	require.True(t, kAfter.GTE(kBefore), "constant product invariant violated")
 }
 
+// TestSwap_FeeDeduction ensures output is lower than a no-fee constant product calculation.
+func TestSwap_FeeDeduction(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	poolID := setupPoolForSwaps(t, k, ctx)
+	trader := createTestTrader(t)
+
+	poolBefore, err := k.GetPool(ctx, poolID)
+	require.NoError(t, err)
+
+	tokenIn := "upaw"
+	tokenOut := "uusdt"
+	amountIn := math.NewInt(1_000_000)
+
+	// No-fee output for constant-product AMM: out = Δx * R_y / (R_x + Δx)
+	noFeeOut := amountIn.Mul(poolBefore.ReserveB).Quo(poolBefore.ReserveA.Add(amountIn))
+
+	actualOut, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, math.NewInt(1))
+	require.NoError(t, err)
+
+	require.True(t, actualOut.LT(noFeeOut), "fee not applied: got >= no-fee output")
+	require.True(t, actualOut.IsPositive())
+}
+
 // TestSwap_FeesCalculated tests that fees are applied correctly
 func TestSwap_FeesCalculated(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
@@ -226,7 +250,7 @@ func TestSwap_MultipleSwaps(t *testing.T) {
 	require.Equal(t, math.NewInt(11000000), pool.ReserveA) // 10M + 1M (10 * 100k)
 }
 
-// TestSwap_LargeAmount tests swap with large amount
+// TestSwap_LargeAmount ensures large swaps above MEV threshold are rejected
 func TestSwap_LargeAmount(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	poolID := setupPoolForSwaps(t, k, ctx)
@@ -238,15 +262,12 @@ func TestSwap_LargeAmount(t *testing.T) {
 	amountIn := math.NewInt(5000000)
 	minAmountOut := math.NewInt(1)
 
-	amountOut, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
-	require.NoError(t, err)
-	require.True(t, amountOut.IsPositive())
-
-	// Output should be less than half of reserve B due to price impact
-	require.True(t, amountOut.LT(math.NewInt(10000000)))
+	_, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "swap size")
 }
 
-// TestSwap_InsufficientLiquidity tests swap exceeding available liquidity
+// TestSwap_InsufficientLiquidity tests swap exceeding allowed size relative to liquidity
 func TestSwap_InsufficientLiquidity(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	poolID := setupPoolForSwaps(t, k, ctx)
@@ -260,7 +281,7 @@ func TestSwap_InsufficientLiquidity(t *testing.T) {
 
 	_, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "insufficient liquidity")
+	require.Contains(t, err.Error(), "swap size")
 }
 
 // TestCalculateSwapOutput tests swap output calculation

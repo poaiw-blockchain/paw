@@ -98,9 +98,6 @@ func (suite *EnhancedByzantineTestSuite) TestCoordinatedAttack() {
 func (suite *EnhancedByzantineTestSuite) TestAdaptiveByzantineStrategy() {
 	suite.T().Log("Testing adaptive Byzantine strategy")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	attacker := suite.nodes[0]
 	honestNodes := suite.nodes[suite.maliciousCount:]
 

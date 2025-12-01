@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -65,6 +64,13 @@ Example:
 
 			config := serverCtx.Config
 			config.SetRoot(clientCtx.HomeDir)
+
+			if err := canonicalizeGenesisFile(config.GenesisFile()); err != nil {
+				return fmt.Errorf("failed to canonicalize genesis before gentx: %w", err)
+			}
+			if err := forceInitialHeightString(config.GenesisFile()); err != nil {
+				return fmt.Errorf("failed to enforce initial_height string encoding: %w", err)
+			}
 
 			// Initialize node validator files
 			// In SDK v0.50, InitializeNodeValidatorFiles signature changed
@@ -159,6 +165,9 @@ Example:
 				return fmt.Errorf("failed to create MsgCreateValidator: %w", err)
 			}
 
+			// Ensure delegator address is populated (constructor defaults to validator address only).
+			msg.DelegatorAddress = addr.String()
+
 			// ValidateBasic was removed in SDK v0.50 - validation happens in message server
 
 			// Build and sign transaction
@@ -206,7 +215,6 @@ Example:
 	}
 
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
-	cmd.Flags().String(flags.FlagChainID, "", "The network chain ID")
 	cmd.Flags().String(flagCommissionRate, "0.10", "The initial commission rate percentage")
 	cmd.Flags().String(flagCommissionMaxRate, "0.20", "The maximum commission rate percentage")
 	cmd.Flags().String(flagCommissionMaxChangeRate, "0.01", "The maximum commission change rate percentage (per day)")
@@ -216,7 +224,6 @@ Example:
 	cmd.Flags().String(flagWebsite, "", "The validator's (optional) website")
 	cmd.Flags().String(flagSecurityContact, "", "The validator's (optional) security contact")
 	cmd.Flags().String(flagDetails, "", "The validator's (optional) details")
-	cmd.Flags().String(flags.FlagKeyringBackend, keyring.BackendOS, "Select keyring's backend")
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd

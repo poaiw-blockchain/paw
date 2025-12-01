@@ -4,8 +4,10 @@ import (
 	"math/rand"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 
@@ -15,13 +17,13 @@ import (
 
 // Simulation operation weights constants
 const (
-	OpWeightMsgCreatePool    = "op_weight_msg_create_pool"
-	OpWeightMsgAddLiquidity  = "op_weight_msg_add_liquidity"
+	OpWeightMsgCreatePool      = "op_weight_msg_create_pool"
+	OpWeightMsgAddLiquidity    = "op_weight_msg_add_liquidity"
 	OpWeightMsgRemoveLiquidity = "op_weight_msg_remove_liquidity"
-	OpWeightMsgSwap          = "op_weight_msg_swap"
+	OpWeightMsgSwap            = "op_weight_msg_swap"
 
-	DefaultWeightMsgCreatePool     = 15
-	DefaultWeightMsgAddLiquidity   = 30
+	DefaultWeightMsgCreatePool      = 15
+	DefaultWeightMsgAddLiquidity    = 30
 	DefaultWeightMsgRemoveLiquidity = 20
 	DefaultWeightMsgSwap            = 50
 )
@@ -29,14 +31,17 @@ const (
 // WeightedOperations returns all the DEX module operations with their respective weights.
 func WeightedOperations(
 	appParams simtypes.AppParams,
-	cdc simtypes.Codec,
+	cdc codec.JSONCodec,
+	txGen client.TxConfig,
 	k keeper.Keeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 ) simulation.WeightedOperations {
+	protoCdc, _ := cdc.(*codec.ProtoCodec)
+
 	var (
-		weightMsgCreatePool     int
-		weightMsgAddLiquidity   int
+		weightMsgCreatePool      int
+		weightMsgAddLiquidity    int
 		weightMsgRemoveLiquidity int
 		weightMsgSwap            int
 	)
@@ -68,27 +73,33 @@ func WeightedOperations(
 	return simulation.WeightedOperations{
 		simulation.NewWeightedOperation(
 			weightMsgCreatePool,
-			SimulateMsgCreatePool(k, ak, bk),
+			SimulateMsgCreatePool(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgAddLiquidity,
-			SimulateMsgAddLiquidity(k, ak, bk),
+			SimulateMsgAddLiquidity(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgRemoveLiquidity,
-			SimulateMsgRemoveLiquidity(k, ak, bk),
+			SimulateMsgRemoveLiquidity(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgSwap,
-			SimulateMsgSwap(k, ak, bk),
+			SimulateMsgSwap(txGen, protoCdc, k, ak, bk),
 		),
 	}
 }
 
 // SimulateMsgCreatePool generates a MsgCreatePool with random values
-func SimulateMsgCreatePool(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgCreatePool(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
@@ -125,9 +136,9 @@ func SimulateMsgCreatePool(k keeper.Keeper, ak types.AccountKeeper, bk types.Ban
 
 		txCtx := simulation.OperationInput{
 			R:               r,
-			App:             app.(*module.SimulationManager),
-			TxGen:           nil,
-			Cdc:             nil,
+			App:             app,
+			TxGen:           txGen,
+			Cdc:             cdc,
 			Msg:             msg,
 			Context:         ctx,
 			SimAccount:      simAccount,
@@ -142,9 +153,15 @@ func SimulateMsgCreatePool(k keeper.Keeper, ak types.AccountKeeper, bk types.Ban
 }
 
 // SimulateMsgAddLiquidity generates a MsgAddLiquidity with random values
-func SimulateMsgAddLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgAddLiquidity(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
@@ -175,14 +192,13 @@ func SimulateMsgAddLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk types.B
 			PoolId:   pool.Id,
 			AmountA:  amountA,
 			AmountB:  amountB,
-			MinShares: math.NewInt(1),
 		}
 
 		txCtx := simulation.OperationInput{
 			R:               r,
-			App:             app.(*module.SimulationManager),
-			TxGen:           nil,
-			Cdc:             nil,
+			App:             app,
+			TxGen:           txGen,
+			Cdc:             cdc,
 			Msg:             msg,
 			Context:         ctx,
 			SimAccount:      simAccount,
@@ -197,9 +213,15 @@ func SimulateMsgAddLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk types.B
 }
 
 // SimulateMsgRemoveLiquidity generates a MsgRemoveLiquidity with random values
-func SimulateMsgRemoveLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgRemoveLiquidity(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
@@ -221,18 +243,16 @@ func SimulateMsgRemoveLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk type
 		sharesToRemove := math.NewInt(int64(simtypes.RandIntBetween(r, 1, int(shares.Int64()))))
 
 		msg := &types.MsgRemoveLiquidity{
-			Provider:   simAccount.Address.String(),
-			PoolId:     pool.Id,
-			Shares:     sharesToRemove,
-			MinAmountA: math.NewInt(1),
-			MinAmountB: math.NewInt(1),
+			Provider: simAccount.Address.String(),
+			PoolId:   pool.Id,
+			Shares:   sharesToRemove,
 		}
 
 		txCtx := simulation.OperationInput{
 			R:             r,
-			App:           app.(*module.SimulationManager),
-			TxGen:         nil,
-			Cdc:           nil,
+			App:           app,
+			TxGen:         txGen,
+			Cdc:           cdc,
 			Msg:           msg,
 			Context:       ctx,
 			SimAccount:    simAccount,
@@ -246,9 +266,15 @@ func SimulateMsgRemoveLiquidity(k keeper.Keeper, ak types.AccountKeeper, bk type
 }
 
 // SimulateMsgSwap generates a MsgSwap with random values
-func SimulateMsgSwap(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgSwap(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
@@ -290,9 +316,9 @@ func SimulateMsgSwap(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeepe
 
 		txCtx := simulation.OperationInput{
 			R:               r,
-			App:             app.(*module.SimulationManager),
-			TxGen:           nil,
-			Cdc:             nil,
+			App:             app,
+			TxGen:           txGen,
+			Cdc:             cdc,
 			Msg:             msg,
 			Context:         ctx,
 			SimAccount:      simAccount,

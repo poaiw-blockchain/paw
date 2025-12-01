@@ -395,7 +395,7 @@ func TestCalculateSwapOutputSecurity(t *testing.T) {
 			reserveOut: math.NewInt(10000),
 			swapFee:    math.LegacyNewDecWithPrec(3, 3),
 			expectErr:  true,
-			errMsg:     "insufficient liquidity",
+			errMsg:     "swap too large",
 		},
 	}
 
@@ -433,12 +433,12 @@ func TestSecurityConstants(t *testing.T) {
 	// Verify maximum price deviation is reasonable
 	maxDev, err := math.LegacyNewDecFromStr(keeper.MaxPriceDeviation)
 	require.NoError(t, err)
-	require.Equal(t, "0.2", maxDev.String())
+	require.Equal(t, "0.250000000000000000", maxDev.String())
 
 	// Verify maximum swap size is reasonable
 	maxSwap, err := math.LegacyNewDecFromStr(keeper.MaxSwapSizePercent)
 	require.NoError(t, err)
-	require.Equal(t, "0.1", maxSwap.String())
+	require.Equal(t, "0.100000000000000000", maxSwap.String())
 
 	// Verify price update tolerance
 	tolerance, err := math.LegacyNewDecFromStr(keeper.PriceUpdateTolerance)

@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -11,11 +10,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/client/tx"
+	txclient "github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 )
@@ -33,6 +32,7 @@ This is useful for testing transactions before actually submitting them to the c
 			if err != nil {
 				return err
 			}
+			_ = clientCtx
 
 			// Read transaction from file
 			txFile := args[0]
@@ -41,11 +41,9 @@ This is useful for testing transactions before actually submitting them to the c
 				return fmt.Errorf("failed to read tx file: %w", err)
 			}
 
-			// Decode transaction
-			var stdTx authsigning.Tx
-			err = clientCtx.Codec.UnmarshalJSON(txBytes, &stdTx)
+			simRes, err := simulateTransaction(cmd.Context(), clientCtx, txBytes)
 			if err != nil {
-				return fmt.Errorf("failed to decode tx: %w", err)
+				return fmt.Errorf("simulation failed: %w", err)
 			}
 
 			// Create progress bar
@@ -57,24 +55,14 @@ This is useful for testing transactions before actually submitting them to the c
 
 			// Simulate transaction
 			bar.Add(30)
-			simRes, err := simulateTransaction(clientCtx, stdTx)
-			if err != nil {
-				bar.Finish()
-				return fmt.Errorf("simulation failed: %w", err)
-			}
-
 			bar.Add(70)
 			bar.Finish()
 
 			// Display results
 			fmt.Println("\n=== Simulation Results ===")
-			fmt.Printf("Gas used: %d\n", simRes.GasUsed)
-			fmt.Printf("Gas wanted: %d\n", simRes.GasWanted)
-			fmt.Printf("Gas estimation: %d\n", simRes.GasUsed)
-			fmt.Printf("\nEvents:\n")
-			for i, event := range simRes.Events {
-				fmt.Printf("  %d. %s\n", i+1, event.Type)
-			}
+			fmt.Printf("Gas used: %d\n", simRes.GasInfo.GasUsed)
+			fmt.Printf("Gas wanted: %d\n", simRes.GasInfo.GasWanted)
+			fmt.Printf("Gas estimation: %d\n", simRes.GasInfo.GasUsed)
 
 			return nil
 		},
@@ -85,20 +73,23 @@ This is useful for testing transactions before actually submitting them to the c
 }
 
 // simulateTransaction simulates a transaction
-func simulateTransaction(clientCtx client.Context, tx authsigning.Tx) (*sdk.SimulationResponse, error) {
-	// In production, this would call the node's simulate endpoint
-	// For now, return mock data
-	return &sdk.SimulationResponse{
-		GasInfo: sdk.GasInfo{
-			GasUsed:   75000,
-			GasWanted: 100000,
-		},
-		Result: &sdk.Result{
-			Events: []sdk.Event{
-				{Type: "transfer", Attributes: []sdk.Attribute{}},
-			},
-		},
-	}, nil
+func simulateTransaction(ctx context.Context, clientCtx client.Context, txBytes []byte) (*txtypes.SimulateResponse, error) {
+	txDecoder := clientCtx.TxConfig.TxJSONDecoder()
+	sdkTx, err := txDecoder(txBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode tx: %w", err)
+	}
+
+	wireBytes, err := clientCtx.TxConfig.TxEncoder()(sdkTx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode tx: %w", err)
+	}
+
+	txClient := txtypes.NewServiceClient(clientCtx)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	return txClient.Simulate(ctx, &txtypes.SimulateRequest{TxBytes: wireBytes})
 }
 
 // GetTxBatchCmd returns a command to batch multiple transactions
@@ -126,7 +117,7 @@ This is useful for executing multiple operations efficiently.`,
 
 			results := make([]string, 0)
 
-			for i, txFile := range args {
+			for _, txFile := range args {
 				bar.Add(1)
 
 				// Read and broadcast transaction
@@ -172,9 +163,26 @@ func processBatchTransaction(clientCtx client.Context, txFile string) (string, e
 		return "", err
 	}
 
+	txDecoder := clientCtx.TxConfig.TxJSONDecoder()
+	txEncoder := clientCtx.TxConfig.TxEncoder()
+
+	parsedTx, err := txDecoder(txBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode tx: %w", err)
+	}
+
+	wireTx, err := txEncoder(parsedTx)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode tx: %w", err)
+	}
+
+	res, err := clientCtx.BroadcastTx(wireTx)
+	if err != nil {
+		return "", fmt.Errorf("broadcast failed: %w", err)
+	}
+
 	// In production, decode and broadcast the transaction
-	// For now, return mock hash
-	return "MOCK_TX_HASH_" + time.Now().Format("20060102150405"), nil
+	return res.TxHash, nil
 }
 
 // GetTxOfflineCmd returns a command for offline signing
@@ -190,6 +198,7 @@ Useful for air-gapped or cold storage signing.`,
 			if err != nil {
 				return err
 			}
+			_ = clientCtx
 
 			// Set offline mode
 			clientCtx = clientCtx.WithOffline(true)
@@ -203,9 +212,8 @@ Useful for air-gapped or cold storage signing.`,
 				return fmt.Errorf("failed to read tx file: %w", err)
 			}
 
-			// Parse transaction
-			var unsignedTx authsigning.Tx
-			err = clientCtx.Codec.UnmarshalJSON(txBytes, &unsignedTx)
+			decodeFn := clientCtx.TxConfig.TxJSONDecoder()
+			unsignedTx, err := decodeFn(txBytes)
 			if err != nil {
 				return fmt.Errorf("failed to parse tx: %w", err)
 			}
@@ -254,10 +262,26 @@ Useful for air-gapped or cold storage signing.`,
 }
 
 // signTransactionOffline signs a transaction in offline mode
-func signTransactionOffline(clientCtx client.Context, tx authsigning.Tx, accountNumber, sequence uint64) (authsigning.Tx, error) {
-	// In production, implement actual offline signing
-	// For now, return the transaction as-is
-	return tx, nil
+func signTransactionOffline(clientCtx client.Context, sdkTx sdk.Tx, accountNumber, sequence uint64) (sdk.Tx, error) {
+	txBuilder, err := clientCtx.TxConfig.WrapTxBuilder(sdkTx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to wrap tx builder: %w", err)
+	}
+
+	txf := txclient.Factory{}.
+		WithTxConfig(clientCtx.TxConfig).
+		WithAccountRetriever(clientCtx.AccountRetriever).
+		WithChainID(clientCtx.ChainID).
+		WithKeybase(clientCtx.Keyring).
+		WithFromName(clientCtx.FromName).
+		WithAccountNumber(accountNumber).
+		WithSequence(sequence)
+
+	if err := txclient.Sign(clientCtx.CmdContext, txf, clientCtx.FromName, txBuilder, true); err != nil {
+		return nil, fmt.Errorf("failed to sign tx: %w", err)
+	}
+
+	return txBuilder.GetTx(), nil
 }
 
 // GetTxMultiSignCmd returns an enhanced multi-signature command
@@ -273,6 +297,7 @@ Supports creating multi-sig transactions and collecting signatures from multiple
 			if err != nil {
 				return err
 			}
+			_ = clientCtx
 
 			txFile := args[0]
 			multisigName := args[1]
@@ -282,6 +307,16 @@ Supports creating multi-sig transactions and collecting signatures from multiple
 			txBytes, err := os.ReadFile(txFile)
 			if err != nil {
 				return fmt.Errorf("failed to read tx: %w", err)
+			}
+
+			txDecoder := clientCtx.TxConfig.TxJSONDecoder()
+			baseTx, err := txDecoder(txBytes)
+			if err != nil {
+				return fmt.Errorf("failed to decode base tx: %w", err)
+			}
+			txBuilder, err := clientCtx.TxConfig.WrapTxBuilder(baseTx)
+			if err != nil {
+				return fmt.Errorf("failed to wrap base tx: %w", err)
 			}
 
 			// Create progress bar
@@ -294,24 +329,55 @@ Supports creating multi-sig transactions and collecting signatures from multiple
 			bar.Add(1) // Parsing tx
 
 			// Collect signatures
-			signatures := make([][]byte, 0)
+			signatures := make([]signingtypes.SignatureV2, 0)
 			for _, sigFile := range sigFiles {
 				sigBytes, err := os.ReadFile(sigFile)
 				if err != nil {
 					bar.Finish()
 					return fmt.Errorf("failed to read signature %s: %w", sigFile, err)
 				}
-				signatures = append(signatures, sigBytes)
+				signedTx, err := txDecoder(sigBytes)
+				if err != nil {
+					bar.Finish()
+					return fmt.Errorf("failed to decode signed tx %s: %w", sigFile, err)
+				}
+				signed := signedTx.(authsigning.Tx)
+				sigs, err := signed.GetSignaturesV2()
+				if err != nil {
+					bar.Finish()
+					return fmt.Errorf("failed to extract signatures from %s: %w", sigFile, err)
+				}
+				signatures = append(signatures, sigs...)
 				bar.Add(1)
 			}
 
 			// Combine signatures
+			if err := txBuilder.SetSignatures(signatures...); err != nil {
+				bar.Finish()
+				return fmt.Errorf("failed to set signatures: %w", err)
+			}
+
+			txEncoder := clientCtx.TxConfig.TxJSONEncoder()
+			signedJSON, err := txEncoder(txBuilder.GetTx())
+			if err != nil {
+				bar.Finish()
+				return fmt.Errorf("failed to encode multisigned tx: %w", err)
+			}
+
 			bar.Add(1)
 			bar.Finish()
 
 			fmt.Printf("\n✓ Multi-signature transaction created\n")
 			fmt.Printf("Signers: %s\n", multisigName)
 			fmt.Printf("Signatures collected: %d/%d\n", len(signatures), len(sigFiles))
+			if output, _ := cmd.Flags().GetString("output"); output != "" {
+				if err := os.WriteFile(output, signedJSON, 0644); err != nil {
+					return fmt.Errorf("failed to write output: %w", err)
+				}
+				fmt.Printf("Multisigned transaction saved to: %s\n", output)
+			} else {
+				fmt.Println(string(signedJSON))
+			}
 
 			return nil
 		},
@@ -447,10 +513,7 @@ func interactiveQueryBalance(clientCtx client.Context, reader *bufio.Reader) err
 	address = strings.TrimSpace(address)
 
 	if address == "" {
-		fromAddr, err := clientCtx.GetFromAddress()
-		if err != nil {
-			return err
-		}
+		fromAddr := clientCtx.GetFromAddress()
 		address = fromAddr.String()
 	}
 

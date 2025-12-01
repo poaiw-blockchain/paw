@@ -814,7 +814,6 @@ func TestInitCmdAppStateNotEmpty(t *testing.T) {
 		"bank",
 		"staking",
 		"gov",
-		"dex", // PAW-specific module
 	}
 
 	for _, module := range expectedModules {

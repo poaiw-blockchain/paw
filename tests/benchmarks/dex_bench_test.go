@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
@@ -32,7 +31,6 @@ func BenchmarkCreatePool(b *testing.B) {
 // BenchmarkAddLiquidity benchmarks adding liquidity to an existing pool
 func BenchmarkAddLiquidity(b *testing.B) {
 	k, ctx := keepertest.DexKeeper(b)
-	creator := types.TestAddr()
 	provider := types.TestAddr()
 
 	// Create a test pool
@@ -282,7 +280,6 @@ func BenchmarkPriceImpact(b *testing.B) {
 // BenchmarkLPTokenMinting benchmarks LP token minting during liquidity addition
 func BenchmarkLPTokenMinting(b *testing.B) {
 	k, ctx := keepertest.DexKeeper(b)
-	provider := types.TestAddr()
 
 	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000), math.NewInt(20000000))
 

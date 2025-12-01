@@ -48,6 +48,11 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		return math.ZeroInt(), err
 	}
 
+	// Enforce MEV protection limits on swap size
+	if err := k.ValidateSwapSize(amountIn, reserveIn); err != nil {
+		return math.ZeroInt(), err
+	}
+
 	// Calculate swap output using constant product formula with fees
 	amountOut, err := k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
 	if err != nil {
@@ -180,6 +185,11 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 
 	// Calculate swap output
 	return k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+}
+
+// Swap wraps the secure swap execution path for scenarios that expect a simple swap entrypoint.
+func (k Keeper) Swap(ctx context.Context, trader sdk.AccAddress, poolID uint64, tokenIn, tokenOut string, amountIn, minAmountOut math.Int) (math.Int, error) {
+	return k.ExecuteSwapSecure(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
 }
 
 // GetSpotPrice returns the spot price of tokenOut in terms of tokenIn

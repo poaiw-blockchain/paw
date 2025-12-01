@@ -4,9 +4,10 @@ import (
 	"math/rand"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 
@@ -17,14 +18,14 @@ import (
 // Simulation operation weights constants
 const (
 	OpWeightMsgRegisterProvider   = "op_weight_msg_register_provider"
-	OpWeightMsgUpdateProvider      = "op_weight_msg_update_provider"
-	OpWeightMsgDeactivateProvider  = "op_weight_msg_deactivate_provider"
-	OpWeightMsgSubmitRequest       = "op_weight_msg_submit_request"
-	OpWeightMsgSubmitResult        = "op_weight_msg_submit_result"
-	OpWeightMsgCancelRequest       = "op_weight_msg_cancel_request"
+	OpWeightMsgUpdateProvider     = "op_weight_msg_update_provider"
+	OpWeightMsgDeactivateProvider = "op_weight_msg_deactivate_provider"
+	OpWeightMsgSubmitRequest      = "op_weight_msg_submit_request"
+	OpWeightMsgSubmitResult       = "op_weight_msg_submit_result"
+	OpWeightMsgCancelRequest      = "op_weight_msg_cancel_request"
 
-	DefaultWeightMsgRegisterProvider  = 20
-	DefaultWeightMsgUpdateProvider    = 10
+	DefaultWeightMsgRegisterProvider   = 20
+	DefaultWeightMsgUpdateProvider     = 10
 	DefaultWeightMsgDeactivateProvider = 5
 	DefaultWeightMsgSubmitRequest      = 50
 	DefaultWeightMsgSubmitResult       = 40
@@ -35,13 +36,16 @@ const (
 func WeightedOperations(
 	appParams simtypes.AppParams,
 	cdc codec.JSONCodec,
+	txGen client.TxConfig,
 	k keeper.Keeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 ) simulation.WeightedOperations {
+	protoCdc, _ := cdc.(*codec.ProtoCodec)
+
 	var (
-		weightMsgRegisterProvider  int
-		weightMsgUpdateProvider    int
+		weightMsgRegisterProvider   int
+		weightMsgUpdateProvider     int
 		weightMsgDeactivateProvider int
 		weightMsgSubmitRequest      int
 		weightMsgSubmitResult       int
@@ -87,35 +91,41 @@ func WeightedOperations(
 	return simulation.WeightedOperations{
 		simulation.NewWeightedOperation(
 			weightMsgRegisterProvider,
-			SimulateMsgRegisterProvider(k, ak, bk),
+			SimulateMsgRegisterProvider(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgUpdateProvider,
-			SimulateMsgUpdateProvider(k, ak, bk),
+			SimulateMsgUpdateProvider(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgDeactivateProvider,
-			SimulateMsgDeactivateProvider(k, ak, bk),
+			SimulateMsgDeactivateProvider(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgSubmitRequest,
-			SimulateMsgSubmitRequest(k, ak, bk),
+			SimulateMsgSubmitRequest(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgSubmitResult,
-			SimulateMsgSubmitResult(k, ak, bk),
+			SimulateMsgSubmitResult(txGen, protoCdc, k, ak, bk),
 		),
 		simulation.NewWeightedOperation(
 			weightMsgCancelRequest,
-			SimulateMsgCancelRequest(k, ak, bk),
+			SimulateMsgCancelRequest(txGen, protoCdc, k, ak, bk),
 		),
 	}
 }
 
 // SimulateMsgRegisterProvider generates a MsgRegisterProvider with random values
-func SimulateMsgRegisterProvider(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgRegisterProvider(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
@@ -127,33 +137,44 @@ func SimulateMsgRegisterProvider(k keeper.Keeper, ak types.AccountKeeper, bk typ
 
 		// Check if account has enough balance
 		spendable := bk.SpendableCoins(ctx, simAccount.Address)
-		if !spendable.IsAllGTE(params.MinProviderStake) {
+		minStakeCoins := sdk.NewCoins(sdk.NewCoin("upaw", params.MinProviderStake))
+		if !spendable.IsAllGTE(minStakeCoins) {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgRegisterProvider, "insufficient balance"), nil, nil
 		}
 
 		msg := &types.MsgRegisterProvider{
 			Provider: simAccount.Address.String(),
+			Moniker:  "sim-provider",
 			Endpoint: "https://github.com/compute",
-			Pricing: &types.Pricing{
-				CpuPricePerHour:    math.NewInt(int64(simtypes.RandIntBetween(r, 100, 1000))),
-				MemoryPricePerHour: math.NewInt(int64(simtypes.RandIntBetween(r, 50, 500))),
-				GpuPricePerHour:    math.NewInt(int64(simtypes.RandIntBetween(r, 500, 5000))),
+			AvailableSpecs: types.ComputeSpec{
+				CpuCores:       uint64(simtypes.RandIntBetween(r, 2, 16)),
+				MemoryMb:       uint64(simtypes.RandIntBetween(r, 2048, 16384)),
+				GpuCount:       uint32(simtypes.RandIntBetween(r, 0, 2)),
+				GpuType:        "generic",
+				StorageGb:      uint64(simtypes.RandIntBetween(r, 10, 200)),
+				TimeoutSeconds: uint64(simtypes.RandIntBetween(r, 300, 7200)),
+			},
+			Pricing: types.Pricing{
+				CpuPricePerMcoreHour:  math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 10)))),
+				MemoryPricePerMbHour:  math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 10)))),
+				GpuPricePerHour:       math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 10, 50)))),
+				StoragePricePerGbHour: math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 5)))),
 			},
 			Stake: params.MinProviderStake,
 		}
 
 		txCtx := simulation.OperationInput{
 			R:               r,
-			App:             app.(*module.SimulationManager),
-			TxGen:           nil,
-			Cdc:             nil,
+			App:             app,
+			TxGen:           txGen,
+			Cdc:             cdc,
 			Msg:             msg,
 			Context:         ctx,
 			SimAccount:      simAccount,
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: msg.Stake,
+			CoinsSpentInMsg: minStakeCoins,
 		}
 
 		return simulation.GenAndDeliverTxWithRandFees(txCtx)
@@ -161,9 +182,15 @@ func SimulateMsgRegisterProvider(k keeper.Keeper, ak types.AccountKeeper, bk typ
 }
 
 // SimulateMsgUpdateProvider generates a MsgUpdateProvider with random values
-func SimulateMsgUpdateProvider(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgUpdateProvider(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		// Find a random registered provider
 		var providers []types.Provider
@@ -194,19 +221,21 @@ func SimulateMsgUpdateProvider(k keeper.Keeper, ak types.AccountKeeper, bk types
 
 		msg := &types.MsgUpdateProvider{
 			Provider: provider.Address,
+			Moniker:  "sim-provider-updated",
 			Endpoint: "https://updated.github.com/compute",
 			Pricing: &types.Pricing{
-				CpuPricePerHour:    math.NewInt(int64(simtypes.RandIntBetween(r, 100, 1000))),
-				MemoryPricePerHour: math.NewInt(int64(simtypes.RandIntBetween(r, 50, 500))),
-				GpuPricePerHour:    math.NewInt(int64(simtypes.RandIntBetween(r, 500, 5000))),
+				CpuPricePerMcoreHour:  math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 10)))),
+				MemoryPricePerMbHour:  math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 10)))),
+				GpuPricePerHour:       math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 10, 50)))),
+				StoragePricePerGbHour: math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 5)))),
 			},
 		}
 
 		txCtx := simulation.OperationInput{
 			R:             r,
-			App:           app.(*module.SimulationManager),
-			TxGen:         nil,
-			Cdc:           nil,
+			App:           app,
+			TxGen:         txGen,
+			Cdc:           cdc,
 			Msg:           msg,
 			Context:       ctx,
 			SimAccount:    simAccount,
@@ -220,9 +249,15 @@ func SimulateMsgUpdateProvider(k keeper.Keeper, ak types.AccountKeeper, bk types
 }
 
 // SimulateMsgDeactivateProvider generates a MsgDeactivateProvider with random values
-func SimulateMsgDeactivateProvider(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgDeactivateProvider(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		// Find a random active provider
 		var activeProviders []types.Provider
@@ -256,9 +291,9 @@ func SimulateMsgDeactivateProvider(k keeper.Keeper, ak types.AccountKeeper, bk t
 
 		txCtx := simulation.OperationInput{
 			R:             r,
-			App:           app.(*module.SimulationManager),
-			TxGen:         nil,
-			Cdc:           nil,
+			App:           app,
+			TxGen:         txGen,
+			Cdc:           cdc,
 			Msg:           msg,
 			Context:       ctx,
 			SimAccount:    simAccount,
@@ -272,49 +307,58 @@ func SimulateMsgDeactivateProvider(k keeper.Keeper, ak types.AccountKeeper, bk t
 }
 
 // SimulateMsgSubmitRequest generates a MsgSubmitRequest with random values
-func SimulateMsgSubmitRequest(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgSubmitRequest(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
 		// Random compute specs
-		specs := &types.ComputeSpecs{
-			Cpu:        uint64(simtypes.RandIntBetween(r, 1, 16)),
-			Memory:     uint64(simtypes.RandIntBetween(r, 1024, 16384)),
-			Gpu:        uint64(simtypes.RandIntBetween(r, 0, 2)),
-			Storage:    uint64(simtypes.RandIntBetween(r, 10, 100)),
-			DurationMs: uint64(simtypes.RandIntBetween(r, 1000, 3600000)),
+		specs := types.ComputeSpec{
+			CpuCores:       uint64(simtypes.RandIntBetween(r, 1, 16)),
+			MemoryMb:       uint64(simtypes.RandIntBetween(r, 1024, 16384)),
+			GpuCount:       uint32(simtypes.RandIntBetween(r, 0, 2)),
+			GpuType:        "generic",
+			StorageGb:      uint64(simtypes.RandIntBetween(r, 10, 100)),
+			TimeoutSeconds: uint64(simtypes.RandIntBetween(r, 60, 3600)),
 		}
 
 		// Estimate payment needed
-		payment := sdk.NewCoins(sdk.NewInt64Coin("upaw", int64(simtypes.RandIntBetween(r, 1000, 100000))))
+		paymentAmount := math.NewInt(int64(simtypes.RandIntBetween(r, 1000, 100000)))
+		paymentCoins := sdk.NewCoins(sdk.NewCoin("upaw", paymentAmount))
 
 		spendable := bk.SpendableCoins(ctx, simAccount.Address)
-		if !spendable.IsAllGTE(payment) {
+		if !spendable.IsAllGTE(paymentCoins) {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitRequest, "insufficient balance"), nil, nil
 		}
 
 		msg := &types.MsgSubmitRequest{
-			Requester:     simAccount.Address.String(),
+			Requester:      simAccount.Address.String(),
 			ContainerImage: "alpine:latest",
-			Specs:         specs,
-			Payment:       payment,
-			OutputUrl:     "https://storage.github.com/output",
+			Specs:          specs,
+			Command:        []string{"echo", "hello"},
+			EnvVars:        map[string]string{"ENV": "prod"},
+			MaxPayment:     paymentAmount,
 		}
 
 		txCtx := simulation.OperationInput{
 			R:               r,
-			App:             app.(*module.SimulationManager),
-			TxGen:           nil,
-			Cdc:             nil,
+			App:             app,
+			TxGen:           txGen,
+			Cdc:             cdc,
 			Msg:             msg,
 			Context:         ctx,
 			SimAccount:      simAccount,
 			AccountKeeper:   ak,
 			Bankkeeper:      bk,
 			ModuleName:      types.ModuleName,
-			CoinsSpentInMsg: payment,
+			CoinsSpentInMsg: paymentCoins,
 		}
 
 		return simulation.GenAndDeliverTxWithRandFees(txCtx)
@@ -322,13 +366,19 @@ func SimulateMsgSubmitRequest(k keeper.Keeper, ak types.AccountKeeper, bk types.
 }
 
 // SimulateMsgSubmitResult generates a MsgSubmitResult with random values
-func SimulateMsgSubmitResult(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgSubmitResult(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		// Find a random processing request
 		var processingRequests []types.Request
-		err := k.IterateRequestsByStatus(ctx, types.RequestStatus_PROCESSING, func(request types.Request) (bool, error) {
+		err := k.IterateRequestsByStatus(ctx, types.REQUEST_STATUS_PROCESSING, func(request types.Request) (bool, error) {
 			processingRequests = append(processingRequests, request)
 			return false, nil
 		})
@@ -353,17 +403,19 @@ func SimulateMsgSubmitResult(k keeper.Keeper, ak types.AccountKeeper, bk types.B
 		}
 
 		msg := &types.MsgSubmitResult{
-			Provider:  request.Provider,
-			RequestId: request.Id,
-			ResultUrl: "https://storage.github.com/result",
-			Success:   true,
+			Provider:   request.Provider,
+			RequestId:  request.Id,
+			OutputHash: "hash123",
+			OutputUrl:  "https://storage.github.com/result",
+			ExitCode:   0,
+			LogsUrl:    "https://storage.github.com/logs",
 		}
 
 		txCtx := simulation.OperationInput{
 			R:             r,
-			App:           app.(*module.SimulationManager),
-			TxGen:         nil,
-			Cdc:           nil,
+			App:           app,
+			TxGen:         txGen,
+			Cdc:           cdc,
 			Msg:           msg,
 			Context:       ctx,
 			SimAccount:    simAccount,
@@ -377,16 +429,22 @@ func SimulateMsgSubmitResult(k keeper.Keeper, ak types.AccountKeeper, bk types.B
 }
 
 // SimulateMsgCancelRequest generates a MsgCancelRequest with random values
-func SimulateMsgCancelRequest(k keeper.Keeper, ak types.AccountKeeper, bk types.BankKeeper) simtypes.Operation {
+func SimulateMsgCancelRequest(
+	txGen client.TxConfig,
+	cdc *codec.ProtoCodec,
+	k keeper.Keeper,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+) simtypes.Operation {
 	return func(
-		r *rand.Rand, app interface{}, ctx sdk.Context, accs []simtypes.Account, chainID string,
+		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 		simAccount, _ := simtypes.RandomAcc(r, accs)
 
 		// Find pending requests by this requester
 		var pendingRequests []types.Request
 		err := k.IterateRequestsByRequester(ctx, simAccount.Address, func(request types.Request) (bool, error) {
-			if request.Status == types.RequestStatus_PENDING {
+			if request.Status == types.REQUEST_STATUS_PENDING {
 				pendingRequests = append(pendingRequests, request)
 			}
 			return false, nil
@@ -404,9 +462,9 @@ func SimulateMsgCancelRequest(k keeper.Keeper, ak types.AccountKeeper, bk types.
 
 		txCtx := simulation.OperationInput{
 			R:             r,
-			App:           app.(*module.SimulationManager),
-			TxGen:         nil,
-			Cdc:           nil,
+			App:           app,
+			TxGen:         txGen,
+			Cdc:           cdc,
 			Msg:           msg,
 			Context:       ctx,
 			SimAccount:    simAccount,

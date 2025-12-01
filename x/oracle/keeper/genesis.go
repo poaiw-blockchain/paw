@@ -12,6 +12,11 @@ import (
 
 // InitGenesis initializes the oracle module's state from a genesis state
 func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	if err := k.BindPort(sdkCtx); err != nil {
+		return fmt.Errorf("failed to bind IBC port: %w", err)
+	}
+
 	// Set parameters
 	if err := k.SetParams(ctx, data.Params); err != nil {
 		return fmt.Errorf("failed to set params: %w", err)
@@ -44,8 +49,6 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 			return fmt.Errorf("failed to set price snapshot: %w", err)
 		}
 	}
-
-
 
 	return nil
 }
@@ -91,11 +94,11 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	return &types.GenesisState{
-		Params:               params,
-		Prices:               prices,
-		ValidatorPrices:      validatorPrices,
-		ValidatorOracles:     validatorOracles,
-		PriceSnapshots:       priceSnapshots,
+		Params:           params,
+		Prices:           prices,
+		ValidatorPrices:  validatorPrices,
+		ValidatorOracles: validatorOracles,
+		PriceSnapshots:   priceSnapshots,
 	}, nil
 }
 

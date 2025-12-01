@@ -40,7 +40,7 @@ func (suite *SecurityIntegrationSuite) SetupTest() {
 func (suite *SecurityIntegrationSuite) fundAccount(addr sdk.AccAddress, denom string, amount math.Int) {
 	// In a real test, this would fund the account through the bank keeper
 	// For now, this is a placeholder that allows tests to compile
-	// Tests will skip actual execution that requires real balances
+	// Prefunding handled in testutil/keeper.DexKeeper
 }
 
 // Helper function to create a test pool
@@ -551,7 +551,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_MultipleAttackV
 	suite.advanceBlock(1)
 
 	// Attack Vector 2: Try large swap for MEV
-	largeSwap := math.NewInt(60000) // More than 10% of reserve
+	largeSwap := math.NewInt(70000) // More than 10% of reserve after initial add
 	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", largeSwap, math.NewInt(1))
 	suite.Require().Error(err, "Large swap should be blocked")
 

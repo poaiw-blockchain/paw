@@ -4,7 +4,6 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/binary"
 	"math"
 	"testing"
 	"testing/quick"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -35,13 +36,18 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryRequestsByStatus(),
 		GetCmdQueryResult(),
 		GetCmdQueryEstimateCost(),
-		// GetCmdQuerySlashRecord(),
-		// GetCmdQuerySlashRecords(),
-		// GetCmdQuerySlashRecordsByProvider(),
-		// GetCmdQueryAppeal(),
-		// GetCmdQueryAppeals(),
-		// GetCmdQueryAppealsByStatus(),
-		// GetCmdQueryGovernanceParams(),
+		GetCmdQueryDispute(),
+		GetCmdQueryDisputes(),
+		GetCmdQueryDisputesByRequest(),
+		GetCmdQueryDisputesByStatus(),
+		GetCmdQueryEvidence(),
+		GetCmdQuerySlashRecord(),
+		GetCmdQuerySlashRecords(),
+		GetCmdQuerySlashRecordsByProvider(),
+		GetCmdQueryAppeal(),
+		GetCmdQueryAppeals(),
+		GetCmdQueryAppealsByStatus(),
+		GetCmdQueryGovernanceParams(),
 	)
 
 	return computeQueryCmd
@@ -108,42 +114,6 @@ Example:
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
-
-/*
-func GetCmdQueryDispute(queryRoute string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "dispute [id]",
-		Short: "Query a dispute details",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			queryClient := types.NewQueryClient(clientCtx)
-
-			id, err := strconv.ParseUint(args[0], 10, 64)
-			if err != nil {
-				return err
-			}
-
-			res, err := queryClient.Dispute(cmd.Context(), &types.QueryDisputeRequest{
-				DisputeId: id,
-			})
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintProto(res)
-		},
-	}
-
-	flags.AddQueryFlagsToCmd(cmd)
-
-	return cmd
-}
-*/
 
 // GetCmdQueryProviders returns the command to query all providers
 func GetCmdQueryProviders() *cobra.Command {
@@ -537,9 +507,8 @@ Example:
 	return cmd
 }
 
-/*
 // GetCmdQueryDispute returns the command to query a dispute
-func GetCmdQueryDispute(queryRoute string) *cobra.Command {
+func GetCmdQueryDispute() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dispute [dispute-id]",
 		Short: "Query dispute by ID",
@@ -576,9 +545,7 @@ Example:
 
 	return cmd
 }
-*/
 
-/*
 // GetCmdQueryDisputes returns the command to query all disputes
 func GetCmdQueryDisputes() *cobra.Command {
 	cmd := &cobra.Command{
@@ -668,10 +635,10 @@ func GetCmdQueryDisputesByStatus() *cobra.Command {
 		Short: "Query all disputes with a specific status",
 		Long: `Query all disputes with a specific status.
 
-Valid status values: pending, voting, resolved_favor_requester, resolved_favor_provider, cancelled
+Valid status values: evidence_submission, voting, tallying, resolved, appealed
 
 Example:
-  $ pawd query compute disputes-by-status pending`,
+  $ pawd query compute disputes-by-status voting`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientQueryContext(cmd)
@@ -750,9 +717,7 @@ Example:
 	flags.AddPaginationFlagsToCmd(cmd, "evidence")
 	return cmd
 }
-*/
 
-/*
 // GetCmdQuerySlashRecord returns the command to query a slash record
 func GetCmdQuerySlashRecord() *cobra.Command {
 	cmd := &cobra.Command{
@@ -903,9 +868,7 @@ Example:
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
-*/
 
-/*
 // GetCmdQueryAppeals returns the command to query all appeals
 func GetCmdQueryAppeals() *cobra.Command {
 	cmd := &cobra.Command{
@@ -951,7 +914,7 @@ func GetCmdQueryAppealsByStatus() *cobra.Command {
 		Short: "Query all appeals with a specific status",
 		Long: `Query all appeals with a specific status.
 
-Valid status values: pending, voting, approved, rejected, cancelled
+Valid status values: pending, voting, resolved
 
 Example:
   $ pawd query compute appeals-by-status pending`,
@@ -1019,62 +982,55 @@ Example:
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
-*/
 
 // Helper functions for parsing enums
 
 func parseRequestStatus(status string) (types.RequestStatus, error) {
 	switch status {
 	case "pending":
-		return types.RequestStatus_REQUEST_STATUS_PENDING, nil
+		return types.REQUEST_STATUS_PENDING, nil
 	case "assigned":
-		return types.RequestStatus_REQUEST_STATUS_ASSIGNED, nil
+		return types.REQUEST_STATUS_ASSIGNED, nil
 	case "processing":
-		return types.RequestStatus_REQUEST_STATUS_PROCESSING, nil
+		return types.REQUEST_STATUS_PROCESSING, nil
 	case "completed":
-		return types.RequestStatus_REQUEST_STATUS_COMPLETED, nil
+		return types.REQUEST_STATUS_COMPLETED, nil
 	case "failed":
-		return types.RequestStatus_REQUEST_STATUS_FAILED, nil
+		return types.REQUEST_STATUS_FAILED, nil
 	case "cancelled":
-		return types.RequestStatus_REQUEST_STATUS_CANCELLED, nil
+		return types.REQUEST_STATUS_CANCELLED, nil
 
 	default:
 		return 0, fmt.Errorf("invalid request status: %s (valid: pending, assigned, processing, completed, failed, cancelled, disputed)", status)
 	}
 }
 
-/*
 func parseDisputeStatus(status string) (types.DisputeStatus, error) {
-	switch status {
-	case "pending":
-		return types.DisputeStatus_DISPUTE_STATUS_PENDING, nil
+	switch strings.ToLower(status) {
+	case "pending", "evidence", "evidence_submission":
+		return types.DISPUTE_STATUS_EVIDENCE_SUBMISSION, nil
 	case "voting":
-		return types.DisputeStatus_DISPUTE_STATUS_VOTING, nil
-	case "resolved_favor_requester":
-		return types.DisputeStatus_DISPUTE_STATUS_RESOLVED_FAVOR_REQUESTER, nil
-	case "resolved_favor_provider":
-		return types.DisputeStatus_DISPUTE_STATUS_RESOLVED_FAVOR_PROVIDER, nil
-	case "cancelled":
-		return types.DisputeStatus_DISPUTE_STATUS_CANCELLED, nil
+		return types.DISPUTE_STATUS_VOTING, nil
+	case "tallying":
+		return types.DISPUTE_STATUS_TALLYING, nil
+	case "resolved":
+		return types.DISPUTE_STATUS_RESOLVED, nil
+	case "appealed":
+		return types.DISPUTE_STATUS_APPEALED, nil
 	default:
-		return 0, fmt.Errorf("invalid dispute status: %s (valid: pending, voting, resolved_favor_requester, resolved_favor_provider, cancelled)", status)
+		return 0, fmt.Errorf("invalid dispute status: %s (valid: evidence_submission, voting, tallying, resolved, appealed)", status)
 	}
 }
 
 func parseAppealStatus(status string) (types.AppealStatus, error) {
-	switch status {
+	switch strings.ToLower(status) {
 	case "pending":
-		return types.AppealStatus_APPEAL_STATUS_PENDING, nil
+		return types.APPEAL_STATUS_PENDING, nil
 	case "voting":
-		return types.AppealStatus_APPEAL_STATUS_VOTING, nil
-	case "approved":
-		return types.AppealStatus_APPEAL_STATUS_APPROVED, nil
-	case "rejected":
-		return types.AppealStatus_APPEAL_STATUS_REJECTED, nil
-	case "cancelled":
-		return types.AppealStatus_APPEAL_STATUS_CANCELLED, nil
+		return types.APPEAL_STATUS_VOTING, nil
+	case "resolved":
+		return types.APPEAL_STATUS_RESOLVED, nil
 	default:
-		return 0, fmt.Errorf("invalid appeal status: %s (valid: pending, voting, approved, rejected, cancelled)", status)
+		return 0, fmt.Errorf("invalid appeal status: %s (valid: pending, voting, resolved)", status)
 	}
 }
-*/

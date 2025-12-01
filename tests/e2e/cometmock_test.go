@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package e2e_test
 
 import (
@@ -8,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/paw-chain/paw/testutil/cometmock"
 	dextypes "github.com/paw-chain/paw/x/dex/types"

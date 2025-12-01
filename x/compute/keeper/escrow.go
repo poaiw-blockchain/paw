@@ -59,16 +59,16 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 
 	// Create escrow state record - AFTER successful transfer
 	escrowState := &EscrowState{
-		RequestID:       requestID,
+		RequestId:       requestID,
 		Requester:       requester.String(),
 		Provider:        provider.String(),
 		Amount:          amount,
-		Status:          types.EscrowStatus_ESCROW_STATUS_LOCKED,
+		Status:          types.ESCROW_STATUS_LOCKED,
 		LockedAt:        now,
 		ExpiresAt:       expiresAt,
 		ReleasedAt:      nil,
 		RefundedAt:      nil,
-		DisputeID:       0,
+		DisputeId:       0,
 		ChallengeEndsAt: nil,
 		ReleaseAttempts: 0,
 		Nonce:           nonce,
@@ -119,13 +119,13 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 	}
 
 	// CRITICAL: Check current status atomically
-	if escrowState.Status != types.EscrowStatus_ESCROW_STATUS_LOCKED &&
-		escrowState.Status != types.EscrowStatus_ESCROW_STATUS_CHALLENGED {
+	if escrowState.Status != types.ESCROW_STATUS_LOCKED &&
+		escrowState.Status != types.ESCROW_STATUS_CHALLENGED {
 		return fmt.Errorf("escrow cannot be released in status %s", escrowState.Status.String())
 	}
 
 	// CRITICAL: Prevent double-spending by checking release attempts
-	if escrowState.ReleaseAttempts > 0 && escrowState.Status == types.EscrowStatus_ESCROW_STATUS_RELEASED {
+	if escrowState.ReleaseAttempts > 0 && escrowState.Status == types.ESCROW_STATUS_RELEASED {
 		return fmt.Errorf("escrow already released (double-spend attempt detected)")
 	}
 
@@ -147,7 +147,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 			// First release attempt - start challenge period
 			challengeEnds := now.Add(time.Duration(params.EscrowReleaseDelaySeconds) * time.Second)
 			escrowState.ChallengeEndsAt = &challengeEnds
-			escrowState.Status = types.EscrowStatus_ESCROW_STATUS_CHALLENGED
+			escrowState.Status = types.ESCROW_STATUS_CHALLENGED
 			escrowState.ReleaseAttempts++
 
 			if err := k.SetEscrowState(ctx, *escrowState); err != nil {
@@ -183,7 +183,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 	}
 
 	// 2. EFFECTS: Update state BEFORE external call
-	escrowState.Status = types.EscrowStatus_ESCROW_STATUS_RELEASED
+	escrowState.Status = types.ESCROW_STATUS_RELEASED
 	escrowState.ReleasedAt = &now
 	escrowState.ReleaseAttempts++
 
@@ -228,8 +228,8 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 	}
 
 	// CRITICAL: Check current status atomically
-	if escrowState.Status != types.EscrowStatus_ESCROW_STATUS_LOCKED &&
-		escrowState.Status != types.EscrowStatus_ESCROW_STATUS_CHALLENGED {
+	if escrowState.Status != types.ESCROW_STATUS_LOCKED &&
+		escrowState.Status != types.ESCROW_STATUS_CHALLENGED {
 		return fmt.Errorf("escrow cannot be refunded in status %s", escrowState.Status.String())
 	}
 
@@ -246,7 +246,7 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 
 	// ATOMIC REFUND: Check-Effects-Interactions pattern
 	// 1. EFFECTS: Update state BEFORE external call
-	escrowState.Status = types.EscrowStatus_ESCROW_STATUS_REFUNDED
+	escrowState.Status = types.ESCROW_STATUS_REFUNDED
 	escrowState.RefundedAt = &now
 
 	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
@@ -341,7 +341,7 @@ func (k Keeper) SetEscrowState(ctx context.Context, state EscrowState) error {
 		return err
 	}
 
-	store.Set(EscrowStateKey(state.RequestID), bz)
+	store.Set(EscrowStateKey(state.RequestId), bz)
 	return nil
 }
 

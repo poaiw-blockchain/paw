@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/spf13/cobra"
 
@@ -44,6 +45,20 @@ func (AppModuleBasic) RegisterInterfaces(registry types.InterfaceRegistry) {
 	oracletypes.RegisterInterfaces(registry)
 }
 
+// DefaultGenesis returns the default genesis state for the oracle module.
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
+	return cdc.MustMarshalJSON(oracletypes.DefaultGenesis())
+}
+
+// ValidateGenesis validates the provided genesis state.
+func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
+	var genState oracletypes.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &genState); err != nil {
+		return err
+	}
+	return genState.Validate()
+}
+
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the oracle module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {}
 
@@ -60,14 +75,20 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 // AppModule implements an application module for the oracle module.
 type AppModule struct {
 	AppModuleBasic
-	keeper *keeper.Keeper
+	keeper        *keeper.Keeper
+	accountKeeper oracletypes.AccountKeeper
+	bankKeeper    oracletypes.BankKeeper
+	stakingKeeper oracletypes.StakingKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper) AppModule {
+func NewAppModule(cdc codec.Codec, keeper *keeper.Keeper, ak oracletypes.AccountKeeper, bk oracletypes.BankKeeper, sk oracletypes.StakingKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
+		accountKeeper:  ak,
+		bankKeeper:     bk,
+		stakingKeeper:  sk,
 	}
 }
 
@@ -111,8 +132,8 @@ func (am AppModule) RegisterStoreDecoder(_ simtypes.StoreDecoderRegistry) {
 // WeightedOperations returns simulation operations for the oracle module
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	return simulation.WeightedOperations(
-		simState.AppParams, simState.Cdc, *am.keeper,
-		simState.AccountKeeper, simState.BankKeeper, simState.StakingKeeper,
+		simState.AppParams, simState.Cdc, simState.TxConfig, *am.keeper,
+		am.accountKeeper, am.bankKeeper, am.stakingKeeper,
 	)
 }
 
@@ -126,4 +147,22 @@ func (am AppModule) BeginBlock(ctx context.Context) error {
 // This is called at the end of every block to process time-based operations
 func (am AppModule) EndBlock(ctx context.Context) error {
 	return am.keeper.EndBlocker(ctx)
+}
+
+// InitGenesis initializes module state from genesis data.
+func (am AppModule) InitGenesis(ctx context.Context, cdc codec.JSONCodec, data json.RawMessage) error {
+	var genState oracletypes.GenesisState
+	if err := cdc.UnmarshalJSON(data, &genState); err != nil {
+		return err
+	}
+	return am.keeper.InitGenesis(ctx, genState)
+}
+
+// ExportGenesis exports module state to genesis.
+func (am AppModule) ExportGenesis(ctx context.Context, cdc codec.JSONCodec) (json.RawMessage, error) {
+	genState, err := am.keeper.ExportGenesis(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cdc.MarshalJSON(genState)
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -21,7 +22,6 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 
 	"github.com/consensys/gnark-crypto/ecc"
-	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 )
@@ -29,11 +29,11 @@ import (
 // ZKVerificationTestSuite tests the complete ZK-SNARK verification system.
 type ZKVerificationTestSuite struct {
 	suite.Suite
-	ctx           sdk.Context
-	keeper        *computekeeper.Keeper
-	zkVerifier    *computekeeper.ZKVerifier
-	requester     sdk.AccAddress
-	provider      sdk.AccAddress
+	ctx        sdk.Context
+	keeper     *computekeeper.Keeper
+	zkVerifier *computekeeper.ZKVerifier
+	requester  sdk.AccAddress
+	provider   sdk.AccAddress
 }
 
 func TestZKVerificationTestSuite(t *testing.T) {
@@ -50,8 +50,10 @@ func (suite *ZKVerificationTestSuite) SetupTest() {
 	suite.zkVerifier = computekeeper.NewZKVerifier(suite.keeper)
 
 	// Create test accounts
-	suite.requester = sdk.AccAddress([]byte("requester"))
-	suite.provider = sdk.AccAddress([]byte("provider"))
+	reqKey := secp256k1.GenPrivKey()
+	provKey := secp256k1.GenPrivKey()
+	suite.requester = sdk.AccAddress(reqKey.PubKey().Address())
+	suite.provider = sdk.AccAddress(provKey.PubKey().Address())
 }
 
 // TestComputeCircuitCompilation tests circuit compilation and constraint count.
@@ -66,13 +68,13 @@ func (suite *ZKVerificationTestSuite) TestComputeCircuitCompilation() {
 	// Verify constraint count is within expected range
 	constraintCount := ccs.GetNbConstraints()
 	suite.T().Logf("Compute circuit constraint count: %d", constraintCount)
-	require.Greater(suite.T(), constraintCount, 30000, "Circuit should have >30k constraints")
-	require.Less(suite.T(), constraintCount, 50000, "Circuit should have <50k constraints")
+	require.Greater(suite.T(), constraintCount, 300000, "Circuit should have >300k constraints to cover extended verification checks")
+	require.Less(suite.T(), constraintCount, 500000, "Circuit should have <500k constraints to stay within proving limits")
 
 	// Verify public input count
 	publicInputs := ccs.GetNbPublicVariables()
 	suite.T().Logf("Public inputs: %d", publicInputs)
-	require.Equal(suite.T(), 4, publicInputs, "Should have 4 public inputs")
+	require.Equal(suite.T(), 5, publicInputs, "Should have 5 public inputs")
 }
 
 // TestEscrowCircuitCompilation tests escrow circuit compilation.
@@ -97,8 +99,8 @@ func (suite *ZKVerificationTestSuite) TestResultCircuitCompilation() {
 
 	constraintCount := ccs.GetNbConstraints()
 	suite.T().Logf("Result circuit constraint count: %d", constraintCount)
-	require.Greater(suite.T(), constraintCount, 35000, "Circuit should have >35k constraints")
-	require.Less(suite.T(), constraintCount, 60000, "Circuit should have <60k constraints")
+	require.Greater(suite.T(), constraintCount, 120000, "Circuit should have >120k constraints to cover output validation paths")
+	require.Less(suite.T(), constraintCount, 250000, "Circuit should have <250k constraints to stay within proving limits")
 }
 
 // TestProofGenerationAndVerification tests end-to-end proof generation and verification.

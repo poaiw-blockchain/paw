@@ -29,7 +29,8 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	}
 
 	// Validate specs
-	if err := k.validateComputeSpec(specs); err != nil {
+	specs, err = k.validateComputeSpec(specs, params, true)
+	if err != nil {
 		return fmt.Errorf("invalid compute specs: %w", err)
 	}
 
@@ -47,6 +48,8 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 
 	// Create provider record
 	now := sdkCtx.BlockTime()
+	initialRep := k.initialReputation(stake, params.MinProviderStake, specs, params.MinReputationScore)
+
 	providerRecord := types.Provider{
 		Address:                provider.String(),
 		Moniker:                moniker,
@@ -54,7 +57,7 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 		AvailableSpecs:         specs,
 		Pricing:                pricing,
 		Stake:                  stake,
-		Reputation:             100, // Start with perfect reputation
+		Reputation:             initialRep,
 		TotalRequestsCompleted: 0,
 		TotalRequestsFailed:    0,
 		Active:                 true,
@@ -94,6 +97,11 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 		return fmt.Errorf("provider not found: %w", err)
 	}
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
 	// Update fields if provided
 	if moniker != "" {
 		existing.Moniker = moniker
@@ -102,10 +110,11 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 		existing.Endpoint = endpoint
 	}
 	if specs != nil {
-		if err := k.validateComputeSpec(*specs); err != nil {
+		updatedSpecs, err := k.validateComputeSpec(*specs, params, true)
+		if err != nil {
 			return fmt.Errorf("invalid compute specs: %w", err)
 		}
-		existing.AvailableSpecs = *specs
+		existing.AvailableSpecs = updatedSpecs
 	}
 	if pricing != nil {
 		if err := k.validatePricing(*pricing); err != nil {
@@ -193,6 +202,43 @@ func (k Keeper) GetProvider(ctx context.Context, address sdk.AccAddress) (*types
 	}
 
 	return &provider, nil
+}
+
+// initialReputation derives a sensible starting reputation based on stake commitments.
+func (k Keeper) initialReputation(stake, minStake math.Int, specs types.ComputeSpec, minReputation uint32) uint32 {
+	base := minReputation
+	if base < 40 {
+		base = 40
+	}
+	stakeBonus := math.ZeroInt()
+	if stake.GT(minStake) {
+		extra := stake.Sub(minStake)
+		stakeBonus = extra.MulRaw(30).Quo(minStake)
+		if stakeBonus.GT(math.NewInt(30)) {
+			stakeBonus = math.NewInt(30)
+		}
+	}
+
+	qualityBonus := computeSpecQuality(specs)
+	total := base + uint32(stakeBonus.Int64()) + qualityBonus
+	if total > 100 {
+		return 100
+	}
+
+	return total
+}
+
+func computeSpecQuality(specs types.ComputeSpec) uint32 {
+	score := specs.CpuCores/1000 + specs.MemoryMb/2048 + specs.StorageGb/200
+	if specs.GpuCount > 0 {
+		score += uint64(specs.GpuCount) * 5
+	}
+
+	if score > 30 {
+		score = 30
+	}
+
+	return uint32(score)
 }
 
 // SetProvider stores a provider record
@@ -311,43 +357,45 @@ func (k Keeper) setActiveProviderIndex(ctx context.Context, provider sdk.AccAddr
 	return nil
 }
 
-// validateComputeSpec validates compute specifications
-func (k Keeper) validateComputeSpec(spec types.ComputeSpec) error {
+// validateComputeSpec validates compute specifications using module parameters for bounds.
+func (k Keeper) validateComputeSpec(spec types.ComputeSpec, params types.Params, applyDefaultTimeout bool) (types.ComputeSpec, error) {
 	if spec.CpuCores == 0 {
-		return fmt.Errorf("cpu_cores must be greater than 0")
+		return spec, fmt.Errorf("cpu_cores must be greater than 0")
 	}
 	if spec.MemoryMb == 0 {
-		return fmt.Errorf("memory_mb must be greater than 0")
+		return spec, fmt.Errorf("memory_mb must be greater than 0")
+	}
+	if spec.StorageGb == 0 {
+		return spec, fmt.Errorf("storage_gb must be greater than 0")
 	}
 	if spec.TimeoutSeconds == 0 {
-		return fmt.Errorf("timeout_seconds must be greater than 0")
-	}
-
-	params, err := k.GetParams(context.Background())
-	if err != nil {
-		return err
+		if applyDefaultTimeout {
+			spec.TimeoutSeconds = params.MaxRequestTimeoutSeconds
+		} else {
+			return spec, fmt.Errorf("timeout_seconds must be greater than 0")
+		}
 	}
 
 	if spec.TimeoutSeconds > params.MaxRequestTimeoutSeconds {
-		return fmt.Errorf("timeout_seconds %d exceeds maximum %d", spec.TimeoutSeconds, params.MaxRequestTimeoutSeconds)
+		return spec, fmt.Errorf("timeout_seconds %d exceeds maximum %d", spec.TimeoutSeconds, params.MaxRequestTimeoutSeconds)
 	}
 
-	return nil
+	return spec, nil
 }
 
 // validatePricing validates pricing structure
 func (k Keeper) validatePricing(pricing types.Pricing) error {
-	if pricing.CpuPricePerMcoreHour.IsNegative() {
-		return fmt.Errorf("cpu_price_per_mcore_hour cannot be negative")
+	if !pricing.CpuPricePerMcoreHour.IsPositive() {
+		return fmt.Errorf("cpu_price_per_mcore_hour must be positive")
 	}
-	if pricing.MemoryPricePerMbHour.IsNegative() {
-		return fmt.Errorf("memory_price_per_mb_hour cannot be negative")
+	if !pricing.MemoryPricePerMbHour.IsPositive() {
+		return fmt.Errorf("memory_price_per_mb_hour must be positive")
 	}
-	if pricing.GpuPricePerHour.IsNegative() {
-		return fmt.Errorf("gpu_price_per_hour cannot be negative")
+	if !pricing.GpuPricePerHour.IsPositive() {
+		return fmt.Errorf("gpu_price_per_hour must be positive")
 	}
-	if pricing.StoragePricePerGbHour.IsNegative() {
-		return fmt.Errorf("storage_price_per_gb_hour cannot be negative")
+	if !pricing.StoragePricePerGbHour.IsPositive() {
+		return fmt.Errorf("storage_price_per_gb_hour must be positive")
 	}
 
 	return nil

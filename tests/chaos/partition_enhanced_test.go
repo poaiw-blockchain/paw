@@ -45,9 +45,6 @@ func (suite *EnhancedPartitionTestSuite) TearDownTest() {
 func (suite *EnhancedPartitionTestSuite) TestThreeWayPartition() {
 	suite.T().Log("Testing three-way network partition")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	// Split network: 5-4-3 nodes
 	partition1 := suite.nodes[0:5]  // Majority
 	partition2 := suite.nodes[5:9]  // Minority 1
@@ -125,9 +122,6 @@ func (suite *EnhancedPartitionTestSuite) TestAsymmetricPartition() {
 func (suite *EnhancedPartitionTestSuite) TestCascadingPartitions() {
 	suite.T().Log("Testing cascading network partitions")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
-	defer cancel()
-
 	// Isolate nodes one by one
 	for i := len(suite.nodes) - 1; i >= len(suite.nodes)/2; i-- {
 		suite.T().Logf("Isolating node %d", i)
@@ -159,9 +153,6 @@ func (suite *EnhancedPartitionTestSuite) TestCascadingPartitions() {
 // TestIntermittentPartition tests rapidly changing network topology
 func (suite *EnhancedPartitionTestSuite) TestIntermittentPartition() {
 	suite.T().Log("Testing intermittent network partition")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
 
 	partition1 := suite.nodes[0:6]
 	partition2 := suite.nodes[6:12]
@@ -317,9 +308,6 @@ func (suite *EnhancedPartitionTestSuite) TestPartitionDuringHighLoad() {
 // TestBrainSplit tests classic "split-brain" scenario
 func (suite *EnhancedPartitionTestSuite) TestBrainSplit() {
 	suite.T().Log("Testing split-brain scenario")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	// Split exactly in half: 6-6
 	brain1 := suite.nodes[0:6]

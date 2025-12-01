@@ -68,7 +68,7 @@ type ValidatorSecurityProfile struct {
 
 // GeographicDistribution tracks validator distribution across regions
 type GeographicDistribution struct {
-	RegionCounts   map[string]int
+	RegionCounts    map[string]int
 	TotalValidators int
 	DiversityScore  sdkmath.LegacyDec
 }
@@ -878,14 +878,14 @@ func (k Keeper) ImplementSybilResistance(ctx context.Context, validatorAddr stri
 	}
 
 	// Check 2: Validator age (prevent instant validators)
-	validatorInfo, err := k.GetValidatorOracle(ctx, validatorAddr)
-	if err == nil {
-		// Check if validator is too new
-		minAge := int64(1000) // 1000 blocks minimum age
-		age := sdkCtx.BlockHeight() - validatorInfo.StartHeight
-		if age < minAge {
-			return fmt.Errorf("validator too new for oracle: %d blocks < %d minimum",
-				age, minAge)
+	if consAddr, err := validator.GetConsAddr(); err == nil {
+		if signingInfo, err := k.slashingKeeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(consAddr)); err == nil {
+			minAge := int64(1000) // 1000 blocks minimum age
+			age := sdkCtx.BlockHeight() - signingInfo.StartHeight
+			if age < minAge {
+				return fmt.Errorf("validator too new for oracle: %d blocks < %d minimum",
+					age, minAge)
+			}
 		}
 	}
 
@@ -949,15 +949,20 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Check 1: Statistical outlier detection
-	allPrices, err := k.GetAllValidatorPrices(ctx, asset)
+	allValidatorPrices, err := k.GetAllValidatorPrices(ctx, asset)
 	if err != nil {
 		return err
 	}
 
-	if len(allPrices) >= 3 {
+	if len(allValidatorPrices) >= 3 {
+		priceSet := make([]sdkmath.LegacyDec, 0, len(allValidatorPrices))
+		for _, vp := range allValidatorPrices {
+			priceSet = append(priceSet, vp.Price)
+		}
+
 		// Calculate median and standard deviation
-		median := k.calculateMedian(allPrices)
-		stdDev := k.calculateStdDev(allPrices, median)
+		median := k.calculateMedian(priceSet)
+		stdDev := k.calculateStdDev(priceSet, median)
 
 		// Check if price is a statistical outlier (>3 standard deviations)
 		deviation := price.Sub(median).Abs()
@@ -1006,20 +1011,15 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 	return nil
 }
 
-
-
-
-
-
 // calculateStdDev calculates standard deviation
-func (k Keeper) calculateStdDev(prices []types.ValidatorPrice, mean sdkmath.LegacyDec) sdkmath.LegacyDec {
+func (k Keeper) calculateStdDev(prices []sdkmath.LegacyDec, mean sdkmath.LegacyDec) sdkmath.LegacyDec {
 	if len(prices) <= 1 {
 		return sdkmath.LegacyZeroDec()
 	}
 
 	variance := sdkmath.LegacyZeroDec()
-	for _, vp := range prices {
-		diff := vp.Price.Sub(mean)
+	for _, price := range prices {
+		diff := price.Sub(mean)
 		variance = variance.Add(diff.Mul(diff))
 	}
 

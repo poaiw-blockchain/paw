@@ -26,6 +26,7 @@ Security
 Operations
 - API reference (OpenAPI and Nginx sample): `api/`
 - Upgrades: `upgrades/` (templates and process)
+- Consensus artifacts: Genesis files must remain canonical (Comet/Cosmos JSON, ints-as-strings). No lenient parsing is allowed in code paths; operators must fix invalid genesis offline before running a node.
 
 Proposals
 - `proposals/SMART_CONTRACT_INTEGRATION_PROPOSAL.md`

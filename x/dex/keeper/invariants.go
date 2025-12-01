@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -142,7 +143,7 @@ func LiquiditySharesInvariant(k Keeper) sdk.Invariant {
 			totalShares := math.ZeroInt()
 
 			store := k.getStore(ctx)
-			iter := sdk.KVStorePrefixIterator(store, types.LiquidityShareKeyPrefix)
+			iter := storetypes.KVStorePrefixIterator(store, types.LiquidityShareKeyPrefix)
 			defer iter.Close()
 
 			for ; iter.Valid(); iter.Next() {
@@ -158,7 +159,7 @@ func LiquiditySharesInvariant(k Keeper) sdk.Invariant {
 				}
 
 				var shares math.Int
-				if err := k.cdc.Unmarshal(iter.Value(), &shares); err != nil {
+				if err := shares.Unmarshal(iter.Value()); err != nil {
 					broken = true
 					issues = append(issues, fmt.Sprintf(
 						"pool %d: error unmarshaling shares: %v",
@@ -293,7 +294,7 @@ func ConstantProductInvariant(k Keeper) sdk.Invariant {
 
 			// Ratio should be between 0.5 and 2.0 (allowing for fees and rounding)
 			minRatio := math.LegacyNewDecWithPrec(5, 1) // 0.5
-			maxRatio := math.LegacyNewDec(2)             // 2.0
+			maxRatio := math.LegacyNewDec(2)            // 2.0
 
 			if ratio.LT(minRatio) || ratio.GT(maxRatio) {
 				broken = true

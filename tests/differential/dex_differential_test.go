@@ -1,12 +1,9 @@
 package differential
 
 import (
-	"fmt"
 	"math/big"
-	"math/rand"
 	"testing"
 
-	sdkmath "cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 )
 

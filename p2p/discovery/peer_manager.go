@@ -716,7 +716,7 @@ func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn)
 								"oversized_messages", rep.Metrics.OversizedMessages,
 								"ban_duration", banDuration)
 
-							pm.repManager.BanPeer(peerID, banDuration)
+							pm.repManager.BanPeer(peerID, banDuration, "oversized message attack")
 						}
 					}
 				}

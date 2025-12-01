@@ -4,7 +4,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/msgservice"
+	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
 )
 
 // RegisterLegacyAminoCodec registers the necessary x/dex interfaces and concrete types
@@ -25,7 +25,12 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgSwap{},
 	)
 
-	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+	registry.RegisterImplementations((*txtypes.MsgResponse)(nil),
+		&MsgCreatePoolResponse{},
+		&MsgAddLiquidityResponse{},
+		&MsgRemoveLiquidityResponse{},
+		&MsgSwapResponse{},
+	)
 }
 
 var (

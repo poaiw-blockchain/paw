@@ -571,6 +571,175 @@ message GovernanceParams {
   uint64 max_evidence_size = 8;
 }
 
+// PerformanceRecord captures a single performance data point for reputation.
+message PerformanceRecord {
+  // timestamp is when the record was captured
+  google.protobuf.Timestamp timestamp = 1 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // success indicates if the request succeeded
+  bool success = 2;
+
+  // verification_score is the score assigned during verification (0-100)
+  uint32 verification_score = 3;
+
+  // response_time_ms is the response time in milliseconds
+  uint64 response_time_ms = 4;
+
+  // request_value is the value of the request for weighting reputation updates
+  string request_value = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// ProviderReputation tracks detailed reputation metrics for providers.
+message ProviderReputation {
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // overall_score is the aggregated score (0-100)
+  uint32 overall_score = 2;
+
+  // reliability_score is the reliability dimension (0.0 - 1.0)
+  double reliability_score = 3;
+
+  // speed_score is the latency dimension (0.0 - 1.0)
+  double speed_score = 4;
+
+  // accuracy_score is the verification accuracy dimension (0.0 - 1.0)
+  double accuracy_score = 5;
+
+  // availability_score is the uptime dimension (0.0 - 1.0)
+  double availability_score = 6;
+
+  // total_requests is the total number of requests processed
+  uint64 total_requests = 7;
+
+  // successful_requests is the number of successful requests
+  uint64 successful_requests = 8;
+
+  // failed_requests is the number of failed requests
+  uint64 failed_requests = 9;
+
+  // total_verification_score accumulates verification scores
+  uint64 total_verification_score = 10;
+
+  // average_response_time is the exponential moving average of response time (ms)
+  double average_response_time = 11;
+
+  // last_decay_timestamp is when the last decay was applied
+  google.protobuf.Timestamp last_decay_timestamp = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // last_update_timestamp is when the reputation was last updated
+  google.protobuf.Timestamp last_update_timestamp = 13 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // performance_history is a rolling history of performance records
+  repeated PerformanceRecord performance_history = 14 [(gogoproto.nullable) = false];
+}
+
+// ProviderLoadTracker tracks active resource usage for a provider.
+message ProviderLoadTracker {
+  // provider is the bech32 provider address
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // max_concurrent_requests is the maximum allowed concurrent requests
+  uint64 max_concurrent_requests = 2;
+
+  // current_requests is the current number of active requests
+  uint64 current_requests = 3;
+
+  // total_cpu_cores is the total CPU capacity (millicores)
+  uint64 total_cpu_cores = 4;
+
+  // used_cpu_cores is the currently allocated CPU (millicores)
+  uint64 used_cpu_cores = 5;
+
+  // total_memory_mb is the total memory capacity in MB
+  uint64 total_memory_mb = 6;
+
+  // used_memory_mb is the currently allocated memory in MB
+  uint64 used_memory_mb = 7;
+
+  // total_gpus is the total GPU count
+  uint64 total_gpus = 8;
+
+  // used_gpus is the allocated GPU count
+  uint64 used_gpus = 9;
+
+  // last_updated is when the tracker was last updated
+  google.protobuf.Timestamp last_updated = 10 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// RateLimitBucket implements token bucket rate limiting per account.
+message RateLimitBucket {
+  // account is the account address the bucket is tracking
+  string account = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // tokens is the current number of available tokens
+  uint64 tokens = 2;
+
+  // max_tokens is the bucket capacity
+  uint64 max_tokens = 3;
+
+  // refill_rate is the number of tokens refilled per second
+  uint64 refill_rate = 4;
+
+  // last_refill is when the bucket was last refilled
+  google.protobuf.Timestamp last_refill = 5 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // requests_this_hour counts requests in the current hour window
+  uint64 requests_this_hour = 6;
+
+  // requests_today counts requests in the current day window
+  uint64 requests_today = 7;
+
+  // hour_reset_at is when the hourly counter resets
+  google.protobuf.Timestamp hour_reset_at = 8 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // day_reset_at is when the daily counter resets
+  google.protobuf.Timestamp day_reset_at = 9 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
+// ResourceQuota tracks quota usage per account.
+message ResourceQuota {
+  // account is the account address the quota belongs to
+  string account = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // max_concurrent_requests is the maximum allowed concurrent requests
+  uint64 max_concurrent_requests = 2;
+
+  // max_total_cpu_cores is the total CPU capacity allowed (millicores)
+  uint64 max_total_cpu_cores = 3;
+
+  // max_total_memory_mb is the total memory capacity allowed
+  uint64 max_total_memory_mb = 4;
+
+  // max_total_gpus is the total GPU capacity allowed
+  uint64 max_total_gpus = 5;
+
+  // max_total_storage_gb is the total storage capacity allowed
+  uint64 max_total_storage_gb = 6;
+
+  // current_cpu is the current CPU allocation
+  uint64 current_cpu = 7;
+
+  // current_memory is the current memory allocation
+  uint64 current_memory = 8;
+
+  // current_gpus is the current GPU allocation
+  uint64 current_gpus = 9;
+
+  // current_storage is the current storage allocation
+  uint64 current_storage = 10;
+
+  // current_requests is the current number of active requests
+  uint64 current_requests = 11;
+
+  // last_updated is when the quota was last updated
+  google.protobuf.Timestamp last_updated = 12 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+}
+
 // GenesisState defines the compute module's genesis state.
 message GenesisState {
   // params defines the module parameters at genesis

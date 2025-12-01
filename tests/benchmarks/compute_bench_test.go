@@ -164,9 +164,9 @@ func BenchmarkProviderSelection(b *testing.B) {
 			"provider-"+string(rune('0'+i)),
 			"http://provider:8080",
 			types.ComputeSpec{
-				CpuCores:       uint32(4 + i),
-				MemoryMb:       uint32(8192 + i*1024),
-				StorageGb:      uint32(100 + i*10),
+				CpuCores:       uint64(4 + i),
+				MemoryMb:       uint64(8192 + i*1024),
+				StorageGb:      uint64(100 + i*10),
 				GpuCount:       0,
 				GpuType:        "",
 				TimeoutSeconds: 3600,

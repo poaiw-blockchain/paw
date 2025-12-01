@@ -1,17 +1,21 @@
 package ibc_test
 
 import (
-	"encoding/json"
+	"fmt"
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 
 	dextypes "github.com/paw-chain/paw/x/dex/types"
+	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
+
+	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // DEXCrossChainTestSuite tests cross-chain DEX operations
@@ -32,6 +36,9 @@ func (suite *DEXCrossChainTestSuite) SetupTest() {
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(2))
+
+	pawibctesting.BindCustomPorts(suite.chainA)
+	pawibctesting.BindCustomPorts(suite.chainB)
 
 	suite.path = ibctesting.NewPath(suite.chainA, suite.chainB)
 	suite.path.EndpointA.ChannelConfig.PortID = "dex"
@@ -62,8 +69,9 @@ func (suite *DEXCrossChainTestSuite) TestQueryRemotePools() {
 	)
 
 	// Send packet
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	// Receive on chain B
 	err = suite.path.EndpointB.RecvPacket(packet)
@@ -111,8 +119,9 @@ func (suite *DEXCrossChainTestSuite) TestCrossChainSwap() {
 	)
 
 	// Send swap packet
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	// Receive and execute on chain B
 	err = suite.path.EndpointB.RecvPacket(packet)
@@ -184,8 +193,9 @@ func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
 	)
 
 	// Execute multi-hop swap
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -236,8 +246,9 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	// Advance chain B past timeout
 	suite.coordinator.CommitNBlocks(suite.chainB, 10)
@@ -281,22 +292,16 @@ func (suite *DEXCrossChainTestSuite) TestSlippageProtection() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
 
 	// If actual output is below minimum, swap should fail
-	ackData := dextypes.ExecuteSwapAcknowledgement{
-		Success: false,
-		Error:   "slippage exceeded: expected 995000, got 990000",
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewErrorAcknowledgement(ackBytes)
+	ackErr := fmt.Errorf("slippage exceeded: expected 995000, got 990000")
+	ack := channeltypes.NewErrorAcknowledgement(ackErr)
 	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
 	suite.Require().NoError(err)
 }

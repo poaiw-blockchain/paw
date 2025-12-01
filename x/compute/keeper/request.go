@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -18,8 +19,14 @@ func (k Keeper) SubmitRequest(ctx context.Context, requester sdk.AccAddress, spe
 	// Consume gas for request validation
 	sdkCtx.GasMeter().ConsumeGas(2000, "compute_request_validation")
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get params: %w", err)
+	}
+
 	// Validate specs
-	if err := k.validateComputeSpec(specs); err != nil {
+	specs, err = k.validateComputeSpec(specs, params, false)
+	if err != nil {
 		return 0, fmt.Errorf("invalid compute specs: %w", err)
 	}
 
@@ -84,7 +91,7 @@ func (k Keeper) SubmitRequest(ctx context.Context, requester sdk.AccAddress, spe
 		ContainerImage: containerImage,
 		Command:        command,
 		EnvVars:        envVars,
-		Status:         types.RequestStatus_REQUEST_STATUS_ASSIGNED,
+		Status:         types.REQUEST_STATUS_ASSIGNED,
 		MaxPayment:     maxPayment,
 		EscrowedAmount: maxPayment,
 		CreatedAt:      now,
@@ -129,13 +136,13 @@ func (k Keeper) CancelRequest(ctx context.Context, requester sdk.AccAddress, req
 	}
 
 	// Check if request can be cancelled
-	if request.Status != types.RequestStatus_REQUEST_STATUS_PENDING &&
-		request.Status != types.RequestStatus_REQUEST_STATUS_ASSIGNED {
+	if request.Status != types.REQUEST_STATUS_PENDING &&
+		request.Status != types.REQUEST_STATUS_ASSIGNED {
 		return fmt.Errorf("request cannot be cancelled in status %s", request.Status.String())
 	}
 
 	// Update status
-	request.Status = types.RequestStatus_REQUEST_STATUS_CANCELLED
+	request.Status = types.REQUEST_STATUS_CANCELLED
 
 	// Store updated request
 	if err := k.SetRequest(ctx, *request); err != nil {
@@ -178,18 +185,24 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 		return fmt.Errorf("request not found: %w", err)
 	}
 
-	// Check current status
-	if request.Status != types.RequestStatus_REQUEST_STATUS_PROCESSING &&
-		request.Status != types.RequestStatus_REQUEST_STATUS_ASSIGNED {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	now := sdkCtx.BlockTime()
+	if k.isRequestFinalized(ctx, requestID) {
+		return fmt.Errorf("request %d already settled", requestID)
+	}
+
+	if request.Status != types.REQUEST_STATUS_PROCESSING &&
+		request.Status != types.REQUEST_STATUS_ASSIGNED {
 		return fmt.Errorf("request cannot be completed from status %s", request.Status.String())
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	now := sdkCtx.BlockTime()
-
 	if success {
+		if request.Status != types.REQUEST_STATUS_PROCESSING {
+			return fmt.Errorf("request %d not actively processing", requestID)
+		}
+
 		// Mark as completed
-		request.Status = types.RequestStatus_REQUEST_STATUS_COMPLETED
+		request.Status = types.REQUEST_STATUS_COMPLETED
 		request.CompletedAt = &now
 
 		// Release payment to provider
@@ -197,12 +210,16 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 		if err != nil {
 			return fmt.Errorf("invalid provider address: %w", err)
 		}
+		if request.EscrowedAmount.IsZero() {
+			return fmt.Errorf("request %d escrow already released", requestID)
+		}
 
 		if !request.EscrowedAmount.IsZero() {
 			coins := sdk.NewCoins(sdk.NewCoin("upaw", request.EscrowedAmount))
 			if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
 				return fmt.Errorf("failed to release payment: %w", err)
 			}
+			request.EscrowedAmount = math.ZeroInt()
 		}
 
 		// Update provider reputation (positive)
@@ -221,7 +238,7 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 		)
 	} else {
 		// Mark as failed
-		request.Status = types.RequestStatus_REQUEST_STATUS_FAILED
+		request.Status = types.REQUEST_STATUS_FAILED
 		request.CompletedAt = &now
 
 		// Refund payment to requester
@@ -235,6 +252,7 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 			if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, coins); err != nil {
 				return fmt.Errorf("failed to refund payment: %w", err)
 			}
+			request.EscrowedAmount = math.ZeroInt()
 		}
 
 		// Update provider reputation (negative)
@@ -267,6 +285,17 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 	if err := k.updateRequestStatusIndex(ctx, *request); err != nil {
 		return fmt.Errorf("failed to update request indexes: %w", err)
 	}
+
+	// Persist updated request state
+	if err := k.SetRequest(ctx, *request); err != nil {
+		return fmt.Errorf("failed to update request: %w", err)
+	}
+
+	if err := k.updateRequestStatusIndex(ctx, *request); err != nil {
+		return fmt.Errorf("failed to update request indexes: %w", err)
+	}
+
+	k.markRequestFinalized(ctx, requestID)
 
 	return nil
 }
@@ -462,7 +491,7 @@ func (k Keeper) updateRequestStatusIndex(ctx context.Context, request types.Requ
 	store := k.getStore(ctx)
 
 	// Remove old status indexes (try all statuses)
-	for status := types.RequestStatus_REQUEST_STATUS_PENDING; status <= types.RequestStatus_REQUEST_STATUS_CANCELLED; status++ {
+	for status := types.REQUEST_STATUS_PENDING; status <= types.REQUEST_STATUS_CANCELLED; status++ {
 		key := RequestByStatusKey(uint32(status), request.Id)
 		store.Delete(key) // Ignore errors as key might not exist
 	}
@@ -470,4 +499,36 @@ func (k Keeper) updateRequestStatusIndex(ctx context.Context, request types.Requ
 	// Add new status index
 	store.Set(RequestByStatusKey(uint32(request.Status), request.Id), []byte{})
 	return nil
+}
+
+func (k Keeper) isRequestFinalized(ctx context.Context, requestID uint64) bool {
+	store := k.getStore(ctx)
+	return store.Has(RequestFinalizedKey(requestID))
+}
+
+func (k Keeper) markRequestFinalized(ctx context.Context, requestID uint64) {
+	store := k.getStore(ctx)
+	store.Set(RequestFinalizedKey(requestID), []byte{1})
+}
+
+// requestDeadline computes the absolute deadline when a request expires.
+func (k Keeper) requestDeadline(ctx context.Context, request types.Request, now time.Time) (time.Time, error) {
+	timeoutSeconds := request.Specs.TimeoutSeconds
+	if timeoutSeconds == 0 {
+		params, err := k.GetParams(ctx)
+		if err != nil {
+			return time.Time{}, err
+		}
+		timeoutSeconds = params.MaxRequestTimeoutSeconds
+		if timeoutSeconds == 0 {
+			timeoutSeconds = 3600
+		}
+	}
+
+	baseTime := request.CreatedAt
+	if request.AssignedAt != nil {
+		baseTime = *request.AssignedAt
+	}
+
+	return baseTime.Add(time.Duration(timeoutSeconds) * time.Second), nil
 }

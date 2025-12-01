@@ -2,18 +2,36 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
 // InitGenesis initializes the compute module's state from a genesis state
 func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	if err := k.BindPort(sdkCtx); err != nil {
+		return fmt.Errorf("failed to bind IBC port: %w", err)
+	}
+
 	// Set params
 	if err := k.SetParams(ctx, data.Params); err != nil {
 		return fmt.Errorf("failed to set params: %w", err)
 	}
+
+	// Set governance params (use defaults if not provided)
+	govParams := data.GovernanceParams
+	if govParams.DisputeDeposit.IsNil() || !govParams.DisputeDeposit.IsPositive() {
+		govParams = types.DefaultGovernanceParams()
+	}
+	if err := k.SetGovernanceParams(ctx, govParams); err != nil {
+		return fmt.Errorf("failed to set governance params: %w", err)
+	}
+
+	var maxRequestID uint64
 
 	// Initialize providers
 	for _, provider := range data.Providers {
@@ -39,6 +57,10 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 			return fmt.Errorf("failed to initialize request %d: %w", request.Id, err)
 		}
 
+		if request.Id > maxRequestID {
+			maxRequestID = request.Id
+		}
+
 		// Set request indexes
 		if err := k.setRequestIndexes(ctx, request); err != nil {
 			return fmt.Errorf("failed to set request indexes for request %d: %w", request.Id, err)
@@ -53,38 +75,73 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 	}
 
 	// Set next request ID
-	if err := k.setNextRequestID(ctx, data.NextRequestId); err != nil {
+	nextRequestID := data.NextRequestId
+	if nextRequestID == 0 || nextRequestID <= maxRequestID {
+		nextRequestID = maxRequestID + 1
+	}
+	if err := k.setNextRequestID(ctx, nextRequestID); err != nil {
 		return fmt.Errorf("failed to set next request ID: %w", err)
 	}
 
-	// Initialize escrow states if provided
-	/*
-	for _, escrow := range data.EscrowStates {
-		if err := k.SetEscrowState(ctx, escrow); err != nil {
-			return fmt.Errorf("failed to initialize escrow state for request %d: %w", escrow.RequestID, err)
-		}
+	var (
+		maxDisputeID uint64
+		maxSlashID   uint64
+		maxAppealID  uint64
+	)
 
-		// Recreate timeout index if escrow is not yet released/refunded
-		if escrow.Status == types.EscrowStatus_ESCROW_STATUS_LOCKED ||
-		   escrow.Status == types.EscrowStatus_ESCROW_STATUS_CHALLENGED {
-			if err := k.setEscrowTimeoutIndex(ctx, escrow.RequestID, escrow.ExpiresAt); err != nil {
-				return fmt.Errorf("failed to set escrow timeout index for request %d: %w", escrow.RequestID, err)
-			}
+	// Initialize disputes
+	for _, dispute := range data.Disputes {
+		if dispute.Id > maxDisputeID {
+			maxDisputeID = dispute.Id
+		}
+		if err := k.setDispute(ctx, dispute); err != nil {
+			return fmt.Errorf("failed to initialize dispute %d: %w", dispute.Id, err)
 		}
 	}
-	*/
 
-	/*
-	// Set next escrow nonce if provided
-	if data.NextEscrowNonce > 0 {
-		store := k.getStore(ctx)
-		nonceBz := make([]byte, 8)
-		for i := 0; i < 8; i++ {
-			nonceBz[i] = byte(data.NextEscrowNonce >> (8 * (7 - i)))
-		}
-		store.Set(NextEscrowNonceKey, nonceBz)
+	nextDisputeID := data.NextDisputeId
+	if nextDisputeID == 0 || nextDisputeID <= maxDisputeID {
+		nextDisputeID = maxDisputeID + 1
 	}
-	*/
+	if err := k.setNextDisputeID(ctx, nextDisputeID); err != nil {
+		return fmt.Errorf("failed to set next dispute ID: %w", err)
+	}
+
+	// Initialize slash records
+	for _, record := range data.SlashRecords {
+		if record.Id > maxSlashID {
+			maxSlashID = record.Id
+		}
+		if err := k.setSlashRecord(ctx, record); err != nil {
+			return fmt.Errorf("failed to initialize slash record %d: %w", record.Id, err)
+		}
+	}
+
+	nextSlashID := data.NextSlashId
+	if nextSlashID == 0 || nextSlashID <= maxSlashID {
+		nextSlashID = maxSlashID + 1
+	}
+	if err := k.setNextSlashID(ctx, nextSlashID); err != nil {
+		return fmt.Errorf("failed to set next slash ID: %w", err)
+	}
+
+	// Initialize appeals
+	for _, appeal := range data.Appeals {
+		if appeal.Id > maxAppealID {
+			maxAppealID = appeal.Id
+		}
+		if err := k.setAppeal(ctx, appeal); err != nil {
+			return fmt.Errorf("failed to initialize appeal %d: %w", appeal.Id, err)
+		}
+	}
+
+	nextAppealID := data.NextAppealId
+	if nextAppealID == 0 || nextAppealID <= maxAppealID {
+		nextAppealID = maxAppealID + 1
+	}
+	if err := k.setNextAppealID(ctx, nextAppealID); err != nil {
+		return fmt.Errorf("failed to set next appeal ID: %w", err)
+	}
 
 	return nil
 }
@@ -95,6 +152,11 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get params: %w", err)
+	}
+
+	govParams, err := k.GetGovernanceParams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get governance params: %w", err)
 	}
 
 	// Collect all providers
@@ -130,33 +192,72 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, fmt.Errorf("failed to get next request ID: %w", err)
 	}
 
-	// Export all escrow states
-	var escrowStates []types.EscrowState
-	for _, request := range requests {
-		escrow, err := k.GetEscrowState(ctx, request.Id)
-		if err == nil && escrow != nil {
-			escrowStates = append(escrowStates, *escrow)
+	store := k.getStore(ctx)
+
+	// Collect disputes
+	var disputes []types.Dispute
+	disputeIter := storetypes.KVStorePrefixIterator(store, DisputeKeyPrefix)
+	defer disputeIter.Close()
+	for ; disputeIter.Valid(); disputeIter.Next() {
+		var dispute types.Dispute
+		if err := k.cdc.Unmarshal(disputeIter.Value(), &dispute); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal dispute: %w", err)
 		}
+		disputes = append(disputes, dispute)
 	}
 
-	// Get next escrow nonce
-	store := k.getStore(ctx)
-	var nextEscrowNonce uint64 = 1
-	nonceBz := store.Get(NextEscrowNonceKey)
-	if nonceBz != nil && len(nonceBz) == 8 {
-		for i := 0; i < 8; i++ {
-			nextEscrowNonce |= uint64(nonceBz[i]) << (8 * (7 - i))
+	// Collect slash records
+	var slashRecords []types.SlashRecord
+	slashIter := storetypes.KVStorePrefixIterator(store, SlashRecordKeyPrefix)
+	defer slashIter.Close()
+	for ; slashIter.Valid(); slashIter.Next() {
+		var record types.SlashRecord
+		if err := k.cdc.Unmarshal(slashIter.Value(), &record); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal slash record: %w", err)
 		}
+		slashRecords = append(slashRecords, record)
+	}
+
+	// Collect appeals
+	var appeals []types.Appeal
+	appealIter := storetypes.KVStorePrefixIterator(store, AppealKeyPrefix)
+	defer appealIter.Close()
+	for ; appealIter.Valid(); appealIter.Next() {
+		var appeal types.Appeal
+		if err := k.cdc.Unmarshal(appealIter.Value(), &appeal); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal appeal: %w", err)
+		}
+		appeals = append(appeals, appeal)
+	}
+
+	nextDisputeID, err := k.getNextDisputeIDForExport(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next dispute ID: %w", err)
+	}
+
+	nextSlashID, err := k.getNextSlashIDForExport(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next slash ID: %w", err)
+	}
+
+	nextAppealID, err := k.getNextAppealIDForExport(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next appeal ID: %w", err)
 	}
 
 	return &types.GenesisState{
 		Params:           params,
+		GovernanceParams: govParams,
 		Providers:        providers,
 		Requests:         requests,
 		Results:          results,
+		Disputes:         disputes,
+		SlashRecords:     slashRecords,
+		Appeals:          appeals,
 		NextRequestId:    nextRequestID,
-		// EscrowStates:     escrowStates,
-		// NextEscrowNonce:  nextEscrowNonce,
+		NextDisputeId:    nextDisputeID,
+		NextSlashId:      nextSlashID,
+		NextAppealId:     nextAppealID,
 	}, nil
 }
 
@@ -189,4 +290,55 @@ func (k Keeper) getNextRequestIDForExport(ctx context.Context) (uint64, error) {
 		uint64(bz[4])<<24 | uint64(bz[5])<<16 | uint64(bz[6])<<8 | uint64(bz[7])
 
 	return nextID, nil
+}
+
+func (k Keeper) setNextDisputeID(ctx context.Context, nextID uint64) error {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, nextID)
+	store.Set(NextDisputeIDKey, bz)
+	return nil
+}
+
+func (k Keeper) setNextSlashID(ctx context.Context, nextID uint64) error {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, nextID)
+	store.Set(NextSlashIDKey, bz)
+	return nil
+}
+
+func (k Keeper) setNextAppealID(ctx context.Context, nextID uint64) error {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, nextID)
+	store.Set(NextAppealIDKey, bz)
+	return nil
+}
+
+func (k Keeper) getNextDisputeIDForExport(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextDisputeIDKey)
+	if bz == nil {
+		return 1, nil
+	}
+	return binary.BigEndian.Uint64(bz), nil
+}
+
+func (k Keeper) getNextSlashIDForExport(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextSlashIDKey)
+	if bz == nil {
+		return 1, nil
+	}
+	return binary.BigEndian.Uint64(bz), nil
+}
+
+func (k Keeper) getNextAppealIDForExport(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextAppealIDKey)
+	if bz == nil {
+		return 1, nil
+	}
+	return binary.BigEndian.Uint64(bz), nil
 }

@@ -94,74 +94,8 @@ func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice
 		return nil, fmt.Errorf("flash loan resistance check failed: %w", err)
 	}
 
-	// Validate price submission (potential slashing for bad data)
-	if err := ms.ValidatePriceSubmission(goCtx, validatorAddr, msg.Asset, msg.Price); err != nil {
+	if err := ms.Keeper.SubmitPrice(goCtx, validatorAddr, msg.Asset, msg.Price, feederAddr); err != nil {
 		return nil, err
-	}
-
-	// Get validator's voting power
-	votingPower, err := ms.GetValidatorVotingPower(goCtx, validatorAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create validator price submission
-	validatorPrice := types.ValidatorPrice{
-		ValidatorAddr: validatorAddr.String(),
-		Asset:         msg.Asset,
-		Price:         msg.Price,
-		BlockHeight:   ctx.BlockHeight(),
-		VotingPower:   votingPower,
-	}
-
-	// Store validator price
-	if err := ms.SetValidatorPrice(goCtx, validatorPrice); err != nil {
-		return nil, err
-	}
-
-	// Increment submission counter
-	if err := ms.IncrementSubmissionCount(goCtx, validatorAddr.String()); err != nil {
-		return nil, err
-	}
-
-	// Reset miss counter on successful submission
-	if err := ms.ResetMissCounter(goCtx, validatorAddr.String()); err != nil {
-		return nil, err
-	}
-
-	// SECURITY: Record submission for rate limiting
-	if err := ms.RecordSubmission(goCtx, validatorAddr.String()); err != nil {
-		ctx.Logger().Error("failed to record submission", "error", err)
-		// Non-critical, continue
-	}
-
-	// Emit event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			"price_submitted",
-			sdk.NewAttribute("validator", validatorAddr.String()),
-			sdk.NewAttribute("feeder", feederAddr.String()),
-			sdk.NewAttribute("asset", msg.Asset),
-			sdk.NewAttribute("price", msg.Price.String()),
-			sdk.NewAttribute("voting_power", fmt.Sprintf("%d", votingPower)),
-		),
-	)
-
-	// Try to aggregate prices (this may fail if not enough votes yet)
-	params, err := ms.GetParams(goCtx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Only aggregate at the end of vote period
-	if ctx.BlockHeight()%int64(params.VotePeriod) == 0 {
-		if err := ms.AggregatePrices(goCtx, msg.Asset); err != nil {
-			// Log error but don't fail the submission
-			ctx.Logger().Debug("price aggregation not ready",
-				"asset", msg.Asset,
-				"error", err.Error(),
-			)
-		}
 	}
 
 	return &types.MsgSubmitPriceResponse{}, nil

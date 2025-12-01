@@ -2,7 +2,9 @@ package concurrency
 
 import (
 	"context"
+	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -429,7 +431,7 @@ func TestContextCancellation(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			for j := 0; j < 100; j++ {
+			for j := 0; j < 200; j++ {
 				select {
 				case <-ctx.Done():
 					mu.Lock()
@@ -438,7 +440,7 @@ func TestContextCancellation(t *testing.T) {
 					return
 				default:
 					// Simulate work
-					time.Sleep(time.Microsecond)
+					time.Sleep(time.Millisecond)
 					mu.Lock()
 					completedOps++
 					mu.Unlock()
@@ -448,7 +450,7 @@ func TestContextCancellation(t *testing.T) {
 	}
 
 	// Cancel after short delay
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	cancel()
 
 	wg.Wait()
@@ -456,9 +458,3 @@ func TestContextCancellation(t *testing.T) {
 	t.Logf("Completed: %d, Cancelled: %d", completedOps, cancelledOps)
 	require.Greater(t, cancelledOps, 0, "some operations should be cancelled")
 }
-
-// Import required for atomic
-import (
-	"errors"
-	"sync/atomic"
-)

@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package invariants
 
 import (
@@ -34,7 +37,7 @@ func (suite *OracleInvariantTestSuite) TestPriceWithinValidBounds() {
 
 	// Define reasonable bounds for prices
 	minPrice := math.LegacyNewDecWithPrec(1, 18) // 0.000000000000000001
-	maxPrice := math.LegacyNewDec(1000000000)     // 1 billion
+	maxPrice := math.LegacyNewDec(1000000000)    // 1 billion
 
 	for _, price := range allPrices {
 		suite.Require().True(

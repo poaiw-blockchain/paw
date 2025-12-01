@@ -26,9 +26,6 @@ func (suite *AdversarialTestSuite) SetupTest() {
 }
 
 func TestAdversarialTestSuite(t *testing.T) {
-	// TODO: Fix SetupTestApp in testutil/keeper/setup.go to properly initialize CommitMultiStore
-	// Current issue: BaseApp.CommitMultiStore is nil causing panic in NewContext
-	// See: testutil/keeper/setup.go line 27
 	suite.Run(t, new(AdversarialTestSuite))
 }
 
@@ -46,15 +43,16 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	suite.Require().NoError(suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, dextypes.ModuleName, attackerAddr, initialCoins))
 
 	// Create pool
-	poolId, err := suite.app.DEXKeeper.CreatePool(
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(1000000),
 		math.NewInt(2000000),
 	)
 	suite.Require().NoError(err)
+	poolId := pool.Id
 
 	// Check balance before swap
 	balanceBefore := suite.app.BankKeeper.GetBalance(suite.ctx, attackerAddr, "upaw")
@@ -62,7 +60,7 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	// First swap should succeed (use 1% of pool to avoid MEV protection)
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -77,7 +75,7 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	// Second identical swap
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -114,20 +112,21 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	suite.Require().NoError(suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, dextypes.ModuleName, attackerAddr, coins))
 
 	// Create pool
-	poolId, err := suite.app.DEXKeeper.CreatePool(
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		victimAddr.String(),
+		victimAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(1000000),
 		math.NewInt(2000000),
 	)
 	suite.Require().NoError(err)
+	poolId := pool.Id
 
 	// Execute attacker swap first (front-running) - use 3% of pool
 	attackerAmountOut, err := suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -139,7 +138,7 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	// Execute victim swap (price now worse due to front-running) - use 2% of pool
 	victimAmountOut, err := suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		victimAddr.String(),
+		victimAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -158,7 +157,7 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	// Attacker tries to back-run by swapping reverse
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"uusdt",
 		"upaw",
@@ -192,20 +191,21 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	}
 
 	// Create pool
-	poolId, err := suite.app.DEXKeeper.CreatePool(
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		victimAddr.String(),
+		victimAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(10000000),
 		math.NewInt(20000000),
 	)
 	suite.Require().NoError(err)
+	poolId := pool.Id
 
 	// 1. Attacker front-runs with buy (use 2% of pool)
 	attackBuyAmountOut, err := suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -217,7 +217,7 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	// 2. Victim executes their trade (use 3% of pool)
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		victimAddr.String(),
+		victimAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -229,7 +229,7 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	// 3. Attacker back-runs with sell
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"uusdt",
 		"upaw",
@@ -259,7 +259,7 @@ func (suite *AdversarialTestSuite) TestFlashLoan_Attack() {
 	// Attempt to execute operations requiring large capital
 	_, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(10000000), // Much more than attacker has
@@ -313,7 +313,7 @@ func (suite *AdversarialTestSuite) TestTimeBandits() {
 
 	_, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		addr.String(),
+		addr,
 		"upaw",
 		"uusdt",
 		math.NewInt(1000000),
@@ -363,6 +363,10 @@ func (suite *AdversarialTestSuite) TestGriefing_ResourceExhaustion() {
 	attackerAddr := sdk.AccAddress(attackerPriv.PubKey().Address())
 
 	// Fund attacker minimally with both tokens
+	params, err := suite.app.DEXKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	minLiquidity := params.MinLiquidity
+
 	funds := sdk.NewCoins(
 		sdk.NewCoin("upaw", math.NewInt(100000000)),
 		sdk.NewCoin("uusdt", math.NewInt(100000000)),
@@ -375,24 +379,24 @@ func (suite *AdversarialTestSuite) TestGriefing_ResourceExhaustion() {
 	// The test demonstrates that the system prevents pool duplication
 
 	// First pool should succeed
-	_, err := suite.app.DEXKeeper.CreatePool(
+	_, err = suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		"upaw",
 		"uusdt",
-		math.NewInt(1),
-		math.NewInt(1),
+		minLiquidity,
+		minLiquidity,
 	)
 	suite.Require().NoError(err)
 
 	// Duplicate pool should fail
 	_, err = suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		"upaw",
 		"uusdt",
-		math.NewInt(1),
-		math.NewInt(1),
+		minLiquidity,
+		minLiquidity,
 	)
 	suite.Require().Error(err, "Duplicate pool creation should be prevented")
 
@@ -412,20 +416,21 @@ func (suite *AdversarialTestSuite) TestReplayAttack() {
 	suite.Require().NoError(suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, dextypes.ModuleName, attackerAddr, funds))
 
 	// Create pool
-	poolId, err := suite.app.DEXKeeper.CreatePool(
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(1000000),
 		math.NewInt(2000000),
 	)
 	suite.Require().NoError(err)
+	poolId := pool.Id
 
 	// Execute swap (use 1% of pool)
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -438,7 +443,7 @@ func (suite *AdversarialTestSuite) TestReplayAttack() {
 	// In Cosmos SDK, sequence numbers prevent replay attacks
 	_, err = suite.app.DEXKeeper.Swap(
 		suite.ctx,
-		attackerAddr.String(),
+		attackerAddr,
 		poolId,
 		"upaw",
 		"uusdt",
@@ -508,7 +513,7 @@ func (suite *AdversarialTestSuite) TestCensorship_Resistance() {
 	// In honest network, transaction should be included
 	_, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		victimAddr.String(),
+		victimAddr,
 		"upaw",
 		"uusdt",
 		math.NewInt(100000),

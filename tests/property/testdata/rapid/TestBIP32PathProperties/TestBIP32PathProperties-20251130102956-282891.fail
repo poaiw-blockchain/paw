@@ -1,0 +1,15 @@
+# 2025/11/30 10:29:56.832784 [TestBIP32PathProperties] [rapid] draw coinType: 0x0
+# 2025/11/30 10:29:56.832788 [TestBIP32PathProperties] [rapid] draw account: 0x0
+# 2025/11/30 10:29:56.832790 [TestBIP32PathProperties] [rapid] draw change: 0x0
+# 2025/11/30 10:29:56.832791 [TestBIP32PathProperties] [rapid] draw addressIndex: 0x0
+# 2025/11/30 10:29:56.832792 [TestBIP32PathProperties] path components not preserved
+# 
+v0.4.8#3504010804814208590
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0

@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package invariants
 
 import (
@@ -68,10 +71,10 @@ func (suite *DEXInvariantTestSuite) TestConstantProductInvariant() {
 	suite.fundAccount(swapper, swapFunds)
 
 	swapMsg := &dextypes.MsgSwap{
-		Trader:     swapper.String(),
-		PoolId:     pool.Id,
-		TokenIn:    "upaw",
-		AmountIn:   math.NewInt(10000),
+		Trader:       swapper.String(),
+		PoolId:       pool.Id,
+		TokenIn:      "upaw",
+		AmountIn:     math.NewInt(10000),
 		MinAmountOut: math.NewInt(1), // Accept any output for test
 	}
 

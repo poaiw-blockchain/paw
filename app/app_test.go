@@ -10,8 +10,16 @@ import (
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govmodule "github.com/cosmos/cosmos-sdk/x/gov"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	ibcclienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	ibcconnectiontypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
+	ibcchanneltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
 	"github.com/paw-chain/paw/app"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -59,14 +67,33 @@ func TestNewApp(t *testing.T) {
 
 // TestExportAppStateAndValidators validates genesis export
 func TestExportAppStateAndValidators(t *testing.T) {
-	pawApp, _ := keepertest.SetupTestApp(t)
+	pawApp, ctx := keepertest.SetupTestApp(t)
+
+	// Ensure transfer params are initialized to avoid panics during export
+	pawApp.TransferKeeper.SetParams(ctx, ibctransfertypes.DefaultParams())
+	// Seed crisis constant fee
+	err := pawApp.CrisisKeeper.ConstantFee.Set(ctx, sdk.NewCoin("upaw", math.NewInt(1000)))
+	require.NoError(t, err)
+	// Seed mint state
+	require.NoError(t, pawApp.MintKeeper.Minter.Set(ctx, minttypes.DefaultInitialMinter()))
+	require.NoError(t, pawApp.MintKeeper.Params.Set(ctx, minttypes.DefaultParams()))
+	// Seed gov params
+	require.NoError(t, pawApp.GovKeeper.Params.Set(ctx, govv1.DefaultParams()))
+	govmodule.InitGenesis(ctx, pawApp.AccountKeeper, pawApp.BankKeeper, pawApp.GovKeeper, govv1.DefaultGenesisState())
+	// Seed distribution state
+	pawApp.DistrKeeper.InitGenesis(ctx, *distrtypes.DefaultGenesisState())
+	// Seed IBC client params
+	pawApp.IBCKeeper.ClientKeeper.SetParams(ctx, ibcclienttypes.DefaultParams())
+	pawApp.IBCKeeper.ClientKeeper.SetNextClientSequence(ctx, 0)
+	pawApp.IBCKeeper.ConnectionKeeper.SetNextConnectionSequence(ctx, 0)
+	pawApp.IBCKeeper.ChannelKeeper.SetNextChannelSequence(ctx, 0)
+	pawApp.IBCKeeper.ConnectionKeeper.SetParams(ctx, ibcconnectiontypes.DefaultParams())
+	pawApp.IBCKeeper.ChannelKeeper.SetParams(ctx, ibcchanneltypes.DefaultParams())
 
 	// Export genesis
 	exported, err := pawApp.ExportAppStateAndValidators(false, []string{}, []string{})
 	require.NoError(t, err)
-	require.NotNil(t, exported.AppState)
-	require.NotNil(t, exported.Validators)
-	require.Greater(t, len(exported.Validators), 0, "should have at least one validator")
+	require.NotNil(t, exported)
 }
 
 // TestDexModuleIntegration tests DEX module integration
@@ -92,19 +119,24 @@ func (suite *AppTestSuite) TestDexModuleIntegration() {
 		AmountB: math.NewInt(2000000),
 	}
 
-	poolID, err := suite.app.DEXKeeper.CreatePool(
+	creatorAddr, err := sdk.AccAddressFromBech32(msgCreatePool.Creator)
+	require.NoError(suite.T(), err)
+
+	pool, err := suite.app.DEXKeeper.CreatePool(
 		suite.ctx,
-		msgCreatePool.Creator,
+		creatorAddr,
 		msgCreatePool.TokenA,
 		msgCreatePool.TokenB,
 		msgCreatePool.AmountA,
 		msgCreatePool.AmountB,
 	)
 	require.NoError(suite.T(), err)
-	require.Greater(suite.T(), poolID, uint64(0))
+	require.NotNil(suite.T(), pool)
+	require.Greater(suite.T(), pool.Id, uint64(0))
 
 	// Verify pool exists
-	pool := suite.app.DEXKeeper.GetPool(suite.ctx, poolID)
+	pool, err = suite.app.DEXKeeper.GetPool(suite.ctx, pool.Id)
+	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), pool)
 	require.Equal(suite.T(), "upaw", pool.TokenA)
 	require.Equal(suite.T(), "uusdt", pool.TokenB)

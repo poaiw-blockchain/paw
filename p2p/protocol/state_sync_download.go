@@ -197,7 +197,7 @@ func (ssp *StateSyncProtocol) downloadChunkWithRetry(
 		}
 
 		// Select peer for download
-		peerID, err := ssp.selectPeerForChunk(chunkIndex)
+		peerID, err := ssp.selectPeerForChunk(snap, chunkIndex)
 		if err != nil {
 			lastErr = err
 			continue
@@ -256,7 +256,7 @@ func (ssp *StateSyncProtocol) downloadChunkFromPeer(
 }
 
 // selectPeerForChunk selects the best peer for downloading a chunk
-func (ssp *StateSyncProtocol) selectPeerForChunk(chunkIndex uint32) (string, error) {
+func (ssp *StateSyncProtocol) selectPeerForChunk(snap *snapshot.Snapshot, chunkIndex uint32) (string, error) {
 	ssp.peerOffersMu.RLock()
 	defer ssp.peerOffersMu.RUnlock()
 
@@ -264,14 +264,10 @@ func (ssp *StateSyncProtocol) selectPeerForChunk(chunkIndex uint32) (string, err
 		return "", fmt.Errorf("no peers available")
 	}
 
-	// Get selected snapshot details
-	ssp.stateMu.RLock()
-	selectedHeight := ssp.selectedSnapshot.Height
-	selectedHash := fmt.Sprintf("%x", ssp.selectedSnapshot.Hash)
-	ssp.stateMu.RUnlock()
-
 	// Find peers that offered this snapshot
 	var validPeers []string
+	targetHeight := snap.Height
+	targetHash := fmt.Sprintf("%x", snap.Hash)
 
 	for peerID, offer := range ssp.peerOffers {
 		// Skip malicious peers
@@ -284,9 +280,9 @@ func (ssp *StateSyncProtocol) selectPeerForChunk(chunkIndex uint32) (string, err
 		}
 
 		// Check if peer has the right snapshot
-		if offer.Snapshot.Height == selectedHeight {
+		if offer.Snapshot.Height == targetHeight {
 			offerHash := fmt.Sprintf("%x", offer.Snapshot.Hash)
-			if offerHash == selectedHash {
+			if offerHash == targetHash {
 				validPeers = append(validPeers, peerID)
 			}
 		}

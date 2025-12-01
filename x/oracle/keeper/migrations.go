@@ -29,5 +29,5 @@ func NewMigrator(keeper Keeper) Migrator {
 // This migration is idempotent and can be safely run multiple times.
 func (m Migrator) Migrate1to2(ctx sdk.Context) error {
 	ctx.Logger().Info("Executing oracle module migration from v1 to v2")
-	return v2.Migrate(ctx, m.keeper.storeKey)
+	return v2.Migrate(ctx, m.keeper.storeKey, m.keeper.cdc)
 }

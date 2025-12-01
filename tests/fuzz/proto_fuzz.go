@@ -154,7 +154,7 @@ func FuzzComputeRequestProto(f *testing.F) {
 			Provider:       "cosmos1provider",
 			ContainerImage: "ubuntu:latest",
 			Command:        []string{"echo", "hello"},
-			Status:         computetypes.RequestStatus_REQUEST_STATUS_PENDING,
+			Status:         computetypes.REQUEST_STATUS_PENDING,
 			MaxPayment:     math.NewInt(1000000),
 			EscrowedAmount: math.NewInt(1000000),
 		}),
@@ -189,7 +189,7 @@ func FuzzComputeRequestProto(f *testing.F) {
 		}
 
 		// INVARIANT 4: Status must be valid
-		if request.Status < 0 || request.Status > computetypes.RequestStatus_REQUEST_STATUS_CANCELLED {
+		if request.Status < 0 || request.Status > computetypes.REQUEST_STATUS_CANCELLED {
 			t.Errorf("VIOLATION: invalid status: %d", request.Status)
 		}
 
@@ -220,7 +220,7 @@ func FuzzOracleValidatorPriceProto(f *testing.F) {
 			ValidatorAddr: "cosmosvaloper1test",
 			Asset:         "ETH",
 			Price:         math.LegacyMustNewDecFromStr("3000.50"),
-			Timestamp:     1234567890,
+			BlockHeight:   1234567890,
 			VotingPower:   1000,
 		}),
 	}
@@ -247,9 +247,9 @@ func FuzzOracleValidatorPriceProto(f *testing.F) {
 			t.Errorf("VIOLATION: negative voting power: %d", vp.VotingPower)
 		}
 
-		// INVARIANT 3: Timestamp must be reasonable
-		if vp.Timestamp < 0 {
-			t.Errorf("VIOLATION: negative timestamp: %d", vp.Timestamp)
+		// INVARIANT 3: BlockHeight must be reasonable
+		if vp.BlockHeight < 0 {
+			t.Errorf("VIOLATION: negative block height: %d", vp.BlockHeight)
 		}
 
 		// Test roundtrip
@@ -271,6 +271,9 @@ func FuzzOracleValidatorPriceProto(f *testing.F) {
 		}
 		if vp.VotingPower != vp2.VotingPower {
 			t.Errorf("VotingPower mismatch after roundtrip")
+		}
+		if vp.BlockHeight != vp2.BlockHeight {
+			t.Errorf("BlockHeight mismatch after roundtrip")
 		}
 	})
 }

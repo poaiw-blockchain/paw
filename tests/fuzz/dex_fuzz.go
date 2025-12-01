@@ -278,10 +278,6 @@ func FuzzPriceImpact(f *testing.F) {
 		swapInt := math.NewInt(int64(swapSize))
 		reserveInt := math.NewInt(int64(reserve))
 
-		// Calculate price impact: Δprice / initial_price
-		// For constant product: price_impact ≈ swap_size / reserve
-		spotPriceBefore := math.LegacyOneDec() // Assuming 1:1 initially
-
 		// After swap: new price = (reserve + swap) / (reserve - output)
 		// Simplified: price_impact = swap / (reserve + swap/2)
 		priceImpact := math.LegacyNewDecFromInt(swapInt).

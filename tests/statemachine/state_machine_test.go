@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package statemachine_test
 
 import (

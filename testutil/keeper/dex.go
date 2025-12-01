@@ -20,6 +20,10 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
+	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/dex/keeper"
@@ -31,26 +35,30 @@ func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 	memStoreKey := storetypes.NewMemoryStoreKey(types.MemStoreKey)
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
+	capStoreKey := storetypes.NewKVStoreKey(capabilitytypes.StoreKey)
+	capMemStoreKey := storetypes.NewMemoryStoreKey(capabilitytypes.MemStoreKey)
 
 	db := dbm.NewMemDB()
+	authStoreKey := storetypes.NewKVStoreKey(authtypes.StoreKey)
 	stateStore := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	stateStore.MountStoreWithDB(storeKey, storetypes.StoreTypeIAVL, db)
 	stateStore.MountStoreWithDB(memStoreKey, storetypes.StoreTypeMemory, nil)
 	stateStore.MountStoreWithDB(bankStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capStoreKey, storetypes.StoreTypeIAVL, db)
+	stateStore.MountStoreWithDB(capMemStoreKey, storetypes.StoreTypeMemory, nil)
+	stateStore.MountStoreWithDB(authStoreKey, storetypes.StoreTypeIAVL, db)
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
 	banktypes.RegisterInterfaces(registry)
+	authtypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
 
 	// Create account keeper (required by bank keeper)
 	maccPerms := map[string][]string{
-		types.ModuleName: nil,
+		types.ModuleName: {authtypes.Minter, authtypes.Burner},
 	}
-
-	authStoreKey := storetypes.NewKVStoreKey(authtypes.StoreKey)
-	stateStore.MountStoreWithDB(authStoreKey, storetypes.StoreTypeIAVL, db)
 
 	accountKeeper := authkeeper.NewAccountKeeper(
 		cdc,
@@ -74,8 +82,57 @@ func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		log.NewNopLogger(),
 	)
 
-	k := keeper.NewKeeper(cdc, storeKey, bankKeeper)
+	capKeeper := capabilitykeeper.NewKeeper(cdc, capStoreKey, capMemStoreKey)
+	scopedDexKeeper := capKeeper.ScopeToModule(types.ModuleName)
+	var ibcKeeper *ibckeeper.Keeper
+	var portKeeper *portkeeper.Keeper
+
+	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, portKeeper, scopedDexKeeper)
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+
+	// Setup module account for mint/burn
+	moduleAccount := accountKeeper.NewAccount(ctx, authtypes.NewEmptyModuleAccount(types.ModuleName, authtypes.Minter, authtypes.Burner)).(*authtypes.ModuleAccount)
+	accountKeeper.SetModuleAccount(ctx, moduleAccount)
+
+	// Prefund common test accounts with ample liquidity across all denoms used in tests
+	mintCoins := sdk.NewCoins(
+		sdk.NewInt64Coin("upaw", 5_000_000_000),
+		sdk.NewInt64Coin("uusdt", 5_000_000_000),
+		sdk.NewInt64Coin("uatom", 5_000_000_000),
+		sdk.NewInt64Coin("atom", 5_000_000_000),
+		sdk.NewInt64Coin("usdc", 5_000_000_000),
+		sdk.NewInt64Coin("osmo", 5_000_000_000),
+		sdk.NewInt64Coin("tokenA", 5_000_000_000),
+		sdk.NewInt64Coin("tokenB", 5_000_000_000),
+		sdk.NewInt64Coin("tokenC", 5_000_000_000),
+		sdk.NewInt64Coin("tokenD", 5_000_000_000),
+		sdk.NewInt64Coin("tokenE", 5_000_000_000),
+	)
+
+	fundAddrs := []sdk.AccAddress{
+		types.TestAddr(),
+		sdk.AccAddress([]byte("test_trader_address")),
+		sdk.AccAddress([]byte("creator1___________")),
+		sdk.AccAddress([]byte("trader1____________")),
+		sdk.AccAddress([]byte("provider1__________")),
+		sdk.AccAddress([]byte("attacker_address___")),
+		sdk.AccAddress([]byte("normal_user_address")),
+		sdk.AccAddress([]byte("liquidity_provider_")),
+		sdk.AccAddress([]byte("regular_user_1_____")),
+		sdk.AccAddress([]byte("regular_user_2_____")),
+		sdk.AccAddress([]byte("regular_user_3_____")),
+	}
+	for i := 0; i < 10; i++ {
+		addr := make([]byte, 20)
+		copy(addr, []byte("test_trader_"))
+		addr[19] = byte(i)
+		fundAddrs = append(fundAddrs, sdk.AccAddress(addr))
+	}
+
+	for _, addr := range fundAddrs {
+		require.NoError(t, bankKeeper.MintCoins(ctx, types.ModuleName, mintCoins))
+		require.NoError(t, bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, mintCoins))
+	}
 
 	// initialize params and defaults
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))

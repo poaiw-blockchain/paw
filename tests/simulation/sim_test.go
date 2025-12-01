@@ -3,21 +3,18 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"cosmossdk.io/log"
-	dbm "github.com/cosmos/cosmos-db"
+	storetypes "cosmossdk.io/store/types"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/require"
 
-	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 	simcli "github.com/cosmos/cosmos-sdk/x/simulation/client/cli"
@@ -25,14 +22,28 @@ import (
 	"github.com/paw-chain/paw/app"
 )
 
+func newSimConfig(chainID string) simtypes.Config {
+	return simtypes.Config{
+		ChainID:            chainID,
+		Seed:               simcli.DefaultSeedValue,
+		InitialBlockHeight: 1,
+		NumBlocks:          200,
+		BlockSize:          200,
+		DBBackend:          "goleveldb",
+	}
+}
+
+func init() {
+	simcli.GetSimulatorFlags()
+}
+
 // TestFullAppSimulation runs the full application simulation for 500 blocks
 // This is the main simulation test that exercises all modules with random operations
 func TestFullAppSimulation(t *testing.T) {
-	config := simtestutil.DefaultSimulationConfig()
+	config := newSimConfig("paw-sim-1")
 	config.NumBlocks = 500
 	config.BlockSize = 200 // Operations per block
-	config.ChainID = "paw-sim-1"
-	config.Seed = 42 // Fixed seed for deterministic testing
+	config.Seed = 42       // Fixed seed for deterministic testing
 	config.OnOperation = false
 	config.AllInvariants = true
 	config.Commit = true
@@ -99,10 +110,9 @@ func TestAppStateDeterminism(t *testing.T) {
 		t.Skip("skipping application simulation")
 	}
 
-	config := simtestutil.DefaultSimulationConfig()
+	config := newSimConfig("paw-sim-1")
 	config.NumBlocks = 100
 	config.BlockSize = 200
-	config.ChainID = "paw-sim-1"
 	config.Seed = 42 // Fixed seed
 	config.OnOperation = false
 	config.AllInvariants = false // Disable for speed
@@ -184,10 +194,9 @@ func TestAppStateDeterminism(t *testing.T) {
 
 // TestAppImportExport verifies that the application can export and import state
 func TestAppImportExport(t *testing.T) {
-	config := simtestutil.DefaultSimulationConfig()
+	config := newSimConfig("paw-sim-1")
 	config.NumBlocks = 100
 	config.BlockSize = 25
-	config.ChainID = "paw-sim-1"
 	config.Seed = 42
 	config.OnOperation = false
 	config.AllInvariants = true
@@ -225,7 +234,7 @@ func TestAppImportExport(t *testing.T) {
 	require.Equal(t, "paw", simApp.Name())
 
 	// Run simulation
-	_, simParams, simErr := simulation.SimulateFromSeed(
+	_, _, simErr := simulation.SimulateFromSeed(
 		t,
 		os.Stdout,
 		simApp.BaseApp,
@@ -281,10 +290,10 @@ func TestAppImportExport(t *testing.T) {
 	err = json.Unmarshal(exported.AppState, &genesisState)
 	require.NoError(t, err)
 
-	ctxA := simApp.NewContextLegacy(true, simApp.LastCommitID())
-	ctxB := newApp.NewContextLegacy(true, newApp.LastCommitID())
+	ctxA := simApp.NewContextLegacy(true, cmtproto.Header{Height: simApp.LastBlockHeight()})
+	ctxB := newApp.NewContextLegacy(true, cmtproto.Header{Height: newApp.LastBlockHeight()})
 
-	_, err = newApp.ModuleManager.InitGenesis(ctxB, simApp.AppCodec(), genesisState)
+	_, err = newApp.ModuleManager().InitGenesis(ctxB, simApp.AppCodec(), genesisState)
 	require.NoError(t, err)
 
 	err = newApp.StoreConsensusParams(ctxB, exported.ConsensusParams)
@@ -293,8 +302,8 @@ func TestAppImportExport(t *testing.T) {
 	fmt.Printf("comparing stores...\n")
 
 	type StoreKeysPrefixes struct {
-		A        sdk.StoreKey
-		B        sdk.StoreKey
+		A        storetypes.StoreKey
+		B        storetypes.StoreKey
 		Prefixes [][]byte
 	}
 
@@ -310,7 +319,7 @@ func TestAppImportExport(t *testing.T) {
 		storeA := ctxA.KVStore(skp.A)
 		storeB := ctxB.KVStore(skp.B)
 
-		failedKVAs, failedKVBs := sdk.DiffKVStores(storeA, storeB, skp.Prefixes)
+		failedKVAs, failedKVBs := simtestutil.DiffKVStores(storeA, storeB, skp.Prefixes)
 		require.Equal(t, len(failedKVAs), len(failedKVBs), "unequal sets of key-values to compare")
 
 		fmt.Printf("compared %d different key/value pairs between %s and %s\n", len(failedKVAs), skp.A, skp.B)
@@ -320,10 +329,9 @@ func TestAppImportExport(t *testing.T) {
 
 // TestAppSimulationAfterImport verifies simulation works after importing state
 func TestAppSimulationAfterImport(t *testing.T) {
-	config := simtestutil.DefaultSimulationConfig()
+	config := newSimConfig("paw-sim-1")
 	config.NumBlocks = 100
 	config.BlockSize = 25
-	config.ChainID = "paw-sim-1"
 	config.Seed = 42
 	config.OnOperation = false
 	config.AllInvariants = true
@@ -361,7 +369,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 	require.Equal(t, "paw", simApp.Name())
 
 	// Run initial simulation
-	stopEarly, simParams, simErr := simulation.SimulateFromSeed(
+	stopEarly, _, simErr := simulation.SimulateFromSeed(
 		t,
 		os.Stdout,
 		simApp.BaseApp,
@@ -387,6 +395,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	exported, err := simApp.ExportAppStateAndValidators(true, []string{}, []string{})
 	require.NoError(t, err)
+	require.NotEmpty(t, exported.AppState)
 
 	fmt.Printf("importing genesis...\n")
 
@@ -445,10 +454,9 @@ func TestMultiSeedFullSimulation(t *testing.T) {
 		t.Run(fmt.Sprintf("seed=%d", seed), func(t *testing.T) {
 			t.Parallel()
 
-			config := simtestutil.DefaultSimulationConfig()
+			config := newSimConfig(fmt.Sprintf("paw-sim-%d", seed))
 			config.NumBlocks = 200
 			config.BlockSize = 100
-			config.ChainID = fmt.Sprintf("paw-sim-%d", seed)
 			config.Seed = seed
 			config.OnOperation = false
 			config.AllInvariants = true
@@ -501,10 +509,9 @@ func TestMultiSeedFullSimulation(t *testing.T) {
 
 // BenchmarkFullAppSimulation benchmarks the full application simulation
 func BenchmarkFullAppSimulation(b *testing.B) {
-	config := simtestutil.DefaultSimulationConfig()
+	config := newSimConfig("paw-sim-1")
 	config.NumBlocks = 500
 	config.BlockSize = 200
-	config.ChainID = "paw-sim-1"
 	config.Seed = 42
 	config.OnOperation = false
 	config.AllInvariants = false // Disable for benchmark speed
