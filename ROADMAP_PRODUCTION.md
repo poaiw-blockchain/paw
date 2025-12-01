@@ -38,10 +38,13 @@ The following gaps MUST be addressed before testnet deployment:
 - [x] Adversarial test suite: All tests pass (13/13)
 - [ ] IBC tests have proof verification issues with harness (requires full IBC setup)
 
-#### A.4 Test Coverage Below Target
-- [ ] DEX keeper: 21.5% (target: >80%)
-- [ ] Oracle keeper: 16.1% (target: >80%)
+#### A.4 Test Coverage Below Target - IN PROGRESS
+- [ ] DEX keeper: 24.7% (target: >80%)
+- [ ] Oracle keeper: 25.9% (target: >80%)
 - [ ] Compute keeper: 27.6% (target: >80%)
+- [x] Added comprehensive dex_advanced_test.go
+- [x] Added comprehensive oracle_advanced_test.go
+- [ ] More tests needed for ABCI handlers, genesis, IBC, fees, backup functions
 
 ### B. Frontend Applications - IN ARCHIVE (Not Production Ready)
 

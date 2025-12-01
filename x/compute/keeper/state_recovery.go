@@ -63,8 +63,8 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 	}
 	backup.Governance = govParams
 
-	// Export providers
-	providerIterator := storetypes.KVStorePrefixIterator(store, types.ProviderKeyPrefix)
+	// Export providers - use keeper's ProviderKeyPrefix, not types (they differ)
+	providerIterator := storetypes.KVStorePrefixIterator(store, ProviderKeyPrefix)
 	defer providerIterator.Close()
 
 	for ; providerIterator.Valid(); providerIterator.Next() {
@@ -75,8 +75,8 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 		backup.Providers = append(backup.Providers, provider)
 	}
 
-	// Export requests
-	requestIterator := storetypes.KVStorePrefixIterator(store, types.RequestKeyPrefix)
+	// Export requests - use keeper's RequestKeyPrefix
+	requestIterator := storetypes.KVStorePrefixIterator(store, RequestKeyPrefix)
 	defer requestIterator.Close()
 
 	for ; requestIterator.Valid(); requestIterator.Next() {
@@ -87,8 +87,8 @@ func (k Keeper) ExportState(ctx context.Context) (*StateBackupData, error) {
 		backup.Requests = append(backup.Requests, request)
 	}
 
-	// Export results
-	resultIterator := storetypes.KVStorePrefixIterator(store, types.ResultKeyPrefix)
+	// Export results - use keeper's ResultKeyPrefix
+	resultIterator := storetypes.KVStorePrefixIterator(store, ResultKeyPrefix)
 	defer resultIterator.Close()
 
 	for ; resultIterator.Valid(); resultIterator.Next() {
@@ -336,8 +336,8 @@ func (k Keeper) ValidateState(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(k.storeKey)
 
-	// Validate providers
-	providerIterator := storetypes.KVStorePrefixIterator(store, types.ProviderKeyPrefix)
+	// Validate providers - use keeper's ProviderKeyPrefix
+	providerIterator := storetypes.KVStorePrefixIterator(store, ProviderKeyPrefix)
 	defer providerIterator.Close()
 
 	for ; providerIterator.Valid(); providerIterator.Next() {
@@ -516,8 +516,8 @@ func (k Keeper) clearComputeState(ctx context.Context) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(k.storeKey)
 
-	// Clear providers
-	clearStorePrefix(store, types.ProviderKeyPrefix)
+	// Clear providers - use keeper's ProviderKeyPrefix
+	clearStorePrefix(store, ProviderKeyPrefix)
 	clearStorePrefix(store, ActiveProvidersPrefix)
 
 	// Clear requests
