@@ -217,7 +217,8 @@ The Cosmos/IBC community expects strict, deterministic infrastructure:
 
 ### Multi-Node Testnet
 - [x] Configure 4-node local testnet: `compose/docker-compose.devnet.yml` (updated with golang:1.23, 4 nodes)
-- [ ] Test: send tokens, create DEX pool, submit oracle prices, post compute job
+- [x] Smoke test script covers: bank send, staking, DEX pool/liquidity/swap, governance, oracle prices, compute jobs (`scripts/devnet/smoke.sh`)
+- [ ] Run devnet and execute smoke tests manually
 - [ ] Test validator add/remove, slashing, coordinated upgrade
 
 ---
