@@ -646,12 +646,12 @@ func (k Keeper) DistributeOracleRewards(ctx context.Context) error {
 
 	// Get reward pool
 	rewardPoolKey := []byte("oracle_reward_pool")
-	var rewardPool math.Int
+	rewardPool := math.ZeroInt()
 	if bz := store.Get(rewardPoolKey); bz != nil {
 		_ = rewardPool.Unmarshal(bz)
 	}
 
-	if rewardPool.IsZero() {
+	if rewardPool.IsZero() || rewardPool.IsNil() {
 		return nil // No rewards to distribute
 	}
 
@@ -905,12 +905,12 @@ func (k Keeper) DistributeOracleRewardsWithAccuracy(ctx context.Context) error {
 
 	// Get reward pool
 	rewardPoolKey := []byte("oracle_reward_pool")
-	var rewardPool math.Int
+	rewardPool := math.ZeroInt()
 	if bz := store.Get(rewardPoolKey); bz != nil {
 		_ = rewardPool.Unmarshal(bz)
 	}
 
-	if rewardPool.IsZero() {
+	if rewardPool.IsZero() || rewardPool.IsNil() {
 		return nil // No rewards to distribute
 	}
 
