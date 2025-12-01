@@ -4,13 +4,17 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"cosmossdk.io/math"
 	"github.com/stretchr/testify/suite"
 
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
+	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
+
+	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // OracleIBCTestSuite tests cross-chain oracle operations
@@ -32,11 +36,16 @@ func (suite *OracleIBCTestSuite) SetupTest() {
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(2))
 
+	pawibctesting.BindCustomPorts(suite.chainA)
+	pawibctesting.BindCustomPorts(suite.chainB)
+
 	suite.path = ibctesting.NewPath(suite.chainA, suite.chainB)
 	suite.path.EndpointA.ChannelConfig.PortID = "oracle"
 	suite.path.EndpointB.ChannelConfig.PortID = "oracle"
 	suite.path.EndpointA.ChannelConfig.Version = oracletypes.IBCVersion
 	suite.path.EndpointB.ChannelConfig.Version = oracletypes.IBCVersion
+	// Oracle module expects UNORDERED channels for price feeds
+	// (no strict ordering needed for independent price updates)
 
 	suite.coordinator.Setup(suite.path)
 }
@@ -70,8 +79,9 @@ func (suite *OracleIBCTestSuite) TestSubscribeToPrices() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -119,8 +129,9 @@ func (suite *OracleIBCTestSuite) TestQueryPrice() {
 		0,
 	)
 
-	err = suite.path.EndpointA.SendPacket(packet)
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
 
 	err = suite.path.EndpointB.RecvPacket(packet)
 	suite.Require().NoError(err)
@@ -130,10 +141,10 @@ func (suite *OracleIBCTestSuite) TestQueryPrice() {
 		Success: true,
 		PriceData: oracletypes.PriceData{
 			Symbol:      "BTC/USD",
-			Price:       sdk.MustNewDecFromStr("45000.50"),
+			Price:       math.LegacyMustNewDecFromStr("45000.50"),
 			Volume24h:   math.NewInt(1000000000),
 			Timestamp:   time.Now().Unix(),
-			Confidence:  sdk.MustNewDecFromStr("0.95"),
+			Confidence:  math.LegacyMustNewDecFromStr("0.95"),
 			OracleCount: 7,
 		},
 	}
@@ -152,18 +163,18 @@ func (suite *OracleIBCTestSuite) TestReceivePriceUpdate() {
 	priceData := []oracletypes.PriceData{
 		{
 			Symbol:      "BTC/USD",
-			Price:       sdk.MustNewDecFromStr("45123.45"),
+			Price:       math.LegacyMustNewDecFromStr("45123.45"),
 			Volume24h:   math.NewInt(1234567890),
 			Timestamp:   time.Now().Unix(),
-			Confidence:  sdk.MustNewDecFromStr("0.98"),
+			Confidence:  math.LegacyMustNewDecFromStr("0.98"),
 			OracleCount: 9,
 		},
 		{
 			Symbol:      "ETH/USD",
-			Price:       sdk.MustNewDecFromStr("2345.67"),
+			Price:       math.LegacyMustNewDecFromStr("2345.67"),
 			Volume24h:   math.NewInt(987654321),
 			Timestamp:   time.Now().Unix(),
-			Confidence:  sdk.MustNewDecFromStr("0.97"),
+			Confidence:  math.LegacyMustNewDecFromStr("0.97"),
 			OracleCount: 8,
 		},
 	}
@@ -243,16 +254,16 @@ func (suite *OracleIBCTestSuite) TestCrossChainAggregation() {
 	for _, source := range sources {
 		packetData := oracletypes.PriceUpdatePacketData{
 			Type: oracletypes.PriceUpdateType,
-			Prices: []oracletypes.PriceData{
-				{
-					Symbol:      "BTC/USD",
-					Price:       sdk.MustNewDecFromStr("45000.00").Add(sdk.NewDec(int64(len(source)))),
-					Volume24h:   math.NewInt(1000000000),
-					Timestamp:   time.Now().Unix(),
-					Confidence:  sdk.MustNewDecFromStr("0.95"),
-					OracleCount: 7,
+				Prices: []oracletypes.PriceData{
+					{
+						Symbol:      "BTC/USD",
+						Price:       math.LegacyMustNewDecFromStr("45000.00").Add(math.LegacyNewDec(int64(len(source)))),
+						Volume24h:   math.NewInt(1000000000),
+						Timestamp:   time.Now().Unix(),
+						Confidence:  math.LegacyMustNewDecFromStr("0.95"),
+						OracleCount: 7,
+					},
 				},
-			},
 			Timestamp: time.Now().Unix(),
 			Source:    source,
 		}
@@ -285,10 +296,10 @@ func (suite *OracleIBCTestSuite) TestByzantineFaultTolerance() {
 	// Send conflicting price data
 	maliciousPrice := oracletypes.PriceData{
 		Symbol:      "BTC/USD",
-		Price:       sdk.MustNewDecFromStr("1000000.00"), // Clearly wrong
+		Price:       math.LegacyMustNewDecFromStr("1000000.00"), // Clearly wrong
 		Volume24h:   math.NewInt(1),
 		Timestamp:   time.Now().Unix(),
-		Confidence:  sdk.MustNewDecFromStr("0.99"),
+		Confidence:  math.LegacyMustNewDecFromStr("0.99"),
 		OracleCount: 1,
 	}
 

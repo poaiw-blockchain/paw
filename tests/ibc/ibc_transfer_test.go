@@ -1,18 +1,16 @@
 package ibc_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	ibctesting "github.com/cosmos/ibc-go/v8/testing"
+	testutilibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 	"github.com/stretchr/testify/suite"
-
-	"github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // IBCTransferTestSuite tests IBC token transfer functionality
@@ -38,14 +36,21 @@ func (suite *IBCTransferTestSuite) SetupTest() {
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(2))
 
+	testutilibctesting.BindCustomPorts(suite.chainA)
+	testutilibctesting.BindCustomPorts(suite.chainB)
+
 	// Setup IBC path
 	suite.path = ibctesting.NewPath(suite.chainA, suite.chainB)
+	suite.path.EndpointA.ChannelConfig.PortID = transfertypes.PortID
+	suite.path.EndpointB.ChannelConfig.PortID = transfertypes.PortID
+	suite.path.EndpointA.ChannelConfig.Version = transfertypes.Version
+	suite.path.EndpointB.ChannelConfig.Version = transfertypes.Version
+	// ICS-20 transfer uses UNORDERED channels (default)
 	suite.coordinator.Setup(suite.path)
 }
 
 // TestBasicTransfer tests basic IBC token transfer from chain A to chain B
 func (suite *IBCTransferTestSuite) TestBasicTransfer() {
-	ctx := context.Background()
 
 	// Get sender address on chain A
 	sender := suite.chainA.SenderAccount.GetAddress()
@@ -88,8 +93,8 @@ func (suite *IBCTransferTestSuite) TestBasicTransfer() {
 	)
 	denomTrace := transfertypes.ParseDenomTrace(expectedDenom)
 
-	balance := suite.chainB.GetSimApp().BankKeeper.GetBalance(
-		suite.chainB.GetContext(),
+	balance := testutilibctesting.BankBalance(
+		suite.chainB,
 		receiver,
 		denomTrace.IBCDenom(),
 	)
@@ -104,14 +109,14 @@ func (suite *IBCTransferTestSuite) TestTransferTimeout() {
 	amount := sdk.NewCoin("stake", math.NewInt(1000))
 
 	// Get initial sender balance
-	initialBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(
-		suite.chainA.GetContext(),
+	initialBalance := testutilibctesting.BankBalance(
+		suite.chainA,
 		sender,
 		amount.Denom,
 	)
 
 	// Create transfer with short timeout
-	timeoutHeight := clienttypes.NewHeight(0, suite.chainB.CurrentHeader.Height+1)
+	timeoutHeight := clienttypes.NewHeight(0, uint64(suite.chainB.CurrentHeader.Height)+1)
 
 	msg := transfertypes.NewMsgTransfer(
 		suite.path.EndpointA.ChannelConfig.PortID,
@@ -143,8 +148,8 @@ func (suite *IBCTransferTestSuite) TestTransferTimeout() {
 	suite.Require().NoError(err)
 
 	// Verify sender balance restored on chain A
-	finalBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(
-		suite.chainA.GetContext(),
+	finalBalance := testutilibctesting.BankBalance(
+		suite.chainA,
 		sender,
 		amount.Denom,
 	)
@@ -155,8 +160,8 @@ func (suite *IBCTransferTestSuite) TestTransferTimeout() {
 // TestMultiHopTransfer tests IBC transfer through multiple chains
 func (suite *IBCTransferTestSuite) TestMultiHopTransfer() {
 	// Setup additional chain
-	suite.coordinator.Chains = append(suite.coordinator.Chains, ibctesting.NewTestChain(suite.T(), suite.coordinator, ibctesting.GetChainID(3)))
-	chainC := suite.coordinator.GetChain(ibctesting.GetChainID(3))
+	chainC := ibctesting.NewTestChain(suite.T(), suite.coordinator, ibctesting.GetChainID(3))
+	suite.coordinator.Chains[chainC.ChainID] = chainC
 
 	// Setup path A -> B
 	pathAB := suite.path
@@ -231,8 +236,8 @@ func (suite *IBCTransferTestSuite) TestMultiHopTransfer() {
 	)
 	denomTraceC := transfertypes.ParseDenomTrace(expectedDenomC)
 
-	balanceC := chainC.GetSimApp().BankKeeper.GetBalance(
-		chainC.GetContext(),
+	balanceC := testutilibctesting.BankBalance(
+		chainC,
 		receiverC,
 		denomTraceC.IBCDenom(),
 	)
@@ -339,8 +344,8 @@ func (suite *IBCTransferTestSuite) TestConcurrentTransfers() {
 	)
 	denomTrace := transfertypes.ParseDenomTrace(expectedDenom)
 
-	balance := suite.chainB.GetSimApp().BankKeeper.GetBalance(
-		suite.chainB.GetContext(),
+	balance := testutilibctesting.BankBalance(
+		suite.chainB,
 		receiver,
 		denomTrace.IBCDenom(),
 	)
