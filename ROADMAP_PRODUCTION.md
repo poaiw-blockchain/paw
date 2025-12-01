@@ -4,6 +4,142 @@
 
 ---
 
+## 🚨 CRITICAL GAP ANALYSIS (Pre-Phase 0)
+
+**Audit Date:** December 2024
+
+The following gaps MUST be addressed before testnet deployment:
+
+### A. Backend Module Gaps
+
+#### A.1 ZK Verification System - NOT WIRED
+- [ ] `x/compute/keeper/verification.go:716` - `VerifyZKProof()` is a **placeholder comment only** - function body missing
+- [ ] ZK circuits exist (`x/compute/circuits/`) but are **NOT IMPORTED** anywhere in keeper code
+- [ ] Wire `ComputeCircuit`, `EscrowCircuit`, `ResultCircuit` to verification.go
+- [ ] Add gnark proof generation/verification to keeper
+- [ ] Add circuit setup (trusted setup or universal setup)
+- [ ] Add circuit constraint compilation
+
+#### A.2 TODOs and Placeholders in Production Code
+- [ ] `x/dex/keeper/query_server.go:209` - pagination not implemented for GetOrdersByOwner
+- [ ] `x/dex/keeper/query_server.go:231` - pagination not implemented for GetOrdersByPool
+- [ ] `x/oracle/keeper/security.go:19` - geographic diversity is placeholder
+- [ ] `x/oracle/keeper/oracle_advanced.go:667` - accuracy bonus not implemented
+- [ ] `x/compute/keeper/escrow.go:380` - needs reverse index optimization
+- [ ] `app/app.go:1008,1033,1082,1088` - upgrade handlers are placeholders
+- [ ] `p2p/protocol/state_sync.go:339` - reputation system not integrated
+- [ ] `p2p/protocol/sync.go:478` - state snapshot sync is placeholder
+- [ ] `p2p/nodekey.go:183` - chain ID loading from genesis not implemented
+
+#### A.3 Security Integration Tests - Skipped
+- [ ] Oracle security suite requires full staking/slashing/distribution wiring
+- [ ] Compute security suite requires validator genesis wiring
+- [ ] IBC tests have proof verification issues with harness
+
+#### A.4 Test Coverage Below Target
+- [ ] DEX keeper: 22.2% (target: >80%)
+- [ ] Oracle keeper: 16.1% (target: >80%)
+- [ ] Compute keeper: 29.1% (target: >80%)
+
+### B. Frontend Applications - IN ARCHIVE (Not Production Ready)
+
+#### B.1 Blockchain Explorer (`archive/explorer/`)
+- [ ] Move from archive to production location
+- [ ] Verify frontend builds successfully
+- [ ] Test indexer against live chain
+- [ ] Verify API endpoints work with pawd
+- [ ] Add DEX pool visualization
+- [ ] Add Oracle price charts
+- [ ] Add Compute job status tracking
+- [ ] Production deployment configuration
+- [ ] SSL/TLS configuration
+
+#### B.2 Desktop Wallet (`archive/wallet/desktop/`)
+- [ ] Move from archive to production location
+- [ ] Update Electron to latest secure version
+- [ ] Security audit of key storage
+- [ ] Test with PAW chain (not generic Cosmos)
+- [ ] Add DEX swap interface
+- [ ] Add Oracle price display
+- [ ] Add Compute job submission UI
+- [ ] Code signing for distribution
+- [ ] Auto-update mechanism testing
+
+#### B.3 Browser Extension (`archive/wallet/browser-extension/`)
+- [ ] **CRITICAL:** Extension references "XAI" not "PAW" - complete rebranding needed
+- [ ] Move from archive to production location
+- [ ] Update manifest for Chrome Web Store requirements
+- [ ] Update manifest for Firefox Add-ons requirements
+- [ ] Security audit of key handling
+- [ ] Test WalletConnect integration with PAW
+- [ ] Add PAW-specific features (DEX, Oracle, Compute)
+- [ ] Cross-browser testing (Chrome, Firefox, Edge, Brave)
+
+#### B.4 Mobile Wallet (`archive/wallet/mobile/`)
+- [ ] Move from archive to production location
+- [ ] iOS build and test
+- [ ] Android build and test
+- [ ] Biometric authentication
+- [ ] Push notifications for transactions
+- [ ] Deep linking support
+
+#### B.5 Faucet (`archive/faucet/`)
+- [ ] Move from archive to production location
+- [ ] Configure for PAW testnet
+- [ ] Rate limiting verification
+- [ ] Captcha integration testing
+- [ ] Database setup and migration
+- [ ] Production deployment
+
+#### B.6 Portal/Dashboard (`archive/portal/`)
+- [ ] Audit implementation status
+- [ ] Move from archive if ready
+
+#### B.7 Status Page (`archive/status/`)
+- [ ] Audit implementation status
+- [ ] Move from archive if ready
+
+### C. CLI Integration Gaps
+
+#### C.1 Missing CLI Tests
+- [ ] No CLI integration tests exist
+- [ ] Add end-to-end CLI workflow tests
+- [ ] Test all tx and query commands
+
+#### C.2 CLI Documentation
+- [ ] Verify all commands have --help documentation
+- [ ] Add command examples to docs
+
+### D. Infrastructure Gaps
+
+#### D.1 Node Installation
+- [ ] Create installer scripts for Linux/macOS/Windows
+- [ ] Create systemd service files
+- [ ] Create launchd plist for macOS
+- [ ] Document hardware requirements
+- [ ] Create quickstart guide for validators
+
+#### D.2 Monitoring Integration
+- [ ] Verify Prometheus metrics export
+- [ ] Test Grafana dashboards against live chain
+- [ ] Configure alerting rules
+- [ ] Test alert delivery
+
+### E. Documentation Gaps
+
+#### E.1 User Documentation
+- [ ] Complete wallet user guide
+- [ ] DEX trading guide
+- [ ] Oracle price submission guide
+- [ ] Compute provider guide
+
+#### E.2 Developer Documentation
+- [ ] API reference documentation
+- [ ] SDK integration guide
+- [ ] Smart contract (CosmWasm) guide if enabled
+
+---
+
 ## ⚠️ CRITICAL: Fix Build First (Phase 0)
 
 Build fails due to Cosmos SDK v0.50 migration issues:
