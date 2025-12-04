@@ -1,41 +1,23 @@
-# PAW Blockchain Metrics Implementation
+# PAW Metrics Implementation
 
-## Summary
-Implemented comprehensive Prometheus monitoring metrics for PAW blockchain to match Aura/XAI monitoring depth and integrate with unified Grafana Cloud dashboard.
+## Modules Added (83 metrics total)
 
-## Metrics Added
+**DEX** (`x/dex/keeper/metrics.go`): 30 metrics
+- Swaps, liquidity, pools, TWAP, circuit breakers, IBC
 
-### DEX Module (x/dex/keeper/metrics.go)
-- **Swaps**: volume, count, latency, slippage, fees (by pool/token/status)
-- **Liquidity**: added/removed, reserves, LP tokens, TVL (by pool/denom)
-- **Pools**: total count, creation rate, imbalance ratio, fee tiers
-- **Security**: circuit breaker, MEV protections, rate limits
-- **TWAP**: updates, price values
-- **IBC**: cross-chain swaps, timeouts
+**Oracle** (`x/oracle/keeper/metrics.go`): 27 metrics
+- Prices, validators, aggregation, TWAP, security, IBC
 
-### Oracle Module (x/oracle/keeper/metrics.go)
-- **Prices**: submissions, aggregated values, deviation, staleness (by asset/validator)
-- **Validators**: submissions, missed votes, slashing events, reputation scores
-- **Aggregation**: latency, participation rate, outlier detection
-- **TWAP**: values, window sizes, manipulation detection
-- **Security**: price rejections, circuit breakers, anomaly detection
-- **IBC**: price feeds sent/received, timeouts
+**Compute** (`x/compute/keeper/metrics.go`): 26 metrics
+- Jobs, ZK proofs, escrow, providers, IBC, security
 
-### Compute Module (x/compute/keeper/metrics.go)
-- **Jobs**: submitted, accepted, completed, failed, execution time, queue size
-- **ZK Proofs**: verifications, latency, invalid proofs, circuit initializations
-- **Escrow**: locked/released/refunded amounts, balances (by denom)
-- **Providers**: registrations, active count, reputation, stake, slashing
-- **IBC**: jobs distributed, results received, remote providers, cross-chain latency
-- **Security**: incidents, panic recoveries, rate limits, circuit breakers
+## Config Updates
+- Prometheus: Added `blockchain: 'paw'` labels to all targets
+- Components labeled: consensus, api, app, dex, validator
+- Metrics exposed: Port 36660
+- Grafana Cloud compatible: https://altrestackmon.grafana.net
 
-## Configuration Updates
-- **Prometheus**: Added `blockchain: 'paw'` labels to all scrape targets for unified dashboard compatibility
-- **Components**: Labeled by component type (consensus, api, app, dex, validator)
-- **Metrics exposed**: Port 36660 (existing Prometheus server in cmd/pawd/main.go)
-
-## Integration Status
-✅ Metrics modules created with singleton pattern (thread-safe)
-✅ Keepers updated to initialize metrics
-✅ Prometheus config updated with proper labels
-✅ Compatible with Grafana Cloud unified dashboard (https://altrestackmon.grafana.net)
+## Integration
+✅ Keepers initialized with metrics (singleton pattern)
+✅ Compatible with unified dashboard
+⚠️ Need to wire metrics into keeper operations (add `.Inc()`, `.Observe()` calls)
