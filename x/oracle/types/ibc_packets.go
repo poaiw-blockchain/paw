@@ -17,10 +17,10 @@ const (
 	IBCVersion = "paw-oracle-1"
 
 	// Packet types
-	SubscribePricesType  = "subscribe_prices"
-	QueryPriceType       = "query_price"
-	PriceUpdateType      = "price_update"
-	OracleHeartbeatType  = "oracle_heartbeat"
+	SubscribePricesType = "subscribe_prices"
+	QueryPriceType      = "query_price"
+	PriceUpdateType     = "price_update"
+	OracleHeartbeatType = "oracle_heartbeat"
 )
 
 // IBCPacketData is the base interface for all Oracle IBC packets
@@ -32,6 +32,7 @@ type IBCPacketData interface {
 // SubscribePricesPacketData subscribes to price feeds
 type SubscribePricesPacketData struct {
 	Type           string   `json:"type"`
+	Nonce          uint64   `json:"nonce"`
 	Symbols        []string `json:"symbols"`
 	UpdateInterval uint64   `json:"update_interval"` // seconds
 	Subscriber     string   `json:"subscriber"`
@@ -40,6 +41,9 @@ type SubscribePricesPacketData struct {
 func (p SubscribePricesPacketData) ValidateBasic() error {
 	if p.Type != SubscribePricesType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if len(p.Symbols) == 0 {
 		return errors.Wrap(ErrInvalidPacket, "symbols cannot be empty")
@@ -63,6 +67,7 @@ func (p SubscribePricesPacketData) GetBytes() ([]byte, error) {
 
 // SubscribePricesAcknowledgement acknowledges subscription
 type SubscribePricesAcknowledgement struct {
+	Nonce             uint64   `json:"nonce"`
 	Success           bool     `json:"success"`
 	SubscribedSymbols []string `json:"subscribed_symbols,omitempty"`
 	SubscriptionID    string   `json:"subscription_id,omitempty"`
@@ -76,6 +81,7 @@ func (a SubscribePricesAcknowledgement) GetBytes() ([]byte, error) {
 // QueryPricePacketData queries current price
 type QueryPricePacketData struct {
 	Type   string `json:"type"`
+	Nonce  uint64 `json:"nonce"`
 	Symbol string `json:"symbol"`
 	Sender string `json:"sender"`
 }
@@ -83,6 +89,9 @@ type QueryPricePacketData struct {
 func (p QueryPricePacketData) ValidateBasic() error {
 	if p.Type != QueryPriceType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.Symbol == "" {
 		return errors.Wrap(ErrInvalidPacket, "symbol cannot be empty")
@@ -103,16 +112,17 @@ func (p QueryPricePacketData) GetBytes() ([]byte, error) {
 
 // PriceData represents oracle price information
 type PriceData struct {
-	Symbol      string   `json:"symbol"`
-	Price       math.LegacyDec  `json:"price"`
-	Volume24h   math.Int `json:"volume_24h"`
-	Timestamp   int64    `json:"timestamp"`
-	Confidence  math.LegacyDec  `json:"confidence"`
-	OracleCount uint32   `json:"oracle_count"`
+	Symbol      string         `json:"symbol"`
+	Price       math.LegacyDec `json:"price"`
+	Volume24h   math.Int       `json:"volume_24h"`
+	Timestamp   int64          `json:"timestamp"`
+	Confidence  math.LegacyDec `json:"confidence"`
+	OracleCount uint32         `json:"oracle_count"`
 }
 
 // QueryPriceAcknowledgement returns price data
 type QueryPriceAcknowledgement struct {
+	Nonce     uint64    `json:"nonce"`
 	Success   bool      `json:"success"`
 	PriceData PriceData `json:"price_data,omitempty"`
 	Error     string    `json:"error,omitempty"`
@@ -125,6 +135,7 @@ func (a QueryPriceAcknowledgement) GetBytes() ([]byte, error) {
 // PriceUpdatePacketData broadcasts price updates
 type PriceUpdatePacketData struct {
 	Type      string      `json:"type"`
+	Nonce     uint64      `json:"nonce"`
 	Prices    []PriceData `json:"prices"`
 	Timestamp int64       `json:"timestamp"`
 	Source    string      `json:"source"`
@@ -133,6 +144,9 @@ type PriceUpdatePacketData struct {
 func (p PriceUpdatePacketData) ValidateBasic() error {
 	if p.Type != PriceUpdateType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if len(p.Prices) == 0 {
 		return errors.Wrap(ErrInvalidPacket, "prices cannot be empty")
@@ -159,9 +173,21 @@ func (p PriceUpdatePacketData) GetBytes() ([]byte, error) {
 	return json.Marshal(p)
 }
 
+// PriceUpdateAcknowledgement is returned after handling a price update packet
+type PriceUpdateAcknowledgement struct {
+	Nonce   uint64 `json:"nonce"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+func (a PriceUpdateAcknowledgement) GetBytes() ([]byte, error) {
+	return json.Marshal(a)
+}
+
 // OracleHeartbeatPacketData for liveness monitoring
 type OracleHeartbeatPacketData struct {
 	Type          string `json:"type"`
+	Nonce         uint64 `json:"nonce"`
 	ChainID       string `json:"chain_id"`
 	Timestamp     int64  `json:"timestamp"`
 	ActiveOracles uint32 `json:"active_oracles"`
@@ -171,6 +197,9 @@ type OracleHeartbeatPacketData struct {
 func (p OracleHeartbeatPacketData) ValidateBasic() error {
 	if p.Type != OracleHeartbeatType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.ChainID == "" {
 		return errors.Wrap(ErrInvalidPacket, "chain ID cannot be empty")
@@ -187,6 +216,17 @@ func (p OracleHeartbeatPacketData) GetType() string {
 
 func (p OracleHeartbeatPacketData) GetBytes() ([]byte, error) {
 	return json.Marshal(p)
+}
+
+// OracleHeartbeatAcknowledgement is used for heartbeat back-replies
+type OracleHeartbeatAcknowledgement struct {
+	Nonce   uint64 `json:"nonce"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+func (a OracleHeartbeatAcknowledgement) GetBytes() ([]byte, error) {
+	return json.Marshal(a)
 }
 
 // ParsePacketData parses IBC packet data based on type

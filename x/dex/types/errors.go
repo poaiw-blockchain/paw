@@ -17,6 +17,12 @@ var (
 	// ErrInvalidInput is returned when input parameters are invalid
 	ErrInvalidInput = sdkerrors.Register(ModuleName, 4, "invalid input")
 
+	// ErrInvalidNonce is returned when packet nonce validation fails
+	ErrInvalidNonce = sdkerrors.Register(ModuleName, 31, "invalid packet nonce")
+
+	// ErrInvalidAck is returned when acknowledgement payloads are invalid
+	ErrInvalidAck = sdkerrors.Register(ModuleName, 91, "invalid acknowledgement")
+
 	// ErrReentrancy is returned when a reentrancy attack is detected
 	ErrReentrancy = sdkerrors.Register(ModuleName, 5, "reentrancy detected")
 
@@ -73,6 +79,9 @@ var (
 
 	// ErrUnauthorized is returned when caller is not authorized
 	ErrUnauthorized = sdkerrors.Register(ModuleName, 29, "unauthorized")
+
+	// ErrUnauthorizedChannel is returned when an IBC channel is not authorized
+	ErrUnauthorizedChannel = sdkerrors.Register(ModuleName, 92, "unauthorized IBC channel")
 
 	// ErrDeadlineExceeded is returned when transaction deadline has passed
 	ErrDeadlineExceeded = sdkerrors.Register(ModuleName, 30, "transaction deadline exceeded")
@@ -136,8 +145,9 @@ var RecoverySuggestions = map[error]string{
 	ErrInvalidTokenPair: "Invalid token pair: tokens must be different, denoms must be valid, tokens must be sorted lexicographically. Check token denoms and order.",
 	ErrMaxPoolsReached:  "Maximum pool limit reached (check params). Wait for pool cleanup or parameter update. This is rare and indicates system-wide limit.",
 
-	ErrUnauthorized:     "Operation not permitted. Verify you're the transaction signer. Check if you own the LP shares. Review message permissions.",
-	ErrDeadlineExceeded: "Transaction deadline passed before execution. Increase deadline in transaction. Account for network latency. Try during low congestion periods.",
+	ErrUnauthorized:        "Operation not permitted. Verify you're the transaction signer. Check if you own the LP shares. Review message permissions.",
+	ErrUnauthorizedChannel: "IBC channel is not authorized for cross-chain DEX operations. Verify governance-approved channels via params query. Submit a proposal to authorize new channel IDs after handshake completes.",
+	ErrDeadlineExceeded:    "Transaction deadline passed before execution. Increase deadline in transaction. Account for network latency. Try during low congestion periods.",
 
 	ErrInvalidSwapAmount:      "Swap amount must be positive and within min/max limits. Check params for limits. Verify token amount is greater than minimum swap threshold.",
 	ErrInvalidLiquidityAmount: "Liquidity amounts must be positive and balanced. For initial liquidity, both amounts must be provided. For additional liquidity, amounts must maintain pool ratio.",

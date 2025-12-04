@@ -32,15 +32,19 @@ type IBCPacketData interface {
 
 // DiscoverProvidersPacketData discovers compute providers
 type DiscoverProvidersPacketData struct {
-	Type         string   `json:"type"`
-	Capabilities []string `json:"capabilities,omitempty"`
-	MaxPrice     math.LegacyDec  `json:"max_price,omitempty"`
-	Requester    string   `json:"requester"`
+	Type         string         `json:"type"`
+	Nonce        uint64         `json:"nonce"`
+	Capabilities []string       `json:"capabilities,omitempty"`
+	MaxPrice     math.LegacyDec `json:"max_price,omitempty"`
+	Requester    string         `json:"requester"`
 }
 
 func (p DiscoverProvidersPacketData) ValidateBasic() error {
 	if p.Type != DiscoverProvidersType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if _, err := sdk.AccAddressFromBech32(p.Requester); err != nil {
 		return errors.Wrapf(ErrInvalidPacket, "invalid requester address: %s", err)
@@ -58,18 +62,20 @@ func (p DiscoverProvidersPacketData) GetBytes() ([]byte, error) {
 
 // ProviderInfo contains provider information
 type ProviderInfo struct {
-	ProviderID   string   `json:"provider_id"`
-	Address      string   `json:"address"`
-	Capabilities []string `json:"capabilities"`
-	PricePerUnit math.LegacyDec  `json:"price_per_unit"`
-	Reputation   math.LegacyDec  `json:"reputation"`
+	ProviderID   string         `json:"provider_id"`
+	Address      string         `json:"address"`
+	Capabilities []string       `json:"capabilities"`
+	PricePerUnit math.LegacyDec `json:"price_per_unit"`
+	Reputation   math.LegacyDec `json:"reputation"`
 }
 
 // DiscoverProvidersAcknowledgement returns discovered providers
 type DiscoverProvidersAcknowledgement struct {
-	Success   bool           `json:"success"`
-	Providers []ProviderInfo `json:"providers,omitempty"`
-	Error     string         `json:"error,omitempty"`
+	Nonce          uint64         `json:"nonce"`
+	Success        bool           `json:"success"`
+	Providers      []ProviderInfo `json:"providers,omitempty"`
+	TotalProviders uint32         `json:"total_providers,omitempty"`
+	Error          string         `json:"error,omitempty"`
 }
 
 func (a DiscoverProvidersAcknowledgement) GetBytes() ([]byte, error) {
@@ -89,6 +95,7 @@ type JobRequirements struct {
 // SubmitJobPacketData submits a compute job
 type SubmitJobPacketData struct {
 	Type         string          `json:"type"`
+	Nonce        uint64          `json:"nonce"`
 	JobID        string          `json:"job_id"`
 	JobType      string          `json:"job_type"` // "wasm", "docker", "tee"
 	JobData      []byte          `json:"job_data"`
@@ -102,6 +109,9 @@ type SubmitJobPacketData struct {
 func (p SubmitJobPacketData) ValidateBasic() error {
 	if p.Type != SubmitJobType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -137,9 +147,11 @@ func (p SubmitJobPacketData) GetBytes() ([]byte, error) {
 
 // SubmitJobAcknowledgement acknowledges job submission
 type SubmitJobAcknowledgement struct {
+	Nonce         uint64 `json:"nonce"`
 	Success       bool   `json:"success"`
 	JobID         string `json:"job_id,omitempty"`
 	Status        string `json:"status,omitempty"`
+	Progress      uint32 `json:"progress,omitempty"`
 	EstimatedTime uint64 `json:"estimated_time,omitempty"` // seconds
 	Error         string `json:"error,omitempty"`
 }
@@ -161,6 +173,7 @@ type JobResult struct {
 // JobResultPacketData contains computation result
 type JobResultPacketData struct {
 	Type     string    `json:"type"`
+	Nonce    uint64    `json:"nonce"`
 	JobID    string    `json:"job_id"`
 	Result   JobResult `json:"result"`
 	Provider string    `json:"provider"`
@@ -169,6 +182,9 @@ type JobResultPacketData struct {
 func (p JobResultPacketData) ValidateBasic() error {
 	if p.Type != JobResultType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -196,6 +212,7 @@ func (p JobResultPacketData) GetBytes() ([]byte, error) {
 // JobStatusPacketData queries job status
 type JobStatusPacketData struct {
 	Type      string `json:"type"`
+	Nonce     uint64 `json:"nonce"`
 	JobID     string `json:"job_id"`
 	Requester string `json:"requester"`
 }
@@ -203,6 +220,9 @@ type JobStatusPacketData struct {
 func (p JobStatusPacketData) ValidateBasic() error {
 	if p.Type != JobStatusType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -223,9 +243,10 @@ func (p JobStatusPacketData) GetBytes() ([]byte, error) {
 
 // JobStatusAcknowledgement returns job status
 type JobStatusAcknowledgement struct {
+	Nonce    uint64 `json:"nonce"`
 	Success  bool   `json:"success"`
 	JobID    string `json:"job_id,omitempty"`
-	Status   string `json:"status,omitempty"` // "pending", "running", "completed", "failed"
+	Status   string `json:"status,omitempty"`   // "pending", "running", "completed", "failed"
 	Progress uint32 `json:"progress,omitempty"` // 0-100
 	Error    string `json:"error,omitempty"`
 }
@@ -234,9 +255,28 @@ func (a JobStatusAcknowledgement) GetBytes() ([]byte, error) {
 	return json.Marshal(a)
 }
 
+// JobResultAcknowledgement returns job completion details with result hash
+type JobResultAcknowledgement struct {
+	Nonce           uint64 `json:"nonce"`
+	Success         bool   `json:"success"`
+	JobID           string `json:"job_id,omitempty"`
+	Status          string `json:"status,omitempty"`
+	Progress        uint32 `json:"progress,omitempty"`
+	Provider        string `json:"provider,omitempty"`
+	ResultHash      string `json:"result_hash,omitempty"`
+	ProofHash       string `json:"proof_hash,omitempty"`
+	AttestationHash string `json:"attestation_hash,omitempty"`
+	Error           string `json:"error,omitempty"`
+}
+
+func (a JobResultAcknowledgement) GetBytes() ([]byte, error) {
+	return json.Marshal(a)
+}
+
 // ReleaseEscrowPacketData releases escrowed funds
 type ReleaseEscrowPacketData struct {
 	Type     string   `json:"type"`
+	Nonce    uint64   `json:"nonce"`
 	JobID    string   `json:"job_id"`
 	Provider string   `json:"provider"`
 	Amount   math.Int `json:"amount"`
@@ -245,6 +285,9 @@ type ReleaseEscrowPacketData struct {
 func (p ReleaseEscrowPacketData) ValidateBasic() error {
 	if p.Type != ReleaseEscrowType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")

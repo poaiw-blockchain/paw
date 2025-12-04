@@ -41,16 +41,22 @@ const (
 	AttributeKeyPacketType            = "packet_type"
 	AttributeKeySequence              = "sequence"
 	AttributeKeyAckSuccess            = "ack_success"
+	AttributeKeyPendingOperations     = "pending_operations"
 )
 
 // DefaultParams returns default parameters for the dex module
 func DefaultParams() Params {
 	return Params{
-		SwapFee:            math.LegacyNewDecWithPrec(3, 3),  // 0.3%
-		LpFee:              math.LegacyNewDecWithPrec(25, 4), // 0.25% (of 0.3%)
-		ProtocolFee:        math.LegacyNewDecWithPrec(5, 4),  // 0.05% (of 0.3%)
-		MinLiquidity:       math.NewInt(1000),                // Minimum initial liquidity
-		MaxSlippagePercent: math.LegacyNewDecWithPrec(5, 2),  // 5%
+		SwapFee:                   math.LegacyNewDecWithPrec(3, 3),  // 0.3%
+		LpFee:                     math.LegacyNewDecWithPrec(25, 4), // 0.25% (of 0.3%)
+		ProtocolFee:               math.LegacyNewDecWithPrec(5, 4),  // 0.05% (of 0.3%)
+		MinLiquidity:              math.NewInt(1000),                // Minimum initial liquidity
+		MaxSlippagePercent:        math.LegacyNewDecWithPrec(5, 2),  // 5%
+		MaxPoolDrainPercent:       math.LegacyNewDecWithPrec(30, 2), // 30% of reserves
+		FlashLoanProtectionBlocks: 10,
+		PoolCreationGas:           1000,
+		SwapValidationGas:         1500,
+		LiquidityGas:              1200,
 	}
 }
 

@@ -19,13 +19,15 @@ type MockPeerManager struct {
 	queryDelay  time.Duration
 	chunkDelay  time.Duration
 	failureRate float64 // 0.0 to 1.0
+	reliability map[string]float64
 }
 
 func NewMockPeerManager() *MockPeerManager {
 	return &MockPeerManager{
-		snapshots: make(map[string]*snapshot.SnapshotMetadata),
-		chunks:    make(map[string]map[int64]map[uint32][]byte),
-		malicious: make(map[string]bool),
+		snapshots:   make(map[string]*snapshot.SnapshotMetadata),
+		chunks:      make(map[string]map[int64]map[uint32][]byte),
+		malicious:   make(map[string]bool),
+		reliability: make(map[string]float64),
 	}
 }
 
@@ -97,6 +99,17 @@ func (m *MockPeerManager) AddPeerChunk(peerID string, height int64, chunkIndex u
 		m.chunks[peerID][height] = make(map[uint32][]byte)
 	}
 	m.chunks[peerID][height][chunkIndex] = data
+}
+
+func (m *MockPeerManager) GetPeerReliability(peerID string) float64 {
+	if val, ok := m.reliability[peerID]; ok {
+		return val
+	}
+	return 1.0
+}
+
+func (m *MockPeerManager) SetPeerReliability(peerID string, score float64) {
+	m.reliability[peerID] = score
 }
 
 // Test snapshot discovery
@@ -179,6 +192,78 @@ func TestStateSyncSelection(t *testing.T) {
 	require.NotNil(t, selected)
 	require.Equal(t, int64(1000), selected.Height)
 	// Should select the one with 80% agreement (4/5)
+}
+
+func TestStateSyncDiscoveryIncludesReliability(t *testing.T) {
+	logger := log.NewNopLogger()
+	config := DefaultStateSyncConfig()
+	config.MinSnapshotOffers = 2
+
+	peerMgr := NewMockPeerManager()
+	meta := &snapshot.SnapshotMetadata{
+		Height:    2000,
+		Hash:      []byte("reliability-test"),
+		NumChunks: 2,
+		ChainID:   "paw-testnet",
+	}
+
+	for _, peer := range []string{"peerA", "peerB"} {
+		peerMgr.AddPeerSnapshot(peer, meta)
+	}
+
+	peerMgr.SetPeerReliability("peerA", 0.25)
+	peerMgr.SetPeerReliability("peerB", 0.9)
+
+	ssp := NewStateSyncProtocol(config, nil, peerMgr, logger)
+	offers, err := ssp.discoverSnapshots(context.Background())
+
+	require.NoError(t, err)
+	require.Len(t, offers, 2)
+
+	reliabilities := make(map[string]float64)
+	for _, offer := range offers {
+		reliabilities[offer.PeerID] = offer.Reliability
+	}
+
+	require.InDelta(t, 0.25, reliabilities["peerA"], 0.0001)
+	require.InDelta(t, 0.9, reliabilities["peerB"], 0.0001)
+}
+
+func TestStateSyncSelectionWeightsReliability(t *testing.T) {
+	logger := log.NewNopLogger()
+	config := DefaultStateSyncConfig()
+	config.MinPeerAgreement = 0.3
+
+	ssp := NewStateSyncProtocol(config, nil, nil, logger)
+
+	metaTrusted := &snapshot.SnapshotMetadata{
+		Height:    1200,
+		Hash:      []byte("trusted"),
+		NumChunks: 8,
+		ChainID:   "paw-testnet",
+	}
+
+	metaRisky := &snapshot.SnapshotMetadata{
+		Height:    1200,
+		Hash:      []byte("risky"),
+		NumChunks: 8,
+		ChainID:   "paw-testnet",
+	}
+
+	offers := []*snapshot.SnapshotOffer{
+		{PeerID: "high1", Snapshot: metaTrusted, Reliability: 0.95},
+		{PeerID: "high2", Snapshot: metaTrusted, Reliability: 0.85},
+		{PeerID: "low1", Snapshot: metaRisky, Reliability: 0.30},
+		{PeerID: "low2", Snapshot: metaRisky, Reliability: 0.30},
+		{PeerID: "low3", Snapshot: metaRisky, Reliability: 0.30},
+	}
+
+	selected, err := ssp.selectBestSnapshot(offers)
+
+	require.NoError(t, err)
+	require.NotNil(t, selected)
+	require.Equal(t, int64(1200), selected.Height)
+	require.Equal(t, fmt.Sprintf("%x", metaTrusted.Hash), fmt.Sprintf("%x", selected.Hash))
 }
 
 // Test snapshot verification
@@ -343,11 +428,11 @@ func TestParallelChunkDownload(t *testing.T) {
 	tmpDir := t.TempDir()
 	mgr, err := snapshot.NewManager(
 		&snapshot.ManagerConfig{
-			SnapshotDir:       tmpDir,
-			ChunkSize:         snapshot.DefaultChunkSize,
-			SnapshotInterval:  1000,
+			SnapshotDir:        tmpDir,
+			ChunkSize:          snapshot.DefaultChunkSize,
+			SnapshotInterval:   1000,
 			SnapshotKeepRecent: 10,
-			ChainID:           "paw-testnet",
+			ChainID:            "paw-testnet",
 		},
 		logger,
 	)
@@ -386,6 +471,52 @@ func TestParallelChunkDownload(t *testing.T) {
 
 	// Verify all chunks were downloaded
 	require.Equal(t, uint32(len(testData)), uint32(len(ssp.downloadedChunks)))
+}
+
+func TestSelectPeerForChunkPrioritizesReliability(t *testing.T) {
+	logger := log.NewNopLogger()
+	config := DefaultStateSyncConfig()
+
+	ssp := NewStateSyncProtocol(config, nil, nil, logger)
+
+	snap := &snapshot.Snapshot{
+		Height: 1500,
+		Hash:   []byte("chunk-hash"),
+	}
+
+	baseMeta := func() *snapshot.SnapshotMetadata {
+		return &snapshot.SnapshotMetadata{
+			Height: 1500,
+			Hash:   []byte("chunk-hash"),
+		}
+	}
+
+	ssp.peerOffers["alpha"] = &snapshot.SnapshotOffer{
+		PeerID:      "alpha",
+		Snapshot:    baseMeta(),
+		Reliability: 0.95,
+	}
+	ssp.peerOffers["bravo"] = &snapshot.SnapshotOffer{
+		PeerID:      "bravo",
+		Snapshot:    baseMeta(),
+		Reliability: 0.6,
+	}
+	ssp.peerOffers["charlie"] = &snapshot.SnapshotOffer{
+		PeerID:      "charlie",
+		Snapshot:    baseMeta(),
+		Reliability: 0.2,
+	}
+
+	counts := map[string]int{"alpha": 0, "bravo": 0, "charlie": 0}
+	for i := 0; i < 64; i++ {
+		peer, err := ssp.selectPeerForChunk(snap, uint32(i))
+		require.NoError(t, err)
+		counts[peer]++
+	}
+
+	require.Greater(t, counts["alpha"], counts["bravo"])
+	require.Greater(t, counts["bravo"], counts["charlie"])
+	require.Greater(t, counts["charlie"], 0)
 }
 
 // Test Byzantine peer detection

@@ -93,7 +93,7 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 
 	// 7. Calculate swap output using constant product formula with fees
 	sdkCtx.GasMeter().ConsumeGas(10000, "dex_swap_calculation")
-	amountOut, err := k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+	amountOut, err := k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -111,15 +111,14 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		)
 	}
 
-	// 10. Calculate and collect fees
-	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
-	if err != nil {
-		return math.ZeroInt(), err
+	// 10. Calculate fees
+	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
+	amountInAfterFee := amountIn.Sub(feeAmount)
+	if amountInAfterFee.IsNegative() {
+		return math.ZeroInt(), types.ErrInvalidInput.Wrap("fee amount exceeds swap amount")
 	}
-	feeAmount := math.ZeroInt()
-	feeAmount, err = SafeAdd(lpFee, protocolFee)
-	if err != nil {
-		return math.ZeroInt(), err
+	if amountInAfterFee.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidInput.Wrap("swap amount too small after fees")
 	}
 
 	// 11. Store old k for invariant check
@@ -134,9 +133,18 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer input tokens: %v", err)
 	}
 
+	// 12.5 Collect and transfer fees now that module holds tokens
+	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
+	if err != nil {
+		return math.ZeroInt(), err
+	}
+	feeAmount, err = SafeAdd(lpFee, protocolFee)
+	if err != nil {
+		return math.ZeroInt(), err
+	}
 	// 13. Update pool reserves AFTER receiving tokens
 	if isTokenAIn {
-		pool.ReserveA, err = SafeAdd(pool.ReserveA, amountIn)
+		pool.ReserveA, err = SafeAdd(pool.ReserveA, amountInAfterFee)
 		if err != nil {
 			return math.ZeroInt(), err
 		}
@@ -145,7 +153,7 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 			return math.ZeroInt(), err
 		}
 	} else {
-		pool.ReserveB, err = SafeAdd(pool.ReserveB, amountIn)
+		pool.ReserveB, err = SafeAdd(pool.ReserveB, amountInAfterFee)
 		if err != nil {
 			return math.ZeroInt(), err
 		}
@@ -202,7 +210,11 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 }
 
 // CalculateSwapOutputSecure calculates swap output with overflow protection
-func (k Keeper) CalculateSwapOutputSecure(ctx context.Context, amountIn, reserveIn, reserveOut math.Int, swapFee math.LegacyDec) (math.Int, error) {
+func (k Keeper) CalculateSwapOutputSecure(
+	ctx context.Context,
+	amountIn, reserveIn, reserveOut math.Int,
+	swapFee, maxPoolDrainPercent math.LegacyDec,
+) (math.Int, error) {
 	// Input validation
 	if amountIn.IsZero() || amountIn.IsNegative() {
 		return math.ZeroInt(), types.ErrInvalidInput.Wrap("input amount must be positive")
@@ -215,6 +227,10 @@ func (k Keeper) CalculateSwapOutputSecure(ctx context.Context, amountIn, reserve
 	// Validate fee is in valid range [0, 1)
 	if swapFee.IsNegative() || swapFee.GTE(math.LegacyOneDec()) {
 		return math.ZeroInt(), types.ErrInvalidInput.Wrap("swap fee must be in range [0, 1)")
+	}
+
+	if maxPoolDrainPercent.IsNegative() || maxPoolDrainPercent.GT(math.LegacyOneDec()) {
+		return math.ZeroInt(), types.ErrInvalidInput.Wrap("max pool drain percent must be within [0, 1]")
 	}
 
 	// Calculate amount after fee: amountIn * (1 - fee)
@@ -253,12 +269,15 @@ func (k Keeper) CalculateSwapOutputSecure(ctx context.Context, amountIn, reserve
 		)
 	}
 
-	// Additional safety check: verify output is reasonable (less than 90% of reserve)
-	maxOutput := math.LegacyNewDecFromInt(reserveOut).Mul(math.LegacyNewDecWithPrec(90, 2)).TruncateInt()
+	// Additional safety check: verify output is reasonable (less than configured drain percent)
+	maxOutput := math.LegacyNewDecFromInt(reserveOut).Mul(maxPoolDrainPercent).TruncateInt()
 	if amountOut.GT(maxOutput) {
+		percent := maxPoolDrainPercent.MulInt64(100)
 		return math.ZeroInt(), types.ErrSwapTooLarge.Wrapf(
-			"swap would drain too much liquidity: output %s > max %s",
-			amountOut, maxOutput,
+			"swap would drain too much liquidity: output %s > limit %s (%s%% of reserves)",
+			amountOut,
+			maxOutput,
+			percent.String(),
 		)
 	}
 
@@ -320,7 +339,7 @@ func (k Keeper) SimulateSwapSecure(ctx context.Context, poolID uint64, tokenIn, 
 	}
 
 	// Calculate output
-	amountOut, err := k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+	amountOut, err := k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
 	if err != nil {
 		return math.ZeroInt(), err
 	}

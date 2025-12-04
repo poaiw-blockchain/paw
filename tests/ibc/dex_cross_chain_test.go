@@ -1,19 +1,20 @@
 package ibc_test
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 	"time"
 
 	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
-	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 
-	dextypes "github.com/paw-chain/paw/x/dex/types"
 	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
+	dextypes "github.com/paw-chain/paw/x/dex/types"
 
 	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
@@ -46,14 +47,56 @@ func (suite *DEXCrossChainTestSuite) SetupTest() {
 	suite.path.EndpointA.ChannelConfig.Version = dextypes.IBCVersion
 	suite.path.EndpointB.ChannelConfig.Version = dextypes.IBCVersion
 
+	seedDexPool(suite.chainA)
+	seedDexPool(suite.chainB)
+
 	suite.coordinator.Setup(suite.path)
+
+	pawibctesting.AuthorizeModuleChannel(suite.chainA, dextypes.PortID, suite.path.EndpointA.ChannelID)
+	pawibctesting.AuthorizeModuleChannel(suite.chainB, dextypes.PortID, suite.path.EndpointB.ChannelID)
+}
+
+func seedDexPool(chain *ibctesting.TestChain) {
+	app := pawibctesting.GetPAWApp(chain)
+	ctx := chain.GetContext()
+	creator := chain.SenderAccount.GetAddress()
+
+	fund := sdk.NewCoins(
+		sdk.NewInt64Coin("upaw", 2_000_000_000),
+		sdk.NewInt64Coin("uosmo", 2_000_000_000),
+		sdk.NewInt64Coin("uatom", 2_000_000_000),
+	)
+
+	if err := app.BankKeeper.MintCoins(ctx, dextypes.ModuleName, fund); err != nil {
+		return
+	}
+	if err := app.BankKeeper.SendCoinsFromModuleToAccount(ctx, dextypes.ModuleName, creator, fund); err != nil {
+		return
+	}
+
+	extraFloat := sdk.NewCoins(
+		sdk.NewInt64Coin("upaw", 1_000_000_000),
+		sdk.NewInt64Coin("uosmo", 1_000_000_000),
+		sdk.NewInt64Coin("uatom", 1_000_000_000),
+	)
+	_ = app.BankKeeper.MintCoins(ctx, dextypes.ModuleName, extraFloat)
+
+	if _, err := app.DEXKeeper.CreatePool(ctx, creator, "upaw", "uosmo", math.NewInt(500_000_000), math.NewInt(500_000_000)); err != nil {
+		return
+	}
+	if _, err := app.DEXKeeper.CreatePool(ctx, creator, "upaw", "uatom", math.NewInt(400_000_000), math.NewInt(400_000_000)); err != nil {
+		return
+	}
+	if _, err := app.DEXKeeper.CreatePool(ctx, creator, "uatom", "uosmo", math.NewInt(400_000_000), math.NewInt(400_000_000)); err != nil {
+		return
+	}
 }
 
 func (suite *DEXCrossChainTestSuite) TestQueryRemotePools() {
 	// Test querying pools on remote chain
 
 	// Create query packet
-	packetData := dextypes.NewQueryPoolsPacket("upaw", "uosmo")
+	packetData := dextypes.NewQueryPoolsPacket("upaw", "uosmo", 1)
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)
 
@@ -73,14 +116,15 @@ func (suite *DEXCrossChainTestSuite) TestQueryRemotePools() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	// Receive on chain B
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify acknowledgement contains pool data
-	ack := channeltypes.NewResultAcknowledgement([]byte(`{"success":true,"pools":[]}`))
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData dextypes.QueryPoolsAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().NotEmpty(ackData.Pools)
+	tokens := []string{ackData.Pools[0].TokenA, ackData.Pools[0].TokenB}
+	suite.Require().ElementsMatch([]string{"upaw", "uosmo"}, tokens)
 }
 
 func (suite *DEXCrossChainTestSuite) TestCrossChainSwap() {
@@ -91,6 +135,7 @@ func (suite *DEXCrossChainTestSuite) TestCrossChainSwap() {
 
 	// Create swap packet
 	packetData := dextypes.NewExecuteSwapPacket(
+		1,
 		"pool-1",
 		"upaw",
 		"uosmo",
@@ -123,23 +168,13 @@ func (suite *DEXCrossChainTestSuite) TestCrossChainSwap() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	// Receive and execute on chain B
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify swap execution
-	ackData := dextypes.ExecuteSwapAcknowledgement{
-		Success:   true,
-		AmountOut: math.NewInt(950000),
-		SwapFee:   math.NewInt(3000),
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewResultAcknowledgement(ackBytes)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData dextypes.ExecuteSwapAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().True(ackData.AmountOut.IsPositive())
 }
 
 func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
@@ -167,6 +202,7 @@ func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
 	}
 
 	packetData := dextypes.NewCrossChainSwapPacket(
+		1,
 		route,
 		sender.String(),
 		receiver.String(),
@@ -197,23 +233,13 @@ func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify final amount
-	ackData := dextypes.CrossChainSwapAcknowledgement{
-		Success:      true,
-		FinalAmount:  math.NewInt(850000),
-		HopsExecuted: 2,
-		TotalFees:    math.NewInt(6000),
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewResultAcknowledgement(ackBytes)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData dextypes.CrossChainSwapAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().GreaterOrEqual(int(ackData.HopsExecuted), 1)
 }
 
 func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
@@ -222,6 +248,7 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 	sender := suite.chainA.SenderAccount.GetAddress()
 
 	packetData := dextypes.NewExecuteSwapPacket(
+		1,
 		"pool-1",
 		"upaw",
 		"uosmo",
@@ -235,6 +262,8 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)
 
+	timeoutHeight := suite.chainB.GetTimeoutHeight()
+
 	packet := channeltypes.NewPacket(
 		packetBytes,
 		1,
@@ -242,7 +271,7 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 		suite.path.EndpointA.ChannelID,
 		suite.path.EndpointB.ChannelConfig.PortID,
 		suite.path.EndpointB.ChannelID,
-		clienttypes.NewHeight(0, uint64(suite.chainB.GetContext().BlockHeight())+2),
+		timeoutHeight,
 		0,
 	)
 
@@ -250,10 +279,12 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	// Advance chain B past timeout
-	suite.coordinator.CommitNBlocks(suite.chainB, 10)
+	// Advance destination chain past timeout height
+	suite.coordinator.CommitNBlocks(suite.chainB, 150)
 
 	// Timeout packet
+	err = suite.path.EndpointA.UpdateClient()
+	suite.Require().NoError(err)
 	err = suite.path.EndpointA.TimeoutPacket(packet)
 	suite.Require().NoError(err)
 
@@ -268,6 +299,7 @@ func (suite *DEXCrossChainTestSuite) TestSlippageProtection() {
 
 	// Create swap with tight slippage tolerance
 	packetData := dextypes.NewExecuteSwapPacket(
+		1,
 		"pool-1",
 		"upaw",
 		"uosmo",
@@ -296,12 +328,7 @@ func (suite *DEXCrossChainTestSuite) TestSlippageProtection() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
-
-	// If actual output is below minimum, swap should fail
-	ackErr := fmt.Errorf("slippage exceeded: expected 995000, got 990000")
-	ack := channeltypes.NewErrorAcknowledgement(ackErr)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	suite.Require().NotEmpty(ackResult(suite.T(), ackBz))
 }

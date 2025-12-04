@@ -46,5 +46,6 @@ func (k Keeper) DefaultParams() types.Params {
 		StakeSlashPercentage:       5,                    // 5% stake slash on malicious behavior
 		MinReputationScore:         50,                   // minimum 50/100 reputation
 		EscrowReleaseDelaySeconds:  300,                  // 5 minutes delay
+		AuthorizedChannels:         []types.AuthorizedChannel{},
 	}
 }

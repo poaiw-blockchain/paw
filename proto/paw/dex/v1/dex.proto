@@ -42,6 +42,36 @@ message Params {
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable) = false
   ];
+
+  // authorized_channels defines which IBC channels are allowed to send packets
+  repeated AuthorizedChannel authorized_channels = 6 [(gogoproto.nullable) = false];
+
+  // max_pool_drain_percent limits how much of a pool's reserves can be removed in a single swap
+  string max_pool_drain_percent = 7 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // flash_loan_protection_blocks enforces a minimum delay between LP add/remove actions
+  uint64 flash_loan_protection_blocks = 8;
+
+  // pool_creation_gas defines the gas consumed by the ante handler when validating MsgCreatePool
+  uint64 pool_creation_gas = 9;
+
+  // swap_validation_gas defines the gas consumed when validating MsgSwap
+  uint64 swap_validation_gas = 10;
+
+  // liquidity_gas defines the gas consumed when validating liquidity add/remove operations
+  uint64 liquidity_gas = 11;
+}
+
+// AuthorizedChannel represents a port/channel pair permitted to send packets
+message AuthorizedChannel {
+  option (gogoproto.equal) = true;
+
+  string port_id = 1;
+  string channel_id = 2;
 }
 
 // Pool represents a liquidity pool for token pairs
@@ -65,6 +95,28 @@ message Pool {
     (gogoproto.nullable) = false
   ];
   string creator = 7 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// PoolTWAP tracks TWAP metadata per pool
+message PoolTWAP {
+  uint64 pool_id = 1;
+  string last_price = 2 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+  string cumulative_price = 3 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+  uint64 total_seconds = 4;
+  int64 last_timestamp = 5;
+  string twap_price = 6 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
 }
 
 // OrderType defines whether an order is a buy or sell
@@ -130,4 +182,5 @@ message GenesisState {
   uint64 next_pool_id = 3;
   repeated LimitOrder limit_orders = 4 [(gogoproto.nullable) = false];
   uint64 next_order_id = 5;
+  repeated PoolTWAP pool_twap_records = 6 [(gogoproto.nullable) = false];
 }

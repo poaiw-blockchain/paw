@@ -3249,6 +3249,7 @@ func _Query_GovernanceParams_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+var Query_serviceDesc = _Query_serviceDesc
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "paw.compute.v1.Query",
 	HandlerType: (*QueryServer)(nil),

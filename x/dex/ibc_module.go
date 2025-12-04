@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -12,6 +13,8 @@ import (
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	"strconv"
+	"strings"
 
 	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
@@ -186,12 +189,26 @@ func (im IBCModule) OnChanCloseConfirm(
 	portID,
 	channelID string,
 ) error {
-	// Emit event
+	pending := im.keeper.GetPendingOperations(ctx, channelID)
+	refunded := 0
+	for _, op := range pending {
+		if err := im.keeper.RefundOnChannelClose(ctx, op); err != nil {
+			ctx.Logger().Error("failed to cleanup dex channel operation",
+				"channel", channelID,
+				"sequence", op.Sequence,
+				"type", op.PacketType,
+				"error", err)
+			continue
+		}
+		refunded++
+	}
+
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeChannelClose,
 			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
 			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyPendingOperations, fmt.Sprintf("%d", refunded)),
 		),
 	)
 
@@ -205,6 +222,12 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
+		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
+		ctx.Logger().Error("unauthorized dex packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Parse packet data
 	packetData, err := types.ParsePacketData(packet.Data)
 	if err != nil {
@@ -218,24 +241,34 @@ func (im IBCModule) OnRecvPacket(
 			errorsmod.Wrap(types.ErrInvalidPacket, err.Error()))
 	}
 
+	packetNonce := im.packetNonce(packetData)
+	if packetNonce == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
+	}
+
+	sender := im.packetSender(packet, packetData)
+	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Route packet based on type
 	var ack ibcexported.Acknowledgement
 	switch packetData.GetType() {
 	case types.QueryPoolsType:
 		// Handle pool query from remote chain
-		ack = im.handleQueryPools(ctx, packet, packetData)
+		ack = im.handleQueryPools(ctx, packet, packetData, packetNonce)
 
 	case types.ExecuteSwapType:
 		// Handle swap execution request
-		ack = im.handleExecuteSwap(ctx, packet, packetData)
+		ack = im.handleExecuteSwap(ctx, packet, packetData, packetNonce)
 
 	case types.CrossChainSwapType:
 		// Handle multi-hop cross-chain swap
-		ack = im.handleCrossChainSwap(ctx, packet, packetData)
+		ack = im.handleCrossChainSwap(ctx, packet, packetData, packetNonce)
 
 	case types.PoolUpdateType:
 		// Handle pool state update broadcast
-		ack = im.handlePoolUpdate(ctx, packet, packetData)
+		ack = im.handlePoolUpdate(ctx, packet, packetData, packetNonce)
 
 	default:
 		return channeltypes.NewErrorAcknowledgement(
@@ -263,6 +296,11 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
+	const maxAcknowledgementSize = 1024 * 1024 // 1MB cap to avoid malicious memory pressure
+	if len(acknowledgement) > maxAcknowledgementSize {
+		return errorsmod.Wrapf(types.ErrInvalidAck, "ack too large: %d > %d", len(acknowledgement), maxAcknowledgementSize)
+	}
+
 	var ack channeltypes.Acknowledgement
 	if err := channeltypes.SubModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest,
@@ -317,12 +355,19 @@ func (im IBCModule) handleQueryPools(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Query local pools and return info
-	// In production, this would query actual pool state
+	req, _ := packetData.(types.QueryPoolsPacketData)
+
+	pools := im.lookupPools(ctx, req.TokenA, req.TokenB)
+	if len(pools) == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrapf(types.ErrInvalidPacket, "no pools for %s/%s", req.TokenA, req.TokenB))
+	}
+
 	ackData := types.QueryPoolsAcknowledgement{
+		Nonce:   nonce,
 		Success: true,
-		Pools:   []types.PoolInfo{},
+		Pools:   pools,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -337,11 +382,20 @@ func (im IBCModule) handleExecuteSwap(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Execute swap on local pools
-	// In production, this would perform actual swap
+	req, _ := packetData.(types.ExecuteSwapPacketData)
+
+	amountOut, fee, err := im.executeSwapFromIBC(ctx, req)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	ackData := types.ExecuteSwapAcknowledgement{
-		Success: true,
+		Nonce:     nonce,
+		Success:   true,
+		AmountOut: amountOut,
+		SwapFee:   fee,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -356,10 +410,21 @@ func (im IBCModule) handleCrossChainSwap(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Handle multi-hop cross-chain swap
+	req, _ := packetData.(types.CrossChainSwapPacketData)
+
+	finalOut, fees, hops, err := im.executeCrossChainRoute(ctx, req)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	ackData := types.CrossChainSwapAcknowledgement{
-		Success: true,
+		Nonce:        nonce,
+		Success:      true,
+		FinalAmount:  finalOut,
+		HopsExecuted: hops,
+		TotalFees:    fees,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -374,7 +439,165 @@ func (im IBCModule) handlePoolUpdate(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Store pool update from remote chain
-	return channeltypes.NewResultAcknowledgement([]byte("{\"success\":true}"))
+	ackData := types.PoolUpdateAcknowledgement{
+		Nonce:   nonce,
+		Success: true,
+	}
+
+	ackBytes, err := ackData.GetBytes()
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackBytes)
+}
+
+// lookupPools fetches pools for token pairs (both directions) and builds PoolInfo slices.
+func (im IBCModule) lookupPools(ctx sdk.Context, tokenA, tokenB string) []types.PoolInfo {
+	pools := []types.PoolInfo{}
+
+	tryPool := func(a, b string) {
+		pool, err := im.keeper.GetPoolByTokens(ctx, a, b)
+		if err != nil || pool == nil {
+			return
+		}
+		pools = append(pools, types.PoolInfo{
+			ChainID:     ctx.ChainID(),
+			PoolID:      fmt.Sprintf("pool-%d", pool.Id),
+			TokenA:      pool.TokenA,
+			TokenB:      pool.TokenB,
+			ReserveA:    pool.ReserveA,
+			ReserveB:    pool.ReserveB,
+			SwapFee:     im.defaultSwapFee(ctx),
+			TotalShares: pool.TotalShares,
+		})
+	}
+
+	tryPool(tokenA, tokenB)
+	if tokenA != tokenB {
+		tryPool(tokenB, tokenA)
+	}
+
+	return pools
+}
+
+// executeCrossChainRoute executes local hops and estimates remote hops for cross-chain route ACKs.
+func (im IBCModule) executeCrossChainRoute(ctx sdk.Context, req types.CrossChainSwapPacketData) (math.Int, math.Int, int, error) {
+	totalFees := math.ZeroInt()
+	currentAmount := req.AmountIn
+	hopsExecuted := 0
+
+	for _, hop := range req.Route {
+		if hop.ChainID != ctx.ChainID() {
+			// Remote hops: conservatively assume min out to avoid overstating liquidity.
+			currentAmount = hop.MinAmountOut
+			hopsExecuted++
+			continue
+		}
+
+		amountOut, fee, err := im.executeSwapFromIBC(ctx, types.ExecuteSwapPacketData{
+			PoolID:       hop.PoolID,
+			TokenIn:      hop.TokenIn,
+			TokenOut:     hop.TokenOut,
+			AmountIn:     currentAmount,
+			MinAmountOut: hop.MinAmountOut,
+		})
+		if err != nil {
+			return math.ZeroInt(), math.ZeroInt(), hopsExecuted, err
+		}
+		currentAmount = amountOut
+		totalFees = totalFees.Add(fee)
+		hopsExecuted++
+	}
+
+	return currentAmount, totalFees, hopsExecuted, nil
+}
+
+func (im IBCModule) executeSwapFromIBC(ctx sdk.Context, req types.ExecuteSwapPacketData) (math.Int, math.Int, error) {
+	poolID, ok := im.parsePoolID(req.PoolID)
+	pool := (*types.Pool)(nil)
+
+	if ok {
+		if p, err := im.keeper.GetPool(ctx, poolID); err == nil && p != nil {
+			if (p.TokenA == req.TokenIn && p.TokenB == req.TokenOut) || (p.TokenA == req.TokenOut && p.TokenB == req.TokenIn) {
+				pool = p
+			}
+		}
+	}
+	if pool == nil {
+		if p, err := im.keeper.GetPoolByTokens(ctx, req.TokenIn, req.TokenOut); err == nil && p != nil {
+			pool = p
+			poolID = p.Id
+		}
+	}
+	if pool == nil {
+		return math.ZeroInt(), math.ZeroInt(), errorsmod.Wrap(types.ErrInvalidPacket, "pool not found for swap")
+	}
+
+	moduleAddr := im.keeper.GetModuleAddress()
+	amountOut, err := im.keeper.ExecuteSwapSecure(ctx, moduleAddr, poolID, req.TokenIn, req.TokenOut, req.AmountIn, req.MinAmountOut)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
+	}
+
+	swapFeeDec := im.defaultSwapFee(ctx)
+	fee := swapFeeDec.MulInt(amountOut).TruncateInt()
+	return amountOut, fee, nil
+}
+
+func (im IBCModule) parsePoolID(raw string) (uint64, bool) {
+	if raw == "" {
+		return 0, false
+	}
+	if id, err := strconv.ParseUint(raw, 10, 64); err == nil {
+		return id, true
+	}
+	if strings.HasPrefix(raw, "pool-") {
+		if id, err := strconv.ParseUint(strings.TrimPrefix(raw, "pool-"), 10, 64); err == nil {
+			return id, true
+		}
+	}
+	return 0, false
+}
+
+func (im IBCModule) defaultSwapFee(ctx sdk.Context) math.LegacyDec {
+	params, err := im.keeper.GetParams(ctx)
+	if err != nil {
+		return math.LegacyMustNewDecFromStr("0.003")
+	}
+	return params.SwapFee
+}
+
+func (im IBCModule) packetNonce(packetData types.IBCPacketData) uint64 {
+	switch req := packetData.(type) {
+	case types.QueryPoolsPacketData:
+		return req.Nonce
+	case types.ExecuteSwapPacketData:
+		return req.Nonce
+	case types.CrossChainSwapPacketData:
+		return req.Nonce
+	case types.PoolUpdatePacketData:
+		return req.Nonce
+	default:
+		return 0
+	}
+}
+
+func (im IBCModule) packetSender(packet channeltypes.Packet, packetData types.IBCPacketData) string {
+	switch req := packetData.(type) {
+	case types.ExecuteSwapPacketData:
+		if req.Sender != "" {
+			return req.Sender
+		}
+	case types.CrossChainSwapPacketData:
+		if req.Sender != "" {
+			return req.Sender
+		}
+	}
+	if packet.SourcePort != "" {
+		return packet.SourcePort
+	}
+	return packet.SourceChannel
 }

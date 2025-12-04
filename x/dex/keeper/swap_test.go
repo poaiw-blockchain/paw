@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -43,7 +44,7 @@ func TestSwap_Valid(t *testing.T) {
 	// Verify pool reserves updated
 	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
-	require.Equal(t, math.NewInt(11000000), pool.ReserveA)   // 10M + 1M
+	require.Equal(t, math.NewInt(10997000), pool.ReserveA)   // 10M + 1M minus swap fees
 	require.True(t, pool.ReserveB.LT(math.NewInt(20000000))) // Less than 20M due to output
 }
 
@@ -206,6 +207,46 @@ func TestSwap_FeesCalculated(t *testing.T) {
 	require.True(t, actualOut.LT(amountIn.MulRaw(2))) // Less than 2:1 ratio
 }
 
+func TestSwap_FeeCollectorReceivesFees(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	poolID := setupPoolForSwaps(t, k, ctx)
+	trader := createTestTrader(t)
+
+	tokenIn := "upaw"
+	tokenOut := "uusdt"
+	amountIn := math.NewInt(1000000)
+
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	expectedFee := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
+
+	feeCollectorAddr := authtypes.NewModuleAddress(authtypes.FeeCollectorName)
+	balanceBefore := k.BankKeeper().GetBalance(ctx, feeCollectorAddr, tokenIn)
+
+	_, err = k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, math.NewInt(1))
+	require.NoError(t, err)
+
+	balanceAfter := k.BankKeeper().GetBalance(ctx, feeCollectorAddr, tokenIn)
+	require.True(t, balanceAfter.Amount.Equal(balanceBefore.Amount.Add(expectedFee)))
+}
+
+// TestPoolDrainLimit ensures swaps cannot drain more than the configured percentage of reserves.
+func TestPoolDrainLimit(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+
+	// Simulate attempting to drain ~50% of reserveOut when limit is 30%.
+	amountIn := math.NewInt(5_000_000)
+	reserveIn := math.NewInt(10_000_000)
+	reserveOut := math.NewInt(20_000_000)
+
+	_, err = k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
+	require.Error(t, err)
+	require.ErrorIs(t, err, types.ErrSwapTooLarge)
+	require.Contains(t, err.Error(), "drain too much liquidity")
+}
+
 // TestSwap_BidirectionalSwap tests swapping in both directions
 func TestSwap_BidirectionalSwap(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
@@ -247,7 +288,7 @@ func TestSwap_MultipleSwaps(t *testing.T) {
 	// Verify pool reserves changed
 	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
-	require.Equal(t, math.NewInt(11000000), pool.ReserveA) // 10M + 1M (10 * 100k)
+	require.Equal(t, math.NewInt(10997000), pool.ReserveA) // 10M + 1M - fees
 }
 
 // TestSwap_LargeAmount ensures large swaps above MEV threshold are rejected

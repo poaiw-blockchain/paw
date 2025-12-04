@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	mimcfr "github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/consensys/gnark/std/hash/mimc"
+	mimcstd "github.com/consensys/gnark/std/hash/mimc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
@@ -81,7 +83,7 @@ type ComputeVerificationCircuit struct {
 // This is the core of the ZK-SNARK - it defines the constraints that must be satisfied.
 func (circuit *ComputeVerificationCircuit) Define(api frontend.API) error {
 	// Initialize MiMC hasher - ZK-friendly hash function
-	hasher, err := mimc.NewMiMC(api)
+	hasher, err := mimcstd.NewMiMC(api)
 	if err != nil {
 		return fmt.Errorf("failed to initialize MiMC hasher: %w", err)
 	}
@@ -193,9 +195,6 @@ func (zk *ZKVerifier) GenerateProof(
 	startTime := time.Now()
 
 	// Validate inputs
-	if len(resultHash) != 32 {
-		return nil, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
-	}
 	if len(providerAddress) == 0 {
 		return nil, fmt.Errorf("provider address cannot be empty")
 	}
@@ -257,6 +256,16 @@ func (zk *ZKVerifier) GenerateProof(
 	// Compute hashes for the witness
 	providerAddressHash := sha256.Sum256(providerAddress.Bytes())
 	computationDataHash := sha256.Sum256(computationData)
+
+	// Recompute result hash to ensure it matches circuit hashing and reject mismatches.
+	computedResultHash, err := computeResultHashMiMC(requestID, providerAddress, computationData, executionTimestamp, exitCode, cpuCyclesUsed, memoryBytesUsed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute result hash: %w", err)
+	}
+	if len(resultHash) > 0 && !bytes.Equal(resultHash, computedResultHash) {
+		return nil, fmt.Errorf("provided result hash does not match circuit hash")
+	}
+	resultHash = computedResultHash
 
 	// Convert result hash to field element (first 31 bytes to fit in BN254 field)
 	resultHashField := bytesToFieldElement(resultHash)
@@ -320,17 +329,14 @@ func (zk *ZKVerifier) GenerateProof(
 }
 
 // bytesToFieldElement converts bytes to a field element representation.
-// Takes the first 31 bytes to ensure it fits in the BN254 scalar field.
+// Takes up to 32 bytes and reduces into BN254 scalar field.
 func bytesToFieldElement(b []byte) interface{} {
-	if len(b) > 31 {
-		b = b[:31]
+	if len(b) > 32 {
+		b = b[:32]
 	}
-	// Convert to big-endian integer representation
-	var result uint64
-	for i := 0; i < 8 && i < len(b); i++ {
-		result = (result << 8) | uint64(b[i])
-	}
-	return result
+	var elem fr.Element
+	elem.SetBytes(b)
+	return elem
 }
 
 // serializePublicInputs creates a serialized representation of public inputs.
@@ -342,6 +348,61 @@ func serializePublicInputs(requestID uint64, resultHash, providerAddressHash []b
 	publicInputs = append(publicInputs, resultHash...)
 	publicInputs = append(publicInputs, providerAddressHash...)
 	return publicInputs
+}
+
+// computeResultHashMiMC mirrors the circuit hashing (MiMC over request + provider hash + computation hash + telemetry).
+func computeResultHashMiMC(
+	requestID uint64,
+	providerAddress sdk.AccAddress,
+	computationData []byte,
+	executionTimestamp int64,
+	exitCode int32,
+	cpuCyclesUsed uint64,
+	memoryBytesUsed uint64,
+) ([]byte, error) {
+	if executionTimestamp < 0 {
+		return nil, fmt.Errorf("execution timestamp must be non-negative")
+	}
+	if exitCode < 0 {
+		return nil, fmt.Errorf("exit code must be non-negative")
+	}
+
+	h := mimcfr.NewMiMC()
+
+	writeElem := func(e fr.Element) {
+		b := e.Bytes()
+		h.Write(b[:])
+	}
+
+	var elem fr.Element
+	elem.SetUint64(requestID)
+	writeElem(elem)
+
+	providerHash := sha256.Sum256(providerAddress.Bytes())
+	elem.SetBytes(providerHash[:])
+	writeElem(elem)
+
+	computationHash := sha256.Sum256(computationData)
+	elem.SetBytes(computationHash[:])
+	writeElem(elem)
+
+	elem.SetUint64(uint64(executionTimestamp))
+	writeElem(elem)
+
+	elem.SetUint64(uint64(exitCode))
+	writeElem(elem)
+
+	elem.SetUint64(cpuCyclesUsed)
+	writeElem(elem)
+
+	elem.SetUint64(memoryBytesUsed)
+	writeElem(elem)
+
+	sum := h.Sum(nil)
+	if len(sum) != sha256.Size {
+		return nil, fmt.Errorf("unexpected mimc hash size: %d", len(sum))
+	}
+	return sum, nil
 }
 
 // ========================================================================================
@@ -371,6 +432,9 @@ func (zk *ZKVerifier) VerifyProof(
 	// Validate proof is not empty
 	if len(zkProof.Proof) == 0 {
 		return false, fmt.Errorf("proof cannot be empty")
+	}
+	if len(resultHash) != sha256.Size {
+		return false, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
 	}
 
 	// Get circuit params
@@ -703,4 +767,18 @@ func HashComputationResult(computationData []byte, metadata map[string]interface
 	}
 
 	return hasher.Sum(nil)
+}
+
+// ComputeResultHash derives the circuit-compatible result hash using MiMC over the same fields
+// enforced in ComputeVerificationCircuit. This must be used when generating/validating proofs.
+func ComputeResultHash(
+	requestID uint64,
+	providerAddress sdk.AccAddress,
+	computationData []byte,
+	executionTimestamp int64,
+	exitCode int32,
+	cpuCyclesUsed uint64,
+	memoryBytesUsed uint64,
+) ([]byte, error) {
+	return computeResultHashMiMC(requestID, providerAddress, computationData, executionTimestamp, exitCode, cpuCyclesUsed, memoryBytesUsed)
 }

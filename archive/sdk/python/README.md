@@ -159,6 +159,9 @@ await client.governance.vote(
 ## Testing
 
 ```bash
+# Install protobuf bindings first (local wheel until PyPI release)
+pip install -e ../../sdk/python/cosmospy-protobuf
+
 # Install dev dependencies
 pip install -e ".[dev]"
 

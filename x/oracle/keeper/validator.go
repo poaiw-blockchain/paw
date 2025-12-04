@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -181,4 +182,44 @@ func (k Keeper) ValidateFeeder(ctx context.Context, validatorAddr sdk.ValAddress
 	}
 
 	return nil
+}
+
+// IsAuthorizedFeeder returns true if the delegate is currently allowed to submit prices for the validator.
+// A delegate is authorized when:
+//   - It equals the validator's own account (self-feeding)
+//   - It matches the existing feeder delegation for the validator
+//   - It is not already delegated to a different validator
+func (k Keeper) IsAuthorizedFeeder(ctx sdk.Context, delegate sdk.AccAddress, validatorAddr sdk.ValAddress) bool {
+	if delegate.Empty() {
+		return false
+	}
+
+	if delegate.Equals(sdk.AccAddress(validatorAddr)) {
+		return true
+	}
+
+	// If the validator already delegated the same address, allow it
+	existing, err := k.GetFeederDelegation(sdk.WrapSDKContext(ctx), validatorAddr)
+	if err == nil && existing != nil && existing.Equals(delegate) {
+		return true
+	}
+
+	store := ctx.KVStore(k.storeKey)
+	iterator := storetypes.KVStorePrefixIterator(store, FeederDelegationKeyPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		if bytes.Equal(iterator.Value(), delegate.Bytes()) {
+			// Delegate is already registered; verify it's tied to this validator
+			storedValBz := iterator.Key()[len(FeederDelegationKeyPrefix):]
+			valAddr, err := sdk.ValAddressFromBech32(string(storedValBz))
+			if err != nil {
+				return false
+			}
+			return valAddr.Equals(validatorAddr)
+		}
+	}
+
+	// Delegate not currently in use
+	return true
 }

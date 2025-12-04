@@ -53,11 +53,11 @@ func TestValidatePoolCreation(t *testing.T) {
 			errMsg:    "initial deposit must be at least",
 		},
 		{
-			name:      "duplicate pool",
-			tokenA:    "upaw",
-			tokenB:    "usdc",
-			initialA:  math.NewInt(100_000_000),
-			initialB:  math.NewInt(100_000_000),
+			name:     "duplicate pool",
+			tokenA:   "upaw",
+			tokenB:   "usdc",
+			initialA: math.NewInt(100_000_000),
+			initialB: math.NewInt(100_000_000),
 			setup: func(k *keeper.Keeper, ctx sdk.Context) {
 				// Create existing pool
 				_, err := k.CreatePool(ctx, types.TestAddr(), "upaw", "usdc",
@@ -416,9 +416,9 @@ func TestFeeTierValues(t *testing.T) {
 		math.NewInt(1000000), math.NewInt(1000000))
 
 	tests := []struct {
-		name         string
-		tier         string
-		expectedFee  math.LegacyDec
+		name        string
+		tier        string
+		expectedFee math.LegacyDec
 	}{
 		{
 			name:        "standard tier - 0.3%",
@@ -464,7 +464,21 @@ func TestCheckFlashLoanProtection(t *testing.T) {
 	provider := sdk.AccAddress([]byte("provider1__________"))
 
 	// First action should be allowed
+	ctx = ctx.WithBlockHeight(100)
 	err := k.CheckFlashLoanProtection(ctx, poolID, provider)
+	require.NoError(t, err)
+
+	// Record liquidity action at block 100
+	require.NoError(t, k.SetLastLiquidityActionBlock(ctx, poolID, provider))
+
+	// Next block within protection window should be rejected
+	ctx = ctx.WithBlockHeight(105)
+	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
+	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
+
+	// After waiting sufficient blocks, protection should allow action again
+	ctx = ctx.WithBlockHeight(112)
+	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.NoError(t, err)
 }
 

@@ -23,6 +23,7 @@ import (
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
+	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
@@ -84,10 +85,11 @@ func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 
 	capKeeper := capabilitykeeper.NewKeeper(cdc, capStoreKey, capMemStoreKey)
 	scopedDexKeeper := capKeeper.ScopeToModule(types.ModuleName)
+	scopedPortKeeper := capKeeper.ScopeToModule(porttypes.SubModuleName)
+	portKeeper := portkeeper.NewKeeper(scopedPortKeeper)
 	var ibcKeeper *ibckeeper.Keeper
-	var portKeeper *portkeeper.Keeper
 
-	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, portKeeper, scopedDexKeeper)
+	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, &portKeeper, scopedDexKeeper)
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
 
 	// Setup module account for mint/burn

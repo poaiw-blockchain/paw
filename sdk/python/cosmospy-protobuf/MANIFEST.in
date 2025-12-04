@@ -1,0 +1,4 @@
+recursive-include cosmospy_protobuf *.py
+recursive-include proto *.proto
+include README.md
+include LICENSE

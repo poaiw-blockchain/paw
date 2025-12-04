@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"strings"
 
+	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,6 +32,7 @@ type Keeper struct {
 	scopedKeeper   capabilitykeeper.ScopedKeeper
 	portKeeper     *portkeeper.Keeper
 	portCapability *capabilitytypes.Capability
+	metrics        *OracleMetrics
 }
 
 // NewKeeper creates a new oracle Keeper instance
@@ -54,6 +57,7 @@ func NewKeeper(
 		portKeeper:     portKeeper,
 		authority:      authority,
 		scopedKeeper:   scopedKeeper,
+		metrics:        NewOracleMetrics(),
 	}
 }
 
@@ -88,4 +92,76 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 	}
 	k.portCapability = portCap
 	return nil
+}
+
+// IsAuthorizedChannel returns true if the provided IBC port/channel pair is whitelisted.
+func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		ctx.Logger().Error("failed to load oracle params for channel authorization", "error", err)
+		return false
+	}
+
+	for _, ch := range params.AuthorizedChannels {
+		if ch.PortId == portID && ch.ChannelId == channelID {
+			return true
+		}
+	}
+	return false
+}
+
+// AuthorizeChannel appends a new port/channel pair to the allowed list, preventing duplicates.
+func (k Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
+	portID = strings.TrimSpace(portID)
+	channelID = strings.TrimSpace(channelID)
+	if portID == "" || channelID == "" {
+		return errorsmod.Wrap(types.ErrInvalidAsset, "port_id and channel_id must be non-empty")
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, ch := range params.AuthorizedChannels {
+		if ch.PortId == portID && ch.ChannelId == channelID {
+			return nil
+		}
+	}
+
+	params.AuthorizedChannels = append(params.AuthorizedChannels, types.AuthorizedChannel{
+		PortId:    portID,
+		ChannelId: channelID,
+	})
+	return k.SetParams(ctx, params)
+}
+
+// SetAuthorizedChannels replaces the currently authorized ports/channels.
+func (k Keeper) SetAuthorizedChannels(ctx sdk.Context, channels []types.AuthorizedChannel) error {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	normalized := make([]types.AuthorizedChannel, 0, len(channels))
+	seen := make(map[string]struct{}, len(channels))
+	for _, ch := range channels {
+		portID := strings.TrimSpace(ch.PortId)
+		channelID := strings.TrimSpace(ch.ChannelId)
+		if portID == "" || channelID == "" {
+			return errorsmod.Wrap(types.ErrInvalidAsset, "port_id and channel_id must be non-empty")
+		}
+		key := portID + "/" + channelID
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		normalized = append(normalized, types.AuthorizedChannel{
+			PortId:    portID,
+			ChannelId: channelID,
+		})
+	}
+
+	params.AuthorizedChannels = normalized
+	return k.SetParams(ctx, params)
 }

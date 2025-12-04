@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,11 +13,14 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
+	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
+	signing "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/go-bip39"
@@ -440,6 +444,61 @@ func (suite *WalletIntegrationTestSuite) TestTransactionSigning() {
 	wrongMsg := []byte("wrong message")
 	valid = pubKey.VerifySignature(wrongMsg, signature)
 	suite.Require().False(valid, "signature should be invalid for wrong message")
+}
+
+// TestBuildAndEncodeTransaction ensures full tx builder + signing flow works with the encoding config.
+func (suite *WalletIntegrationTestSuite) TestBuildAndEncodeTransaction() {
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	fromAddr := sdk.AccAddress(pubKey.Address())
+	recipient := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+
+	msg := banktypes.NewMsgSend(fromAddr, recipient, sdk.NewCoins(sdk.NewInt64Coin("upaw", 2500)))
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err := txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	txBuilder.SetMemo("integration-test")
+	txBuilder.SetFeeAmount(sdk.NewCoins(sdk.NewInt64Coin("upaw", 120)))
+	txBuilder.SetGasLimit(200000)
+
+	signerData := authsigning.SignerData{
+		ChainID:       "paw-integration",
+		AccountNumber: 9,
+		Sequence:      3,
+		Address:       fromAddr.String(),
+		PubKey:        pubKey,
+	}
+
+	signMode := signing.SignMode(suite.encCfg.TxConfig.SignModeHandler().DefaultMode())
+	sigV2, err := clienttx.SignWithPrivKey(
+		context.Background(),
+		signMode,
+		signerData,
+		txBuilder,
+		privKey,
+		suite.encCfg.TxConfig,
+		signerData.Sequence,
+	)
+	suite.Require().NoError(err)
+	suite.Require().NoError(txBuilder.SetSignatures(sigV2))
+
+	txBytes, err := suite.encCfg.TxConfig.TxEncoder()(txBuilder.GetTx())
+	suite.Require().NoError(err)
+	suite.Require().NotEmpty(txBytes)
+
+	decodedTx, err := suite.encCfg.TxConfig.TxDecoder()(txBytes)
+	suite.Require().NoError(err)
+	memoTx, ok := decodedTx.(sdk.TxWithMemo)
+	suite.Require().True(ok)
+	suite.Require().Equal("integration-test", memoTx.GetMemo())
+	suite.Require().Len(decodedTx.GetMsgs(), 1)
+
+	singleSig, ok := sigV2.Data.(*signing.SingleSignatureData)
+	suite.Require().True(ok)
+	signBytes, err := authsigning.GetSignBytesAdapter(context.Background(), suite.encCfg.TxConfig.SignModeHandler(), singleSig.SignMode, signerData, txBuilder.GetTx())
+	suite.Require().NoError(err)
+	suite.Require().True(pubKey.VerifySignature(signBytes, singleSig.Signature))
 }
 
 // TestErrorHandlingInvalidInputs tests error handling for invalid inputs

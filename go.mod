@@ -7,6 +7,7 @@ toolchain go1.24.10
 require (
 	github.com/cosmos/cosmos-sdk v0.50.9
 	github.com/cosmos/gogoproto v1.7.0
+	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -189,7 +190,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/otlptranslator v0.0.2 // indirect

@@ -681,6 +681,7 @@ func _Msg_Swap_Handler(srv interface{}, ctx context.Context, dec func(interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+var Msg_serviceDesc = _Msg_serviceDesc
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "paw.dex.v1.Msg",
 	HandlerType: (*MsgServer)(nil),

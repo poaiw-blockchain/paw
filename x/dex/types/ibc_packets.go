@@ -37,6 +37,7 @@ type IBCPacketData interface {
 // QueryPoolsPacketData requests pool information from remote chain
 type QueryPoolsPacketData struct {
 	Type   string `json:"type"`
+	Nonce  uint64 `json:"nonce"`
 	TokenA string `json:"token_a"`
 	TokenB string `json:"token_b"`
 }
@@ -45,11 +46,20 @@ func (p QueryPoolsPacketData) ValidateBasic() error {
 	if p.Type != QueryPoolsType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
 	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
 	if p.TokenA == "" {
 		return errors.Wrap(ErrInvalidPacket, "token A cannot be empty")
 	}
 	if p.TokenB == "" {
 		return errors.Wrap(ErrInvalidPacket, "token B cannot be empty")
+	}
+	if err := sdk.ValidateDenom(p.TokenA); err != nil {
+		return errors.Wrapf(ErrInvalidPacket, "invalid token A denom: %s", err.Error())
+	}
+	if err := sdk.ValidateDenom(p.TokenB); err != nil {
+		return errors.Wrapf(ErrInvalidPacket, "invalid token B denom: %s", err.Error())
 	}
 	return nil
 }
@@ -64,19 +74,21 @@ func (p QueryPoolsPacketData) GetBytes() ([]byte, error) {
 
 // QueryPoolsAcknowledgement is the response to pool query
 type QueryPoolsAcknowledgement struct {
+	Nonce   uint64     `json:"nonce"`
 	Success bool       `json:"success"`
 	Pools   []PoolInfo `json:"pools,omitempty"`
 	Error   string     `json:"error,omitempty"`
 }
 
 type PoolInfo struct {
-	PoolID      string   `json:"pool_id"`
-	TokenA      string   `json:"token_a"`
-	TokenB      string   `json:"token_b"`
-	ReserveA    math.Int `json:"reserve_a"`
-	ReserveB    math.Int `json:"reserve_b"`
-	SwapFee     math.LegacyDec  `json:"swap_fee"`
-	TotalShares math.Int `json:"total_shares"`
+	ChainID     string         `json:"chain_id"`
+	PoolID      string         `json:"pool_id"`
+	TokenA      string         `json:"token_a"`
+	TokenB      string         `json:"token_b"`
+	ReserveA    math.Int       `json:"reserve_a"`
+	ReserveB    math.Int       `json:"reserve_b"`
+	SwapFee     math.LegacyDec `json:"swap_fee"`
+	TotalShares math.Int       `json:"total_shares"`
 }
 
 func (a QueryPoolsAcknowledgement) GetBytes() ([]byte, error) {
@@ -86,6 +98,7 @@ func (a QueryPoolsAcknowledgement) GetBytes() ([]byte, error) {
 // ExecuteSwapPacketData executes a swap on remote chain
 type ExecuteSwapPacketData struct {
 	Type         string   `json:"type"`
+	Nonce        uint64   `json:"nonce"`
 	PoolID       string   `json:"pool_id"`
 	TokenIn      string   `json:"token_in"`
 	TokenOut     string   `json:"token_out"`
@@ -100,6 +113,9 @@ func (p ExecuteSwapPacketData) ValidateBasic() error {
 	if p.Type != ExecuteSwapType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
 	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
 	if p.PoolID == "" {
 		return errors.Wrap(ErrInvalidPacket, "pool ID cannot be empty")
 	}
@@ -108,6 +124,12 @@ func (p ExecuteSwapPacketData) ValidateBasic() error {
 	}
 	if p.TokenOut == "" {
 		return errors.Wrap(ErrInvalidPacket, "token out cannot be empty")
+	}
+	if err := sdk.ValidateDenom(p.TokenIn); err != nil {
+		return errors.Wrapf(ErrInvalidPacket, "invalid token in denom: %s", err.Error())
+	}
+	if err := sdk.ValidateDenom(p.TokenOut); err != nil {
+		return errors.Wrapf(ErrInvalidPacket, "invalid token out denom: %s", err.Error())
 	}
 	if p.AmountIn.IsNil() || !p.AmountIn.IsPositive() {
 		return errors.Wrap(ErrInvalidPacket, "amount in must be positive")
@@ -134,6 +156,7 @@ func (p ExecuteSwapPacketData) GetBytes() ([]byte, error) {
 
 // ExecuteSwapAcknowledgement is the response to swap execution
 type ExecuteSwapAcknowledgement struct {
+	Nonce     uint64   `json:"nonce"`
 	Success   bool     `json:"success"`
 	AmountOut math.Int `json:"amount_out,omitempty"`
 	SwapFee   math.Int `json:"swap_fee,omitempty"`
@@ -146,13 +169,14 @@ func (a ExecuteSwapAcknowledgement) GetBytes() ([]byte, error) {
 
 // CrossChainSwapPacketData performs multi-hop swap across chains
 type CrossChainSwapPacketData struct {
-	Type      string     `json:"type"`
-	Route     []SwapHop  `json:"route"`
-	Sender    string     `json:"sender"`
-	Receiver  string     `json:"receiver"`
-	AmountIn  math.Int   `json:"amount_in"`
-	MinOut    math.Int   `json:"min_out"`
-	Timeout   uint64     `json:"timeout"`
+	Type     string    `json:"type"`
+	Nonce    uint64    `json:"nonce"`
+	Route    []SwapHop `json:"route"`
+	Sender   string    `json:"sender"`
+	Receiver string    `json:"receiver"`
+	AmountIn math.Int  `json:"amount_in"`
+	MinOut   math.Int  `json:"min_out"`
+	Timeout  uint64    `json:"timeout"`
 }
 
 type SwapHop struct {
@@ -166,6 +190,9 @@ type SwapHop struct {
 func (p CrossChainSwapPacketData) ValidateBasic() error {
 	if p.Type != CrossChainSwapType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if len(p.Route) == 0 {
 		return errors.Wrap(ErrInvalidPacket, "route cannot be empty")
@@ -197,6 +224,12 @@ func (p CrossChainSwapPacketData) ValidateBasic() error {
 		if hop.TokenOut == "" {
 			return errors.Wrapf(ErrInvalidPacket, "hop %d: token out cannot be empty", i)
 		}
+		if err := sdk.ValidateDenom(hop.TokenIn); err != nil {
+			return errors.Wrapf(ErrInvalidPacket, "hop %d: invalid token in denom: %s", i, err.Error())
+		}
+		if err := sdk.ValidateDenom(hop.TokenOut); err != nil {
+			return errors.Wrapf(ErrInvalidPacket, "hop %d: invalid token out denom: %s", i, err.Error())
+		}
 	}
 
 	return nil
@@ -212,6 +245,7 @@ func (p CrossChainSwapPacketData) GetBytes() ([]byte, error) {
 
 // CrossChainSwapAcknowledgement is the response to cross-chain swap
 type CrossChainSwapAcknowledgement struct {
+	Nonce        uint64   `json:"nonce"`
 	Success      bool     `json:"success"`
 	FinalAmount  math.Int `json:"final_amount,omitempty"`
 	HopsExecuted int      `json:"hops_executed,omitempty"`
@@ -226,6 +260,7 @@ func (a CrossChainSwapAcknowledgement) GetBytes() ([]byte, error) {
 // PoolUpdatePacketData broadcasts pool state changes
 type PoolUpdatePacketData struct {
 	Type        string   `json:"type"`
+	Nonce       uint64   `json:"nonce"`
 	PoolID      string   `json:"pool_id"`
 	ReserveA    math.Int `json:"reserve_a"`
 	ReserveB    math.Int `json:"reserve_b"`
@@ -236,6 +271,9 @@ type PoolUpdatePacketData struct {
 func (p PoolUpdatePacketData) ValidateBasic() error {
 	if p.Type != PoolUpdateType {
 		return errors.Wrapf(ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
 	}
 	if p.PoolID == "" {
 		return errors.Wrap(ErrInvalidPacket, "pool ID cannot be empty")
@@ -255,6 +293,17 @@ func (p PoolUpdatePacketData) GetType() string {
 
 func (p PoolUpdatePacketData) GetBytes() ([]byte, error) {
 	return json.Marshal(p)
+}
+
+// PoolUpdateAcknowledgement is returned after processing a pool update packet
+type PoolUpdateAcknowledgement struct {
+	Nonce   uint64 `json:"nonce"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+func (a PoolUpdateAcknowledgement) GetBytes() ([]byte, error) {
+	return json.Marshal(a)
 }
 
 // ParsePacketData parses IBC packet data based on type
@@ -302,9 +351,10 @@ func ParsePacketData(data []byte) (IBCPacketData, error) {
 }
 
 // NewQueryPoolsPacket creates a new query pools packet
-func NewQueryPoolsPacket(tokenA, tokenB string) QueryPoolsPacketData {
+func NewQueryPoolsPacket(tokenA, tokenB string, nonce uint64) QueryPoolsPacketData {
 	return QueryPoolsPacketData{
 		Type:   QueryPoolsType,
+		Nonce:  nonce,
 		TokenA: tokenA,
 		TokenB: tokenB,
 	}
@@ -312,6 +362,7 @@ func NewQueryPoolsPacket(tokenA, tokenB string) QueryPoolsPacketData {
 
 // NewExecuteSwapPacket creates a new execute swap packet
 func NewExecuteSwapPacket(
+	nonce uint64,
 	poolID string,
 	tokenIn string,
 	tokenOut string,
@@ -323,6 +374,7 @@ func NewExecuteSwapPacket(
 ) ExecuteSwapPacketData {
 	return ExecuteSwapPacketData{
 		Type:         ExecuteSwapType,
+		Nonce:        nonce,
 		PoolID:       poolID,
 		TokenIn:      tokenIn,
 		TokenOut:     tokenOut,
@@ -336,6 +388,7 @@ func NewExecuteSwapPacket(
 
 // NewCrossChainSwapPacket creates a new cross-chain swap packet
 func NewCrossChainSwapPacket(
+	nonce uint64,
 	route []SwapHop,
 	sender string,
 	receiver string,
@@ -345,6 +398,7 @@ func NewCrossChainSwapPacket(
 ) CrossChainSwapPacketData {
 	return CrossChainSwapPacketData{
 		Type:     CrossChainSwapType,
+		Nonce:    nonce,
 		Route:    route,
 		Sender:   sender,
 		Receiver: receiver,

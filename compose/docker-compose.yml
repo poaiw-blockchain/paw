@@ -56,20 +56,16 @@ services:
       PAW_TLS_ENABLED: ${PAW_TLS_ENABLED:-false}
 
     ports:
-      - "26656:26656"  # P2P
-      - "26657:26657"  # RPC
-      - "1317:1317"    # REST API
-      - "9090:9090"    # gRPC
-      - "9091:9091"    # gRPC-Web
+      - "26660:26656"  # P2P
+      - "26661:26657"  # RPC
+      - "1318:1317"    # REST API
+      - "9092:9090"    # gRPC
+      - "9093:9091"    # gRPC-Web
       - "5000:5000"    # Node.js API
 
     volumes:
-      # Source code (for development)
-      - ..:/app
-
       # Persistent data
-      - blockchain-data:/data/blockchain
-      - state-data:/data/state
+      - paw-home:/data
 
       # Logs
       - node-logs:/logs
@@ -232,10 +228,7 @@ networks:
 # Volumes
 # ============================================================================
 volumes:
-  blockchain-data:
-    driver: local
-
-  state-data:
+  paw-home:
     driver: local
 
   postgres-data:

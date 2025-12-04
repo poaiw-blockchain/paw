@@ -191,8 +191,8 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 			// Extract user and window from the index key
 			// Format: RateLimitByHeightPrefix(1) + height(8) + user(20) + window(8)
 			if len(key) >= 37 { // 1 + 8 + 20 + 8
-				userStart := 9  // After prefix(1) + height(8)
-				userEnd := 29   // userStart + 20
+				userStart := 9 // After prefix(1) + height(8)
+				userEnd := 29  // userStart + 20
 				windowStart := 29
 
 				if len(key) >= windowStart+8 {
@@ -228,18 +228,61 @@ func (k Keeper) UpdatePoolTWAPs(ctx context.Context) error {
 
 	// Iterate over all pools and update their TWAPs
 	return k.IteratePools(ctx, func(pool types.Pool) bool {
-		// Calculate current price
 		if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
-			return false // Skip empty pools
+			return false
 		}
 
-		// Update TWAP tracking (implementation depends on TWAP storage structure)
-		sdkCtx.Logger().Debug("updating TWAP",
+		price := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+
+		record, found, err := k.GetPoolTWAP(ctx, pool.Id)
+		if err != nil {
+			sdkCtx.Logger().Error("failed to load pool TWAP", "pool_id", pool.Id, "error", err)
+			return false
+		}
+
+		if !found {
+			record = &types.PoolTWAP{
+				PoolId:          pool.Id,
+				LastPrice:       price,
+				CumulativePrice: math.LegacyZeroDec(),
+				TotalSeconds:    0,
+				LastTimestamp:   currentTime.Unix(),
+				TwapPrice:       price,
+			}
+		} else {
+			lastTimestamp := time.Unix(record.LastTimestamp, 0).UTC()
+			if record.LastTimestamp == 0 {
+				lastTimestamp = currentTime
+			}
+
+			delta := currentTime.Sub(lastTimestamp) / time.Second
+			if delta > 0 && !record.LastPrice.IsNil() {
+				record.CumulativePrice = record.CumulativePrice.Add(record.LastPrice.MulInt64(int64(delta)))
+				record.TotalSeconds += uint64(delta)
+				if record.TotalSeconds > 0 {
+					record.TwapPrice = record.CumulativePrice.QuoInt64(int64(record.TotalSeconds))
+				}
+			}
+
+			record.LastTimestamp = currentTime.Unix()
+			if record.TotalSeconds == 0 {
+				record.TwapPrice = price
+			}
+			record.LastPrice = price
+		}
+
+		if err := k.SetPoolTWAP(ctx, *record); err != nil {
+			sdkCtx.Logger().Error("failed to persist TWAP", "pool_id", pool.Id, "error", err)
+		}
+
+		sdkCtx.Logger().Debug("updated TWAP",
 			"pool_id", pool.Id,
-			"time", currentTime,
+			"last_price", record.LastPrice.String(),
+			"twap_price", record.TwapPrice.String(),
+			"total_seconds", record.TotalSeconds,
 		)
 
-		return false // Continue iteration
+		return false
 	})
 }
 
@@ -249,10 +292,11 @@ func (k Keeper) DistributeProtocolFees(ctx context.Context) error {
 	store := k.getStore(ctx)
 
 	// Collect all protocol fees
-	iter := storetypes.KVStorePrefixIterator(store, types.CircuitBreakerKeyPrefix)
+	iter := storetypes.KVStorePrefixIterator(store, types.ProtocolFeeKeyPrefix)
 	defer iter.Close()
 
 	totalFees := sdk.NewCoins()
+	distributionCount := 0
 	for ; iter.Valid(); iter.Next() {
 		var amount math.Int
 		if err := amount.Unmarshal(iter.Value()); err != nil {
@@ -265,11 +309,21 @@ func (k Keeper) DistributeProtocolFees(ctx context.Context) error {
 
 		// Clear the fee accumulator
 		store.Delete(iter.Key())
+
+		if !amount.IsZero() {
+			distributionCount++
+		}
 	}
 
 	if !totalFees.IsZero() {
 		sdkCtx.Logger().Info("distributing protocol fees", "amount", totalFees)
-		// Fees would be sent to a fee collector module address here
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"dex_protocol_fees_distributed",
+				sdk.NewAttribute("amount", totalFees.String()),
+				sdk.NewAttribute("distribution_count", fmt.Sprintf("%d", distributionCount)),
+			),
+		)
 	}
 
 	return nil

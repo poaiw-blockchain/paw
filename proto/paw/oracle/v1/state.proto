@@ -1,0 +1,17 @@
+syntax = "proto3";
+package paw.oracle.v1;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/paw-chain/paw/x/oracle/types";
+
+// CircuitBreakerState defines the serialized form of the oracle circuit breaker.
+message CircuitBreakerState {
+  option (gogoproto.equal) = true;
+
+  bool active = 1;
+  string triggered_by = 2;
+  string reason = 3;
+  int64 block_height = 4;
+  int64 recovery_time = 5;
+}

@@ -293,6 +293,17 @@ message Params {
 
   // escrow_release_delay_seconds is the delay before releasing escrowed funds
   uint64 escrow_release_delay_seconds = 7;
+
+  // authorized_channels lists IBC port/channel pairs allowed to deliver packets
+  repeated AuthorizedChannel authorized_channels = 8 [(gogoproto.nullable) = false];
+}
+
+// AuthorizedChannel defines a permitted IBC source for compute packets
+message AuthorizedChannel {
+  option (gogoproto.equal) = true;
+
+  string port_id = 1;
+  string channel_id = 2;
 }
 
 // DisputeStatus defines the lifecycle states for disputes.

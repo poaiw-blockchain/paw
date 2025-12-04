@@ -47,6 +47,13 @@ Repository structure
 - `scripts/` developer and operator scripts
 - `compose/`, `docker/`, `infra/`, `k8s/` operational tooling
 - `ibc/` relayer configuration and security guidance
+- `wallet/` production wallet suite (core SDK, desktop, mobile, browser extension)
+
+Wallet suite
+- `wallet/core` — TypeScript SDK powering every wallet surface (HD keys, signing helpers, RPC client). Build with `npm install && npm run build`.
+- `wallet/desktop` — Electron + React desktop wallet with integrated DEX tooling. Build with `npm install && npm run build` (per-platform bundles via `electron-builder`).
+- `wallet/mobile` — React Native wallet for iOS and Android. Install deps with `npm install` and bundle per-platform via `npm run android` / `npm run ios` (add a `build` script for CI artifacts if desired).
+- `wallet/browser-extension` — Chromium/Firefox extension for swaps + miner controls. Build with `npm install && npm run build`.
 
 Configuration
 - Node home: `~/.paw` with Bech32 prefix `paw`
@@ -70,6 +77,8 @@ Documentation
 - Whitepaper: `docs/WHITEPAPER.md`
 - Technical spec: `docs/TECHNICAL_SPECIFICATION.md`
 - CLI reference: `docs/guides/CLI_QUICK_REFERENCE.md`
+- Validator quickstart: `docs/guides/VALIDATOR_QUICKSTART.md`
+- DEX trading: `docs/guides/DEX_TRADING.md`
 
 References
 - Cosmos SDK: https://docs.cosmos.network

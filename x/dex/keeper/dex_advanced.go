@@ -232,8 +232,8 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 
 // Task 126: Flash Loan Prevention
 const (
-	// MinBlocksBetweenActions is minimum blocks required between liquidity add/remove
-	MinBlocksBetweenActions = 1
+	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset
+	DefaultFlashLoanProtectionBlocks = int64(10)
 
 	// FlashLoanDetectionWindow is blocks to analyze for flash loan patterns
 	FlashLoanDetectionWindow = 10
@@ -251,12 +251,22 @@ func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, pro
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	minBlocks := int64(params.FlashLoanProtectionBlocks)
+	if minBlocks == 0 {
+		minBlocks = DefaultFlashLoanProtectionBlocks
+	}
+
 	blocksSince := sdkCtx.BlockHeight() - lastBlock
 
-	if blocksSince < MinBlocksBetweenActions {
+	if blocksSince < minBlocks {
 		return types.ErrFlashLoanDetected.Wrapf(
 			"must wait %d blocks between liquidity actions (waited %d)",
-			MinBlocksBetweenActions, blocksSince,
+			minBlocks, blocksSince,
 		)
 	}
 

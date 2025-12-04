@@ -61,7 +61,12 @@ func (dd DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCrea
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid creator address: %s", err)
 	}
 
-	ctx.GasMeter().ConsumeGas(1000, "pool creation validation")
+	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	ctx.GasMeter().ConsumeGas(params.PoolCreationGas, "pool creation validation")
 
 	if msg.TokenA == "" || msg.TokenB == "" {
 		return sdkerrors.ErrInvalidRequest.Wrap("token identifiers cannot be empty")
@@ -73,11 +78,6 @@ func (dd DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCrea
 
 	if msg.AmountA.IsZero() || msg.AmountB.IsZero() {
 		return sdkerrors.ErrInvalidRequest.Wrap("initial liquidity amounts must be positive")
-	}
-
-	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
-	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
 	}
 
 	if msg.AmountA.LT(params.MinLiquidity) || msg.AmountB.LT(params.MinLiquidity) {
@@ -93,7 +93,12 @@ func (dd DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) erro
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid trader address: %s", err)
 	}
 
-	ctx.GasMeter().ConsumeGas(1500, "swap validation")
+	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	ctx.GasMeter().ConsumeGas(params.SwapValidationGas, "swap validation")
 
 	if msg.TokenIn == "" || msg.TokenOut == "" {
 		return sdkerrors.ErrInvalidRequest.Wrap("tokens cannot be empty")
@@ -120,7 +125,12 @@ func (dd DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAd
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}
 
-	ctx.GasMeter().ConsumeGas(1200, "add liquidity validation")
+	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	ctx.GasMeter().ConsumeGas(params.LiquidityGas, "add liquidity validation")
 
 	if msg.AmountA.IsZero() || msg.AmountB.IsZero() {
 		return sdkerrors.ErrInvalidRequest.Wrap("liquidity amounts must be positive")
@@ -139,7 +149,12 @@ func (dd DEXDecorator) validateRemoveLiquidity(ctx sdk.Context, msg *dextypes.Ms
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}
 
-	ctx.GasMeter().ConsumeGas(1000, "remove liquidity validation")
+	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	ctx.GasMeter().ConsumeGas(params.PoolCreationGas, "remove liquidity validation")
 
 	if msg.Shares.IsZero() || msg.Shares.Equal(math.ZeroInt()) {
 		return sdkerrors.ErrInvalidRequest.Wrap("shares to remove must be positive")

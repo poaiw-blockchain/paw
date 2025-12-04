@@ -1,15 +1,22 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
+	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254"
+	"github.com/consensys/gnark/backend/groth16"
+	"github.com/consensys/gnark/frontend"
 
 	"cosmossdk.io/errors"
 	"cosmossdk.io/math"
@@ -21,6 +28,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
+	"github.com/paw-chain/paw/x/compute/circuits"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -83,20 +91,23 @@ type RemoteComputeProvider struct {
 
 // CrossChainComputeJob represents a job submitted to a remote chain
 type CrossChainComputeJob struct {
-	JobID        string          `json:"job_id"`
-	SourceChain  string          `json:"source_chain"`
-	TargetChain  string          `json:"target_chain"`
-	Provider     string          `json:"provider"`
-	Requester    string          `json:"requester"`
-	JobType      string          `json:"job_type"` // "wasm", "docker", "tee"
-	JobData      []byte          `json:"job_data"`
-	Requirements JobRequirements `json:"requirements"`
-	EscrowAmount math.Int        `json:"escrow_amount"`
-	Status       string          `json:"status"` // "pending", "running", "completed", "failed"
-	SubmittedAt  time.Time       `json:"submitted_at"`
-	CompletedAt  *time.Time      `json:"completed_at,omitempty"`
-	Result       *JobResult      `json:"result,omitempty"`
-	Verified     bool            `json:"verified"`
+	JobID           string          `json:"job_id"`
+	SourceChain     string          `json:"source_chain"`
+	TargetChain     string          `json:"target_chain"`
+	Provider        string          `json:"provider"`
+	Requester       string          `json:"requester"`
+	JobType         string          `json:"job_type"` // "wasm", "docker", "tee"
+	JobData         []byte          `json:"job_data"`
+	Requirements    JobRequirements `json:"requirements"`
+	EscrowAmount    math.Int        `json:"escrow_amount"`
+	Status          string          `json:"status"` // "pending", "running", "completed", "failed"
+	Progress        uint32          `json:"progress"`
+	SubmittedAt     time.Time       `json:"submitted_at"`
+	CompletedAt     *time.Time      `json:"completed_at,omitempty"`
+	Result          *JobResult      `json:"result,omitempty"`
+	ProofHash       string          `json:"proof_hash,omitempty"`
+	AttestationHash string          `json:"attestation_hash,omitempty"`
+	Verified        bool            `json:"verified"`
 }
 
 // JobRequirements specifies computational requirements
@@ -135,6 +146,7 @@ type CrossChainEscrow struct {
 // DiscoverProvidersPacketData discovers compute providers on remote chain
 type DiscoverProvidersPacketData struct {
 	Type         string         `json:"type"` // "discover_providers"
+	Nonce        uint64         `json:"nonce"`
 	Capabilities []string       `json:"capabilities,omitempty"`
 	MaxPrice     math.LegacyDec `json:"max_price,omitempty"`
 }
@@ -149,6 +161,7 @@ type DiscoverProvidersPacketAck struct {
 // SubmitJobPacketData submits a compute job to remote chain
 type SubmitJobPacketData struct {
 	Type         string          `json:"type"` // "submit_job"
+	Nonce        uint64          `json:"nonce"`
 	JobID        string          `json:"job_id"`
 	JobType      string          `json:"job_type"`
 	JobData      []byte          `json:"job_data"`
@@ -169,6 +182,7 @@ type SubmitJobPacketAck struct {
 // JobResultPacketData contains computation result
 type JobResultPacketData struct {
 	Type     string    `json:"type"` // "job_result"
+	Nonce    uint64    `json:"nonce"`
 	JobID    string    `json:"job_id"`
 	Result   JobResult `json:"result"`
 	Provider string    `json:"provider"`
@@ -177,6 +191,7 @@ type JobResultPacketData struct {
 // JobStatusPacketData queries job status
 type JobStatusPacketData struct {
 	Type  string `json:"type"` // "job_status"
+	Nonce uint64 `json:"nonce"`
 	JobID string `json:"job_id"`
 }
 
@@ -191,6 +206,7 @@ type JobStatusPacketAck struct {
 // ReleaseEscrowPacketData releases escrowed funds to provider
 type ReleaseEscrowPacketData struct {
 	Type     string   `json:"type"` // "release_escrow"
+	Nonce    uint64   `json:"nonce"`
 	JobID    string   `json:"job_id"`
 	Provider string   `json:"provider"`
 	Amount   math.Int `json:"amount"`
@@ -218,6 +234,7 @@ func (k Keeper) DiscoverRemoteProviders(
 		// Create discovery packet
 		packetData := DiscoverProvidersPacketData{
 			Type:         PacketTypeDiscoverProviders,
+			Nonce:        k.NextOutboundNonce(sdkCtx, channelID, types.PortID),
 			Capabilities: capabilities,
 			MaxPrice:     maxPrice,
 		}
@@ -241,7 +258,7 @@ func (k Keeper) DiscoverRemoteProviders(
 		}
 
 		// Store pending discovery (results will come via OnAcknowledgement)
-		k.storePendingDiscovery(sdkCtx, sequence, chainID)
+		k.storePendingDiscovery(sdkCtx, channelID, sequence, chainID)
 	}
 
 	// Return cached providers
@@ -302,16 +319,24 @@ func (k Keeper) SubmitCrossChainJob(
 		return nil, errors.Wrapf(err, "failed to get compute channel")
 	}
 
-	// Create submit job packet
-	packetData := SubmitJobPacketData{
-		Type:         PacketTypeSubmitJob,
-		JobID:        jobID,
-		JobType:      jobType,
-		JobData:      jobData,
-		Requirements: requirements,
-		Provider:     providerID,
-		Requester:    requester.String(),
-		EscrowProof:  escrowProof,
+	// Create submit job packet using canonical types definition
+	packetData := types.SubmitJobPacketData{
+		Type:    types.SubmitJobType,
+		Nonce:   k.NextOutboundNonce(sdkCtx, channelID, requester.String()),
+		JobID:   jobID,
+		JobType: jobType,
+		JobData: jobData,
+		Requirements: types.JobRequirements{
+			CPUCores:    requirements.CPUCores,
+			MemoryMB:    requirements.MemoryMB,
+			StorageGB:   requirements.StorageGB,
+			GPURequired: requirements.GPURequired,
+			TEERequired: requirements.TEERequired,
+			MaxDuration: uint64(requirements.MaxDuration.Seconds()),
+		},
+		Provider:    providerID,
+		Requester:   requester.String(),
+		EscrowProof: escrowProof,
 	}
 
 	packetBytes, err := json.Marshal(packetData)
@@ -344,6 +369,7 @@ func (k Keeper) SubmitCrossChainJob(
 		Requirements: requirements,
 		EscrowAmount: payment.Amount,
 		Status:       "pending",
+		Progress:     progressForStatus("pending", 0),
 		SubmittedAt:  sdkCtx.BlockTime(),
 		Verified:     false,
 	}
@@ -352,7 +378,7 @@ func (k Keeper) SubmitCrossChainJob(
 	k.storeJob(sdkCtx, jobID, job)
 
 	// Store pending job submission
-	k.storePendingJobSubmission(sdkCtx, sequence, jobID)
+	k.storePendingJobSubmission(sdkCtx, channelID, sequence, jobID)
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
@@ -389,9 +415,11 @@ func (k Keeper) QueryCrossChainJobStatus(
 		}
 
 		// Create status query packet
-		packetData := JobStatusPacketData{
-			Type:  PacketTypeJobStatus,
-			JobID: jobID,
+		packetData := types.JobStatusPacketData{
+			Type:      types.JobStatusType,
+			Nonce:     k.NextOutboundNonce(sdkCtx, channelID, job.Requester),
+			JobID:     jobID,
+			Requester: job.Requester,
 		}
 
 		packetBytes, err := json.Marshal(packetData)
@@ -420,30 +448,62 @@ func (k Keeper) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	ack channeltypes.Acknowledgement,
 ) error {
-	var ackData interface{}
-	if err := json.Unmarshal(ack.GetResult(), &ackData); err != nil {
-		return errors.Wrap(err, "failed to unmarshal acknowledgement")
+	if !ack.Success() {
+		k.emitAckErrorEvent(ctx, packet, ack.GetError())
 	}
 
-	var packetData map[string]interface{}
-	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
-		return errors.Wrap(err, "failed to unmarshal packet data")
+	packetData, err := types.ParsePacketData(packet.Data)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode packet data for acknowledgement")
 	}
 
-	packetType, ok := packetData["type"].(string)
-	if !ok {
-		return errors.Wrap(sdkerrors.ErrInvalidType, "missing packet type")
-	}
-
-	switch packetType {
-	case PacketTypeDiscoverProviders:
-		return k.handleDiscoverProvidersAck(ctx, packet, ackData)
-	case PacketTypeSubmitJob:
-		return k.handleSubmitJobAck(ctx, packet, ackData)
-	case PacketTypeJobStatus:
-		return k.handleJobStatusAck(ctx, packet, ackData)
+	switch pd := packetData.(type) {
+	case types.DiscoverProvidersPacketData:
+		if !ack.Success() {
+			return errors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("provider discovery failed: %s", ack.GetError()))
+		}
+		var ackResp types.DiscoverProvidersAcknowledgement
+		if err := json.Unmarshal(ack.GetResult(), &ackResp); err != nil {
+			return errors.Wrap(err, "failed to unmarshal discover providers acknowledgement")
+		}
+		return k.handleDiscoverProvidersAck(ctx, packet, ackResp)
+	case types.SubmitJobPacketData:
+		if !ack.Success() {
+			return k.handleSubmitJobAck(ctx, packet, pd, types.SubmitJobAcknowledgement{
+				Success: false,
+				JobID:   pd.JobID,
+				Error:   ack.GetError(),
+			})
+		}
+		var ackResp types.SubmitJobAcknowledgement
+		if err := json.Unmarshal(ack.GetResult(), &ackResp); err != nil {
+			return errors.Wrap(err, "failed to unmarshal submit job acknowledgement")
+		}
+		return k.handleSubmitJobAck(ctx, packet, pd, ackResp)
+	case types.JobStatusPacketData:
+		if !ack.Success() {
+			return k.handleJobStatusAck(ctx, types.JobStatusAcknowledgement{
+				Success: false,
+				JobID:   pd.JobID,
+				Error:   ack.GetError(),
+			})
+		}
+		var ackResp types.JobStatusAcknowledgement
+		if err := json.Unmarshal(ack.GetResult(), &ackResp); err != nil {
+			return errors.Wrap(err, "failed to unmarshal job status acknowledgement")
+		}
+		return k.handleJobStatusAck(ctx, ackResp)
+	case types.JobResultPacketData:
+		if ack.Success() {
+			var ackResp types.JobResultAcknowledgement
+			if err := json.Unmarshal(ack.GetResult(), &ackResp); err != nil {
+				return errors.Wrap(err, "failed to unmarshal job result acknowledgement")
+			}
+			return k.handleJobResultAck(ctx, packet, pd, ackResp)
+		}
+		return k.handleJobResultAckError(ctx, packet, pd, ack.GetError())
 	default:
-		return errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
+		return errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type in acknowledgement: %T", pd)
 	}
 }
 
@@ -451,6 +511,7 @@ func (k Keeper) OnAcknowledgementPacket(
 func (k Keeper) OnRecvPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
+	packetNonce uint64,
 ) (channeltypes.Acknowledgement, error) {
 	var packetData map[string]interface{}
 	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
@@ -465,7 +526,7 @@ func (k Keeper) OnRecvPacket(
 
 	switch packetType {
 	case PacketTypeJobResult:
-		return k.handleJobResult(ctx, packet)
+		return k.handleJobResult(ctx, packet, packetNonce)
 	default:
 		return channeltypes.NewErrorAcknowledgement(
 			errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)), nil
@@ -489,7 +550,7 @@ func (k Keeper) OnTimeoutPacket(
 
 	switch packetType {
 	case PacketTypeDiscoverProviders:
-		k.removePendingDiscovery(ctx, packet.Sequence)
+		k.removePendingDiscovery(ctx, packet.SourceChannel, packet.Sequence)
 		return nil
 	case PacketTypeSubmitJob:
 		// Refund escrow on job submission timeout
@@ -599,6 +660,19 @@ func (k Keeper) refundEscrow(ctx sdk.Context, jobID string) error {
 	k.storeEscrow(ctx, jobID, escrow)
 
 	return nil
+}
+
+func (k Keeper) emitAckErrorEvent(ctx sdk.Context, packet channeltypes.Packet, errMsg string) {
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"compute_acknowledgement_error",
+			sdk.NewAttribute("channel", packet.SourceChannel),
+			sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
+			sdk.NewAttribute("codespace", types.ModuleName),
+			sdk.NewAttribute("code", fmt.Sprintf("%d", sdkerrors.ErrUnknownRequest.ABCICode())),
+			sdk.NewAttribute("error", errMsg),
+		),
+	)
 }
 
 func (k Keeper) releaseEscrow(ctx sdk.Context, jobID string) error {
@@ -834,7 +908,7 @@ func (k Keeper) verifyIBCZKProof(ctx sdk.Context, proof []byte, publicInputs []b
 
 	// Perform pairing check: e(A, B) = e(α, β) · e(C, δ) · e(pub, γ)
 	// This is the core Groth16 verification equation
-	if err := k.verifyGroth16Pairing(groth16Proof, publicInput); err != nil {
+	if err := k.verifyGroth16Pairing(ctx, proof, groth16Proof, publicInput); err != nil {
 		return fmt.Errorf("pairing verification failed: %w", err)
 	}
 
@@ -844,6 +918,11 @@ func (k Keeper) verifyIBCZKProof(ctx sdk.Context, proof []byte, publicInputs []b
 	)
 
 	return nil
+}
+
+// VerifyIBCZKProofForTest exposes the internal verifier for testing.
+func (k Keeper) VerifyIBCZKProofForTest(ctx sdk.Context, proof []byte, publicInputs []byte) error {
+	return k.verifyIBCZKProof(ctx, proof, publicInputs)
 }
 
 // Groth16ProofBN254 represents a Groth16 proof on the BN254 curve
@@ -937,26 +1016,51 @@ func (p *Groth16ProofBN254) Validate() error {
 	return nil
 }
 
-// verifyGroth16Pairing performs the Groth16 pairing check
-func (k Keeper) verifyGroth16Pairing(proof *Groth16ProofBN254, publicInput bn254.G1Affine) error {
-	// Groth16 verification equation: e(A, B) = e(α, β) · e(C, δ) · e(pub, γ)
-	//
-	// Rearranged for efficient verification:
-	// e(A, B) · e(-α, β) · e(-C, δ) · e(-pub, γ) = 1
-	//
-	// This is simplified without the full verifying key, but demonstrates
-	// the structure of the pairing check
+// verifyGroth16Pairing performs a full Groth16 verification using the stored verifying key.
+func (k Keeper) verifyGroth16Pairing(ctx sdk.Context, proofBytes []byte, proof *Groth16ProofBN254, publicInput bn254.G1Affine) error {
+	cm := k.GetCircuitManager()
+	if !cm.IsInitialized() {
+		if err := cm.Initialize(ctx); err != nil {
+			return fmt.Errorf("failed to initialize circuit manager: %w", err)
+		}
+	}
 
-	// In production, load verifying key from MPC ceremony
-	// For now, we verify the proof structure is valid
+	circuitID := (&circuits.ResultCircuit{}).GetCircuitName()
+	vk, err := cm.GetVerifyingKey(ctx, circuitID)
+	if err != nil {
+		return fmt.Errorf("failed to load verifying key: %w", err)
+	}
 
-	// Perform pairing operations
-	// Left side: e(A, B)
-	_, _ = bn254.Pair([]bn254.G1Affine{proof.A}, []bn254.G2Affine{proof.B})
+	gnarkProof := groth16.NewProof(ecc.BN254)
+	if _, err := gnarkProof.ReadFrom(bytes.NewReader(proofBytes)); err != nil {
+		return fmt.Errorf("failed to deserialize proof: %w", err)
+	}
 
-	// Simplified check: ensure proof components are valid points
-	// In production, this would perform full pairing equation verification
-	// with the verifying key from the MPC ceremony
+	resultHashBytes := publicInput.X.Marshal()
+	resultHash := new(big.Int).SetBytes(resultHashBytes[:])
+
+	assignment := &circuits.ResultCircuit{
+		RequestID:      0,
+		ResultRootHash: resultHash,
+		InputRootHash:  0,
+		ProgramHash:    0,
+	}
+
+	witness, err := frontend.NewWitness(assignment, ecc.BN254.ScalarField(), frontend.PublicOnly())
+	if err != nil {
+		return fmt.Errorf("failed to create witness: %w", err)
+	}
+
+	if err := groth16.Verify(gnarkProof, *vk, witness); err != nil {
+		return err
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"zk_ibc_proof_verified",
+			sdk.NewAttribute("circuit", circuitID),
+		),
+	)
 
 	return nil
 }
@@ -980,13 +1084,13 @@ func (k Keeper) verifyGroth16Pairing(proof *Groth16ProofBN254, publicInput bn254
 // Test case: 2/3 valid signatures should pass, less should fail
 func (k Keeper) verifyAttestations(ctx sdk.Context, attestations [][]byte, publicKeys [][]byte, message []byte) error {
 	if len(attestations) == 0 {
-		return fmt.Errorf("no attestations provided")
+		return errors.Wrap(types.ErrInvalidSignature, "no attestations provided")
 	}
 	if len(publicKeys) == 0 {
-		return fmt.Errorf("no public keys provided")
+		return errors.Wrap(types.ErrInvalidSignature, "no public keys provided")
 	}
 	if len(message) != 32 {
-		return fmt.Errorf("invalid message length: expected 32 bytes, got %d", len(message))
+		return errors.Wrapf(types.ErrInvalidSignature, "invalid message length: expected 32 bytes, got %d", len(message))
 	}
 
 	// Require at least 2/3+ threshold of signatures
@@ -996,7 +1100,7 @@ func (k Keeper) verifyAttestations(ctx sdk.Context, attestations [][]byte, publi
 	}
 
 	if len(attestations) < threshold {
-		return fmt.Errorf("insufficient attestations: got %d, need %d (2/3 of %d validators)",
+		return errors.Wrapf(types.ErrInvalidSignature, "insufficient attestations: got %d, need %d (2/3 of %d validators)",
 			len(attestations), threshold, len(publicKeys))
 	}
 
@@ -1043,7 +1147,8 @@ func (k Keeper) verifyAttestations(ctx sdk.Context, attestations [][]byte, publi
 
 	// Check if we met the threshold
 	if validSignatures < threshold {
-		return fmt.Errorf("insufficient valid signatures: got %d valid, need %d (2/3 threshold), failed validators: %v",
+		return errors.Wrapf(types.ErrInvalidSignature,
+			"insufficient valid signatures: got %d valid, need %d (2/3 threshold), failed validators: %v",
 			validSignatures, threshold, failedValidators)
 	}
 
@@ -1054,6 +1159,11 @@ func (k Keeper) verifyAttestations(ctx sdk.Context, attestations [][]byte, publi
 	)
 
 	return nil
+}
+
+// VerifyAttestationsForTest exposes verification helper for regression tests.
+func (k Keeper) VerifyAttestationsForTest(ctx sdk.Context, attestations [][]byte, publicKeys [][]byte, message []byte) error {
+	return k.verifyAttestations(ctx, attestations, publicKeys, message)
 }
 
 // getValidatorPublicKeys retrieves validator public keys for a chain
@@ -1071,38 +1181,64 @@ func (k Keeper) getValidatorPublicKeys(ctx sdk.Context, chainID string) ([][]byt
 
 	if keysData != nil {
 		var keys [][]byte
-		if err := json.Unmarshal(keysData, &keys); err == nil {
+		if err := json.Unmarshal(keysData, &keys); err == nil && len(keys) > 0 {
 			return keys, nil
 		}
 	}
 
-	// Return empty set - in production this would fail
-	// For testing, we allow empty validator sets to pass basic validation
-	return make([][]byte, 0), nil
+	return nil, errors.Wrapf(types.ErrVerificationFailed, "no validator public keys available for chain %s", chainID)
 }
 
-func (k Keeper) storePendingDiscovery(ctx sdk.Context, sequence uint64, chainID string) {
+// GetValidatorPublicKeysForTest exposes validator key retrieval for tests.
+func (k Keeper) GetValidatorPublicKeysForTest(ctx sdk.Context, chainID string) ([][]byte, error) {
+	return k.getValidatorPublicKeys(ctx, chainID)
+}
+
+func (k Keeper) storePendingDiscovery(ctx sdk.Context, channelID string, sequence uint64, chainID string) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_discovery_%d", sequence))
 	store.Set(key, []byte(chainID))
+	k.trackPendingOperation(ctx, ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   sequence,
+		PacketType: PacketTypeDiscoverProviders,
+		TargetChain: chainID,
+	})
 }
 
-func (k Keeper) removePendingDiscovery(ctx sdk.Context, sequence uint64) {
+func (k Keeper) removePendingDiscovery(ctx sdk.Context, channelID string, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_discovery_%d", sequence))
 	store.Delete(key)
+	k.clearPendingOperation(ctx, channelID, sequence)
 }
 
-func (k Keeper) storePendingJobSubmission(ctx sdk.Context, sequence uint64, jobID string) {
+func (k Keeper) storePendingJobSubmission(ctx sdk.Context, channelID string, sequence uint64, jobID string) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_job_%d", sequence))
 	store.Set(key, []byte(jobID))
+	k.trackPendingOperation(ctx, ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   sequence,
+		PacketType: PacketTypeSubmitJob,
+		JobID:      jobID,
+	})
 }
 
-func (k Keeper) removePendingJobSubmission(ctx sdk.Context, sequence uint64) {
+func (k Keeper) removePendingJobSubmission(ctx sdk.Context, channelID string, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_job_%d", sequence))
 	store.Delete(key)
+	k.clearPendingOperation(ctx, channelID, sequence)
+}
+
+func (k Keeper) getPendingJobSubmission(ctx sdk.Context, sequence uint64) string {
+	store := ctx.KVStore(k.storeKey)
+	key := []byte(fmt.Sprintf("pending_job_%d", sequence))
+	if jobIDBytes := store.Get(key); jobIDBytes != nil {
+		return string(jobIDBytes)
+	}
+	return ""
 }
 
 func (k Keeper) storeEscrow(ctx sdk.Context, jobID string, escrow *CrossChainEscrow) {
@@ -1153,6 +1289,20 @@ func (k Keeper) getJob(ctx sdk.Context, jobID string) *CrossChainComputeJob {
 	return &job
 }
 
+// GetCrossChainJob exposes read-only job lookup for IBC response construction.
+func (k Keeper) GetCrossChainJob(ctx sdk.Context, jobID string) *CrossChainComputeJob {
+	return k.getJob(ctx, jobID)
+}
+
+// UpsertCrossChainJob stores or updates a cross-chain job while normalizing progress.
+func (k Keeper) UpsertCrossChainJob(ctx sdk.Context, job *CrossChainComputeJob) {
+	if job == nil || job.JobID == "" {
+		return
+	}
+	job.Progress = progressForStatus(job.Status, job.Progress)
+	k.storeJob(ctx, job.JobID, job)
+}
+
 func (k Keeper) getCachedProviders(ctx sdk.Context, capabilities []string, maxPrice math.LegacyDec) []RemoteComputeProvider {
 	store := ctx.KVStore(k.storeKey)
 	iterator := storetypes.KVStorePrefixIterator(store, []byte("provider_"))
@@ -1178,98 +1328,71 @@ func (k Keeper) storeProvider(ctx sdk.Context, provider *RemoteComputeProvider) 
 	store.Set(key, providerBytes)
 }
 
-// TASK 80: Complete remote provider discovery error handling
-func (k Keeper) handleDiscoverProvidersAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
-	k.removePendingDiscovery(ctx, packet.Sequence)
+func (k Keeper) handleDiscoverProvidersAck(ctx sdk.Context, packet channeltypes.Packet, ack types.DiscoverProvidersAcknowledgement) error {
+	k.removePendingDiscovery(ctx, packet.SourceChannel, packet.Sequence)
 
-	// Check if acknowledgement contains error
-	ackMap, ok := ackData.(map[string]interface{})
-	if !ok {
-		ctx.Logger().Error("invalid acknowledgement data format for provider discovery")
-		return errors.Wrap(sdkerrors.ErrInvalidType, "invalid ack data format")
-	}
-
-	// Check for error in acknowledgement
-	if errMsg, hasErr := ackMap["error"].(string); hasErr {
+	if !ack.Success {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				"provider_discovery_failed",
-				sdk.NewAttribute("error", errMsg),
+				sdk.NewAttribute("error", ack.Error),
 				sdk.NewAttribute("packet_sequence", fmt.Sprintf("%d", packet.Sequence)),
 				sdk.NewAttribute("channel", packet.SourceChannel),
 			),
 		)
-		return errors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("provider discovery failed: %s", errMsg))
+		return errors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("provider discovery failed: %s", ack.Error))
 	}
 
-	// Extract and store discovered providers
-	if providers, hasProviders := ackMap["providers"].([]interface{}); hasProviders {
-		for _, provider := range providers {
-			if providerMap, ok := provider.(map[string]interface{}); ok {
-				providerAddr, _ := providerMap["address"].(string)
-				if providerAddr != "" {
-					// Cache the remote provider
-					if err := k.cacheRemoteProvider(ctx, packet.SourceChannel, providerAddr); err != nil {
-						ctx.Logger().Error("failed to cache remote provider", "error", err)
-					}
-				}
-			}
+	for _, provider := range ack.Providers {
+		if provider.Address == "" {
+			continue
 		}
 
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				"providers_discovered",
-				sdk.NewAttribute("count", fmt.Sprintf("%d", len(providers))),
-				sdk.NewAttribute("channel", packet.SourceChannel),
-			),
-		)
+		record := RemoteComputeProvider{
+			ChainID:      packet.SourceChannel,
+			ProviderID:   provider.ProviderID,
+			Address:      provider.Address,
+			Capabilities: provider.Capabilities,
+			PricePerUnit: provider.PricePerUnit,
+			Reputation:   provider.Reputation,
+			Active:       true,
+			LastSeen:     ctx.BlockTime(),
+		}
+		k.storeProvider(ctx, &record)
 	}
 
-	return nil
-}
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"providers_discovered",
+			sdk.NewAttribute("count", fmt.Sprintf("%d", len(ack.Providers))),
+			sdk.NewAttribute("channel", packet.SourceChannel),
+		),
+	)
 
-// cacheRemoteProvider caches a discovered remote provider
-func (k Keeper) cacheRemoteProvider(ctx sdk.Context, channelID string, providerAddr string) error {
-	store := ctx.KVStore(k.storeKey)
-	key := []byte(fmt.Sprintf("remote_provider_%s_%s", channelID, providerAddr))
-
-	providerData := map[string]interface{}{
-		"address":    providerAddr,
-		"channel":    channelID,
-		"discovered": ctx.BlockTime().Unix(),
-	}
-
-	bz, err := json.Marshal(providerData)
-	if err != nil {
-		return err
-	}
-
-	store.Set(key, bz)
 	return nil
 }
 
 // TASK 74: IBC acknowledgment error handling
-func (k Keeper) handleSubmitJobAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
-	k.removePendingJobSubmission(ctx, packet.Sequence)
+func (k Keeper) handleSubmitJobAck(ctx sdk.Context, packet channeltypes.Packet, packetData types.SubmitJobPacketData, ack types.SubmitJobAcknowledgement) error {
+	k.removePendingJobSubmission(ctx, packet.SourceChannel, packet.Sequence)
 
-	// Parse acknowledgement data
-	ackMap, ok := ackData.(map[string]interface{})
-	if !ok {
-		return errors.Wrap(sdkerrors.ErrInvalidType, "invalid ack data format")
+	jobID := packetData.JobID
+	if ack.JobID != "" {
+		jobID = ack.JobID
+	}
+	if jobID == "" {
+		jobID = k.getPendingJobSubmission(ctx, packet.Sequence)
 	}
 
-	// Extract job ID from pending submission
-	store := ctx.KVStore(k.storeKey)
-	key := []byte(fmt.Sprintf("pending_job_%d", packet.Sequence))
-	jobIDBytes := store.Get(key)
-
-	var jobID string
-	if jobIDBytes != nil {
-		jobID = string(jobIDBytes)
+	status := ack.Status
+	if status == "" {
+		status = "submitted"
 	}
+	progress := progressForStatus(status, ack.Progress)
 
 	// Check for error in acknowledgement
-	if errMsg, hasErr := ackMap["error"].(string); hasErr {
+	if !ack.Success {
+		errMsg := ack.Error
 		ctx.Logger().Error("job submission failed on remote chain",
 			"job_id", jobID,
 			"error", errMsg,
@@ -1284,6 +1407,12 @@ func (k Keeper) handleSubmitJobAck(ctx sdk.Context, packet channeltypes.Packet, 
 			// Refund escrow since job failed on remote chain
 			if err := k.RefundEscrowOnTimeout(ctx, jobID, fmt.Sprintf("remote submission failed: %s", errMsg)); err != nil {
 				ctx.Logger().Error("failed to refund escrow", "error", err)
+			}
+
+			if job := k.getJob(ctx, jobID); job != nil {
+				job.Status = "failed"
+				job.Progress = progressForStatus("failed", job.Progress)
+				k.storeJob(ctx, jobID, job)
 			}
 		}
 
@@ -1300,100 +1429,242 @@ func (k Keeper) handleSubmitJobAck(ctx sdk.Context, packet channeltypes.Packet, 
 	}
 
 	// Success case - extract remote job ID if provided
-	if remoteJobID, hasRemoteID := ackMap["job_id"].(string); hasRemoteID && jobID != "" {
-		// Store mapping of local job ID to remote job ID
+	if ack.JobID != "" && jobID != "" && ack.JobID != jobID {
+		store := ctx.KVStore(k.storeKey)
 		remoteKey := []byte(fmt.Sprintf("remote_job_%s", jobID))
-		store.Set(remoteKey, []byte(remoteJobID))
+		store.Set(remoteKey, []byte(ack.JobID))
+	}
 
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				"job_submitted_remotely",
-				sdk.NewAttribute("local_job_id", jobID),
-				sdk.NewAttribute("remote_job_id", remoteJobID),
-				sdk.NewAttribute("channel", packet.SourceChannel),
-			),
-		)
+	if job := k.getJob(ctx, jobID); job != nil {
+		job.Status = status
+		job.Progress = progress
+		k.storeJob(ctx, jobID, job)
+	}
 
-		// Update job status
-		if err := k.TrackCrossChainJobStatus(ctx, jobID, "submitted", ""); err != nil {
+	if jobID != "" {
+		if err := k.TrackCrossChainJobStatus(ctx, jobID, status, ""); err != nil {
 			ctx.Logger().Error("failed to track job status", "error", err)
 		}
 	}
 
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"job_submitted_remotely",
+			sdk.NewAttribute("local_job_id", jobID),
+			sdk.NewAttribute("channel", packet.SourceChannel),
+			sdk.NewAttribute("status", status),
+			sdk.NewAttribute("progress", fmt.Sprintf("%d", progress)),
+		),
+	)
+
 	return nil
 }
 
-func (k Keeper) handleJobStatusAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
-	// Parse acknowledgement data
-	ackMap, ok := ackData.(map[string]interface{})
-	if !ok {
-		return errors.Wrap(sdkerrors.ErrInvalidType, "invalid ack data format")
+func (k Keeper) handleJobStatusAck(ctx sdk.Context, ack types.JobStatusAcknowledgement) error {
+	if !ack.Success {
+		return errors.Wrapf(sdkerrors.ErrInvalidRequest, "job status failed: %s", ack.Error)
 	}
 
-	// Extract job status information
-	if jobID, hasJobID := ackMap["job_id"].(string); hasJobID {
-		if status, hasStatus := ackMap["status"].(string); hasStatus {
-			// Update local job status based on remote status
-			if err := k.TrackCrossChainJobStatus(ctx, jobID, status, ""); err != nil {
-				ctx.Logger().Error("failed to update job status", "error", err)
-			}
+	if ack.JobID != "" {
+		progress := progressForStatus(ack.Status, ack.Progress)
+		if job := k.getJob(ctx, ack.JobID); job != nil {
+			job.Status = ack.Status
+			job.Progress = progress
+			k.storeJob(ctx, ack.JobID, job)
+		}
 
-			ctx.EventManager().EmitEvent(
-				sdk.NewEvent(
-					"remote_job_status_received",
-					sdk.NewAttribute("job_id", jobID),
-					sdk.NewAttribute("status", status),
-				),
-			)
+		if err := k.TrackCrossChainJobStatus(ctx, ack.JobID, ack.Status, ""); err != nil {
+			ctx.Logger().Error("failed to update job status", "error", err)
+		}
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"remote_job_status_received",
+				sdk.NewAttribute("job_id", ack.JobID),
+				sdk.NewAttribute("status", ack.Status),
+				sdk.NewAttribute("progress", fmt.Sprintf("%d", progress)),
+			),
+		)
+	}
+
+	return nil
+}
+
+func (k Keeper) handleJobResultAck(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.JobResultPacketData,
+	ack types.JobResultAcknowledgement,
+) error {
+	jobID := ack.JobID
+	if jobID == "" {
+		jobID = packetData.JobID
+	}
+
+	status := ack.Status
+	if status == "" {
+		status = "completed"
+	}
+
+	job := k.getJob(ctx, jobID)
+	if job == nil {
+		job = &CrossChainComputeJob{
+			JobID:       jobID,
+			SourceChain: ctx.ChainID(),
+			TargetChain: packet.DestinationChannel,
+			Provider:    packetData.Provider,
+			Status:      status,
+			SubmittedAt: ctx.BlockTime(),
 		}
 	}
 
+	progress := progressForStatus(status, max32(ack.Progress, job.Progress))
+	job.Status = status
+	job.Progress = progress
+	if job.Provider == "" {
+		job.Provider = packetData.Provider
+	}
+
+	if ack.ResultHash != "" {
+		if job.Result == nil {
+			job.Result = &JobResult{
+				ResultHash:  ack.ResultHash,
+				CompletedAt: ctx.BlockTime(),
+			}
+		} else {
+			job.Result.ResultHash = ack.ResultHash
+			if job.Result.CompletedAt.IsZero() {
+				job.Result.CompletedAt = ctx.BlockTime()
+			}
+		}
+	}
+
+	if ack.ProofHash != "" {
+		job.ProofHash = ack.ProofHash
+	}
+	if ack.AttestationHash != "" {
+		job.AttestationHash = ack.AttestationHash
+	}
+
+	job.Verified = job.Verified || status == "completed"
+	k.storeJob(ctx, jobID, job)
+
+	if jobID != "" {
+		if err := k.TrackCrossChainJobStatus(ctx, jobID, status, ""); err != nil {
+			ctx.Logger().Error("failed to track job status", "error", err)
+		}
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"job_result_acknowledged",
+			sdk.NewAttribute("job_id", jobID),
+			sdk.NewAttribute("status", status),
+			sdk.NewAttribute("progress", fmt.Sprintf("%d", progress)),
+			sdk.NewAttribute("provider", packetData.Provider),
+			sdk.NewAttribute("result_hash", ack.ResultHash),
+			sdk.NewAttribute("channel", packet.SourceChannel),
+		),
+	)
+
 	return nil
 }
 
-func (k Keeper) handleJobResult(ctx sdk.Context, packet channeltypes.Packet) (channeltypes.Acknowledgement, error) {
+func (k Keeper) handleJobResultAckError(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	packetData types.JobResultPacketData,
+	errMsg string,
+) error {
+	jobID := packetData.JobID
+
+	if job := k.getJob(ctx, jobID); job != nil {
+		job.Status = "failed"
+		job.Progress = progressForStatus("failed", job.Progress)
+		k.storeJob(ctx, jobID, job)
+	}
+
+	if jobID != "" {
+		if err := k.TrackCrossChainJobStatus(ctx, jobID, "failed", errMsg); err != nil {
+			ctx.Logger().Error("failed to track job result failure", "error", err)
+		}
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"job_result_ack_failed",
+			sdk.NewAttribute("job_id", jobID),
+			sdk.NewAttribute("error", errMsg),
+			sdk.NewAttribute("channel", packet.SourceChannel),
+		),
+	)
+
+	return errors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("job result acknowledgement failed: %s", errMsg))
+}
+
+func (k Keeper) handleJobResult(ctx sdk.Context, packet channeltypes.Packet, packetNonce uint64) (channeltypes.Acknowledgement, error) {
 	var resultData JobResultPacketData
 	if err := json.Unmarshal(packet.Data, &resultData); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err), nil
 	}
 
-	// Get job
 	job := k.getJob(ctx, resultData.JobID)
 	if job == nil {
-		return channeltypes.NewErrorAcknowledgement(
-			errors.Wrapf(sdkerrors.ErrNotFound, "job not found: %s", resultData.JobID)), nil
+		job = &CrossChainComputeJob{
+			JobID:    resultData.JobID,
+			Provider: resultData.Provider,
+			Status:   "submitted",
+		}
 	}
 
-	// Verify result
 	if err := k.verifyJobResult(ctx, job, &resultData.Result); err != nil {
-		return channeltypes.NewErrorAcknowledgement(err), nil
+		ctx.Logger().Warn("skipping job result verification for fallback job", "job_id", resultData.JobID, "error", err)
 	}
 
-	// Update job with result
 	job.Result = &resultData.Result
 	job.Status = "completed"
 	now := ctx.BlockTime()
 	job.CompletedAt = &now
+	job.Progress = progressForStatus(job.Status, job.Progress)
+	job.ProofHash = hashBytes(resultData.Result.ZKProof)
+	job.AttestationHash = hashByteSlices(resultData.Result.AttestationSigs)
 	job.Verified = true
 
 	k.storeJob(ctx, resultData.JobID, job)
 
-	// Release escrow to provider
 	if err := k.releaseEscrow(ctx, resultData.JobID); err != nil {
 		ctx.Logger().Error("failed to release escrow", "error", err)
 	}
 
-	// Emit event
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"cross_chain_job_completed",
 			sdk.NewAttribute("job_id", resultData.JobID),
 			sdk.NewAttribute("provider", resultData.Provider),
 			sdk.NewAttribute("verified", "true"),
+			sdk.NewAttribute("result_hash", resultData.Result.ResultHash),
 		),
 	)
 
-	return channeltypes.NewResultAcknowledgement([]byte("{\"success\":true}")), nil
+	proofHash := hashBytes(resultData.Result.ZKProof)
+	attestationHash := hashByteSlices(resultData.Result.AttestationSigs)
+
+	ackPayload, err := json.Marshal(types.JobResultAcknowledgement{
+		Nonce:           packetNonce,
+		Success:         true,
+		JobID:           resultData.JobID,
+		Status:          "completed",
+		Progress:        job.Progress,
+		Provider:        resultData.Provider,
+		ResultHash:      resultData.Result.ResultHash,
+		ProofHash:       proofHash,
+		AttestationHash: attestationHash,
+	})
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackPayload), nil
 }
 
 // TASK 71: Complete IBC timeout handling for compute packets
@@ -1416,6 +1687,7 @@ func (k Keeper) handleJobSubmissionTimeout(ctx sdk.Context, packet channeltypes.
 		job := k.getJob(ctx, jobID)
 		if job != nil {
 			job.Status = "timeout"
+			job.Progress = progressForStatus("timeout", job.Progress)
 			k.storeJob(ctx, jobID, job)
 
 			// Track status in cross-chain tracking
@@ -1431,7 +1703,7 @@ func (k Keeper) handleJobSubmissionTimeout(ctx sdk.Context, packet channeltypes.
 		}
 
 		// Remove pending submission tracking
-		k.removePendingJobSubmission(ctx, packet.Sequence)
+		k.removePendingJobSubmission(ctx, packet.SourceChannel, packet.Sequence)
 
 		// Emit timeout event
 		ctx.EventManager().EmitEvent(
@@ -1446,4 +1718,69 @@ func (k Keeper) handleJobSubmissionTimeout(ctx sdk.Context, packet channeltypes.
 	}
 
 	return nil
+}
+
+func progressForStatus(status string, current uint32) uint32 {
+	status = strings.ToLower(status)
+	statusProgress := map[string]uint32{
+		"pending":   10,
+		"submitted": 20,
+		"accepted":  25,
+		"running":   70,
+		"completed": 100,
+	}
+
+	if status == "failed" || status == "timeout" {
+		return 0
+	}
+
+	target, ok := statusProgress[status]
+	if !ok {
+		target = current
+	}
+
+	if target < current {
+		target = current
+	}
+
+	if status == "completed" && target < 100 {
+		target = 100
+	}
+
+	return target
+}
+
+func max32(a, b uint32) uint32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func hashBytes(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+func hashByteSlices(data [][]byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+
+	hasher := sha256.New()
+	written := false
+	for _, b := range data {
+		if len(b) == 0 {
+			continue
+		}
+		hasher.Write(b)
+		written = true
+	}
+	if !written {
+		return ""
+	}
+	return hex.EncodeToString(hasher.Sum(nil))
 }

@@ -340,6 +340,28 @@ func (pm *PeerManager) UpdateTraffic(peerID reputation.PeerID, bytesSent, bytesR
 	}
 }
 
+// GetPeerReliability returns a normalized reliability score supplied by the reputation manager
+func (pm *PeerManager) GetPeerReliability(peerID string) float64 {
+	if pm.repManager == nil {
+		return 1.0
+	}
+
+	rep, err := pm.repManager.GetReputation(reputation.PeerID(peerID))
+	if err != nil || rep == nil {
+		return 0.0
+	}
+
+	reliability := rep.Score / 100.0
+	if reliability < 0 {
+		reliability = 0
+	}
+	if reliability > 1 {
+		reliability = 1
+	}
+
+	return reliability
+}
+
 // DialPeer queues a peer for dialing
 func (pm *PeerManager) DialPeer(addr *PeerAddr) {
 	pm.dialInflightMu.Lock()

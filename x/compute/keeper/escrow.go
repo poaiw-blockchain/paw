@@ -118,15 +118,15 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		return fmt.Errorf("escrow not found for request %d: %w", requestID, err)
 	}
 
+	// Skip if already processed
+	if escrowState.Status == types.ESCROW_STATUS_RELEASED || escrowState.Status == types.ESCROW_STATUS_REFUNDED {
+		return nil
+	}
+
 	// CRITICAL: Check current status atomically
 	if escrowState.Status != types.ESCROW_STATUS_LOCKED &&
 		escrowState.Status != types.ESCROW_STATUS_CHALLENGED {
 		return fmt.Errorf("escrow cannot be released in status %s", escrowState.Status.String())
-	}
-
-	// CRITICAL: Prevent double-spending by checking release attempts
-	if escrowState.ReleaseAttempts > 0 && escrowState.Status == types.ESCROW_STATUS_RELEASED {
-		return fmt.Errorf("escrow already released (double-spend attempt detected)")
 	}
 
 	now := sdkCtx.BlockTime()
@@ -227,15 +227,14 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 		return fmt.Errorf("escrow not found for request %d: %w", requestID, err)
 	}
 
-	// CRITICAL: Check current status atomically
-	if escrowState.Status != types.ESCROW_STATUS_LOCKED &&
-		escrowState.Status != types.ESCROW_STATUS_CHALLENGED {
-		return fmt.Errorf("escrow cannot be refunded in status %s", escrowState.Status.String())
+	// Skip if already processed or not locked
+	if escrowState.Status != types.ESCROW_STATUS_LOCKED {
+		return nil
 	}
 
-	// Already refunded check
+	// Already refunded check (shouldn't happen due to status guard)
 	if escrowState.RefundedAt != nil {
-		return fmt.Errorf("escrow already refunded (double-refund attempt detected)")
+		return nil
 	}
 
 	now := sdkCtx.BlockTime()

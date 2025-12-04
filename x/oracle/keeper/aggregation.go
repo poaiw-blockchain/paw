@@ -170,21 +170,23 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 // detectAndFilterOutliers performs multi-stage statistical outlier detection
 func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, prices []types.ValidatorPrice) (*FilteredPriceData, error) {
-	if len(prices) < 3 {
-		// Need at least 3 prices for statistical analysis
-		return &FilteredPriceData{
-			ValidPrices:      prices,
-			FilteredOutliers: []OutlierDetectionResult{},
-			Median:           sdkmath.LegacyZeroDec(),
-			MAD:              sdkmath.LegacyZeroDec(),
-			IQR:              sdkmath.LegacyZeroDec(),
-		}, nil
-	}
-
 	// Extract prices for statistical analysis
 	priceValues := make([]sdkmath.LegacyDec, len(prices))
 	for i, vp := range prices {
 		priceValues[i] = vp.Price
+	}
+
+	const minSampleForAdvancedDetection = 5
+	if len(prices) < minSampleForAdvancedDetection {
+		// Preserve all submissions when the validator set is small; statistical filters are unreliable here.
+		median := k.calculateMedian(priceValues)
+		return &FilteredPriceData{
+			ValidPrices:      prices,
+			FilteredOutliers: []OutlierDetectionResult{},
+			Median:           median,
+			MAD:              sdkmath.LegacyZeroDec(),
+			IQR:              sdkmath.LegacyZeroDec(),
+		}, nil
 	}
 
 	// Stage 1: Calculate baseline statistics
@@ -595,15 +597,15 @@ func (k Keeper) calculateVotingPower(ctx context.Context, validatorPrices []type
 	totalVotingPower := int64(0)
 	validPrices := []types.ValidatorPrice{}
 
-	bondedValidators, err := k.GetBondedValidators(ctx)
-	if err != nil {
-		return 0, nil, err
-	}
+		bondedValidators, err := k.GetBondedValidators(ctx)
+		if err != nil {
+			return 0, nil, err
+		}
 
-	powerReduction := k.stakingKeeper.PowerReduction(ctx)
-	for _, val := range bondedValidators {
-		totalVotingPower += val.GetConsensusPower(powerReduction)
-	}
+		powerReduction := k.stakingKeeper.PowerReduction(ctx)
+		for _, val := range bondedValidators {
+			totalVotingPower += val.GetConsensusPower(powerReduction)
+		}
 
 	// Fallback: if no bonded validators are found (test environments), derive total power from submissions.
 	if totalVotingPower == 0 {
@@ -653,7 +655,7 @@ func (k Keeper) calculateWeightedMedian(validatorPrices []types.ValidatorPrice) 
 		totalPower += vp.VotingPower
 	}
 
-	halfPower := totalPower / 2
+	halfPower := (totalPower + 1) / 2
 	cumulativePower := int64(0)
 
 	for _, vp := range validatorPrices {
@@ -750,7 +752,6 @@ func (k Keeper) CheckMissedVotes(ctx context.Context, asset string) error {
 	if err != nil {
 		return err
 	}
-
 	validatorPrices, err := k.GetValidatorPricesByAsset(ctx, asset)
 	if err != nil {
 		return err

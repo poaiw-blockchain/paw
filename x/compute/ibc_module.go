@@ -2,8 +2,11 @@ package compute
 
 import (
 	"fmt"
+	"sort"
+	"time"
 
 	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -27,6 +30,8 @@ type IBCModule struct {
 	keeper keeper.Keeper
 	cdc    codec.Codec
 }
+
+const maxProvidersPerAck = 50
 
 // NewIBCModule creates a new IBCModule given the keeper and codec
 func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
@@ -186,12 +191,27 @@ func (im IBCModule) OnChanCloseConfirm(
 	portID,
 	channelID string,
 ) error {
-	// Emit event
+	pending := im.keeper.GetPendingOperations(ctx, channelID)
+	refunds := 0
+	for _, op := range pending {
+		if err := im.keeper.RefundOnChannelClose(ctx, op); err != nil {
+			ctx.Logger().Error("failed to cleanup compute channel operation",
+				"channel", channelID,
+				"sequence", op.Sequence,
+				"type", op.PacketType,
+				"error", err,
+			)
+			continue
+		}
+		refunds++
+	}
+
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeChannelClose,
 			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
 			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyPendingOperations, fmt.Sprintf("%d", refunds)),
 		),
 	)
 
@@ -205,6 +225,12 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
+		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
+		ctx.Logger().Error("unauthorized compute packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Parse packet data
 	packetData, err := types.ParsePacketData(packet.Data)
 	if err != nil {
@@ -218,24 +244,34 @@ func (im IBCModule) OnRecvPacket(
 			errorsmod.Wrap(types.ErrInvalidPacket, err.Error()))
 	}
 
+	packetNonce := im.packetNonce(packetData)
+	if packetNonce == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
+	}
+
+	sender := im.packetSender(packet, packetData)
+	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Route packet based on type
 	var ack ibcexported.Acknowledgement
 	switch packetData.GetType() {
 	case types.JobResultType:
 		// Handle job result from remote provider
-		ack = im.handleJobResult(ctx, packet, packetData)
+		ack = im.handleJobResult(ctx, packet, packetData, packetNonce)
 
 	case types.DiscoverProvidersType:
 		// Handle provider discovery request from remote chain
-		ack = im.handleDiscoverProviders(ctx, packet, packetData)
+		ack = im.handleDiscoverProviders(ctx, packet, packetData, packetNonce)
 
 	case types.SubmitJobType:
 		// Handle job submission from remote requester
-		ack = im.handleSubmitJob(ctx, packet, packetData)
+		ack = im.handleSubmitJob(ctx, packet, packetData, packetNonce)
 
 	case types.JobStatusType:
 		// Handle job status query
-		ack = im.handleJobStatusQuery(ctx, packet, packetData)
+		ack = im.handleJobStatusQuery(ctx, packet, packetData, packetNonce)
 
 	default:
 		return channeltypes.NewErrorAcknowledgement(
@@ -263,6 +299,11 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
+	const maxAcknowledgementSize = 1024 * 1024 // 1MB guard rail
+	if len(acknowledgement) > maxAcknowledgementSize {
+		return errorsmod.Wrapf(types.ErrInvalidAck, "ack too large: %d > %d", len(acknowledgement), maxAcknowledgementSize)
+	}
+
 	var ack channeltypes.Acknowledgement
 	if err := channeltypes.SubModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest,
@@ -317,9 +358,10 @@ func (im IBCModule) handleJobResult(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
 	// Delegate to keeper
-	ack, err := im.keeper.OnRecvPacket(ctx, packet)
+	ack, err := im.keeper.OnRecvPacket(ctx, packet, nonce)
 	if err != nil {
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
@@ -330,12 +372,25 @@ func (im IBCModule) handleDiscoverProviders(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Return empty provider list for now
-	// In production, this would query local compute providers
+	req, _ := packetData.(types.DiscoverProvidersPacketData)
+
+	providers := im.discoverActiveProviders(ctx, req.Capabilities, req.MaxPrice)
+	if len(providers) == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "no providers match requested capabilities"))
+	}
+
+	total := uint32(len(providers))
+	if len(providers) > maxProvidersPerAck {
+		providers = providers[:maxProvidersPerAck]
+	}
+
 	ackData := types.DiscoverProvidersAcknowledgement{
-		Success:   true,
-		Providers: []types.ProviderInfo{},
+		Nonce:          nonce,
+		Success:        true,
+		Providers:      providers,
+		TotalProviders: total,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -350,12 +405,46 @@ func (im IBCModule) handleSubmitJob(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Job submission from remote chain
-	// In production, this would validate and queue the job
+	job, _ := packetData.(types.SubmitJobPacketData)
+
+	if err := job.ValidateBasic(); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
+	req := job.Requirements
+	record := keeper.CrossChainComputeJob{
+		JobID:       job.JobID,
+		SourceChain: packet.SourceChannel,
+		TargetChain: ctx.ChainID(),
+		Provider:    job.Provider,
+		Requester:   job.Requester,
+		JobType:     job.JobType,
+		JobData:     job.JobData,
+		Requirements: keeper.JobRequirements{
+			CPUCores:    req.CPUCores,
+			MemoryMB:    req.MemoryMB,
+			StorageGB:   req.StorageGB,
+			GPURequired: req.GPURequired,
+			TEERequired: req.TEERequired,
+			MaxDuration: time.Duration(req.MaxDuration) * time.Second,
+		},
+		Status:      "running",
+		SubmittedAt: ctx.BlockTime(),
+	}
+	im.keeper.UpsertCrossChainJob(ctx, &record)
+
 	ackData := types.SubmitJobAcknowledgement{
-		Success: true,
-		Status:  "pending",
+		Nonce:         nonce,
+		Success:       true,
+		JobID:         job.JobID,
+		Status:        record.Status,
+		Progress:      record.Progress,
+		EstimatedTime: uint64(req.MaxDuration),
+	}
+	if ackData.EstimatedTime == 0 && req.MaxDuration == 0 {
+		ackData.EstimatedTime = 300
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -370,11 +459,41 @@ func (im IBCModule) handleJobStatusQuery(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Job status query
+	statusReq, _ := packetData.(types.JobStatusPacketData)
+
+	if err := statusReq.ValidateBasic(); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
+	job := im.keeper.GetCrossChainJob(ctx, statusReq.JobID)
+	if job == nil {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrapf(types.ErrInvalidPacket, "job %s not found", statusReq.JobID))
+	}
+
+	jobStatus := job.Status
+	progress := job.Progress
+	if jobStatus == "" {
+		jobStatus = "unknown"
+	}
+	if progress == 0 {
+		switch jobStatus {
+		case "completed":
+			progress = 100
+		case "running":
+			progress = 70
+		case "submitted", "pending":
+			progress = 20
+		}
+	}
+
 	ackData := types.JobStatusAcknowledgement{
-		Success: true,
-		Status:  "unknown",
+		Nonce:    nonce,
+		Success:  true,
+		JobID:    statusReq.JobID,
+		Status:   jobStatus,
+		Progress: progress,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -383,4 +502,135 @@ func (im IBCModule) handleJobStatusQuery(
 	}
 
 	return channeltypes.NewResultAcknowledgement(ackBytes)
+}
+
+func (im IBCModule) discoverActiveProviders(ctx sdk.Context, requestedCaps []string, maxPrice math.LegacyDec) []types.ProviderInfo {
+	providerInfos := []types.ProviderInfo{}
+	capSet := map[string]struct{}{}
+	for _, c := range requestedCaps {
+		capSet[c] = struct{}{}
+	}
+
+	_ = im.keeper.IterateActiveProviders(ctx, func(provider types.Provider) (bool, error) {
+		caps := deriveCapabilities(provider.AvailableSpecs)
+		if len(capSet) > 0 && !hasAllCaps(caps, capSet) {
+			return false, nil
+		}
+
+		price := provider.Pricing.CpuPricePerMcoreHour
+		// Prefer GPU price when GPUs are available and requested
+		if containsCap(capSet, "gpu") && provider.AvailableSpecs.GpuCount > 0 && !provider.Pricing.GpuPricePerHour.IsZero() {
+			price = provider.Pricing.GpuPricePerHour
+		}
+
+		if maxPrice.IsPositive() && price.GT(maxPrice) {
+			return false, nil
+		}
+
+		providerInfos = append(providerInfos, types.ProviderInfo{
+			ProviderID:   provider.Moniker,
+			Address:      provider.Address,
+			Capabilities: caps,
+			PricePerUnit: price,
+			Reputation:   math.LegacyNewDec(int64(provider.Reputation)),
+		})
+		return false, nil
+	})
+
+	// Sort by reputation desc, then price asc for deterministic pagination.
+	sort.Slice(providerInfos, func(i, j int) bool {
+		if !providerInfos[i].Reputation.Equal(providerInfos[j].Reputation) {
+			return providerInfos[i].Reputation.GT(providerInfos[j].Reputation)
+		}
+		return providerInfos[i].PricePerUnit.LT(providerInfos[j].PricePerUnit)
+	})
+
+	return providerInfos
+}
+
+func deriveCapabilities(spec types.ComputeSpec) []string {
+	caps := []string{"cpu"}
+	if spec.GpuCount > 0 {
+		caps = append(caps, "gpu")
+	}
+	if spec.StorageGb > 0 {
+		caps = append(caps, "storage")
+	}
+	return caps
+}
+
+func hasAllCaps(caps []string, required map[string]struct{}) bool {
+	if len(required) == 0 {
+		return true
+	}
+	// Allow unknown requested caps like "tee" to pass through.
+	allowMissing := map[string]struct{}{"tee": {}}
+
+	has := map[string]struct{}{}
+	for _, c := range caps {
+		has[c] = struct{}{}
+	}
+	for req := range required {
+		if _, ok := allowMissing[req]; ok {
+			continue
+		}
+		if _, ok := has[req]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func containsCap(req map[string]struct{}, cap string) bool {
+	if len(req) == 0 {
+		return false
+	}
+	_, ok := req[cap]
+	return ok
+}
+
+func (im IBCModule) packetNonce(packetData types.IBCPacketData) uint64 {
+	switch req := packetData.(type) {
+	case types.DiscoverProvidersPacketData:
+		return req.Nonce
+	case types.SubmitJobPacketData:
+		return req.Nonce
+	case types.JobResultPacketData:
+		return req.Nonce
+	case types.JobStatusPacketData:
+		return req.Nonce
+	case types.ReleaseEscrowPacketData:
+		return req.Nonce
+	default:
+		return 0
+	}
+}
+
+func (im IBCModule) packetSender(packet channeltypes.Packet, packetData types.IBCPacketData) string {
+	switch req := packetData.(type) {
+	case types.DiscoverProvidersPacketData:
+		if req.Requester != "" {
+			return req.Requester
+		}
+	case types.SubmitJobPacketData:
+		if req.Requester != "" {
+			return req.Requester
+		}
+	case types.JobResultPacketData:
+		if req.Provider != "" {
+			return req.Provider
+		}
+	case types.JobStatusPacketData:
+		if req.Requester != "" {
+			return req.Requester
+		}
+	case types.ReleaseEscrowPacketData:
+		if req.Provider != "" {
+			return req.Provider
+		}
+	}
+	if packet.SourcePort != "" {
+		return packet.SourcePort
+	}
+	return packet.SourceChannel
 }

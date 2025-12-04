@@ -37,6 +37,7 @@ const (
 	AttributeKeyPacketType            = "packet_type"
 	AttributeKeySequence              = "sequence"
 	AttributeKeyAckSuccess            = "ack_success"
+	AttributeKeyPendingOperations     = "pending_operations"
 )
 
 // VerificationProof represents a cryptographic proof of correct computation execution.

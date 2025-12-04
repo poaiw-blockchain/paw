@@ -158,7 +158,7 @@ circuit := &circuits.ComputeCircuit{}
 ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
 
 // 2. Setup keys (using MPC ceremony)
-ceremony := setup.NewMPCCeremony("compute-v1", ccs, setup.SecurityLevel256, beacon)
+ceremony := setup.NewMPCCeremony("compute-v1", ccs, setup.SecurityLevel256, beacon, nil)
 // ... register participants and contribute ...
 pk, vk, err := ceremony.Finalize(ctx)
 

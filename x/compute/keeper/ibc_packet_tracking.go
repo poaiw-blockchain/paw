@@ -7,17 +7,17 @@ import (
 
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/paw-chain/paw/x/compute/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 // TASK 76: IBC packet replay protection using nonce tracking
 
 // PacketNonceTracker tracks processed packet nonces to prevent replay attacks
 type PacketNonceTracker struct {
-	ChannelID string
-	Sequence  uint64
-	Processed bool
+	ChannelID   string
+	Sequence    uint64
+	Processed   bool
 	BlockHeight int64
 }
 
@@ -164,11 +164,11 @@ func (k Keeper) CleanupOldPacketNonces(ctx sdk.Context, retentionBlocks int64) e
 
 // TASK 78: Cross-chain escrow refund implementation
 type EscrowRefund struct {
-	JobID       string
-	Requester   sdk.AccAddress
-	Amount      sdk.Coins
-	RefundedAt  int64
-	Reason      string
+	JobID      string
+	Requester  sdk.AccAddress
+	Amount     sdk.Coins
+	RefundedAt int64
+	Reason     string
 }
 
 // RefundEscrowOnTimeout handles escrow refund when IBC packet times out
@@ -224,8 +224,6 @@ func (k Keeper) recordEscrowRefund(ctx sdk.Context, refund EscrowRefund) error {
 	return nil
 }
 
-
-
 // JobStatus defines the status of a cross-chain job
 type JobStatus struct {
 	JobID        string
@@ -235,6 +233,7 @@ type JobStatus struct {
 	CreatedAt    int64
 	UpdatedAt    int64
 	CompletedAt  *int64
+	Progress     uint32
 	ErrorMessage string
 }
 
@@ -245,6 +244,11 @@ func (k Keeper) TrackCrossChainJobStatus(ctx sdk.Context, jobID string, status s
 		return fmt.Errorf("job not found: %s", jobID)
 	}
 
+	progress := job.Progress
+	if progress == 0 {
+		progress = progressForStatus(status, progress)
+	}
+
 	jobStatus := JobStatus{
 		JobID:        jobID,
 		Status:       status,
@@ -252,6 +256,7 @@ func (k Keeper) TrackCrossChainJobStatus(ctx sdk.Context, jobID string, status s
 		Provider:     job.Provider,
 		CreatedAt:    ctx.BlockHeight(), // Using BlockHeight as proxy for CreatedAt if not available
 		UpdatedAt:    ctx.BlockTime().Unix(),
+		Progress:     progress,
 		ErrorMessage: errorMsg,
 	}
 
@@ -289,6 +294,7 @@ func (k Keeper) storeJobStatus(ctx sdk.Context, status JobStatus) error {
 		"requester":  status.Requester,
 		"provider":   status.Provider,
 		"updated_at": status.UpdatedAt,
+		"progress":   status.Progress,
 	}
 
 	if status.ErrorMessage != "" {
@@ -320,8 +326,19 @@ func (k Keeper) GetJobStatus(ctx sdk.Context, jobID string) (*JobStatus, error) 
 	}
 
 	status := &JobStatus{
-		JobID:    jobID,
-		Status:   statusData["status"].(string),
+		JobID:  jobID,
+		Status: statusData["status"].(string),
+	}
+
+	if progress, ok := statusData["progress"].(float64); ok {
+		status.Progress = uint32(progress)
+	}
+
+	if requester, ok := statusData["requester"].(string); ok {
+		status.Requester = requester
+	}
+	if provider, ok := statusData["provider"].(string); ok {
+		status.Provider = provider
 	}
 
 	return status, nil

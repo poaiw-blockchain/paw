@@ -37,6 +37,17 @@ message Params {
 
   // twap_lookback_window is the number of blocks to look back for TWAP calculation
   uint64 twap_lookback_window = 6;
+
+  // authorized_channels defines IBC port/channel pairs allowed to submit packets
+  repeated AuthorizedChannel authorized_channels = 7 [(gogoproto.nullable) = false];
+}
+
+// AuthorizedChannel represents a permitted source port/channel combination
+message AuthorizedChannel {
+  option (gogoproto.equal) = true;
+
+  string port_id = 1;
+  string channel_id = 2;
 }
 
 // Price represents the aggregated price for an asset

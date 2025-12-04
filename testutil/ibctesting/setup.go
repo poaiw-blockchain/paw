@@ -107,3 +107,34 @@ func (w pawTestingApp) GetTxConfig() client.TxConfig      { return w.TxConfig() 
 func (w pawTestingApp) AppCodec() codec.Codec             { return w.PAWApp.AppCodec() }
 func (w pawTestingApp) LastCommitID() storetypes.CommitID { return w.BaseApp.LastCommitID() }
 func (w pawTestingApp) LastBlockHeight() int64            { return w.BaseApp.LastBlockHeight() }
+
+// GetPAWApp unwraps the underlying PAWApp from a testing chain.
+func GetPAWApp(chain *ibctesting.TestChain) *app.PAWApp {
+	if w, ok := chain.App.(pawTestingApp); ok {
+		return w.PAWApp
+	}
+	panic("chain app is not pawTestingApp")
+}
+
+// AuthorizeModuleChannel registers a port/channel pair with the appropriate module keeper.
+func AuthorizeModuleChannel(chain *ibctesting.TestChain, portID, channelID string) {
+	pawApp := GetPAWApp(chain)
+	ctx := chain.GetContext()
+
+	switch portID {
+	case computetypes.PortID:
+		if err := pawApp.ComputeKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+			panic(err)
+		}
+	case dextypes.PortID:
+		if err := pawApp.DEXKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+			panic(err)
+		}
+	case oracletypes.PortID:
+		if err := pawApp.OracleKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+			panic(err)
+		}
+	default:
+		panic("unknown port for authorization: " + portID)
+	}
+}

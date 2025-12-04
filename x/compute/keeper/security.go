@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"time"
 
+	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/compute/types"
 )
@@ -89,21 +90,25 @@ func (k Keeper) CheckRateLimit(ctx context.Context, account sdk.AccAddress) erro
 	}
 	config := k.GetDefaultRateLimitConfig(params)
 
-	// Check all limits
-	if bucket.Tokens == 0 {
-		return fmt.Errorf("rate limit exceeded: burst capacity depleted, wait %d seconds", bucket.RefillRate)
+	// Reserve a token immediately to avoid race conditions
+	bucket.Tokens--
+	if bucket.Tokens > bucket.MaxTokens {
+		// Underflow occurred (no tokens available)
+		bucket.Tokens = 0
+		return errorsmod.Wrapf(types.ErrRateLimitExceeded, "burst capacity depleted, wait %d seconds", bucket.RefillRate)
 	}
 
 	if bucket.RequestsThisHour >= config.MaxRequestsPerHour {
-		return fmt.Errorf("rate limit exceeded: maximum %d requests per hour reached", config.MaxRequestsPerHour)
+		bucket.Tokens++
+		return errorsmod.Wrapf(types.ErrRateLimitExceeded, "maximum %d requests per hour reached", config.MaxRequestsPerHour)
 	}
 
 	if bucket.RequestsToday >= config.MaxRequestsPerDay {
-		return fmt.Errorf("rate limit exceeded: maximum %d requests per day reached", config.MaxRequestsPerDay)
+		bucket.Tokens++
+		return errorsmod.Wrapf(types.ErrRateLimitExceeded, "maximum %d requests per day reached", config.MaxRequestsPerDay)
 	}
 
-	// Consume token and increment counters
-	bucket.Tokens--
+	// Consume token confirmed and increment counters
 	bucket.RequestsThisHour++
 	bucket.RequestsToday++
 

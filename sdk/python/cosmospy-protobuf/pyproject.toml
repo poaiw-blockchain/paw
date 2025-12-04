@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cosmospy-protobuf"
+version = "1.0.0"
+description = "Production-ready Cosmos SDK protobuf bindings for Python clients"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.8"
+authors = [
+    {name = "PAW Chain", email = "dev@paw.network"}
+]
+keywords = ["cosmos", "protobuf", "grpc", "paw", "blockchain"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "protobuf>=4.23.0,<7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "grpcio-tools==1.76.0",
+    "build>=1.2.2",
+    "twine>=5.1.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/paw-chain/paw"
+Repository = "https://github.com/paw-chain/paw/tree/main/sdk/python/cosmospy-protobuf"
+Issues = "https://github.com/paw-chain/paw/issues"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+cosmospy_protobuf = ["**/*.proto"]

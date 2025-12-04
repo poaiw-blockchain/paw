@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	errorsmod "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	gogoproto "github.com/cosmos/gogoproto/proto"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -40,15 +42,6 @@ type SecurityMetrics struct {
 	CircuitBreakerActive bool
 	SuspiciousActivities uint64
 	SlashingEvents       uint64
-}
-
-// CircuitBreakerState manages emergency pause functionality
-type CircuitBreakerState struct {
-	Active       bool
-	TriggeredBy  string
-	Reason       string
-	BlockHeight  int64
-	RecoveryTime int64
 }
 
 // ValidatorSecurityProfile tracks security attributes per validator
@@ -161,7 +154,7 @@ func (k Keeper) ValidateFlashLoanResistance(ctx context.Context, asset string, p
 func (k Keeper) TriggerCircuitBreaker(ctx context.Context, asset, reason string, deviation sdkmath.LegacyDec) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	state := CircuitBreakerState{
+	state := types.CircuitBreakerState{
 		Active:       true,
 		TriggeredBy:  asset,
 		Reason:       reason,
@@ -231,34 +224,32 @@ func (k Keeper) CheckCircuitBreaker(ctx context.Context) (bool, error) {
 }
 
 // setCircuitBreakerState stores circuit breaker state
-func (k Keeper) setCircuitBreakerState(ctx context.Context, state CircuitBreakerState) error {
+func (k Keeper) setCircuitBreakerState(ctx context.Context, state types.CircuitBreakerState) error {
 	store := k.getStore(ctx)
 	key := []byte{0x08} // Circuit breaker prefix
 
-	// Simple encoding
-	value := fmt.Sprintf("%t:%s:%s:%d:%d",
-		state.Active, state.TriggeredBy, state.Reason, state.BlockHeight, state.RecoveryTime)
-	store.Set(key, []byte(value))
+	bz, err := gogoproto.Marshal(&state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal circuit breaker state: %w", err)
+	}
 
+	store.Set(key, bz)
 	return nil
 }
 
 // getCircuitBreakerState retrieves circuit breaker state
-func (k Keeper) getCircuitBreakerState(ctx context.Context) (CircuitBreakerState, error) {
+func (k Keeper) getCircuitBreakerState(ctx context.Context) (types.CircuitBreakerState, error) {
 	store := k.getStore(ctx)
 	key := []byte{0x08}
 
 	bz := store.Get(key)
 	if bz == nil {
-		return CircuitBreakerState{Active: false}, nil
+		return types.CircuitBreakerState{Active: false}, nil
 	}
 
-	var state CircuitBreakerState
-	_, err := fmt.Sscanf(string(bz), "%t:%s:%s:%d:%d",
-		&state.Active, &state.TriggeredBy, &state.Reason, &state.BlockHeight, &state.RecoveryTime)
-
-	if err != nil {
-		return CircuitBreakerState{Active: false}, err
+	var state types.CircuitBreakerState
+	if err := gogoproto.Unmarshal(bz, &state); err != nil {
+		return types.CircuitBreakerState{Active: false}, fmt.Errorf("failed to unmarshal circuit breaker state: %w", err)
 	}
 
 	return state, nil
@@ -986,8 +977,14 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 				sdkCtx.Logger().Error("failed to increment outlier count", "error", err)
 			}
 
-			return fmt.Errorf("price is statistical outlier (possible data poisoning): deviation=%s, threshold=%s",
-				deviation.String(), threshold.String())
+			return errorsmod.Wrapf(
+				types.ErrOutlierDetected,
+				"price %s deviates %s from median %s (threshold %s)",
+				price.String(),
+				deviation.String(),
+				median.String(),
+				threshold.String(),
+			)
 		}
 	}
 

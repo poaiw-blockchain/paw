@@ -88,7 +88,6 @@ func (od OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *orac
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid delegate address: %s", err)
 	}
-	_ = delegate
 
 	goCtx := sdk.WrapSDKContext(ctx)
 	isActive, err := od.keeper.IsActiveValidator(goCtx, validator)
@@ -98,6 +97,10 @@ func (od OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *orac
 
 	if !isActive {
 		return sdkerrors.ErrUnauthorized.Wrap("validator is not bonded")
+	}
+
+	if !od.keeper.IsAuthorizedFeeder(ctx, delegate, validator) {
+		return sdkerrors.ErrUnauthorized.Wrap("delegate not authorized for validator")
 	}
 
 	return nil

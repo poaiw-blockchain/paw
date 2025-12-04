@@ -186,12 +186,27 @@ func (im IBCModule) OnChanCloseConfirm(
 	portID,
 	channelID string,
 ) error {
-	// Emit event
+	pending := im.keeper.GetPendingOperations(ctx, channelID)
+	cleanup := 0
+	for _, op := range pending {
+		if err := im.keeper.RefundOnChannelClose(ctx, op); err != nil {
+			ctx.Logger().Error("failed to cleanup oracle channel operation",
+				"channel", channelID,
+				"sequence", op.Sequence,
+				"type", op.PacketType,
+				"error", err,
+			)
+			continue
+		}
+		cleanup++
+	}
+
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeChannelClose,
 			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
 			sdk.NewAttribute(types.AttributeKeyPortID, portID),
+			sdk.NewAttribute(types.AttributeKeyPendingOperations, fmt.Sprintf("%d", cleanup)),
 		),
 	)
 
@@ -205,6 +220,12 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
+		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
+		ctx.Logger().Error("unauthorized oracle packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Parse packet data
 	packetData, err := types.ParsePacketData(packet.Data)
 	if err != nil {
@@ -218,24 +239,34 @@ func (im IBCModule) OnRecvPacket(
 			errorsmod.Wrap(types.ErrInvalidPacket, err.Error()))
 	}
 
+	packetNonce := im.packetNonce(packetData)
+	if packetNonce == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
+	}
+
+	sender := im.packetSender(packet, packetData)
+	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	// Route packet based on type
 	var ack ibcexported.Acknowledgement
 	switch packetData.GetType() {
 	case types.SubscribePricesType:
 		// Handle price subscription request
-		ack = im.handleSubscribePrices(ctx, packet, packetData)
+		ack = im.handleSubscribePrices(ctx, packet, packetData, packetNonce)
 
 	case types.QueryPriceType:
 		// Handle price query
-		ack = im.handleQueryPrice(ctx, packet, packetData)
+		ack = im.handleQueryPrice(ctx, packet, packetData, packetNonce)
 
 	case types.PriceUpdateType:
 		// Handle price update broadcast
-		ack = im.handlePriceUpdate(ctx, packet, packetData)
+		ack = im.handlePriceUpdate(ctx, packet, packetData, packetNonce)
 
 	case types.OracleHeartbeatType:
 		// Handle oracle heartbeat
-		ack = im.handleOracleHeartbeat(ctx, packet, packetData)
+		ack = im.handleOracleHeartbeat(ctx, packet, packetData, packetNonce)
 
 	default:
 		return channeltypes.NewErrorAcknowledgement(
@@ -263,6 +294,11 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
+	const maxAcknowledgementSize = 1024 * 1024 // 1MB guard against malicious acknowledgements
+	if len(acknowledgement) > maxAcknowledgementSize {
+		return errorsmod.Wrapf(types.ErrInvalidAck, "ack too large: %d > %d", len(acknowledgement), maxAcknowledgementSize)
+	}
+
 	var ack channeltypes.Acknowledgement
 	if err := channeltypes.SubModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest,
@@ -317,10 +353,15 @@ func (im IBCModule) handleSubscribePrices(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Handle price subscription
+	req, _ := packetData.(types.SubscribePricesPacketData)
+
 	ackData := types.SubscribePricesAcknowledgement{
-		Success: true,
+		Nonce:             nonce,
+		Success:           true,
+		SubscribedSymbols: req.Symbols,
+		SubscriptionID:    fmt.Sprintf("sub-%s-%d", packet.SourceChannel, packet.Sequence),
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -335,10 +376,19 @@ func (im IBCModule) handleQueryPrice(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
-	// Query local price data
+	req, _ := packetData.(types.QueryPricePacketData)
+
+	priceData, err := im.keeper.BuildPriceData(ctx, req.Symbol)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err)
+	}
+
 	ackData := types.QueryPriceAcknowledgement{
-		Success: true,
+		Nonce:     nonce,
+		Success:   true,
+		PriceData: priceData,
 	}
 
 	ackBytes, err := ackData.GetBytes()
@@ -353,9 +403,10 @@ func (im IBCModule) handlePriceUpdate(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
 	// Delegate to keeper
-	ack, err := im.keeper.OnRecvPacket(ctx, packet)
+	ack, err := im.keeper.OnRecvPacket(ctx, packet, nonce)
 	if err != nil {
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
@@ -366,11 +417,52 @@ func (im IBCModule) handleOracleHeartbeat(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
 	packetData types.IBCPacketData,
+	nonce uint64,
 ) ibcexported.Acknowledgement {
 	// Delegate to keeper
-	ack, err := im.keeper.OnRecvPacket(ctx, packet)
+	ack, err := im.keeper.OnRecvPacket(ctx, packet, nonce)
 	if err != nil {
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
 	return ack
+}
+
+func (im IBCModule) packetNonce(packetData types.IBCPacketData) uint64 {
+	switch req := packetData.(type) {
+	case types.SubscribePricesPacketData:
+		return req.Nonce
+	case types.QueryPricePacketData:
+		return req.Nonce
+	case types.PriceUpdatePacketData:
+		return req.Nonce
+	case types.OracleHeartbeatPacketData:
+		return req.Nonce
+	default:
+		return 0
+	}
+}
+
+func (im IBCModule) packetSender(packet channeltypes.Packet, packetData types.IBCPacketData) string {
+	switch req := packetData.(type) {
+	case types.SubscribePricesPacketData:
+		if req.Subscriber != "" {
+			return req.Subscriber
+		}
+	case types.QueryPricePacketData:
+		if req.Sender != "" {
+			return req.Sender
+		}
+	case types.PriceUpdatePacketData:
+		if req.Source != "" {
+			return req.Source
+		}
+	case types.OracleHeartbeatPacketData:
+		if req.ChainID != "" {
+			return req.ChainID
+		}
+	}
+	if packet.SourcePort != "" {
+		return packet.SourcePort
+	}
+	return packet.SourceChannel
 }

@@ -1,19 +1,23 @@
 package ibc_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"testing"
 	"time"
 
 	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
 
-	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 
-	computetypes "github.com/paw-chain/paw/x/compute/types"
 	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
+	"github.com/paw-chain/paw/x/compute/keeper"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 
 	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
@@ -47,7 +51,59 @@ func (suite *ComputeIBCTestSuite) SetupTest() {
 	suite.path.EndpointB.ChannelConfig.Version = computetypes.IBCVersion
 	suite.path.SetChannelOrdered()
 
+	seedComputeProvider(suite.chainA)
+	seedComputeProvider(suite.chainB)
+
 	suite.coordinator.Setup(suite.path)
+
+	pawibctesting.AuthorizeModuleChannel(suite.chainA, computetypes.PortID, suite.path.EndpointA.ChannelID)
+	pawibctesting.AuthorizeModuleChannel(suite.chainB, computetypes.PortID, suite.path.EndpointB.ChannelID)
+}
+
+func seedComputeProvider(chain *ibctesting.TestChain) {
+	app := pawibctesting.GetPAWApp(chain)
+	ctx := chain.GetContext()
+
+	params, err := app.ComputeKeeper.GetParams(ctx)
+	if err != nil {
+		return
+	}
+
+	provider := chain.SenderAccount.GetAddress()
+	stake := params.MinProviderStake.Add(math.NewInt(1_000_000))
+	fund := sdk.NewCoins(sdk.NewCoin("upaw", stake.MulRaw(10)))
+
+	if err := app.BankKeeper.MintCoins(ctx, computetypes.ModuleName, fund); err != nil {
+		return
+	}
+	if err := app.BankKeeper.SendCoinsFromModuleToAccount(ctx, computetypes.ModuleName, provider, fund); err != nil {
+		return
+	}
+
+	specs := computetypes.ComputeSpec{
+		CpuCores:       2000,
+		MemoryMb:       4096,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
+		TimeoutSeconds: 3600,
+	}
+	pricing := computetypes.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyMustNewDecFromStr("0.01"),
+		MemoryPricePerMbHour:  math.LegacyMustNewDecFromStr("0.001"),
+		GpuPricePerHour:       math.LegacyMustNewDecFromStr("0.05"),
+		StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.0005"),
+	}
+
+	_ = app.ComputeKeeper.RegisterProvider(
+		sdk.WrapSDKContext(ctx),
+		provider,
+		"ibc-provider",
+		"https://provider.local",
+		specs,
+		pricing,
+		stake,
+	)
 }
 
 func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
@@ -56,6 +112,7 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 	requester := suite.chainA.SenderAccount.GetAddress()
 
 	packetData := computetypes.DiscoverProvidersPacketData{
+		Nonce:        1,
 		Type:         computetypes.DiscoverProvidersType,
 		Capabilities: []string{"gpu", "tee"},
 		MaxPrice:     math.LegacyMustNewDecFromStr("10.0"),
@@ -83,29 +140,16 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify provider list in acknowledgement
-	ackData := computetypes.DiscoverProvidersAcknowledgement{
-		Success: true,
-		Providers: []computetypes.ProviderInfo{
-			{
-				ProviderID:   "provider-1",
-				Address:      "paw1provider1...",
-				Capabilities: []string{"gpu", "tee"},
-				PricePerUnit: math.LegacyMustNewDecFromStr("5.0"),
-				Reputation:   math.LegacyMustNewDecFromStr("0.95"),
-			},
-		},
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewResultAcknowledgement(ackBytes)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData computetypes.DiscoverProvidersAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().Equal(uint64(1), ackData.Nonce)
+	suite.Require().NotEmpty(ackData.Providers)
+	suite.Require().True(ackData.Providers[0].PricePerUnit.IsPositive())
+	suite.Require().GreaterOrEqual(ackData.TotalProviders, uint32(len(ackData.Providers)))
 }
 
 func (suite *ComputeIBCTestSuite) TestSubmitJob() {
@@ -117,6 +161,7 @@ func (suite *ComputeIBCTestSuite) TestSubmitJob() {
 	escrowProof := []byte(`{"job_id":"job-1","amount":"1000000","locked_at":1234567890}`)
 
 	packetData := computetypes.SubmitJobPacketData{
+		Nonce:   1,
 		Type:    computetypes.SubmitJobType,
 		JobID:   "job-1",
 		JobType: "wasm",
@@ -156,23 +201,14 @@ func (suite *ComputeIBCTestSuite) TestSubmitJob() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify job submission acknowledgement
-	ackData := computetypes.SubmitJobAcknowledgement{
-		Success:       true,
-		JobID:         "job-1",
-		Status:        "running",
-		EstimatedTime: 1800, // 30 minutes
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewResultAcknowledgement(ackBytes)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData computetypes.SubmitJobAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().Equal(uint64(1), ackData.Nonce)
+	suite.Require().Equal("job-1", ackData.JobID)
 }
 
 func (suite *ComputeIBCTestSuite) TestReceiveJobResult() {
@@ -187,6 +223,7 @@ func (suite *ComputeIBCTestSuite) TestReceiveJobResult() {
 	}
 
 	packetData := computetypes.JobResultPacketData{
+		Nonce: 1,
 		Type:  computetypes.JobResultType,
 		JobID: "job-1",
 		Result: computetypes.JobResult{
@@ -217,9 +254,24 @@ func (suite *ComputeIBCTestSuite) TestReceiveJobResult() {
 		0,
 	)
 
-	// Receive result on chain A
-	err = suite.path.EndpointA.RecvPacket(packet)
+	sequence, err := suite.path.EndpointB.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
 	suite.Require().NoError(err)
+	packet.Sequence = sequence
+
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
+	suite.Require().NoError(err)
+
+	var ackData computetypes.JobResultAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().True(ackData.Success)
+	suite.Require().Equal(uint64(1), ackData.Nonce)
+	suite.Require().Equal("job-1", ackData.JobID)
+	suite.Require().Equal("completed", ackData.Status)
+	suite.Require().Equal(uint32(100), ackData.Progress)
+	suite.Require().Equal(packetData.Result.ResultHash, ackData.ResultHash)
+	suite.Require().Equal(hashBytes(packetData.Result.ZKProof), ackData.ProofHash)
+	suite.Require().Equal(hashByteSlices(packetData.Result.AttestationSigs), ackData.AttestationHash)
+	suite.Require().Equal(packetData.Provider, ackData.Provider)
 
 	// Verify result was stored and escrow released
 	// (In production, verify job status and escrow release)
@@ -230,7 +282,19 @@ func (suite *ComputeIBCTestSuite) TestQueryJobStatus() {
 
 	requester := suite.chainA.SenderAccount.GetAddress()
 
+	// Seed a job on the counterparty chain so the status query succeeds.
+	pawApp := pawibctesting.GetPAWApp(suite.chainB)
+	ctxB := suite.chainB.GetContext()
+	pawApp.ComputeKeeper.UpsertCrossChainJob(ctxB, &keeper.CrossChainComputeJob{
+		JobID:       "job-1",
+		Status:      "running",
+		Progress:    70,
+		Provider:    "provider-1",
+		SubmittedAt: ctxB.BlockTime(),
+	})
+
 	packetData := computetypes.JobStatusPacketData{
+		Nonce:     1,
 		Type:      computetypes.JobStatusType,
 		JobID:     "job-1",
 		Requester: requester.String(),
@@ -257,23 +321,12 @@ func (suite *ComputeIBCTestSuite) TestQueryJobStatus() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	err = suite.path.EndpointB.RecvPacket(packet)
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
-	// Verify status in acknowledgement
-	ackData := computetypes.JobStatusAcknowledgement{
-		Success:  true,
-		JobID:    "job-1",
-		Status:   "running",
-		Progress: 65,
-	}
-
-	ackBytes, err := ackData.GetBytes()
-	suite.Require().NoError(err)
-
-	ack := channeltypes.NewResultAcknowledgement(ackBytes)
-	err = suite.path.EndpointA.AcknowledgePacket(packet, ack.Acknowledgement())
-	suite.Require().NoError(err)
+	var ackData computetypes.JobStatusAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
+	suite.Require().Equal(uint64(1), ackData.Nonce)
 }
 
 func (suite *ComputeIBCTestSuite) TestJobTimeout() {
@@ -282,6 +335,7 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 	requester := suite.chainA.SenderAccount.GetAddress()
 
 	packetData := computetypes.SubmitJobPacketData{
+		Nonce:   1,
 		Type:    computetypes.SubmitJobType,
 		JobID:   "job-timeout",
 		JobType: "wasm",
@@ -303,6 +357,8 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)
 
+	timeoutHeight := suite.chainB.GetTimeoutHeight()
+
 	packet := channeltypes.NewPacket(
 		packetBytes,
 		1,
@@ -310,7 +366,7 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 		suite.path.EndpointA.ChannelID,
 		suite.path.EndpointB.ChannelConfig.PortID,
 		suite.path.EndpointB.ChannelID,
-		clienttypes.NewHeight(0, uint64(suite.chainB.GetContext().BlockHeight())+2),
+		timeoutHeight,
 		0,
 	)
 
@@ -318,10 +374,12 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 	suite.Require().NoError(err)
 	packet.Sequence = sequence
 
-	// Advance chain B past timeout
-	suite.coordinator.CommitNBlocks(suite.chainB, 10)
+	// Advance destination chain past timeout height
+	suite.coordinator.CommitNBlocks(suite.chainB, 150)
 
 	// Timeout packet
+	err = suite.path.EndpointA.UpdateClient()
+	suite.Require().NoError(err)
 	err = suite.path.EndpointA.TimeoutPacket(packet)
 	suite.Require().NoError(err)
 
@@ -342,6 +400,7 @@ func (suite *ComputeIBCTestSuite) TestZKProofVerification() {
 	}`)
 
 	packetData := computetypes.JobResultPacketData{
+		Nonce: 1,
 		Type:  computetypes.JobResultType,
 		JobID: "job-zk",
 		Result: computetypes.JobResult{
@@ -369,7 +428,11 @@ func (suite *ComputeIBCTestSuite) TestZKProofVerification() {
 		0,
 	)
 
-	err = suite.path.EndpointA.RecvPacket(packet)
+	sequence, err := suite.path.EndpointB.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
+	suite.Require().NoError(err)
+	packet.Sequence = sequence
+
+	_, _, err = suite.path.RelayPacketWithResults(packet)
 	suite.Require().NoError(err)
 
 	// Verify ZK proof was validated
@@ -384,15 +447,16 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 
 	// Submit job with escrow
 	escrowProof, _ := json.Marshal(map[string]interface{}{
-		"job_id":      "job-escrow",
-		"amount":      escrowAmount.String(),
-		"locked_at":   time.Now().Unix(),
-		"requester":   requester.String(),
-		"provider":    "provider-1",
+		"job_id":       "job-escrow",
+		"amount":       escrowAmount.String(),
+		"locked_at":    time.Now().Unix(),
+		"requester":    requester.String(),
+		"provider":     "provider-1",
 		"block_height": suite.chainA.GetContext().BlockHeight(),
 	})
 
 	submitPacket := computetypes.SubmitJobPacketData{
+		Nonce:   1,
 		Type:    computetypes.SubmitJobType,
 		JobID:   "job-escrow",
 		JobType: "docker",
@@ -426,10 +490,12 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 	sequence, err := suite.path.EndpointA.SendPacket(packet1.TimeoutHeight, packet1.TimeoutTimestamp, packet1.GetData())
 	suite.Require().NoError(err)
 	packet1.Sequence = sequence
-	suite.path.EndpointB.RecvPacket(packet1)
+	_, _, err = suite.path.RelayPacketWithResults(packet1)
+	suite.Require().NoError(err)
 
 	// Job completes successfully
 	resultPacket := computetypes.JobResultPacketData{
+		Nonce: 2,
 		Type:  computetypes.JobResultType,
 		JobID: "job-escrow",
 		Result: computetypes.JobResult{
@@ -453,8 +519,95 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 		0,
 	)
 
-	suite.path.EndpointA.RecvPacket(packet2)
+	sequence, err = suite.path.EndpointB.SendPacket(packet2.TimeoutHeight, packet2.TimeoutTimestamp, packet2.GetData())
+	suite.Require().NoError(err)
+	packet2.Sequence = sequence
+
+	_, _, err = suite.path.RelayPacketWithResults(packet2)
+	suite.Require().NoError(err)
 
 	// Verify escrow was released to provider
 	// (In production, verify provider balance increased by escrow amount)
+}
+
+func (suite *ComputeIBCTestSuite) TestOnRecvPacketRejectsDuplicateNonce() {
+	requester := suite.chainA.SenderAccount.GetAddress()
+
+	packetData := computetypes.DiscoverProvidersPacketData{
+		Type:         computetypes.DiscoverProvidersType,
+		Nonce:        1,
+		Capabilities: []string{"gpu"},
+		MaxPrice:     math.LegacyMustNewDecFromStr("10.0"),
+		Requester:    requester.String(),
+	}
+
+	ackBz, err := suite.sendDiscoverProvidersPacket(packetData)
+	suite.Require().NoError(err)
+	var ack computetypes.DiscoverProvidersAcknowledgement
+	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ack))
+	suite.Require().True(ack.Success)
+
+	ackBz, err = suite.sendDiscoverProvidersPacket(packetData)
+	suite.Require().NoError(err)
+	suite.Require().NotEmpty(ackError(suite.T(), ackBz))
+}
+
+func (suite *ComputeIBCTestSuite) sendDiscoverProvidersPacket(packetData computetypes.DiscoverProvidersPacketData) ([]byte, error) {
+	packetBytes, err := packetData.GetBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	packet := channeltypes.NewPacket(
+		packetBytes,
+		1,
+		suite.path.EndpointA.ChannelConfig.PortID,
+		suite.path.EndpointA.ChannelID,
+		suite.path.EndpointB.ChannelConfig.PortID,
+		suite.path.EndpointB.ChannelID,
+		clienttypes.NewHeight(1, 100),
+		0,
+	)
+
+	sequence, err := suite.path.EndpointA.SendPacket(packet.TimeoutHeight, packet.TimeoutTimestamp, packet.GetData())
+	if err != nil {
+		return nil, err
+	}
+	packet.Sequence = sequence
+
+	_, ackBz, err := suite.path.RelayPacketWithResults(packet)
+	if err != nil {
+		return nil, err
+	}
+
+	return ackBz, nil
+}
+
+// helper hashes mirror keeper hashing for proof and attestation aggregation
+func hashBytes(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
+}
+
+func hashByteSlices(data [][]byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+
+	hasher := sha256.New()
+	written := false
+	for _, b := range data {
+		if len(b) == 0 {
+			continue
+		}
+		hasher.Write(b)
+		written = true
+	}
+	if !written {
+		return ""
+	}
+	return hex.EncodeToString(hasher.Sum(nil))
 }

@@ -3,6 +3,8 @@ package protocol
 import (
 	"context"
 	"fmt"
+	"math"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -265,7 +267,12 @@ func (ssp *StateSyncProtocol) selectPeerForChunk(snap *snapshot.Snapshot, chunkI
 	}
 
 	// Find peers that offered this snapshot
-	var validPeers []string
+	type peerCandidate struct {
+		id          string
+		reliability float64
+	}
+
+	var candidates []peerCandidate
 	targetHeight := snap.Height
 	targetHash := fmt.Sprintf("%x", snap.Hash)
 
@@ -283,18 +290,49 @@ func (ssp *StateSyncProtocol) selectPeerForChunk(snap *snapshot.Snapshot, chunkI
 		if offer.Snapshot.Height == targetHeight {
 			offerHash := fmt.Sprintf("%x", offer.Snapshot.Hash)
 			if offerHash == targetHash {
-				validPeers = append(validPeers, peerID)
+				candidates = append(candidates, peerCandidate{
+					id:          peerID,
+					reliability: normalizeReliability(offer.Reliability),
+				})
 			}
 		}
 	}
 
-	if len(validPeers) == 0 {
+	if len(candidates) == 0 {
 		return "", fmt.Errorf("no valid peers for chunk %d", chunkIndex)
 	}
 
-	// Simple round-robin selection (could be improved with load balancing)
-	peerIndex := int(chunkIndex) % len(validPeers)
-	return validPeers[peerIndex], nil
+	// Deterministic ordering by reliability then peer ID to avoid map iteration randomness
+	sort.SliceStable(candidates, func(i, j int) bool {
+		if candidates[i].reliability == candidates[j].reliability {
+			return candidates[i].id < candidates[j].id
+		}
+		return candidates[i].reliability > candidates[j].reliability
+	})
+
+	totalWeight := 0.0
+	for _, candidate := range candidates {
+		totalWeight += candidate.reliability
+	}
+
+	if totalWeight <= 0 {
+		index := int(chunkIndex) % len(candidates)
+		return candidates[index].id, nil
+	}
+
+	fraction := math.Mod(float64(chunkIndex)*0.6180339887498949, 1.0)
+	target := fraction * totalWeight
+	cumulative := 0.0
+
+	for _, candidate := range candidates {
+		cumulative += candidate.reliability
+		if target < cumulative {
+			return candidate.id, nil
+		}
+	}
+
+	// Fallback for floating point rounding
+	return candidates[len(candidates)-1].id, nil
 }
 
 // verifyChunk verifies a downloaded chunk

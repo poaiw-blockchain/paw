@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"cosmossdk.io/errors"
@@ -109,6 +110,7 @@ type AggregatedCrossChainPrice struct {
 // SubscribePricesPacketData subscribes to price feeds from a remote oracle
 type SubscribePricesPacketData struct {
 	Type           string   `json:"type"` // "subscribe_prices"
+	Nonce          uint64   `json:"nonce"`
 	Symbols        []string `json:"symbols"`
 	UpdateInterval uint64   `json:"update_interval"` // seconds
 }
@@ -123,6 +125,7 @@ type SubscribePricesPacketAck struct {
 // QueryPricePacketData queries current price from remote oracle
 type QueryPricePacketData struct {
 	Type   string `json:"type"` // "query_price"
+	Nonce  uint64 `json:"nonce"`
 	Symbol string `json:"symbol"`
 }
 
@@ -136,6 +139,7 @@ type QueryPricePacketAck struct {
 // PriceUpdatePacketData is sent by remote oracle with price updates
 type PriceUpdatePacketData struct {
 	Type      string                `json:"type"` // "price_update"
+	Nonce     uint64                `json:"nonce"`
 	Prices    []CrossChainPriceData `json:"prices"`
 	Timestamp int64                 `json:"timestamp"`
 }
@@ -143,9 +147,114 @@ type PriceUpdatePacketData struct {
 // OracleHeartbeatPacketData for liveness monitoring
 type OracleHeartbeatPacketData struct {
 	Type          string `json:"type"` // "oracle_heartbeat"
+	Nonce         uint64 `json:"nonce"`
 	ChainID       string `json:"chain_id"`
 	Timestamp     int64  `json:"timestamp"`
 	ActiveOracles uint32 `json:"active_oracles"`
+}
+
+// GetPriceMetadata returns 24h volume and confidence for a symbol using on-chain snapshots.
+// Confidence is derived from the deviation between the current median price and TWAP, scaled by
+// snapshot density. Volume is a time-weighted proxy based on recent price movement and validator
+// participation, avoiding mocked constants in acknowledgements.
+func (k Keeper) GetPriceMetadata(ctx sdk.Context, asset string) (math.Int, math.LegacyDec) {
+	price, err := k.GetPrice(sdk.WrapSDKContext(ctx), asset)
+	if err != nil {
+		return math.ZeroInt(), math.LegacyMustNewDecFromStr("0.50")
+	}
+
+	cutoff := ctx.BlockTime().Add(-24 * time.Hour).Unix()
+	var snapshots []types.PriceSnapshot
+	if err := k.IteratePriceSnapshots(sdk.WrapSDKContext(ctx), asset, func(snapshot types.PriceSnapshot) (stop bool) {
+		if snapshot.BlockTime >= cutoff {
+			snapshots = append(snapshots, snapshot)
+		}
+		return false
+	}); err != nil {
+		return math.ZeroInt(), math.LegacyMustNewDecFromStr("0.50")
+	}
+
+	if len(snapshots) == 0 {
+		return math.ZeroInt(), math.LegacyMustNewDecFromStr("0.50")
+	}
+
+	sort.Slice(snapshots, func(i, j int) bool {
+		return snapshots[i].BlockTime < snapshots[j].BlockTime
+	})
+
+	volume := math.ZeroInt()
+	for i := 1; i < len(snapshots); i++ {
+		timeDelta := snapshots[i].BlockTime - snapshots[i-1].BlockTime
+		if timeDelta < 1 {
+			timeDelta = 1
+		}
+
+		movement := snapshots[i].Price.Sub(snapshots[i-1].Price).Abs()
+		// Scale movement by time delta to approximate activity and avoid zero-volume acks.
+		movementVolume := movement.MulInt64(timeDelta).TruncateInt()
+		volume = volume.Add(movementVolume)
+	}
+
+	if price.NumValidators > 0 {
+		volume = volume.Mul(math.NewIntFromUint64(uint64(price.NumValidators)))
+	}
+
+	twap, err := k.CalculateTWAP(sdk.WrapSDKContext(ctx), asset)
+	anchor := price.Price
+	if err == nil && !twap.IsZero() {
+		anchor = twap
+	}
+
+	deviation := price.Price.Sub(anchor).Abs()
+	if !anchor.IsZero() {
+		deviation = deviation.Quo(anchor)
+	} else {
+		deviation = math.LegacyOneDec()
+	}
+
+	if deviation.GT(math.LegacyOneDec()) {
+		deviation = math.LegacyOneDec()
+	}
+
+	baseConfidence := math.LegacyOneDec().Sub(deviation)
+	if baseConfidence.IsNegative() {
+		baseConfidence = math.LegacyZeroDec()
+	}
+
+	// Reward denser snapshot history with higher confidence.
+	sampleFactor := math.LegacyMustNewDecFromStr("0.60")
+	switch {
+	case len(snapshots) >= 6:
+		sampleFactor = math.LegacyOneDec()
+	case len(snapshots) >= 3:
+		sampleFactor = math.LegacyMustNewDecFromStr("0.80")
+	}
+
+	confidence := baseConfidence.Mul(sampleFactor)
+	if confidence.GT(math.LegacyOneDec()) {
+		confidence = math.LegacyOneDec()
+	}
+
+	return volume, confidence
+}
+
+// BuildPriceData assembles a PriceData payload from live keeper state for IBC acknowledgements.
+func (k Keeper) BuildPriceData(ctx sdk.Context, asset string) (types.PriceData, error) {
+	price, err := k.GetPrice(sdk.WrapSDKContext(ctx), asset)
+	if err != nil {
+		return types.PriceData{}, errors.Wrap(types.ErrOracleDataUnavailable, err.Error())
+	}
+
+	volume, confidence := k.GetPriceMetadata(ctx, asset)
+
+	return types.PriceData{
+		Symbol:      price.Asset,
+		Price:       price.Price,
+		Volume24h:   volume,
+		Timestamp:   price.BlockTime,
+		Confidence:  confidence,
+		OracleCount: price.NumValidators,
+	}, nil
 }
 
 // RegisterCrossChainOracleSource registers a new oracle source from another chain
@@ -219,6 +328,7 @@ func (k Keeper) SubscribeToCrossChainPrices(
 		// Create subscription packet
 		packetData := SubscribePricesPacketData{
 			Type:           PacketTypeSubscribePrices,
+			Nonce:          k.NextOutboundNonce(sdkCtx, source.ChannelID, types.PortID),
 			Symbols:        symbols,
 			UpdateInterval: updateInterval,
 		}
@@ -242,7 +352,7 @@ func (k Keeper) SubscribeToCrossChainPrices(
 		}
 
 		// Store subscription
-		k.storeSubscription(sdkCtx, chainID, symbols, sequence)
+		k.storeSubscription(sdkCtx, source.ChannelID, chainID, symbols, sequence)
 	}
 
 	return nil
@@ -269,6 +379,7 @@ func (k Keeper) QueryCrossChainPrice(
 	// Create query packet
 	packetData := QueryPricePacketData{
 		Type:   PacketTypeQueryPrice,
+		Nonce:  k.NextOutboundNonce(sdkCtx, source.ChannelID, types.PortID),
 		Symbol: symbol,
 	}
 
@@ -292,7 +403,7 @@ func (k Keeper) QueryCrossChainPrice(
 	k.updateOracleQueryStats(sdkCtx, sourceChainID, true)
 
 	// Store pending query (result will come via OnAcknowledgement)
-	k.storePendingPriceQuery(sdkCtx, sequence, symbol, sourceChainID)
+	k.storePendingPriceQuery(sdkCtx, source.ChannelID, sequence, symbol, sourceChainID)
 
 	// Return cached price if available
 	cachedPrice := k.getCachedPrice(sdkCtx, symbol, sourceChainID)
@@ -378,6 +489,22 @@ func (k Keeper) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	ack channeltypes.Acknowledgement,
 ) error {
+	if !ack.Success() {
+		// Error acknowledgements carry no result payload; emit event and return.
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"oracle_acknowledgement_error",
+				sdk.NewAttribute("packet_sequence", fmt.Sprintf("%d", packet.Sequence)),
+				sdk.NewAttribute("channel", packet.SourceChannel),
+				sdk.NewAttribute("codespace", types.ModuleName),
+				sdk.NewAttribute("code", fmt.Sprintf("%d", sdkerrors.ErrUnknownRequest.ABCICode())),
+				sdk.NewAttribute("error", ack.GetError()),
+			),
+		)
+		return nil
+	}
+
 	var ackData interface{}
 	if err := json.Unmarshal(ack.GetResult(), &ackData); err != nil {
 		return errors.Wrap(err, "failed to unmarshal acknowledgement")
@@ -408,6 +535,7 @@ func (k Keeper) OnAcknowledgementPacket(
 func (k Keeper) OnRecvPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
+	packetNonce uint64,
 ) (channeltypes.Acknowledgement, error) {
 	var packetData map[string]interface{}
 	if err := json.Unmarshal(packet.Data, &packetData); err != nil {
@@ -422,9 +550,9 @@ func (k Keeper) OnRecvPacket(
 
 	switch packetType {
 	case PacketTypePriceUpdate:
-		return k.handlePriceUpdate(ctx, packet)
+		return k.handlePriceUpdate(ctx, packet, packetNonce)
 	case PacketTypeOracleHeartbeat:
-		return k.handleOracleHeartbeat(ctx, packet)
+		return k.handleOracleHeartbeat(ctx, packet, packetNonce)
 	default:
 		return channeltypes.NewErrorAcknowledgement(
 			errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)), nil
@@ -454,10 +582,10 @@ func (k Keeper) OnTimeoutPacket(
 
 	switch packetType {
 	case PacketTypeSubscribePrices:
-		k.removePendingSubscription(ctx, packet.Sequence)
+		k.removePendingSubscription(ctx, packet.SourceChannel, packet.Sequence)
 		return nil
 	case PacketTypeQueryPrice:
-		k.removePendingPriceQuery(ctx, packet.Sequence)
+		k.removePendingPriceQuery(ctx, packet.SourceChannel, packet.Sequence)
 		return nil
 	default:
 		return errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
@@ -541,7 +669,7 @@ func (k Keeper) getAllActiveSources(ctx sdk.Context) []CrossChainOracleSource {
 	return sources
 }
 
-func (k Keeper) storeSubscription(ctx sdk.Context, chainID string, symbols []string, sequence uint64) {
+func (k Keeper) storeSubscription(ctx sdk.Context, channelID, chainID string, symbols []string, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("subscription_%d", sequence))
 	value, _ := json.Marshal(map[string]interface{}{
@@ -549,25 +677,29 @@ func (k Keeper) storeSubscription(ctx sdk.Context, chainID string, symbols []str
 		"symbols":  symbols,
 	})
 	store.Set(key, value)
+	k.trackPendingOperation(ctx, channelID, chainID, PacketTypeSubscribePrices, sequence)
 }
 
-func (k Keeper) storePendingPriceQuery(ctx sdk.Context, sequence uint64, symbol, chainID string) {
+func (k Keeper) storePendingPriceQuery(ctx sdk.Context, channelID string, sequence uint64, symbol, chainID string) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_price_query_%d", sequence))
 	value := []byte(fmt.Sprintf("%s:%s", symbol, chainID))
 	store.Set(key, value)
+	k.trackPendingOperation(ctx, channelID, chainID, PacketTypeQueryPrice, sequence)
 }
 
-func (k Keeper) removePendingPriceQuery(ctx sdk.Context, sequence uint64) {
+func (k Keeper) removePendingPriceQuery(ctx sdk.Context, channelID string, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_price_query_%d", sequence))
 	store.Delete(key)
+	k.clearPendingOperation(ctx, channelID, sequence)
 }
 
-func (k Keeper) removePendingSubscription(ctx sdk.Context, sequence uint64) {
+func (k Keeper) removePendingSubscription(ctx sdk.Context, channelID string, sequence uint64) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("subscription_%d", sequence))
 	store.Delete(key)
+	k.clearPendingOperation(ctx, channelID, sequence)
 }
 
 func (k Keeper) getCachedPrice(ctx sdk.Context, symbol, chainID string) *CrossChainPriceData {
@@ -654,16 +786,16 @@ func (k Keeper) penalizeOracleSource(ctx sdk.Context, chainID string, reason str
 }
 
 func (k Keeper) handleSubscribeAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
-	k.removePendingSubscription(ctx, packet.Sequence)
+	k.removePendingSubscription(ctx, packet.SourceChannel, packet.Sequence)
 	return nil
 }
 
 func (k Keeper) handleQueryPriceAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
-	k.removePendingPriceQuery(ctx, packet.Sequence)
+	k.removePendingPriceQuery(ctx, packet.SourceChannel, packet.Sequence)
 	return nil
 }
 
-func (k Keeper) handlePriceUpdate(ctx sdk.Context, packet channeltypes.Packet) (channeltypes.Acknowledgement, error) {
+func (k Keeper) handlePriceUpdate(ctx sdk.Context, packet channeltypes.Packet, packetNonce uint64) (channeltypes.Acknowledgement, error) {
 	var updateData PriceUpdatePacketData
 	if err := json.Unmarshal(packet.Data, &updateData); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err), nil
@@ -676,10 +808,20 @@ func (k Keeper) handlePriceUpdate(ctx sdk.Context, packet channeltypes.Packet) (
 		k.storeCachedPrice(ctx, price.Symbol, sourceChain, &price)
 	}
 
-	return channeltypes.NewResultAcknowledgement([]byte("{\"success\":true}")), nil
+	ackData := types.PriceUpdateAcknowledgement{
+		Nonce:   packetNonce,
+		Success: true,
+	}
+
+	ackBytes, err := ackData.GetBytes()
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackBytes), nil
 }
 
-func (k Keeper) handleOracleHeartbeat(ctx sdk.Context, packet channeltypes.Packet) (channeltypes.Acknowledgement, error) {
+func (k Keeper) handleOracleHeartbeat(ctx sdk.Context, packet channeltypes.Packet, packetNonce uint64) (channeltypes.Acknowledgement, error) {
 	var heartbeat OracleHeartbeatPacketData
 	if err := json.Unmarshal(packet.Data, &heartbeat); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err), nil
@@ -699,7 +841,17 @@ func (k Keeper) handleOracleHeartbeat(ctx sdk.Context, packet channeltypes.Packe
 	sourceBytes, _ := json.Marshal(source)
 	store.Set(sourceKey, sourceBytes)
 
-	return channeltypes.NewResultAcknowledgement([]byte("{\"success\":true}")), nil
+	ackData := types.OracleHeartbeatAcknowledgement{
+		Nonce:   packetNonce,
+		Success: true,
+	}
+
+	ackBytes, err := ackData.GetBytes()
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
+	}
+
+	return channeltypes.NewResultAcknowledgement(ackBytes), nil
 }
 
 // extractSourceChain identifies the source blockchain from an IBC packet.

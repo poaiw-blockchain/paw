@@ -45,6 +45,9 @@ var (
 
 	// RateLimitByHeightPrefix is the prefix for indexing rate limits by block height for cleanup
 	RateLimitByHeightPrefix = []byte{0x0D}
+
+	// PoolTWAPKeyPrefix stores pool TWAP snapshots
+	PoolTWAPKeyPrefix = []byte{0x0E}
 )
 
 // PoolKey returns the store key for a pool by ID
@@ -152,4 +155,11 @@ func RateLimitByHeightPrefixForHeight(height int64) []byte {
 	heightBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(heightBytes, uint64(height))
 	return append(RateLimitByHeightPrefix, heightBytes...)
+}
+
+// PoolTWAPKey returns the store key for pool TWAP data
+func PoolTWAPKey(poolID uint64) []byte {
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	return append(PoolTWAPKeyPrefix, poolIDBytes...)
 }

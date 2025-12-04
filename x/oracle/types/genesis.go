@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	sdkmath "cosmossdk.io/math"
 )
@@ -34,6 +35,14 @@ func (gs GenesisState) Validate() error {
 	}
 	if p.TwapLookbackWindow == 0 {
 		return fmt.Errorf("twap lookback window must be positive")
+	}
+	for _, ch := range p.AuthorizedChannels {
+		if strings.TrimSpace(ch.PortId) == "" {
+			return fmt.Errorf("authorized channel port_id cannot be empty")
+		}
+		if strings.TrimSpace(ch.ChannelId) == "" {
+			return fmt.Errorf("authorized channel channel_id cannot be empty")
+		}
 	}
 
 	return nil

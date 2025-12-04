@@ -646,7 +646,10 @@ func (app *PAWApp) GetKey(storeKey string) *storetypes.KVStoreKey {
 
 // GetSubspace returns a param subspace for a given module name.
 func (app *PAWApp) GetSubspace(moduleName string) paramstypes.Subspace {
-	subspace, _ := app.ParamsKeeper.GetSubspace(moduleName)
+	subspace, found := app.ParamsKeeper.GetSubspace(moduleName)
+	if !found {
+		panic(fmt.Sprintf("subspace not found for module: %s", moduleName))
+	}
 	return subspace
 }
 
@@ -767,7 +770,9 @@ func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []
 		if err != nil {
 			panic(err)
 		}
-		_, _ = app.DistrKeeper.WithdrawValidatorCommission(ctx, valBz)
+		if _, err := app.DistrKeeper.WithdrawValidatorCommission(ctx, valBz); err != nil {
+			ctx.Logger().Error("failed to withdraw commission", "validator", val.GetOperator(), "error", err)
+		}
 		return false
 	})
 	if err != nil {
@@ -790,7 +795,14 @@ func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []
 			panic(err)
 		}
 
-		_, _ = app.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
+		if _, err := app.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr); err != nil {
+			ctx.Logger().Error(
+				"failed to withdraw delegation rewards",
+				"delegator", delAddr.String(),
+				"validator", valAddr.String(),
+				"error", err,
+			)
+		}
 	}
 
 	// Clear validator slash events

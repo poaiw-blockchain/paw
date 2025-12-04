@@ -611,6 +611,39 @@ func (cm *CircuitManager) ExportVerifyingKeys() (map[string][]byte, error) {
 	return keys, nil
 }
 
+// GetVerifyingKey returns the verifying key for the requested circuit.
+func (cm *CircuitManager) GetVerifyingKey(ctx context.Context, circuitID string) (*groth16.VerifyingKey, error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	if !cm.initialized {
+		return nil, fmt.Errorf("circuit manager not initialized")
+	}
+
+	switch circuitID {
+	case (&circuits.ComputeCircuit{}).GetCircuitName():
+		if cm.computeVerifyingKey == nil {
+			return nil, fmt.Errorf("compute verifying key unavailable")
+		}
+		vk := cm.computeVerifyingKey
+		return &vk, nil
+	case (&circuits.EscrowCircuit{}).GetCircuitName():
+		if cm.escrowVerifyingKey == nil {
+			return nil, fmt.Errorf("escrow verifying key unavailable")
+		}
+		vk := cm.escrowVerifyingKey
+		return &vk, nil
+	case (&circuits.ResultCircuit{}).GetCircuitName():
+		if cm.resultVerifyingKey == nil {
+			return nil, fmt.Errorf("result verifying key unavailable")
+		}
+		vk := cm.resultVerifyingKey
+		return &vk, nil
+	default:
+		return nil, fmt.Errorf("unknown circuit: %s", circuitID)
+	}
+}
+
 // GetCircuitStats returns statistics about circuit usage.
 func (cm *CircuitManager) GetCircuitStats(ctx context.Context) (*CircuitStats, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -633,10 +666,10 @@ func (cm *CircuitManager) GetCircuitStats(ctx context.Context) (*CircuitStats, e
 
 // CircuitStats tracks circuit usage metrics.
 type CircuitStats struct {
-	TotalComputeProofs uint64 `json:"total_compute_proofs"`
-	TotalEscrowProofs  uint64 `json:"total_escrow_proofs"`
-	TotalResultProofs  uint64 `json:"total_result_proofs"`
+	TotalComputeProofs  uint64 `json:"total_compute_proofs"`
+	TotalEscrowProofs   uint64 `json:"total_escrow_proofs"`
+	TotalResultProofs   uint64 `json:"total_result_proofs"`
 	FailedVerifications uint64 `json:"failed_verifications"`
-	TotalGasConsumed   uint64 `json:"total_gas_consumed"`
-	LastUpdated        int64  `json:"last_updated"`
+	TotalGasConsumed    uint64 `json:"total_gas_consumed"`
+	LastUpdated         int64  `json:"last_updated"`
 }

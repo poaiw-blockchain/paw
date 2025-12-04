@@ -54,7 +54,15 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	}
 
 	// Calculate swap output using constant product formula with fees
-	amountOut, err := k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
+	amountInAfterFee := amountIn.Sub(feeAmount)
+	if amountInAfterFee.IsNegative() {
+		return math.ZeroInt(), fmt.Errorf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
+	}
+	if amountInAfterFee.IsZero() {
+		return math.ZeroInt(), fmt.Errorf("swap amount too small after fees")
+	}
+	amountOut, err := k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -64,15 +72,12 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		return math.ZeroInt(), fmt.Errorf("slippage too high: expected at least %s, got %s", minAmountOut, amountOut)
 	}
 
-	// Calculate fees
-	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
-
 	// Update pool reserves
 	if isTokenAIn {
-		pool.ReserveA = pool.ReserveA.Add(amountIn)
+		pool.ReserveA = pool.ReserveA.Add(amountInAfterFee)
 		pool.ReserveB = pool.ReserveB.Sub(amountOut)
 	} else {
-		pool.ReserveB = pool.ReserveB.Add(amountIn)
+		pool.ReserveB = pool.ReserveB.Add(amountInAfterFee)
 		pool.ReserveA = pool.ReserveA.Sub(amountOut)
 	}
 
@@ -92,6 +97,14 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	}
 
 	// Transfer output tokens from module to trader
+	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
+	if err != nil {
+		return math.ZeroInt(), err
+	}
+	feeAmount, err = SafeAdd(lpFee, protocolFee)
+	if err != nil {
+		return math.ZeroInt(), err
+	}
 	coinOut := sdk.NewCoin(tokenOut, amountOut)
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
 		return math.ZeroInt(), fmt.Errorf("failed to transfer output tokens: %w", err)
@@ -184,7 +197,15 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 	}
 
 	// Calculate swap output
-	return k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
+	amountInAfterFee := amountIn.Sub(feeAmount)
+	if amountInAfterFee.IsNegative() {
+		return math.ZeroInt(), fmt.Errorf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
+	}
+	if amountInAfterFee.IsZero() {
+		return math.ZeroInt(), fmt.Errorf("swap amount too small after fees")
+	}
+	return k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 }
 
 // Swap wraps the secure swap execution path for scenarios that expect a simple swap entrypoint.

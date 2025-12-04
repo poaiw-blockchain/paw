@@ -60,10 +60,13 @@ func (cd ComputeDecorator) validateSubmitRequest(ctx sdk.Context, msg *computety
 
 	// Consume gas for validation
 	ctx.GasMeter().ConsumeGas(1000, "compute request validation")
-	_ = requester
 
 	if msg.MaxPayment.IsNegative() {
 		return sdkerrors.ErrInvalidRequest.Wrap("max payment must be non-negative")
+	}
+
+	if err := cd.keeper.ValidateRequesterBalance(ctx, requester, msg.MaxPayment); err != nil {
+		return err
 	}
 
 	return nil

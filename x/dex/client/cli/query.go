@@ -36,6 +36,8 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryLimitOrdersByOwner(),
 		GetCmdQueryLimitOrdersByPool(),
 		GetCmdQueryOrderBook(),
+		GetAdvancedQueryCmd(),
+		GetStatsQueryCmd(),
 	)
 
 	return dexQueryCmd

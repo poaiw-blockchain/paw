@@ -16,6 +16,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	sdkstd "github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -29,6 +30,7 @@ import (
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
+	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
@@ -83,6 +85,7 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	require.NoError(t, stateStore.LoadLatestVersion())
 
 	registry := codectypes.NewInterfaceRegistry()
+	sdkstd.RegisterInterfaces(registry)
 	banktypes.RegisterInterfaces(registry)
 	stakingtypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
@@ -146,10 +149,11 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 
 	capKeeper := capabilitykeeper.NewKeeper(cdc, capStoreKey, capMemStoreKey)
 	scopedOracleKeeper := capKeeper.ScopeToModule(types.ModuleName)
+	scopedPortKeeper := capKeeper.ScopeToModule(porttypes.SubModuleName)
+	portKeeper := portkeeper.NewKeeper(scopedPortKeeper)
 	oracleStakingKeeper = stakingKeeper
 
 	var ibcKeeper *ibckeeper.Keeper
-	var portKeeper *portkeeper.Keeper
 
 	k := keeper.NewKeeper(
 		cdc,
@@ -158,12 +162,13 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		stakingKeeper,
 		slashingKeeper,
 		ibcKeeper,
-		portKeeper,
+		&portKeeper,
 		authority.String(),
 		scopedOracleKeeper,
 	)
 
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+	require.NoError(t, stakingKeeper.SetParams(ctx, stakingtypes.DefaultParams()))
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 
 	return k, ctx

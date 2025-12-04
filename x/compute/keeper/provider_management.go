@@ -457,14 +457,34 @@ func (k Keeper) HandleRequestTimeout(ctx context.Context, requestID uint64) erro
 		sdkCtx.Logger().Error("failed to refund escrow on timeout", "error", err)
 	}
 
-	// Penalize provider reputation
-	// if !request.Provider.Empty() {
-	// 	if rep, err := k.GetProviderReputation(ctx, request.Provider); err == nil {
-	// 		rep.FailedRequests++
-	// 		rep.ReliabilityScore *= 0.90 // 10% penalty
-	// 		k.SetProviderReputation(ctx, *rep)
-	// 	}
-	// }
+	now := sdkCtx.BlockTime()
+
+	// Penalize provider reputation (10% reliability penalty) if provider is set
+	if len(request.Provider) > 0 {
+		providerAddr, addrErr := sdk.AccAddressFromBech32(request.Provider)
+		if addrErr != nil {
+			sdkCtx.Logger().Error("invalid provider address on timed-out request", "provider", request.Provider, "error", addrErr)
+		} else if rep, err := k.GetProviderReputation(ctx, providerAddr); err == nil {
+			rep.FailedRequests++
+			rep.ReliabilityScore *= 0.90
+			if rep.ReliabilityScore < 0 {
+				rep.ReliabilityScore = 0
+			}
+			rep.LastUpdateTimestamp = now
+			rep.OverallScore = recalculateOverallScore(rep)
+
+			if err := k.SetProviderReputation(ctx, *rep); err != nil {
+				sdkCtx.Logger().Error("failed to persist reputation penalty", "provider", request.Provider, "error", err)
+			} else if providerRecord, err := k.GetProvider(ctx, providerAddr); err == nil {
+				providerRecord.Reputation = rep.OverallScore
+				if err := k.SetProvider(ctx, *providerRecord); err != nil {
+					sdkCtx.Logger().Error("failed to update provider with penalized reputation", "provider", request.Provider, "error", err)
+				}
+			}
+		} else {
+			sdkCtx.Logger().Error("failed to load provider reputation for timeout penalty", "provider", request.Provider, "error", err)
+		}
+	}
 
 	// Update request status
 	request.Status = types.REQUEST_STATUS_FAILED // timeout -> failed
@@ -480,6 +500,21 @@ func (k Keeper) HandleRequestTimeout(ctx context.Context, requestID uint64) erro
 	)
 
 	return nil
+}
+
+func recalculateOverallScore(rep *types.ProviderReputation) uint32 {
+	overall := 0.4*rep.ReliabilityScore +
+		0.3*rep.AccuracyScore +
+		0.2*rep.SpeedScore +
+		0.1*rep.AvailabilityScore
+
+	if overall < 0 {
+		overall = 0
+	} else if overall > 1 {
+		overall = 1
+	}
+
+	return uint32(overall * 100)
 }
 
 // TASK 120: Request priority queue

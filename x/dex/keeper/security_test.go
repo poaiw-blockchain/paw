@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
+	"github.com/stretchr/testify/require"
+
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
-	"github.com/stretchr/testify/require"
 )
 
 // TestReentrancyProtection tests that reentrancy attacks are prevented
@@ -345,64 +347,80 @@ func TestCircuitBreakerMechanism(t *testing.T) {
 // TestCalculateSwapOutputSecurity tests swap calculation with all validations
 func TestCalculateSwapOutputSecurity(t *testing.T) {
 	tests := []struct {
-		name       string
-		amountIn   math.Int
-		reserveIn  math.Int
-		reserveOut math.Int
-		swapFee    math.LegacyDec
-		expectErr  bool
-		errMsg     string
+		name            string
+		amountIn        math.Int
+		reserveIn       math.Int
+		reserveOut      math.Int
+		swapFee         math.LegacyDec
+		maxDrainPercent math.LegacyDec
+		expectErr       bool
+		errMsg          string
 	}{
 		{
-			name:       "valid swap",
-			amountIn:   math.NewInt(100),
-			reserveIn:  math.NewInt(10000),
-			reserveOut: math.NewInt(10000),
-			swapFee:    math.LegacyNewDecWithPrec(3, 3),
-			expectErr:  false,
+			name:            "valid swap",
+			amountIn:        math.NewInt(100),
+			reserveIn:       math.NewInt(10000),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       false,
 		},
 		{
-			name:       "zero input",
-			amountIn:   math.ZeroInt(),
-			reserveIn:  math.NewInt(10000),
-			reserveOut: math.NewInt(10000),
-			swapFee:    math.LegacyNewDecWithPrec(3, 3),
-			expectErr:  true,
-			errMsg:     "must be positive",
+			name:            "zero input",
+			amountIn:        math.ZeroInt(),
+			reserveIn:       math.NewInt(10000),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       true,
+			errMsg:          "must be positive",
 		},
 		{
-			name:       "zero reserve in",
-			amountIn:   math.NewInt(100),
-			reserveIn:  math.ZeroInt(),
-			reserveOut: math.NewInt(10000),
-			swapFee:    math.LegacyNewDecWithPrec(3, 3),
-			expectErr:  true,
-			errMsg:     "must be positive",
+			name:            "zero reserve in",
+			amountIn:        math.NewInt(100),
+			reserveIn:       math.ZeroInt(),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       true,
+			errMsg:          "must be positive",
 		},
 		{
-			name:       "invalid fee (>= 1)",
-			amountIn:   math.NewInt(100),
-			reserveIn:  math.NewInt(10000),
-			reserveOut: math.NewInt(10000),
-			swapFee:    math.LegacyNewDec(1),
-			expectErr:  true,
-			errMsg:     "fee must be in range",
+			name:            "invalid fee (>= 1)",
+			amountIn:        math.NewInt(100),
+			reserveIn:       math.NewInt(10000),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDec(1),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       true,
+			errMsg:          "fee must be in range",
 		},
 		{
-			name:       "output would drain pool",
-			amountIn:   math.NewInt(100000),
-			reserveIn:  math.NewInt(10000),
-			reserveOut: math.NewInt(10000),
-			swapFee:    math.LegacyNewDecWithPrec(3, 3),
-			expectErr:  true,
-			errMsg:     "swap too large",
+			name:            "output would drain pool",
+			amountIn:        math.NewInt(100000),
+			reserveIn:       math.NewInt(10000),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       true,
+			errMsg:          "swap too large",
+		},
+		{
+			name:            "exceeds governance drain limit",
+			amountIn:        math.NewInt(50000),
+			reserveIn:       math.NewInt(10000),
+			reserveOut:      math.NewInt(10000),
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),
+			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2),
+			expectErr:       true,
+			errMsg:          "drain too much liquidity",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := keeper.Keeper{}
-			output, err := k.CalculateSwapOutputSecure(nil, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee)
+			output, err := k.CalculateSwapOutputSecure(nil, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -418,9 +436,21 @@ func TestCalculateSwapOutputSecurity(t *testing.T) {
 
 // TestFlashLoanProtection tests minimum lock period enforcement
 func TestFlashLoanProtection(t *testing.T) {
-	// This would require a full keeper setup with context
-	// Here we verify the logic exists
-	require.Equal(t, int64(1), keeper.MinLPLockBlocks)
+	k, ctx := keepertest.DexKeeper(t)
+	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		math.NewInt(1_000_000), math.NewInt(1_000_000))
+	provider := types.TestAddr()
+
+	ctx = ctx.WithBlockHeight(50)
+	require.NoError(t, k.SetLastLiquidityActionBlock(ctx, poolID, provider))
+
+	ctx = ctx.WithBlockHeight(55) // Only 5 blocks elapsed; default is 10
+	err := k.CheckFlashLoanProtection(ctx, poolID, provider)
+	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
+
+	ctx = ctx.WithBlockHeight(65)
+	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
+	require.NoError(t, err)
 }
 
 // TestMaxPoolsLimit tests DoS protection via pool limit

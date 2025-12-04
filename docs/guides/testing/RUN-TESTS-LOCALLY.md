@@ -8,6 +8,12 @@ Stop paying for  Actions minutes! This guide shows you how to run all the same t
 - One-shot local suite: `make test-local` (uses `GOTOOLCHAIN=go1.23.1`, cleans caches, runs `go test ./...`)
 - On Windows PowerShell: `pwsh -File scripts/local-test.ps1`
 
+### Devnet Smoke Tests (Phase 1)
+- Bring up the 4-node dockerized devnet and run on-chain smoke tests:  
+  `./scripts/devnet/smoke_tests.sh`
+- The script waits for RPC readiness, sends a bank transfer, creates a DEX pool, and executes a swap.  
+  Set `PAW_SMOKE_KEEP_STACK=1` to leave the containers running for manual debugging.
+
 ### Windows (PowerShell)
 ```powershell
 # Run complete CI pipeline
@@ -177,6 +183,16 @@ source .venv/bin/activate
 # Install dependencies
 make install
 ```
+
+### CosmoPy Protobuf Bindings
+The Python SDK now depends on the `cosmospy-protobuf` wheel bundled in this repository.  
+Run the helper script once (or anytime you recreate `.venv-pytest`) to install both wheels in the correct order:
+
+```bash
+scripts/python/setup_paw_sdk.sh
+```
+
+This bootstraps `.venv-pytest`, installs `sdk/python/cosmospy-protobuf`, and finally installs `archive/sdk/python[dev]` so `pip` never reaches out to PyPI for unpublished artifacts.
 
 ## 💰 Cost Savings
 

@@ -59,6 +59,19 @@ func (suite *SecurityIntegrationSuite) advanceBlock(blocks int64) {
 	suite.ctx = suite.ctx.WithBlockHeader(header)
 }
 
+func (suite *SecurityIntegrationSuite) flashLoanProtectionBlocks() int64 {
+	params, err := suite.keeper.GetParams(sdk.WrapSDKContext(suite.ctx))
+	suite.Require().NoError(err)
+	if params.FlashLoanProtectionBlocks == 0 {
+		return keeper.DefaultFlashLoanProtectionBlocks
+	}
+	return int64(params.FlashLoanProtectionBlocks)
+}
+
+func (suite *SecurityIntegrationSuite) advanceFlashLoanWindow() {
+	suite.advanceBlock(suite.flashLoanProtectionBlocks())
+}
+
 // ========== REENTRANCY ATTACK TESTS ==========
 
 // TestReentrancyAttack_SwapDuringSwap tests that a swap cannot be executed during another swap
@@ -100,7 +113,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_WithdrawDuringSwap()
 	suite.Require().NoError(err)
 
 	// Advance block for flash loan protection
-	suite.advanceBlock(2)
+	suite.advanceFlashLoanWindow()
 
 	// Get reentrancy guard
 	guard := keeper.NewReentrancyGuard()
@@ -139,8 +152,8 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PriceManipulation() {
 	suite.Require().Error(err, "Same-block liquidity removal should be blocked")
 	suite.Require().Contains(err.Error(), "flash loan", "Error should indicate flash loan detection")
 
-	// Step 3: Advance to next block
-	suite.advanceBlock(1)
+	// Step 3: Advance past flash loan window
+	suite.advanceFlashLoanWindow()
 
 	// Step 4: Now removal should succeed
 	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
@@ -173,8 +186,8 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_MultiplePools() {
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool2, shares2)
 	suite.Require().Error(err, "Flash loan protection should work independently per pool")
 
-	// Advance block
-	suite.advanceBlock(1)
+	// Advance block window for flash loan protection
+	suite.advanceFlashLoanWindow()
 
 	// Now both should succeed
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool1, shares1)
@@ -274,7 +287,16 @@ func (suite *SecurityIntegrationSuite) TestOverflowAttack_LargeAmounts() {
 	hugeAmount := math.NewInt(1).MulRaw(1000000000000000000) // 10^18
 
 	// Attempt 1: Try swap with huge amount (should fail gracefully, not overflow)
-	_, err := suite.keeper.CalculateSwapOutputSecure(suite.ctx, hugeAmount, math.NewInt(100000), math.NewInt(100000), math.LegacyNewDecWithPrec(3, 3))
+	params, paramErr := suite.keeper.GetParams(suite.ctx)
+	suite.Require().NoError(paramErr)
+	_, err := suite.keeper.CalculateSwapOutputSecure(
+		suite.ctx,
+		hugeAmount,
+		math.NewInt(100000),
+		math.NewInt(100000),
+		math.LegacyNewDecWithPrec(3, 3),
+		params.MaxPoolDrainPercent,
+	)
 	// Should either succeed with valid calculation or fail gracefully
 	if err != nil {
 		suite.Require().NotContains(err.Error(), "panic", "Should not panic on large numbers")
@@ -548,7 +570,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_MultipleAttackV
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Flash loan should be blocked")
 
-	suite.advanceBlock(1)
+	suite.advanceFlashLoanWindow()
 
 	// Attack Vector 2: Try large swap for MEV
 	largeSwap := math.NewInt(70000) // More than 10% of reserve after initial add
@@ -615,7 +637,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	err = suite.keeper.CheckFlashLoanProtection(suite.ctx, poolID, suite.normalUser)
 	suite.Require().Error(err, "Flash loan protection should block same-block removal")
 
-	suite.advanceBlock(1)
+	suite.advanceFlashLoanWindow()
 	err = suite.keeper.CheckFlashLoanProtection(suite.ctx, poolID, suite.normalUser)
 	suite.Require().NoError(err, "Flash loan protection should allow after block delay")
 
@@ -637,7 +659,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	suite.Require().NoError(err, "Secure swap with all protections should succeed")
 
 	// Clean up - remove liquidity
-	suite.advanceBlock(1)
+	suite.advanceFlashLoanWindow()
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.normalUser, poolID, shares)
 	suite.Require().NoError(err)
 }
@@ -657,7 +679,7 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	shares1, err := suite.keeper.AddLiquiditySecure(suite.ctx, user1, poolID, math.NewInt(50000), math.NewInt(50000))
 	suite.Require().NoError(err)
 
-	suite.advanceBlock(1)
+	suite.advanceFlashLoanWindow()
 
 	// Regular user 2 performs normal swap
 	user2 := sdk.AccAddress([]byte("regular_user_2_____"))
@@ -688,7 +710,7 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	// May succeed or fail depending on price impact
 
 	// Attacker attempt 2: Flash loan attack
-	suite.advanceBlock(1)
+	suite.advanceFlashLoanWindow()
 	attackShares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID, math.NewInt(200000), math.NewInt(200000))
 	suite.Require().NoError(err)
 
@@ -700,8 +722,8 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, user1, poolID, shares1)
 	suite.Require().NoError(err, "Legitimate liquidity removal succeeds")
 
-	// Advance block and attacker can now remove
-	suite.advanceBlock(1)
+	// Advance block(s) and attacker can now remove
+	suite.advanceFlashLoanWindow()
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, attackShares)
 	suite.Require().NoError(err)
 

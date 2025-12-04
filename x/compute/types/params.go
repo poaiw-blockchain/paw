@@ -14,6 +14,7 @@ func DefaultParams() Params {
 		StakeSlashPercentage:       1,
 		MinReputationScore:         50,
 		EscrowReleaseDelaySeconds:  3600,
+		AuthorizedChannels:         []AuthorizedChannel{},
 	}
 }
 

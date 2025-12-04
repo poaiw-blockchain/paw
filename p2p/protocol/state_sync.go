@@ -102,6 +102,11 @@ func DefaultStateSyncConfig() *StateSyncConfig {
 	}
 }
 
+const (
+	defaultReliabilityScore = 0.5
+	minReliabilityScore     = 0.05
+)
+
 // StateSyncState represents state sync state
 type StateSyncState int
 
@@ -159,6 +164,7 @@ type PeerManager interface {
 	RequestChunk(ctx context.Context, peerID string, height int64, chunkIndex uint32) ([]byte, error)
 	GetAvailablePeers() []string
 	ReportMaliciousPeer(peerID string, reason string)
+	GetPeerReliability(peerID string) float64
 }
 
 // NewStateSyncProtocol creates a new state sync protocol instance
@@ -332,11 +338,12 @@ func (ssp *StateSyncProtocol) discoverSnapshots(ctx context.Context) ([]*snapsho
 			}
 
 			if meta != nil {
+				reliability := ssp.getPeerReliability(pid)
 				offer := &snapshot.SnapshotOffer{
 					PeerID:      pid,
 					Snapshot:    meta,
 					ReceivedAt:  time.Now(),
-					Reliability: 1.0, // TODO: Get from reputation system
+					Reliability: reliability,
 				}
 
 				select {
@@ -399,23 +406,44 @@ func (ssp *StateSyncProtocol) selectBestSnapshot(offers []*snapshot.SnapshotOffe
 		Hash   string
 	}
 
-	offerGroups := make(map[SnapshotKey][]*snapshot.SnapshotOffer)
+	type snapshotGroup struct {
+		offers []*snapshot.SnapshotOffer
+		weight float64
+	}
+
+	offerGroups := make(map[SnapshotKey]*snapshotGroup)
+	totalWeight := 0.0
 
 	for _, offer := range offers {
 		key := SnapshotKey{
 			Height: offer.Snapshot.Height,
 			Hash:   fmt.Sprintf("%x", offer.Snapshot.Hash),
 		}
-		offerGroups[key] = append(offerGroups[key], offer)
+		group := offerGroups[key]
+		if group == nil {
+			group = &snapshotGroup{}
+			offerGroups[key] = group
+		}
+
+		reliability := normalizeReliability(offer.Reliability)
+		group.offers = append(group.offers, offer)
+		group.weight += reliability
+		totalWeight += reliability
 	}
 
 	// Find the snapshot with highest height and sufficient peer agreement
 	var bestKey SnapshotKey
 	var maxHeight int64
 	var maxAgreement float64
+	var bestGroup *snapshotGroup
 
 	for key, group := range offerGroups {
-		agreement := float64(len(group)) / float64(len(offers))
+		var agreement float64
+		if totalWeight > 0 {
+			agreement = group.weight / totalWeight
+		} else {
+			agreement = float64(len(group.offers)) / float64(len(offers))
+		}
 
 		// Check if this snapshot meets our requirements
 		if agreement >= ssp.config.MinPeerAgreement {
@@ -423,6 +451,7 @@ func (ssp *StateSyncProtocol) selectBestSnapshot(offers []*snapshot.SnapshotOffe
 				bestKey = key
 				maxHeight = key.Height
 				maxAgreement = agreement
+				bestGroup = group
 			}
 		}
 	}
@@ -433,13 +462,12 @@ func (ssp *StateSyncProtocol) selectBestSnapshot(offers []*snapshot.SnapshotOffe
 	}
 
 	// Get the full snapshot from one of the agreeing peers
-	bestOffers := offerGroups[bestKey]
-	if len(bestOffers) == 0 {
+	if bestGroup == nil || len(bestGroup.offers) == 0 {
 		return nil, errors.New("no offers for best snapshot")
 	}
 
 	// Construct full snapshot from metadata
-	meta := bestOffers[0].Snapshot
+	meta := bestGroup.offers[0].Snapshot
 	fullSnapshot := &snapshot.Snapshot{
 		Height:      meta.Height,
 		Hash:        meta.Hash,
@@ -462,7 +490,7 @@ func (ssp *StateSyncProtocol) selectBestSnapshot(offers []*snapshot.SnapshotOffe
 		"height", maxHeight,
 		"hash", hashStr,
 		"peer_agreement", fmt.Sprintf("%.1f%%", maxAgreement*100),
-		"agreeing_peers", len(bestOffers),
+		"agreeing_peers", len(bestGroup.offers),
 		"total_peers", len(offers))
 
 	return fullSnapshot, nil
@@ -498,4 +526,28 @@ func (ssp *StateSyncProtocol) verifySnapshot(snap *snapshot.Snapshot) error {
 
 	ssp.logger.Info("snapshot verification passed", "height", snap.Height)
 	return nil
+}
+
+func (ssp *StateSyncProtocol) getPeerReliability(peerID string) float64 {
+	if ssp.peerManager == nil {
+		return defaultReliabilityScore
+	}
+
+	return normalizeReliability(ssp.peerManager.GetPeerReliability(peerID))
+}
+
+func normalizeReliability(value float64) float64 {
+	if value <= 0 {
+		return defaultReliabilityScore
+	}
+
+	if value < minReliabilityScore {
+		return minReliabilityScore
+	}
+
+	if value > 1 {
+		return 1
+	}
+
+	return value
 }

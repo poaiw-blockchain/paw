@@ -4,7 +4,7 @@
 # ============================================================================
 # Stage 1: Go Builder - Compile Cosmos SDK blockchain
 # ============================================================================
-FROM golang:1.23.1-alpine as go-builder
+FROM golang:1.24.4-alpine as go-builder
 
 # Build arguments
 ARG VERSION="v1.0.0"
@@ -35,39 +35,10 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
     -a \
     -installsuffix cgo \
     -ldflags="-w -s -X example.com/cosmos/cosmos-sdk/version.AppName=paw -X example.com/cosmos/cosmos-sdk/version.Version=$VERSION -X example.com/cosmos/cosmos-sdk/version.Commit=$COMMIT" \
-    -o paw-node ./cmd/pawd/main.go
-
-# Build API server
-RUN CGO_ENABLED=1 GOOS=linux go build \
-    -a \
-    -installsuffix cgo \
-    -ldflags="-w -s -X example.com/cosmos/cosmos-sdk/version.AppName=paw-api -X example.com/cosmos/cosmos-sdk/version.Version=$VERSION -X example.com/cosmos/cosmos-sdk/version.Commit=$COMMIT" \
-    -o paw-api ./api/cmd/main.go
+    -o paw-node ./cmd/pawd
 
 # ============================================================================
-# Stage 2: Node.js Builder - Build frontend and API
-# ============================================================================
-FROM node:18-alpine as node-builder
-
-# Set working directory
-WORKDIR /build
-
-# Copy package files
-COPY package.json package-lock.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source
-COPY external ./external
-
-# Build frontend (if exists)
-RUN if [ -d "./external/frontend" ]; then \
-    cd external/frontend && npm run build; \
-    fi
-
-# ============================================================================
-# Stage 3: Runtime - Minimal production image
+# Stage 2: Runtime - Minimal production image
 # ============================================================================
 FROM alpine:3.18
 
@@ -79,7 +50,7 @@ LABEL org.opencontainers.image.source="https://example.com/paw-chain/paw"
 
 # Set environment variables
 ENV PAW_ENV=production \
-    PAW_HOME=/app \
+    PAW_HOME=/data \
     PAW_DATA_DIR=/data \
     PAW_LOG_DIR=/logs \
     NODE_ENV=production \
@@ -98,7 +69,7 @@ RUN apk add --no-cache \
     libssl3 \
     libcrypto3 \
     tini \
-    node \
+    nodejs \
     npm
 
 # Create non-root user
@@ -110,12 +81,8 @@ RUN addgroup -S paw -g 1000 && \
 # Set working directory
 WORKDIR /app
 
-# Copy Go binaries
-COPY --from=go-builder /build/paw-node /build/paw-api /app/bin/
-
-# Copy Node.js dependencies and code
-COPY --from=node-builder /build/node_modules /app/node_modules
-COPY --from=node-builder /build/external /app/external
+# Copy Go binary
+COPY --from=go-builder /build/paw-node /app/bin/
 
 # Copy configuration
 COPY --chown=paw:paw config/ ./config/
@@ -146,4 +113,4 @@ VOLUME ["/data", "/logs"]
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Default command - start blockchain node
-CMD ["/app/bin/paw-node", "start"]
+CMD ["/app/bin/paw-node", "start", "--home", "/data"]

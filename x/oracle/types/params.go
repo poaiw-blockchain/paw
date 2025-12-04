@@ -13,5 +13,6 @@ func DefaultParams() Params {
 		SlashWindow:        10000,
 		MinValidPerWindow:  100,
 		TwapLookbackWindow: 1000,
+		AuthorizedChannels: []AuthorizedChannel{},
 	}
 }

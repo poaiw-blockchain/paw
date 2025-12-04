@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -27,7 +28,6 @@ func (k Keeper) CollectSwapFees(ctx context.Context, poolID uint64, tokenIn stri
 	if err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
-
 	// Calculate total swap fee
 	totalFeeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
 
@@ -51,6 +51,17 @@ func (k Keeper) CollectSwapFees(ctx context.Context, poolID uint64, tokenIn stri
 	// Store fees for the pool
 	if err := k.accumulateFees(ctx, poolID, tokenIn, lpFee, protocolFee); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
+	}
+
+	// Transfer collected fees to the fee collector module account
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	moduleAddr := k.GetModuleAddress()
+	feeCollectorAddr := authtypes.NewModuleAddress(authtypes.FeeCollectorName)
+	if !totalFeeAmount.IsZero() {
+		totalFees := sdk.NewCoins(sdk.NewCoin(tokenIn, totalFeeAmount))
+		if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, feeCollectorAddr, totalFees); err != nil {
+			return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("failed to send swap fees to collector: %w", err)
+		}
 	}
 
 	return lpFee, protocolFee, nil

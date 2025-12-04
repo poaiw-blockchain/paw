@@ -49,6 +49,12 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 		}
 	}
 
+	for _, twap := range genState.PoolTwapRecords {
+		if err := k.SetPoolTWAP(ctx, twap); err != nil {
+			return fmt.Errorf("failed to set pool TWAP for pool %d: %w", twap.PoolId, err)
+		}
+	}
+
 	// Initialize circuit breaker states
 	/*
 		for _, cbState := range genState.CircuitBreakerStates {
@@ -145,10 +151,16 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		}
 	*/
 
+	twapRecords, err := k.GetAllPoolTWAPs(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to export pool TWAPs: %w", err)
+	}
+
 	return &types.GenesisState{
-		Params:     params,
-		Pools:      pools,
-		NextPoolId: nextPoolID,
+		Params:          params,
+		Pools:           pools,
+		NextPoolId:      nextPoolID,
+		PoolTwapRecords: twapRecords,
 		// CircuitBreakerStates:  cbStates,
 		// LiquidityPositions:    liqPositions,
 	}, nil

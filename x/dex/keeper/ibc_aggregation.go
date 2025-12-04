@@ -82,6 +82,7 @@ type SwapStep struct {
 // QueryPoolsPacketData is sent to query pools on remote chains
 type QueryPoolsPacketData struct {
 	Type   string `json:"type"` // "query_pools"
+	Nonce  uint64 `json:"nonce"`
 	TokenA string `json:"token_a"`
 	TokenB string `json:"token_b"`
 }
@@ -96,6 +97,7 @@ type QueryPoolsPacketAck struct {
 // ExecuteSwapPacketData is sent to execute a swap on a remote chain
 type ExecuteSwapPacketData struct {
 	Type         string   `json:"type"` // "execute_swap"
+	Nonce        uint64   `json:"nonce"`
 	PoolID       string   `json:"pool_id"`
 	TokenIn      string   `json:"token_in"`
 	TokenOut     string   `json:"token_out"`
@@ -109,6 +111,7 @@ type ExecuteSwapPacketData struct {
 type ExecuteSwapPacketAck struct {
 	Success   bool     `json:"success"`
 	AmountOut math.Int `json:"amount_out"`
+	SwapFee   math.Int `json:"swap_fee,omitempty"`
 	Error     string   `json:"error,omitempty"`
 }
 
@@ -132,8 +135,10 @@ func (k Keeper) QueryCrossChainPools(
 		}
 
 		// Create query packet
+		packetNonce := k.NextOutboundNonce(sdkCtx, channelID, types.PortID)
 		packetData := QueryPoolsPacketData{
 			Type:   PacketTypeQueryPools,
+			Nonce:  packetNonce,
 			TokenA: tokenA,
 			TokenB: tokenB,
 		}
@@ -158,7 +163,7 @@ func (k Keeper) QueryCrossChainPools(
 		}
 
 		// Store pending query (will be processed in OnAcknowledgement)
-		k.storePendingQuery(sdkCtx, sequence, chainID, tokenA, tokenB)
+		k.storePendingQuery(sdkCtx, channelID, sequence, chainID, tokenA, tokenB)
 	}
 
 	// Return cached pools (queries are async)
@@ -274,6 +279,12 @@ func (k Keeper) OnAcknowledgementPacket(
 	packet channeltypes.Packet,
 	ack channeltypes.Acknowledgement,
 ) error {
+	if !ack.Success() {
+		errStr := ack.GetError()
+		k.emitAckErrorEvent(ctx, packet, errStr)
+		return nil
+	}
+
 	var ackData interface{}
 	if err := json.Unmarshal(ack.GetResult(), &ackData); err != nil {
 		return errorsmod.Wrap(err, "failed to unmarshal acknowledgement")
@@ -295,6 +306,9 @@ func (k Keeper) OnAcknowledgementPacket(
 		return k.handleQueryPoolsAck(ctx, packet, ackData)
 	case PacketTypeExecuteSwap:
 		return k.handleExecuteSwapAck(ctx, packet, ackData)
+	case PacketTypeCrossChainSwap:
+		// Cross-chain swap acknowledgements are currently no-ops.
+		return nil
 	default:
 		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
 	}
@@ -318,11 +332,15 @@ func (k Keeper) OnTimeoutPacket(
 	switch packetType {
 	case PacketTypeQueryPools:
 		// Query timeout - remove from pending queries
-		k.removePendingQuery(ctx, packet.Sequence)
+		k.removePendingQuery(ctx, packet.SourceChannel, packet.Sequence)
 		return nil
 	case PacketTypeExecuteSwap:
 		// Swap timeout - refund user
-		return k.refundSwap(ctx, packet)
+		if err := k.refundSwap(ctx, packet.Sequence, "ibc_timeout"); err != nil {
+			return err
+		}
+		k.clearPendingOperation(ctx, packet.SourceChannel, packet.Sequence)
+		return nil
 	default:
 		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)
 	}
@@ -406,17 +424,19 @@ func (k Keeper) sendIBCPacket(
 	return sequence, nil
 }
 
-func (k Keeper) storePendingQuery(ctx sdk.Context, sequence uint64, chainID, tokenA, tokenB string) {
-	store := k.getStore(ctx)
+func (k Keeper) storePendingQuery(ctx sdk.Context, channelID string, sequence uint64, chainID, tokenA, tokenB string) {
+	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_query_%d", sequence))
 	value := []byte(fmt.Sprintf("%s:%s:%s", chainID, tokenA, tokenB))
 	store.Set(key, value)
+	k.trackPendingOperation(ctx, channelID, PacketTypeQueryPools, sequence)
 }
 
-func (k Keeper) removePendingQuery(ctx sdk.Context, sequence uint64) {
-	store := k.getStore(ctx)
+func (k Keeper) removePendingQuery(ctx sdk.Context, channelID string, sequence uint64) {
+	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_query_%d", sequence))
 	store.Delete(key)
+	k.clearPendingOperation(ctx, channelID, sequence)
 }
 
 func (k Keeper) getCachedPools(ctx sdk.Context, tokenA, tokenB string) []CrossChainPoolInfo {
@@ -668,6 +688,7 @@ func (k Keeper) executeRemoteSwap(
 	// Step 4: Create swap execution packet
 	swapPacket := ExecuteSwapPacketData{
 		Type:         PacketTypeExecuteSwap,
+		Nonce:        k.NextOutboundNonce(ctx, channelID, sender.String()),
 		PoolID:       step.PoolID,
 		TokenIn:      tokenIn,
 		TokenOut:     step.TokenOut,
@@ -689,7 +710,7 @@ func (k Keeper) executeRemoteSwap(
 	}
 
 	// Store pending remote swap for acknowledgement handling
-	k.storePendingRemoteSwap(ctx, swapSeq, transferSeq, sender.String(), amountIn, step)
+	k.storePendingRemoteSwap(ctx, channelID, swapSeq, transferSeq, sender.String(), amountIn, step)
 
 	// Emit event
 	ctx.EventManager().EmitEvent(
@@ -704,10 +725,9 @@ func (k Keeper) executeRemoteSwap(
 	)
 
 	// Return estimated result (actual result comes via IBC acknowledgement)
-	// The MinAmountOut is the guaranteed minimum due to slippage protection
 	return &types.SwapResult{
 		AmountIn:     amountIn,
-		AmountOut:    step.MinAmountOut, // Conservative estimate
+		AmountOut:    math.ZeroInt(), // Set from ACK once remote execution completes
 		Route:        fmt.Sprintf("remote:%s -> %s (%s)", step.TokenIn, step.TokenOut, step.ChainID),
 		Slippage:     math.LegacyZeroDec(),
 		PriceImpact:  math.LegacyZeroDec(),
@@ -717,7 +737,7 @@ func (k Keeper) executeRemoteSwap(
 }
 
 // storePendingRemoteSwap stores information about a pending remote swap
-func (k Keeper) storePendingRemoteSwap(ctx sdk.Context, swapSeq, transferSeq uint64, sender string, amountIn math.Int, step SwapStep) {
+func (k Keeper) storePendingRemoteSwap(ctx sdk.Context, channelID string, swapSeq, transferSeq uint64, sender string, amountIn math.Int, step SwapStep) {
 	store := ctx.KVStore(k.storeKey)
 	key := []byte(fmt.Sprintf("pending_remote_swap_%d", swapSeq))
 
@@ -731,10 +751,12 @@ func (k Keeper) storePendingRemoteSwap(ctx sdk.Context, swapSeq, transferSeq uin
 		"token_in":       step.TokenIn,
 		"token_out":      step.TokenOut,
 		"min_amount_out": step.MinAmountOut.String(),
+		"channel_id":     channelID,
 	}
 
 	dataBytes, _ := json.Marshal(data)
 	store.Set(key, dataBytes)
+	k.trackPendingOperation(ctx, channelID, PacketTypeExecuteSwap, swapSeq)
 }
 
 func (k Keeper) findOptimalRoute(
@@ -766,56 +788,70 @@ func (k Keeper) findOptimalRoute(
 
 func (k Keeper) handleQueryPoolsAck(ctx sdk.Context, packet channeltypes.Packet, ackData interface{}) error {
 	// Process pool query acknowledgement and cache results
-	var ack QueryPoolsPacketAck
 	ackBytes, err := json.Marshal(ackData)
 	if err != nil {
 		return errorsmod.Wrapf(err, "failed to marshal ack data")
 	}
 
+	var ack types.QueryPoolsAcknowledgement
 	if err := json.Unmarshal(ackBytes, &ack); err != nil {
 		return errorsmod.Wrapf(err, "failed to unmarshal query pools ack")
 	}
 
-	if ack.Success {
-		// Cache the pool information
-		store := ctx.KVStore(k.storeKey)
-		for _, pool := range ack.Pools {
-			// Store each pool in cache with composite key
-			cacheKey := []byte(fmt.Sprintf("cached_pool_%s_%s_%s_%s",
-				pool.ChainID, pool.PoolID, pool.TokenA, pool.TokenB))
-
-			// Update last updated time
-			pool.LastUpdated = ctx.BlockTime()
-
-			poolBytes, err := json.Marshal(pool)
-			if err != nil {
-				ctx.Logger().Error("failed to marshal pool", "error", err)
-				continue
-			}
-
-			store.Set(cacheKey, poolBytes)
-
-			ctx.Logger().Debug("cached remote pool",
-				"chain_id", pool.ChainID,
-				"pool_id", pool.PoolID,
-				"reserve_a", pool.ReserveA.String(),
-				"reserve_b", pool.ReserveB.String(),
-			)
-		}
-
-		// Emit cache update event
-		ctx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				"pool_cache_updated",
-				sdk.NewAttribute("pools_count", fmt.Sprintf("%d", len(ack.Pools))),
-				sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
-			),
-		)
-	} else {
+	if !ack.Success {
 		ctx.Logger().Error("pool query failed", "error", ack.Error)
+		k.removePendingQuery(ctx, packet.SourceChannel, packet.Sequence)
+		return nil
 	}
 
-	k.removePendingQuery(ctx, packet.Sequence)
+	// Cache the pool information
+	store := ctx.KVStore(k.storeKey)
+	for _, pool := range ack.Pools {
+		chainID := pool.ChainID
+		if chainID == "" {
+			chainID = ctx.ChainID()
+		}
+
+		cached := CrossChainPoolInfo{
+			ChainID:     chainID,
+			PoolID:      pool.PoolID,
+			TokenA:      pool.TokenA,
+			TokenB:      pool.TokenB,
+			ReserveA:    pool.ReserveA,
+			ReserveB:    pool.ReserveB,
+			SwapFee:     pool.SwapFee,
+			LastUpdated: ctx.BlockTime(),
+		}
+
+		cacheKey := []byte(fmt.Sprintf("cached_pool_%s_%s_%s_%s",
+			cached.ChainID, cached.PoolID, cached.TokenA, cached.TokenB))
+
+		poolBytes, err := json.Marshal(cached)
+		if err != nil {
+			ctx.Logger().Error("failed to marshal pool", "error", err)
+			continue
+		}
+
+		store.Set(cacheKey, poolBytes)
+
+		ctx.Logger().Debug("cached remote pool",
+			"chain_id", cached.ChainID,
+			"pool_id", cached.PoolID,
+			"reserve_a", cached.ReserveA.String(),
+			"reserve_b", cached.ReserveB.String(),
+		)
+	}
+
+	// Emit cache update event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"pool_cache_updated",
+			sdk.NewAttribute("pools_count", fmt.Sprintf("%d", len(ack.Pools))),
+			sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
+		),
+	)
+
+	k.removePendingQuery(ctx, packet.SourceChannel, packet.Sequence)
 	return nil
 }
 
@@ -831,69 +867,108 @@ func (k Keeper) handleExecuteSwapAck(ctx sdk.Context, packet channeltypes.Packet
 		return errorsmod.Wrapf(err, "failed to unmarshal execute swap ack")
 	}
 
-	// Get pending swap info
 	store := ctx.KVStore(k.storeKey)
 	swapKey := []byte(fmt.Sprintf("pending_remote_swap_%d", packet.Sequence))
 	swapData := store.Get(swapKey)
-
-	if swapData != nil {
-		var pendingSwap map[string]interface{}
-		if err := json.Unmarshal(swapData, &pendingSwap); err == nil {
-			sender := pendingSwap["sender"].(string)
-			chainID := pendingSwap["chain_id"].(string)
-			poolID := pendingSwap["pool_id"].(string)
-
-			if ack.Success {
-				// Swap succeeded on remote chain
-				ctx.EventManager().EmitEvent(
-					sdk.NewEvent(
-						"remote_swap_completed",
-						sdk.NewAttribute("sender", sender),
-						sdk.NewAttribute("chain_id", chainID),
-						sdk.NewAttribute("pool_id", poolID),
-						sdk.NewAttribute("amount_out", ack.AmountOut.String()),
-						sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
-					),
-				)
-
-				ctx.Logger().Info("remote swap completed successfully",
-					"sender", sender,
-					"chain_id", chainID,
-					"amount_out", ack.AmountOut.String(),
-				)
-			} else {
-				// Swap failed on remote chain - refund will be handled by IBC transfer timeout
-				ctx.Logger().Error("remote swap failed",
-					"sender", sender,
-					"chain_id", chainID,
-					"error", ack.Error,
-				)
-
-				ctx.EventManager().EmitEvent(
-					sdk.NewEvent(
-						"remote_swap_failed",
-						sdk.NewAttribute("sender", sender),
-						sdk.NewAttribute("chain_id", chainID),
-						sdk.NewAttribute("pool_id", poolID),
-						sdk.NewAttribute("error", ack.Error),
-					),
-				)
-			}
-
-			// Clean up pending swap record
-			store.Delete(swapKey)
-		}
+	if swapData == nil {
+		return nil
 	}
 
+	var pendingSwap map[string]interface{}
+	if err := json.Unmarshal(swapData, &pendingSwap); err != nil {
+		return errorsmod.Wrap(err, "failed to unmarshal pending swap")
+	}
+
+	sender, _ := pendingSwap["sender"].(string)
+	chainID, _ := pendingSwap["chain_id"].(string)
+	poolID, _ := pendingSwap["pool_id"].(string)
+
+	if ack.Success {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"remote_swap_completed",
+				sdk.NewAttribute("sender", sender),
+				sdk.NewAttribute("chain_id", chainID),
+				sdk.NewAttribute("pool_id", poolID),
+				sdk.NewAttribute("amount_out", ack.AmountOut.String()),
+				sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
+			),
+		)
+
+		// Persist last remote swap result for introspection/IBC result queries.
+		k.storeRemoteSwapResult(ctx, packet.Sequence, ack.AmountOut, ack.SwapFee)
+
+		ctx.Logger().Info("remote swap completed successfully",
+			"sender", sender,
+			"chain_id", chainID,
+			"amount_out", ack.AmountOut.String(),
+		)
+	} else {
+		ctx.Logger().Error("remote swap failed",
+			"sender", sender,
+			"chain_id", chainID,
+			"error", ack.Error,
+		)
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"remote_swap_failed",
+				sdk.NewAttribute("sender", sender),
+				sdk.NewAttribute("chain_id", chainID),
+				sdk.NewAttribute("pool_id", poolID),
+				sdk.NewAttribute("error", ack.Error),
+			),
+		)
+	}
+
+	store.Delete(swapKey)
+	k.clearPendingOperation(ctx, packet.SourceChannel, packet.Sequence)
 	return nil
 }
 
-func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
-	// Refund tokens to user after IBC timeout
+func (k Keeper) emitAckErrorEvent(ctx sdk.Context, packet channeltypes.Packet, errMsg string) {
+	packetType := ""
+	var packetData map[string]interface{}
+	if err := json.Unmarshal(packet.Data, &packetData); err == nil {
+		if t, ok := packetData["type"].(string); ok {
+			packetType = t
+		}
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"dex_acknowledgement_error",
+			sdk.NewAttribute("packet_type", packetType),
+			sdk.NewAttribute("channel", packet.SourceChannel),
+			sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
+			sdk.NewAttribute("codespace", types.ModuleName),
+			sdk.NewAttribute("code", fmt.Sprintf("%d", sdkerrors.ErrUnknownRequest.ABCICode())),
+			sdk.NewAttribute("error", errMsg),
+		),
+	)
+}
+
+// storeRemoteSwapResult persists the outcome of a remote swap acknowledgement for observability/tests.
+func (k Keeper) storeRemoteSwapResult(ctx sdk.Context, sequence uint64, amountOut, swapFee math.Int) {
+	store := ctx.KVStore(k.storeKey)
+	key := []byte(fmt.Sprintf("remote_swap_result_%d", sequence))
+
+	result := map[string]string{
+		"amount_out": amountOut.String(),
+		"swap_fee":   swapFee.String(),
+	}
+
+	if bz, err := json.Marshal(result); err == nil {
+		store.Set(key, bz)
+	}
+}
+
+func (k Keeper) refundSwap(ctx sdk.Context, sequence uint64, reason string) error {
+	// Refund tokens to user when IBC packet cannot complete
 	store := ctx.KVStore(k.storeKey)
 
 	// Get pending swap info
-	swapKey := []byte(fmt.Sprintf("pending_remote_swap_%d", packet.Sequence))
+	swapKey := []byte(fmt.Sprintf("pending_remote_swap_%d", sequence))
 	swapData := store.Get(swapKey)
 
 	if swapData == nil {
@@ -932,6 +1007,8 @@ func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid token_in in pending swap")
 	}
 
+	channelID, _ := pendingSwap["channel_id"].(string)
+
 	// Refund tokens from escrow back to sender
 	escrowAddr := sdk.AccAddress([]byte("dex_remote_swap_escrow"))
 	refundCoin := sdk.NewCoin(tokenIn, amountIn)
@@ -947,8 +1024,9 @@ func (k Keeper) refundSwap(ctx sdk.Context, packet channeltypes.Packet) error {
 			sdk.NewAttribute("sender", senderStr),
 			sdk.NewAttribute("amount", amountIn.String()),
 			sdk.NewAttribute("token", tokenIn),
-			sdk.NewAttribute("reason", "ibc_timeout"),
-			sdk.NewAttribute("sequence", fmt.Sprintf("%d", packet.Sequence)),
+			sdk.NewAttribute("channel", channelID),
+			sdk.NewAttribute("reason", reason),
+			sdk.NewAttribute("sequence", fmt.Sprintf("%d", sequence)),
 		),
 	)
 

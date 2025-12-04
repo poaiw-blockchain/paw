@@ -10,16 +10,19 @@ import (
 var (
 	// Asset and price errors
 	ErrInvalidAsset   = sdkerrors.Register(ModuleName, 2, "invalid asset")
+	ErrInvalidNonce   = sdkerrors.Register(ModuleName, 50, "invalid packet nonce")
 	ErrInvalidPrice   = sdkerrors.Register(ModuleName, 3, "invalid price")
 	ErrPriceNotFound  = sdkerrors.Register(ModuleName, 7, "price not found")
 	ErrPriceExpired   = sdkerrors.Register(ModuleName, 12, "price data expired")
 	ErrPriceDeviation = sdkerrors.Register(ModuleName, 13, "price deviation too high")
+	ErrInvalidAck     = sdkerrors.Register(ModuleName, 90, "invalid acknowledgement")
 
 	// Validator and feeder errors
 	ErrValidatorNotBonded  = sdkerrors.Register(ModuleName, 4, "validator not bonded")
 	ErrFeederNotAuthorized = sdkerrors.Register(ModuleName, 5, "feeder not authorized")
 	ErrValidatorNotFound   = sdkerrors.Register(ModuleName, 8, "validator not found")
 	ErrValidatorSlashed    = sdkerrors.Register(ModuleName, 14, "validator has been slashed")
+	ErrUnauthorizedChannel = sdkerrors.Register(ModuleName, 60, "unauthorized IBC channel")
 
 	// Vote and submission errors
 	ErrInsufficientVotes   = sdkerrors.Register(ModuleName, 6, "insufficient votes")
@@ -80,6 +83,7 @@ var RecoverySuggestions = map[error]string{
 	ErrFeederNotAuthorized: "Feeder address not authorized by validator. Validator must delegate feeder using MsgDelegateFeeder. Verify feeder address matches delegation.",
 	ErrValidatorNotFound:   "Validator address not found in staking module. Check validator address format (bech32). Ensure validator is registered. Query validator set.",
 	ErrValidatorSlashed:    "Validator slashed for oracle misbehavior. Cannot submit prices until penalty period expires. Check slashing status. Wait for jail period to end.",
+	ErrUnauthorizedChannel: "IBC packet arrived from a channel that is not authorized for oracle traffic. Verify governance params and ensure relayers use approved channels before retrying.",
 
 	ErrInsufficientVotes:   "Not enough validators submitted prices this period. Need >66% participation. Wait for more validators to submit. Check network connectivity.",
 	ErrInvalidVotePeriod:   "Vote period parameter out of valid range (1-3600 seconds). Update params requires governance proposal. Check current param values.",

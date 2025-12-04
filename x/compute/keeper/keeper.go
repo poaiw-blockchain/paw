@@ -3,7 +3,9 @@ package keeper
 import (
 	"context"
 	"errors"
+	"strings"
 
+	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -36,6 +38,8 @@ type Keeper struct {
 	// circuitManager handles ZK circuit operations for compute verification.
 	// It is lazily initialized on first use to avoid expensive circuit compilation at startup.
 	circuitManager *CircuitManager
+
+	metrics *ComputeMetrics
 }
 
 type kvStoreProvider interface {
@@ -66,6 +70,7 @@ func NewKeeper(
 		portKeeper:     portKeeper,
 		authority:      authority,
 		scopedKeeper:   scopedKeeper,
+		metrics:        NewComputeMetrics(),
 	}
 }
 
@@ -108,6 +113,77 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 	}
 	k.portCapability = portCap
 	return nil
+}
+
+// IsAuthorizedChannel checks whether incoming packets from the given port/channel are allowed.
+func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		ctx.Logger().Error("failed to load compute params for channel authorization", "error", err)
+		return false
+	}
+	for _, ch := range params.AuthorizedChannels {
+		if ch.PortId == portID && ch.ChannelId == channelID {
+			return true
+		}
+	}
+	return false
+}
+
+// AuthorizeChannel appends a port/channel pair to the allowlist when governance approves it.
+func (k Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
+	portID = strings.TrimSpace(portID)
+	channelID = strings.TrimSpace(channelID)
+	if portID == "" || channelID == "" {
+		return errorsmod.Wrap(computetypes.ErrInvalidRequest, "port_id and channel_id must be non-empty")
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, ch := range params.AuthorizedChannels {
+		if ch.PortId == portID && ch.ChannelId == channelID {
+			return nil
+		}
+	}
+
+	params.AuthorizedChannels = append(params.AuthorizedChannels, computetypes.AuthorizedChannel{
+		PortId:    portID,
+		ChannelId: channelID,
+	})
+	return k.SetParams(ctx, params)
+}
+
+// SetAuthorizedChannels replaces the allowlist with the provided slice.
+func (k Keeper) SetAuthorizedChannels(ctx sdk.Context, channels []computetypes.AuthorizedChannel) error {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	normalized := make([]computetypes.AuthorizedChannel, 0, len(channels))
+	seen := make(map[string]struct{}, len(channels))
+	for _, ch := range channels {
+		portID := strings.TrimSpace(ch.PortId)
+		channelID := strings.TrimSpace(ch.ChannelId)
+		if portID == "" || channelID == "" {
+			return errorsmod.Wrap(computetypes.ErrInvalidRequest, "port_id and channel_id must be non-empty")
+		}
+		key := portID + "/" + channelID
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		normalized = append(normalized, computetypes.AuthorizedChannel{
+			PortId:    portID,
+			ChannelId: channelID,
+		})
+	}
+
+	params.AuthorizedChannels = normalized
+	return k.SetParams(ctx, params)
 }
 
 // GetCircuitManager returns the circuit manager, lazily initializing it if needed.

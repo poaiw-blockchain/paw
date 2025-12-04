@@ -267,10 +267,13 @@ func TestReleaseEscrow_AlreadyReleased(t *testing.T) {
 	err = k.ReleaseEscrow(ctx, requestID, true)
 	require.NoError(t, err)
 
-	// Try to release again
+	// Try to release again (should be idempotent)
 	err = k.ReleaseEscrow(ctx, requestID, true)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "cannot be released")
+	require.NoError(t, err)
+
+	escrowState, err := k.GetEscrowState(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_RELEASED, escrowState.Status)
 }
 
 // TestReleaseEscrow_Expired tests that expired escrow cannot be released
@@ -351,10 +354,13 @@ func TestRefundEscrow_AlreadyReleased(t *testing.T) {
 	err = k.ReleaseEscrow(ctx, requestID, true)
 	require.NoError(t, err)
 
-	// Try to refund
+	// Try to refund (should no-op)
 	err = k.RefundEscrow(ctx, requestID, "test_refund")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "cannot be refunded")
+	require.NoError(t, err)
+
+	escrowState, err := k.GetEscrowState(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_RELEASED, escrowState.Status)
 }
 
 // TestRefundEscrow_AlreadyRefunded tests prevention of double-refund
@@ -374,10 +380,41 @@ func TestRefundEscrow_AlreadyRefunded(t *testing.T) {
 	err = k.RefundEscrow(ctx, requestID, "test_refund")
 	require.NoError(t, err)
 
-	// Try to refund again
+	// Try to refund again (should be idempotent)
 	err = k.RefundEscrow(ctx, requestID, "test_refund")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "cannot be refunded")
+	require.NoError(t, err)
+
+	escrowState, err := k.GetEscrowState(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_REFUNDED, escrowState.Status)
+}
+
+// TestRefundEscrow_DuplicateCallsEnsuresIdempotentRefunds ensures repeated refunds are no-ops.
+func TestRefundEscrow_DuplicateCallsEnsuresIdempotentRefunds(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	requester := createTestRequester(t)
+	provider := createTestProvider(t)
+
+	amount := math.NewInt(10000000)
+	requestID := uint64(1)
+	timeoutSeconds := uint64(3600)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// First refund (e.g., timeout handler)
+	err = k.RefundEscrow(ctx, requestID, "timeout")
+	require.NoError(t, err)
+
+	// Second refund (e.g., acknowledgement) should be idempotent and succeed silently
+	err = k.RefundEscrow(ctx, requestID, "ack")
+	require.NoError(t, err)
+
+	escrowState, err := k.GetEscrowState(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_REFUNDED, escrowState.Status)
+	require.NotNil(t, escrowState.RefundedAt)
 }
 
 // TestProcessExpiredEscrows tests automatic refund of expired escrows

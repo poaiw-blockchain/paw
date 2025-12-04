@@ -111,17 +111,13 @@ func (suite *ZKVerificationTestSuite) TestProofGenerationAndVerification() {
 	exitCode := int32(0)
 	cpuCycles := uint64(1000000)
 	memoryBytes := uint64(1024 * 1024) // 1MB
+	requestID := uint64(12345)
 
-	// Hash the computation result
-	resultHash := computekeeper.HashComputationResult(computationData, map[string]interface{}{
-		"timestamp":    timestamp,
-		"exit_code":    exitCode,
-		"cpu_cycles":   cpuCycles,
-		"memory_bytes": memoryBytes,
-	})
+	// Compute circuit-compatible result hash
+	resultHash, err := computekeeper.ComputeResultHash(requestID, suite.provider, computationData, timestamp, exitCode, cpuCycles, memoryBytes)
+	require.NoError(suite.T(), err)
 
 	// Generate proof
-	requestID := uint64(12345)
 	proof, err := suite.zkVerifier.GenerateProof(
 		suite.ctx,
 		requestID,
@@ -165,13 +161,14 @@ func (suite *ZKVerificationTestSuite) TestProofVerificationWithWrongData() {
 	// Generate proof with correct data
 	computationData := []byte("correct data")
 	timestamp := time.Now().Unix()
-	resultHash := sha256.Sum256(computationData)
+	resultHash, err := computekeeper.ComputeResultHash(uint64(123), suite.provider, computationData, timestamp, 0, 1000, 1024)
+	require.NoError(suite.T(), err)
 
 	requestID := uint64(123)
 	proof, err := suite.zkVerifier.GenerateProof(
 		suite.ctx,
 		requestID,
-		resultHash[:],
+		resultHash,
 		suite.provider,
 		computationData,
 		timestamp,
@@ -183,12 +180,13 @@ func (suite *ZKVerificationTestSuite) TestProofVerificationWithWrongData() {
 	require.NoError(suite.T(), err)
 
 	// Attempt verification with wrong result hash
-	wrongHash := sha256.Sum256([]byte("wrong data"))
+	wrongHash, err := computekeeper.ComputeResultHash(requestID, suite.provider, []byte("wrong data"), timestamp, 0, 1000, 1024)
+	require.NoError(suite.T(), err)
 	valid, err := suite.zkVerifier.VerifyProof(
 		suite.ctx,
 		proof,
 		requestID,
-		wrongHash[:],
+		wrongHash,
 		suite.provider,
 	)
 
@@ -212,6 +210,7 @@ func (suite *ZKVerificationTestSuite) TestTrustedSetupMPCCeremony() {
 		ccs,
 		setup.SecurityLevel256,
 		beacon,
+		nil,
 	)
 
 	// Register participants
@@ -314,39 +313,50 @@ func (suite *ZKVerificationTestSuite) TestKeyRotation() {
 // TestProofBatchVerification tests batch verification of multiple proofs.
 func (suite *ZKVerificationTestSuite) TestProofBatchVerification() {
 	const batchSize = 5
-	proofs := make([]*types.ZKProof, batchSize)
+	type proofCase struct {
+		proof      *types.ZKProof
+		requestID  uint64
+		resultHash []byte
+		data       []byte
+	}
+	proofs := make([]proofCase, batchSize)
 
 	// Generate multiple proofs
 	for i := 0; i < batchSize; i++ {
 		computationData := []byte(fmt.Sprintf("data-%d", i))
-		resultHash := sha256.Sum256(computationData)
+		reqID := uint64(i + 1)
+		ts := int64(100 + i)
+		resultHash, err := computekeeper.ComputeResultHash(reqID, suite.provider, computationData, ts, 0, 1000, 1024)
+		require.NoError(suite.T(), err)
 
 		proof, err := suite.zkVerifier.GenerateProof(
 			suite.ctx,
-			uint64(i+1),
-			resultHash[:],
+			reqID,
+			resultHash,
 			suite.provider,
 			computationData,
-			time.Now().Unix(),
+			ts,
 			0,
 			1000,
 			1024,
 		)
 
 		require.NoError(suite.T(), err)
-		proofs[i] = proof
+		proofs[i] = proofCase{
+			proof:      proof,
+			requestID:  reqID,
+			resultHash: resultHash,
+			data:       computationData,
+		}
 	}
 
 	// Verify each proof individually (in production, use aggregated verification)
-	for i, proof := range proofs {
-		computationData := []byte(fmt.Sprintf("data-%d", i))
-		resultHash := sha256.Sum256(computationData)
-
+	for _, proof := range proofs {
 		valid, err := suite.zkVerifier.VerifyProof(
 			suite.ctx,
-			proof,
-			uint64(i+1),
-			resultHash[:],
+			proof.proof,
+			proof.requestID,
+			proof.resultHash,
 			suite.provider,
 		)
 
@@ -361,12 +371,13 @@ func (suite *ZKVerificationTestSuite) TestProofBatchVerification() {
 func (suite *ZKVerificationTestSuite) TestZKMetrics() {
 	// Generate and verify a proof
 	computationData := []byte("test data")
-	resultHash := sha256.Sum256(computationData)
+	resultHash, err := computekeeper.ComputeResultHash(uint64(1), suite.provider, computationData, time.Now().Unix(), 0, 1000, 1024)
+	require.NoError(suite.T(), err)
 
 	proof, err := suite.zkVerifier.GenerateProof(
 		suite.ctx,
 		uint64(1),
-		resultHash[:],
+		resultHash,
 		suite.provider,
 		computationData,
 		time.Now().Unix(),
@@ -406,16 +417,19 @@ func (suite *ZKVerificationTestSuite) TestConstantTimeOperations() {
 	// Generate two different proofs
 	data1 := []byte("data1")
 	data2 := []byte("data2")
-	hash1 := sha256.Sum256(data1)
-	hash2 := sha256.Sum256(data2)
+	ts := int64(200)
+	hash1, err := computekeeper.ComputeResultHash(1, suite.provider, data1, ts, 0, 1000, 1024)
+	require.NoError(suite.T(), err)
+	hash2, err := computekeeper.ComputeResultHash(2, suite.provider, data2, ts, 0, 1000, 1024)
+	require.NoError(suite.T(), err)
 
 	proof1, err := suite.zkVerifier.GenerateProof(
-		suite.ctx, 1, hash1[:], suite.provider, data1, time.Now().Unix(), 0, 1000, 1024,
+		suite.ctx, 1, hash1, suite.provider, data1, ts, 0, 1000, 1024,
 	)
 	require.NoError(suite.T(), err)
 
 	proof2, err := suite.zkVerifier.GenerateProof(
-		suite.ctx, 2, hash2[:], suite.provider, data2, time.Now().Unix(), 0, 1000, 1024,
+		suite.ctx, 2, hash2, suite.provider, data2, ts, 0, 1000, 1024,
 	)
 	require.NoError(suite.T(), err)
 
@@ -426,11 +440,11 @@ func (suite *ZKVerificationTestSuite) TestConstantTimeOperations() {
 
 	for i := 0; i < iterations; i++ {
 		start := time.Now()
-		suite.zkVerifier.VerifyProof(suite.ctx, proof1, 1, hash1[:], suite.provider)
+		suite.zkVerifier.VerifyProof(suite.ctx, proof1, 1, hash1, suite.provider)
 		times1[i] = time.Since(start)
 
 		start = time.Now()
-		suite.zkVerifier.VerifyProof(suite.ctx, proof2, 2, hash2[:], suite.provider)
+		suite.zkVerifier.VerifyProof(suite.ctx, proof2, 2, hash2, suite.provider)
 		times2[i] = time.Since(start)
 	}
 

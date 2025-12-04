@@ -29,6 +29,8 @@ func GetTxCmd() *cobra.Command {
 		CmdAddLiquidity(),
 		CmdRemoveLiquidity(),
 		CmdSwap(),
+		GetLimitOrderTxCmd(),
+		GetAdvancedTxCmd(),
 	)
 
 	return dexTxCmd

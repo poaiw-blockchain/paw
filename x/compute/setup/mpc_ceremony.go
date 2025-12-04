@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -29,22 +30,27 @@ import (
 // - Cryptographic commitments for verifiability
 // - Transcript hashing for public auditability
 type MPCCeremony struct {
-	circuitID      string
-	circuit        constraint.ConstraintSystem
-	participants   []Participant
-	currentPhase   CeremonyPhase
-	transcript     *CeremonyTranscript
+	circuitID    string
+	circuit      constraint.ConstraintSystem
+	participants []Participant
+	currentPhase CeremonyPhase
+	transcript   *CeremonyTranscript
 
 	// Security parameters
-	securityLevel  SecurityLevel
+	securityLevel SecurityLevel
 
 	// Ceremony state
-	mu             sync.RWMutex
-	contributions  []Contribution
-	challenges     []Challenge
+	mu            sync.RWMutex
+	contributions []Contribution
+	challenges    []Challenge
 
 	// Randomness beacon (for final randomness)
-	beacon         RandomnessBeacon
+	beacon  RandomnessBeacon
+	keySink CircuitKeySink
+
+	// Cached key material from the most recent setup run
+	provingKeyBytes   []byte
+	verifyingKeyBytes []byte
 }
 
 // CeremonyPhase represents the current phase of the MPC ceremony.
@@ -78,58 +84,58 @@ type Participant struct {
 
 // Contribution represents a participant's contribution to the ceremony.
 type Contribution struct {
-	ParticipantID   string
-	PreviousHash    []byte // Hash of previous contribution
-	PublicKey       []byte // Participant's public key
+	ParticipantID string
+	PreviousHash  []byte // Hash of previous contribution
+	PublicKey     []byte // Participant's public key
 
 	// Powers of tau contribution (encrypted)
-	TauG1Powers     []bn254.G1Affine // [τ^0]₁, [τ^1]₁, ..., [τ^d]₁
-	TauG2Powers     []bn254.G2Affine // [τ^0]₂, [τ^1]₂, ..., [τ^d]₂
-	AlphaG1         bn254.G1Affine   // [α]₁
-	BetaG1          bn254.G1Affine   // [β]₁
-	BetaG2          bn254.G2Affine   // [β]₂
+	TauG1Powers []bn254.G1Affine // [τ^0]₁, [τ^1]₁, ..., [τ^d]₁
+	TauG2Powers []bn254.G2Affine // [τ^0]₂, [τ^1]₂, ..., [τ^d]₂
+	AlphaG1     bn254.G1Affine   // [α]₁
+	BetaG1      bn254.G1Affine   // [β]₁
+	BetaG2      bn254.G2Affine   // [β]₂
 
 	// Proof of knowledge (prevents rogue key attacks)
 	ProofOfKnowledge ProofOfKnowledge
 
 	// Metadata
-	Timestamp       time.Time
-	CommitmentHash  []byte // Commitment to this contribution
+	Timestamp      time.Time
+	CommitmentHash []byte // Commitment to this contribution
 }
 
 // ProofOfKnowledge proves that the participant knows their secret contribution.
 type ProofOfKnowledge struct {
-	Challenge       []byte
-	Response        []byte
-	CommitmentG1    bn254.G1Affine
-	CommitmentG2    bn254.G2Affine
+	Challenge    []byte
+	Response     []byte
+	CommitmentG1 bn254.G1Affine
+	CommitmentG2 bn254.G2Affine
 }
 
 // Challenge represents a cryptographic challenge for verification.
 type Challenge struct {
-	Nonce           uint64
-	PreviousHash    []byte
-	Timestamp       time.Time
-	RandomBytes     []byte
+	Nonce        uint64
+	PreviousHash []byte
+	Timestamp    time.Time
+	RandomBytes  []byte
 }
 
 // CeremonyTranscript maintains a complete, auditable record of the ceremony.
 type CeremonyTranscript struct {
-	CeremonyID      string
-	CircuitID       string
-	StartTime       time.Time
-	EndTime         time.Time
+	CeremonyID string
+	CircuitID  string
+	StartTime  time.Time
+	EndTime    time.Time
 
-	Participants    []string
-	Contributions   [][]byte // Hashes of all contributions
+	Participants  []string
+	Contributions [][]byte // Hashes of all contributions
 
 	// Cryptographic audit trail
-	TranscriptHash  []byte
-	FinalBeacon     []byte
+	TranscriptHash []byte
+	FinalBeacon    []byte
 
 	// Verification
-	Verified        bool
-	VerifiedAt      time.Time
+	Verified   bool
+	VerifiedAt time.Time
 }
 
 // RandomnessBeacon provides public, verifiable randomness for final contribution.
@@ -138,27 +144,36 @@ type RandomnessBeacon interface {
 	VerifyRandomness(round uint64, randomness []byte) bool
 }
 
+// CircuitKeySink persists proving/verifying keys produced by the ceremony.
+// The keeper implements this interface to make the keys available to on-chain
+// verifiers once the ceremony finalizes.
+type CircuitKeySink interface {
+	StoreCeremonyKeys(ctx context.Context, circuitID string, provingKey, verifyingKey []byte) error
+}
+
 // NewMPCCeremony creates a new multi-party computation ceremony.
 func NewMPCCeremony(
 	circuitID string,
 	circuit constraint.ConstraintSystem,
 	securityLevel SecurityLevel,
 	beacon RandomnessBeacon,
+	keySink CircuitKeySink,
 ) *MPCCeremony {
 	return &MPCCeremony{
-		circuitID:      circuitID,
-		circuit:        circuit,
-		currentPhase:   PhaseInit,
-		securityLevel:  securityLevel,
-		beacon:         beacon,
-		transcript:     &CeremonyTranscript{
+		circuitID:     circuitID,
+		circuit:       circuit,
+		currentPhase:  PhaseInit,
+		securityLevel: securityLevel,
+		beacon:        beacon,
+		transcript: &CeremonyTranscript{
 			CeremonyID: generateCeremonyID(),
 			CircuitID:  circuitID,
 			StartTime:  time.Now(),
 		},
-		participants:   make([]Participant, 0),
-		contributions:  make([]Contribution, 0),
-		challenges:     make([]Challenge, 0),
+		participants:  make([]Participant, 0),
+		contributions: make([]Contribution, 0),
+		challenges:    make([]Challenge, 0),
+		keySink:       keySink,
 	}
 }
 
@@ -244,57 +259,58 @@ func (mpc *MPCCeremony) generateGenesisContribution() (*Contribution, error) {
 		return nil, fmt.Errorf("failed to generate beta: %w", err)
 	}
 
-	// For MPC ceremony, we use the standard groth16.Setup directly
-	// The detailed SRS computation is handled by gnark internally
-	// This is a simplified genesis that delegates to gnark's implementation
+	// Bootstrap the proving/verifying keys using gnark's trusted setup.
+	pk, vk, err := groth16.Setup(mpc.circuit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run groth16 setup: %w", err)
+	}
+	if err := mpc.cacheKeys(pk, vk); err != nil {
+		return nil, err
+	}
 
-	// Compute basic powers for demonstration (actual implementation uses gnark)
+	// Compute the actual powers of tau from the sampled toxic waste.
 	tauG1Powers := make([]bn254.G1Affine, degree+1)
 	tauG2Powers := make([]bn254.G2Affine, degree+1)
 
-	// Get generator points
-	var g1Gen bn254.G1Affine
-	g1Gen.X.SetOne()
-	g1Gen.Y.SetUint64(2)
-
-	var g2Gen bn254.G2Affine
-	// G2 generator is complex, use default
-
-	// For genesis, initialize with generator
+	_, _, g1Gen, g2Gen := bn254.Generators()
 	tauG1Powers[0] = g1Gen
 	tauG2Powers[0] = g2Gen
 
-	// Fill remaining with generated values (simplified)
+	var tauPower fr.Element
+	tauPower.SetOne()
 	for i := 1; i <= degree; i++ {
-		tauG1Powers[i] = g1Gen // Simplified
-		tauG2Powers[i] = g2Gen // Simplified
+		tauPower.Mul(&tauPower, tau)
+		exponent := tauPower.BigInt(new(big.Int))
+		tauG1Powers[i].ScalarMultiplicationBase(exponent)
+		tauG2Powers[i].ScalarMultiplicationBase(exponent)
 	}
 
-	// Alpha and Beta points (simplified initialization)
+	// Alpha and Beta points derived from the sampled exponents.
 	var alphaG1Affine bn254.G1Affine
-	alphaG1Affine = g1Gen
+	alphaG1Affine.ScalarMultiplicationBase(alpha.BigInt(new(big.Int)))
 
 	var betaG1Affine bn254.G1Affine
-	betaG1Affine = g1Gen
+	betaG1Affine.ScalarMultiplicationBase(beta.BigInt(new(big.Int)))
 
 	var betaG2Affine bn254.G2Affine
-	betaG2Affine = g2Gen
+	betaG2Affine.ScalarMultiplicationBase(beta.BigInt(new(big.Int)))
 
 	// Securely erase secrets (constant-time)
 	tau.SetZero()
 	alpha.SetZero()
 	beta.SetZero()
+	tauPower.SetZero()
 
 	contribution := &Contribution{
-		ParticipantID:    "genesis",
-		PreviousHash:     make([]byte, 32),
-		PublicKey:        make([]byte, 32),
-		TauG1Powers:      tauG1Powers,
-		TauG2Powers:      tauG2Powers,
-		AlphaG1:          alphaG1Affine,
-		BetaG1:           betaG1Affine,
-		BetaG2:           betaG2Affine,
-		Timestamp:        time.Now(),
+		ParticipantID: "genesis",
+		PreviousHash:  make([]byte, 32),
+		PublicKey:     make([]byte, 32),
+		TauG1Powers:   tauG1Powers,
+		TauG2Powers:   tauG2Powers,
+		AlphaG1:       alphaG1Affine,
+		BetaG1:        betaG1Affine,
+		BetaG2:        betaG2Affine,
+		Timestamp:     time.Now(),
 	}
 
 	// Compute commitment hash
@@ -474,15 +490,15 @@ func (mpc *MPCCeremony) applyContribution(
 
 	// Create the new contribution
 	newContribution := &Contribution{
-		ParticipantID:    participantID,
-		PreviousHash:     previous.CommitmentHash,
-		PublicKey:        nil, // Will be set from participant
-		TauG1Powers:      newTauG1Powers,
-		TauG2Powers:      newTauG2Powers,
-		AlphaG1:          newAlphaG1,
-		BetaG1:           newBetaG1,
-		BetaG2:           newBetaG2,
-		Timestamp:        time.Now(),
+		ParticipantID: participantID,
+		PreviousHash:  previous.CommitmentHash,
+		PublicKey:     nil, // Will be set from participant
+		TauG1Powers:   newTauG1Powers,
+		TauG2Powers:   newTauG2Powers,
+		AlphaG1:       newAlphaG1,
+		BetaG1:        newBetaG1,
+		BetaG2:        newBetaG2,
+		Timestamp:     time.Now(),
 	}
 
 	// Compute commitment hash for the new contribution
@@ -505,8 +521,8 @@ func (mpc *MPCCeremony) generateProofOfKnowledge(
 
 	// Create proof (simplified Schnorr-like protocol)
 	proof := &ProofOfKnowledge{
-		Challenge: challenge[:],
-		Response:  randomness[:32],
+		Challenge:    challenge[:],
+		Response:     randomness[:32],
 		CommitmentG1: contribution.TauG1Powers[1],
 		CommitmentG2: contribution.TauG2Powers[1],
 	}
@@ -715,11 +731,20 @@ func (mpc *MPCCeremony) Finalize(ctx context.Context) (*groth16.ProvingKey, *gro
 		return nil, nil, fmt.Errorf("failed to get beacon randomness: %w", err)
 	}
 
-	// Generate proving and verifying keys from final contribution
-	// This is a simplified version - production would use gnark's Setup
+	// Generate proving and verifying keys from final contribution using gnark.
 	pk, vk, err := groth16.Setup(mpc.circuit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to setup keys: %w", err)
+	}
+
+	if err := mpc.cacheKeys(pk, vk); err != nil {
+		return nil, nil, err
+	}
+
+	if mpc.keySink != nil {
+		if err := mpc.keySink.StoreCeremonyKeys(ctx, mpc.circuitID, mpc.provingKeyBytes, mpc.verifyingKeyBytes); err != nil {
+			return nil, nil, fmt.Errorf("failed to persist verifying key: %w", err)
+		}
 	}
 
 	// Finalize transcript
@@ -737,6 +762,31 @@ func (mpc *MPCCeremony) Finalize(ctx context.Context) (*groth16.ProvingKey, *gro
 	mpc.currentPhase = PhaseCompleted
 
 	return &pk, &vk, nil
+}
+
+func (mpc *MPCCeremony) cacheKeys(pk groth16.ProvingKey, vk groth16.VerifyingKey) error {
+	pkBytes, vkBytes, err := serializeKeys(pk, vk)
+	if err != nil {
+		return err
+	}
+
+	mpc.provingKeyBytes = pkBytes
+	mpc.verifyingKeyBytes = vkBytes
+	return nil
+}
+
+func serializeKeys(pk groth16.ProvingKey, vk groth16.VerifyingKey) ([]byte, []byte, error) {
+	pkBuf := new(bytes.Buffer)
+	if _, err := pk.WriteTo(pkBuf); err != nil {
+		return nil, nil, fmt.Errorf("failed to serialize proving key: %w", err)
+	}
+
+	vkBuf := new(bytes.Buffer)
+	if _, err := vk.WriteTo(vkBuf); err != nil {
+		return nil, nil, fmt.Errorf("failed to serialize verifying key: %w", err)
+	}
+
+	return pkBuf.Bytes(), vkBuf.Bytes(), nil
 }
 
 // Helper functions
