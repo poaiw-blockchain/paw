@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -104,6 +105,14 @@ func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.Vali
 
 // SubmitPrice records a validator price submission with full validation and aggregation triggers.
 func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset string, price math.LegacyDec, feeders ...sdk.AccAddress) error {
+	// Track price submission latency
+	start := time.Now()
+	defer func() {
+		if k.metrics != nil {
+			k.metrics.PriceSubmissionLatency.Observe(time.Since(start).Seconds())
+		}
+	}()
+
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	if asset == "" {
@@ -180,6 +189,18 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 				sdkCtx.Logger().Debug("price aggregation not ready", "asset", asset, "error", err.Error())
 			}
 		}
+	}
+
+	// Record successful price submission metrics
+	if k.metrics != nil {
+		k.metrics.PriceSubmissions.With(map[string]string{
+			"validator": validator.String(),
+			"asset":     asset,
+		}).Inc()
+
+		k.metrics.AggregatedPrice.With(map[string]string{
+			"asset": asset,
+		}).Set(price.MustFloat64())
 	}
 
 	return nil

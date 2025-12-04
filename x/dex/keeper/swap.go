@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,8 +11,15 @@ import (
 
 // ExecuteSwap performs a token swap using the constant product AMM formula
 func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID uint64, tokenIn, tokenOut string, amountIn, minAmountOut math.Int) (math.Int, error) {
+	// Track swap latency
+	start := time.Now()
+	defer func() {
+		k.metrics.SwapLatency.Observe(time.Since(start).Seconds())
+	}()
+
 	// Validate inputs
 	if amountIn.IsZero() {
+		k.metrics.SwapsTotal.WithLabelValues(fmt.Sprintf("%d", poolID), tokenIn, tokenOut, "failed").Inc()
 		return math.ZeroInt(), fmt.Errorf("swap amount must be positive")
 	}
 
@@ -69,6 +77,14 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 
 	// Check slippage protection
 	if amountOut.LT(minAmountOut) {
+		k.metrics.SwapsTotal.WithLabelValues(fmt.Sprintf("%d", poolID), tokenIn, tokenOut, "failed").Inc()
+		// Calculate and record slippage
+		expectedOut := math.LegacyNewDecFromInt(minAmountOut)
+		actualOut := math.LegacyNewDecFromInt(amountOut)
+		if !expectedOut.IsZero() {
+			slippagePercent := expectedOut.Sub(actualOut).Quo(expectedOut).Mul(math.LegacyNewDec(100))
+			k.metrics.SwapSlippage.Observe(slippagePercent.MustFloat64())
+		}
 		return math.ZeroInt(), fmt.Errorf("slippage too high: expected at least %s, got %s", minAmountOut, amountOut)
 	}
 
@@ -123,6 +139,20 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 			sdk.NewAttribute("fee", feeAmount.String()),
 		),
 	)
+
+	// Record successful swap metrics
+	poolIDStr := fmt.Sprintf("%d", poolID)
+	k.metrics.SwapsTotal.WithLabelValues(poolIDStr, tokenIn, tokenOut, "success").Inc()
+	k.metrics.SwapVolume.WithLabelValues(poolIDStr, tokenIn).Add(float64(amountIn.Int64()))
+	k.metrics.SwapFeesCollected.WithLabelValues(poolIDStr, tokenIn).Add(float64(feeAmount.Int64()))
+
+	// Calculate actual slippage
+	if !minAmountOut.IsZero() {
+		expectedOut := math.LegacyNewDecFromInt(minAmountOut)
+		actualOut := math.LegacyNewDecFromInt(amountOut)
+		slippagePercent := expectedOut.Sub(actualOut).Quo(expectedOut).Mul(math.LegacyNewDec(100)).Abs()
+		k.metrics.SwapSlippage.Observe(slippagePercent.MustFloat64())
+	}
 
 	return amountOut, nil
 }

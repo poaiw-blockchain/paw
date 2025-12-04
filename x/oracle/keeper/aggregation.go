@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -40,6 +41,13 @@ type FilteredPriceData struct {
 
 // AggregateAssetPrice aggregates validator price submissions with institutional-grade outlier detection
 func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
+	start := time.Now()
+	defer func() {
+		if k.metrics != nil {
+			k.metrics.AggregationLatency.Observe(time.Since(start).Seconds())
+		}
+	}()
+
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Gas metering: Base price aggregation cost
@@ -164,6 +172,21 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 			sdk.NewAttribute("mad", filteredData.MAD.String()),
 		),
 	)
+
+	// Record metrics
+	if k.metrics != nil {
+		k.metrics.AggregationCount.With(map[string]string{
+			"asset": asset,
+		}).Inc()
+
+		k.metrics.ValidatorParticipation.With(map[string]string{
+			"asset": asset,
+		}).Set(float64(len(filteredData.ValidPrices)))
+
+		k.metrics.OutliersDetected.With(map[string]string{
+			"asset": asset,
+		}).Add(float64(len(filteredData.FilteredOutliers)))
+	}
 
 	return nil
 }

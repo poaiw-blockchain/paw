@@ -132,6 +132,14 @@ func (k Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string) 
 	}
 
 	validatorOracle.MissCounter++
+
+	// Record missed vote metric
+	if k.metrics != nil {
+		k.metrics.MissedVotes.With(map[string]string{
+			"validator": validatorAddr,
+		}).Inc()
+	}
+
 	return k.SetValidatorOracle(ctx, validatorOracle)
 }
 

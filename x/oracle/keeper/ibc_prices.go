@@ -580,6 +580,13 @@ func (k Keeper) OnTimeoutPacket(
 	// Update oracle source reputation (penalize for timeout)
 	k.penalizeOracleSource(ctx, sourceChain, "timeout")
 
+	// Record IBC timeout metric
+	if k.metrics != nil {
+		k.metrics.IBCTimeouts.With(map[string]string{
+			"channel": packet.SourceChannel,
+		}).Inc()
+	}
+
 	switch packetType {
 	case PacketTypeSubscribePrices:
 		k.removePendingSubscription(ctx, packet.SourceChannel, packet.Sequence)
@@ -600,6 +607,7 @@ func (k Keeper) sendOracleIBCPacket(
 	data []byte,
 	timeout time.Duration,
 ) (uint64, error) {
+	start := time.Now()
 	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
 
 	sourcePort := types.PortID
@@ -630,6 +638,18 @@ func (k Keeper) sendOracleIBCPacket(
 			sdk.NewAttribute("sequence", fmt.Sprintf("%d", sequence)),
 		),
 	)
+
+	// Record IBC packet send metrics
+	if k.metrics != nil {
+		k.metrics.IBCPricesSent.With(map[string]string{
+			"channel": channelID,
+		}).Inc()
+
+		k.metrics.IBCLatency.With(map[string]string{
+			"channel":   channelID,
+			"operation": "send",
+		}).Observe(time.Since(start).Seconds())
+	}
 
 	return sequence, nil
 }
@@ -806,6 +826,13 @@ func (k Keeper) handlePriceUpdate(ctx sdk.Context, packet channeltypes.Packet, p
 	// Store each price update
 	for _, price := range updateData.Prices {
 		k.storeCachedPrice(ctx, price.Symbol, sourceChain, &price)
+	}
+
+	// Record IBC price received metrics
+	if k.metrics != nil {
+		k.metrics.IBCPricesReceived.With(map[string]string{
+			"channel": packet.SourceChannel,
+		}).Inc()
 	}
 
 	ackData := types.PriceUpdateAcknowledgement{
