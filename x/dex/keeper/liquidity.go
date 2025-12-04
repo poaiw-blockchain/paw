@@ -127,6 +127,13 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 		),
 	)
 
+	// Record liquidity added metrics
+	if k.metrics != nil {
+		poolIDStr := fmt.Sprintf("%d", poolID)
+		k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(finalAmountA.Int64()))
+		k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(finalAmountB.Int64()))
+	}
+
 	return newShares, nil
 }
 
@@ -198,6 +205,13 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 			sdk.NewAttribute("shares", shares.String()),
 		),
 	)
+
+	// Record liquidity removed metrics
+	if k.metrics != nil {
+		poolIDStr := fmt.Sprintf("%d", poolID)
+		k.metrics.LiquidityRemoved.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(amountA.Int64()))
+		k.metrics.LiquidityRemoved.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(amountB.Int64()))
+	}
 
 	return amountA, amountB, nil
 }
