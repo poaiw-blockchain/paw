@@ -104,6 +104,17 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 		),
 	)
 
+	// Record escrow locked metrics
+	if k.metrics != nil {
+		k.metrics.EscrowLocked.With(map[string]string{
+			"denom": "upaw",
+		}).Add(float64(amount.Int64()))
+
+		k.metrics.EscrowBalance.With(map[string]string{
+			"denom": "upaw",
+		}).Add(float64(amount.Int64()))
+	}
+
 	return nil
 }
 
@@ -213,6 +224,17 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		),
 	)
 
+	// Record escrow released metrics
+	if k.metrics != nil {
+		k.metrics.EscrowReleased.With(map[string]string{
+			"denom": "upaw",
+		}).Add(float64(escrowState.Amount.Int64()))
+
+		k.metrics.EscrowBalance.With(map[string]string{
+			"denom": "upaw",
+		}).Sub(float64(escrowState.Amount.Int64()))
+	}
+
 	return nil
 }
 
@@ -274,6 +296,17 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 			sdk.NewAttribute("nonce", fmt.Sprintf("%d", escrowState.Nonce)),
 		),
 	)
+
+	// Record escrow refunded metrics
+	if k.metrics != nil {
+		k.metrics.EscrowRefunded.With(map[string]string{
+			"denom": "upaw",
+		}).Add(float64(escrowState.Amount.Int64()))
+
+		k.metrics.EscrowBalance.With(map[string]string{
+			"denom": "upaw",
+		}).Sub(float64(escrowState.Amount.Int64()))
+	}
 
 	return nil
 }
