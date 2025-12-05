@@ -112,9 +112,11 @@ When adding or modifying modules:
 ## Git Workflow
 
 - Commit frequently after completing each task
-- Push to GitHub after each commit
+- Push to GitHub after each commit (SSH is configured - no auth prompts)
 - Use clear commit messages
 - GitHub Actions are DISABLED (local testing only via pre-commit hooks)
+
+**SSH Authentication:** Remote is `git@github.com:decristofaroj/paw.git`. Push works without prompts.
 
 ## Environment Variables
 
