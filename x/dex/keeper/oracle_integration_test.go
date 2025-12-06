@@ -433,39 +433,35 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 func TestRealOracleKeeper_Integration(t *testing.T) {
 	// Create both DEX and Oracle keepers
 	dexK, dexCtx := keepertest.DexKeeper(t)
-	oracleK, _ := keepertest.OracleKeeper(t)
+	oracleK, oracleCtx := keepertest.OracleKeeper(t)
 
-	// Use DEX context for both keepers
-	_ = dexCtx
-	ctx := dexCtx
-
-	// Set up oracle prices
+	// Set up oracle prices in oracle context
 	atomPrice := oracletypes.Price{
 		Asset:         "atom",
 		Price:         math.LegacyMustNewDecFromStr("10.00"),
-		BlockHeight:   ctx.BlockHeight(),
+		BlockHeight:   oracleCtx.BlockHeight(),
 		NumValidators: 1,
 	}
-	err := oracleK.SetPrice(ctx, atomPrice)
+	err := oracleK.SetPrice(oracleCtx, atomPrice)
 	require.NoError(t, err)
 
 	osmoPrice := oracletypes.Price{
 		Asset:         "osmo",
 		Price:         math.LegacyMustNewDecFromStr("5.00"),
-		BlockHeight:   ctx.BlockHeight(),
+		BlockHeight:   oracleCtx.BlockHeight(),
 		NumValidators: 1,
 	}
-	err = oracleK.SetPrice(ctx, osmoPrice)
+	err = oracleK.SetPrice(oracleCtx, osmoPrice)
 	require.NoError(t, err)
 
-	// Create a pool in DEX
-	poolID := createTestPoolForOracle(t, dexK, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+	// Create a pool in DEX using dex context
+	poolID := createTestPoolForOracle(t, dexK, dexCtx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
 
-	// Create wrapper that implements OracleKeeper interface
-	oracleWrapper := &realOracleKeeperWrapper{k: oracleK}
+	// Create wrapper that implements OracleKeeper interface and uses oracle context
+	oracleWrapper := &realOracleKeeperWrapper{k: oracleK, ctx: oracleCtx}
 
 	// Test pool value calculation
-	totalValue, err := dexK.GetPoolValueUSD(ctx, poolID, oracleWrapper)
+	totalValue, err := dexK.GetPoolValueUSD(dexCtx, poolID, oracleWrapper)
 	require.NoError(t, err)
 
 	expectedValue := math.LegacyMustNewDecFromStr("20000000.00")
@@ -473,12 +469,15 @@ func TestRealOracleKeeper_Integration(t *testing.T) {
 }
 
 // realOracleKeeperWrapper wraps the real oracle keeper to implement the interface
+// It uses the oracle context internally to access oracle store
 type realOracleKeeperWrapper struct {
-	k *oraclekeeper.Keeper
+	k   *oraclekeeper.Keeper
+	ctx sdk.Context
 }
 
 func (w *realOracleKeeperWrapper) GetPrice(ctx context.Context, denom string) (math.LegacyDec, error) {
-	price, err := w.k.GetPrice(ctx, denom)
+	// Use the oracle context instead of the passed context to access oracle store
+	price, err := w.k.GetPrice(w.ctx, denom)
 	if err != nil {
 		return math.LegacyZeroDec(), err
 	}
@@ -486,7 +485,8 @@ func (w *realOracleKeeperWrapper) GetPrice(ctx context.Context, denom string) (m
 }
 
 func (w *realOracleKeeperWrapper) GetPriceWithTimestamp(ctx context.Context, denom string) (math.LegacyDec, int64, error) {
-	price, err := w.k.GetPrice(ctx, denom)
+	// Use the oracle context instead of the passed context to access oracle store
+	price, err := w.k.GetPrice(w.ctx, denom)
 	if err != nil {
 		return math.LegacyZeroDec(), 0, err
 	}

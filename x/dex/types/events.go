@@ -9,6 +9,9 @@ const (
 	EventTypeDexLimitOrder  = "dex_limit_order"
 	EventTypeDexOrderFilled = "dex_order_filled"
 	EventTypeDexOrderCancelled = "limit_order_cancelled"
+	EventTypeDexOrderPlaced = "limit_order_placed"
+	EventTypeDexOrderMatched = "limit_order_matched"
+	EventTypeDexOrderExpired = "limit_order_expired"
 
 	// Liquidity events
 	EventTypeDexAddLiquidity    = "dex_add_liquidity"

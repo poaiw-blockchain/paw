@@ -330,15 +330,15 @@ func (k Keeper) PlaceLimitOrder(
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"limit_order_placed",
-			sdk.NewAttribute("order_id", fmt.Sprintf("%d", orderID)),
-			sdk.NewAttribute("owner", owner.String()),
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("order_type", fmt.Sprintf("%d", orderType)),
-			sdk.NewAttribute("token_in", tokenIn),
-			sdk.NewAttribute("token_out", tokenOut),
-			sdk.NewAttribute("amount_in", amountIn.String()),
-			sdk.NewAttribute("limit_price", limitPrice.String()),
+			types.EventTypeDexOrderPlaced,
+			sdk.NewAttribute(types.AttributeKeyOrderID, fmt.Sprintf("%d", orderID)),
+			sdk.NewAttribute(sdk.AttributeKeySender, owner.String()),
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyOrderType, fmt.Sprintf("%d", orderType)),
+			sdk.NewAttribute(types.AttributeKeyTokenIn, tokenIn),
+			sdk.NewAttribute(types.AttributeKeyTokenOut, tokenOut),
+			sdk.NewAttribute(types.AttributeKeyAmountIn, amountIn.String()),
+			sdk.NewAttribute(types.AttributeKeyLimitPrice, limitPrice.String()),
 		),
 	)
 
@@ -476,11 +476,11 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"limit_order_matched",
-			sdk.NewAttribute("order_id", fmt.Sprintf("%d", order.ID)),
-			sdk.NewAttribute("filled_amount", remainingAmount.String()),
-			sdk.NewAttribute("received_amount", amountOut.String()),
-			sdk.NewAttribute("status", fmt.Sprintf("%d", order.Status)),
+			types.EventTypeDexOrderMatched,
+			sdk.NewAttribute(types.AttributeKeyOrderID, fmt.Sprintf("%d", order.ID)),
+			sdk.NewAttribute(types.AttributeKeyAmountIn, remainingAmount.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountOut, amountOut.String()),
+			sdk.NewAttribute(types.AttributeKeyStatus, fmt.Sprintf("%d", order.Status)),
 		),
 	)
 
@@ -542,9 +542,9 @@ func (k Keeper) ProcessExpiredOrders(ctx context.Context) error {
 
 		sdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
-				"limit_order_expired",
-				sdk.NewAttribute("order_id", fmt.Sprintf("%d", orderID)),
-				sdk.NewAttribute("refunded_amount", remainingAmount.String()),
+				types.EventTypeDexOrderExpired,
+				sdk.NewAttribute(types.AttributeKeyOrderID, fmt.Sprintf("%d", orderID)),
+				sdk.NewAttribute(types.AttributeKeyRefundedAmount, remainingAmount.String()),
 			),
 		)
 	}
