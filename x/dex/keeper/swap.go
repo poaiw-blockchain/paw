@@ -88,7 +88,41 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		return math.ZeroInt(), fmt.Errorf("slippage too high: expected at least %s, got %s", minAmountOut, amountOut)
 	}
 
-	// Update pool reserves
+	// ATOMICITY FIX: Execute token transfers FIRST (before updating pool state)
+	// This ensures that if transfers fail, pool state remains unchanged
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	moduleAddr := k.GetModuleAddress()
+
+	// Step 1: Transfer input tokens from trader to module
+	coinIn := sdk.NewCoin(tokenIn, amountIn)
+	if err := k.bankKeeper.SendCoins(sdkCtx, trader, moduleAddr, sdk.NewCoins(coinIn)); err != nil {
+		return math.ZeroInt(), fmt.Errorf("failed to transfer input tokens: %w", err)
+	}
+
+	// Step 2: Collect fees (must happen before output transfer)
+	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
+	if err != nil {
+		// Revert the input transfer on fee collection failure
+		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		return math.ZeroInt(), fmt.Errorf("failed to collect swap fees: %w", err)
+	}
+	feeAmount, err = SafeAdd(lpFee, protocolFee)
+	if err != nil {
+		// Revert the input transfer on fee calculation failure
+		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		return math.ZeroInt(), fmt.Errorf("failed to calculate total fees: %w", err)
+	}
+
+	// Step 3: Transfer output tokens from module to trader
+	coinOut := sdk.NewCoin(tokenOut, amountOut)
+	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
+		// Revert the input transfer on output transfer failure
+		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		return math.ZeroInt(), fmt.Errorf("failed to transfer output tokens: %w", err)
+	}
+
+	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
+	// This ensures pool state is never inconsistent with actual token balances
 	if isTokenAIn {
 		pool.ReserveA = pool.ReserveA.Add(amountInAfterFee)
 		pool.ReserveB = pool.ReserveB.Sub(amountOut)
@@ -97,33 +131,11 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		pool.ReserveA = pool.ReserveA.Sub(amountOut)
 	}
 
-	// Save updated pool
+	// Step 5: Save updated pool
 	if err := k.SetPool(ctx, pool); err != nil {
-		return math.ZeroInt(), err
-	}
-
-	// Execute token transfers
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	moduleAddr := k.GetModuleAddress()
-
-	// Transfer input tokens from trader to module
-	coinIn := sdk.NewCoin(tokenIn, amountIn)
-	if err := k.bankKeeper.SendCoins(sdkCtx, trader, moduleAddr, sdk.NewCoins(coinIn)); err != nil {
-		return math.ZeroInt(), fmt.Errorf("failed to transfer input tokens: %w", err)
-	}
-
-	// Transfer output tokens from module to trader
-	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	feeAmount, err = SafeAdd(lpFee, protocolFee)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	coinOut := sdk.NewCoin(tokenOut, amountOut)
-	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
-		return math.ZeroInt(), fmt.Errorf("failed to transfer output tokens: %w", err)
+		// Critical failure: transfers succeeded but state update failed
+		// This should never happen in normal operation
+		return math.ZeroInt(), fmt.Errorf("critical: transfers succeeded but pool state update failed: %w", err)
 	}
 
 	// Emit event
