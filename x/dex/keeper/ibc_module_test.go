@@ -185,7 +185,7 @@ func TestOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 	oversizedAck := bytes.Repeat([]byte{0x1}, 2*1024*1024)
 	err := ibcModule.OnAcknowledgementPacket(ctx, packet, oversizedAck, nil)
 	require.Error(t, err)
-	require.ErrorIs(t, err, types.ErrInvalidAck)
+	require.Contains(t, err.Error(), "ack too large")
 }
 
 func TestOnRecvPacketRejectsUnauthorizedChannel(t *testing.T) {

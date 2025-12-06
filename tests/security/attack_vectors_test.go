@@ -12,7 +12,6 @@ import (
 
 	"github.com/paw-chain/paw/app"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
-	computekeeper "github.com/paw-chain/paw/x/compute/keeper"
 	dexkeeper "github.com/paw-chain/paw/x/dex/keeper"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
@@ -110,7 +109,7 @@ func (suite *AttackVectorsTestSuite) TestIntegerOverflow() {
 	_, err := dexkeeper.SafeAdd(huge, sdkmath.OneInt())
 	suite.Require().Error(err, "SafeAdd must reject overflow beyond 2^256")
 
-	_, err = computekeeper.SafeMul(huge, sdkmath.NewInt(2))
+	_, err = dexkeeper.SafeMul(huge, sdkmath.NewInt(2))
 	suite.Require().Error(err, "SafeMul must reject overflow")
 
 	params, err := suite.app.OracleKeeper.GetParams(suite.ctx)
