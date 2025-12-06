@@ -126,6 +126,8 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 		sdk.AccAddress([]byte("test_trader_address")),
 		sdk.AccAddress([]byte("creator1___________")),
 		sdk.AccAddress([]byte("trader1____________")),
+		sdk.AccAddress([]byte("trader2____________")),
+		sdk.AccAddress([]byte("trader3____________")),
 		sdk.AccAddress([]byte("provider1__________")),
 		sdk.AccAddress([]byte("attacker_address___")),
 		sdk.AccAddress([]byte("normal_user_address")),
