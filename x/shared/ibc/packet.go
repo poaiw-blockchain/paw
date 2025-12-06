@@ -107,10 +107,12 @@ func (pv *PacketValidator) ValidateIncomingPacket(
 ) error {
 	// Validate channel authorization
 	if err := pv.authorizer.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel); err != nil {
-		ctx.Logger().Error("unauthorized packet source",
-			"port", packet.SourcePort,
-			"channel", packet.SourceChannel,
-			"error", err)
+		if logger := ctx.Logger(); logger != nil {
+			logger.Error("unauthorized packet source",
+				"port", packet.SourcePort,
+				"channel", packet.SourceChannel,
+				"error", err)
+		}
 		return errorsmod.Wrapf(err, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
 	}
 
