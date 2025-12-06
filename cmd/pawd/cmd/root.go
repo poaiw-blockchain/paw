@@ -33,7 +33,7 @@ import (
 // NewRootCmd creates a new root command for pawd. It is called once in the
 // main function.
 func NewRootCmd() *cobra.Command {
-	// Set config for prefixes
+	// Ensure SDK bech32 prefixes are configured prior to CLI usage.
 	initSDKConfig()
 
 	encodingConfig := app.MakeEncodingConfig()
@@ -222,8 +222,6 @@ var sdkConfigOnce sync.Once
 
 func initSDKConfig() {
 	sdkConfigOnce.Do(func() {
-		// Delegate to the shared app configuration, which is idempotent and
-		// avoids panicking if the config has already been sealed elsewhere.
 		app.SetConfig()
 	})
 }

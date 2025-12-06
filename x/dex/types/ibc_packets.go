@@ -36,10 +36,11 @@ type IBCPacketData interface {
 
 // QueryPoolsPacketData requests pool information from remote chain
 type QueryPoolsPacketData struct {
-	Type   string `json:"type"`
-	Nonce  uint64 `json:"nonce"`
-	TokenA string `json:"token_a"`
-	TokenB string `json:"token_b"`
+	Type      string `json:"type"`
+	Nonce     uint64 `json:"nonce"`
+	Timestamp int64  `json:"timestamp"`
+	TokenA    string `json:"token_a"`
+	TokenB    string `json:"token_b"`
 }
 
 func (p QueryPoolsPacketData) ValidateBasic() error {
@@ -48,6 +49,9 @@ func (p QueryPoolsPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.TokenA == "" {
 		return errors.Wrap(ErrInvalidPacket, "token A cannot be empty")
@@ -99,6 +103,7 @@ func (a QueryPoolsAcknowledgement) GetBytes() ([]byte, error) {
 type ExecuteSwapPacketData struct {
 	Type         string   `json:"type"`
 	Nonce        uint64   `json:"nonce"`
+	Timestamp    int64    `json:"timestamp"`
 	PoolID       string   `json:"pool_id"`
 	TokenIn      string   `json:"token_in"`
 	TokenOut     string   `json:"token_out"`
@@ -115,6 +120,9 @@ func (p ExecuteSwapPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.PoolID == "" {
 		return errors.Wrap(ErrInvalidPacket, "pool ID cannot be empty")
@@ -169,14 +177,15 @@ func (a ExecuteSwapAcknowledgement) GetBytes() ([]byte, error) {
 
 // CrossChainSwapPacketData performs multi-hop swap across chains
 type CrossChainSwapPacketData struct {
-	Type     string    `json:"type"`
-	Nonce    uint64    `json:"nonce"`
-	Route    []SwapHop `json:"route"`
-	Sender   string    `json:"sender"`
-	Receiver string    `json:"receiver"`
-	AmountIn math.Int  `json:"amount_in"`
-	MinOut   math.Int  `json:"min_out"`
-	Timeout  uint64    `json:"timeout"`
+	Type      string    `json:"type"`
+	Nonce     uint64    `json:"nonce"`
+	Timestamp int64     `json:"timestamp"`
+	Route     []SwapHop `json:"route"`
+	Sender    string    `json:"sender"`
+	Receiver  string    `json:"receiver"`
+	AmountIn  math.Int  `json:"amount_in"`
+	MinOut    math.Int  `json:"min_out"`
+	Timeout   uint64    `json:"timeout"`
 }
 
 type SwapHop struct {
@@ -193,6 +202,9 @@ func (p CrossChainSwapPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if len(p.Route) == 0 {
 		return errors.Wrap(ErrInvalidPacket, "route cannot be empty")

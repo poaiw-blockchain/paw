@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	errorsmod "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
@@ -82,6 +83,16 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 	totalPower := int64(0)
 	maxPower := int64(0)
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+	allowedRegions := make(map[string]struct{}, len(params.AllowedRegions))
+	for _, r := range params.AllowedRegions {
+		allowedRegions[strings.ToLower(strings.TrimSpace(r))] = struct{}{}
+	}
+	regionCounts := make(map[string]int)
+
 	powerReduction := k.stakingKeeper.PowerReduction(ctx)
 	for _, val := range bondedVals {
 		power := val.GetConsensusPower(powerReduction)
@@ -89,6 +100,26 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 		if power > maxPower {
 			maxPower = power
 		}
+
+		valAddr, err := sdk.ValAddressFromBech32(val.GetOperator())
+		if err != nil {
+			return err
+		}
+		oracleInfo, err := k.GetValidatorOracle(ctx, valAddr.String())
+		if err != nil {
+			return err
+		}
+
+		region := strings.ToLower(strings.TrimSpace(oracleInfo.GeographicRegion))
+		if region == "" {
+			return fmt.Errorf("validator %s missing geographic region metadata", oracleInfo.ValidatorAddr)
+		}
+		if len(allowedRegions) > 0 {
+			if _, ok := allowedRegions[region]; !ok {
+				return fmt.Errorf("validator %s region %s not in allowed regions", oracleInfo.ValidatorAddr, region)
+			}
+		}
+		regionCounts[region]++
 	}
 
 	if totalPower == 0 {
@@ -111,6 +142,11 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 		)
 		return fmt.Errorf("stake concentration too high: %s > %s (CENTRALIZATION RISK)",
 			concentration.String(), maxStakeConcentration.String())
+	}
+
+	if uint64(len(regionCounts)) < params.MinGeographicRegions {
+		return fmt.Errorf("insufficient geographic diversity: %d < %d distinct regions",
+			len(regionCounts), params.MinGeographicRegions)
 	}
 
 	return nil

@@ -290,6 +290,12 @@ func (k Keeper) AggregatePrices(ctx context.Context) error {
 				"asset", asset,
 				"error", err,
 			)
+			if k.metrics != nil && k.metrics.AggregationCount != nil {
+				k.metrics.AggregationCount.With(map[string]string{
+					"asset":  asset,
+					"status": "error",
+				}).Inc()
+			}
 			continue
 		}
 		aggregatedCount++

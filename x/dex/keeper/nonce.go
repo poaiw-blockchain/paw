@@ -54,19 +54,50 @@ func (k Keeper) setIncomingNonce(ctx sdk.Context, channel, sender string, nonce 
 	store.Set(key, encodeNonce(nonce))
 }
 
-func (k Keeper) ValidateIncomingPacketNonce(ctx sdk.Context, channel, sender string, packetNonce uint64) error {
+// ValidateIncomingPacketNonce validates packet nonce and timestamp to prevent replay attacks.
+// It enforces:
+// 1. Timestamp must be within 24 hours of current block time (prevents old packet replay)
+// 2. Nonce must be monotonically increasing per channel/sender pair
+// 3. Stores the new nonce after successful validation
+func (k Keeper) ValidateIncomingPacketNonce(ctx sdk.Context, channel, sender string, packetNonce uint64, timestamp int64) error {
 	if packetNonce == 0 {
 		return errorsmod.Wrap(types.ErrInvalidNonce, "nonce must be greater than zero")
 	}
 	if channel == "" {
 		return errorsmod.Wrap(types.ErrInvalidPacket, "source channel missing")
 	}
-
-	stored := k.getIncomingNonce(ctx, channel, sender)
-	if packetNonce <= stored {
-		return errorsmod.Wrapf(types.ErrInvalidNonce, "packet nonce %d not greater than stored %d", packetNonce, stored)
+	if timestamp <= 0 {
+		return errorsmod.Wrap(types.ErrInvalidPacket, "timestamp must be positive")
 	}
 
+	// Check timestamp is within 24 hours (86400 seconds)
+	const maxTimestampAge = int64(86400)
+	currentTime := ctx.BlockTime().Unix()
+	timeDiff := currentTime - timestamp
+
+	if timeDiff > maxTimestampAge {
+		return errorsmod.Wrapf(types.ErrInvalidPacket,
+			"packet timestamp too old: %d seconds ago (max: %d seconds)",
+			timeDiff, maxTimestampAge)
+	}
+
+	// Allow small clock drift into the future (5 minutes)
+	const maxFutureDrift = int64(300)
+	if timeDiff < -maxFutureDrift {
+		return errorsmod.Wrapf(types.ErrInvalidPacket,
+			"packet timestamp too far in future: %d seconds ahead (max: %d seconds)",
+			-timeDiff, maxFutureDrift)
+	}
+
+	// Enforce monotonically increasing nonce
+	stored := k.getIncomingNonce(ctx, channel, sender)
+	if packetNonce <= stored {
+		return errorsmod.Wrapf(types.ErrInvalidNonce,
+			"replay attack detected: packet nonce %d not greater than stored %d",
+			packetNonce, stored)
+	}
+
+	// Store the new nonce after successful validation
 	k.setIncomingNonce(ctx, channel, sender, packetNonce)
 	return nil
 }

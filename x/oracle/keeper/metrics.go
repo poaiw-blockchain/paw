@@ -14,18 +14,21 @@ type OracleMetrics struct {
 	AggregatedPrice  *prometheus.GaugeVec
 	PriceDeviation   *prometheus.GaugeVec
 	PriceAge         *prometheus.GaugeVec
+	PriceSubmissionLatency prometheus.Observer
 
 	// Validator metrics
 	ValidatorSubmissions *prometheus.CounterVec
 	MissedVotes          *prometheus.CounterVec
 	SlashingEvents       *prometheus.CounterVec
 	ValidatorReputation  *prometheus.GaugeVec
+	ValidatorParticipation *prometheus.GaugeVec
 
 	// Aggregation metrics
 	PriceAggregations      *prometheus.CounterVec
 	AggregationLatency     prometheus.Histogram
 	ConsensusParticipation *prometheus.GaugeVec
 	OutliersDetected       *prometheus.CounterVec
+	AggregationCount       *prometheus.CounterVec
 
 	// TWAP metrics
 	TWAPValue        *prometheus.GaugeVec
@@ -42,6 +45,7 @@ type OracleMetrics struct {
 	IBCPricesSent     *prometheus.CounterVec
 	IBCPricesReceived *prometheus.CounterVec
 	IBCTimeouts       *prometheus.CounterVec
+	IBCLatency        *prometheus.HistogramVec
 
 	// ABCI metrics
 	AssetsTracked prometheus.Gauge
@@ -94,6 +98,15 @@ func NewOracleMetrics() *OracleMetrics {
 				},
 				[]string{"asset"},
 			),
+			PriceSubmissionLatency: promauto.NewHistogram(
+				prometheus.HistogramOpts{
+					Namespace: "paw",
+					Subsystem: "oracle",
+					Name:      "price_submission_latency_seconds",
+					Help:      "Latency when processing validator price submissions",
+					Buckets:   prometheus.DefBuckets,
+				},
+			),
 
 			// Validator metrics
 			ValidatorSubmissions: promauto.NewCounterVec(
@@ -112,7 +125,7 @@ func NewOracleMetrics() *OracleMetrics {
 					Name:      "missed_votes_total",
 					Help:      "Missed oracle votes by validator",
 				},
-				[]string{"validator", "asset"},
+				[]string{"validator"},
 			),
 			SlashingEvents: promauto.NewCounterVec(
 				prometheus.CounterOpts{
@@ -131,6 +144,15 @@ func NewOracleMetrics() *OracleMetrics {
 					Help:      "Validator reputation score (0-100)",
 				},
 				[]string{"validator"},
+			),
+			ValidatorParticipation: promauto.NewGaugeVec(
+				prometheus.GaugeOpts{
+					Namespace: "paw",
+					Subsystem: "oracle",
+					Name:      "validator_participation_total",
+					Help:      "Number of validators participating in aggregation per asset",
+				},
+				[]string{"asset"},
 			),
 
 			// Aggregation metrics
@@ -169,6 +191,15 @@ func NewOracleMetrics() *OracleMetrics {
 					Help:      "Outlier price submissions detected",
 				},
 				[]string{"asset", "severity"},
+			),
+			AggregationCount: promauto.NewCounterVec(
+				prometheus.CounterOpts{
+					Namespace: "paw",
+					Subsystem: "oracle",
+					Name:      "aggregation_count_total",
+					Help:      "Total aggregation executions per asset and outcome",
+				},
+				[]string{"asset", "status"},
 			),
 
 			// TWAP metrics
@@ -264,6 +295,16 @@ func NewOracleMetrics() *OracleMetrics {
 					Help:      "IBC price feed timeouts",
 				},
 				[]string{"chain", "asset"},
+			),
+			IBCLatency: promauto.NewHistogramVec(
+				prometheus.HistogramOpts{
+					Namespace: "paw",
+					Subsystem: "oracle",
+					Name:      "ibc_latency_seconds",
+					Help:      "Latency for oracle IBC operations",
+					Buckets:   prometheus.DefBuckets,
+				},
+				[]string{"channel", "operation"},
 			),
 
 			// ABCI metrics

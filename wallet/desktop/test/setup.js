@@ -1,18 +1,21 @@
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
+import { webcrypto } from 'crypto';
 
 // Polyfill TextEncoder/TextDecoder for Node.js
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
+global.crypto = webcrypto;
 
 // Mock electron APIs
 global.window = global.window || {};
+global.window.crypto = webcrypto;
 global.window.electron = {
   store: {
-    get: jest.fn(),
-    set: jest.fn(),
-    delete: jest.fn(),
-    clear: jest.fn()
+    get: jest.fn(() => Promise.resolve(null)),
+    set: jest.fn(() => Promise.resolve()),
+    delete: jest.fn(() => Promise.resolve()),
+    clear: jest.fn(() => Promise.resolve())
   },
   dialog: {
     showOpenDialog: jest.fn(),
@@ -43,3 +46,15 @@ Object.defineProperty(navigator, 'clipboard', {
   },
   writable: true
 });
+
+global.atob =
+  global.atob ||
+  function atobPolyfill(data) {
+    return Buffer.from(data, 'base64').toString('binary');
+  };
+
+global.btoa =
+  global.btoa ||
+  function btoaPolyfill(data) {
+    return Buffer.from(data, 'binary').toString('base64');
+  };

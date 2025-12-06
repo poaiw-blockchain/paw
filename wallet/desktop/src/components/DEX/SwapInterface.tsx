@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PriceData } from '@paw-chain/wallet-core';
 import { DexService, SwapQuote, DenomMetadata } from '../../services/dex';
 
-const dexService = new DexService();
 const SLIPPAGE_PRESETS = [0.1, 0.5, 1, 2];
 
 interface WalletData {
@@ -12,9 +11,11 @@ interface WalletData {
 
 interface SwapInterfaceProps {
   walletData: WalletData | null;
+  service?: DexService;
 }
 
-const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData }) => {
+const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) => {
+  const dexService = useMemo(() => service ?? new DexService(), [service]);
   const [availableTokens, setAvailableTokens] = useState<DenomMetadata[]>([]);
   const [tokenIn, setTokenIn] = useState('');
   const [tokenOut, setTokenOut] = useState('');
@@ -35,19 +36,20 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData }) => {
 
   useEffect(() => {
     loadTokens();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dexService]);
 
   useEffect(() => {
     if (tokenIn) {
       hydrateOraclePrice(tokenIn);
     }
-  }, [tokenIn]);
+  }, [tokenIn, dexService]);
 
   useEffect(() => {
     if (tokenOut) {
       hydrateOraclePrice(tokenOut);
     }
-  }, [tokenOut]);
+  }, [tokenOut, dexService]);
 
   useEffect(() => {
     if (!tokenIn || !tokenOut || !amountIn || tokenIn === tokenOut) {
@@ -61,7 +63,7 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData }) => {
 
     return () => clearTimeout(debounce);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenIn, tokenOut, amountIn, slippage]);
+  }, [tokenIn, tokenOut, amountIn, slippage, dexService]);
 
   const tokenOutOptions = useMemo(() => {
     return availableTokens.filter((token) => token.denom !== tokenIn);

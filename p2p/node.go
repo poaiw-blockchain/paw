@@ -247,6 +247,11 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 		node.handlePeerDisconnected,
 	)
 
+	// Wire messaging between discovery and the node
+	discoveryService.SetMessageSender(node.SendMessage)
+	discoveryService.GetPeerManager().SetMessageHandler(node.handlePeerMessage)
+	node.RegisterMessageHandler(discovery.PEXMessageType, node.handlePEXMessage)
+
 	logger.Info("P2P node created",
 		"node_id", config.NodeID,
 		"listen_address", config.ListenAddress,
@@ -339,6 +344,27 @@ func (n *Node) GetPeerCount() (inbound, outbound int) {
 // HasPeer checks if a peer is connected
 func (n *Node) HasPeer(peerID reputation.PeerID) bool {
 	return n.discoveryService.HasPeer(peerID)
+}
+
+// handlePeerMessage dispatches inbound peer messages to registered handlers.
+func (n *Node) handlePeerMessage(peerID reputation.PeerID, msgType string, data []byte) {
+	n.handlerMu.RLock()
+	handler := n.messageHandlers[msgType]
+	n.handlerMu.RUnlock()
+
+	if handler == nil {
+		n.logger.Debug("dropping message without handler",
+			"peer_id", peerID,
+			"type", msgType)
+		return
+	}
+
+	if err := handler(peerID, data); err != nil {
+		n.logger.Error("message handler failed",
+			"peer_id", peerID,
+			"type", msgType,
+			"error", err)
+	}
 }
 
 // SendMessage sends a message to a peer
@@ -443,8 +469,8 @@ func isNetworkError(err error) bool {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&
 		(s == substr || len(s) > len(substr) &&
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-		len(s) > len(substr)*2 && findSubstring(s, substr)))
+			(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+				len(s) > len(substr)*2 && findSubstring(s, substr)))
 }
 
 // findSubstring performs simple substring search
@@ -493,6 +519,10 @@ func (n *Node) UnregisterMessageHandler(msgType string) {
 
 	delete(n.messageHandlers, msgType)
 	n.logger.Debug("unregistered message handler", "type", msgType)
+}
+
+func (n *Node) handlePEXMessage(peerID reputation.PeerID, payload []byte) error {
+	return n.discoveryService.HandlePEXMessage(peerID, payload)
 }
 
 // ReportPeerMisbehavior reports peer misbehavior

@@ -7,10 +7,12 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/suite"
 
 	testkeeper "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // SecurityIntegrationSuite is the comprehensive security testing suite with real keeper
@@ -18,6 +20,7 @@ type SecurityIntegrationSuite struct {
 	suite.Suite
 	ctx               sdk.Context
 	keeper            *keeper.Keeper
+	bankKeeper        bankkeeper.Keeper
 	attacker          sdk.AccAddress
 	normalUser        sdk.AccAddress
 	liquidityProvider sdk.AccAddress
@@ -26,8 +29,9 @@ type SecurityIntegrationSuite struct {
 // SetupTest initializes the test suite with a fresh keeper and context
 func (suite *SecurityIntegrationSuite) SetupTest() {
 	// Use testutil keeper setup
-	k, ctx := testkeeper.DexKeeper(suite.T())
+	k, bk, ctx := testkeeper.DexKeeperWithBank(suite.T())
 	suite.keeper = k
+	suite.bankKeeper = bk
 	suite.ctx = ctx
 
 	// Create test accounts
@@ -38,9 +42,11 @@ func (suite *SecurityIntegrationSuite) SetupTest() {
 
 // Helper function to fund test accounts (mock implementation for testing)
 func (suite *SecurityIntegrationSuite) fundAccount(addr sdk.AccAddress, denom string, amount math.Int) {
-	// In a real test, this would fund the account through the bank keeper
-	// For now, this is a placeholder that allows tests to compile
-	// Prefunding handled in testutil/keeper.DexKeeper
+	coins := sdk.NewCoins(sdk.NewCoin(denom, amount))
+	suite.Require().NoError(suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, coins))
+	suite.Require().NoError(suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, coins))
+	balance := suite.bankKeeper.GetBalance(suite.ctx, addr, denom)
+	suite.Require().True(balance.Amount.GTE(amount), "account must be funded before executing test flow")
 }
 
 // Helper function to create a test pool

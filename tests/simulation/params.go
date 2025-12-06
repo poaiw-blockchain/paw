@@ -9,13 +9,14 @@ import (
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
+	"github.com/cosmos/cosmos-sdk/x/simulation"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/simulation"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -37,7 +38,7 @@ func AppStateFn(cdc codec.JSONCodec, bm module.BasicManager) simtypes.AppStateFn
 
 		if config.GenesisFile != "" {
 			// Use provided genesis file
-			appState, simAccs, chainID, genesisTimestamp = loadGenesisState(cdc, config.GenesisFile)
+			appState, simAccs, chainID, genesisTimestamp = loadGenesisState(r, cdc, config.GenesisFile)
 		} else {
 			// Generate random genesis state
 			appState, simAccs, chainID, genesisTimestamp = generateGenesisState(r, cdc, accs, config, bm)
@@ -223,10 +224,25 @@ func generateGenesisState(
 }
 
 // loadGenesisState loads genesis state from file
-func loadGenesisState(cdc codec.JSONCodec, genesisFile string) (
+func loadGenesisState(r *rand.Rand, cdc codec.JSONCodec, genesisFile string) (
 	json.RawMessage, []simtypes.Account, string, time.Time,
 ) {
-	panic("Genesis file loading not implemented for simulation")
+	appGenesis, accs, err := sims.AppStateFromGenesisFileFn(r, cdc, genesisFile)
+	if err != nil {
+		panic(fmt.Errorf("failed to load genesis file %s: %w", genesisFile, err))
+	}
+
+	if err := appGenesis.ValidateAndComplete(); err != nil {
+		panic(fmt.Errorf("genesis validation failed: %w", err))
+	}
+
+	// Preserve genesis timestamp if provided; otherwise default to now to avoid zero times in simulations.
+	genesisTime := appGenesis.GenesisTime
+	if genesisTime.IsZero() {
+		genesisTime = time.Now()
+	}
+
+	return appGenesis.AppState, accs, appGenesis.ChainID, genesisTime
 }
 
 // RandomizedParams creates randomized parameter changes for param change proposals

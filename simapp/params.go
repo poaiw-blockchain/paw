@@ -85,10 +85,11 @@ func RandomizedParams(r *rand.Rand) SimulationParams {
 	}
 }
 
-// ParamChanges defines the parameters that can be modified by parameter change proposals
-// Note: Legacy param changes are deprecated in SDK v0.50, returning empty slice
-func ParamChanges(r *rand.Rand) []simulation.LegacyParamChange {
-	// TODO: Update to use new param change mechanism when needed
+// ParamChanges intentionally returns no legacy param changes because Cosmos SDK v0.50
+// removed ParamChange proposals in favor of MsgUpdateParams governance flow.
+// Simulations that need parameter mutations should craft MsgUpdateParams transactions
+// through module-specific simulation packages instead of legacy param changes.
+func ParamChanges(_ *rand.Rand) []simulation.LegacyParamChange {
 	return []simulation.LegacyParamChange{}
 }
 
@@ -99,25 +100,9 @@ func RandomAccounts(r *rand.Rand, n int) []simulation.Account {
 }
 
 // WeightedOperations returns the default weighted operations for simulation
+// Modules expose their own weighted operations (see x/{dex,oracle,compute}/simulation).
+// This shim exists for backward compatibility; callers should prefer the app's
+// SimulationManager().WeightedOperations(simState).
 func WeightedOperations() []simulation.WeightedOperation {
-	// This would be populated with actual operations
-	// Example structure:
-	/*
-		return []simulation.WeightedOperation{
-			simulation.NewWeightedOperation(
-				100, // weight
-				SimulateMsgSwap(am accountKeeper, bk bankKeeper, dk dexKeeper),
-			),
-			simulation.NewWeightedOperation(
-				50,
-				SimulateMsgAddLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
-			),
-			simulation.NewWeightedOperation(
-				50,
-				SimulateMsgRemoveLiquidity(am accountKeeper, bk bankKeeper, dk dexKeeper),
-			),
-			// Add more operations
-		}
-	*/
-	return nil
+	return []simulation.WeightedOperation{}
 }

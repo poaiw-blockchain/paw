@@ -1,9 +1,11 @@
 package discovery
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"io"
+	"math/big"
 	"os"
 	"path/filepath"
 	"sync"
@@ -42,8 +44,8 @@ type AddressBook struct {
 	stopChan chan struct{}
 	wg       sync.WaitGroup
 
-	// Random source
-	rng *rand.Rand
+	// Entropy source (crypto/rand by default)
+	randReader io.Reader
 }
 
 // NewAddressBook creates a new address book
@@ -57,7 +59,7 @@ func NewAddressBook(config DiscoveryConfig, dataDir string, logger log.Logger) (
 		banned:       make(map[reputation.PeerID]time.Time),
 		privatePeers: make(map[reputation.PeerID]bool),
 		stopChan:     make(chan struct{}),
-		rng:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		randReader:   rand.Reader,
 	}
 
 	// Mark private peers
@@ -459,12 +461,32 @@ func (ab *AddressBook) evictOldest() {
 	}
 }
 
-// shuffleAddrs shuffles a slice of peer addresses
+// shuffleAddrs shuffles a slice of peer addresses using cryptographic randomness.
 func (ab *AddressBook) shuffleAddrs(addrs []*PeerAddr) {
 	for i := len(addrs) - 1; i > 0; i-- {
-		j := ab.rng.Intn(i + 1)
+		j, err := ab.secureIntn(i + 1)
+		if err != nil {
+			ab.logger.Error("failed to get secure randomness for shuffle", "error", err)
+			// Fallback: swap with self to avoid biased ordering when entropy is unavailable.
+			j = i
+		}
 		addrs[i], addrs[j] = addrs[j], addrs[i]
 	}
+}
+
+// secureIntn returns a cryptographically secure random integer in [0, n).
+func (ab *AddressBook) secureIntn(n int) (int, error) {
+	if n <= 0 {
+		return 0, nil
+	}
+
+	max := big.NewInt(int64(n))
+	r, err := rand.Int(ab.randReader, max)
+	if err != nil {
+		return 0, fmt.Errorf("crypto rand failure: %w", err)
+	}
+
+	return int(r.Int64()), nil
 }
 
 // save persists the address book to disk

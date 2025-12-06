@@ -20,6 +20,10 @@ func (k Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.Va
 	}
 
 	store := k.getStore(ctx)
+	if validatorOracle.GeographicRegion == "" {
+		validatorOracle.GeographicRegion = "global"
+	}
+
 	bz, err := k.cdc.Marshal(&validatorOracle)
 	if err != nil {
 		return err
@@ -50,6 +54,10 @@ func (k Keeper) GetValidatorOracle(ctx context.Context, validatorAddr string) (t
 	if err := k.cdc.Unmarshal(bz, &validatorOracle); err != nil {
 		return types.ValidatorOracle{}, err
 	}
+	if validatorOracle.GeographicRegion == "" {
+		validatorOracle.GeographicRegion = "global"
+	}
+
 	return validatorOracle, nil
 }
 

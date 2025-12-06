@@ -261,6 +261,11 @@ test-simulation:
 	@echo "--> Running simulation tests (this may take a while)"
 	@go test -v ./tests/simulation/... -timeout 30m
 
+test-simulation-genesis:
+	@if [ -z "$(GENESIS)" ]; then echo "GENESIS path is required, e.g. make test-simulation-genesis GENESIS=/path/to/genesis.json"; exit 1; fi
+	@echo "--> Running simulation tests with custom genesis: $(GENESIS)"
+	@go test -v ./tests/simulation/... -Genesis=$(GENESIS) -timeout 30m
+
 test-cometmock:
 	@echo "--> Running E2E tests with CometMock"
 	@USE_COMETMOCK=true go test -v ./tests/e2e/...

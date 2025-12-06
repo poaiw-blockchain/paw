@@ -34,6 +34,7 @@ type IBCPacketData interface {
 type DiscoverProvidersPacketData struct {
 	Type         string         `json:"type"`
 	Nonce        uint64         `json:"nonce"`
+	Timestamp    int64          `json:"timestamp"`
 	Capabilities []string       `json:"capabilities,omitempty"`
 	MaxPrice     math.LegacyDec `json:"max_price,omitempty"`
 	Requester    string         `json:"requester"`
@@ -45,6 +46,9 @@ func (p DiscoverProvidersPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if _, err := sdk.AccAddressFromBech32(p.Requester); err != nil {
 		return errors.Wrapf(ErrInvalidPacket, "invalid requester address: %s", err)
@@ -96,6 +100,7 @@ type JobRequirements struct {
 type SubmitJobPacketData struct {
 	Type         string          `json:"type"`
 	Nonce        uint64          `json:"nonce"`
+	Timestamp    int64           `json:"timestamp"`
 	JobID        string          `json:"job_id"`
 	JobType      string          `json:"job_type"` // "wasm", "docker", "tee"
 	JobData      []byte          `json:"job_data"`
@@ -112,6 +117,9 @@ func (p SubmitJobPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -172,11 +180,12 @@ type JobResult struct {
 
 // JobResultPacketData contains computation result
 type JobResultPacketData struct {
-	Type     string    `json:"type"`
-	Nonce    uint64    `json:"nonce"`
-	JobID    string    `json:"job_id"`
-	Result   JobResult `json:"result"`
-	Provider string    `json:"provider"`
+	Type      string    `json:"type"`
+	Nonce     uint64    `json:"nonce"`
+	Timestamp int64     `json:"timestamp"`
+	JobID     string    `json:"job_id"`
+	Result    JobResult `json:"result"`
+	Provider  string    `json:"provider"`
 }
 
 func (p JobResultPacketData) ValidateBasic() error {
@@ -185,6 +194,9 @@ func (p JobResultPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -213,6 +225,7 @@ func (p JobResultPacketData) GetBytes() ([]byte, error) {
 type JobStatusPacketData struct {
 	Type      string `json:"type"`
 	Nonce     uint64 `json:"nonce"`
+	Timestamp int64  `json:"timestamp"`
 	JobID     string `json:"job_id"`
 	Requester string `json:"requester"`
 }
@@ -223,6 +236,9 @@ func (p JobStatusPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")
@@ -275,11 +291,12 @@ func (a JobResultAcknowledgement) GetBytes() ([]byte, error) {
 
 // ReleaseEscrowPacketData releases escrowed funds
 type ReleaseEscrowPacketData struct {
-	Type     string   `json:"type"`
-	Nonce    uint64   `json:"nonce"`
-	JobID    string   `json:"job_id"`
-	Provider string   `json:"provider"`
-	Amount   math.Int `json:"amount"`
+	Type      string   `json:"type"`
+	Nonce     uint64   `json:"nonce"`
+	Timestamp int64    `json:"timestamp"`
+	JobID     string   `json:"job_id"`
+	Provider  string   `json:"provider"`
+	Amount    math.Int `json:"amount"`
 }
 
 func (p ReleaseEscrowPacketData) ValidateBasic() error {
@@ -288,6 +305,9 @@ func (p ReleaseEscrowPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.JobID == "" {
 		return errors.Wrap(ErrInvalidPacket, "job ID cannot be empty")

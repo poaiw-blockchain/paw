@@ -1,0 +1,6 @@
+
+- name: smoke-trader
+  type: secp256k1
+  address: paw1095j23hw3ezuhrupl5qcfz2yd6aqywkkhqwu7l
+  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 2 3 73 180 119 109 161 190 59 18 159 96 222 43 133 249 15 84 60 97 234 86 174 10 213 135 35 69 192 28 125 100 130],XXX_unrecognized:[]}
+

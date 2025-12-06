@@ -33,6 +33,16 @@ import (
 
 // DexKeeper creates a test keeper for the DEX module with mock dependencies
 func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
+	k, _, ctx := buildDexKeeper(t)
+	return k, ctx
+}
+
+// DexKeeperWithBank returns the dex keeper and bank keeper for tests needing explicit funding.
+func DexKeeperWithBank(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Context) {
+	return buildDexKeeper(t)
+}
+
+func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 	memStoreKey := storetypes.NewMemoryStoreKey(types.MemStoreKey)
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
@@ -140,7 +150,7 @@ func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 	k.SetNextPoolId(ctx, 1)
 
-	return k, ctx
+	return k, bankKeeper, ctx
 }
 
 // CreateTestPool creates a test liquidity pool with given tokens

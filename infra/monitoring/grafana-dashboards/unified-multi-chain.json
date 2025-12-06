@@ -1,0 +1,356 @@
+{
+  "dashboard": {
+    "title": "Unified Multi-Chain Blockchain Monitoring",
+    "tags": ["unified", "multi-chain", "paw", "aura", "xai"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "templating": {
+      "list": [
+        {
+          "name": "blockchain",
+          "type": "custom",
+          "options": [
+            {"text": "All", "value": "$__all"},
+            {"text": "PAW", "value": "paw"},
+            {"text": "Aura", "value": "aura"},
+            {"text": "XAI", "value": "xai"}
+          ],
+          "current": {"text": "All", "value": "$__all"},
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "DEX Swap Volume (All Chains)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(paw_dex_swap_volume[5m])) by (pool_id, denom)",
+            "legendFormat": "PAW - {{pool_id}} {{denom}}"
+          },
+          {
+            "expr": "sum(rate(aura_dex_swap_volume[5m])) by (pool, denom)",
+            "legendFormat": "Aura - {{pool}} {{denom}}"
+          },
+          {
+            "expr": "sum(rate(xai_dex_swap_volume[5m])) by (pool, denom)",
+            "legendFormat": "XAI - {{pool}} {{denom}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {"lineWidth": 2}
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "DEX Total Swaps (All Chains)",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(paw_dex_swaps_total{status=\"success\"})",
+            "legendFormat": "PAW"
+          },
+          {
+            "expr": "sum(aura_dex_swaps_total{status=\"success\"})",
+            "legendFormat": "Aura"
+          },
+          {
+            "expr": "sum(xai_dex_swaps_total{status=\"success\"})",
+            "legendFormat": "XAI"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Oracle Price Submissions",
+        "type": "timeseries",
+        "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_price_submissions_total[5m])",
+            "legendFormat": "PAW - {{asset}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Swap Latency p95 (All Chains)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "PAW p95"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(aura_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "Aura p95"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(xai_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "XAI p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {"lineWidth": 2}
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Total Liquidity (TVL) - All Chains",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(paw_dex_pool_tvl) by (pool_id)",
+            "legendFormat": "PAW - Pool {{pool_id}}"
+          },
+          {
+            "expr": "sum(aura_dex_pool_tvl_usd) by (pool)",
+            "legendFormat": "Aura - Pool {{pool}}"
+          },
+          {
+            "expr": "sum(xai_dex_pool_tvl) by (pool)",
+            "legendFormat": "XAI - Pool {{pool}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {"fillOpacity": 20}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Compute Jobs Submitted (PAW)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 16, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_compute_jobs_submitted_total[5m])",
+            "legendFormat": "{{job_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "AI Jobs Submitted (XAI)",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 16, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(xai_ai_jobs_submitted_total[5m])",
+            "legendFormat": "{{job_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Identity Operations (Aura)",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 16, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(aura_identity_did_registrations_total[5m])",
+            "legendFormat": "DID Registrations"
+          },
+          {
+            "expr": "rate(aura_identity_credentials_issued_total[5m])",
+            "legendFormat": "Credentials Issued"
+          },
+          {
+            "expr": "rate(aura_identity_credentials_revoked_total[5m])",
+            "legendFormat": "Credentials Revoked"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Escrow Balance (PAW Compute)",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 22, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_compute_escrow_balance{denom=\"upaw\"}",
+            "legendFormat": "Escrow Balance"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1000000, "color": "yellow"},
+                {"value": 10000000, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Oracle Validator Participation",
+        "type": "timeseries",
+        "gridPos": {"x": 6, "y": 22, "w": 9, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_oracle_validator_participation{asset=\"BTC/USD\"}",
+            "legendFormat": "BTC/USD"
+          },
+          {
+            "expr": "paw_oracle_validator_participation{asset=\"ETH/USD\"}",
+            "legendFormat": "ETH/USD"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Active Sessions (Aura Identity)",
+        "type": "stat",
+        "gridPos": {"x": 15, "y": 22, "w": 4, "h": 3},
+        "targets": [
+          {
+            "expr": "aura_identity_sessions_active",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "title": "AI Provider Reputation (XAI)",
+        "type": "gauge",
+        "gridPos": {"x": 19, "y": 22, "w": 5, "h": 6},
+        "targets": [
+          {
+            "expr": "xai_ai_provider_reputation_score",
+            "legendFormat": "{{provider}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 13,
+        "title": "IBC Packet Metrics (All Chains)",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 28, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_ibc_prices_sent_total[5m])",
+            "legendFormat": "PAW Oracle Sent"
+          },
+          {
+            "expr": "rate(paw_oracle_ibc_prices_received_total[5m])",
+            "legendFormat": "PAW Oracle Received"
+          },
+          {
+            "expr": "rate(paw_compute_ibc_jobs_distributed_total[5m])",
+            "legendFormat": "PAW Compute Jobs"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Swap Slippage Distribution",
+        "type": "heatmap",
+        "gridPos": {"x": 12, "y": 28, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_swap_slippage_bucket[5m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Failed Operations (All Chains)",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 34, "w": 24, "h": 6},
+        "targets": [
+          {
+            "expr": "sum by (pool_id, token_in, token_out) (paw_dex_swaps_total{status=\"failed\"})",
+            "format": "table",
+            "legendFormat": "PAW DEX Swap Failures"
+          },
+          {
+            "expr": "sum by (provider, reason) (xai_ai_jobs_failed_total)",
+            "format": "table",
+            "legendFormat": "XAI AI Job Failures"
+          },
+          {
+            "expr": "sum by (validator) (paw_oracle_missed_votes_total)",
+            "format": "table",
+            "legendFormat": "PAW Oracle Missed Votes"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "merge"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -411,6 +411,9 @@ func computeResultHashMiMC(
 
 // VerifyProof verifies a ZK-SNARK proof for a compute result.
 // This is called on-chain during result submission to verify correctness.
+//
+// Security: Proof size is checked BEFORE any gas consumption to prevent DoS attacks
+// where attackers submit massive proofs to exhaust gas.
 func (zk *ZKVerifier) VerifyProof(
 	ctx context.Context,
 	zkProof *types.ZKProof,
@@ -421,7 +424,30 @@ func (zk *ZKVerifier) VerifyProof(
 	startTime := time.Now()
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Consume gas for initial validation
+	// CRITICAL SECURITY: Absolute size limit check BEFORE any operations (including storage reads)
+	// This prevents DoS attacks where attackers submit massive proofs to exhaust gas.
+	// We use a hard upper bound before even checking circuit-specific limits.
+	const absoluteMaxProofSize = 10 * 1024 * 1024 // 10MB absolute maximum
+	if uint64(len(zkProof.Proof)) > absoluteMaxProofSize {
+		return false, types.ErrProofTooLarge
+	}
+
+	// Now safe to get circuit params (may consume gas for storage read)
+	circuitParams, err := zk.keeper.GetCircuitParams(ctx, zkProof.CircuitId)
+	if err != nil {
+		return false, fmt.Errorf("failed to get circuit params: %w", err)
+	}
+
+	// Check circuit-specific size limit
+	maxProofSize := circuitParams.MaxProofSize
+	if maxProofSize == 0 {
+		maxProofSize = 1024 * 1024 // Default 1MB max if not set
+	}
+	if uint64(len(zkProof.Proof)) > uint64(maxProofSize) {
+		return false, types.ErrProofTooLarge
+	}
+
+	// Now we can safely consume gas for validation
 	sdkCtx.GasMeter().ConsumeGas(500, "zk_proof_validation_setup")
 
 	// Validate proof system
@@ -437,23 +463,8 @@ func (zk *ZKVerifier) VerifyProof(
 		return false, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
 	}
 
-	// Get circuit params
-	circuitParams, err := zk.keeper.GetCircuitParams(ctx, zkProof.CircuitId)
-	if err != nil {
-		return false, fmt.Errorf("failed to get circuit params: %w", err)
-	}
-
 	if !circuitParams.Enabled {
 		return false, fmt.Errorf("circuit %s is not enabled", zkProof.CircuitId)
-	}
-
-	// Check proof size - Groth16 proofs can be larger than 256 bytes
-	maxProofSize := circuitParams.MaxProofSize
-	if maxProofSize < 1024 {
-		maxProofSize = 1024 // Default to reasonable size for Groth16
-	}
-	if len(zkProof.Proof) > int(maxProofSize) {
-		return false, fmt.Errorf("proof size %d exceeds max %d", len(zkProof.Proof), maxProofSize)
 	}
 
 	// Consume gas for deserializing keys - proportional to size
@@ -647,8 +658,8 @@ func (k *Keeper) getDefaultCircuitParams(ctx context.Context, circuitID string) 
 			CreatedAt:        createdAt,
 			PublicInputCount: 3, // RequestID, ResultHash, ProviderAddress
 		},
-		MaxProofSize: 256,    // Groth16 proofs are ~256 bytes
-		GasCost:      500000, // Gas cost for verification (~0.5M gas)
+		MaxProofSize: 1024 * 1024, // 1MB max - prevents DoS via oversized proofs
+		GasCost:      500000,      // Gas cost for verification (~0.5M gas)
 		Enabled:      true,
 	}
 }

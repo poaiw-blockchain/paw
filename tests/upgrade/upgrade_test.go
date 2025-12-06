@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/log"
+	"cosmossdk.io/math"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
@@ -14,6 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/app"
+	types2 "github.com/paw-chain/paw/x/compute/types"
+	dextypes "github.com/paw-chain/paw/x/dex/types"
+	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 // TestV1_1_0_Upgrade tests the v1.1.0 upgrade handler.
@@ -76,6 +80,8 @@ func TestV1_2_0_Upgrade(t *testing.T) {
 	pawApp := setupTestApp(t)
 	ctx := pawApp.NewContextLegacy(false, tmproto.Header{Height: 1})
 
+	createInitialState(t, pawApp, ctx)
+
 	// Create upgrade plan
 	plan := upgradetypes.Plan{
 		Name:   "v1.2.0",
@@ -87,14 +93,32 @@ func TestV1_2_0_Upgrade(t *testing.T) {
 	err := pawApp.UpgradeKeeper.ScheduleUpgrade(ctx, plan)
 	require.NoError(t, err)
 
-	// Execute upgrade at the planned height
 	ctx = ctx.WithBlockHeight(plan.Height)
 	fromVM := pawApp.ModuleManager().GetVersionMap()
+
+	// Execute upgrade at the planned height
 	toVM, err := pawApp.ModuleManager().RunMigrations(ctx, pawApp.Configurator(), fromVM)
 	require.NoError(t, err)
 	require.NotNil(t, toVM)
 
-	t.Log("v1.2.0 upgrade test passed successfully")
+	// Verify versions advanced or held steady
+	for moduleName, version := range fromVM {
+		require.GreaterOrEqual(t, toVM[moduleName], version, "module %s should not downgrade", moduleName)
+	}
+
+	// Verify critical state survived
+	pool, err := pawApp.DEXKeeper.GetPool(ctx, 1)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), pool.Id)
+
+	oraclePrice, err := pawApp.OracleKeeper.GetPrice(ctx, "UPAW/USD")
+	require.NoError(t, err)
+	require.True(t, oraclePrice.Price.IsPositive())
+
+	providerAddr := sdk.AccAddress([]byte("compute_provider_addr"))
+	provider, err := pawApp.ComputeKeeper.GetProvider(ctx, providerAddr)
+	require.NoError(t, err)
+	require.True(t, provider.Active)
 }
 
 // TestUpgradeInvariants tests that all invariants hold after upgrade.
@@ -189,21 +213,68 @@ func setupTestApp(t *testing.T) *app.PAWApp {
 	return pawApp
 }
 
-// createInitialState creates some initial state for testing.
-// In a real implementation, this would create actual module state.
 func createInitialState(t *testing.T, pawApp *app.PAWApp, ctx sdk.Context) {
-	// Initialize params for all modules
-	// This is a placeholder - in real tests you would create actual state
-	// such as providers, pools, price feeds, etc.
-
-	// For now, just ensure the app is initialized
 	require.NotNil(t, pawApp.AccountKeeper)
 	require.NotNil(t, pawApp.BankKeeper)
-	require.NotNil(t, pawApp.StakingKeeper)
-	require.NotNil(t, pawApp.UpgradeKeeper)
-	require.NotNil(t, pawApp.DEXKeeper)
-	require.NotNil(t, pawApp.ComputeKeeper)
-	require.NotNil(t, pawApp.OracleKeeper)
+
+	creator := sdk.AccAddress([]byte("upgrade_creator______"))
+	trader := sdk.AccAddress([]byte("upgrade_trader_______"))
+
+	// Fund creator and trader
+	coins := sdk.NewCoins(
+		sdk.NewInt64Coin("upaw", 10_000_000),
+		sdk.NewInt64Coin("uusdc", 10_000_000),
+	)
+	require.NoError(t, pawApp.BankKeeper.MintCoins(ctx, dextypes.ModuleName, coins))
+	require.NoError(t, pawApp.BankKeeper.SendCoinsFromModuleToAccount(ctx, dextypes.ModuleName, creator, coins))
+	require.NoError(t, pawApp.BankKeeper.SendCoinsFromModuleToAccount(ctx, dextypes.ModuleName, trader, sdk.NewCoins(sdk.NewInt64Coin("upaw", 2_000_000))))
+
+	// Create a DEX pool
+	pool, err := pawApp.DEXKeeper.CreatePool(ctx, creator, "upaw", "uusdc", math.NewInt(5_000_000), math.NewInt(5_000_000))
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), pool.Id)
+
+	// Seed oracle price and validator metadata
+	price := types.Price{
+		Asset:         "UPAW/USD",
+		Price:         math.LegacyMustNewDecFromStr("1.00"),
+		BlockHeight:   ctx.BlockHeight(),
+		BlockTime:     ctx.BlockTime().Unix(),
+		NumValidators: 1,
+	}
+	require.NoError(t, pawApp.OracleKeeper.SetPrice(ctx, price))
+
+	valAddr := sdk.ValAddress([]byte("validator_for_upgrade"))
+	require.NoError(t, pawApp.OracleKeeper.SetValidatorOracle(ctx, types.ValidatorOracle{
+		ValidatorAddr:    valAddr.String(),
+		MissCounter:      0,
+		TotalSubmissions: 1,
+		IsActive:         true,
+		GeographicRegion: "global",
+	}))
+
+	// Seed compute provider
+	providerAddr := sdk.AccAddress([]byte("compute_provider_addr"))
+	provider := types2.Provider{
+		Address:        providerAddr.String(),
+		Moniker:        "upgrade-provider",
+		Endpoint:       "https://provider-upgrade.paw",
+		AvailableSpecs: types2.ComputeSpec{CpuCores: 1000, MemoryMb: 2048, StorageGb: 50, TimeoutSeconds: 600},
+		Pricing: types2.Pricing{
+			CpuPricePerMcoreHour:  math.LegacyMustNewDecFromStr("0.0005"),
+			MemoryPricePerMbHour:  math.LegacyMustNewDecFromStr("0.0001"),
+			GpuPricePerHour:       math.LegacyZeroDec(),
+			StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.00001"),
+		},
+		Stake:                  math.NewInt(1_000_000),
+		Reputation:             90,
+		TotalRequestsCompleted: 0,
+		TotalRequestsFailed:    0,
+		Active:                 true,
+		RegisteredAt:           ctx.BlockTime(),
+		LastActiveAt:           ctx.BlockTime(),
+	}
+	require.NoError(t, pawApp.ComputeKeeper.SetProvider(ctx, provider))
 }
 
 // emptyAppOptions implements servertypes.AppOptions

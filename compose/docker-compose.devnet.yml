@@ -2,66 +2,74 @@ version: '3.8'
 
 services:
   node1:
-    image: golang:1.23
+    image: golang:1.24
     container_name: paw-node1
     working_dir: /paw
     volumes:
       - ../:/paw
       - node1_data:/root/.paw
-    command: ['bash', '-c', 'cd /paw && go build -o /usr/local/bin/pawd ./cmd/pawd && ./scripts/devnet/init_node.sh node1 26657 9090 1317']
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node1 26657 9090 1317']
     ports:
       - '26657:26657'
-      - '9090:9090'
+      - '39090:9090'
       - '1317:1317'
     networks:
       - pawnet
 
   node2:
-    image: golang:1.23
+    image: golang:1.24
     container_name: paw-node2
     working_dir: /paw
     volumes:
       - ../:/paw
       - node2_data:/root/.paw
-    command: ['bash', '-c', 'cd /paw && go build -o /usr/local/bin/pawd ./cmd/pawd && ./scripts/devnet/init_node.sh node2 26667 9091 1327']
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node2 26667 9091 1327']
     ports:
       - '26667:26657'
-      - '9091:9090'
-      - '1327:1317'
+      - '39091:9091'
+      - '1327:1327'
     networks:
       - pawnet
     depends_on:
       - node1
 
   node3:
-    image: golang:1.23
+    image: golang:1.24
     container_name: paw-node3
     working_dir: /paw
     volumes:
       - ../:/paw
       - node3_data:/root/.paw
-    command: ['bash', '-c', 'cd /paw && go build -o /usr/local/bin/pawd ./cmd/pawd && ./scripts/devnet/init_node.sh node3 26677 9092 1337']
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node3 26677 9092 1337']
     ports:
       - '26677:26657'
-      - '9092:9090'
-      - '1337:1317'
+      - '39092:9092'
+      - '1337:1337'
     networks:
       - pawnet
     depends_on:
       - node1
 
   node4:
-    image: golang:1.23
+    image: golang:1.24
     container_name: paw-node4
     working_dir: /paw
     volumes:
       - ../:/paw
       - node4_data:/root/.paw
-    command: ['bash', '-c', 'cd /paw && go build -o /usr/local/bin/pawd ./cmd/pawd && ./scripts/devnet/init_node.sh node4 26687 9093 1347']
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node4 26687 9093 1347']
     ports:
       - '26687:26657'
-      - '9093:9090'
-      - '1347:1317'
+      - '39093:9093'
+      - '1347:1347'
     networks:
       - pawnet
     depends_on:

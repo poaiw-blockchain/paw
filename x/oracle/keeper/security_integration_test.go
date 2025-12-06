@@ -62,12 +62,14 @@ func (suite *OracleSecuritySuite) SetupTest() {
 
 	// Initialize oracle module parameters
 	params := types.Params{
-		VotePeriod:         10,
-		VoteThreshold:      sdkmath.LegacyMustNewDecFromStr("0.67"),
-		SlashFraction:      sdkmath.LegacyMustNewDecFromStr("0.0001"),
-		SlashWindow:        1000,
-		MinValidPerWindow:  5,
-		TwapLookbackWindow: 100,
+		VotePeriod:           10,
+		VoteThreshold:        sdkmath.LegacyMustNewDecFromStr("0.67"),
+		SlashFraction:        sdkmath.LegacyMustNewDecFromStr("0.0001"),
+		SlashWindow:          1000,
+		MinValidPerWindow:    5,
+		TwapLookbackWindow:   100,
+		AllowedRegions:       []string{"na", "eu", "apac"},
+		MinGeographicRegions: 2,
 	}
 	err = suite.keeper.SetParams(suite.ctx, params)
 	suite.Require().NoError(err)
@@ -81,6 +83,7 @@ func (suite *OracleSecuritySuite) setupValidators() {
 	suite.validators = make([]sdk.ValAddress, 10)
 	suite.powers = []int64{1000, 900, 800, 700, 600, 500, 400, 300, 200, 100}
 	totalPower := int64(0)
+	regions := []string{"na", "eu", "apac"}
 
 	for i := 0; i < 10; i++ {
 		privKey := secp256k1.GenPrivKey()
@@ -135,6 +138,15 @@ func (suite *OracleSecuritySuite) setupValidators() {
 			Shares:           sdkmath.LegacyNewDecFromInt(tokens),
 		}
 		suite.app.StakingKeeper.SetDelegation(suite.ctx, delegation)
+
+		region := regions[i%len(regions)]
+		suite.Require().NoError(suite.keeper.SetValidatorOracle(suite.ctx, types.ValidatorOracle{
+			ValidatorAddr:    valAddr.String(),
+			GeographicRegion: region,
+			MissCounter:      0,
+			TotalSubmissions: 0,
+			IsActive:         true,
+		}))
 
 		totalPower += suite.powers[i]
 	}

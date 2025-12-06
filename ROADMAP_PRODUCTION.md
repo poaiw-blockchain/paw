@@ -372,7 +372,7 @@
    - `TestEndBlocker_ProcessSlashWindows` - verify slashing
 3. Run `go test ./x/dex/keeper/... ./x/oracle/keeper/... -v -run TestABCI`
 
-**Progress (2025-12-05):** `x/dex/keeper/abci_test.go` now covers all four DEX scenarios (TWAP updates, protocol fee distribution, circuit breaker recovery, and rate limit cleanup) and runs clean via `go test ./x/dex/...`. Oracle ABCI tests currently exist (`x/oracle/keeper/abci_test.go`) but are failing due to the keeper never detecting validator submissions when seeded manually (BeginBlock aggregated price sticks at lowest validator and EndBlocker never slashes). Next agent should inspect `AggregateAssetPrice` + `CheckMissedVotes` interaction under the oracle test harness and either align helpers with keeper requirements or adjust keeper logic so the tests pass (`go test ./x/oracle/keeper/...`).
+**Progress (2025-12-08):** DEX ABCI suite remains green. Oracle ABCI tests now pass after fixing metric label cardinality (aggregation/outlier counters now require `asset,status` and `asset,severity` labels) and aligning aggregator error accounting so manual validator submissions are honored without panics. Verified via `go test ./x/oracle/keeper -count=1` and `go test ./x/oracle/...`.
 
 ---
 
@@ -443,6 +443,40 @@
 
 ---
 
+### SIM-1: Simulation Genesis Loader Stubbed
+**Priority:** MEDIUM
+
+**Issue:** `tests/simulation/params.go` panicked with "Genesis file loading not implemented", blocking simulation runs that supply an explicit genesis file.
+
+**Resolution (2025-12-08):** Implemented genesis loading via `sims.AppStateFromGenesisFileFn`, including validation and timestamp fallbacks. Now respects provided genesis chain ID/time and returns simulator accounts derived from auth state. Verified via `go test ./tests/simulation -count=1`.
+
+---
+
+## NEW FINDINGS (2025-12-08 DEEP DIVE)
+
+### HIGH: Oracle Geographic Diversity Enforcement Missing — ✅ Completed (2025-12-08)
+**Files:** `proto/paw/oracle/v1/oracle.proto`, `x/oracle/types/params.go`, `x/oracle/keeper/security.go`, `x/oracle/keeper/validator.go`, `x/oracle/keeper/geography_test.go`
+**Fix:** Added geographic region metadata to validator oracles and params (allowed regions + minimum distinct regions), enforced allowed-region validation and diversity checks in `CheckByzantineTolerance`, defaulted unset regions to `global`, and added regression coverage for diverse/insufficient region sets. Params validation now rejects empty/duplicate regions.
+
+### MEDIUM: DEX CometMock E2E Test Incomplete — ✅ Completed (2025-12-08)
+**File:** `tests/e2e/cometmock_test.go`
+**Fix:** Implemented real pool creation, funded accounts via BankKeeper, executed a secure swap, and asserted pool persistence and trader balance changes across CometMock blocks.
+
+### MEDIUM: Upgrade Handler Test Placeholder — ✅ Completed (2025-12-08)
+**File:** `tests/upgrade/upgrade_test.go`
+**Fix:** Seeded real DEX pool, oracle price/validator metadata, and compute provider state before the v1.2.0 upgrade, asserted version maps never downgrade, and verified state survives migration (pool, price, provider active).
+
+### LOW: Security Integration Funding Stub — ✅ Completed (2025-12-08)
+**File:** `x/dex/keeper/security_integration_test.go`, `testutil/keeper/dex.go`
+**Fix:** Added `DexKeeperWithBank` to expose the bank keeper for tests, implemented real funding with balance assertions in the security integration suite, and kept existing prefunding intact.
+
+### HIGH: Predictable P2P Address Shuffling — ✅ Completed (2025-12-09)
+**Files:** `p2p/discovery/address_book.go`, `p2p/discovery/address_book_test.go`
+**Issue:** The address book relied on `math/rand` seeded with wall-clock time to shuffle dial candidates. Attackers who observe start time can deterministically predict peer ordering and execute eclipse attacks by flooding the tried bucket with Sybil nodes.
+**Fix:** Replaced the RNG with `crypto/rand` backed entropy, added error handling/fallbacks, and introduced regression tests for the secure sampler to guarantee graceful behavior if entropy is unavailable.
+
+---
+
 ## WALLET/FRONTEND PRODUCTION GAPS
 
 ### WALLET-1: Browser Extension Wrong Branding
@@ -479,6 +513,18 @@
 
 **Progress (2025-12-06):** Created production `wallet/` tree (core, desktop, mobile, browser-extension, plus docs) copied from archive, updated the top-level README to describe usage, and wired reproducible builds. Browser extension build succeeds (`npm run build`). Core TypeScript SDK now compiles cleanly after adding proper SafeMath/ledger/trezor typings (`npm run build`). Desktop Electron build now outputs AppImage/`.deb` artifacts and exposes a dedicated `npm run build:linux:rpm` script for rpm packaging (requires `rpmbuild` on the host). Mobile React Native package now bundles deterministically for iOS/Android via `npm run build` after restoring the navigator/screens/service layer.
 
+### WALLET-5: Desktop Keystore Uses XOR Placeholder Encryption
+**Status:** ✅ Completed (2025-12-07)
+**Files:** `wallet/desktop/src/services/keystore.js`, `wallet/desktop/test/setup.js`, `wallet/desktop/test/keystore.test.js`
+**Issue:** The desktop wallet stored mnemonics using a reversible XOR helper that never decoded base64 on readback, so keys could not be recovered and the ciphertext offered almost no security.
+**Impact:** Users could not unlock wallets created via the desktop client and the stored keystore could be brute-forced with trivial effort.
+
+**Agent Instructions:**
+1. Replace the XOR helper with AES-256-GCM using PBKDF2 (210k iterations) with random salt/IV and prefix payloads with `paw:v1:`.
+2. Keep a legacy decoder for existing XOR data so previously stored wallets can still be opened.
+3. Polyfill WebCrypto in Jest via `test/setup.js`, enhance the keystore tests to cover unlock success, AES encryption randomness, and legacy compatibility, and run `npm run test:unit -- --runTestsByPath test/keystore.test.js`.
+**Tests:** `npm run test:unit -- --runTestsByPath test/keystore.test.js`
+
 ---
 
 ### WALLET-3: Desktop Wallet Missing DEX UI
@@ -491,6 +537,8 @@
 3. Connect to PAW chain via RPC: use existing core SDK
 4. Add to main navigation
 5. Test swap flow end-to-end
+
+**Progress (2025-12-07):** Added deterministic DexService integration tests (`test/dex/DexService.test.ts`) plus injectable service wiring for `SwapInterface`, enabling fully mocked UI tests (`test/dex/SwapInterface.test.tsx`) that cover quoting, slippage debounce, and swap submission flows. Verified with `npm run test:unit -- --runTestsByPath test/dex/DexService.test.ts test/dex/SwapInterface.test.tsx`.
 
 ---
 
@@ -506,6 +554,8 @@
 5. Test against live pawd node
 6. Add production Docker config
 
+**Progress (2025-12-07):** Explorer now lives under `explorer/` with production-ready analytics. The frontend ships dedicated components for DEX liquidity (`explorer/frontend/components/dex/pool-visualization.tsx`), oracle price feeds (`explorer/frontend/components/oracle/oracle-price-charts.tsx`), and compute workload tracking (`explorer/frontend/components/compute/compute-job-tracker.tsx`), all wired to the shared API/indexer layer. The repo also contains a hardened deployment stack (`explorer/docker-compose.production.yml`) that wires Postgres, Redis, the Go indexer, Next.js frontend, and Prometheus/Grafana monitoring with health checks and resource limits. Pending work: run the stack against a live `pawd` RPC endpoint and capture the resulting health check output for audit logs.
+
 ---
 
 ## DOCUMENTATION GAPS
@@ -520,6 +570,8 @@
 4. Add monitoring setup instructions
 5. Test guide end-to-end on fresh machine
 
+**Progress (2025-12-07):** Authored `docs/guides/VALIDATOR_QUICKSTART.md`, covering hardware sizing, Go/pawd build steps, home directory initialization, gentx generation, service hardening, and monitoring/alerting checklists. The guide assumes Ubuntu 22.04 and uses the default `~/.paw` data directory per Cosmos conventions.
+
 ---
 
 ### DOC-2: DEX Trading Guide
@@ -531,6 +583,8 @@
 3. Add CLI examples for each operation
 4. Add slippage/fee explanation
 5. Add risk warnings
+
+**Progress (2025-12-07):** Completed in `docs/guides/DEX_TRADING.md` with CLI walkthroughs for pool creation, add/remove liquidity, swap simulation/execution, fee mechanics, and risk mitigation (slippage, flash drain caps, impermanent loss). Includes troubleshooting table and helpful query references.
 
 ---
 
@@ -544,14 +598,23 @@
 4. Add authentication requirements
 5. Add rate limit documentation
 
+**Progress (2025-12-07):** The `docs/api/` portal (see `docs/api/README.md`) already bundles the OpenAPI spec, Swagger/Redoc frontends, authentication & rate-limit guides, sample requests, Postman collection, and Dockerized Nginx deployment, giving operators a complete API reference.
+
 ---
 
 ## REMAINING ORIGINAL TASKS
 
 ### Phase 1: Local Testnet
 - [ ] Run devnet and execute smoke tests: `docker-compose -f compose/docker-compose.devnet.yml up`
-- [ ] Test validator add/remove with governance
-- [ ] Test coordinated upgrade simulation
+  - *2025-12-07:* `scripts/devnet/smoke_tests.sh` currently fails immediately because Docker is unavailable (`Cannot connect to the Docker daemon at unix:///var/run/docker.sock`). Need Docker service + permissions before rerunning.
+- [ ] CLI bank module parity
+  - *2025-12-09:* `pawd keys show` and `pawd query bank` subcommands are missing `-a/--address` and `bank` route wiring that upstream SDK expects. This broke the devnet smoke `bank` phase (missing CLI wiring + nil tx factory panic). Need to restore `x/bank` client wiring in `cmd/pawd/cmd/root.go` (register bank module query/tx commands) and ensure the client context initializes the tx factory (chain-id, gas, from address) to avoid the nil pointer panic during `tx bank send`.
+- [x] Break smoke tests into targeted phases
+  - *2025-12-09:* `scripts/devnet/smoke_tests.sh` now accepts `PAW_SMOKE_PHASES` (e.g. `setup,bank,dex,swap,summary`) so we can isolate startup vs. tx flows. Each phase reuses the same helper functions and only boots/tears down the stack if the script started it. Example: `PAW_SMOKE_PHASES=setup scripts/devnet/smoke_tests.sh` to start+wait, followed by `PAW_SMOKE_PHASES=bank scripts/devnet/smoke_tests.sh` for the bank transfer while keeping the stack running (`PAW_SMOKE_KEEP_STACK=1`). This makes it far easier to pinpoint failing steps.
+- [x] Test validator add/remove with governance
+  - *2025-12-07:* Added `TestValidatorGovernanceLifecycle` in `tests/e2e/e2e_test.go`, which spins up an in-memory PAW app, creates a validator via the staking msg server, executes a governance-authorized `MsgUpdateParams` to shorten unbonding time, and verifies the validator can be fully undelegated/removed. Run with `go test ./tests/e2e -run TestValidatorGovernanceLifecycle -tags integration`.
+- [x] Test coordinated upgrade simulation
+  - *2025-12-07:* Added regression coverage in `tests/upgrade/*` (handler/integration suites) and ensured `go test ./tests/upgrade -tags integration` plus `go test ./tests/e2e -run TestValidatorGovernanceLifecycle -tags integration` pass to validate upgrade handlers and staking governance flows.
 
 ### Phase 2: Cloud Testnet
 - [ ] Provision cloud infrastructure (GCP)

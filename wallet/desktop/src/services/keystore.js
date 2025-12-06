@@ -3,6 +3,11 @@ import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { toBech32 } from '@cosmjs/encoding';
 import { sha256 } from '@cosmjs/crypto';
 
+const ENCRYPTION_PREFIX = 'paw:v1:';
+const SALT_BYTES = 16;
+const IV_BYTES = 12;
+const PBKDF2_ITERATIONS = 210000;
+
 export class KeystoreService {
   constructor() {
     this.storageKey = 'paw-wallet';
@@ -207,11 +212,24 @@ export class KeystoreService {
    */
   async encryptData(data, password) {
     try {
-      // Simple XOR encryption with password hash
-      // In production, use a proper encryption library like crypto-js
-      const key = await this.hashPassword(password);
-      const encrypted = this.xorEncrypt(data, key);
-      return encrypted;
+      const crypto = this.getCrypto();
+      const encoder = new TextEncoder();
+      const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+      const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
+      const key = await this.deriveEncryptionKey(password, salt);
+      const encryptedBuffer = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv },
+        key,
+        encoder.encode(data)
+      );
+
+      const payload = this.concatUint8Arrays([
+        salt,
+        iv,
+        new Uint8Array(encryptedBuffer)
+      ]);
+
+      return `${ENCRYPTION_PREFIX}${this.uint8ToBase64(payload)}`;
     } catch (error) {
       console.error('Encryption failed:', error);
       throw new Error('Failed to encrypt data');
@@ -223,9 +241,36 @@ export class KeystoreService {
    */
   async decryptData(encryptedData, password) {
     try {
-      const key = await this.hashPassword(password);
-      const decrypted = this.xorEncrypt(encryptedData, key);
-      return decrypted;
+      if (!encryptedData) {
+        throw new Error('No encrypted payload found');
+      }
+
+      if (encryptedData.startsWith(ENCRYPTION_PREFIX)) {
+        const crypto = this.getCrypto();
+        const payload = this.base64ToUint8(
+          encryptedData.slice(ENCRYPTION_PREFIX.length)
+        );
+
+        if (payload.length <= SALT_BYTES + IV_BYTES) {
+          throw new Error('Invalid encrypted payload');
+        }
+
+        const salt = payload.slice(0, SALT_BYTES);
+        const iv = payload.slice(SALT_BYTES, SALT_BYTES + IV_BYTES);
+        const ciphertext = payload.slice(SALT_BYTES + IV_BYTES);
+
+        const key = await this.deriveEncryptionKey(password, salt);
+        const decryptedBuffer = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          ciphertext
+        );
+
+        return new TextDecoder().decode(decryptedBuffer);
+      }
+
+      // Legacy fallback for XOR-based storage
+      return this.legacyDecrypt(encryptedData, password);
     } catch (error) {
       console.error('Decryption failed:', error);
       throw new Error('Failed to decrypt data');
@@ -245,20 +290,6 @@ export class KeystoreService {
       console.error('Hashing failed:', error);
       throw new Error('Failed to hash password');
     }
-  }
-
-  /**
-   * Simple XOR encryption/decryption
-   * NOTE: This is a basic implementation. For production, use a proper encryption library.
-   */
-  xorEncrypt(text, key) {
-    let result = '';
-    for (let i = 0; i < text.length; i++) {
-      result += String.fromCharCode(
-        text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-      );
-    }
-    return Buffer.from(result).toString('base64');
   }
 
   /**
@@ -327,5 +358,93 @@ export class KeystoreService {
       console.error('Failed to import wallet:', error);
       throw new Error('Failed to import wallet');
     }
+  }
+
+  getCrypto() {
+    if (typeof window !== 'undefined' && window.crypto?.subtle) {
+      return window.crypto;
+    }
+    if (typeof globalThis !== 'undefined' && globalThis.crypto?.subtle) {
+      return globalThis.crypto;
+    }
+    if (typeof require === 'function') {
+      try {
+        // eslint-disable-next-line global-require
+        const { webcrypto } = require('crypto');
+        if (webcrypto?.subtle) {
+          return webcrypto;
+        }
+      } catch (error) {
+        // Ignore, fallback below will throw
+      }
+    }
+    throw new Error('Secure crypto APIs are not available');
+  }
+
+  async deriveEncryptionKey(password, salt) {
+    const crypto = this.getCrypto();
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt,
+        iterations: PBKDF2_ITERATIONS,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+
+  concatUint8Arrays(chunks) {
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    chunks.forEach((chunk) => {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    });
+    return result;
+  }
+
+  uint8ToBase64(buffer) {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < buffer.length; i += chunkSize) {
+      const chunk = buffer.subarray(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    return btoa(binary);
+  }
+
+  base64ToUint8(base64) {
+    const binary = atob(base64);
+    const output = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      output[i] = binary.charCodeAt(i);
+    }
+    return output;
+  }
+
+  async legacyDecrypt(encryptedData, password) {
+    const key = await this.hashPassword(password);
+    const cipherBytes = this.base64ToUint8(encryptedData);
+    let result = '';
+    for (let i = 0; i < cipherBytes.length; i++) {
+      result += String.fromCharCode(
+        cipherBytes[i] ^ key.charCodeAt(i % key.length)
+      );
+    }
+    return result;
   }
 }

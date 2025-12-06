@@ -3,6 +3,7 @@ package simapp
 import (
 	"encoding/json"
 	"fmt"
+	stdmath "math"
 	"math/rand"
 	"time"
 
@@ -17,6 +18,9 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/paw-chain/paw/app"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
+	dextypes "github.com/paw-chain/paw/x/dex/types"
+	oracletypes "github.com/paw-chain/paw/x/oracle/types"
 )
 
 // AppStateFn returns the initial application state using a genesis or the simulation parameters
@@ -46,7 +50,12 @@ func AppStateFn(
 
 		// Generate randomized genesis state
 		appParams := make(simtypes.AppParams)
-		appState := make(map[string]json.RawMessage)
+		appState := make(map[string]json.RawMessage, len(genesisState))
+
+		// Start from provided genesis (or defaults) so we don't drop module defaults.
+		for k, v := range genesisState {
+			appState[k] = v
+		}
 
 		if genesisState == nil {
 			genesisState = app.NewDefaultGenesisState(config.ChainID)
@@ -64,9 +73,17 @@ func AppStateFn(
 		stakingGenesis := RandomizedStakingGenesisState(r, accs, initialStake, numAccs, numInitiallyBonded)
 		appState[stakingtypes.ModuleName] = cdc.MustMarshalJSON(&stakingGenesis)
 
-		// DEX genesis (would need actual DEX types)
-		// dexGenesis := RandomizedDEXGenesisState(r, accs)
-		// appState["dex"] = cdc.MustMarshalJSON(&dexGenesis)
+		// DEX genesis
+		dexGenesis := RandomizedDEXGenesisState(r, accs, startTime)
+		appState[dextypes.ModuleName] = cdc.MustMarshalJSON(&dexGenesis)
+
+		// Oracle genesis
+		oracleGenesis := RandomizedOracleGenesisState(r, accs, startTime, numInitiallyBonded)
+		appState[oracletypes.ModuleName] = cdc.MustMarshalJSON(&oracleGenesis)
+
+		// Compute genesis
+		computeGenesis := RandomizedComputeGenesisState(r, accs, startTime)
+		appState[computetypes.ModuleName] = cdc.MustMarshalJSON(&computeGenesis)
 
 		// Use simulation manager to randomize all other genesis states
 		simState := &module.SimulationState{
@@ -220,35 +237,178 @@ func RandomizedStakingGenesisState(
 	return *stakingGenesis
 }
 
-// RandomizedDEXGenesisState generates a random DEX genesis state
-// This is a placeholder - implement based on actual DEX types
-/*
-func RandomizedDEXGenesisState(r *rand.Rand, accs []simtypes.Account) dextypes.GenesisState {
-	// Create random pools
-	numPools := simtypes.RandIntBetween(r, 5, 20)
-	pools := make([]dextypes.Pool, numPools)
+// RandomizedDEXGenesisState generates a realistic DEX genesis state with seeded pools and TWAPs.
+func RandomizedDEXGenesisState(r *rand.Rand, accs []simtypes.Account, genesisTime time.Time) dextypes.GenesisState {
+	poolCount := simtypes.RandIntBetween(r, 3, 6)
+	pools := make([]dextypes.Pool, poolCount)
+	twaps := make([]dextypes.PoolTWAP, poolCount)
 
-	for i := 0; i < numPools; i++ {
-		// Random reserves
-		reserveA := simtypes.RandIntBetween(r, 1000000, 10000000)
-		reserveB := simtypes.RandIntBetween(r, 1000000, 10000000)
+	creator := accs[0].Address.String()
+	for i := 0; i < poolCount; i++ {
+		reserveA := simtypes.RandIntBetween(r, 1_000_000, 10_000_000)
+		reserveB := simtypes.RandIntBetween(r, 2_000_000, 15_000_000)
 
+		geomMean := uint64(stdmath.Sqrt(float64(reserveA * reserveB)))
+		if geomMean == 0 {
+			geomMean = 1
+		}
+
+		poolID := uint64(i + 1)
 		pools[i] = dextypes.Pool{
-			Id:       uint64(i + 1),
-			DenomA:   "upaw",
-			DenomB:   "uusdc",
-			ReserveA: math.NewInt(int64(reserveA)),
-			ReserveB: math.NewInt(int64(reserveB)),
-			TotalShares: math.NewInt(int64(reserveA * reserveB)).ApproxSqrt(),
+			Id:          poolID,
+			TokenA:      "upaw",
+			TokenB:      "uusdc",
+			ReserveA:    math.NewInt(int64(reserveA)),
+			ReserveB:    math.NewInt(int64(reserveB)),
+			TotalShares: math.NewIntFromUint64(geomMean),
+			Creator:     creator,
+		}
+
+		price := math.LegacyNewDec(int64(reserveB)).QuoInt64(int64(reserveA))
+		twaps[i] = dextypes.PoolTWAP{
+			PoolId:          poolID,
+			LastPrice:       price,
+			CumulativePrice: price,
+			TotalSeconds:    1,
+			LastTimestamp:   genesisTime.Unix(),
+			TwapPrice:       price,
 		}
 	}
 
 	return dextypes.GenesisState{
-		Params: dextypes.DefaultParams(),
-		Pools:  pools,
+		Params:          dextypes.DefaultParams(),
+		Pools:           pools,
+		NextPoolId:      uint64(poolCount + 1),
+		PoolTwapRecords: twaps,
 	}
 }
-*/
+
+// RandomizedOracleGenesisState seeds validator oracles and a baseline price.
+func RandomizedOracleGenesisState(r *rand.Rand, accs []simtypes.Account, genesisTime time.Time, bondedValidators int) oracletypes.GenesisState {
+	maxValidators := bondedValidators
+	if maxValidators > len(accs) {
+		maxValidators = len(accs)
+	}
+	if maxValidators == 0 {
+		return *oracletypes.DefaultGenesis()
+	}
+
+	validatorOracles := make([]oracletypes.ValidatorOracle, maxValidators)
+	validatorPrices := make([]oracletypes.ValidatorPrice, maxValidators)
+
+	asset := "PAW/USD"
+	basePrice := math.LegacyNewDec(int64(simtypes.RandIntBetween(r, 50_00, 150_00))).QuoInt64(100)
+
+	for i := 0; i < maxValidators; i++ {
+		valAddr := sdk.ValAddress(accs[i].Address).String()
+		validatorOracles[i] = oracletypes.ValidatorOracle{
+			ValidatorAddr:    valAddr,
+			MissCounter:      0,
+			TotalSubmissions: 0,
+			IsActive:         true,
+		}
+
+		// introduce slight jitter per validator
+		jitter := math.LegacyNewDec(int64(simtypes.RandIntBetween(r, -50, 50))).QuoInt64(10_000)
+		price := basePrice.Add(jitter)
+		if price.LTE(math.LegacyZeroDec()) {
+			price = basePrice
+		}
+		validatorPrices[i] = oracletypes.ValidatorPrice{
+			ValidatorAddr: valAddr,
+			Asset:         asset,
+			Price:         price,
+			BlockHeight:   1,
+			VotingPower:   1,
+		}
+	}
+
+	price := oracletypes.Price{
+		Asset:         asset,
+		Price:         basePrice,
+		BlockHeight:   1,
+		BlockTime:     genesisTime.Unix(),
+		NumValidators: uint32(maxValidators),
+	}
+
+	snapshot := oracletypes.PriceSnapshot{
+		Asset:       asset,
+		Price:       basePrice,
+		BlockHeight: 1,
+		BlockTime:   genesisTime.Unix(),
+	}
+
+	return oracletypes.GenesisState{
+		Params:           oracletypes.DefaultParams(),
+		Prices:           []oracletypes.Price{price},
+		ValidatorPrices:  validatorPrices,
+		ValidatorOracles: validatorOracles,
+		PriceSnapshots:   []oracletypes.PriceSnapshot{snapshot},
+	}
+}
+
+// RandomizedComputeGenesisState seeds a small provider set for simulations.
+func RandomizedComputeGenesisState(r *rand.Rand, accs []simtypes.Account, genesisTime time.Time) computetypes.GenesisState {
+	providerCount := simtypes.RandIntBetween(r, 2, minInt(5, len(accs)))
+	providers := make([]computetypes.Provider, providerCount)
+
+	for i := 0; i < providerCount; i++ {
+		addr := accs[i].Address.String()
+		cpu := uint64(simtypes.RandIntBetween(r, 500, 2000))   // 0.5–2 cores (millicores)
+		mem := uint64(simtypes.RandIntBetween(r, 512, 4096))   // MB
+		storage := uint64(simtypes.RandIntBetween(r, 10, 200)) // GB
+		timeout := uint64(simtypes.RandIntBetween(r, 300, 1800))
+
+		providers[i] = computetypes.Provider{
+			Address:  addr,
+			Moniker:  fmt.Sprintf("provider-%d", i+1),
+			Endpoint: fmt.Sprintf("https://provider-%d.paw.sim", i+1),
+			AvailableSpecs: computetypes.ComputeSpec{
+				CpuCores:       cpu,
+				MemoryMb:       mem,
+				GpuCount:       0,
+				GpuType:        "",
+				StorageGb:      storage,
+				TimeoutSeconds: timeout,
+			},
+			Pricing: computetypes.Pricing{
+				CpuPricePerMcoreHour:  math.LegacyMustNewDecFromStr("0.0005"),
+				MemoryPricePerMbHour:  math.LegacyMustNewDecFromStr("0.0001"),
+				GpuPricePerHour:       math.LegacyMustNewDecFromStr("0.00"),
+				StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.00001"),
+			},
+			Stake:                  math.NewInt(1_000_000_000),
+			Reputation:             uint32(simtypes.RandIntBetween(r, 70, 100)),
+			TotalRequestsCompleted: 0,
+			TotalRequestsFailed:    0,
+			Active:                 true,
+			RegisteredAt:           genesisTime,
+			LastActiveAt:           genesisTime,
+		}
+	}
+
+	return computetypes.GenesisState{
+		Params:           computetypes.DefaultParams(),
+		GovernanceParams: computetypes.DefaultGovernanceParams(),
+		Providers:        providers,
+		Requests:         []computetypes.Request{},
+		Results:          []computetypes.Result{},
+		Disputes:         []computetypes.Dispute{},
+		SlashRecords:     []computetypes.SlashRecord{},
+		Appeals:          []computetypes.Appeal{},
+		NextRequestId:    1,
+		NextDisputeId:    1,
+		NextSlashId:      1,
+		NextAppealId:     1,
+	}
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 
 // RandomizeParamChanges randomizes all parameters for simulation
 func RandomizeParamChanges(r *rand.Rand) []simtypes.LegacyParamChange {

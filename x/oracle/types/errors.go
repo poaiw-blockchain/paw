@@ -42,9 +42,10 @@ var (
 	ErrDataPoisoning        = sdkerrors.Register(ModuleName, 24, "data poisoning attempt detected")
 
 	// Aggregation errors
-	ErrInsufficientDataSources = sdkerrors.Register(ModuleName, 30, "insufficient data sources")
-	ErrOutlierDetected         = sdkerrors.Register(ModuleName, 31, "price outlier detected")
-	ErrMedianCalculationFailed = sdkerrors.Register(ModuleName, 32, "median calculation failed")
+	ErrInsufficientDataSources     = sdkerrors.Register(ModuleName, 30, "insufficient data sources")
+	ErrOutlierDetected             = sdkerrors.Register(ModuleName, 31, "price outlier detected")
+	ErrMedianCalculationFailed     = sdkerrors.Register(ModuleName, 32, "median calculation failed")
+	ErrInsufficientOracleConsensus = sdkerrors.Register(ModuleName, 33, "insufficient voting power for oracle consensus")
 
 	// State errors
 	ErrStateCorruption = sdkerrors.Register(ModuleName, 40, "state corruption detected")
@@ -99,9 +100,10 @@ var RecoverySuggestions = map[error]string{
 	ErrFlashLoanDetected:    "SECURITY: Flash loan attack pattern in price data. Unusual price spike detected and rejected. This is expected security behavior. Submit legitimate price next period.",
 	ErrDataPoisoning:        "SECURITY: Price data failed authenticity verification. Source validation failed. Check API credentials. Verify price source is legitimate. Contact price provider.",
 
-	ErrInsufficientDataSources: "Need minimum number of independent price sources (typically 3). Add more data sources to feeder config. Check that sources are operational.",
-	ErrOutlierDetected:         "Submitted price is statistical outlier (>3 standard deviations). Verify price source accuracy. Check for API issues. Compare with other exchanges.",
-	ErrMedianCalculationFailed: "Cannot calculate median from submitted prices. Insufficient valid prices. Check validator participation. Wait for more submissions.",
+	ErrInsufficientDataSources:     "Need minimum number of independent price sources (typically 3). Add more data sources to feeder config. Check that sources are operational.",
+	ErrOutlierDetected:             "Submitted price is statistical outlier (>3 standard deviations). Verify price source accuracy. Check for API issues. Compare with other exchanges.",
+	ErrMedianCalculationFailed:     "Cannot calculate median from submitted prices. Insufficient valid prices. Check validator participation. Wait for more submissions.",
+	ErrInsufficientOracleConsensus: "SECURITY: Insufficient voting power after outlier filtering. After removing outliers, remaining validators have less than minimum required voting power (typically 10%). This prevents price manipulation by multiple low-stake validators. Wait for more high-stake validators to submit prices.",
 
 	ErrStateCorruption:       "CRITICAL: Oracle state corruption detected. Automatic recovery initiated using backup. Price feeds may be temporarily unavailable. Contact validators.",
 	ErrOracleDataUnavailable: "No oracle data available for requested asset. Wait for next aggregation interval or ensure feeder connectivity. Confirm asset is registered and active.",

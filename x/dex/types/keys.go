@@ -39,6 +39,9 @@ var (
 
 	// LiquidityShareKeyPrefix is the prefix for liquidity shares
 	LiquidityShareKeyPrefix = []byte{0x0B}
+
+	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
+	IBCPacketNonceKeyPrefix = []byte{0x0D}
 )
 
 // GetPoolLPFeeKey returns the store key for LP fees for a pool and token
@@ -62,4 +65,10 @@ func GetLiquidityShareKey(poolID uint64, provider sdk.AccAddress) []byte {
 	key := append(LiquidityShareKeyPrefix, poolIDBytes...)
 	key = append(key, provider.Bytes()...)
 	return key
+}
+
+// GetIBCPacketNonceKey returns the store key for IBC packet nonce tracking
+// Used for replay attack prevention by tracking nonce per channel/sender pair
+func GetIBCPacketNonceKey(channelID, sender string) []byte {
+	return append(append(IBCPacketNonceKeyPrefix, []byte(channelID+"/")...), []byte(sender)...)
 }

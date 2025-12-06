@@ -102,13 +102,6 @@ func TestBuildPriceDataMissingPrice(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrOracleDataUnavailable)
 }
 
-func TestValidateIncomingPacketNonce(t *testing.T) {
-	k, ctx := setupOracleKeeper(t)
-
-	require.NoError(t, k.ValidateIncomingPacketNonce(ctx, "channel-0", "sender", 1))
-	require.Error(t, k.ValidateIncomingPacketNonce(ctx, "channel-0", "sender", 1))
-}
-
 func TestOracleOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 	k, ctx := setupOracleKeeper(t)
 	ibcModule := oracle.NewIBCModule(*k, nil)

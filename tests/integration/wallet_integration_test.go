@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
+	txsigning "cosmossdk.io/x/tx/signing"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -26,6 +28,7 @@ import (
 	"github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/paw-chain/paw/app"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
@@ -471,6 +474,16 @@ func (suite *WalletIntegrationTestSuite) TestBuildAndEncodeTransaction() {
 	}
 
 	signMode := signing.SignMode(suite.encCfg.TxConfig.SignModeHandler().DefaultMode())
+	placeholderSig := signing.SignatureV2{
+		PubKey: pubKey,
+		Data: &signing.SingleSignatureData{
+			SignMode:  signMode,
+			Signature: nil,
+		},
+		Sequence: signerData.Sequence,
+	}
+	suite.Require().NoError(txBuilder.SetSignatures(placeholderSig))
+
 	sigV2, err := clienttx.SignWithPrivKey(
 		context.Background(),
 		signMode,
@@ -489,16 +502,40 @@ func (suite *WalletIntegrationTestSuite) TestBuildAndEncodeTransaction() {
 
 	decodedTx, err := suite.encCfg.TxConfig.TxDecoder()(txBytes)
 	suite.Require().NoError(err)
-	memoTx, ok := decodedTx.(sdk.TxWithMemo)
-	suite.Require().True(ok)
+	var memoTx sdk.TxWithMemo
+	if txWithMemo, ok := decodedTx.(sdk.TxWithMemo); ok {
+		memoTx = txWithMemo
+	} else {
+		// Wrap into a TxBuilder to access memo if decoder returned a non-wrapper Tx.
+		builder, err := suite.encCfg.TxConfig.WrapTxBuilder(decodedTx)
+		suite.Require().NoError(err)
+		if txWithMemo, ok := builder.(sdk.TxWithMemo); ok {
+			memoTx = txWithMemo
+		}
+	}
+	suite.Require().NotNil(memoTx, "decoded tx should expose memo")
 	suite.Require().Equal("integration-test", memoTx.GetMemo())
 	suite.Require().Len(decodedTx.GetMsgs(), 1)
 
 	singleSig, ok := sigV2.Data.(*signing.SingleSignatureData)
 	suite.Require().True(ok)
-	signBytes, err := authsigning.GetSignBytesAdapter(context.Background(), suite.encCfg.TxConfig.SignModeHandler(), singleSig.SignMode, signerData, txBuilder.GetTx())
+	v2Adaptable, ok := decodedTx.(authsigning.V2AdaptableTx)
+	suite.Require().True(ok)
+	txData := v2Adaptable.GetSigningTxData()
+	txSignerData := txsigning.SignerData{
+		ChainID:       signerData.ChainID,
+		AccountNumber: signerData.AccountNumber,
+		Sequence:      signerData.Sequence,
+		Address:       signerData.Address,
+	}
+	if signerData.PubKey != nil {
+		pkAny, errAny := codectypes.NewAnyWithValue(signerData.PubKey)
+		suite.Require().NoError(errAny)
+		txSignerData.PubKey = &anypb.Any{TypeUrl: pkAny.TypeUrl, Value: pkAny.Value}
+	}
+
+	err = authsigning.VerifySignature(context.Background(), pubKey, txSignerData, singleSig, suite.encCfg.TxConfig.SignModeHandler(), txData)
 	suite.Require().NoError(err)
-	suite.Require().True(pubKey.VerifySignature(signBytes, singleSig.Signature))
 }
 
 // TestErrorHandlingInvalidInputs tests error handling for invalid inputs

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"sync"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -35,21 +37,24 @@ const (
 var (
 	// DefaultMinGasPrice is the minimum gas price
 	DefaultMinGasPrice = sdk.NewDecCoinFromDec(BondDenom, math.LegacyNewDecWithPrec(1, 3)) // 0.001upaw
+	setConfigOnce      sync.Once
 )
 
 // SetConfig sets the configuration for the PAW network
 // This function is idempotent and can be called multiple times safely
 func SetConfig() {
-	config := sdk.GetConfig()
+	setConfigOnce.Do(func() {
+		config := sdk.GetConfig()
 
-	// Only set if not already configured with PAW prefix
-	if config.GetBech32AccountAddrPrefix() == Bech32PrefixAccAddr {
-		return
-	}
+		// Only set if not already configured with PAW prefix
+		if config.GetBech32AccountAddrPrefix() == Bech32PrefixAccAddr {
+			return
+		}
 
-	config.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
-	config.SetCoinType(CoinType)
-	config.Seal()
+		config.SetBech32PrefixForAccount(Bech32PrefixAccAddr, Bech32PrefixAccPub)
+		config.SetBech32PrefixForValidator(Bech32PrefixValAddr, Bech32PrefixValPub)
+		config.SetBech32PrefixForConsensusNode(Bech32PrefixConsAddr, Bech32PrefixConsPub)
+		config.SetCoinType(CoinType)
+		config.Seal()
+	})
 }

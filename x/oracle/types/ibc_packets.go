@@ -33,6 +33,7 @@ type IBCPacketData interface {
 type SubscribePricesPacketData struct {
 	Type           string   `json:"type"`
 	Nonce          uint64   `json:"nonce"`
+	Timestamp      int64    `json:"timestamp"`
 	Symbols        []string `json:"symbols"`
 	UpdateInterval uint64   `json:"update_interval"` // seconds
 	Subscriber     string   `json:"subscriber"`
@@ -44,6 +45,9 @@ func (p SubscribePricesPacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if len(p.Symbols) == 0 {
 		return errors.Wrap(ErrInvalidPacket, "symbols cannot be empty")
@@ -80,10 +84,11 @@ func (a SubscribePricesAcknowledgement) GetBytes() ([]byte, error) {
 
 // QueryPricePacketData queries current price
 type QueryPricePacketData struct {
-	Type   string `json:"type"`
-	Nonce  uint64 `json:"nonce"`
-	Symbol string `json:"symbol"`
-	Sender string `json:"sender"`
+	Type      string `json:"type"`
+	Nonce     uint64 `json:"nonce"`
+	Timestamp int64  `json:"timestamp"`
+	Symbol    string `json:"symbol"`
+	Sender    string `json:"sender"`
 }
 
 func (p QueryPricePacketData) ValidateBasic() error {
@@ -92,6 +97,9 @@ func (p QueryPricePacketData) ValidateBasic() error {
 	}
 	if p.Nonce == 0 {
 		return errors.Wrap(ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.Timestamp <= 0 {
+		return errors.Wrap(ErrInvalidPacket, "timestamp must be positive")
 	}
 	if p.Symbol == "" {
 		return errors.Wrap(ErrInvalidPacket, "symbol cannot be empty")

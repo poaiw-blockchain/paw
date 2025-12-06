@@ -1,0 +1,6 @@
+
+- name: smoke-counterparty
+  type: secp256k1
+  address: paw1ktrspgxlz9txpz3c3vn7d9qawxyvf68csyx7cj
+  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 3 42 254 143 63 244 96 231 119 22 69 111 25 230 101 156 120 188 2 8 162 237 204 200 218 237 181 54 5 69 60 255 103],XXX_unrecognized:[]}
+

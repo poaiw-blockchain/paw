@@ -1,6 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ensure genesis denom uses upaw
+set_genesis_denoms() {
+  local genesis_file=$1
+  python3 - <<'PY' "$genesis_file"
+import json, sys
+path = sys.argv[1]
+with open(path, 'r') as fh:
+    data = json.load(fh)
+
+app_state = data.get("app_state", {})
+
+staking = app_state.get("staking", {}).get("params")
+if staking:
+    staking["bond_denom"] = "upaw"
+
+mint = app_state.get("mint", {}).get("params")
+if mint:
+    mint["mint_denom"] = "upaw"
+
+crisis = app_state.get("crisis", {}).get("constant_fee")
+if crisis:
+    crisis["denom"] = "upaw"
+
+gov = app_state.get("gov", {})
+deposit_params = gov.get("deposit_params")
+if deposit_params:
+    deposits = deposit_params.get("min_deposit") or []
+    for coin in deposits:
+        coin["denom"] = "upaw"
+
+with open(path, 'w') as fh:
+    json.dump(data, fh, indent=2, sort_keys=True)
+    fh.write("\n")
+PY
+}
+
 NODE_NAME=${1:?"node name required"}
 RPC_PORT=${2:-26657}
 GRPC_PORT=${3:-9090}
@@ -23,29 +59,31 @@ APP_TOML="$HOME_DIR/config/app.toml"
 
 echo "[init] starting ${NODE_NAME}"
 
-if [ ! -d "$HOME_DIR/config" ]; then
-  pawd init "$NODE_NAME" --chain-id "$CHAIN_ID" --home "$HOME_DIR"
-fi
-
 if [ "$NODE_NAME" = "node1" ]; then
-  if [ ! -f "$HOME_DIR/config/genesis.json" ]; then
+  # Only build a fresh genesis once, then reuse the shared copy for restarts.
+  if [ ! -f "$GENESIS_SHARE" ]; then
     echo "[init:${NODE_NAME}] creating genesis"
 
-    pawd keys add validator --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --output json > "${STATE_DIR}/validator_key.json"
-    pawd keys add smoke-trader --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --output json > "${STATE_DIR}/trader_key.json"
-    pawd keys add smoke-counterparty --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --output json > "${STATE_DIR}/counterparty_key.json"
+    # ensure a clean home before init
+    rm -rf "$HOME_DIR"
+    pawd init "$NODE_NAME" --chain-id "$CHAIN_ID" --default-denom upaw --home "$HOME_DIR"
+    set_genesis_denoms "$HOME_DIR/config/genesis.json"
 
-    pawd genesis add-genesis-account validator 200000000000upaw \
+    pawd keys add validator --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --no-backup > "${STATE_DIR}/validator_key.yaml"
+    pawd keys add smoke-trader --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --no-backup > "${STATE_DIR}/trader_key.yaml"
+    pawd keys add smoke-counterparty --keyring-backend "$KEYRING_BACKEND" --home "$HOME_DIR" --no-backup > "${STATE_DIR}/counterparty_key.yaml"
+
+    pawd add-genesis-account validator 2000000000000upaw \
       --keyring-backend "$KEYRING_BACKEND" \
       --home "$HOME_DIR"
-    pawd genesis add-genesis-account smoke-trader 150000000000upaw,150000000000ufoo,150000000000ubar \
+    pawd add-genesis-account smoke-trader 150000000000upaw,150000000000ufoo,150000000000ubar \
       --keyring-backend "$KEYRING_BACKEND" \
       --home "$HOME_DIR"
-    pawd genesis add-genesis-account smoke-counterparty 50000000000upaw \
+    pawd add-genesis-account smoke-counterparty 50000000000upaw \
       --keyring-backend "$KEYRING_BACKEND" \
       --home "$HOME_DIR"
 
-    pawd genesis gentx validator 100000000000upaw \
+    pawd gentx validator 1000000000000upaw \
       --chain-id "$CHAIN_ID" \
       --moniker "$NODE_NAME" \
       --commission-rate "0.10" \
@@ -55,12 +93,15 @@ if [ "$NODE_NAME" = "node1" ]; then
       --keyring-backend "$KEYRING_BACKEND" \
       --home "$HOME_DIR"
 
-    pawd genesis collect-gentxs --home "$HOME_DIR"
-    pawd genesis validate-genesis --home "$HOME_DIR"
+    pawd collect-gentxs --home "$HOME_DIR"
+    pawd validate --home "$HOME_DIR"
 
     cp "$HOME_DIR/config/genesis.json" "$GENESIS_SHARE"
     pawd tendermint show-node-id --home "$HOME_DIR" > "${STATE_DIR}/node1.id"
-  elif [ -f "$GENESIS_SHARE" ]; then
+  else
+    if [ ! -d "$HOME_DIR/config" ]; then
+      pawd init "$NODE_NAME" --chain-id "$CHAIN_ID" --default-denom upaw --home "$HOME_DIR"
+    fi
     cp "$GENESIS_SHARE" "$HOME_DIR/config/genesis.json"
   fi
 else
@@ -69,6 +110,9 @@ else
     sleep 1
   done
 
+  if [ ! -d "$HOME_DIR/config" ]; then
+    pawd init "$NODE_NAME" --chain-id "$CHAIN_ID" --default-denom upaw --home "$HOME_DIR"
+  fi
   cp "$GENESIS_SHARE" "$HOME_DIR/config/genesis.json"
 fi
 

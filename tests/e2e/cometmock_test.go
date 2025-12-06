@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/testutil/cometmock"
@@ -107,13 +108,43 @@ func (s *CometMockE2ETestSuite) TestDEXPoolCreation() {
 	err = s.app.BankKeeper.SendCoinsFromModuleToAccount(ctx, dextypes.ModuleName, creator, fundingCoins)
 	s.Require().NoError(err)
 
-	// Create pool (would need actual DEX keeper implementation)
-	// This is a placeholder showing how to test DEX operations
+	// Create pool
+	pool, err := s.app.DEXKeeper.CreatePool(ctx, creator, "upaw", "uusdc", sdkmath.NewInt(5_000_000), sdkmath.NewInt(5_000_000))
+	s.Require().NoError(err)
+	s.Require().NotNil(pool)
+
+	s.app.NextBlock()
+
+	ctx = s.app.Context()
+	storedPool, err := s.app.DEXKeeper.GetPool(ctx, pool.Id)
+	s.Require().NoError(err)
+	s.Require().Equal(pool.Id, storedPool.Id)
+
+	// Fund trader for swap
+	trader := sdk.AccAddress([]byte("trader______________"))
+	swapIn := sdkmath.NewInt(500_000)
+	swapCoins := sdk.NewCoins(sdk.NewCoin("upaw", swapIn))
+	s.Require().NoError(s.app.BankKeeper.MintCoins(ctx, dextypes.ModuleName, swapCoins))
+	s.Require().NoError(s.app.BankKeeper.SendCoinsFromModuleToAccount(ctx, dextypes.ModuleName, trader, swapCoins))
+
+	// Execute swap atomically
+	outAmt, err := s.app.DEXKeeper.ExecuteSwapSecure(ctx, trader, pool.Id, "upaw", "uusdc", swapIn, sdkmath.NewInt(1))
+	s.Require().NoError(err)
+	s.Require().True(outAmt.IsPositive())
+
+	// Verify balances and pool reserves moved
+	s.app.NextBlock()
+	ctx = s.app.Context()
+	traderUSDC := s.app.BankKeeper.GetBalance(ctx, trader, "uusdc")
+	s.Require().True(traderUSDC.Amount.GTE(outAmt))
+	updatedPool, err := s.app.DEXKeeper.GetPool(ctx, pool.Id)
+	s.Require().NoError(err)
+	s.Require().True(updatedPool.ReserveA.Add(updatedPool.ReserveB).GT(storedPool.ReserveA.Add(storedPool.ReserveB).Sub(swapIn)))
 
 	s.app.NextBlock()
 
 	// Verify pool was created
-	// s.Require().True(s.app.DEXKeeper.HasPool(s.app.Context(), poolID))
+	s.Require().True(updatedPool.Id > 0)
 }
 
 // TestMultiBlockOperations tests operations across multiple blocks

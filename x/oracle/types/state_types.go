@@ -35,14 +35,3 @@ type AggregateExchangeRateVote struct {
 	ExchangeRates []math.LegacyDec `json:"exchange_rates"`
 	Voter         string           `json:"voter"`
 }
-
-// Key prefixes for store
-var (
-	PriceKeyPrefix        = []byte{0x01}
-	PrevoteKeyPrefix      = []byte{0x02}
-	VoteKeyPrefix         = []byte{0x03}
-	DelegateKeyPrefix     = []byte{0x04}
-	MissCounterKeyPrefix  = []byte{0x05}
-	SlashingKeyPrefix     = []byte{0x06}
-	TWAPKeyPrefix         = []byte{0x07}
-)

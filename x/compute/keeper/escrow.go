@@ -182,7 +182,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		}
 	}
 
-	// ATOMIC RELEASE: Check-Effects-Interactions pattern
+	// ATOMIC RELEASE: Funds-First pattern to prevent permanent lockup
 	// 1. CHECK: Verify all conditions
 	if escrowState.Amount.IsZero() {
 		return fmt.Errorf("escrow amount is zero")
@@ -193,21 +193,24 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		return fmt.Errorf("invalid provider address: %w", err)
 	}
 
-	// 2. EFFECTS: Update state BEFORE external call
+	// 2. INTERACTIONS: Transfer funds FIRST (critical for safety)
+	// If transfer fails, escrow state remains LOCKED/CHALLENGED and funds are safe
+	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
+		return fmt.Errorf("failed to release payment: %w", err)
+	}
+
+	// 3. EFFECTS: Update state AFTER successful transfer
+	// This prevents the catastrophic failure scenario where state shows RELEASED but funds are locked
 	escrowState.Status = types.ESCROW_STATUS_RELEASED
 	escrowState.ReleasedAt = &now
 	escrowState.ReleaseAttempts++
 
 	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
-		return fmt.Errorf("failed to update escrow state: %w", err)
-	}
-
-	// 3. INTERACTIONS: External call AFTER state update (prevents reentrancy)
-	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
-		// CRITICAL: Payment failed but state updated - mark for manual resolution
-		k.recordCatastrophicFailure(ctx, requestID, provider, escrowState.Amount, "state updated but payment failed")
-		return fmt.Errorf("failed to release payment: %w", err)
+		// CRITICAL: Payment sent but state update failed - manual resolution required
+		// Funds have been released to provider, but state doesn't reflect it
+		k.recordCatastrophicFailure(ctx, requestID, provider, escrowState.Amount, "payment sent but state update failed")
+		return fmt.Errorf("payment sent but state update failed: %w", err)
 	}
 
 	// Remove from timeout index
@@ -265,21 +268,24 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 		return fmt.Errorf("invalid requester address: %w", err)
 	}
 
-	// ATOMIC REFUND: Check-Effects-Interactions pattern
-	// 1. EFFECTS: Update state BEFORE external call
+	// ATOMIC REFUND: Funds-First pattern to prevent permanent lockup
+	// 1. INTERACTIONS: Transfer funds FIRST (critical for safety)
+	// If transfer fails, escrow state remains LOCKED and funds are safe
+	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, coins); err != nil {
+		return fmt.Errorf("failed to refund payment: %w", err)
+	}
+
+	// 2. EFFECTS: Update state AFTER successful transfer
+	// This prevents the catastrophic failure scenario where state shows REFUNDED but funds are locked
 	escrowState.Status = types.ESCROW_STATUS_REFUNDED
 	escrowState.RefundedAt = &now
 
 	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
-		return fmt.Errorf("failed to update escrow state: %w", err)
-	}
-
-	// 2. INTERACTIONS: External call AFTER state update
-	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, coins); err != nil {
-		// CRITICAL: Refund failed but state updated
-		k.recordCatastrophicFailure(ctx, requestID, requester, escrowState.Amount, "state updated but refund failed")
-		return fmt.Errorf("failed to refund payment: %w", err)
+		// CRITICAL: Refund sent but state update failed - manual resolution required
+		// Funds have been returned to requester, but state doesn't reflect it
+		k.recordCatastrophicFailure(ctx, requestID, requester, escrowState.Amount, "refund sent but state update failed")
+		return fmt.Errorf("refund sent but state update failed: %w", err)
 	}
 
 	// Remove from timeout index

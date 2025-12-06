@@ -4,11 +4,13 @@
 package upgrade_test
 
 import (
+	"context"
 	"testing"
 
-	"cosmossdk.io/math"
+	errorsmod "cosmossdk.io/errors"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/stretchr/testify/suite"
 
@@ -49,7 +51,8 @@ func (suite *UpgradeTestSuite) TestUpgradeFromV1ToV2() {
 	// Register upgrade handler
 	suite.app.UpgradeKeeper.SetUpgradeHandler(
 		plan.Name,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+			ctx := sdk.UnwrapSDKContext(goCtx)
 			suite.T().Log("Executing v2 upgrade handler")
 
 			// Perform state migrations
@@ -58,7 +61,7 @@ func (suite *UpgradeTestSuite) TestUpgradeFromV1ToV2() {
 			}
 
 			// Run module migrations
-			return suite.app.ModuleManager.RunMigrations(ctx, suite.app.Configurator(), vm)
+			return suite.app.ModuleManager().RunMigrations(ctx, suite.app.Configurator(), vm)
 		},
 	)
 
@@ -90,7 +93,8 @@ func (suite *UpgradeTestSuite) TestUpgradeWithDataMigration() {
 
 	suite.app.UpgradeKeeper.SetUpgradeHandler(
 		plan.Name,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+			ctx := sdk.UnwrapSDKContext(goCtx)
 			// Migrate data format
 			newData := suite.migrateData(oldData)
 			suite.storeV2Data(ctx, newData)
@@ -129,9 +133,9 @@ func (suite *UpgradeTestSuite) TestUpgradeRollback() {
 	// Register upgrade handler that fails
 	suite.app.UpgradeKeeper.SetUpgradeHandler(
 		plan.Name,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
 			// Simulate upgrade failure
-			return nil, upgradetypes.ErrInvalidPlan.Wrap("simulated upgrade failure")
+			return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "simulated upgrade failure")
 		},
 	)
 
@@ -159,12 +163,13 @@ func (suite *UpgradeTestSuite) TestModuleUpgrade() {
 
 	suite.app.UpgradeKeeper.SetUpgradeHandler(
 		plan.Name,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+			ctx := sdk.UnwrapSDKContext(goCtx)
 			// Upgrade only DEX module
 			vm["dex"] = 2
 
 			// Run DEX module migration
-			return suite.app.ModuleManager.RunMigrations(ctx, suite.app.Configurator(), vm)
+			return suite.app.ModuleManager().RunMigrations(ctx, suite.app.Configurator(), vm)
 		},
 	)
 
@@ -177,7 +182,7 @@ func (suite *UpgradeTestSuite) TestModuleUpgrade() {
 	}
 
 	// Verify DEX module was upgraded
-	version := suite.app.ModuleManager.GetVersionMap()[" dex"]
+	version := suite.app.ModuleManager().GetVersionMap()["dex"]
 	suite.Require().Equal(uint64(2), version)
 }
 
@@ -196,12 +201,13 @@ func (suite *UpgradeTestSuite) TestConsensusParamUpgrade() {
 
 	suite.app.UpgradeKeeper.SetUpgradeHandler(
 		plan.Name,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+			ctx := sdk.UnwrapSDKContext(goCtx)
 			// Modify consensus parameters
 			newParams := currentParams
 			newParams.Block.MaxGas = 50000000 // Increase max gas
 
-			suite.app.BaseApp.StoreConsensusParams(ctx, &newParams)
+			suite.app.BaseApp.StoreConsensusParams(ctx, newParams)
 
 			return vm, nil
 		},

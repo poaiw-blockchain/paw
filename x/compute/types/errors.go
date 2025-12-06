@@ -48,6 +48,7 @@ var (
 	ErrInvalidCircuit       = sdkerrors.Register(ModuleName, 52, "invalid verification circuit")
 	ErrInvalidPublicInputs  = sdkerrors.Register(ModuleName, 53, "invalid public inputs")
 	ErrInvalidWitness       = sdkerrors.Register(ModuleName, 54, "invalid witness")
+	ErrProofTooLarge        = sdkerrors.Register(ModuleName, 55, "proof size exceeds maximum allowed")
 
 	// Resource errors
 	ErrInsufficientResources = sdkerrors.Register(ModuleName, 60, "insufficient computational resources")
@@ -119,6 +120,7 @@ var RecoverySuggestions = map[error]string{
 	ErrInvalidCircuit:       "Verification circuit not found or invalid. Use supported circuit types. Query available circuits. Verify circuit version compatibility.",
 	ErrInvalidPublicInputs:  "Public inputs don't match circuit requirements. Check input count and types. Verify input encoding. See circuit documentation.",
 	ErrInvalidWitness:       "Private witness invalid or incomplete. Generate witness from valid computation trace. Verify witness satisfies all constraints.",
+	ErrProofTooLarge:        "Proof exceeds maximum allowed size. Reduce proof size or check circuit configuration. Maximum proof size is defined in circuit parameters to prevent DoS attacks.",
 
 	ErrInsufficientResources: "Provider lacks required resources. Reduce CPU/memory/storage requirements. Select provider with higher capacity. Split computation into smaller jobs.",
 	ErrResourceQuotaExceeded: "Account resource quota exceeded. Wait for quota reset period. Upgrade account tier. Optimize resource usage.",

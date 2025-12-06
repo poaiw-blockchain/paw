@@ -307,7 +307,17 @@ go test ./tests/simulation/... -run TestAppSimulationAfterImport
 
 # With all invariants
 go test ./tests/simulation/... -run TestSimulationWithInvariants
+
+# With custom genesis (mirrors production chain config)
+go test ./tests/simulation/... -SimulationNumBlocks=500 -Genesis=/path/to/genesis.json
+# Convenience Make target
+make test-simulation-genesis GENESIS=/path/to/genesis.json
 ```
+
+**Custom genesis notes**
+- Loader validates ADR-027 ordering and decodes state strictly; malformed files fail fast.
+- Chain ID and genesis time are preserved from the file; time defaults to now if missing.
+- Accounts are synthesized from `auth` state and bonded validators/slashing data are respected for keeper setup.
 
 ## Integration Testing
 

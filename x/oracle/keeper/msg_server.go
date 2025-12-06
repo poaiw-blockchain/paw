@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -207,6 +208,30 @@ func (ms msgServer) validateParams(params types.Params) error {
 
 	if params.TwapLookbackWindow == 0 {
 		return fmt.Errorf("twap lookback window must be positive")
+	}
+
+	if params.MinGeographicRegions == 0 {
+		return fmt.Errorf("min geographic regions must be positive")
+	}
+
+	if len(params.AllowedRegions) == 0 {
+		return fmt.Errorf("allowed regions must not be empty")
+	}
+
+	seen := make(map[string]struct{})
+	for _, region := range params.AllowedRegions {
+		region = strings.TrimSpace(region)
+		if region == "" {
+			return fmt.Errorf("allowed region entries must be non-empty")
+		}
+		if _, ok := seen[region]; ok {
+			return fmt.Errorf("duplicate allowed region: %s", region)
+		}
+		seen[region] = struct{}{}
+	}
+
+	if params.MinGeographicRegions > uint64(len(params.AllowedRegions)) {
+		return fmt.Errorf("min geographic regions cannot exceed allowed regions")
 	}
 
 	return nil

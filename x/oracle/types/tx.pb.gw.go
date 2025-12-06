@@ -13,6 +13,7 @@ package types
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 
@@ -27,106 +28,110 @@ import (
 )
 
 // Suppress "imported and not used" errors
-var _ codes.Code
-var _ io.Reader
-var _ status.Status
-var _ = runtime.String
-var _ = utilities.NewDoubleArray
-var _ = metadata.Join
+var (
+	_ codes.Code
+	_ io.Reader
+	_ status.Status
+	_ = errors.New
+	_ = runtime.String
+	_ = utilities.NewDoubleArray
+	_ = metadata.Join
+)
 
 func request_Msg_SubmitPrice_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitPrice
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitPrice
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.SubmitPrice(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_SubmitPrice_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitPrice
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitPrice
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.SubmitPrice(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_DelegateFeedConsent_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgDelegateFeedConsent
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgDelegateFeedConsent
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.DelegateFeedConsent(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_DelegateFeedConsent_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgDelegateFeedConsent
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgDelegateFeedConsent
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.DelegateFeedConsent(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_UpdateParams_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.UpdateParams(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_UpdateParams_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.UpdateParams(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 // RegisterMsgHandlerServer registers the http handlers for service Msg to "mux".
 // UnaryRPC     :call MsgServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMsgHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MsgServer) error {
-
-	mux.Handle("POST", pattern_Msg_SubmitPrice_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitPrice_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/SubmitPrice", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/SubmitPrice"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/SubmitPrice", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/SubmitPrice"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -138,20 +143,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitPrice_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_DelegateFeedConsent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_DelegateFeedConsent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/DelegateFeedConsent", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/DelegateFeedConsent"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/DelegateFeedConsent", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/DelegateFeedConsent"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -163,20 +163,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_DelegateFeedConsent_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/UpdateParams"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.oracle.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/UpdateParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -188,9 +183,7 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
 	return nil
@@ -217,7 +210,6 @@ func RegisterMsgHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, 
 			}
 		}()
 	}()
-
 	return RegisterMsgHandler(ctx, mux, conn)
 }
 
@@ -231,16 +223,13 @@ func RegisterMsgHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.C
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "MsgClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "MsgClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "MsgClient" to call the correct interceptors.
+// "MsgClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client MsgClient) error {
-
-	mux.Handle("POST", pattern_Msg_SubmitPrice_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitPrice_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/SubmitPrice", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/SubmitPrice"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/SubmitPrice", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/SubmitPrice"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -251,18 +240,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitPrice_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_DelegateFeedConsent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_DelegateFeedConsent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/DelegateFeedConsent", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/DelegateFeedConsent"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/DelegateFeedConsent", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/DelegateFeedConsent"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -273,18 +257,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_DelegateFeedConsent_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/UpdateParams"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.oracle.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.oracle.v1.Msg/UpdateParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -295,26 +274,19 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
 	return nil
 }
 
 var (
-	pattern_Msg_SubmitPrice_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.oracle.v1.Msg", "SubmitPrice"}, ""))
-
+	pattern_Msg_SubmitPrice_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.oracle.v1.Msg", "SubmitPrice"}, ""))
 	pattern_Msg_DelegateFeedConsent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.oracle.v1.Msg", "DelegateFeedConsent"}, ""))
-
-	pattern_Msg_UpdateParams_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.oracle.v1.Msg", "UpdateParams"}, ""))
+	pattern_Msg_UpdateParams_0        = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.oracle.v1.Msg", "UpdateParams"}, ""))
 )
 
 var (
-	forward_Msg_SubmitPrice_0 = runtime.ForwardResponseMessage
-
+	forward_Msg_SubmitPrice_0         = runtime.ForwardResponseMessage
 	forward_Msg_DelegateFeedConsent_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_UpdateParams_0 = runtime.ForwardResponseMessage
+	forward_Msg_UpdateParams_0        = runtime.ForwardResponseMessage
 )

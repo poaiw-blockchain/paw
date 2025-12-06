@@ -460,7 +460,9 @@ func (k Keeper) OnAcknowledgementPacket(
 	switch pd := packetData.(type) {
 	case types.DiscoverProvidersPacketData:
 		if !ack.Success() {
-			return errors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("provider discovery failed: %s", ack.GetError()))
+			// For discovery failures we simply surface the error via acknowledgement
+			// and skip updating local caches.
+			return nil
 		}
 		var ackResp types.DiscoverProvidersAcknowledgement
 		if err := json.Unmarshal(ack.GetResult(), &ackResp); err != nil {

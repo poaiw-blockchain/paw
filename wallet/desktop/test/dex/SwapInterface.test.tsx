@@ -1,5 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+jest.mock('@paw-chain/wallet-core', () => ({}), { virtual: true });
+
 import SwapInterface from '../../src/components/DEX/SwapInterface';
 
 const mockDexService = {
@@ -8,10 +10,6 @@ const mockDexService = {
   quoteSwap: jest.fn(),
   executeSwap: jest.fn(),
 };
-
-jest.mock('../../src/services/dex', () => ({
-  DexService: jest.fn().mockImplementation(() => mockDexService),
-}));
 
 const wallet = { address: 'paw1qpz7e0mockaddress' };
 
@@ -60,7 +58,7 @@ describe('SwapInterface', () => {
   });
 
   it('renders quote after updating amount and tokens', async () => {
-    render(<SwapInterface walletData={wallet} />);
+    render(<SwapInterface walletData={wallet} service={mockDexService as any} />);
 
     await waitFor(() => expect(mockDexService.getTradableTokens).toHaveBeenCalled());
 
@@ -79,12 +77,13 @@ describe('SwapInterface', () => {
       slippagePercent: 0.5,
     });
 
-    const expectedOutput = await screen.findByTestId('expected-output');
-    expect(expectedOutput.textContent).toContain('5.000000 ATOM');
+    await waitFor(() =>
+      expect(screen.getByTestId('expected-output').textContent).toContain('5.000000 ATOM')
+    );
   });
 
   it('executes swap when password is supplied', async () => {
-    render(<SwapInterface walletData={wallet} />);
+    render(<SwapInterface walletData={wallet} service={mockDexService as any} />);
     await waitFor(() => expect(mockDexService.getTradableTokens).toHaveBeenCalled());
 
     const amountInput = screen.getByPlaceholderText('0.0');

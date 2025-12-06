@@ -13,6 +13,7 @@ package types
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 
@@ -27,418 +28,434 @@ import (
 )
 
 // Suppress "imported and not used" errors
-var _ codes.Code
-var _ io.Reader
-var _ status.Status
-var _ = runtime.String
-var _ = utilities.NewDoubleArray
-var _ = metadata.Join
+var (
+	_ codes.Code
+	_ io.Reader
+	_ status.Status
+	_ = errors.New
+	_ = runtime.String
+	_ = utilities.NewDoubleArray
+	_ = metadata.Join
+)
 
 func request_Msg_RegisterProvider_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgRegisterProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgRegisterProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.RegisterProvider(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_RegisterProvider_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgRegisterProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgRegisterProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.RegisterProvider(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_UpdateProvider_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.UpdateProvider(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_UpdateProvider_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.UpdateProvider(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_DeactivateProvider_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgDeactivateProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgDeactivateProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.DeactivateProvider(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_DeactivateProvider_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgDeactivateProvider
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgDeactivateProvider
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.DeactivateProvider(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_SubmitRequest_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.SubmitRequest(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_SubmitRequest_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.SubmitRequest(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_CancelRequest_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgCancelRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgCancelRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.CancelRequest(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_CancelRequest_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgCancelRequest
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgCancelRequest
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.CancelRequest(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_SubmitResult_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitResult
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitResult
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.SubmitResult(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_SubmitResult_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitResult
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitResult
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.SubmitResult(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_UpdateParams_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.UpdateParams(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_UpdateParams_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.UpdateParams(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_CreateDispute_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgCreateDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgCreateDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.CreateDispute(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_CreateDispute_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgCreateDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgCreateDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.CreateDispute(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_VoteOnDispute_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgVoteOnDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgVoteOnDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.VoteOnDispute(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_VoteOnDispute_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgVoteOnDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgVoteOnDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.VoteOnDispute(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_ResolveDispute_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgResolveDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgResolveDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.ResolveDispute(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_ResolveDispute_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgResolveDispute
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgResolveDispute
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ResolveDispute(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_SubmitEvidence_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitEvidence
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitEvidence
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.SubmitEvidence(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_SubmitEvidence_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgSubmitEvidence
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgSubmitEvidence
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.SubmitEvidence(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_AppealSlashing_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgAppealSlashing
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgAppealSlashing
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.AppealSlashing(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_AppealSlashing_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgAppealSlashing
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgAppealSlashing
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.AppealSlashing(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_VoteOnAppeal_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgVoteOnAppeal
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgVoteOnAppeal
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.VoteOnAppeal(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_VoteOnAppeal_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgVoteOnAppeal
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgVoteOnAppeal
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.VoteOnAppeal(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_ResolveAppeal_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgResolveAppeal
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgResolveAppeal
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.ResolveAppeal(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_ResolveAppeal_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgResolveAppeal
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgResolveAppeal
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.ResolveAppeal(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 func request_Msg_UpdateGovernanceParams_0(ctx context.Context, marshaler runtime.Marshaler, client MsgClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateGovernanceParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateGovernanceParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
+	if req.Body != nil {
+		_, _ = io.Copy(io.Discard, req.Body)
+	}
 	msg, err := client.UpdateGovernanceParams(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
-
 }
 
 func local_request_Msg_UpdateGovernanceParams_0(ctx context.Context, marshaler runtime.Marshaler, server MsgServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MsgUpdateGovernanceParams
-	var metadata runtime.ServerMetadata
-
-	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
+	var (
+		protoReq MsgUpdateGovernanceParams
+		metadata runtime.ServerMetadata
+	)
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && !errors.Is(err, io.EOF) {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-
 	msg, err := server.UpdateGovernanceParams(ctx, &protoReq)
 	return msg, metadata, err
-
 }
 
 // RegisterMsgHandlerServer registers the http handlers for service Msg to "mux".
 // UnaryRPC     :call MsgServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterMsgHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server MsgServer) error {
-
-	mux.Handle("POST", pattern_Msg_RegisterProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_RegisterProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/RegisterProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/RegisterProvider"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/RegisterProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/RegisterProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -450,20 +467,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_RegisterProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateProvider"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -475,20 +487,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_DeactivateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_DeactivateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/DeactivateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/DeactivateProvider"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/DeactivateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/DeactivateProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -500,20 +507,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_DeactivateProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitRequest"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitRequest"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -525,20 +527,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitRequest_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_CancelRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_CancelRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/CancelRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CancelRequest"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/CancelRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CancelRequest"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -550,20 +547,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_CancelRequest_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitResult_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitResult_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitResult", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitResult"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitResult", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitResult"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -575,20 +567,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitResult_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateParams"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -600,20 +587,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_CreateDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_CreateDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/CreateDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CreateDispute"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/CreateDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CreateDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -625,20 +607,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_CreateDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_VoteOnDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_VoteOnDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnDispute"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -650,20 +627,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_VoteOnDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_ResolveDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_ResolveDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveDispute"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -675,20 +647,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_ResolveDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitEvidence_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitEvidence_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitEvidence", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitEvidence"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitEvidence", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitEvidence"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -700,20 +667,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitEvidence_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_AppealSlashing_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_AppealSlashing_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/AppealSlashing", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/AppealSlashing"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/AppealSlashing", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/AppealSlashing"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -725,20 +687,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_AppealSlashing_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_VoteOnAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_VoteOnAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnAppeal"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnAppeal"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -750,20 +707,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_VoteOnAppeal_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_ResolveAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_ResolveAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveAppeal"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveAppeal"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -775,20 +727,15 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_ResolveAppeal_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateGovernanceParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateGovernanceParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateGovernanceParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateGovernanceParams"))
+		annotatedContext, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateGovernanceParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateGovernanceParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -800,9 +747,7 @@ func RegisterMsgHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateGovernanceParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
 
 	return nil
@@ -829,7 +774,6 @@ func RegisterMsgHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, 
 			}
 		}()
 	}()
-
 	return RegisterMsgHandler(ctx, mux, conn)
 }
 
@@ -843,16 +787,13 @@ func RegisterMsgHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.C
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "MsgClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "MsgClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "MsgClient" to call the correct interceptors.
+// "MsgClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client MsgClient) error {
-
-	mux.Handle("POST", pattern_Msg_RegisterProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_RegisterProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/RegisterProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/RegisterProvider"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/RegisterProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/RegisterProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -863,18 +804,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_RegisterProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateProvider"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -885,18 +821,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_DeactivateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_DeactivateProvider_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/DeactivateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/DeactivateProvider"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/DeactivateProvider", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/DeactivateProvider"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -907,18 +838,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_DeactivateProvider_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitRequest"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitRequest"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -929,18 +855,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitRequest_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_CancelRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_CancelRequest_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/CancelRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CancelRequest"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/CancelRequest", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CancelRequest"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -951,18 +872,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_CancelRequest_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitResult_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitResult_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitResult", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitResult"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitResult", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitResult"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -973,18 +889,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitResult_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateParams"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -995,18 +906,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_CreateDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_CreateDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/CreateDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CreateDispute"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/CreateDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/CreateDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1017,18 +923,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_CreateDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_VoteOnDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_VoteOnDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnDispute"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1039,18 +940,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_VoteOnDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_ResolveDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_ResolveDispute_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveDispute"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveDispute", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveDispute"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1061,18 +957,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_ResolveDispute_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_SubmitEvidence_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_SubmitEvidence_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitEvidence", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitEvidence"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/SubmitEvidence", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/SubmitEvidence"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1083,18 +974,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_SubmitEvidence_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_AppealSlashing_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_AppealSlashing_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/AppealSlashing", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/AppealSlashing"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/AppealSlashing", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/AppealSlashing"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1105,18 +991,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_AppealSlashing_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_VoteOnAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_VoteOnAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnAppeal"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/VoteOnAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/VoteOnAppeal"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1127,18 +1008,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_VoteOnAppeal_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_ResolveAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_ResolveAppeal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveAppeal"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/ResolveAppeal", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/ResolveAppeal"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1149,18 +1025,13 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_ResolveAppeal_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
-	mux.Handle("POST", pattern_Msg_UpdateGovernanceParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle(http.MethodPost, pattern_Msg_UpdateGovernanceParams_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		var err error
-		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateGovernanceParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateGovernanceParams"))
+		annotatedContext, err := runtime.AnnotateContext(ctx, mux, req, "/paw.compute.v1.Msg/UpdateGovernanceParams", runtime.WithHTTPPathPattern("/paw.compute.v1.Msg/UpdateGovernanceParams"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -1171,74 +1042,43 @@ func RegisterMsgHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
-
 		forward_Msg_UpdateGovernanceParams_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
-
 	})
-
 	return nil
 }
 
 var (
-	pattern_Msg_RegisterProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "RegisterProvider"}, ""))
-
-	pattern_Msg_UpdateProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "UpdateProvider"}, ""))
-
-	pattern_Msg_DeactivateProvider_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "DeactivateProvider"}, ""))
-
-	pattern_Msg_SubmitRequest_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitRequest"}, ""))
-
-	pattern_Msg_CancelRequest_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "CancelRequest"}, ""))
-
-	pattern_Msg_SubmitResult_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitResult"}, ""))
-
-	pattern_Msg_UpdateParams_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "UpdateParams"}, ""))
-
-	pattern_Msg_CreateDispute_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "CreateDispute"}, ""))
-
-	pattern_Msg_VoteOnDispute_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "VoteOnDispute"}, ""))
-
-	pattern_Msg_ResolveDispute_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "ResolveDispute"}, ""))
-
-	pattern_Msg_SubmitEvidence_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitEvidence"}, ""))
-
-	pattern_Msg_AppealSlashing_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "AppealSlashing"}, ""))
-
-	pattern_Msg_VoteOnAppeal_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "VoteOnAppeal"}, ""))
-
-	pattern_Msg_ResolveAppeal_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "ResolveAppeal"}, ""))
-
+	pattern_Msg_RegisterProvider_0       = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "RegisterProvider"}, ""))
+	pattern_Msg_UpdateProvider_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "UpdateProvider"}, ""))
+	pattern_Msg_DeactivateProvider_0     = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "DeactivateProvider"}, ""))
+	pattern_Msg_SubmitRequest_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitRequest"}, ""))
+	pattern_Msg_CancelRequest_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "CancelRequest"}, ""))
+	pattern_Msg_SubmitResult_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitResult"}, ""))
+	pattern_Msg_UpdateParams_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "UpdateParams"}, ""))
+	pattern_Msg_CreateDispute_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "CreateDispute"}, ""))
+	pattern_Msg_VoteOnDispute_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "VoteOnDispute"}, ""))
+	pattern_Msg_ResolveDispute_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "ResolveDispute"}, ""))
+	pattern_Msg_SubmitEvidence_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "SubmitEvidence"}, ""))
+	pattern_Msg_AppealSlashing_0         = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "AppealSlashing"}, ""))
+	pattern_Msg_VoteOnAppeal_0           = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "VoteOnAppeal"}, ""))
+	pattern_Msg_ResolveAppeal_0          = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "ResolveAppeal"}, ""))
 	pattern_Msg_UpdateGovernanceParams_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"paw.compute.v1.Msg", "UpdateGovernanceParams"}, ""))
 )
 
 var (
-	forward_Msg_RegisterProvider_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_UpdateProvider_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_DeactivateProvider_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_SubmitRequest_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_CancelRequest_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_SubmitResult_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_UpdateParams_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_CreateDispute_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_VoteOnDispute_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_ResolveDispute_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_SubmitEvidence_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_AppealSlashing_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_VoteOnAppeal_0 = runtime.ForwardResponseMessage
-
-	forward_Msg_ResolveAppeal_0 = runtime.ForwardResponseMessage
-
+	forward_Msg_RegisterProvider_0       = runtime.ForwardResponseMessage
+	forward_Msg_UpdateProvider_0         = runtime.ForwardResponseMessage
+	forward_Msg_DeactivateProvider_0     = runtime.ForwardResponseMessage
+	forward_Msg_SubmitRequest_0          = runtime.ForwardResponseMessage
+	forward_Msg_CancelRequest_0          = runtime.ForwardResponseMessage
+	forward_Msg_SubmitResult_0           = runtime.ForwardResponseMessage
+	forward_Msg_UpdateParams_0           = runtime.ForwardResponseMessage
+	forward_Msg_CreateDispute_0          = runtime.ForwardResponseMessage
+	forward_Msg_VoteOnDispute_0          = runtime.ForwardResponseMessage
+	forward_Msg_ResolveDispute_0         = runtime.ForwardResponseMessage
+	forward_Msg_SubmitEvidence_0         = runtime.ForwardResponseMessage
+	forward_Msg_AppealSlashing_0         = runtime.ForwardResponseMessage
+	forward_Msg_VoteOnAppeal_0           = runtime.ForwardResponseMessage
+	forward_Msg_ResolveAppeal_0          = runtime.ForwardResponseMessage
 	forward_Msg_UpdateGovernanceParams_0 = runtime.ForwardResponseMessage
 )

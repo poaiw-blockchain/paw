@@ -9,8 +9,11 @@ describe('KeystoreService', () => {
 
   beforeEach(() => {
     keystoreService = new KeystoreService();
-    localStorage.clear();
     jest.clearAllMocks();
+    window.electron.store.get.mockResolvedValue(null);
+    window.electron.store.set.mockResolvedValue();
+    window.electron.store.delete.mockResolvedValue();
+    window.electron.store.clear.mockResolvedValue();
   });
 
   describe('Mnemonic Generation', () => {
@@ -77,12 +80,13 @@ describe('KeystoreService', () => {
 
       await keystoreService.createWallet(mnemonic, password);
 
-      expect(localStorage.setItem).toHaveBeenCalled();
+      expect(window.electron.store.set).toHaveBeenCalled();
     });
   });
 
   describe('Wallet Retrieval', () => {
     test('should return null if no wallet exists', async () => {
+      window.electron.store.get.mockResolvedValue(null);
       const wallet = await keystoreService.getWallet();
 
       expect(wallet).toBeNull();
@@ -94,14 +98,8 @@ describe('KeystoreService', () => {
 
       const created = await keystoreService.createWallet(mnemonic, password);
 
-      // Mock localStorage.getItem
-      localStorage.getItem.mockReturnValue(JSON.stringify({
-        address: created.address,
-        publicKey: created.publicKey,
-        createdAt: created.createdAt,
-        encryptedMnemonic: 'encrypted',
-        passwordHash: 'hash'
-      }));
+      const storedPayload = window.electron.store.set.mock.calls[0][1];
+      window.electron.store.get.mockResolvedValue(storedPayload);
 
       const retrieved = await keystoreService.getWallet();
 
@@ -117,18 +115,20 @@ describe('KeystoreService', () => {
       const password = 'test-password-123';
 
       await keystoreService.createWallet(mnemonic, password);
+      const storedPayload = window.electron.store.set.mock.calls[0][1];
+      window.electron.store.get.mockResolvedValue(storedPayload);
 
-      // This would require mocking the stored encrypted data
-      // For now, just test the error case
-      expect(true).toBe(true);
+      const unlocked = await keystoreService.unlockWallet(password);
+      expect(unlocked.address).toBe(storedPayload.address);
+      expect(unlocked.privateKey).toBe(mnemonic);
     });
 
     test('should reject incorrect password', async () => {
-      localStorage.getItem.mockReturnValue(JSON.stringify({
+      window.electron.store.get.mockResolvedValue({
         address: 'paw1test',
         passwordHash: 'wrong-hash',
         encryptedMnemonic: 'encrypted'
-      }));
+      });
 
       await expect(
         keystoreService.unlockWallet('wrong-password')
@@ -136,6 +136,7 @@ describe('KeystoreService', () => {
     });
 
     test('should reject if no wallet exists', async () => {
+      window.electron.store.get.mockResolvedValue(null);
       await expect(
         keystoreService.unlockWallet('any-password')
       ).rejects.toThrow('No wallet found');
@@ -161,22 +162,35 @@ describe('KeystoreService', () => {
   });
 
   describe('Encryption/Decryption', () => {
-    test('should encrypt data', async () => {
+    test('should encrypt data with random salt and prefix', async () => {
       const data = 'sensitive data';
       const password = 'encryption-key';
 
-      const encrypted = await keystoreService.encryptData(data, password);
+      const encrypted1 = await keystoreService.encryptData(data, password);
+      const encrypted2 = await keystoreService.encryptData(data, password);
 
-      expect(encrypted).toBeDefined();
-      expect(encrypted).not.toBe(data);
+      expect(encrypted1).toMatch(/^paw:v1:/);
+      expect(encrypted1).not.toBe(data);
+      expect(encrypted1).not.toBe(encrypted2);
     });
 
-    test('should decrypt data', async () => {
+    test('should decrypt AES-GCM payload', async () => {
       const data = 'sensitive data';
       const password = 'encryption-key';
 
       const encrypted = await keystoreService.encryptData(data, password);
       const decrypted = await keystoreService.decryptData(encrypted, password);
+
+      expect(decrypted).toBe(data);
+    });
+
+    test('should decrypt legacy XOR payloads', async () => {
+      const data = 'legacy secret';
+      const password = 'legacy-key';
+      const key = await keystoreService.hashPassword(password);
+
+      const legacyEncrypted = legacyXorEncrypt(data, key);
+      const decrypted = await keystoreService.decryptData(legacyEncrypted, password);
 
       expect(decrypted).toBe(data);
     });
@@ -189,17 +203,29 @@ describe('KeystoreService', () => {
 
       await keystoreService.clearWallet();
 
-      expect(localStorage.removeItem).toHaveBeenCalled();
+      expect(window.electron.store.delete).toHaveBeenCalled();
     });
 
     test('should check if wallet exists', async () => {
+      window.electron.store.get
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ address: 'paw1test' });
+
       let exists = await keystoreService.hasWallet();
       expect(exists).toBe(false);
-
-      localStorage.getItem.mockReturnValue(JSON.stringify({ address: 'paw1test' }));
 
       exists = await keystoreService.hasWallet();
       expect(exists).toBe(true);
     });
   });
 });
+
+function legacyXorEncrypt(text, key) {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    result += String.fromCharCode(
+      text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+    );
+  }
+  return Buffer.from(result, 'binary').toString('base64');
+}

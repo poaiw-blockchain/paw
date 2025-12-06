@@ -68,12 +68,14 @@ func TestOracleGenesisRoundTrip(t *testing.T) {
 				MissCounter:      1,
 				TotalSubmissions: 5,
 				IsActive:         true,
+				GeographicRegion: "global",
 			},
 			{
 				ValidatorAddr:    valTwo,
 				MissCounter:      0,
 				TotalSubmissions: 3,
 				IsActive:         true,
+				GeographicRegion: "global",
 			},
 		},
 		PriceSnapshots: []types.PriceSnapshot{

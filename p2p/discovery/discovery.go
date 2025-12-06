@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -11,6 +12,26 @@ import (
 )
 
 // Service is the main peer discovery service
+const (
+	PEXMessageType     = "pex/peers"
+	maxPEXMessagePeers = 200
+)
+
+type messageSendFunc func(reputation.PeerID, string, []byte) error
+
+type pexMessage struct {
+	Timestamp time.Time        `json:"timestamp"`
+	Peers     []pexMessagePeer `json:"peers"`
+}
+
+type pexMessagePeer struct {
+	ID       string     `json:"id"`
+	Address  string     `json:"address"`
+	Port     uint16     `json:"port"`
+	Source   PeerSource `json:"source"`
+	LastSeen time.Time  `json:"last_seen"`
+}
+
 type Service struct {
 	config  DiscoveryConfig
 	logger  log.Logger
@@ -43,6 +64,9 @@ type Service struct {
 	onPeerDiscovered func(*PeerAddr)
 	onPeerConnected  func(reputation.PeerID, bool)
 	onPeerLost       func(reputation.PeerID)
+
+	// Outbound messaging
+	messageSender messageSendFunc
 }
 
 // NewService creates a new peer discovery service
@@ -270,6 +294,64 @@ func (s *Service) ReceivePeers(addrs []*PeerAddr) {
 	s.mu.Unlock()
 }
 
+// HandlePEXMessage processes an inbound PEX message payload from a peer.
+func (s *Service) HandlePEXMessage(peerID reputation.PeerID, payload []byte) error {
+	var msg pexMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		s.logger.Error("invalid PEX payload", "peer_id", peerID, "error", err)
+		return fmt.Errorf("invalid PEX payload: %w", err)
+	}
+
+	if len(msg.Peers) > maxPEXMessagePeers {
+		return fmt.Errorf("PEX payload exceeded limit: %d > %d", len(msg.Peers), maxPEXMessagePeers)
+	}
+
+	now := time.Now()
+	accepted := make([]*PeerAddr, 0, len(msg.Peers))
+	seen := make(map[reputation.PeerID]struct{})
+
+	for _, peer := range msg.Peers {
+		if peer.Address == "" || peer.Port == 0 || peer.ID == "" {
+			continue
+		}
+
+		peerAddr := &PeerAddr{
+			ID:        reputation.PeerID(peer.ID),
+			Address:   peer.Address,
+			Port:      peer.Port,
+			Source:    PeerSourcePEX,
+			FirstSeen: now,
+			LastSeen:  peer.LastSeen,
+		}
+
+		if peerAddr.LastSeen.IsZero() {
+			peerAddr.LastSeen = now
+		}
+
+		if _, exists := seen[peerAddr.ID]; exists {
+			continue
+		}
+		if !peerAddr.IsRoutable() || s.addressBook.IsBanned(peerAddr.ID) {
+			continue
+		}
+
+		seen[peerAddr.ID] = struct{}{}
+		accepted = append(accepted, peerAddr)
+	}
+
+	if len(accepted) == 0 {
+		return nil
+	}
+
+	s.logger.Debug("processed PEX message",
+		"from_peer", peerID,
+		"accepted", len(accepted),
+		"submitted", len(msg.Peers))
+
+	s.ReceivePeers(accepted)
+	return nil
+}
+
 // UpdatePeerActivity updates peer activity timestamp
 func (s *Service) UpdatePeerActivity(peerID reputation.PeerID) {
 	s.peerManager.UpdateActivity(peerID)
@@ -362,6 +444,13 @@ func (s *Service) SetEventHandlers(
 	s.onPeerLost = onLost
 }
 
+// SetMessageSender wires the outbound message transport used by PEX.
+func (s *Service) SetMessageSender(sender messageSendFunc) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.messageSender = sender
+}
+
 // Internal methods
 
 // handlePeerConnected handles peer connection events
@@ -424,9 +513,32 @@ func (s *Service) performPEX() {
 		return
 	}
 
-	// In a real implementation, this would send PEX messages to connected peers
-	// For now, we just simulate that a PEX message was sent and received.
-	s.ReceivePeers(addrsToShare)
+	s.mu.RLock()
+	send := s.messageSender
+	s.mu.RUnlock()
+
+	if send == nil {
+		s.logger.Debug("skipping PEX broadcast - message sender not configured")
+		return
+	}
+
+	payload, err := encodePEXPayload(addrsToShare)
+	if err != nil {
+		s.logger.Error("failed to encode PEX payload", "error", err)
+		return
+	}
+
+	for _, peer := range peers {
+		if peer == nil || peer.PeerAddr == nil || peer.PeerAddr.ID == "" {
+			continue
+		}
+
+		if err := send(peer.PeerAddr.ID, PEXMessageType, payload); err != nil {
+			s.logger.Error("failed to send PEX message", "peer_id", peer.PeerAddr.ID, "error", err)
+		} else {
+			s.logger.Debug("sent PEX message", "peer_id", peer.PeerAddr.ID, "peer_count", len(addrsToShare))
+		}
+	}
 
 	s.mu.Lock()
 	s.lastPEX = time.Now()
@@ -538,6 +650,41 @@ func (s *Service) updateStats() {
 	if failedConns, ok := pmStats["failed_dials"].(uint64); ok {
 		s.stats.FailedConnections = failedConns
 	}
+}
+
+func encodePEXPayload(addrs []*PeerAddr) ([]byte, error) {
+	peers := make([]pexMessagePeer, 0, len(addrs))
+	now := time.Now()
+
+	for _, addr := range addrs {
+		if addr == nil || addr.ID == "" || addr.Address == "" || addr.Port == 0 {
+			continue
+		}
+
+		lastSeen := addr.LastSeen
+		if lastSeen.IsZero() {
+			lastSeen = now
+		}
+
+		peers = append(peers, pexMessagePeer{
+			ID:       string(addr.ID),
+			Address:  addr.Address,
+			Port:     addr.Port,
+			Source:   addr.Source,
+			LastSeen: lastSeen,
+		})
+	}
+
+	if len(peers) == 0 {
+		return nil, fmt.Errorf("no peers to encode")
+	}
+
+	msg := pexMessage{
+		Timestamp: now,
+		Peers:     peers,
+	}
+
+	return json.Marshal(msg)
 }
 
 // GetAddressBook returns the address book (for testing/inspection)

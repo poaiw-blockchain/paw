@@ -40,6 +40,21 @@ message Params {
 
   // authorized_channels defines IBC port/channel pairs allowed to submit packets
   repeated AuthorizedChannel authorized_channels = 7 [(gogoproto.nullable) = false];
+
+  // allowed_regions enumerates permissible geographic regions for validators
+  repeated string allowed_regions = 8;
+
+  // min_geographic_regions enforces minimum distinct regions in active oracle set
+  uint64 min_geographic_regions = 9;
+
+  // min_voting_power_for_consensus is the minimum total voting power required
+  // from validators after outlier filtering to set a price (prevents manipulation
+  // by multiple low-stake validators)
+  string min_voting_power_for_consensus = 10 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination
@@ -113,6 +128,9 @@ message ValidatorOracle {
 
   // is_active indicates if the validator is actively participating
   bool is_active = 4;
+
+  // geographic_region tracks the validator's region (e.g., "na", "eu", "apac")
+  string geographic_region = 5;
 }
 
 // PriceSnapshot represents a historical price snapshot for TWAP

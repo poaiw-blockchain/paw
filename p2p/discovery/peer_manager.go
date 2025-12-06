@@ -56,6 +56,8 @@ type PeerManager struct {
 	// Callbacks
 	onPeerConnected    func(peerID reputation.PeerID, outbound bool)
 	onPeerDisconnected func(peerID reputation.PeerID)
+	onPeerMessage      func(peerID reputation.PeerID, msgType string, data []byte)
+	msgHandlerMu       sync.RWMutex
 }
 
 // NewPeerManager creates a new peer manager
@@ -391,6 +393,13 @@ func (pm *PeerManager) SetCallbacks(
 ) {
 	pm.onPeerConnected = onConnected
 	pm.onPeerDisconnected = onDisconnected
+}
+
+// SetMessageHandler sets the callback for inbound peer messages.
+func (pm *PeerManager) SetMessageHandler(handler func(reputation.PeerID, string, []byte)) {
+	pm.msgHandlerMu.Lock()
+	defer pm.msgHandlerMu.Unlock()
+	pm.onPeerMessage = handler
 }
 
 // Stats returns peer manager statistics
@@ -789,8 +798,17 @@ func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn)
 			}
 			pm.mu.Unlock()
 
-			// Message handling would be done by upper layers
-			// For now, just log the message
+			pm.msgHandlerMu.RLock()
+			handler := pm.onPeerMessage
+			pm.msgHandlerMu.RUnlock()
+
+			if handler != nil {
+				go handler(peerID, msgType, msgData)
+			} else {
+				pm.logger.Debug("no message handler registered",
+					"peer_id", peerID,
+					"type", msgType)
+			}
 		}
 	}
 }

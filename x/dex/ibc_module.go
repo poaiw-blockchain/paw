@@ -246,8 +246,13 @@ func (im IBCModule) OnRecvPacket(
 		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
 	}
 
+	packetTimestamp := im.packetTimestamp(packetData)
+	if packetTimestamp == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet timestamp missing"))
+	}
+
 	sender := im.packetSender(packet, packetData)
-	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce); err != nil {
+	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce, packetTimestamp); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
 
@@ -600,4 +605,19 @@ func (im IBCModule) packetSender(packet channeltypes.Packet, packetData types.IB
 		return packet.SourcePort
 	}
 	return packet.SourceChannel
+}
+
+func (im IBCModule) packetTimestamp(packetData types.IBCPacketData) int64 {
+	switch req := packetData.(type) {
+	case types.QueryPoolsPacketData:
+		return req.Timestamp
+	case types.ExecuteSwapPacketData:
+		return req.Timestamp
+	case types.CrossChainSwapPacketData:
+		return req.Timestamp
+	case types.PoolUpdatePacketData:
+		return req.Timestamp
+	default:
+		return 0
+	}
 }

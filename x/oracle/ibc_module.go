@@ -244,8 +244,13 @@ func (im IBCModule) OnRecvPacket(
 		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
 	}
 
+	packetTimestamp := im.packetTimestamp(packetData)
+	if packetTimestamp == 0 {
+		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet timestamp missing"))
+	}
+
 	sender := im.packetSender(packet, packetData)
-	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce); err != nil {
+	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce, packetTimestamp); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
 
@@ -465,4 +470,19 @@ func (im IBCModule) packetSender(packet channeltypes.Packet, packetData types.IB
 		return packet.SourcePort
 	}
 	return packet.SourceChannel
+}
+
+func (im IBCModule) packetTimestamp(packetData types.IBCPacketData) int64 {
+	switch req := packetData.(type) {
+	case types.SubscribePricesPacketData:
+		return req.Timestamp
+	case types.QueryPricePacketData:
+		return req.Timestamp
+	case types.PriceUpdatePacketData:
+		return req.Timestamp
+	case types.OracleHeartbeatPacketData:
+		return req.Timestamp
+	default:
+		return 0
+	}
 }

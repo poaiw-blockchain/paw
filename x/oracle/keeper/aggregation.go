@@ -175,17 +175,32 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	// Record metrics
 	if k.metrics != nil {
-		k.metrics.AggregationCount.With(map[string]string{
-			"asset": asset,
-		}).Inc()
+		if k.metrics.AggregationCount != nil {
+			k.metrics.AggregationCount.With(map[string]string{
+				"asset":  asset,
+				"status": "success",
+			}).Inc()
+		}
 
-		k.metrics.ValidatorParticipation.With(map[string]string{
-			"asset": asset,
-		}).Set(float64(len(filteredData.ValidPrices)))
+		if k.metrics.ValidatorParticipation != nil {
+			k.metrics.ValidatorParticipation.With(map[string]string{
+				"asset": asset,
+			}).Set(float64(len(filteredData.ValidPrices)))
+		}
 
-		k.metrics.OutliersDetected.With(map[string]string{
-			"asset": asset,
-		}).Add(float64(len(filteredData.FilteredOutliers)))
+		if k.metrics.OutliersDetected != nil {
+			severityCounts := make(map[string]float64)
+			for _, outlier := range filteredData.FilteredOutliers {
+				severityKey := fmt.Sprintf("%d", outlier.Severity)
+				severityCounts[severityKey]++
+			}
+			for severity, count := range severityCounts {
+				k.metrics.OutliersDetected.With(map[string]string{
+					"asset":    asset,
+					"severity": severity,
+				}).Add(count)
+			}
+		}
 	}
 
 	return nil
@@ -253,30 +268,43 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 		})
 	}
 
-	// Ensure we keep at least some validators if too many filtered
-	minValidators := 3
-	if len(validPrices) < minValidators && len(prices) >= minValidators {
-		// Keep the closest prices to median
-		validPrices = k.keepClosestToMedian(prices, median, minValidators)
+	// Security: Check voting power threshold instead of validator count
+	// This prevents manipulation by multiple low-stake validators
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		// Recalculate outliers
-		outliers = []OutlierDetectionResult{}
-		validatorMap := make(map[string]bool)
-		for _, vp := range validPrices {
-			validatorMap[vp.ValidatorAddr] = true
+	totalVotingPower := sdkmath.LegacyZeroDec()
+	for _, vp := range validPrices {
+		totalVotingPower = totalVotingPower.Add(sdkmath.LegacyNewDec(vp.VotingPower))
+	}
+
+	// Get total bonded voting power
+	bondedValidators, err := k.GetBondedValidators(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	totalBondedPower := int64(0)
+	powerReduction := k.stakingKeeper.PowerReduction(ctx)
+	for _, val := range bondedValidators {
+		totalBondedPower += val.GetConsensusPower(powerReduction)
+	}
+
+	// Fallback: if no bonded validators found (test environments), use submitted power
+	if totalBondedPower == 0 {
+		totalBondedPower = totalVotingPower.TruncateInt64()
+		if totalBondedPower == 0 {
+			totalBondedPower = 1 // Avoid division by zero
 		}
-		for _, vp := range prices {
-			if !validatorMap[vp.ValidatorAddr] {
-				severity, deviation := k.classifyOutlierSeverity(vp.Price, median, mad, madThreshold)
-				outliers = append(outliers, OutlierDetectionResult{
-					ValidatorAddr: vp.ValidatorAddr,
-					Price:         vp.Price,
-					Severity:      severity,
-					Deviation:     deviation,
-					Reason:        k.getOutlierReason(severity),
-				})
-			}
-		}
+	}
+
+	votingPowerPercentage := totalVotingPower.Quo(sdkmath.LegacyNewDec(totalBondedPower))
+
+	// Check if remaining validators meet minimum voting power threshold
+	if votingPowerPercentage.LT(params.MinVotingPowerForConsensus) {
+		return nil, types.ErrInsufficientOracleConsensus
 	}
 
 	return &FilteredPriceData{

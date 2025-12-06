@@ -48,12 +48,3 @@ type ComputeResult struct {
 	SubmittedAt  int64  `json:"submitted_at"`
 	VerifiedAt   int64  `json:"verified_at,omitempty"`
 }
-
-// Key prefixes for store
-var (
-	ProviderKeyPrefix = []byte{0x01}
-	RequestKeyPrefix  = []byte{0x02}
-	ResultKeyPrefix   = []byte{0x03}
-	EscrowKeyPrefix   = []byte{0x04}
-	NonceKeyPrefix    = []byte{0x05}
-)

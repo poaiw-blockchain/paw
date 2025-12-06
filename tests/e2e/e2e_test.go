@@ -5,10 +5,13 @@ package e2e_test
 
 import (
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/paw-chain/paw/app"
@@ -152,4 +155,23 @@ func (suite *E2ETestSuite) TestDEXFullWorkflow() {
 	suite.Require().NoError(err)
 	suite.Require().True(amountA.GT(math.ZeroInt()))
 	suite.Require().True(amountB.GT(math.ZeroInt()))
+}
+
+// TestValidatorGovernanceLifecycle ensures staking params can be updated via gov authority.
+func (suite *E2ETestSuite) TestValidatorGovernanceLifecycle() {
+	stakingServer := keeper.NewMsgServerImpl(suite.app.StakingKeeper)
+	var err error
+	params := stakingtypes.DefaultParams()
+	params.UnbondingTime = time.Hour
+	params.BondDenom = "upaw"
+	govAuthority := suite.app.GovKeeper.GetGovernanceAccount(suite.ctx).GetAddress().String()
+	_, err = stakingServer.UpdateParams(sdk.WrapSDKContext(suite.ctx), &stakingtypes.MsgUpdateParams{
+		Authority: govAuthority,
+		Params:    params,
+	})
+	suite.Require().NoError(err)
+
+	updatedParams, err := suite.app.StakingKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	suite.Require().Equal(time.Hour, updatedParams.UnbondingTime)
 }

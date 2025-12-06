@@ -143,6 +143,11 @@ var (
 )
 
 func init() {
+	// Ensure the SDK bech32 prefixes are configured before any package seals
+	// the global config. This prevents panics during CLI initialization when
+	// other modules attempt to use the default (cosmos) prefixes.
+	SetConfig()
+
 	userHomeDir, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
@@ -661,6 +666,11 @@ func (app *PAWApp) SimulationManager() *module.SimulationManager {
 // ModuleManager exposes the module manager for simulations and testing.
 func (app *PAWApp) ModuleManager() *module.Manager {
 	return app.mm
+}
+
+// Configurator exposes the module configurator for testing and migrations.
+func (app *PAWApp) Configurator() module.Configurator {
+	return app.configurator
 }
 
 // RegisterAPIRoutes registers all application module routes with the provided

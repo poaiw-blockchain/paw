@@ -1,0 +1,531 @@
+{
+  "dashboard": {
+    "title": "PAW Blockchain - Comprehensive Metrics (83 Total)",
+    "tags": ["paw", "comprehensive", "dex", "oracle", "compute"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "DEX Module Overview (30 Metrics)",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 1},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "DEX: Total Swaps by Status",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 1, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(paw_dex_swaps_total{status=\"success\"}[5m])) by (pool_id)",
+            "legendFormat": "Success - Pool {{pool_id}}"
+          },
+          {
+            "expr": "sum(rate(paw_dex_swaps_total{status=\"failed\"}[5m])) by (pool_id)",
+            "legendFormat": "Failed - Pool {{pool_id}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "DEX: Swap Volume by Pool",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 1, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_swap_volume[5m])",
+            "legendFormat": "Pool {{pool_id}} - {{denom}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "DEX: Swap Latency (p50, p95, p99)",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 1, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_dex_swap_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "DEX: Swap Slippage Distribution",
+        "type": "histogram",
+        "gridPos": {"x": 0, "y": 7, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_swap_slippage_bucket[5m])",
+            "legendFormat": "{{le}}%"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "DEX: Swap Fees Collected",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 7, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_swap_fees_collected[5m])",
+            "legendFormat": "Pool {{pool_id}} - {{denom}}"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "DEX: Liquidity Added",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 13, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_liquidity_added[5m])",
+            "legendFormat": "Pool {{pool_id}} - {{denom}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "DEX: Liquidity Removed",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 13, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_liquidity_removed[5m])",
+            "legendFormat": "Pool {{pool_id}} - {{denom}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "DEX: Pool Reserves",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 13, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_dex_pool_reserves",
+            "legendFormat": "Pool {{pool_id}} - {{denom}}"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "DEX: Total Value Locked (TVL)",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 19, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(paw_dex_pool_tvl)",
+            "legendFormat": "Total TVL"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "thresholds"}
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "DEX: Total Pools",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 19, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "paw_dex_pools_total",
+            "legendFormat": "Active Pools"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "DEX: Pool Creation Rate",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 19, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "rate(paw_dex_pool_creation_rate[5m])",
+            "legendFormat": "Pools/sec"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "DEX: Circuit Breaker Status",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 19, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "paw_dex_circuit_breaker_active",
+            "legendFormat": "{{pool_id}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": 0, "text": "Normal"},
+              {"type": "value", "value": 1, "text": "TRIGGERED"}
+            ],
+            "color": {
+              "mode": "thresholds",
+              "fixedColor": "green"
+            },
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Oracle Module Overview (27 Metrics)",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 23, "w": 24, "h": 1},
+        "collapsed": false
+      },
+      {
+        "id": 15,
+        "title": "Oracle: Aggregation Count by Asset",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 24, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_aggregation_count[5m])",
+            "legendFormat": "{{asset}}"
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Oracle: Aggregation Latency",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 24, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Oracle: Price Submissions",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 24, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_price_submissions_total[5m])",
+            "legendFormat": "{{validator}} - {{asset}}"
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Oracle: Aggregated Prices",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 30, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_oracle_aggregated_price",
+            "legendFormat": "{{asset}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 19,
+        "title": "Oracle: Validator Participation",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 30, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_oracle_validator_participation",
+            "legendFormat": "{{asset}}"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Oracle: Missed Votes by Validator",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 36, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "sum by (validator) (paw_oracle_missed_votes_total)",
+            "format": "table"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "validator": "Validator",
+                "Value": "Missed Votes"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Oracle: Outliers Detected",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 36, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_outliers_detected[5m])",
+            "legendFormat": "{{asset}}"
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Oracle: IBC Prices Sent",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 42, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(paw_oracle_ibc_prices_sent_total)",
+            "legendFormat": "Total Sent"
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "title": "Oracle: IBC Prices Received",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 42, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(paw_oracle_ibc_prices_received_total)",
+            "legendFormat": "Total Received"
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "title": "Oracle: IBC Latency",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 42, "w": 8, "h": 4},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_oracle_ibc_latency_seconds_bucket[5m]))",
+            "legendFormat": "{{channel}} {{operation}}"
+          }
+        ]
+      },
+      {
+        "id": 25,
+        "title": "Oracle: IBC Timeouts",
+        "type": "stat",
+        "gridPos": {"x": 20, "y": 42, "w": 4, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(paw_oracle_ibc_timeouts_total)",
+            "legendFormat": "Total Timeouts"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 26,
+        "title": "Compute Module Overview (26 Metrics)",
+        "type": "row",
+        "gridPos": {"x": 0, "y": 46, "w": 24, "h": 1},
+        "collapsed": false
+      },
+      {
+        "id": 27,
+        "title": "Compute: Jobs Submitted",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 47, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_compute_jobs_submitted_total[5m])",
+            "legendFormat": "{{job_type}}"
+          }
+        ]
+      },
+      {
+        "id": 28,
+        "title": "Compute: Jobs Accepted",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 47, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_compute_jobs_accepted_total[5m])",
+            "legendFormat": "{{provider}}"
+          }
+        ]
+      },
+      {
+        "id": 29,
+        "title": "Compute: Jobs Completed vs Failed",
+        "type": "timeseries",
+        "gridPos": {"x": 16, "y": 47, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_jobs_completed_total{status=\"success\"}[5m]))",
+            "legendFormat": "Completed"
+          },
+          {
+            "expr": "sum(rate(paw_compute_jobs_failed_total[5m]))",
+            "legendFormat": "Failed"
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "title": "Compute: Job Execution Time",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 53, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_job_execution_time_seconds_bucket[5m]))",
+            "legendFormat": "p95"
+          }
+        ]
+      },
+      {
+        "id": 31,
+        "title": "Compute: Job Queue Size",
+        "type": "gauge",
+        "gridPos": {"x": 12, "y": 53, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_compute_job_queue_size",
+            "legendFormat": "Queue Size"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 100, "color": "yellow"},
+                {"value": 1000, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 32,
+        "title": "Compute: Proofs Verified",
+        "type": "stat",
+        "gridPos": {"x": 18, "y": 53, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "sum(paw_compute_proofs_verified_total{status=\"valid\"})",
+            "legendFormat": "Valid Proofs"
+          }
+        ]
+      },
+      {
+        "id": 33,
+        "title": "Compute: Escrow Balance",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 59, "w": 8, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_compute_escrow_balance{denom=\"upaw\"}",
+            "legendFormat": "Locked Balance"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 34,
+        "title": "Compute: Escrow Operations",
+        "type": "timeseries",
+        "gridPos": {"x": 8, "y": 59, "w": 16, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_compute_escrow_locked[5m])",
+            "legendFormat": "Locked"
+          },
+          {
+            "expr": "rate(paw_compute_escrow_released[5m])",
+            "legendFormat": "Released"
+          },
+          {
+            "expr": "rate(paw_compute_escrow_refunded[5m])",
+            "legendFormat": "Refunded"
+          }
+        ]
+      },
+      {
+        "id": 35,
+        "title": "Compute: Provider Reputation",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 65, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "paw_compute_provider_reputation",
+            "legendFormat": "{{provider}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 36,
+        "title": "Compute: IBC Jobs Distributed",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 65, "w": 12, "h": 6},
+        "targets": [
+          {
+            "expr": "rate(paw_compute_ibc_jobs_distributed_total[5m])",
+            "legendFormat": "{{target_chain}}"
+          }
+        ]
+      }
+    ]
+  }
+}
