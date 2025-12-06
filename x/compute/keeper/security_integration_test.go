@@ -1267,16 +1267,13 @@ func (suite *ComputeSecuritySuite) TestTimestampManipulation_FutureTimestamp() {
 		proofBytes,
 	)
 
-	// Future timestamp should be rejected or scored lower
-	result, err := suite.keeper.GetResult(suite.ctx, requestID)
-	if err == nil {
-		// System should detect future timestamp and handle appropriately
-		// Either reject or significantly reduce verification score
-		suite.Require().True(
-			!result.Verified || result.VerificationScore < types.VerificationPassThreshold,
-			"Future timestamp attack succeeded!",
-		)
-	}
+	// SEC-HIGH-1: Future timestamp must be REJECTED (not just scored low)
+	suite.Require().Error(err, "SubmitResult should reject future timestamp")
+	suite.Require().ErrorIs(err, types.ErrProofExpired, "Should return ErrProofExpired for future timestamp")
+
+	// Result should not exist since submission was rejected
+	_, err = suite.keeper.GetResult(suite.ctx, requestID)
+	suite.Require().Error(err, "Result should not exist after rejection")
 }
 
 // ========================================

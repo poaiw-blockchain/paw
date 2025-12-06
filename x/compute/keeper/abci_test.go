@@ -179,8 +179,58 @@ func TestCleanupExpiredNonces(t *testing.T) {
 	params := types.DefaultParams()
 	require.NoError(t, k.SetParams(ctx, params))
 
-	// Run cleanup at low block height (should not error)
+	// Create test provider addresses
+	provider1 := createTestProviderAddr(t, 1)
+	provider2 := createTestProviderAddr(t, 2)
+
+	// Record nonces at different heights
+	// Height 100: Record nonces that will be old
+	ctx = ctx.WithBlockHeight(100)
+	k.ExportedRecordNonceUsage(ctx, provider1, 1)
+	k.ExportedRecordNonceUsage(ctx, provider1, 2)
+	k.ExportedRecordNonceUsage(ctx, provider2, 1)
+
+	// Height 500: Record nonces that will be in the middle
+	ctx = ctx.WithBlockHeight(500)
+	k.ExportedRecordNonceUsage(ctx, provider1, 3)
+	k.ExportedRecordNonceUsage(ctx, provider2, 2)
+
+	// Height 1100: Record recent nonces that should NOT be cleaned
+	ctx = ctx.WithBlockHeight(1100)
+	k.ExportedRecordNonceUsage(ctx, provider1, 4)
+	k.ExportedRecordNonceUsage(ctx, provider2, 3)
+
+	// Verify all nonces exist before cleanup
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 1))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 2))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 3))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 4))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider2, 1))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider2, 2))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider2, 3))
+
+	// Advance to height 1150 and run cleanup
+	// This should clean nonces older than height 150 (1150 - 1000)
+	ctx = ctx.WithBlockHeight(1150)
 	err := k.CleanupExpiredNonces(ctx)
+	require.NoError(t, err)
+
+	// Verify old nonces (height 100) were cleaned
+	require.False(t, k.ExportedCheckReplayAttack(ctx, provider1, 1))
+	require.False(t, k.ExportedCheckReplayAttack(ctx, provider1, 2))
+	require.False(t, k.ExportedCheckReplayAttack(ctx, provider2, 1))
+
+	// Verify middle nonces (height 500) were NOT cleaned (within 1000 block window)
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 3))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider2, 2))
+
+	// Verify recent nonces (height 1100) were NOT cleaned
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider1, 4))
+	require.True(t, k.ExportedCheckReplayAttack(ctx, provider2, 3))
+
+	// Test cleanup at low block height (should not error or clean anything)
+	ctx = ctx.WithBlockHeight(500)
+	err = k.CleanupExpiredNonces(ctx)
 	require.NoError(t, err)
 }
 

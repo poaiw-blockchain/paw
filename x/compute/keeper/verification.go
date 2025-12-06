@@ -64,24 +64,34 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 
 	nonceReplay := false
 	proofReplay := k.hasProofHash(ctx, provider, proofHash[:])
-	futureTimestamp := false
 	keyMismatch := false
 	if proof != nil {
 		nonceReplay = k.checkReplayAttack(ctx, provider, proof.Nonce)
-		futureTimestamp = proof.Timestamp > sdkCtx.BlockTime().Add(maxProofFutureSkew).Unix()
-		if nonceReplay || proofReplay {
-			k.recordReplayAttempt(ctx, provider, proof.Nonce)
-		}
-		if futureTimestamp {
+
+		// SEC-HIGH-1: Reject results with future timestamps (security enforcement)
+		if proof.Timestamp > sdkCtx.BlockTime().Add(maxProofFutureSkew).Unix() {
 			sdkCtx.EventManager().EmitEvent(
 				sdk.NewEvent(
 					"verification_future_timestamp",
 					sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
 					sdk.NewAttribute("provider", provider.String()),
 					sdk.NewAttribute("timestamp", fmt.Sprintf("%d", proof.Timestamp)),
+					sdk.NewAttribute("block_time", sdkCtx.BlockTime().Format(time.RFC3339)),
+					sdk.NewAttribute("max_future_skew", maxProofFutureSkew.String()),
 				),
 			)
+			return fmt.Errorf("proof timestamp %d exceeds maximum future skew (block time: %s, max skew: %s): %w",
+				proof.Timestamp,
+				sdkCtx.BlockTime().Format(time.RFC3339),
+				maxProofFutureSkew.String(),
+				types.ErrProofExpired,
+			)
 		}
+
+		if nonceReplay || proofReplay {
+			k.recordReplayAttempt(ctx, provider, proof.Nonce)
+		}
+
 		if !k.verifyProviderSigningKey(ctx, provider, proof.PublicKey) {
 			keyMismatch = true
 			sdkCtx.EventManager().EmitEvent(
@@ -93,7 +103,7 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 			)
 		}
 	}
-	forceFailure := nonceReplay || proofReplay || futureTimestamp || keyMismatch
+	forceFailure := nonceReplay || proofReplay || keyMismatch
 
 	now := sdkCtx.BlockTime()
 	result := types.Result{
@@ -633,16 +643,24 @@ func (k Keeper) checkReplayAttack(ctx context.Context, provider sdk.AccAddress, 
 }
 
 // recordNonceUsage records a nonce as used to prevent replay attacks.
+// It stores the nonce both directly and in a height-indexed structure for cleanup.
 func (k Keeper) recordNonceUsage(ctx context.Context, provider sdk.AccAddress, nonce uint64) {
 	store := k.getStore(ctx)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
 
 	// Store timestamp as 8-byte big-endian integer
 	timestampBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(timestampBz, uint64(sdkCtx.BlockTime().Unix()))
 
+	// Store the nonce with timestamp in the main nonce store
 	key := NonceKey(provider, nonce)
 	store.Set(key, timestampBz)
+
+	// Create a height-indexed entry for cleanup
+	// This allows efficient cleanup of old nonces by block height
+	heightIndexKey := NonceByHeightKey(currentHeight, provider, nonce)
+	store.Set(heightIndexKey, timestampBz)
 }
 
 // recordReplayAttempt records a detected replay attack attempt.

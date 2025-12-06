@@ -168,9 +168,28 @@ func (k Keeper) ValidatePoolState(pool *types.Pool) error {
 		return types.ErrInvalidPoolState.Wrap("pool has reserves but no shares")
 	}
 
-	// If pool has shares, it must have reserves
+	// If pool has shares, it must have reserves (both must be positive)
 	if !pool.TotalShares.IsZero() && (pool.ReserveA.IsZero() || pool.ReserveB.IsZero()) {
 		return types.ErrInvalidPoolState.Wrap("pool has shares but missing reserves")
+	}
+
+	// SECURITY: Validate reserves are positive before any calculations
+	// This prevents division by zero in swap, price, and liquidity calculations
+	// For initialized pools (with shares), both reserves MUST be positive
+	if !pool.TotalShares.IsZero() {
+		if pool.ReserveA.IsZero() {
+			return types.ErrInsufficientLiquidity.Wrapf("reserve A is zero for initialized pool %d", pool.Id)
+		}
+		if pool.ReserveB.IsZero() {
+			return types.ErrInsufficientLiquidity.Wrapf("reserve B is zero for initialized pool %d", pool.Id)
+		}
+		// Additional safety: ensure both reserves are strictly positive
+		if !pool.ReserveA.IsPositive() {
+			return types.ErrInsufficientLiquidity.Wrapf("reserve A must be positive for pool %d, got %s", pool.Id, pool.ReserveA)
+		}
+		if !pool.ReserveB.IsPositive() {
+			return types.ErrInsufficientLiquidity.Wrapf("reserve B must be positive for pool %d, got %s", pool.Id, pool.ReserveB)
+		}
 	}
 
 	return nil
