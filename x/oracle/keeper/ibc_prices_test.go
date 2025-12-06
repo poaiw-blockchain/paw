@@ -8,6 +8,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
@@ -120,7 +121,7 @@ func TestOracleOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 	oversizedAck := bytes.Repeat([]byte{0x1}, 2*1024*1024)
 	err := ibcModule.OnAcknowledgementPacket(ctx, packet, oversizedAck, nil)
 	require.Error(t, err)
-	require.ErrorIs(t, err, types.ErrInvalidAck)
+	require.ErrorIs(t, err, sdkerrors.ErrInvalidRequest)
 }
 
 func TestOracleOnRecvPacketRejectsUnauthorizedChannel(t *testing.T) {

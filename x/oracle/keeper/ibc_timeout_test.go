@@ -26,10 +26,10 @@ func TestOnTimeoutPricePacketEmitsEvent(t *testing.T) {
 
 	found := false
 	for _, evt := range ctx.EventManager().Events() {
-		if evt.Type == "cross_chain_price_timeout" {
+		if evt.Type == "oracle_cross_chain_price_timeout" {
 			found = true
 			break
 		}
 	}
-	require.True(t, found, "expected timeout event for oracle packet")
+	require.True(t, found, "expected oracle_cross_chain_price_timeout event for oracle packet")
 }

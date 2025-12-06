@@ -49,7 +49,7 @@ func TestBeginBlocker_AggregatePrices(t *testing.T) {
 
 	events := ctx.EventManager().Events()
 	require.True(t, eventExists(events, "oracle_begin_block", "", ""), "expected oracle_begin_block event")
-	require.True(t, eventExists(events, "price_aggregated", "asset", asset), "expected price_aggregated event for asset")
+	require.True(t, eventExists(events, "oracle_price_aggregated", "asset", asset), "expected oracle_price_aggregated event for asset")
 }
 
 func TestEndBlocker_ProcessSlashWindows(t *testing.T) {
