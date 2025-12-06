@@ -11,13 +11,13 @@ import (
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"strconv"
 	"strings"
 
 	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
+	sharedibc "github.com/paw-chain/paw/x/shared/ibc"
 )
 
 var (
@@ -27,8 +27,12 @@ var (
 // IBCModule implements the ICS26 interface for the DEX module.
 // This enables cross-chain liquidity aggregation and atomic swaps.
 type IBCModule struct {
-	keeper keeper.Keeper
-	cdc    codec.Codec
+	keeper            keeper.Keeper
+	cdc               codec.Codec
+	channelValidator  *sharedibc.ChannelOpenValidator
+	packetValidator   *sharedibc.PacketValidator
+	ackHelper         *sharedibc.AcknowledgementHelper
+	eventEmitter      *sharedibc.EventEmitter
 }
 
 // NewIBCModule creates a new IBCModule given the keeper and codec
@@ -36,6 +40,15 @@ func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
 	return IBCModule{
 		keeper: keeper,
 		cdc:    cdc,
+		channelValidator: sharedibc.NewChannelOpenValidator(
+			types.IBCVersion,
+			types.PortID,
+			channeltypes.UNORDERED, // DEX uses unordered channels for better throughput
+			&keeper,
+		),
+		packetValidator: sharedibc.NewPacketValidator(&keeper, &keeper),
+		ackHelper:       sharedibc.NewAcknowledgementHelper(),
+		eventEmitter:    sharedibc.NewEventEmitter(),
 	}
 }
 
@@ -51,37 +64,19 @@ func (im IBCModule) OnChanOpenInit(
 	counterparty channeltypes.Counterparty,
 	version string,
 ) (string, error) {
-	// DEX can use unordered channels for better throughput
-	if order != channeltypes.UNORDERED {
-		return "", errorsmod.Wrapf(channeltypes.ErrInvalidChannelOrdering,
-			"expected %s channel, got %s", channeltypes.UNORDERED, order)
+	// Use shared validation logic
+	if err := im.channelValidator.ValidateChannelOpenInit(ctx, order, portID, channelID, chanCap, version); err != nil {
+		return "", err
 	}
 
-	// Validate version
-	if version != types.IBCVersion {
-		return "", errorsmod.Wrapf(types.ErrInvalidPacket,
-			"expected version %s, got %s", types.IBCVersion, version)
-	}
-
-	// Validate port
-	if portID != types.PortID {
-		return "", errorsmod.Wrapf(porttypes.ErrInvalidPort,
-			"expected port %s, got %s", types.PortID, portID)
-	}
-
-	if err := im.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return "", errorsmod.Wrap(err, "failed to claim channel capability")
-	}
-
-	// Emit event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeChannelOpen,
-			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
-			sdk.NewAttribute(types.AttributeKeyPortID, portID),
-			sdk.NewAttribute(types.AttributeKeyCounterpartyPortID, counterparty.PortId),
-			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterparty.ChannelId),
-		),
+	// Emit event using shared emitter
+	im.eventEmitter.EmitChannelOpenEvent(
+		ctx,
+		types.EventTypeChannelOpen,
+		channelID,
+		portID,
+		counterparty.PortId,
+		counterparty.ChannelId,
 	)
 
 	return version, nil
@@ -98,31 +93,19 @@ func (im IBCModule) OnChanOpenTry(
 	counterparty channeltypes.Counterparty,
 	counterpartyVersion string,
 ) (string, error) {
-	// Validate channel ordering
-	if order != channeltypes.UNORDERED {
-		return "", errorsmod.Wrapf(channeltypes.ErrInvalidChannelOrdering,
-			"expected %s channel, got %s", channeltypes.UNORDERED, order)
+	// Use shared validation logic
+	if err := im.channelValidator.ValidateChannelOpenTry(ctx, order, portID, channelID, chanCap, counterpartyVersion); err != nil {
+		return "", err
 	}
 
-	// Validate version
-	if counterpartyVersion != types.IBCVersion {
-		return "", errorsmod.Wrapf(types.ErrInvalidPacket,
-			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
-	}
-
-	if err := im.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return "", errorsmod.Wrap(err, "failed to claim channel capability")
-	}
-
-	// Emit event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeChannelOpen,
-			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
-			sdk.NewAttribute(types.AttributeKeyPortID, portID),
-			sdk.NewAttribute(types.AttributeKeyCounterpartyPortID, counterparty.PortId),
-			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterparty.ChannelId),
-		),
+	// Emit event using shared emitter
+	im.eventEmitter.EmitChannelOpenEvent(
+		ctx,
+		types.EventTypeChannelOpen,
+		channelID,
+		portID,
+		counterparty.PortId,
+		counterparty.ChannelId,
 	)
 
 	return types.IBCVersion, nil
@@ -136,20 +119,18 @@ func (im IBCModule) OnChanOpenAck(
 	counterpartyChannelID string,
 	counterpartyVersion string,
 ) error {
-	// Validate counterparty version
-	if counterpartyVersion != types.IBCVersion {
-		return errorsmod.Wrapf(types.ErrInvalidPacket,
-			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
+	// Use shared validation logic
+	if err := im.channelValidator.ValidateChannelOpenAck(counterpartyVersion); err != nil {
+		return err
 	}
 
-	// Emit event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeChannelOpenAck,
-			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
-			sdk.NewAttribute(types.AttributeKeyPortID, portID),
-			sdk.NewAttribute(types.AttributeKeyCounterpartyChannelID, counterpartyChannelID),
-		),
+	// Emit event using shared emitter
+	im.eventEmitter.EmitChannelOpenAckEvent(
+		ctx,
+		types.EventTypeChannelOpenAck,
+		channelID,
+		portID,
+		counterpartyChannelID,
 	)
 
 	return nil
@@ -161,13 +142,12 @@ func (im IBCModule) OnChanOpenConfirm(
 	portID,
 	channelID string,
 ) error {
-	// Emit event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeChannelOpenConfirm,
-			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
-			sdk.NewAttribute(types.AttributeKeyPortID, portID),
-		),
+	// Emit event using shared emitter
+	im.eventEmitter.EmitChannelOpenConfirmEvent(
+		ctx,
+		types.EventTypeChannelOpenConfirm,
+		channelID,
+		portID,
 	)
 
 	return nil
@@ -189,6 +169,9 @@ func (im IBCModule) OnChanCloseConfirm(
 	portID,
 	channelID string,
 ) error {
+	// Use keeper methods directly (adapter pattern)
+	// The shared utilities would require interface conversion which adds complexity
+	// This is an acceptable deviation for better type safety
 	pending := im.keeper.GetPendingOperations(ctx, channelID)
 	refunded := 0
 	for _, op := range pending {
@@ -203,13 +186,13 @@ func (im IBCModule) OnChanCloseConfirm(
 		refunded++
 	}
 
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeChannelClose,
-			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
-			sdk.NewAttribute(types.AttributeKeyPortID, portID),
-			sdk.NewAttribute(types.AttributeKeyPendingOperations, fmt.Sprintf("%d", refunded)),
-		),
+	// Use shared event emitter
+	im.eventEmitter.EmitChannelCloseEvent(
+		ctx,
+		types.EventTypeChannelClose,
+		channelID,
+		portID,
+		refunded,
 	)
 
 	return nil
@@ -222,38 +205,28 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
-	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
-		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
-		ctx.Logger().Error("unauthorized dex packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
-		return channeltypes.NewErrorAcknowledgement(err)
-	}
-
 	// Parse packet data
 	packetData, err := types.ParsePacketData(packet.Data)
 	if err != nil {
-		return channeltypes.NewErrorAcknowledgement(
+		return sharedibc.CreateErrorAck(
 			errorsmod.Wrapf(types.ErrInvalidPacket, "failed to parse packet data: %s", err.Error()))
 	}
 
-	// Validate packet
-	if err := packetData.ValidateBasic(); err != nil {
-		return channeltypes.NewErrorAcknowledgement(
-			errorsmod.Wrap(types.ErrInvalidPacket, err.Error()))
-	}
-
+	// Extract nonce, timestamp, and sender for validation
 	packetNonce := im.packetNonce(packetData)
-	if packetNonce == 0 {
-		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet nonce missing"))
-	}
-
 	packetTimestamp := im.packetTimestamp(packetData)
-	if packetTimestamp == 0 {
-		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "packet timestamp missing"))
-	}
-
 	sender := im.packetSender(packet, packetData)
-	if err := im.keeper.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, packetNonce, packetTimestamp); err != nil {
-		return channeltypes.NewErrorAcknowledgement(err)
+
+	// Use shared validation logic - this consolidates all the duplicated validation
+	if err := im.packetValidator.ValidateIncomingPacket(
+		ctx,
+		packet,
+		packetData,
+		packetNonce,
+		packetTimestamp,
+		sender,
+	); err != nil {
+		return sharedibc.CreateErrorAck(err)
 	}
 
 	// Route packet based on type
@@ -280,14 +253,13 @@ func (im IBCModule) OnRecvPacket(
 			errorsmod.Wrapf(types.ErrInvalidPacket, "unknown packet type: %s", packetData.GetType()))
 	}
 
-	// Emit receive event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypePacketReceive,
-			sdk.NewAttribute(types.AttributeKeyPacketType, packetData.GetType()),
-			sdk.NewAttribute(types.AttributeKeyChannelID, packet.DestinationChannel),
-			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
-		),
+	// Emit receive event using shared emitter
+	im.eventEmitter.EmitPacketReceiveEvent(
+		ctx,
+		types.EventTypePacketReceive,
+		packetData.GetType(),
+		packet.DestinationChannel,
+		packet.Sequence,
 	)
 
 	return ack
@@ -301,15 +273,10 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
-	const maxAcknowledgementSize = 1024 * 1024 // 1MB cap to avoid malicious memory pressure
-	if len(acknowledgement) > maxAcknowledgementSize {
-		return errorsmod.Wrapf(types.ErrInvalidAck, "ack too large: %d > %d", len(acknowledgement), maxAcknowledgementSize)
-	}
-
-	var ack channeltypes.Acknowledgement
-	if err := channeltypes.SubModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-		return errorsmod.Wrapf(sdkerrors.ErrUnknownRequest,
-			"cannot unmarshal packet acknowledgement: %v", err)
+	// Use shared validation and unmarshaling logic
+	ack, err := im.ackHelper.ValidateAndUnmarshalAck(acknowledgement)
+	if err != nil {
+		return err
 	}
 
 	// Delegate to keeper's acknowledgement handler
@@ -317,14 +284,13 @@ func (im IBCModule) OnAcknowledgementPacket(
 		return err
 	}
 
-	// Emit acknowledgement event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypePacketAck,
-			sdk.NewAttribute(types.AttributeKeyChannelID, packet.SourceChannel),
-			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
-			sdk.NewAttribute(types.AttributeKeyAckSuccess, fmt.Sprintf("%t", ack.Success())),
-		),
+	// Emit acknowledgement event using shared emitter
+	im.eventEmitter.EmitPacketAckEvent(
+		ctx,
+		types.EventTypePacketAck,
+		packet.SourceChannel,
+		packet.Sequence,
+		ack.Success(),
 	)
 
 	return nil
@@ -342,13 +308,12 @@ func (im IBCModule) OnTimeoutPacket(
 		return err
 	}
 
-	// Emit timeout event
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypePacketTimeout,
-			sdk.NewAttribute(types.AttributeKeyChannelID, packet.SourceChannel),
-			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
-		),
+	// Emit timeout event using shared emitter
+	im.eventEmitter.EmitPacketTimeoutEvent(
+		ctx,
+		types.EventTypePacketTimeout,
+		packet.SourceChannel,
+		packet.Sequence,
 	)
 
 	return nil

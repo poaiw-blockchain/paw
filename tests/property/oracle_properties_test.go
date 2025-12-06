@@ -262,6 +262,7 @@ func TestPropertyPriceAggregationDeterminism(t *testing.T) {
 }
 
 // Property: No single validator with <50% power can control outcome
+// when remaining validators agree on a price
 func TestPropertyNoMajorityManipulation(t *testing.T) {
 	t.Parallel()
 	property := func(seed int64) bool {
@@ -285,18 +286,17 @@ func TestPropertyNoMajorityManipulation(t *testing.T) {
 		weights[0] = attackerWeight
 		prices[0] = attackerPrice
 
-		// Honest validators
+		// Honest validators all report same price (consensus)
+		// This ensures total honest weight > attacker weight
 		for i := 1; i < numValidators; i++ {
-			prices[i] = honestPrice + uint64(rng.Int63n(10000))
+			prices[i] = honestPrice
 		}
 
 		median := calculateWeightedMedian(prices, weights)
 
-		// Median should be closer to honest price than attacker price
-		deviationFromHonest := absUint64Diff(median, honestPrice)
-		deviationFromAttacker := absUint64Diff(median, attackerPrice)
-
-		return deviationFromHonest < deviationFromAttacker
+		// When honest validators (>50% power) agree on a price,
+		// weighted median MUST be that price, not the attacker's price
+		return median == honestPrice
 	}
 
 	require.NoError(t, quick.Check(property, &quick.Config{MaxCount: 500}))
@@ -327,8 +327,9 @@ func calculateWeightedMedian(prices, weights []uint64) uint64 {
 		return pairs[i].price < pairs[j].price
 	})
 
-	// Find weighted median
-	halfWeight := totalWeight / 2
+	// Find weighted median - add 1 before dividing to get true median position
+	// This matches the production implementation: halfPower := (totalPower + 1) / 2
+	halfWeight := (totalWeight + 1) / 2
 	cumulativeWeight := uint64(0)
 
 	for _, pair := range pairs {

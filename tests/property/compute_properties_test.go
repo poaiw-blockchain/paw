@@ -359,7 +359,8 @@ func computeStateTransition(initialState, trace []byte) []byte {
 }
 
 func calculateResourceCost(requestSize, resultSize, execTime uint32) uint64 {
-	sizeCost := uint64(requestSize + resultSize)
+	// Convert to uint64 BEFORE adding to prevent overflow
+	sizeCost := uint64(requestSize) + uint64(resultSize)
 	timeCost := uint64(execTime) * 1000
 	return sizeCost + timeCost
 }

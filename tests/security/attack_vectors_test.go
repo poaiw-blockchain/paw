@@ -175,15 +175,16 @@ func (suite *AttackVectorsTestSuite) TestMEVProtection() {
 func (suite *AttackVectorsTestSuite) TestDuplicateSubmission() {
 	channelID := "channel-0"
 	sender := "cosmos1attackernonce000000000000000000000000"
+	timestamp := suite.ctx.BlockTime().Unix()
 
-	err := suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 1)
+	err := suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 1, timestamp)
 	suite.Require().NoError(err)
 
-	err = suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 1)
+	err = suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 1, timestamp)
 	suite.Require().Error(err)
 	suite.Require().ErrorIs(err, dextypes.ErrInvalidNonce)
 
 	// New nonce should succeed
-	err = suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 2)
+	err = suite.app.DEXKeeper.ValidateIncomingPacketNonce(suite.ctx, channelID, sender, 2, timestamp+1)
 	suite.Require().NoError(err)
 }
