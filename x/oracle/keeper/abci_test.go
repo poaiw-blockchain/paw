@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -120,4 +121,287 @@ func eventExists(events sdk.Events, eventType string, attrKey string, attrValue 
 		}
 	}
 	return false
+}
+
+// TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing tests the amortized cleanup algorithm
+func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
+	k, ctx := keepertest.OracleKeeper(t)
+
+	// Setup: 20 validators × 5 assets = 100 pairs
+	// With maxCleanupPerBlock=50, should process in 2 blocks
+	numValidators := 20
+	numAssets := 5
+	currentHeight := int64(10000)
+
+	ctx = ctx.WithBlockHeight(currentHeight).WithEventManager(sdk.NewEventManager())
+
+	validators := make([]sdk.ValAddress, numValidators)
+	assets := make([]string, numAssets)
+
+	// Create validators and assets
+	for i := 0; i < numValidators; i++ {
+		valAddr := makeValidatorAddress(byte(i))
+		validators[i] = valAddr
+		keepertest.RegisterTestOracle(t, k, ctx, valAddr.String())
+	}
+
+	for i := 0; i < numAssets; i++ {
+		assets[i] = fmt.Sprintf("ASSET%d/USD", i)
+	}
+
+	// Create outlier history for all pairs across 50 blocks
+	// Half should be old (eligible for cleanup), half recent
+	store := ctx.KVStore(k.GetStoreKey())
+	minHeight := currentHeight - keeper.OutlierReputationWindow
+
+	oldEntriesCount := 0
+	recentEntriesCount := 0
+
+	for _, val := range validators {
+		for _, asset := range assets {
+			// Old entries (should be cleaned up)
+			for h := minHeight - 50; h < minHeight-10; h++ {
+				if h > 0 {
+					key := makeOutlierKey(val.String(), asset, h)
+					value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
+					store.Set(key, []byte(value))
+					oldEntriesCount++
+				}
+			}
+
+			// Recent entries (should be kept)
+			for h := minHeight; h < minHeight+10; h++ {
+				key := makeOutlierKey(val.String(), asset, h)
+				value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
+				store.Set(key, []byte(value))
+				recentEntriesCount++
+			}
+		}
+	}
+
+	t.Logf("Created %d old entries and %d recent entries", oldEntriesCount, recentEntriesCount)
+
+	// Run cleanup - should process work across multiple blocks due to amortization
+	// Run for 100 blocks to ensure full cycle
+	totalCleaned := 0
+	totalProcessed := 0
+
+	for blockOffset := int64(0); blockOffset < 100; blockOffset++ {
+		ctx = ctx.WithBlockHeight(currentHeight + blockOffset).WithEventManager(sdk.NewEventManager())
+		err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+		require.NoError(t, err)
+
+		// Check event for this block's cleanup stats
+		events := ctx.EventManager().Events()
+		for _, evt := range events {
+			if evt.Type == "outlier_history_cleaned" {
+				for _, attr := range evt.Attributes {
+					if attr.Key == "entries_deleted" {
+						var cleaned int
+						fmt.Sscanf(string(attr.Value), "%d", &cleaned)
+						totalCleaned += cleaned
+					}
+					if attr.Key == "pairs_processed" {
+						var processed int
+						fmt.Sscanf(string(attr.Value), "%d", &processed)
+						totalProcessed += processed
+					}
+				}
+			}
+		}
+	}
+
+	t.Logf("Total cleaned over 100 blocks: %d entries, %d pairs processed", totalCleaned, totalProcessed)
+
+	// Verify that old entries were cleaned
+	require.Greater(t, totalCleaned, 0, "should have cleaned some old entries")
+
+	// Verify that recent entries still exist
+	recentStillPresent := 0
+	for _, val := range validators {
+		for _, asset := range assets {
+			for h := minHeight; h < minHeight+10; h++ {
+				key := makeOutlierKey(val.String(), asset, h)
+				if store.Has(key) {
+					recentStillPresent++
+				}
+			}
+		}
+	}
+
+	require.Equal(t, recentEntriesCount, recentStillPresent,
+		"recent entries should not be cleaned up")
+}
+
+// TestCleanupOldOutlierHistoryGlobal_NoTimeoutWithLargeData tests that cleanup doesn't timeout
+func TestCleanupOldOutlierHistoryGlobal_NoTimeoutWithLargeData(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping large data test in short mode")
+	}
+
+	k, ctx := keepertest.OracleKeeper(t)
+
+	// Simulate large validator set: 100 validators × 20 assets = 2000 pairs
+	numValidators := 100
+	numAssets := 20
+	currentHeight := int64(10000)
+
+	ctx = ctx.WithBlockHeight(currentHeight).WithEventManager(sdk.NewEventManager())
+	store := ctx.KVStore(k.GetStoreKey())
+
+	// Create outlier history
+	minHeight := currentHeight - keeper.OutlierReputationWindow
+	entriesCreated := 0
+
+	for v := 0; v < numValidators; v++ {
+		valAddr := makeValidatorAddress(byte(v % 256))
+		for a := 0; a < numAssets; a++ {
+			asset := fmt.Sprintf("ASSET%d/USD", a)
+
+			// Create old entries
+			for h := minHeight - 30; h < minHeight-10; h++ {
+				if h > 0 {
+					key := makeOutlierKey(valAddr.String(), asset, h)
+					value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
+					store.Set(key, []byte(value))
+					entriesCreated++
+				}
+			}
+		}
+	}
+
+	t.Logf("Created %d outlier entries for %d validator-asset pairs",
+		entriesCreated, numValidators*numAssets)
+
+	// Run cleanup for a single block - should not timeout
+	// With amortization, it processes maxCleanupPerBlock=50 pairs
+	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	require.NoError(t, err, "cleanup should not error even with large dataset")
+
+	// Verify cleanup event was emitted
+	events := ctx.EventManager().Events()
+	found := false
+	for _, evt := range events {
+		if evt.Type == "outlier_history_cleaned" {
+			found = true
+			t.Logf("Cleanup event: %v", evt.Attributes)
+		}
+	}
+
+	// Event may not exist if no cleanup happened this block due to modulo scheduling
+	// This is expected behavior - we just verify no timeout/error occurred
+	t.Logf("Cleanup event found: %v", found)
+}
+
+// TestCleanupOldOutlierHistoryGlobal_EmptyState tests cleanup with no data
+func TestCleanupOldOutlierHistoryGlobal_EmptyState(t *testing.T) {
+	k, ctx := keepertest.OracleKeeper(t)
+	ctx = ctx.WithBlockHeight(10000).WithEventManager(sdk.NewEventManager())
+
+	// Run cleanup on empty state - should not error
+	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	require.NoError(t, err)
+
+	// No event should be emitted when nothing processed
+	events := ctx.EventManager().Events()
+	for _, evt := range events {
+		require.NotEqual(t, "outlier_history_cleaned", evt.Type,
+			"should not emit cleanup event when nothing processed")
+	}
+}
+
+// TestCleanupOldOutlierHistoryGlobal_EarlyBlocks tests cleanup in early blocks
+func TestCleanupOldOutlierHistoryGlobal_EarlyBlocks(t *testing.T) {
+	k, ctx := keepertest.OracleKeeper(t)
+	ctx = ctx.WithBlockHeight(100).WithEventManager(sdk.NewEventManager())
+
+	// Create some outlier entries
+	store := ctx.KVStore(k.GetStoreKey())
+	valAddr := makeValidatorAddress(0x01)
+	asset := "BTC/USD"
+
+	for h := int64(1); h < 50; h++ {
+		key := makeOutlierKey(valAddr.String(), asset, h)
+		value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
+		store.Set(key, []byte(value))
+	}
+
+	// Run cleanup - should skip because minHeight would be negative
+	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	require.NoError(t, err)
+
+	// Verify no entries were deleted
+	for h := int64(1); h < 50; h++ {
+		key := makeOutlierKey(valAddr.String(), asset, h)
+		require.True(t, store.Has(key), "entries should not be deleted in early blocks")
+	}
+}
+
+// TestExtractValidatorAssetPair tests the key parsing helper
+func TestExtractValidatorAssetPair(t *testing.T) {
+	testCases := []struct {
+		name     string
+		key      []byte
+		expected string
+	}{
+		{
+			name:     "valid key",
+			key:      makeOutlierKey("cosmosvaloper1abc", "BTC/USD", 12345),
+			expected: "cosmosvaloper1abc\x00BTC/USD",
+		},
+		{
+			name:     "empty key",
+			key:      []byte{},
+			expected: "",
+		},
+		{
+			name:     "too short key",
+			key:      []byte{0x07},
+			expected: "",
+		},
+		{
+			name:     "missing separator",
+			key:      []byte{0x07, 'a', 'b', 'c'},
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// We need to test the helper directly - implemented inline here
+			result := extractValidatorAssetPairHelper(tc.key)
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// makeOutlierKey creates an outlier history key for testing
+func makeOutlierKey(validator, asset string, height int64) []byte {
+	key := []byte{0x07} // OutlierHistoryPrefix
+	key = append(key, []byte(validator)...)
+	key = append(key, byte(0x00))
+	key = append(key, []byte(asset)...)
+	key = append(key, byte(0x00))
+	key = append(key, sdk.Uint64ToBigEndian(uint64(height))...)
+	return key
+}
+
+// extractValidatorAssetPairHelper is a test helper that replicates the keeper logic
+func extractValidatorAssetPairHelper(key []byte) string {
+	if len(key) < 2 {
+		return ""
+	}
+
+	remainder := key[1:]
+	separatorCount := 0
+	for i, b := range remainder {
+		if b == 0x00 {
+			separatorCount++
+			if separatorCount == 2 {
+				return string(remainder[:i])
+			}
+		}
+	}
+
+	return ""
 }

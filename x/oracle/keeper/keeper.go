@@ -67,6 +67,11 @@ func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
 	return sdkCtx.KVStore(k.storeKey)
 }
 
+// GetStoreKey returns the store key for testing purposes
+func (k Keeper) GetStoreKey() storetypes.StoreKey {
+	return k.storeKey
+}
+
 // ClaimCapability claims a channel capability for the oracle module.
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.scopedKeeper.ClaimCapability(ctx, cap, name)

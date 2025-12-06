@@ -231,6 +231,26 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 }
 
 // Task 126: Flash Loan Prevention
+//
+// SECURITY: This module prevents flash loan attacks on liquidity pools.
+//
+// Attack Vector (TODO 014):
+// 1. Attacker adds huge liquidity (becomes dominant LP)
+// 2. Executes large swap to manipulate pool price
+// 3. Arbitrages price difference on another pool/chain
+// 4. Removes liquidity in same block (risk-free profit)
+//
+// Defense: Multi-Block Lock Period
+// - Minimum delay (default 10 blocks) between add and remove liquidity
+// - Configurable via governance parameter FlashLoanProtectionBlocks
+// - Enforced per-provider, per-pool basis
+// - Blocks both full and partial removals
+//
+// Implementation:
+// - SetLastLiquidityActionBlock: Records block height on add/remove
+// - CheckFlashLoanProtection: Validates minimum blocks elapsed before removal
+// - RemoveLiquiditySecure: Calls CheckFlashLoanProtection before allowing removal
+//
 const (
 	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset
 	DefaultFlashLoanProtectionBlocks = int64(10)
@@ -239,7 +259,14 @@ const (
 	FlashLoanDetectionWindow = 10
 )
 
-// CheckFlashLoanProtection validates that liquidity operations aren't flash loan attacks
+// CheckFlashLoanProtection validates that liquidity operations aren't flash loan attacks.
+//
+// This function prevents same-block or near-block add→swap→remove attacks by enforcing
+// a minimum delay (FlashLoanProtectionBlocks) between liquidity add and remove operations.
+//
+// Returns:
+// - nil if sufficient blocks have passed since last liquidity action
+// - ErrFlashLoanDetected if attempting to remove too soon after adding
 func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
 	lastBlock, found, err := k.GetLastLiquidityActionBlock(ctx, poolID, provider)
 	if err != nil {

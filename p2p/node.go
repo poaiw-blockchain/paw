@@ -346,8 +346,50 @@ func (n *Node) HasPeer(peerID reputation.PeerID) bool {
 	return n.discoveryService.HasPeer(peerID)
 }
 
+// P2P message size limits to prevent DoS attacks
+const (
+	MaxP2PMessageSize = 10 * 1024 * 1024 // 10MB for general messages
+	MaxBlockSize      = 21 * 1024 * 1024 // 21MB for blocks (aligned with Cosmos SDK)
+)
+
 // handlePeerMessage dispatches inbound peer messages to registered handlers.
+// Security: Validates message size before processing to prevent DoS attacks.
 func (n *Node) handlePeerMessage(peerID reputation.PeerID, msgType string, data []byte) {
+	// SECURITY FIX: Validate message size before processing
+	// This prevents memory exhaustion DoS attacks via oversized messages
+	maxSize := MaxP2PMessageSize
+
+	// Allow larger messages for block propagation
+	if msgType == "block" || msgType == "block_announce" || msgType == "block_response" {
+		maxSize = MaxBlockSize
+	}
+
+	if len(data) > maxSize {
+		n.logger.Warn("rejecting oversized message - potential DoS attack",
+			"peer_id", peerID,
+			"type", msgType,
+			"size", len(data),
+			"max_allowed", maxSize)
+
+		// Report misbehavior to reputation system
+		if n.repManager != nil {
+			n.repManager.RecordEvent(reputation.PeerEvent{
+				PeerID:    peerID,
+				EventType: reputation.EventTypeOversizedMessage,
+				Timestamp: time.Now(),
+				Data: reputation.EventData{
+					MessageSize:   int64(len(data)),
+					ViolationType: "oversized_message",
+					Details:       fmt.Sprintf("message size %d exceeds max %d for type %s", len(data), maxSize, msgType),
+				},
+			})
+		}
+
+		// Disconnect peer for repeated violations
+		n.ReportPeerMisbehavior(peerID, fmt.Sprintf("oversized message: %d bytes (max %d)", len(data), maxSize))
+		return
+	}
+
 	n.handlerMu.RLock()
 	handler := n.messageHandlers[msgType]
 	n.handlerMu.RUnlock()

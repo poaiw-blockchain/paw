@@ -202,6 +202,87 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_MultiplePools() {
 	suite.Require().NoError(err)
 }
 
+// TestFlashLoanAttack_AddSwapRemove tests the specific attack vector from TODO 014:
+// 1. Add huge liquidity (becomes LP)
+// 2. Execute large swap (moves price)
+// 3. Arbitrage on another pool/chain
+// 4. Remove liquidity (same block!)
+// This test verifies that step 4 is blocked by multi-block lock period.
+func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
+	// Fund attacker with large balances
+	suite.fundAccount(suite.attacker, "atom", math.NewInt(1000000))
+	suite.fundAccount(suite.attacker, "usdc", math.NewInt(1000000))
+
+	// Setup: Create pool with moderate liquidity
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
+
+	// Attack scenario: Add→Swap→Remove in same block
+	// Step 1: Attacker adds huge liquidity (becomes dominant LP)
+	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID,
+		math.NewInt(500000), math.NewInt(500000))
+	suite.Require().NoError(err, "Initial liquidity addition should succeed")
+	suite.Require().True(shares.GT(math.ZeroInt()))
+
+	// Step 2: Execute large swap to manipulate price (still same block)
+	// This would normally move the price, creating arbitrage opportunity
+	swapAmount := math.NewInt(50000) // 10% of reserves after addition
+	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID,
+		"atom", "usdc", swapAmount, math.NewInt(1))
+	// Note: This may or may not succeed depending on MEV protections,
+	// but the key test is that removal is blocked regardless
+
+	// Step 3: Arbitrage would happen on another chain (simulated - not part of test)
+	// In real attack, attacker would profit from price difference between chains
+
+	// Step 4: Try to remove liquidity immediately (MUST BE BLOCKED)
+	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	suite.Require().Error(err, "Flash loan protection MUST block same-block removal after add")
+	suite.Require().Contains(err.Error(), "flash loan",
+		"Error must indicate flash loan protection triggered")
+
+	// Verify protection persists for insufficient block gap
+	suite.advanceBlock(5) // Advance only 5 blocks (less than 10 block minimum)
+	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	suite.Require().Error(err, "Protection must persist for minimum lock period")
+	suite.Require().Contains(err.Error(), "flash loan",
+		"Error must indicate flash loan protection still active")
+
+	// Verify removal succeeds after full lock period
+	suite.advanceBlock(5) // Now total 10 blocks have passed
+	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	suite.Require().NoError(err, "Removal should succeed after full lock period")
+	suite.Require().True(amountA.GT(math.ZeroInt()), "Should receive non-zero amount A")
+	suite.Require().True(amountB.GT(math.ZeroInt()), "Should receive non-zero amount B")
+}
+
+// TestFlashLoanAttack_PartialRemovalBlocked tests that even partial removal is blocked
+func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PartialRemovalBlocked() {
+	// Fund attacker
+	suite.fundAccount(suite.attacker, "atom", math.NewInt(500000))
+	suite.fundAccount(suite.attacker, "usdc", math.NewInt(500000))
+
+	// Setup: Create pool
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
+
+	// Add liquidity
+	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID,
+		math.NewInt(200000), math.NewInt(200000))
+	suite.Require().NoError(err)
+
+	// Try to remove even a tiny fraction immediately (should still be blocked)
+	partialShares := shares.QuoRaw(100) // Just 1% of shares
+	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, partialShares)
+	suite.Require().Error(err, "Even partial removal must be blocked in same block")
+	suite.Require().Contains(err.Error(), "flash loan")
+
+	// After lock period, partial removal should work
+	suite.advanceFlashLoanWindow()
+	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, partialShares)
+	suite.Require().NoError(err, "Partial removal should succeed after lock period")
+	suite.Require().True(amountA.GT(math.ZeroInt()))
+	suite.Require().True(amountB.GT(math.ZeroInt()))
+}
+
 // ========== MEV ATTACK TESTS ==========
 
 // TestMEVAttack_Frontrunning tests that large swaps are blocked to prevent frontrunning

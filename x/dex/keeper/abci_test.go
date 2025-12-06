@@ -14,6 +14,10 @@ import (
 )
 
 func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
+	// UPDATED TEST: BeginBlocker no longer iterates pools to update TWAPs
+	// TWAP updates now happen lazily on swaps via UpdateCumulativePriceOnSwap
+	// This test now verifies that BeginBlocker succeeds without updating TWAPs
+
 	k, ctx := keepertest.DexKeeper(t)
 	ctx = ctx.WithBlockTime(time.Unix(1_000, 0))
 
@@ -26,22 +30,46 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 	runBegin()
 
+	// After BeginBlocker, TWAP should NOT be automatically updated anymore
+	// It should only update on swaps
+	_, found, err := k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	require.NoError(t, err)
+	// TWAP record should not exist yet since no swaps have occurred
+	require.False(t, found, "TWAP should not be created by BeginBlocker")
+
+	// Manually update TWAP to simulate a swap
+	priceOne := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
+	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
+	require.NoError(t, err)
+
 	record, found, err := k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, int64(1_000), record.LastTimestamp)
-
-	priceOne := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
 	require.True(t, record.TwapPrice.Equal(priceOne))
 
 	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(10 * time.Second)).WithEventManager(sdk.NewEventManager())
 	runBegin()
+
+	// BeginBlocker should not have updated the TWAP
+	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	require.NoError(t, err)
+	require.True(t, found)
+	// Timestamp should still be old since BeginBlocker doesn't update TWAP
+	require.Equal(t, int64(1_000), record.LastTimestamp, "BeginBlocker should not update TWAP")
+
+	// Simulate another swap to update TWAP
+	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
+	require.NoError(t, err)
 
 	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, uint64(10), record.TotalSeconds)
 	require.True(t, record.TwapPrice.Equal(priceOne))
+
+	// Advance time and simulate another swap with changed price
+	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(10 * time.Second)).WithEventManager(sdk.NewEventManager())
 
 	// Modify pool price to create a second TWAP interval.
 	pool, err := k.GetPool(sdk.WrapSDKContext(ctx), poolID)
@@ -50,18 +78,28 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	pool.ReserveB = sdkmath.NewInt(4_000_000)
 	require.NoError(t, k.SetPool(sdk.WrapSDKContext(ctx), pool))
 
+	// Simulate a swap with new price (this captures the 10s since last swap)
+	priceTwo := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(4_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
+	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
+	require.NoError(t, err)
+
+	// Advance another 10 seconds
 	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(10 * time.Second)).WithEventManager(sdk.NewEventManager())
 	runBegin()
 
-	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(10 * time.Second)).WithEventManager(sdk.NewEventManager())
-	runBegin()
+	// Simulate another swap
+	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
+	require.NoError(t, err)
 
 	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, uint64(30), record.TotalSeconds)
 
-	priceTwo := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(4_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
+	// TWAP calculation: (priceOne * 10s) + (priceOne * 10s) + (priceTwo * 10s) / 30s
+	// First interval: priceOne for 10s (from first to second swap)
+	// Second interval: priceOne for 10s (from second to third swap, price hasn't changed yet in TWAP)
+	// Third interval: priceTwo for 10s (from third to fourth swap)
 	expected := priceOne.MulInt64(20).Add(priceTwo.MulInt64(10)).QuoInt64(30)
 	diff := record.TwapPrice.Sub(expected).Abs()
 	require.True(t, diff.LTE(sdkmath.LegacyMustNewDecFromStr("0.0000001")), "unexpected TWAP: got %s expected %s", record.TwapPrice, expected)

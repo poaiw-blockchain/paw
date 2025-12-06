@@ -221,69 +221,13 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 	return nil
 }
 
-// UpdatePoolTWAPs updates time-weighted average prices for all pools
+// UpdatePoolTWAPs is deprecated and now a no-op.
+// TWAP updates are now lazy and triggered only on swaps via UpdateCumulativePriceOnSwap.
+// This fixes the O(n) performance issue where we iterated all pools every block.
 func (k Keeper) UpdatePoolTWAPs(ctx context.Context) error {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	currentTime := sdkCtx.BlockTime()
-
-	// Iterate over all pools and update their TWAPs
-	return k.IteratePools(ctx, func(pool types.Pool) bool {
-		if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
-			return false
-		}
-
-		price := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
-
-		record, found, err := k.GetPoolTWAP(ctx, pool.Id)
-		if err != nil {
-			sdkCtx.Logger().Error("failed to load pool TWAP", "pool_id", pool.Id, "error", err)
-			return false
-		}
-
-		if !found {
-			record = &types.PoolTWAP{
-				PoolId:          pool.Id,
-				LastPrice:       price,
-				CumulativePrice: math.LegacyZeroDec(),
-				TotalSeconds:    0,
-				LastTimestamp:   currentTime.Unix(),
-				TwapPrice:       price,
-			}
-		} else {
-			lastTimestamp := time.Unix(record.LastTimestamp, 0).UTC()
-			if record.LastTimestamp == 0 {
-				lastTimestamp = currentTime
-			}
-
-			delta := currentTime.Sub(lastTimestamp) / time.Second
-			if delta > 0 && !record.LastPrice.IsNil() {
-				record.CumulativePrice = record.CumulativePrice.Add(record.LastPrice.MulInt64(int64(delta)))
-				record.TotalSeconds += uint64(delta)
-				if record.TotalSeconds > 0 {
-					record.TwapPrice = record.CumulativePrice.QuoInt64(int64(record.TotalSeconds))
-				}
-			}
-
-			record.LastTimestamp = currentTime.Unix()
-			if record.TotalSeconds == 0 {
-				record.TwapPrice = price
-			}
-			record.LastPrice = price
-		}
-
-		if err := k.SetPoolTWAP(ctx, *record); err != nil {
-			sdkCtx.Logger().Error("failed to persist TWAP", "pool_id", pool.Id, "error", err)
-		}
-
-		sdkCtx.Logger().Debug("updated TWAP",
-			"pool_id", pool.Id,
-			"last_price", record.LastPrice.String(),
-			"twap_price", record.TwapPrice.String(),
-			"total_seconds", record.TotalSeconds,
-		)
-
-		return false
-	})
+	// No-op: TWAP calculation is now lazy (only on query or swap)
+	// This eliminates O(n) iteration every block
+	return nil
 }
 
 // DistributeProtocolFees distributes accumulated protocol fees

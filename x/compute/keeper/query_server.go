@@ -216,7 +216,7 @@ func (qs queryServer) RequestsByRequester(goCtx context.Context, req *types.Quer
 	}, nil
 }
 
-// RequestsByProvider returns all requests assigned to a specific provider
+// RequestsByProvider returns all requests assigned to a specific provider with pagination
 func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.QueryRequestsByProviderRequest) (*types.QueryRequestsByProviderResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -233,10 +233,20 @@ func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.Query
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid provider address: %s", err))
 	}
 
+	store := qs.Keeper.getStore(ctx)
+	providerPrefix := append(RequestsByProviderPrefix, providerAddr.Bytes()...)
+	providerStore := prefix.NewStore(store, providerPrefix)
+
 	var requests []types.Request
-	err = qs.Keeper.IterateRequestsByProvider(ctx, providerAddr, func(request types.Request) (bool, error) {
-		requests = append(requests, request)
-		return false, nil
+	pageRes, err := query.Paginate(providerStore, req.Pagination, func(key []byte, value []byte) error {
+		// Extract request ID from key and fetch full request
+		requestID := sdk.BigEndianToUint64(key)
+		request, err := qs.Keeper.GetRequest(ctx, requestID)
+		if err != nil {
+			return err
+		}
+		requests = append(requests, *request)
+		return nil
 	})
 
 	if err != nil {
@@ -244,11 +254,12 @@ func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.Query
 	}
 
 	return &types.QueryRequestsByProviderResponse{
-		Requests: requests,
+		Requests:   requests,
+		Pagination: pageRes,
 	}, nil
 }
 
-// RequestsByStatus returns all requests with a specific status
+// RequestsByStatus returns all requests with a specific status with pagination
 func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRequestsByStatusRequest) (*types.QueryRequestsByStatusResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -256,10 +267,22 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
+	store := qs.Keeper.getStore(ctx)
+	statusBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(statusBz, uint32(req.Status))
+	statusPrefix := append(RequestsByStatusPrefix, statusBz...)
+	statusStore := prefix.NewStore(store, statusPrefix)
+
 	var requests []types.Request
-	err := qs.Keeper.IterateRequestsByStatus(ctx, req.Status, func(request types.Request) (bool, error) {
-		requests = append(requests, request)
-		return false, nil
+	pageRes, err := query.Paginate(statusStore, req.Pagination, func(key []byte, value []byte) error {
+		// Extract request ID from key and fetch full request
+		requestID := sdk.BigEndianToUint64(key)
+		request, err := qs.Keeper.GetRequest(ctx, requestID)
+		if err != nil {
+			return err
+		}
+		requests = append(requests, *request)
+		return nil
 	})
 
 	if err != nil {
@@ -267,7 +290,8 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 	}
 
 	return &types.QueryRequestsByStatusResponse{
-		Requests: requests,
+		Requests:   requests,
+		Pagination: pageRes,
 	}, nil
 }
 

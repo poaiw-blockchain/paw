@@ -138,6 +138,15 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		return math.ZeroInt(), fmt.Errorf("critical: transfers succeeded but pool state update failed: %w", err)
 	}
 
+	// Step 6: Update TWAP cumulative price (lazy update - only on swaps)
+	// Calculate current spot price for TWAP oracle
+	price0 := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+	price1 := math.LegacyNewDecFromInt(pool.ReserveA).Quo(math.LegacyNewDecFromInt(pool.ReserveB))
+	if err := k.UpdateCumulativePriceOnSwap(ctx, poolID, price0, price1); err != nil {
+		// Log error but don't fail the swap - TWAP update is non-critical
+		sdkCtx.Logger().Error("failed to update TWAP on swap", "pool_id", poolID, "error", err)
+	}
+
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
