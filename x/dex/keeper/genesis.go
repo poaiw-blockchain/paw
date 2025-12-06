@@ -3,7 +3,9 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -56,34 +58,62 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 	}
 
 	// Initialize circuit breaker states
-	/*
-		for _, cbState := range genState.CircuitBreakerStates {
-			if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, CircuitBreakerState{
-				Enabled:       cbState.Enabled,
-				PausedUntil:   cbState.PausedUntil,
-				LastPrice:     cbState.LastPrice,
-				TriggeredBy:   cbState.TriggeredBy,
-				TriggerReason: cbState.TriggerReason,
-			}); err != nil {
-				return fmt.Errorf("failed to set circuit breaker state for pool %d: %w", cbState.PoolId, err)
+	for _, cbState := range genState.CircuitBreakerStates {
+		state := CircuitBreakerState{
+			Enabled:           cbState.Enabled,
+			LastPrice:         cbState.LastPrice,
+			TriggeredBy:       cbState.TriggeredBy,
+			TriggerReason:     cbState.TriggerReason,
+			NotificationsSent: int(cbState.NotificationsSent),
+			PersistenceKey:    cbState.PersistenceKey,
+		}
+
+		// Set timestamps from genesis (Unix timestamps)
+		if cbState.PausedUntil > 0 {
+			state.PausedUntil = time.Unix(cbState.PausedUntil, 0)
+		}
+		if cbState.LastNotification > 0 {
+			state.LastNotification = time.Unix(cbState.LastNotification, 0)
+		}
+
+		if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, state); err != nil {
+			return fmt.Errorf("failed to set circuit breaker state for pool %d: %w", cbState.PoolId, err)
+		}
+	}
+
+	// Initialize liquidity positions and validate shares sum equals pool.TotalShares
+	poolSharesSums := make(map[uint64]math.Int)
+	for _, liqPos := range genState.LiquidityPositions {
+		provider, err := sdk.AccAddressFromBech32(liqPos.Provider)
+		if err != nil {
+			return fmt.Errorf("invalid liquidity provider address %s: %w", liqPos.Provider, err)
+		}
+
+		if err := k.SetLiquidity(ctx, liqPos.PoolId, provider, liqPos.Shares); err != nil {
+			return fmt.Errorf("failed to set liquidity position for pool %d, provider %s: %w",
+				liqPos.PoolId, liqPos.Provider, err)
+		}
+
+		// Accumulate shares for validation
+		if _, exists := poolSharesSums[liqPos.PoolId]; !exists {
+			poolSharesSums[liqPos.PoolId] = math.ZeroInt()
+		}
+		poolSharesSums[liqPos.PoolId] = poolSharesSums[liqPos.PoolId].Add(liqPos.Shares)
+	}
+
+	// Validate that sum of LP shares equals pool.TotalShares for each pool
+	for _, pool := range genState.Pools {
+		if !pool.TotalShares.IsZero() {
+			sharesSum, exists := poolSharesSums[pool.Id]
+			if !exists {
+				sharesSum = math.ZeroInt()
+			}
+			if !sharesSum.Equal(pool.TotalShares) {
+				return fmt.Errorf("pool %d shares mismatch: sum of LP positions (%s) != pool.TotalShares (%s)",
+					pool.Id, sharesSum.String(), pool.TotalShares.String())
 			}
 		}
-	*/
-
-	// Initialize liquidity positions
-	/*
-		for _, liqPos := range genState.LiquidityPositions {
-			provider, err := sdk.AccAddressFromBech32(liqPos.Provider)
-			if err != nil {
-				return fmt.Errorf("invalid liquidity provider address %s: %w", liqPos.Provider, err)
-			}
-
-			if err := k.SetLiquidity(ctx, liqPos.PoolId, provider, liqPos.Shares); err != nil {
-				return fmt.Errorf("failed to set liquidity position for pool %d, provider %s: %w",
-					liqPos.PoolId, liqPos.Provider, err)
-			}
-		}
-	*/
+	}
 
 	return nil
 }
@@ -114,42 +144,41 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	// Export circuit breaker states for all pools
-	/*
-		var cbStates []types.CircuitBreakerStateExport
-		for _, pool := range pools {
-			cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
-			if err == nil {
-				cbStates = append(cbStates, types.CircuitBreakerStateExport{
-					PoolId:        pool.Id,
-					Enabled:       cbState.Enabled,
-					PausedUntil:   cbState.PausedUntil,
-					LastPrice:     cbState.LastPrice,
-					TriggeredBy:   cbState.TriggeredBy,
-					TriggerReason: cbState.TriggerReason,
-				})
-			}
+	var cbStates []types.CircuitBreakerStateExport
+	for _, pool := range pools {
+		cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
+		if err == nil {
+			cbStates = append(cbStates, types.CircuitBreakerStateExport{
+				PoolId:            pool.Id,
+				Enabled:           cbState.Enabled,
+				PausedUntil:       cbState.PausedUntil.Unix(),
+				LastPrice:         cbState.LastPrice,
+				TriggeredBy:       cbState.TriggeredBy,
+				TriggerReason:     cbState.TriggerReason,
+				NotificationsSent: int32(cbState.NotificationsSent),
+				LastNotification:  cbState.LastNotification.Unix(),
+				PersistenceKey:    cbState.PersistenceKey,
+			})
 		}
-	*/
+	}
 
 	// Export all liquidity positions
-	/*
-		var liqPositions []types.LiquidityPositionExport
-		for _, pool := range pools {
-			// Iterate over all liquidity providers for this pool
-			if err := k.IterateLiquidityPositions(ctx, pool.Id, func(provider sdk.AccAddress, shares math.Int) bool {
-				liqPositions = append(liqPositions, types.LiquidityPositionExport{
-					PoolId:   pool.Id,
-					Provider: provider.String(),
-					Shares:   shares,
-				})
-				return false
-			}); err != nil {
-				// Log but don't fail export
-				sdkCtx := sdk.UnwrapSDKContext(ctx)
-				sdkCtx.Logger().Error("failed to iterate liquidity positions", "pool_id", pool.Id, "error", err)
-			}
+	var liqPositions []types.LiquidityPositionExport
+	for _, pool := range pools {
+		// Iterate over all liquidity providers for this pool
+		if err := k.IterateLiquidityByPool(ctx, pool.Id, func(provider sdk.AccAddress, shares math.Int) bool {
+			liqPositions = append(liqPositions, types.LiquidityPositionExport{
+				PoolId:   pool.Id,
+				Provider: provider.String(),
+				Shares:   shares,
+			})
+			return false
+		}); err != nil {
+			// Log but don't fail export
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			sdkCtx.Logger().Error("failed to iterate liquidity positions", "pool_id", pool.Id, "error", err)
 		}
-	*/
+	}
 
 	twapRecords, err := k.GetAllPoolTWAPs(ctx)
 	if err != nil {
@@ -157,12 +186,12 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	return &types.GenesisState{
-		Params:          params,
-		Pools:           pools,
-		NextPoolId:      nextPoolID,
-		PoolTwapRecords: twapRecords,
-		// CircuitBreakerStates:  cbStates,
-		// LiquidityPositions:    liqPositions,
+		Params:               params,
+		Pools:                pools,
+		NextPoolId:           nextPoolID,
+		PoolTwapRecords:      twapRecords,
+		CircuitBreakerStates: cbStates,
+		LiquidityPositions:   liqPositions,
 	}, nil
 }
 

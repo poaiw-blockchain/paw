@@ -175,6 +175,34 @@ message LimitOrder {
   int64 created_at_height = 15;
 }
 
+// CircuitBreakerStateExport represents circuit breaker state for genesis export
+message CircuitBreakerStateExport {
+  uint64 pool_id = 1;
+  bool enabled = 2;
+  int64 paused_until = 3; // Unix timestamp
+  string last_price = 4 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+  string triggered_by = 5;
+  string trigger_reason = 6;
+  int32 notifications_sent = 7;
+  int64 last_notification = 8; // Unix timestamp
+  string persistence_key = 9;
+}
+
+// LiquidityPositionExport represents a liquidity position for genesis export
+message LiquidityPositionExport {
+  uint64 pool_id = 1;
+  string provider = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string shares = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
 // GenesisState defines the dex module's genesis state.
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];
@@ -183,4 +211,6 @@ message GenesisState {
   repeated LimitOrder limit_orders = 4 [(gogoproto.nullable) = false];
   uint64 next_order_id = 5;
   repeated PoolTWAP pool_twap_records = 6 [(gogoproto.nullable) = false];
+  repeated CircuitBreakerStateExport circuit_breaker_states = 7 [(gogoproto.nullable) = false];
+  repeated LiquidityPositionExport liquidity_positions = 8 [(gogoproto.nullable) = false];
 }
