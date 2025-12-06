@@ -1,0 +1,210 @@
+# Default values for PAW blockchain
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Number of validator replicas (typically 1 for single validator, scale for sentries)
+replicaCount: 1
+
+# Container image configuration
+image:
+  repository: ghcr.io/decristofaroj/paw
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account for the pods
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Blockchain node configuration
+node:
+  # Chain ID for the blockchain
+  chainId: "paw-testnet-1"
+  # Moniker for the validator node
+  moniker: "paw-validator"
+  # Minimum gas prices the validator will accept
+  minGasPrices: "0.025upaw"
+  # Enable Prometheus metrics
+  prometheusMetrics: true
+  # Log level (debug, info, warn, error)
+  logLevel: "info"
+  # Log format (json, plain)
+  logFormat: "json"
+
+# Network ports configuration
+service:
+  type: ClusterIP
+  ports:
+    # P2P port for CometBFT peer-to-peer communication
+    p2p:
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    # RPC port for CometBFT RPC server
+    rpc:
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    # REST API port for Cosmos SDK REST server
+    api:
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    # gRPC port for Cosmos SDK gRPC server
+    grpc:
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    # Prometheus metrics port
+    metrics:
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+
+# Persistent storage configuration
+persistence:
+  enabled: true
+  # Storage class name (use "" for default, "local-path" for k3s/k8s local storage)
+  storageClassName: ""
+  # Access mode for the persistent volume
+  accessMode: ReadWriteOnce
+  # Size of the persistent volume for blockchain data
+  size: 100Gi
+  # Annotations for the PVC
+  annotations: {}
+
+# Resource limits and requests
+resources:
+  limits:
+    # Maximum CPU cores
+    cpu: 2000m
+    # Maximum memory
+    memory: 4Gi
+  requests:
+    # Requested CPU cores
+    cpu: 1000m
+    # Requested memory
+    memory: 2Gi
+
+# Node selector for pod assignment
+nodeSelector: {}
+
+# Tolerations for pod assignment
+tolerations: []
+
+# Affinity rules for pod assignment
+affinity: {}
+
+# Liveness probe configuration
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Startup probe configuration (for slow-starting nodes)
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 30
+
+# Environment variables
+env: []
+  # - name: CUSTOM_ENV_VAR
+  #   value: "custom-value"
+
+# Init containers for genesis file download, state sync, etc.
+initContainers: []
+  # - name: genesis-downloader
+  #   image: busybox:latest
+  #   command: ['sh', '-c', 'wget -O /root/.paw/config/genesis.json https://example.com/genesis.json']
+  #   volumeMounts:
+  #     - name: data
+  #       mountPath: /root/.paw
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+  annotations: {}
+
+# Horizontal Pod Autoscaler (typically not used for validators)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0

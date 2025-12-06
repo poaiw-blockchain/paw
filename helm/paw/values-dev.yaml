@@ -1,0 +1,135 @@
+# Development/Testing configuration for PAW blockchain
+# This file demonstrates development settings with relaxed resource requirements
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/decristofaroj/paw
+  pullPolicy: Always  # Always pull latest for development
+  tag: "latest"
+
+serviceAccount:
+  create: true
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+node:
+  chainId: "paw-testnet-1"
+  moniker: "dev-node"
+  minGasPrices: "0.001upaw"  # Lower gas prices for testing
+  prometheusMetrics: true
+  logLevel: "debug"  # Verbose logging for development
+  logFormat: "plain"  # Human-readable logs
+
+service:
+  type: NodePort  # Allow external access for development
+  ports:
+    p2p:
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    rpc:
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    api:
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    grpc:
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    metrics:
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+
+persistence:
+  enabled: true
+  storageClassName: "standard"  # Use default/standard storage
+  accessMode: ReadWriteOnce
+  size: 50Gi  # Smaller size for development
+  annotations: {}
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 30
+
+env:
+  - name: GOGC
+    value: "100"  # Default GC behavior
+
+initContainers: []
+
+serviceMonitor:
+  enabled: false  # Optional for development
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false  # Not needed for development
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0

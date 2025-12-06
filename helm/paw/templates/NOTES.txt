@@ -1,0 +1,54 @@
+Thank you for installing {{ .Chart.Name }} version {{ .Chart.Version }}!
+
+Your PAW blockchain node has been deployed to namespace {{ .Release.Namespace }}.
+
+To get the status of your deployment:
+  kubectl get deployment {{ include "paw.fullname" . }} -n {{ .Release.Namespace }}
+
+To view the pods:
+  kubectl get pods -l "app.kubernetes.io/name={{ include "paw.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+To view the logs:
+  kubectl logs -f deployment/{{ include "paw.fullname" . }} -n {{ .Release.Namespace }}
+
+Service endpoints:
+  - P2P: {{ include "paw.fullname" . }}:{{ .Values.service.ports.p2p.port }}
+  - RPC: {{ include "paw.fullname" . }}:{{ .Values.service.ports.rpc.port }}
+  - REST API: {{ include "paw.fullname" . }}:{{ .Values.service.ports.api.port }}
+  - gRPC: {{ include "paw.fullname" . }}:{{ .Values.service.ports.grpc.port }}
+{{- if .Values.node.prometheusMetrics }}
+  - Metrics: {{ include "paw.fullname" . }}:{{ .Values.service.ports.metrics.port }}
+{{- end }}
+
+To port-forward the RPC endpoint to your local machine:
+  kubectl port-forward svc/{{ include "paw.fullname" . }} 26657:{{ .Values.service.ports.rpc.port }} -n {{ .Release.Namespace }}
+
+To port-forward the REST API endpoint:
+  kubectl port-forward svc/{{ include "paw.fullname" . }} 1317:{{ .Values.service.ports.api.port }} -n {{ .Release.Namespace }}
+
+Chain Configuration:
+  - Chain ID: {{ .Values.node.chainId }}
+  - Moniker: {{ .Values.node.moniker }}
+  - Min Gas Prices: {{ .Values.node.minGasPrices }}
+  - Log Level: {{ .Values.node.logLevel }}
+
+{{- if .Values.persistence.enabled }}
+Persistence:
+  - PVC: {{ include "paw.pvcName" . }}
+  - Size: {{ .Values.persistence.size }}
+  {{- if .Values.persistence.storageClassName }}
+  - Storage Class: {{ .Values.persistence.storageClassName }}
+  {{- end }}
+{{- else }}
+WARNING: Persistence is disabled. All blockchain data will be lost if the pod restarts!
+{{- end }}
+
+For more information about PAW blockchain:
+  - GitHub: https://github.com/decristofaroj/paw
+  - Documentation: See the docs/ directory in the repository
+
+To upgrade this release:
+  helm upgrade {{ .Release.Name }} paw/paw -n {{ .Release.Namespace }}
+
+To uninstall this release:
+  helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}

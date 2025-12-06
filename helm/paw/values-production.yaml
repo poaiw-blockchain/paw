@@ -1,0 +1,193 @@
+# Production configuration for PAW blockchain validator
+# This file demonstrates production-ready settings with high availability and security
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/decristofaroj/paw
+  pullPolicy: IfNotPresent
+  tag: "v1.0.0"  # Use specific version tag in production
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "26660"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+node:
+  chainId: "paw-mainnet-1"
+  moniker: "production-validator-01"
+  minGasPrices: "0.025upaw"
+  prometheusMetrics: true
+  logLevel: "info"
+  logFormat: "json"
+
+service:
+  type: ClusterIP
+  ports:
+    p2p:
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    rpc:
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    api:
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    grpc:
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    metrics:
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+
+persistence:
+  enabled: true
+  storageClassName: "fast-ssd"  # Use high-performance storage
+  accessMode: ReadWriteOnce
+  size: 500Gi  # Ample space for blockchain growth
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "fast-ssd"
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 8Gi
+  requests:
+    cpu: 2000m
+    memory: 4Gi
+
+nodeSelector:
+  # Schedule on nodes with validator workload
+  workload-type: validator
+
+tolerations:
+  - key: "validator"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+affinity:
+  # Ensure high availability by avoiding single points of failure
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - paw
+          topologyKey: kubernetes.io/hostname
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 10
+  successThreshold: 1
+  failureThreshold: 5
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+startupProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: rpc
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 60  # Allow up to 10 minutes for initial startup
+
+env:
+  - name: GOGC
+    value: "50"  # More aggressive GC for lower memory footprint
+  - name: GOMEMLIMIT
+    value: "7GiB"  # Set Go memory limit below container limit
+
+# Download genesis file before starting node
+initContainers:
+  - name: genesis-downloader
+    image: curlimages/curl:latest
+    securityContext:
+      runAsUser: 1000
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /root/.paw/config/genesis.json ]; then
+          echo "Downloading genesis file..."
+          mkdir -p /root/.paw/config
+          curl -L -o /root/.paw/config/genesis.json \
+            https://raw.githubusercontent.com/decristofaroj/paw/main/genesis/paw-mainnet-1.json
+          echo "Genesis file downloaded successfully"
+        else
+          echo "Genesis file already exists, skipping download"
+        fi
+    volumeMounts:
+      - name: data
+        mountPath: /root/.paw
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: prometheus
+  annotations: {}
+
+autoscaling:
+  enabled: false  # Do not autoscale validators
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1  # Ensure at least one pod is always available
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1  # Only update one pod at a time

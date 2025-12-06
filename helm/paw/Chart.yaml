@@ -1,0 +1,17 @@
+apiVersion: v2
+name: paw
+description: PAW Blockchain Helm Chart - Cosmos SDK based blockchain with P2P networking and IBC
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - blockchain
+  - cosmos-sdk
+  - tendermint
+  - ibc
+  - p2p
+maintainers:
+  - name: PAW Team
+home: https://github.com/decristofaroj/paw
+sources:
+  - https://github.com/decristofaroj/paw
