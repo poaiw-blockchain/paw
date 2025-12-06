@@ -63,6 +63,7 @@ func (suite *OracleIBCTestSuite) TestSubscribeToPrices() {
 	packetData := oracletypes.SubscribePricesPacketData{
 		Type:           oracletypes.SubscribePricesType,
 		Nonce:          1,
+		Timestamp:      suite.chainA.GetContext().BlockTime().Unix(),
 		Symbols:        []string{"BTC/USD", "ETH/USD", "ATOM/USD"},
 		UpdateInterval: 60, // 1 minute
 		Subscriber:     subscriber.String(),
@@ -130,10 +131,11 @@ func (suite *OracleIBCTestSuite) TestQueryPrice() {
 	suite.Require().NoError(pawApp.OracleKeeper.SetPrice(ctxB, price))
 
 	packetData := oracletypes.QueryPricePacketData{
-		Type:   oracletypes.QueryPriceType,
-		Nonce:  1,
-		Symbol: "BTC/USD",
-		Sender: sender.String(),
+		Type:      oracletypes.QueryPriceType,
+		Nonce:     1,
+		Timestamp: suite.chainA.GetContext().BlockTime().Unix(),
+		Symbol:    "BTC/USD",
+		Sender:    sender.String(),
 	}
 
 	err = packetData.ValidateBasic()
@@ -365,6 +367,7 @@ func (suite *OracleIBCTestSuite) TestOnRecvPacketRejectsDuplicateNonce() {
 	packetData := oracletypes.SubscribePricesPacketData{
 		Type:           oracletypes.SubscribePricesType,
 		Nonce:          1,
+		Timestamp:      suite.chainA.GetContext().BlockTime().Unix(),
 		Symbols:        []string{"BTC/USD"},
 		UpdateInterval: 60,
 		Subscriber:     subscriber.String(),
