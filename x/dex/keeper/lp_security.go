@@ -194,10 +194,10 @@ func (k Keeper) detectSuspiciousLiquidity(ctx context.Context, pool *types.Pool,
 			// Emit warning event but allow (could be legitimate large LP)
 			sdkCtx.EventManager().EmitEvent(
 				sdk.NewEvent(
-					"large_liquidity_addition",
-					sdk.NewAttribute("pool_id", fmt.Sprintf("%d", pool.Id)),
-					sdk.NewAttribute("provider", provider.String()),
-					sdk.NewAttribute("percentage", additionPercentage.Mul(math.LegacyNewDec(100)).String()),
+					types.EventTypeDexLargeLiquidityAddition,
+					sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", pool.Id)),
+					sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+					sdk.NewAttribute(types.AttributeKeyPercentage, additionPercentage.Mul(math.LegacyNewDec(100)).String()),
 				),
 			)
 		}
@@ -284,9 +284,9 @@ func (k Keeper) LockInitialLiquidity(ctx context.Context, poolID uint64) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"initial_liquidity_locked",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("locked_shares", lockedShares.String()),
+			types.EventTypeDexLiquidityLocked,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyLockedShares, lockedShares.String()),
 		),
 	)
 

@@ -40,7 +40,7 @@ func TestOnTimeoutSwapPacketRefundsUser(t *testing.T) {
 	events := ctx.EventManager().Events()
 	found := false
 	for _, evt := range events {
-		if evt.Type == "cross_chain_swap_timeout_refund" {
+		if evt.Type == "dex_cross_chain_swap_timeout" {
 			found = true
 			break
 		}

@@ -8,6 +8,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+
+	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 // TASK 73: IBC timeout handling for oracle packets
@@ -33,10 +35,10 @@ func (k Keeper) OnTimeoutPricePacket(ctx sdk.Context, packet channeltypes.Packet
 	// Emit timeout event for monitoring
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"cross_chain_price_timeout",
-			sdk.NewAttribute("asset", asset),
-			sdk.NewAttribute("packet_sequence", fmt.Sprintf("%d", packet.Sequence)),
-			sdk.NewAttribute("channel", packet.SourceChannel),
+			"oracle_cross_chain_price_timeout",
+			sdk.NewAttribute(types.AttributeKeyAsset, asset),
+			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", packet.Sequence)),
+			sdk.NewAttribute(types.AttributeKeyChannelID, packet.SourceChannel),
 		),
 	)
 
@@ -64,9 +66,9 @@ func (k Keeper) OnAcknowledgementPricePacket(
 			if asset, ok := packetData["asset"].(string); ok {
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
-						"cross_chain_price_failed",
-						sdk.NewAttribute("asset", asset),
-						sdk.NewAttribute("error", errMsg),
+						"oracle_cross_chain_price_failed",
+						sdk.NewAttribute(types.AttributeKeyAsset, asset),
+						sdk.NewAttribute(types.AttributeKeyError, errMsg),
 					),
 				)
 			}
@@ -78,8 +80,8 @@ func (k Keeper) OnAcknowledgementPricePacket(
 	if priceStr, hasPrice := ackData["price"].(string); hasPrice {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
-				"cross_chain_price_acknowledged",
-				sdk.NewAttribute("price", priceStr),
+				"oracle_cross_chain_price_acknowledged",
+				sdk.NewAttribute(types.AttributeKeyPrice, priceStr),
 			),
 		)
 	}

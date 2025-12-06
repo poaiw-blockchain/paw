@@ -383,11 +383,11 @@ func (k Keeper) SubmitCrossChainJob(
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"cross_chain_job_submitted",
-			sdk.NewAttribute("job_id", jobID),
-			sdk.NewAttribute("target_chain", targetChain),
-			sdk.NewAttribute("provider", providerID),
-			sdk.NewAttribute("escrow_amount", payment.Amount.String()),
+			types.EventTypeComputeCrossChainJob,
+			sdk.NewAttribute(types.AttributeKeyJobID, jobID),
+			sdk.NewAttribute(types.AttributeKeyTargetChain, targetChain),
+			sdk.NewAttribute(types.AttributeKeyProvider, providerID),
+			sdk.NewAttribute(types.AttributeKeyEscrowAmount, payment.Amount.String()),
 		),
 	)
 
@@ -600,8 +600,8 @@ func (k Keeper) sendComputeIBCPacket(
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"compute_ibc_packet_sent",
-			sdk.NewAttribute("channel", channelID),
-			sdk.NewAttribute("sequence", fmt.Sprintf("%d", sequence)),
+			sdk.NewAttribute(types.AttributeKeyChannelID, channelID),
+			sdk.NewAttribute(types.AttributeKeySequence, fmt.Sprintf("%d", sequence)),
 		),
 	)
 

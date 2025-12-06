@@ -135,9 +135,9 @@ func (ms msgServer) DelegateFeedConsent(goCtx context.Context, msg *types.MsgDel
 	// Emit event
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"feeder_delegated",
-			sdk.NewAttribute("validator", validatorAddr.String()),
-			sdk.NewAttribute("delegate", delegateAddr.String()),
+			types.EventTypeOracleFeederDelegated,
+			sdk.NewAttribute(types.AttributeKeyValidator, validatorAddr.String()),
+			sdk.NewAttribute(types.AttributeKeyDelegate, delegateAddr.String()),
 		),
 	)
 
@@ -170,7 +170,7 @@ func (ms msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdatePara
 	// Emit event
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"params_updated",
+			types.EventTypeOracleParamsUpdated,
 			sdk.NewAttribute("vote_period", fmt.Sprintf("%d", msg.Params.VotePeriod)),
 			sdk.NewAttribute("vote_threshold", msg.Params.VoteThreshold.String()),
 			sdk.NewAttribute("slash_fraction", msg.Params.SlashFraction.String()),

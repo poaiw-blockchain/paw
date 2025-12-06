@@ -7,6 +7,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // TASK 72: IBC timeout handling for DEX packets
@@ -46,10 +48,10 @@ func (k Keeper) OnTimeoutSwapPacket(ctx sdk.Context, packet channeltypes.Packet)
 
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
-						"cross_chain_swap_timeout_refund",
-						sdk.NewAttribute("swap_id", swapID),
-						sdk.NewAttribute("user", userAddr),
-						sdk.NewAttribute("amount", amount.String()),
+						types.EventTypeDexCrossChainSwapTimeout,
+						sdk.NewAttribute(types.AttributeKeySwapID, swapID),
+						sdk.NewAttribute(types.AttributeKeyUserAddress, userAddr),
+						sdk.NewAttribute(types.AttributeKeyAmount, amount.String()),
 					),
 				)
 			}
@@ -80,9 +82,9 @@ func (k Keeper) OnAcknowledgementSwapPacket(
 			if swapID, ok := packetData["swap_id"].(string); ok {
 				ctx.EventManager().EmitEvent(
 					sdk.NewEvent(
-						"cross_chain_swap_failed",
-						sdk.NewAttribute("swap_id", swapID),
-						sdk.NewAttribute("error", errMsg),
+						types.EventTypeDexCrossChainSwapFailed,
+						sdk.NewAttribute(types.AttributeKeySwapID, swapID),
+						sdk.NewAttribute(types.AttributeKeyError, errMsg),
 					),
 				)
 			}

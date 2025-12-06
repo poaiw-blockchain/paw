@@ -113,15 +113,15 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 		sdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
-				"oracle_outlier_detected",
-				sdk.NewAttribute("validator", outlier.ValidatorAddr),
-				sdk.NewAttribute("asset", asset),
-				sdk.NewAttribute("price", outlier.Price.String()),
-				sdk.NewAttribute("severity", fmt.Sprintf("%d", outlier.Severity)),
-				sdk.NewAttribute("deviation", outlier.Deviation.String()),
-				sdk.NewAttribute("reason", outlier.Reason),
-				sdk.NewAttribute("median", filteredData.Median.String()),
-				sdk.NewAttribute("mad", filteredData.MAD.String()),
+				types.EventTypeOracleOutlier,
+				sdk.NewAttribute(types.AttributeKeyValidator, outlier.ValidatorAddr),
+				sdk.NewAttribute(types.AttributeKeyAsset, asset),
+				sdk.NewAttribute(types.AttributeKeyPrice, outlier.Price.String()),
+				sdk.NewAttribute(types.AttributeKeySeverity, fmt.Sprintf("%d", outlier.Severity)),
+				sdk.NewAttribute(types.AttributeKeyDeviation, outlier.Deviation.String()),
+				sdk.NewAttribute(types.AttributeKeyReason, outlier.Reason),
+				sdk.NewAttribute(types.AttributeKeyMedian, filteredData.Median.String()),
+				sdk.NewAttribute(types.AttributeKeyMAD, filteredData.MAD.String()),
 			),
 		)
 	}
@@ -163,13 +163,13 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"price_aggregated",
-			sdk.NewAttribute("asset", asset),
-			sdk.NewAttribute("price", aggregatedPrice.String()),
-			sdk.NewAttribute("num_validators", fmt.Sprintf("%d", len(filteredData.ValidPrices))),
-			sdk.NewAttribute("num_outliers", fmt.Sprintf("%d", len(filteredData.FilteredOutliers))),
-			sdk.NewAttribute("median", filteredData.Median.String()),
-			sdk.NewAttribute("mad", filteredData.MAD.String()),
+			types.EventTypeOraclePriceAggregated,
+			sdk.NewAttribute(types.AttributeKeyAsset, asset),
+			sdk.NewAttribute(types.AttributeKeyPrice, aggregatedPrice.String()),
+			sdk.NewAttribute(types.AttributeKeyNumValidators, fmt.Sprintf("%d", len(filteredData.ValidPrices))),
+			sdk.NewAttribute(types.AttributeKeyNumOutliers, fmt.Sprintf("%d", len(filteredData.FilteredOutliers))),
+			sdk.NewAttribute(types.AttributeKeyMedian, filteredData.Median.String()),
+			sdk.NewAttribute(types.AttributeKeyMAD, filteredData.MAD.String()),
 		),
 	)
 
