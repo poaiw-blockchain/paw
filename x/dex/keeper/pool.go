@@ -44,10 +44,10 @@ func (k Keeper) SetNextPoolId(ctx context.Context, poolID uint64) {
 func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, tokenB string, amountA, amountB math.Int) (*types.Pool, error) {
 	// Validate inputs
 	if tokenA == tokenB {
-		return nil, fmt.Errorf("cannot create pool with identical tokens")
+		return nil, types.ErrInvalidTokenPair.Wrap("cannot create pool with identical tokens")
 	}
 	if amountA.IsZero() || amountB.IsZero() {
-		return nil, fmt.Errorf("initial liquidity amounts must be positive")
+		return nil, types.ErrInvalidLiquidityAmount.Wrap("initial liquidity amounts must be positive")
 	}
 
 	// Ensure consistent token ordering
@@ -59,7 +59,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	// Check if pool already exists
 	existingPool, err := k.GetPoolByTokens(ctx, tokenA, tokenB)
 	if err == nil && existingPool != nil {
-		return nil, fmt.Errorf("pool already exists for token pair %s/%s", tokenA, tokenB)
+		return nil, types.ErrPoolAlreadyExists.Wrapf("pool already exists for token pair %s/%s", tokenA, tokenB)
 	}
 
 	// Check minimum liquidity requirement
@@ -74,7 +74,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	initialShares := sqrtShares.TruncateInt()
 
 	if initialShares.LT(params.MinLiquidity) {
-		return nil, fmt.Errorf("initial liquidity too low: %s < %s", initialShares, params.MinLiquidity)
+		return nil, types.ErrInvalidLiquidityAmount.Wrapf("initial liquidity too low: %s < %s", initialShares, params.MinLiquidity)
 	}
 
 	// Get next pool ID
@@ -117,20 +117,20 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	coinB := sdk.NewCoin(tokenB, amountB)
 
 	if err := k.bankKeeper.SendCoins(sdkCtx, creator, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
-		return nil, fmt.Errorf("failed to transfer tokens: %w", err)
+		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %w", err)
 	}
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"pool_created",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("creator", creator.String()),
-			sdk.NewAttribute("token_a", tokenA),
-			sdk.NewAttribute("token_b", tokenB),
-			sdk.NewAttribute("amount_a", amountA.String()),
-			sdk.NewAttribute("amount_b", amountB.String()),
-			sdk.NewAttribute("shares", initialShares.String()),
+			types.EventTypeDexPoolCreated,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(types.AttributeKeyTokenA, tokenA),
+			sdk.NewAttribute(types.AttributeKeyTokenB, tokenB),
+			sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, initialShares.String()),
 		),
 	)
 
@@ -142,7 +142,7 @@ func (k Keeper) GetPool(ctx context.Context, poolID uint64) (*types.Pool, error)
 	store := k.getStore(ctx)
 	bz := store.Get(PoolKey(poolID))
 	if bz == nil {
-		return nil, fmt.Errorf("pool %d not found", poolID)
+		return nil, types.ErrPoolNotFound.Wrapf("pool %d not found", poolID)
 	}
 
 	var pool types.Pool
@@ -173,7 +173,7 @@ func (k Keeper) GetPoolByTokens(ctx context.Context, tokenA, tokenB string) (*ty
 	store := k.getStore(ctx)
 	bz := store.Get(PoolByTokensKey(tokenA, tokenB))
 	if bz == nil {
-		return nil, fmt.Errorf("pool not found for token pair %s/%s", tokenA, tokenB)
+		return nil, types.ErrPoolNotFound.Wrapf("pool not found for token pair %s/%s", tokenA, tokenB)
 	}
 
 	poolID := binary.BigEndian.Uint64(bz)

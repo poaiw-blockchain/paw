@@ -103,6 +103,18 @@ var (
 
 	// ErrPriceDeviation is returned when pool price deviates excessively from oracle price
 	ErrPriceDeviation = sdkerrors.Register(ModuleName, 27, "price deviation too high")
+
+	// ErrOrderNotFound is returned when a limit order doesn't exist
+	ErrOrderNotFound = sdkerrors.Register(ModuleName, 32, "limit order not found")
+
+	// ErrInvalidOrder is returned when order parameters are invalid
+	ErrInvalidOrder = sdkerrors.Register(ModuleName, 33, "invalid order")
+
+	// ErrOrderNotAuthorized is returned when caller is not the order owner
+	ErrOrderNotAuthorized = sdkerrors.Register(ModuleName, 34, "not authorized to modify order")
+
+	// ErrOrderNotCancellable is returned when order cannot be cancelled
+	ErrOrderNotCancellable = sdkerrors.Register(ModuleName, 35, "order cannot be cancelled")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions

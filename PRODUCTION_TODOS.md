@@ -329,10 +329,10 @@
 - [ ] Create OpenAPI 3.0 specification
 - [ ] Document all endpoints with examples
 
-### DOC-MED-5: Module-Level READMEs Missing
-- [ ] Create `x/dex/README.md`
-- [ ] Create `x/oracle/README.md`
-- [ ] Create `x/compute/README.md`
+### DOC-MED-5: Module-Level READMEs Missing ✅ COMPLETED
+- [x] Create `x/dex/README.md` (already existed, comprehensive)
+- [x] Create `x/oracle/README.md` (already existed, comprehensive)
+- [x] Create `x/compute/README.md` (created with comprehensive documentation)
 
 ---
 

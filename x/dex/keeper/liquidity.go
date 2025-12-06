@@ -46,7 +46,7 @@ func (k Keeper) SetLiquidity(ctx context.Context, poolID uint64, provider sdk.Ac
 func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolID uint64, amountA, amountB math.Int) (math.Int, error) {
 	// Validate inputs
 	if amountA.IsZero() || amountB.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("liquidity amounts must be positive")
+		return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("liquidity amounts must be positive")
 	}
 
 	// Get pool
@@ -83,7 +83,7 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 	}
 
 	if newShares.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("liquidity contribution too small")
+		return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("liquidity contribution too small")
 	}
 
 	// Update pool reserves and total shares
@@ -113,7 +113,7 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 	coinB := sdk.NewCoin(pool.TokenB, finalAmountB)
 
 	if err := k.bankKeeper.SendCoins(sdkCtx, provider, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
-		return math.ZeroInt(), fmt.Errorf("failed to transfer tokens: %w", err)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %w", err)
 	}
 
 	// Emit event
@@ -142,7 +142,7 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, poolID uint64, shares math.Int) (math.Int, math.Int, error) {
 	// Validate inputs
 	if shares.IsZero() {
-		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("shares must be positive")
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrap("shares must be positive")
 	}
 
 	// Get pool
@@ -158,7 +158,7 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 	}
 
 	if shares.GT(userShares) {
-		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("insufficient shares: have %s, need %s", userShares, shares)
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf("have %s, need %s", userShares, shares)
 	}
 
 	// Calculate amounts to return (proportional to shares)
@@ -166,7 +166,7 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 	amountB := shares.Mul(pool.ReserveB).Quo(pool.TotalShares)
 
 	if amountA.IsZero() || amountB.IsZero() {
-		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("withdrawal amounts too small")
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("withdrawal amounts too small")
 	}
 
 	// Update pool reserves and total shares
@@ -192,7 +192,7 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 	coinB := sdk.NewCoin(pool.TokenB, amountB)
 
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, provider, sdk.NewCoins(coinA, coinB)); err != nil {
-		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("failed to transfer tokens: %w", err)
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %w", err)
 	}
 
 	// Emit event

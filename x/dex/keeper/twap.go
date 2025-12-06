@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"cosmossdk.io/math"
@@ -71,7 +70,7 @@ func (k Keeper) UpdateCumulativePriceOnSwap(ctx context.Context, poolID uint64, 
 	// Get existing TWAP record or create new one
 	record, found, err := k.GetPoolTWAP(ctx, poolID)
 	if err != nil {
-		return fmt.Errorf("failed to get pool TWAP: %w", err)
+		return types.ErrInvalidState.Wrapf("failed to get pool TWAP: %w", err)
 	}
 
 	if !found {
@@ -109,7 +108,7 @@ func (k Keeper) UpdateCumulativePriceOnSwap(ctx context.Context, poolID uint64, 
 
 	// Persist updated TWAP record
 	if err := k.SetPoolTWAP(ctx, *record); err != nil {
-		return fmt.Errorf("failed to save pool TWAP: %w", err)
+		return types.ErrInvalidState.Wrapf("failed to save pool TWAP: %w", err)
 	}
 
 	sdkCtx.Logger().Debug("updated cumulative price on swap",
@@ -137,7 +136,7 @@ func (k Keeper) UpdateCumulativePriceOnSwap(ctx context.Context, poolID uint64, 
 // Front-running attacks cannot manipulate the entire historical cumulative price.
 func (k Keeper) GetTWAP(ctx context.Context, poolID uint64, startTime, endTime int64) (math.LegacyDec, error) {
 	if endTime <= startTime {
-		return math.LegacyZeroDec(), fmt.Errorf("invalid time range: end %d <= start %d", endTime, startTime)
+		return math.LegacyZeroDec(), types.ErrInvalidInput.Wrapf("invalid time range: end %d <= start %d", endTime, startTime)
 	}
 
 	// For this simplified implementation, we use the current cumulative state
@@ -148,7 +147,7 @@ func (k Keeper) GetTWAP(ctx context.Context, poolID uint64, startTime, endTime i
 	}
 
 	if !found {
-		return math.LegacyZeroDec(), fmt.Errorf("no TWAP data for pool %d", poolID)
+		return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("no TWAP data for pool %d", poolID)
 	}
 
 	// If we have accumulated time, return the TWAP
@@ -161,7 +160,7 @@ func (k Keeper) GetTWAP(ctx context.Context, poolID uint64, startTime, endTime i
 		return record.LastPrice, nil
 	}
 
-	return math.LegacyZeroDec(), fmt.Errorf("no price data available for pool %d", poolID)
+	return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("no price data available for pool %d", poolID)
 }
 
 // GetCurrentTWAP returns the current TWAP for a pool (convenience method).
@@ -173,7 +172,7 @@ func (k Keeper) GetCurrentTWAP(ctx context.Context, poolID uint64) (math.LegacyD
 	}
 
 	if !found {
-		return math.LegacyZeroDec(), fmt.Errorf("no TWAP data for pool %d", poolID)
+		return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("no TWAP data for pool %d", poolID)
 	}
 
 	if !record.TwapPrice.IsNil() {
@@ -184,5 +183,5 @@ func (k Keeper) GetCurrentTWAP(ctx context.Context, poolID uint64) (math.LegacyD
 		return record.LastPrice, nil
 	}
 
-	return math.LegacyZeroDec(), fmt.Errorf("no price data available for pool %d", poolID)
+	return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("no price data available for pool %d", poolID)
 }

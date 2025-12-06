@@ -190,7 +190,7 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		sdk.NewEvent(
 			types.EventTypeDexSwap,
 			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("trader", trader.String()),
+			sdk.NewAttribute(types.AttributeKeyTrader, trader.String()),
 			sdk.NewAttribute(types.AttributeKeyTokenIn, tokenIn),
 			sdk.NewAttribute(types.AttributeKeyTokenOut, tokenOut),
 			sdk.NewAttribute(types.AttributeKeyAmountIn, amountIn.String()),

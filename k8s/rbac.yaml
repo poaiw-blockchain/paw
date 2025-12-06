@@ -1,0 +1,488 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alertmanager
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki
+  namespace: paw-blockchain
+  labels:
+    app: loki
+    component: monitoring
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: paw-blockchain
+  labels:
+    app: promtail
+    component: monitoring
+
+---
+# ClusterRole for Prometheus - Pod and service discovery across namespaces
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+    component: monitoring
+rules:
+  # Pod discovery - required for scraping pod metrics
+  - apiGroups: ['']
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ['get', 'list', 'watch']
+
+  # Service discovery
+  - apiGroups: ['']
+    resources:
+      - configmaps
+    verbs: ['get']
+
+  # Ingress discovery for metrics
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs: ['get', 'list', 'watch']
+
+  # Read access to non-resource URLs (for /metrics endpoint)
+  - nonResourceURLs:
+      - /metrics
+      - /metrics/cadvisor
+    verbs: ['get']
+
+---
+# ClusterRoleBinding for Prometheus
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: paw-blockchain
+
+---
+# Role for Prometheus - ConfigMap and Secret access within namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-namespace
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+rules:
+  - apiGroups: ['']
+    resources:
+      - configmaps
+      - secrets
+    verbs: ['get', 'list', 'watch']
+
+  # Allow Prometheus to update its own config via ConfigMap
+  - apiGroups: ['']
+    resources:
+      - configmaps
+    resourceNames:
+      - prometheus-config
+    verbs: ['update']
+
+---
+# RoleBinding for Prometheus namespace permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-namespace
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus-namespace
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: paw-blockchain
+
+---
+# Role for Alertmanager - ConfigMap and Secret access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: alertmanager
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+rules:
+  - apiGroups: ['']
+    resources:
+      - configmaps
+      - secrets
+    verbs: ['get', 'list', 'watch']
+
+---
+# RoleBinding for Alertmanager
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alertmanager
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: alertmanager
+subjects:
+  - kind: ServiceAccount
+    name: alertmanager
+    namespace: paw-blockchain
+
+---
+# Role for Grafana - ConfigMap and Secret access for dashboards and datasources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+rules:
+  - apiGroups: ['']
+    resources:
+      - configmaps
+      - secrets
+    verbs: ['get', 'list', 'watch']
+
+  # Allow Grafana to read dashboard ConfigMaps
+  - apiGroups: ['']
+    resources:
+      - configmaps
+    resourceNames:
+      - grafana-dashboards
+      - grafana-datasources
+    verbs: ['get', 'watch']
+
+---
+# RoleBinding for Grafana
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: paw-blockchain
+
+---
+# ClusterRole for Promtail - Log collection from all pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail
+  labels:
+    app: promtail
+    component: monitoring
+rules:
+  # Pod discovery for log collection
+  - apiGroups: ['']
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ['get', 'list', 'watch']
+
+---
+# ClusterRoleBinding for Promtail
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: promtail
+  labels:
+    app: promtail
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: promtail
+subjects:
+  - kind: ServiceAccount
+    name: promtail
+    namespace: paw-blockchain
+
+---
+# Role for Loki - ConfigMap and Secret access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: loki
+  namespace: paw-blockchain
+  labels:
+    app: loki
+    component: monitoring
+rules:
+  - apiGroups: ['']
+    resources:
+      - configmaps
+      - secrets
+    verbs: ['get', 'list', 'watch']
+
+---
+# RoleBinding for Loki
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: loki
+  namespace: paw-blockchain
+  labels:
+    app: loki
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: loki
+subjects:
+  - kind: ServiceAccount
+    name: loki
+    namespace: paw-blockchain
+
+---
+# ServiceAccount for PAW blockchain nodes
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+    component: blockchain
+
+---
+# Role for PAW nodes - ConfigMap and Secret access for blockchain config
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+    component: blockchain
+rules:
+  - apiGroups: ['']
+    resources:
+      - configmaps
+      - secrets
+    verbs: ['get', 'list', 'watch']
+
+  # Allow nodes to read genesis and chain config
+  - apiGroups: ['']
+    resources:
+      - configmaps
+    resourceNames:
+      - genesis-config
+      - node-config
+    verbs: ['get']
+
+---
+# RoleBinding for PAW nodes
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paw-node
+  namespace: paw-blockchain
+  labels:
+    app: paw-node
+    component: blockchain
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: paw-node
+subjects:
+  - kind: ServiceAccount
+    name: paw-node
+    namespace: paw-blockchain
+
+---
+# PodSecurityPolicy for monitoring components (if PSP is enabled)
+# Note: PodSecurityPolicy is deprecated in K8s 1.25+, use Pod Security Standards instead
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: monitoring-psp
+  labels:
+    component: monitoring
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+
+---
+# Role to use the PodSecurityPolicy
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: use-monitoring-psp
+  namespace: paw-blockchain
+  labels:
+    component: monitoring
+rules:
+  - apiGroups: ['policy']
+    resources: ['podsecuritypolicies']
+    verbs: ['use']
+    resourceNames:
+      - monitoring-psp
+
+---
+# RoleBinding for PSP - Prometheus
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-use-psp
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+roleRef:
+  kind: Role
+  name: use-monitoring-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: paw-blockchain
+
+---
+# RoleBinding for PSP - Grafana
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-use-psp
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+roleRef:
+  kind: Role
+  name: use-monitoring-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: grafana
+    namespace: paw-blockchain
+
+---
+# RoleBinding for PSP - Alertmanager
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alertmanager-use-psp
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+roleRef:
+  kind: Role
+  name: use-monitoring-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: alertmanager
+    namespace: paw-blockchain
+
+---
+# RoleBinding for PSP - Loki
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: loki-use-psp
+  namespace: paw-blockchain
+  labels:
+    app: loki
+    component: monitoring
+roleRef:
+  kind: Role
+  name: use-monitoring-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: loki
+    namespace: paw-blockchain

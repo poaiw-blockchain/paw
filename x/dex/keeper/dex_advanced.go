@@ -416,11 +416,11 @@ func (k Keeper) DetectSandwichAttack(ctx context.Context, poolID uint64, trader 
 			// Emit warning event
 			sdkCtx.EventManager().EmitEvent(
 				sdk.NewEvent(
-					"potential_sandwich_attack",
-					sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-					sdk.NewAttribute("trader", trader.String()),
-					sdk.NewAttribute("swap_percentage", swapPercentage.String()),
-					sdk.NewAttribute("blocks_apart", fmt.Sprintf("%d", sdkCtx.BlockHeight()-lastBlock)),
+					types.EventTypeDexPotentialSandwichAttack,
+					sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+					sdk.NewAttribute(types.AttributeKeyTrader, trader.String()),
+					sdk.NewAttribute(types.AttributeKeySwapPercentage, swapPercentage.String()),
+					sdk.NewAttribute(types.AttributeKeyBlocksApart, fmt.Sprintf("%d", sdkCtx.BlockHeight()-lastBlock)),
 				),
 			)
 

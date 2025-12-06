@@ -8,6 +8,7 @@ const (
 	EventTypeDexSwapFailed  = "dex_swap_failed"
 	EventTypeDexLimitOrder  = "dex_limit_order"
 	EventTypeDexOrderFilled = "dex_order_filled"
+	EventTypeDexOrderCancelled = "limit_order_cancelled"
 
 	// Liquidity events
 	EventTypeDexAddLiquidity    = "dex_add_liquidity"
@@ -22,6 +23,7 @@ const (
 	EventTypeDexLargeSwap             = "dex_large_swap"
 	EventTypeDexLargeLiquidityAddition = "dex_large_liquidity_addition"
 	EventTypeDexSlippageExceeded      = "dex_slippage_exceeded"
+	EventTypeDexPotentialSandwichAttack = "potential_sandwich_attack"
 
 	// Cross-chain events
 	EventTypeDexCrossChainSwap        = "dex_cross_chain_swap"
@@ -38,6 +40,7 @@ const (
 const (
 	// Common attributes
 	AttributeKeySender    = "sender"
+	AttributeKeyTrader    = "trader"
 	AttributeKeyProvider  = "provider"
 	AttributeKeyRecipient = "recipient"
 	AttributeKeyPoolID    = "pool_id"
@@ -50,12 +53,13 @@ const (
 	AttributeKeyDenom     = "denom"
 
 	// Amount attributes
-	AttributeKeyAmount       = "amount"
-	AttributeKeyAmountIn     = "amount_in"
-	AttributeKeyAmountOut    = "amount_out"
-	AttributeKeyMinAmountOut = "min_amount_out"
-	AttributeKeyAmountA      = "amount_a"
-	AttributeKeyAmountB      = "amount_b"
+	AttributeKeyAmount         = "amount"
+	AttributeKeyAmountIn       = "amount_in"
+	AttributeKeyAmountOut      = "amount_out"
+	AttributeKeyMinAmountOut   = "min_amount_out"
+	AttributeKeyAmountA        = "amount_a"
+	AttributeKeyAmountB        = "amount_b"
+	AttributeKeyRefundedAmount = "refunded_amount"
 
 	// Liquidity attributes
 	AttributeKeyShares       = "shares"
@@ -84,10 +88,12 @@ const (
 	AttributeKeyOrderStatus = "order_status"
 
 	// Security attributes
-	AttributeKeyPercentage   = "percentage"
-	AttributeKeyMaxAllowed   = "max_allowed"
-	AttributeKeyBlockHeight  = "block_height"
-	AttributeKeyTimestamp    = "timestamp"
+	AttributeKeyPercentage     = "percentage"
+	AttributeKeySwapPercentage = "swap_percentage"
+	AttributeKeyBlocksApart    = "blocks_apart"
+	AttributeKeyMaxAllowed     = "max_allowed"
+	AttributeKeyBlockHeight    = "block_height"
+	AttributeKeyTimestamp      = "timestamp"
 
 	// Cross-chain attributes
 	AttributeKeySwapID      = "swap_id"
