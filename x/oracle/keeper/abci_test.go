@@ -149,28 +149,32 @@ func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 		assets[i] = fmt.Sprintf("ASSET%d/USD", i)
 	}
 
-	// Create outlier history for all pairs across 50 blocks
-	// Half should be old (eligible for cleanup), half recent
+	// Create outlier history for all pairs across many blocks
+	// Create old entries (should be cleaned) far in the past
+	// Create recent entries (should be kept) within the retention window
 	store := ctx.KVStore(k.GetStoreKey())
-	minHeight := currentHeight - keeper.OutlierReputationWindow
+
+	// Use a safety margin to ensure recent entries stay recent across all cleanup runs
+	// minHeight at block 10000 = 9000
+	// minHeight at block 10099 = 9099
+	// So we need recent entries to be >= 9100 to stay safe across 100 blocks
+	safeRecentThreshold := currentHeight - keeper.OutlierReputationWindow + 100
 
 	oldEntriesCount := 0
 	recentEntriesCount := 0
 
 	for _, val := range validators {
 		for _, asset := range assets {
-			// Old entries (should be cleaned up)
-			for h := minHeight - 50; h < minHeight-10; h++ {
-				if h > 0 {
-					key := makeOutlierKey(val.String(), asset, h)
-					value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
-					store.Set(key, []byte(value))
-					oldEntriesCount++
-				}
+			// Old entries (should be cleaned up) - well before the retention window
+			for h := int64(8900); h < 8940; h++ {
+				key := makeOutlierKey(val.String(), asset, h)
+				value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
+				store.Set(key, []byte(value))
+				oldEntriesCount++
 			}
 
-			// Recent entries (should be kept)
-			for h := minHeight; h < minHeight+10; h++ {
+			// Recent entries (should be kept) - well within retention window
+			for h := safeRecentThreshold; h < safeRecentThreshold+10; h++ {
 				key := makeOutlierKey(val.String(), asset, h)
 				value := fmt.Sprintf("%d:%d", 1, h) // SeverityLow
 				store.Set(key, []byte(value))
@@ -181,18 +185,19 @@ func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 
 	t.Logf("Created %d old entries and %d recent entries", oldEntriesCount, recentEntriesCount)
 
-	// Run cleanup - should process work across multiple blocks due to amortization
-	// Run for 100 blocks to ensure full cycle
+	// Run cleanup across multiple blocks to test amortization
+	// The cleanup should process different validator-asset pairs in different blocks
 	totalCleaned := 0
 	totalProcessed := 0
 
 	for blockOffset := int64(0); blockOffset < 100; blockOffset++ {
-		ctx = ctx.WithBlockHeight(currentHeight + blockOffset).WithEventManager(sdk.NewEventManager())
-		err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+		testCtx := ctx.WithBlockHeight(currentHeight + blockOffset).WithEventManager(sdk.NewEventManager())
+
+		err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(testCtx))
 		require.NoError(t, err)
 
 		// Check event for this block's cleanup stats
-		events := ctx.EventManager().Events()
+		events := testCtx.EventManager().Events()
 		for _, evt := range events {
 			if evt.Type == "outlier_history_cleaned" {
 				for _, attr := range evt.Attributes {
@@ -220,7 +225,7 @@ func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 	recentStillPresent := 0
 	for _, val := range validators {
 		for _, asset := range assets {
-			for h := minHeight; h < minHeight+10; h++ {
+			for h := safeRecentThreshold; h < safeRecentThreshold+10; h++ {
 				key := makeOutlierKey(val.String(), asset, h)
 				if store.Has(key) {
 					recentStillPresent++
