@@ -164,3 +164,11 @@ func CreateTestPool(t testing.TB, k *keeper.Keeper, ctx sdk.Context, tokenA, tok
 	require.Greater(t, pool.Id, uint64(0))
 	return pool.Id
 }
+
+// FundAccount mints tokens and sends them to an account for testing purposes
+func FundAccount(t testing.TB, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress, coins sdk.Coins) {
+	t.Helper()
+	bk := k.BankKeeper()
+	require.NoError(t, bk.MintCoins(ctx, types.ModuleName, coins))
+	require.NoError(t, bk.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins))
+}
