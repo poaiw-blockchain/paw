@@ -17,7 +17,7 @@ COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-w -s" -o status-server .
 
 # Runtime stage
-FROM alpine:latest
+FROM alpine:3.21.0
 
 RUN apk --no-cache add ca-certificates curl
 

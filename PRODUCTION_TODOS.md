@@ -275,13 +275,13 @@
 - **File:** `x/dex/keeper/oracle_integration.go`
 - [ ] Add cross-module integration tests
 
-### INFRA-MED-1: Docker Base Images Not Pinned
+### INFRA-MED-1: Docker Base Images Not Pinned ✅ COMPLETED
 - **Issue:** Using `alpine:3.18`, `3.19`, `3.20` inconsistently
-- [ ] Pin to specific patch versions
-- [ ] Add Trivy image scanning
+- [x] Pin to specific patch versions
+- [x] Add Trivy image scanning
 
-### INFRA-MED-2: Docker Compose Healthchecks Inconsistent
-- [ ] Add healthchecks to all services
+### INFRA-MED-2: Docker Compose Healthchecks Inconsistent ✅ COMPLETED
+- [x] Add healthchecks to all services
 
 ### INFRA-MED-3: K8s RBAC Incomplete ✅ COMPLETED
 - **File:** `k8s/monitoring-deployment.yaml:278-320`
