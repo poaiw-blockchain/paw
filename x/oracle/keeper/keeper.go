@@ -99,20 +99,22 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 	return nil
 }
 
-// IsAuthorizedChannel returns true if the provided IBC port/channel pair is whitelisted.
-func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
+// IsAuthorizedChannel returns nil error if the provided IBC port/channel pair is whitelisted.
+// Returns an error if the channel is not authorized or if params cannot be loaded.
+func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		ctx.Logger().Error("failed to load oracle params for channel authorization", "error", err)
-		return false
+		return err
 	}
 
 	for _, ch := range params.AuthorizedChannels {
 		if ch.PortId == portID && ch.ChannelId == channelID {
-			return true
+			return nil // Authorized
 		}
 	}
-	return false
+
+	return types.ErrUnauthorizedChannel
 }
 
 // AuthorizeChannel appends a new port/channel pair to the allowed list, preventing duplicates.

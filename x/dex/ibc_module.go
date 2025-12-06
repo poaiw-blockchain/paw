@@ -37,6 +37,9 @@ type IBCModule struct {
 
 // NewIBCModule creates a new IBCModule given the keeper and codec
 func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
+	// Create adapter to make keeper compatible with shared interfaces
+	adapter := newKeeperAdapter(&keeper)
+
 	return IBCModule{
 		keeper: keeper,
 		cdc:    cdc,
@@ -44,9 +47,9 @@ func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
 			types.IBCVersion,
 			types.PortID,
 			channeltypes.UNORDERED, // DEX uses unordered channels for better throughput
-			&keeper,
+			adapter,
 		),
-		packetValidator: sharedibc.NewPacketValidator(&keeper, &keeper),
+		packetValidator: sharedibc.NewPacketValidator(adapter, adapter),
 		ackHelper:       sharedibc.NewAcknowledgementHelper(),
 		eventEmitter:    sharedibc.NewEventEmitter(),
 	}

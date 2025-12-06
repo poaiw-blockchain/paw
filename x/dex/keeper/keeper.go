@@ -87,20 +87,22 @@ func (k Keeper) BankKeeper() bankkeeper.Keeper {
 	return k.bankKeeper
 }
 
-// IsAuthorizedChannel returns true if the provided port/channel pair is allowed to relay packets.
-func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
+// IsAuthorizedChannel returns nil error if the provided port/channel pair is allowed to relay packets.
+// Returns an error if the channel is not authorized or if params cannot be loaded.
+func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		ctx.Logger().Error("failed to load dex params for channel authorization", "error", err)
-		return false
+		return err
 	}
 
 	for _, ch := range params.AuthorizedChannels {
 		if ch.PortId == portID && ch.ChannelId == channelID {
-			return true
+			return nil // Authorized
 		}
 	}
-	return false
+
+	return dextypes.ErrUnauthorizedChannel
 }
 
 // AuthorizeChannel adds a port/channel pair to the allowlist, deduplicating entries.

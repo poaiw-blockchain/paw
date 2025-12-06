@@ -1,9 +1,11 @@
 package ibc
 
 import (
+	"errors"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
@@ -18,7 +20,7 @@ type mockPacketData struct {
 
 func (m mockPacketData) ValidateBasic() error {
 	if !m.valid {
-		return sdk.ErrInvalidRequest.Wrap("invalid packet data")
+		return errors.New("invalid packet data")
 	}
 	return nil
 }
@@ -33,7 +35,7 @@ type mockNonceValidator struct {
 
 func (m *mockNonceValidator) ValidateIncomingPacketNonce(ctx sdk.Context, sourceChannel, sender string, nonce uint64, timestamp int64) error {
 	if m.shouldFail {
-		return sdk.ErrInvalidRequest.Wrap("invalid nonce")
+		return errors.New("invalid nonce")
 	}
 	return nil
 }
@@ -44,7 +46,7 @@ type mockChannelAuthorizer struct {
 
 func (m *mockChannelAuthorizer) IsAuthorizedChannel(ctx sdk.Context, sourcePort, sourceChannel string) error {
 	if m.shouldFail {
-		return sdk.ErrUnauthorized.Wrap("unauthorized channel")
+		return sdkerrors.ErrUnauthorized
 	}
 	return nil
 }
@@ -55,7 +57,7 @@ type mockCapabilityClaimer struct {
 
 func (m *mockCapabilityClaimer) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	if m.shouldFail {
-		return sdk.ErrInvalidRequest.Wrap("failed to claim capability")
+		return errors.New("failed to claim capability")
 	}
 	return nil
 }
@@ -71,7 +73,7 @@ func (m *mockChannelCloseHandler) GetPendingOperations(ctx sdk.Context, channelI
 
 func (m *mockChannelCloseHandler) RefundOnChannelClose(ctx sdk.Context, op PendingOperation) error {
 	if m.refundShouldFail {
-		return sdk.ErrInvalidRequest.Wrap("refund failed")
+		return errors.New("refund failed")
 	}
 	return nil
 }
@@ -537,7 +539,7 @@ func TestCreateSuccessAck(t *testing.T) {
 }
 
 func TestCreateErrorAck(t *testing.T) {
-	err := sdk.ErrInvalidRequest.Wrap("test error")
+	err := errors.New("test error")
 	ack := CreateErrorAck(err)
 
 	require.False(t, ack.Success())
