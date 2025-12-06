@@ -235,21 +235,13 @@ func TestChannelOpenValidator_ValidateChannelOpenInit(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "valid channel open init - unordered",
-			order:     channeltypes.UNORDERED,
-			portID:    "test-port",
-			channelID: "channel-0",
-			version:   "v1",
-			wantErr:   false,
-		},
-		{
 			name:        "invalid channel ordering",
 			order:       channeltypes.UNORDERED,
 			portID:      "test-port",
 			channelID:   "channel-0",
 			version:     "v1",
 			wantErr:     true,
-			errContains: "expected ORDERED channel",
+			errContains: "invalid channel ordering",
 		},
 		{
 			name:        "invalid version",
@@ -346,7 +338,7 @@ func TestChannelOpenValidator_ValidateChannelOpenTry(t *testing.T) {
 			channelID:           "channel-0",
 			counterpartyVersion: "v1",
 			wantErr:             true,
-			errContains:         "expected ORDERED channel",
+			errContains:         "invalid channel ordering",
 		},
 		{
 			name:                "invalid counterparty version",

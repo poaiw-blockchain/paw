@@ -254,12 +254,14 @@ func HandleChannelClose(
 
 	for _, op := range pending {
 		if err := handler.RefundOnChannelClose(ctx, op); err != nil {
-			ctx.Logger().Error("failed to cleanup channel operation",
-				"channel", channelID,
-				"sequence", op.Sequence,
-				"type", op.PacketType,
-				"error", err,
-			)
+			if logger := ctx.Logger(); logger != nil {
+				logger.Error("failed to cleanup channel operation",
+					"channel", channelID,
+					"sequence", op.Sequence,
+					"type", op.PacketType,
+					"error", err,
+				)
+			}
 			continue
 		}
 		cleaned++
