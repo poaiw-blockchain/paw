@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -1305,10 +1306,16 @@ func (suite *ComputeSecuritySuite) createValidProofWithNonce(provider sdk.AccAdd
 		leafHashes[i] = hash[:]
 	}
 
-	// Build merkle root
+	// Build merkle root with canonical ordering (smaller hash first)
+	// This matches the verification code which uses canonical ordering for security
 	hasher := sha256.New()
-	hasher.Write(leafHashes[0])
-	hasher.Write(leafHashes[1])
+	if bytes.Compare(leafHashes[0], leafHashes[1]) < 0 {
+		hasher.Write(leafHashes[0])
+		hasher.Write(leafHashes[1])
+	} else {
+		hasher.Write(leafHashes[1])
+		hasher.Write(leafHashes[0])
+	}
 	merkleRoot := hasher.Sum(nil)
 
 	// Merkle proof for leaf 0

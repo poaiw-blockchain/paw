@@ -394,7 +394,8 @@ func (k Keeper) calculateMAD(prices []sdkmath.LegacyDec, median sdkmath.LegacyDe
 	return madMedian.Mul(scaleFactor)
 }
 
-// calculateIQR calculates the Interquartile Range
+// calculateIQR calculates the Interquartile Range using linear interpolation (R-7 method).
+// This is the standard method used by R, Excel, and most statistical software.
 func (k Keeper) calculateIQR(prices []sdkmath.LegacyDec) (q1, q3, iqr sdkmath.LegacyDec) {
 	if len(prices) < 4 {
 		return sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec()
@@ -408,22 +409,37 @@ func (k Keeper) calculateIQR(prices []sdkmath.LegacyDec) (q1, q3, iqr sdkmath.Le
 	})
 
 	n := len(sorted)
+	nDec := sdkmath.LegacyNewDec(int64(n))
 
-	// Calculate Q1 (25th percentile)
-	q1Idx := n / 4
-	if n%4 == 0 {
-		q1 = sorted[q1Idx-1].Add(sorted[q1Idx]).Quo(sdkmath.LegacyNewDec(2))
-	} else {
-		q1 = sorted[q1Idx]
-	}
+	// R-7 method (standard): position = 1 + (n-1) * p
+	// For Q1 (p=0.25): position = 1 + (n-1) * 0.25
+	// For Q3 (p=0.75): position = 1 + (n-1) * 0.75
 
-	// Calculate Q3 (75th percentile)
-	q3Idx := (n * 3) / 4
-	if (n*3)%4 == 0 {
-		q3 = sorted[q3Idx-1].Add(sorted[q3Idx]).Quo(sdkmath.LegacyNewDec(2))
-	} else {
-		q3 = sorted[q3Idx]
+	// Calculate Q1 (25th percentile) using linear interpolation
+	q1Pos := sdkmath.LegacyOneDec().Add(nDec.Sub(sdkmath.LegacyOneDec()).Mul(sdkmath.LegacyNewDecWithPrec(25, 2)))
+	q1IdxLow := int(q1Pos.TruncateInt64()) - 1 // Convert to 0-based index
+	if q1IdxLow < 0 {
+		q1IdxLow = 0
 	}
+	q1IdxHigh := q1IdxLow + 1
+	if q1IdxHigh >= n {
+		q1IdxHigh = n - 1
+	}
+	q1Frac := q1Pos.Sub(sdkmath.LegacyNewDec(int64(q1IdxLow + 1)))
+	q1 = sorted[q1IdxLow].Add(sorted[q1IdxHigh].Sub(sorted[q1IdxLow]).Mul(q1Frac))
+
+	// Calculate Q3 (75th percentile) using linear interpolation
+	q3Pos := sdkmath.LegacyOneDec().Add(nDec.Sub(sdkmath.LegacyOneDec()).Mul(sdkmath.LegacyNewDecWithPrec(75, 2)))
+	q3IdxLow := int(q3Pos.TruncateInt64()) - 1 // Convert to 0-based index
+	if q3IdxLow < 0 {
+		q3IdxLow = 0
+	}
+	q3IdxHigh := q3IdxLow + 1
+	if q3IdxHigh >= n {
+		q3IdxHigh = n - 1
+	}
+	q3Frac := q3Pos.Sub(sdkmath.LegacyNewDec(int64(q3IdxLow + 1)))
+	q3 = sorted[q3IdxLow].Add(sorted[q3IdxHigh].Sub(sorted[q3IdxLow]).Mul(q3Frac))
 
 	iqr = q3.Sub(q1)
 	return q1, q3, iqr

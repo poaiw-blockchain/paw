@@ -1492,10 +1492,16 @@ func calculateStdDev(values []math.LegacyDec, mean math.LegacyDec) math.LegacyDe
 	}
 	variance = variance.Quo(math.LegacyNewDec(int64(len(values) - 1)))
 
-	// Approximate square root with defensive fallback
+	// Compute square root with security-conscious fallback
 	stdDev, err := variance.ApproxSqrt()
 	if err != nil {
-		return math.LegacyZeroDec()
+		// Security fallback: return conservative estimate (5% of mean) to ensure
+		// statistical validation remains active even on sqrt failure.
+		// Returning zero would disable outlier detection - unacceptable for security.
+		if mean.IsPositive() {
+			return mean.Mul(math.LegacyNewDecWithPrec(5, 2))
+		}
+		return math.LegacyNewDecWithPrec(1, 2) // 0.01 minimum fallback
 	}
 
 	return stdDev

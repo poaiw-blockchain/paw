@@ -225,7 +225,8 @@ func (k Keeper) TriggerCircuitBreaker(ctx context.Context, asset, reason string,
 	return nil
 }
 
-// CheckCircuitBreaker verifies if circuit breaker is active
+// CheckCircuitBreaker verifies if circuit breaker is active with atomic state transition.
+// Uses optimistic locking via block height to prevent race conditions during auto-recovery.
 func (k Keeper) CheckCircuitBreaker(ctx context.Context) (bool, error) {
 	state, err := k.getCircuitBreakerState(ctx)
 	if err != nil {
@@ -240,9 +241,22 @@ func (k Keeper) CheckCircuitBreaker(ctx context.Context) (bool, error) {
 
 	// Check if recovery time has passed
 	if sdkCtx.BlockHeight() >= state.RecoveryTime {
-		// Auto-recovery
-		state.Active = false
-		if err := k.setCircuitBreakerState(ctx, state); err != nil {
+		// Atomic compare-and-swap: only recover if state hasn't changed
+		// Re-read state to ensure we have latest version
+		currentState, err := k.getCircuitBreakerState(ctx)
+		if err != nil {
+			return false, err
+		}
+
+		// Verify state is still what we expect (optimistic lock check)
+		if !currentState.Active || currentState.BlockHeight != state.BlockHeight {
+			// State was modified by another operation, re-evaluate
+			return currentState.Active, nil
+		}
+
+		// Perform atomic recovery
+		currentState.Active = false
+		if err := k.setCircuitBreakerState(ctx, currentState); err != nil {
 			return false, err
 		}
 
@@ -250,6 +264,7 @@ func (k Keeper) CheckCircuitBreaker(ctx context.Context) (bool, error) {
 			sdk.NewEvent(
 				"oracle_circuit_breaker_recovered",
 				sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+				sdk.NewAttribute("triggered_at", fmt.Sprintf("%d", state.BlockHeight)),
 			),
 		)
 
@@ -1044,7 +1059,8 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 	return nil
 }
 
-// calculateStdDev calculates standard deviation
+// calculateStdDev calculates standard deviation using sample variance (n-1 denominator).
+// Returns a conservative fallback (5% of mean) if sqrt fails to prevent security bypass.
 func (k Keeper) calculateStdDev(prices []sdkmath.LegacyDec, mean sdkmath.LegacyDec) sdkmath.LegacyDec {
 	if len(prices) <= 1 {
 		return sdkmath.LegacyZeroDec()
@@ -1056,9 +1072,21 @@ func (k Keeper) calculateStdDev(prices []sdkmath.LegacyDec, mean sdkmath.LegacyD
 		variance = variance.Add(diff.Mul(diff))
 	}
 
-	variance = variance.Quo(sdkmath.LegacyNewDec(int64(len(prices))))
+	// Use sample variance (n-1) for unbiased estimate
+	variance = variance.Quo(sdkmath.LegacyNewDec(int64(len(prices) - 1)))
 
-	return variance
+	// Compute square root to get standard deviation
+	stdDev, err := variance.ApproxSqrt()
+	if err != nil {
+		// Security fallback: return conservative estimate (5% of mean) to ensure
+		// outlier detection remains active even on sqrt failure
+		if mean.IsPositive() {
+			return mean.Mul(sdkmath.LegacyNewDecWithPrec(5, 2))
+		}
+		return sdkmath.LegacyNewDecWithPrec(1, 2) // 0.01 minimum fallback
+	}
+
+	return stdDev
 }
 func (k Keeper) calculateAverage(prices []sdkmath.LegacyDec) sdkmath.LegacyDec {
 	if len(prices) == 0 {

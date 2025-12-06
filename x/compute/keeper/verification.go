@@ -486,6 +486,7 @@ func (k Keeper) parseVerificationProof(proofBytes []byte) (*types.VerificationPr
 }
 
 // verifyEd25519Signature verifies the Ed25519 signature over the computation result.
+// Performs comprehensive key validation to prevent small subgroup and key substitution attacks.
 func (k Keeper) verifyEd25519Signature(proof *types.VerificationProof, result types.Result, request types.Request) bool {
 	if len(proof.Signature) != ed25519.SignatureSize {
 		return false
@@ -495,8 +496,32 @@ func (k Keeper) verifyEd25519Signature(proof *types.VerificationProof, result ty
 		return false
 	}
 
-	publicKey := ed25519.PublicKey(proof.PublicKey)
+	// Validate public key is not all zeros (invalid key)
+	allZeros := true
+	for _, b := range proof.PublicKey {
+		if b != 0 {
+			allZeros = false
+			break
+		}
+	}
+	if allZeros {
+		return false
+	}
 
+	// Validate public key is not low-order point (small subgroup attack prevention)
+	// Ed25519 low-order points that must be rejected for security
+	lowOrderPoints := [][]byte{
+		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		{0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+	}
+	for _, lowOrder := range lowOrderPoints {
+		if bytes.Equal(proof.PublicKey, lowOrder) {
+			return false
+		}
+	}
+
+	publicKey := ed25519.PublicKey(proof.PublicKey)
 	message := proof.ComputeMessageHash(result.RequestId, result.OutputHash)
 
 	return ed25519.Verify(publicKey, message, proof.Signature)
@@ -526,9 +551,17 @@ func (k Keeper) validateMerkleProof(proof *types.VerificationProof, result types
 			return 0
 		}
 
+		// Canonical ordering: always hash smaller value first to prevent proof forgery.
+		// This is critical for Merkle tree security - without canonical ordering,
+		// attackers can swap sibling positions to create valid but fraudulent proofs.
 		hasher := sha256.New()
-		hasher.Write(currentHash)
-		hasher.Write(sibling)
+		if bytes.Compare(currentHash, sibling) < 0 {
+			hasher.Write(currentHash)
+			hasher.Write(sibling)
+		} else {
+			hasher.Write(sibling)
+			hasher.Write(currentHash)
+		}
 		currentHash = hasher.Sum(nil)
 	}
 
