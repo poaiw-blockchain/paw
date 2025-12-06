@@ -1,0 +1,447 @@
+{
+  "dashboard": {
+    "title": "PAW DEX Metrics",
+    "description": "DEX module metrics including trading volume, liquidity pools, and market activity",
+    "tags": ["paw", "dex", "trading", "liquidity"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Total Active Markets",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_active_markets_total",
+            "legendFormat": "Active Markets",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Total Trading Pairs",
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_trading_pairs_total",
+            "legendFormat": "Trading Pairs",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Total Liquidity Pools",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_liquidity_pools_total",
+            "legendFormat": "Pools",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Active Orders",
+        "gridPos": {
+          "x": 18,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_active_orders_total",
+            "legendFormat": "Active Orders",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "graph",
+        "title": "Trading Volume (24h)",
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_dex_trade_volume_total[24h])) by (market)",
+            "legendFormat": "{{market}} - Volume",
+            "refId": "A"
+          }
+        ],
+        "description": "Total trading volume across all markets in the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "graph",
+        "title": "Trade Count",
+        "gridPos": {
+          "x": 12,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_dex_trades_total[5m])",
+            "legendFormat": "{{market}} - Trades/sec",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of trades executed per second",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "tps"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "graph",
+        "title": "Liquidity Pool TVL",
+        "gridPos": {
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_pool_tvl_usd",
+            "legendFormat": "{{pool_id}} - TVL",
+            "refId": "A"
+          }
+        ],
+        "description": "Total Value Locked in each liquidity pool (USD equivalent)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "type": "graph",
+        "title": "Pool Liquidity Changes",
+        "gridPos": {
+          "x": 12,
+          "y": 12,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_dex_pool_liquidity_changes_total[5m])",
+            "legendFormat": "{{pool_id}} - {{action}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Rate of liquidity additions and removals per pool",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "type": "graph",
+        "title": "Order Book Depth",
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_orderbook_bid_depth",
+            "legendFormat": "{{market}} - Bid Depth",
+            "refId": "A"
+          },
+          {
+            "expr": "paw_dex_orderbook_ask_depth",
+            "legendFormat": "{{market}} - Ask Depth",
+            "refId": "B"
+          }
+        ],
+        "description": "Total quantity available in order books (bids and asks)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "graph",
+        "title": "Spread Percentage",
+        "gridPos": {
+          "x": 12,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_dex_spread_percentage",
+            "legendFormat": "{{market}} - Spread %",
+            "refId": "A"
+          }
+        ],
+        "description": "Bid-ask spread as percentage of mid price",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 2,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "graph",
+        "title": "Swap Transaction Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_dex_swaps_total[5m])",
+            "legendFormat": "{{pool_id}} - Swaps/sec",
+            "refId": "A"
+          }
+        ],
+        "description": "AMM swap transactions per second by pool",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "tps"
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "graph",
+        "title": "Slippage Distribution",
+        "gridPos": {
+          "x": 12,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_dex_swap_slippage_bucket[5m]))",
+            "legendFormat": "p50 Slippage",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_dex_swap_slippage_bucket[5m]))",
+            "legendFormat": "p95 Slippage",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_dex_swap_slippage_bucket[5m]))",
+            "legendFormat": "p99 Slippage",
+            "refId": "C"
+          }
+        ],
+        "description": "Distribution of slippage experienced in swaps",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "graph",
+        "title": "Failed Transactions",
+        "gridPos": {
+          "x": 0,
+          "y": 36,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_dex_failed_transactions_total[5m])",
+            "legendFormat": "{{reason}} - Failures/sec",
+            "refId": "A"
+          }
+        ],
+        "description": "Rate of failed DEX transactions by failure reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 1,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "graph",
+        "title": "Gas Used per DEX Operation",
+        "gridPos": {
+          "x": 12,
+          "y": 36,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "avg(paw_dex_gas_used) by (operation)",
+            "legendFormat": "{{operation}} - Avg Gas",
+            "refId": "A"
+          }
+        ],
+        "description": "Average gas consumed by different DEX operations",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "stat",
+        "title": "Maker/Taker Ratio",
+        "gridPos": {
+          "x": 0,
+          "y": 44,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_dex_maker_orders_total[1h])) / sum(rate(paw_dex_taker_orders_total[1h]))",
+            "legendFormat": "Maker/Taker",
+            "refId": "A"
+          }
+        ],
+        "description": "Ratio of maker to taker orders (healthy markets typically > 1)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 16,
+        "type": "graph",
+        "title": "Fee Collection",
+        "gridPos": {
+          "x": 6,
+          "y": 44,
+          "w": 18,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "increase(paw_dex_fees_collected_total[1h])",
+            "legendFormat": "{{denom}} - Fees (1h)",
+            "refId": "A"
+          }
+        ],
+        "description": "Total fees collected by the DEX in the last hour",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      }
+    ]
+  }
+}

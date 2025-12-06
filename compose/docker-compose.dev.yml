@@ -88,6 +88,12 @@ services:
       - paw-node
     networks:
       - paw-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   # PostgreSQL for indexing (optional)
   postgres:
@@ -145,6 +151,12 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
       - paw-network
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Grafana for visualization
   grafana:
@@ -164,6 +176,12 @@ services:
       - prometheus
     networks:
       - paw-network
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   paw-data:

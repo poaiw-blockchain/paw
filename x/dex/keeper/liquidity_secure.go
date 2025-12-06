@@ -347,12 +347,12 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 	// 14. Emit event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
-			"liquidity_removed",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("provider", provider.String()),
-			sdk.NewAttribute("amount_a", amountA.String()),
-			sdk.NewAttribute("amount_b", amountB.String()),
-			sdk.NewAttribute("shares", shares.String()),
+			types.EventTypeDexRemoveLiquidity,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, shares.String()),
 			sdk.NewAttribute("remaining_shares", newUserShares.String()),
 		),
 		sdk.NewEvent(

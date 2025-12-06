@@ -1,0 +1,450 @@
+{
+  "dashboard": {
+    "title": "PAW Blockchain Metrics",
+    "description": "Blockchain-specific metrics including consensus, validation, and chain health",
+    "tags": ["paw", "blockchain", "consensus", "validators"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "Consensus Round",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_rounds",
+            "legendFormat": "{{instance}} - Round",
+            "refId": "A"
+          }
+        ],
+        "description": "Current consensus round for block production. Higher rounds indicate validators are having difficulty reaching consensus.",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "Block Size",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_block_size_bytes",
+            "legendFormat": "{{instance}} - Block Size",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(tendermint_consensus_block_size_bytes[5m])",
+            "legendFormat": "{{instance}} - 5min Avg",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "graph",
+        "title": "Block Parts",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_block_parts",
+            "legendFormat": "{{instance}} - Block Parts",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of parts the block is divided into for transmission. Large blocks are split into multiple parts.",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "graph",
+        "title": "Validator Last Signed Height",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_validator_last_signed_height",
+            "legendFormat": "{{instance}} - {{validator_address}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Last block height signed by each validator. Gaps indicate missing signatures.",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Fast Sync Status",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_fast_syncing",
+            "legendFormat": "Fast Syncing",
+            "refId": "A"
+          }
+        ],
+        "description": "Whether node is currently fast-syncing (1) or synced (0)",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "type": "value",
+                "options": {
+                  "0": {
+                    "text": "Synced",
+                    "color": "green"
+                  },
+                  "1": {
+                    "text": "Syncing",
+                    "color": "yellow"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "State Syncing",
+        "gridPos": {
+          "x": 6,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "tendermint_statesync_syncing",
+            "legendFormat": "State Syncing",
+            "refId": "A"
+          }
+        ],
+        "description": "Whether node is currently state-syncing",
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "type": "value",
+                "options": {
+                  "0": {
+                    "text": "Not Syncing",
+                    "color": "green"
+                  },
+                  "1": {
+                    "text": "Syncing",
+                    "color": "yellow"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "graph",
+        "title": "Proposal/Prevote/Precommit Timing",
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(tendermint_consensus_proposal_receive_count_bucket[5m]))",
+            "legendFormat": "Proposal p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(tendermint_consensus_prevote_receive_count_bucket[5m]))",
+            "legendFormat": "Prevote p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(tendermint_consensus_precommit_receive_count_bucket[5m]))",
+            "legendFormat": "Precommit p95",
+            "refId": "C"
+          }
+        ],
+        "description": "Time taken for consensus messages (p95)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "type": "graph",
+        "title": "Block Interval",
+        "gridPos": {
+          "x": 0,
+          "y": 24,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_block_interval_seconds",
+            "legendFormat": "{{instance}} - Block Interval",
+            "refId": "A"
+          }
+        ],
+        "description": "Time between consecutive blocks. Should be around 4 seconds for PAW.",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "type": "graph",
+        "title": "Transactions per Block",
+        "gridPos": {
+          "x": 12,
+          "y": 24,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_num_txs",
+            "legendFormat": "{{instance}} - Txs/Block",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(tendermint_consensus_num_txs[5m])",
+            "legendFormat": "{{instance}} - 5min Avg",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "graph",
+        "title": "Validator Missed Blocks",
+        "gridPos": {
+          "x": 0,
+          "y": 32,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "increase(tendermint_consensus_validator_missed_blocks[1h])",
+            "legendFormat": "{{instance}} - {{validator_address}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of blocks missed by each validator in the last hour",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 10,
+                  "color": "yellow"
+                },
+                {
+                  "value": 50,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "graph",
+        "title": "Evidence Pool Size",
+        "gridPos": {
+          "x": 12,
+          "y": 32,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_evidence_pool_size",
+            "legendFormat": "{{instance}} - Evidence Pool",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of evidence entries (byzantine behavior) in the pool",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "graph",
+        "title": "Committed vs Proposed Height Lag",
+        "gridPos": {
+          "x": 0,
+          "y": 40,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "tendermint_consensus_height - tendermint_consensus_latest_block_height",
+            "legendFormat": "{{instance}} - Height Lag",
+            "refId": "A"
+          }
+        ],
+        "description": "Difference between consensus height and latest committed block. Should be minimal.",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "stat",
+        "title": "Total Staked Tokens",
+        "gridPos": {
+          "x": 12,
+          "y": 40,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "cosmos_staking_pool_bonded_tokens",
+            "legendFormat": "Bonded Tokens",
+            "refId": "A"
+          }
+        ],
+        "description": "Total tokens currently bonded in staking",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "stat",
+        "title": "Not Bonded Tokens",
+        "gridPos": {
+          "x": 18,
+          "y": 40,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "cosmos_staking_pool_not_bonded_tokens",
+            "legendFormat": "Not Bonded",
+            "refId": "A"
+          }
+        ],
+        "description": "Tokens in unbonding state",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      }
+    ]
+  }
+}

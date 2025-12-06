@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+data:
+  # Dashboard provisioning configuration
+  dashboard-provider.yml: |
+    apiVersion: 1
+    providers:
+      - name: 'PAW Blockchain'
+        orgId: 1
+        folder: 'PAW'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-node-metrics
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: node-metrics
+data:
+  node-metrics.json: |
+{{ .Files.Get "infra/grafana/dashboards/node-metrics.json" | indent 4 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-blockchain-metrics
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: blockchain-metrics
+data:
+  blockchain-metrics.json: |
+{{ .Files.Get "infra/grafana/dashboards/blockchain-metrics.json" | indent 4 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-dex-metrics
+  namespace: paw-blockchain
+  labels:
+    app: grafana
+    component: monitoring
+    dashboard: dex-metrics
+data:
+  dex-metrics.json: |
+{{ .Files.Get "infra/grafana/dashboards/dex-metrics.json" | indent 4 }}

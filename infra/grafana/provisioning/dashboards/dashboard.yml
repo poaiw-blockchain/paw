@@ -3,11 +3,38 @@ apiVersion: 1
 providers:
   - name: 'PAW Blockchain'
     orgId: 1
-    folder: ''
+    folder: 'PAW'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10
     allowUiUpdates: true
     options:
-      path: /etc/grafana/provisioning/dashboards
+      path: /var/lib/grafana/dashboards
       foldersFromFilesStructure: true
+  - name: 'PAW Node Metrics'
+    orgId: 1
+    folder: 'PAW/Node'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/node-metrics.json
+  - name: 'PAW Blockchain Metrics'
+    orgId: 1
+    folder: 'PAW/Blockchain'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/blockchain-metrics.json
+  - name: 'PAW DEX Metrics'
+    orgId: 1
+    folder: 'PAW/DEX'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/dex-metrics.json

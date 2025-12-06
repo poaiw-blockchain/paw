@@ -21,11 +21,11 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	// Validate inputs
 	if amountIn.IsZero() {
 		k.metrics.SwapsTotal.WithLabelValues(fmt.Sprintf("%d", poolID), tokenIn, tokenOut, "failed").Inc()
-		return math.ZeroInt(), fmt.Errorf("swap amount must be positive")
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount must be positive")
 	}
 
 	if tokenIn == tokenOut {
-		return math.ZeroInt(), fmt.Errorf("cannot swap identical tokens")
+		return math.ZeroInt(), types.ErrInvalidTokenPair.Wrap("cannot swap identical tokens")
 	}
 
 	// Get pool
@@ -47,7 +47,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		reserveOut = pool.ReserveA
 		isTokenAIn = false
 	} else {
-		return math.ZeroInt(), fmt.Errorf("invalid token pair for pool %d: expected %s/%s, got %s/%s",
+		return math.ZeroInt(), types.ErrInvalidTokenPair.Wrapf("invalid token pair for pool %d: expected %s/%s, got %s/%s",
 			poolID, pool.TokenA, pool.TokenB, tokenIn, tokenOut)
 	}
 
@@ -66,10 +66,10 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
 	amountInAfterFee := amountIn.Sub(feeAmount)
 	if amountInAfterFee.IsNegative() {
-		return math.ZeroInt(), fmt.Errorf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrapf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
 	}
 	if amountInAfterFee.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("swap amount too small after fees")
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount too small after fees")
 	}
 	amountOut, err := k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 	if err != nil {
@@ -86,7 +86,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 			slippagePercent := expectedOut.Sub(actualOut).Quo(expectedOut).Mul(math.LegacyNewDec(100))
 			k.metrics.SwapSlippage.Observe(slippagePercent.MustFloat64())
 		}
-		return math.ZeroInt(), fmt.Errorf("slippage too high: expected at least %s, got %s", minAmountOut, amountOut)
+		return math.ZeroInt(), types.ErrSlippageTooHigh.Wrapf("expected at least %s, got %s", minAmountOut, amountOut)
 	}
 
 	// ATOMICITY FIX: Execute token transfers FIRST (before updating pool state)
@@ -97,7 +97,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	// Step 1: Transfer input tokens from trader to module
 	coinIn := sdk.NewCoin(tokenIn, amountIn)
 	if err := k.bankKeeper.SendCoins(sdkCtx, trader, moduleAddr, sdk.NewCoins(coinIn)); err != nil {
-		return math.ZeroInt(), fmt.Errorf("failed to transfer input tokens: %w", err)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer input tokens: %w", err)
 	}
 
 	// Step 2: Collect fees (must happen before output transfer)
@@ -105,13 +105,13 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err != nil {
 		// Revert the input transfer on fee collection failure
 		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
-		return math.ZeroInt(), fmt.Errorf("failed to collect swap fees: %w", err)
+		return math.ZeroInt(), types.WrapWithRecovery(err, "failed to collect swap fees")
 	}
 	feeAmount, err = SafeAdd(lpFee, protocolFee)
 	if err != nil {
 		// Revert the input transfer on fee calculation failure
 		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
-		return math.ZeroInt(), fmt.Errorf("failed to calculate total fees: %w", err)
+		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %w", err)
 	}
 
 	// Step 3: Transfer output tokens from module to trader
@@ -119,7 +119,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
 		// Revert the input transfer on output transfer failure
 		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
-		return math.ZeroInt(), fmt.Errorf("failed to transfer output tokens: %w", err)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %w", err)
 	}
 
 	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
@@ -136,7 +136,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err := k.SetPool(ctx, pool); err != nil {
 		// Critical failure: transfers succeeded but state update failed
 		// This should never happen in normal operation
-		return math.ZeroInt(), fmt.Errorf("critical: transfers succeeded but pool state update failed: %w", err)
+		return math.ZeroInt(), types.ErrStateCorruption.Wrapf("transfers succeeded but pool state update failed: %w", err)
 	}
 
 	// Step 6: Update TWAP cumulative price (lazy update - only on swaps)
@@ -183,11 +183,11 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 // Formula: amountOut = (amountIn * (1 - fee) * reserveOut) / (reserveIn + amountIn * (1 - fee))
 func (k Keeper) CalculateSwapOutput(ctx context.Context, amountIn, reserveIn, reserveOut math.Int, swapFee math.LegacyDec) (math.Int, error) {
 	if amountIn.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("input amount must be positive")
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("input amount must be positive")
 	}
 
 	if reserveIn.IsZero() || reserveOut.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("pool reserves must be positive")
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("pool reserves must be positive")
 	}
 
 	// Calculate amount after fee: amountIn * (1 - fee)
@@ -201,11 +201,11 @@ func (k Keeper) CalculateSwapOutput(ctx context.Context, amountIn, reserveIn, re
 	amountOut := numerator.Quo(denominator).TruncateInt()
 
 	if amountOut.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("output amount too small")
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("output amount too small")
 	}
 
 	if amountOut.GTE(reserveOut) {
-		return math.ZeroInt(), fmt.Errorf("insufficient liquidity: output %s >= reserve %s", amountOut, reserveOut)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("output %s >= reserve %s", amountOut, reserveOut)
 	}
 
 	return amountOut, nil
@@ -215,11 +215,11 @@ func (k Keeper) CalculateSwapOutput(ctx context.Context, amountIn, reserveIn, re
 func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenOut string, amountIn math.Int) (math.Int, error) {
 	// Validate inputs
 	if amountIn.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("swap amount must be positive")
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount must be positive")
 	}
 
 	if tokenIn == tokenOut {
-		return math.ZeroInt(), fmt.Errorf("cannot swap identical tokens")
+		return math.ZeroInt(), types.ErrInvalidTokenPair.Wrap("cannot swap identical tokens")
 	}
 
 	// Get pool
@@ -238,7 +238,7 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 		reserveIn = pool.ReserveB
 		reserveOut = pool.ReserveA
 	} else {
-		return math.ZeroInt(), fmt.Errorf("invalid token pair for pool %d: expected %s/%s, got %s/%s",
+		return math.ZeroInt(), types.ErrInvalidTokenPair.Wrapf("invalid token pair for pool %d: expected %s/%s, got %s/%s",
 			poolID, pool.TokenA, pool.TokenB, tokenIn, tokenOut)
 	}
 
@@ -252,10 +252,10 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
 	amountInAfterFee := amountIn.Sub(feeAmount)
 	if amountInAfterFee.IsNegative() {
-		return math.ZeroInt(), fmt.Errorf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrapf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
 	}
 	if amountInAfterFee.IsZero() {
-		return math.ZeroInt(), fmt.Errorf("swap amount too small after fees")
+		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount too small after fees")
 	}
 	return k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 }
@@ -283,11 +283,11 @@ func (k Keeper) GetSpotPrice(ctx context.Context, poolID uint64, tokenIn, tokenO
 		reserveIn = pool.ReserveB
 		reserveOut = pool.ReserveA
 	} else {
-		return math.LegacyZeroDec(), fmt.Errorf("invalid token pair for pool %d", poolID)
+		return math.LegacyZeroDec(), types.ErrInvalidTokenPair.Wrapf("invalid token pair for pool %d", poolID)
 	}
 
 	if reserveIn.IsZero() {
-		return math.LegacyZeroDec(), fmt.Errorf("reserve is zero")
+		return math.LegacyZeroDec(), types.ErrInsufficientLiquidity.Wrap("reserve is zero")
 	}
 
 	// Spot price = reserveOut / reserveIn
