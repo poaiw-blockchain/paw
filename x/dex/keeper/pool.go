@@ -117,7 +117,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	coinB := sdk.NewCoin(tokenB, amountB)
 
 	if err := k.bankKeeper.SendCoins(sdkCtx, creator, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
-		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %w", err)
+		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
 	// Emit event

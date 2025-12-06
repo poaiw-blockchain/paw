@@ -70,7 +70,7 @@ func (k Keeper) UpdateCumulativePriceOnSwap(ctx context.Context, poolID uint64, 
 	// Get existing TWAP record or create new one
 	record, found, err := k.GetPoolTWAP(ctx, poolID)
 	if err != nil {
-		return types.ErrInvalidState.Wrapf("failed to get pool TWAP: %w", err)
+		return types.ErrInvalidState.Wrapf("failed to get pool TWAP: %v", err)
 	}
 
 	if !found {
@@ -108,7 +108,7 @@ func (k Keeper) UpdateCumulativePriceOnSwap(ctx context.Context, poolID uint64, 
 
 	// Persist updated TWAP record
 	if err := k.SetPoolTWAP(ctx, *record); err != nil {
-		return types.ErrInvalidState.Wrapf("failed to save pool TWAP: %w", err)
+		return types.ErrInvalidState.Wrapf("failed to save pool TWAP: %v", err)
 	}
 
 	sdkCtx.Logger().Debug("updated cumulative price on swap",

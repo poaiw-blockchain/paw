@@ -333,7 +333,7 @@ func TestValidateSwapWithOracle_WithinTolerance(t *testing.T) {
 
 // TestOracleIntegration_PriceConsistency tests oracle prices remain consistent across calls
 func TestOracleIntegration_PriceConsistency(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
+	_, ctx := keepertest.DexKeeper(t)
 	oracle := newMockOracleKeeper()
 
 	oracle.setPrice("atom", math.LegacyMustNewDecFromStr("10.00"), ctx.BlockTime().Unix())
@@ -348,7 +348,7 @@ func TestOracleIntegration_PriceConsistency(t *testing.T) {
 
 // TestOracleIntegration_MultipleAssets tests oracle with multiple assets
 func TestOracleIntegration_MultipleAssets(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
+	_, ctx := keepertest.DexKeeper(t)
 	oracle := newMockOracleKeeper()
 
 	assets := map[string]string{
@@ -384,9 +384,9 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 				m.setPrice("atom", math.LegacyZeroDec(), ctx.BlockTime().Unix())
 				m.setPrice("osmo", math.LegacyMustNewDecFromStr("5.00"), ctx.BlockTime().Unix())
 			},
-			testFunc: func(t *testing.T, k *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
-				poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
-				_, err := k.GetPoolValueUSD(ctx, poolID, oracle)
+			testFunc: func(t *testing.T, keeper *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
+				poolID := createTestPoolForOracle(t, keeper, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+				_, err := keeper.GetPoolValueUSD(ctx, poolID, oracle)
 				// Should succeed but calculate zero value for atom
 				require.NoError(t, err)
 			},
@@ -397,9 +397,9 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 				m.setPrice("atom", math.LegacyMustNewDecFromStr("1000000000.00"), ctx.BlockTime().Unix())
 				m.setPrice("osmo", math.LegacyMustNewDecFromStr("5.00"), ctx.BlockTime().Unix())
 			},
-			testFunc: func(t *testing.T, k *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
-				poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
-				totalValue, err := k.GetPoolValueUSD(ctx, poolID, oracle)
+			testFunc: func(t *testing.T, keeper *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
+				poolID := createTestPoolForOracle(t, keeper, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+				totalValue, err := keeper.GetPoolValueUSD(ctx, poolID, oracle)
 				require.NoError(t, err)
 				require.True(t, totalValue.GT(math.LegacyZeroDec()))
 			},
@@ -410,9 +410,9 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 				m.setPrice("atom", math.LegacyMustNewDecFromStr("0.000001"), ctx.BlockTime().Unix())
 				m.setPrice("osmo", math.LegacyMustNewDecFromStr("0.000002"), ctx.BlockTime().Unix())
 			},
-			testFunc: func(t *testing.T, k *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
-				poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
-				totalValue, err := k.GetPoolValueUSD(ctx, poolID, oracle)
+			testFunc: func(t *testing.T, keeper *dexkeeper.Keeper, ctx sdk.Context, oracle *mockOracleKeeper) {
+				poolID := createTestPoolForOracle(t, keeper, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+				totalValue, err := keeper.GetPoolValueUSD(ctx, poolID, oracle)
 				require.NoError(t, err)
 				require.True(t, totalValue.GT(math.LegacyZeroDec()))
 			},
@@ -421,10 +421,10 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, ctx := keepertest.DexKeeper(t)
+			dexK, dexCtx := keepertest.DexKeeper(t)
 			oracle := newMockOracleKeeper()
-			tt.setupOracle(oracle, ctx)
-			tt.testFunc(t, k, ctx, oracle)
+			tt.setupOracle(oracle, dexCtx)
+			tt.testFunc(t, dexK, dexCtx, oracle)
 		})
 	}
 }
@@ -433,9 +433,10 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 func TestRealOracleKeeper_Integration(t *testing.T) {
 	// Create both DEX and Oracle keepers
 	dexK, dexCtx := keepertest.DexKeeper(t)
-	oracleK, oracleCtx := keepertest.OracleKeeper(t)
+	oracleK, _ := keepertest.OracleKeeper(t)
 
-	// Use same context for both
+	// Use DEX context for both keepers
+	_ = dexCtx
 	ctx := dexCtx
 
 	// Set up oracle prices
@@ -494,7 +495,7 @@ func (w *realOracleKeeperWrapper) GetPriceWithTimestamp(ctx context.Context, den
 
 // TestOracleIntegration_ConcurrentAccess tests concurrent oracle price access
 func TestOracleIntegration_ConcurrentAccess(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
+	_, ctx := keepertest.DexKeeper(t)
 	oracle := newMockOracleKeeper()
 
 	oracle.setPrice("atom", math.LegacyMustNewDecFromStr("10.00"), ctx.BlockTime().Unix())

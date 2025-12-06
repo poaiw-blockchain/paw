@@ -182,7 +182,7 @@ func (k Keeper) SetLimitOrder(ctx context.Context, order *LimitOrder) error {
 
 	bz, err := json.Marshal(order)
 	if err != nil {
-		return types.ErrInvalidState.Wrapf("failed to marshal limit order: %w", err)
+		return types.ErrInvalidState.Wrapf("failed to marshal limit order: %v", err)
 	}
 
 	// Store the order
@@ -191,7 +191,7 @@ func (k Keeper) SetLimitOrder(ctx context.Context, order *LimitOrder) error {
 	// Update indexes
 	ownerAddr, err := sdk.AccAddressFromBech32(order.Owner)
 	if err != nil {
-		return types.ErrInvalidInput.Wrapf("invalid owner address: %w", err)
+		return types.ErrInvalidInput.Wrapf("invalid owner address: %v", err)
 	}
 
 	store.Set(LimitOrderByOwnerKey(ownerAddr, order.ID), []byte{1})
@@ -218,7 +218,7 @@ func (k Keeper) GetLimitOrder(ctx context.Context, orderID uint64) (*LimitOrder,
 
 	var order LimitOrder
 	if err := json.Unmarshal(bz, &order); err != nil {
-		return nil, types.ErrInvalidState.Wrapf("failed to unmarshal limit order: %w", err)
+		return nil, types.ErrInvalidState.Wrapf("failed to unmarshal limit order: %v", err)
 	}
 
 	return &order, nil
@@ -230,7 +230,7 @@ func (k Keeper) DeleteLimitOrder(ctx context.Context, order *LimitOrder) error {
 
 	ownerAddr, err := sdk.AccAddressFromBech32(order.Owner)
 	if err != nil {
-		return types.ErrInvalidInput.Wrapf("invalid owner address: %w", err)
+		return types.ErrInvalidInput.Wrapf("invalid owner address: %v", err)
 	}
 
 	// Delete indexes first
@@ -265,7 +265,7 @@ func (k Keeper) PlaceLimitOrder(
 	// Validate pool exists
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return nil, types.ErrPoolNotFound.Wrapf("pool not found: %w", err)
+		return nil, types.ErrPoolNotFound.Wrapf("pool not found: %v", err)
 	}
 
 	// Validate tokens match pool
@@ -296,7 +296,7 @@ func (k Keeper) PlaceLimitOrder(
 	// Lock tokens from user
 	coin := sdk.NewCoin(tokenIn, amountIn)
 	if err := k.bankKeeper.SendCoinsFromAccountToModule(sdkCtx, owner, types.ModuleName, sdk.NewCoins(coin)); err != nil {
-		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to lock tokens: %w", err)
+		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to lock tokens: %v", err)
 	}
 
 	// Create order
@@ -376,7 +376,7 @@ func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orde
 	if remainingAmount.IsPositive() {
 		coin := sdk.NewCoin(order.TokenIn, remainingAmount)
 		if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, owner, sdk.NewCoins(coin)); err != nil {
-			return types.ErrInsufficientLiquidity.Wrapf("failed to refund tokens: %w", err)
+			return types.ErrInsufficientLiquidity.Wrapf("failed to refund tokens: %v", err)
 		}
 	}
 
@@ -444,7 +444,7 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	moduleAddr := sdk.MustAccAddressFromBech32(getModuleAccountAddress())
 	amountOut, err := k.ExecuteSwap(ctx, moduleAddr, order.PoolID, order.TokenIn, order.TokenOut, remainingAmount, order.MinAmountOut)
 	if err != nil {
-		return types.ErrInvalidSwapAmount.Wrapf("swap execution failed: %w", err)
+		return types.ErrInvalidSwapAmount.Wrapf("swap execution failed: %v", err)
 	}
 
 	// Update order state
@@ -465,7 +465,7 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 
 	receivedCoin := sdk.NewCoin(order.TokenOut, amountOut)
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, ownerAddr, sdk.NewCoins(receivedCoin)); err != nil {
-		return types.ErrInsufficientLiquidity.Wrapf("failed to transfer received tokens: %w", err)
+		return types.ErrInsufficientLiquidity.Wrapf("failed to transfer received tokens: %v", err)
 	}
 
 	// Save updated order

@@ -97,7 +97,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	// Step 1: Transfer input tokens from trader to module
 	coinIn := sdk.NewCoin(tokenIn, amountIn)
 	if err := k.bankKeeper.SendCoins(sdkCtx, trader, moduleAddr, sdk.NewCoins(coinIn)); err != nil {
-		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer input tokens: %w", err)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer input tokens: %v", err)
 	}
 
 	// Step 2: Collect fees (must happen before output transfer)
@@ -111,7 +111,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err != nil {
 		// Revert the input transfer on fee calculation failure
 		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
-		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %w", err)
+		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %v", err)
 	}
 
 	// Step 3: Transfer output tokens from module to trader
@@ -119,7 +119,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
 		// Revert the input transfer on output transfer failure
 		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
-		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %w", err)
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %v", err)
 	}
 
 	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
@@ -136,7 +136,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	if err := k.SetPool(ctx, pool); err != nil {
 		// Critical failure: transfers succeeded but state update failed
 		// This should never happen in normal operation
-		return math.ZeroInt(), types.ErrStateCorruption.Wrapf("transfers succeeded but pool state update failed: %w", err)
+		return math.ZeroInt(), types.ErrStateCorruption.Wrapf("transfers succeeded but pool state update failed: %v", err)
 	}
 
 	// Step 6: Update TWAP cumulative price (lazy update - only on swaps)
