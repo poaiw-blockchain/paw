@@ -12,43 +12,47 @@ import (
 func TestValidateIncomingPacketNonce(t *testing.T) {
 	k, ctx := keepertest.OracleKeeper(t)
 
+	// Set block time to current time so timestamp validation works
+	now := time.Now()
+	ctx = ctx.WithBlockTime(now)
+
 	channel := "channel-0"
 	sender := "sender1"
-	now := time.Now().Unix()
+	timestamp := now.Unix()
 
 	t.Run("success - first valid nonce", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 1, now)
+		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 1, timestamp)
 		require.NoError(t, err)
 	})
 
 	t.Run("success - monotonically increasing nonce", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 2, now)
+		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 2, timestamp)
 		require.NoError(t, err)
 
-		err = k.ValidateIncomingPacketNonce(ctx, channel, sender, 3, now)
+		err = k.ValidateIncomingPacketNonce(ctx, channel, sender, 3, timestamp)
 		require.NoError(t, err)
 	})
 
 	t.Run("fail - replay attack with same nonce", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 3, now)
+		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 3, timestamp)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "replay attack detected")
 	})
 
 	t.Run("fail - replay attack with lower nonce", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 2, now)
+		err := k.ValidateIncomingPacketNonce(ctx, channel, sender, 2, timestamp)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "replay attack detected")
 	})
 
 	t.Run("fail - zero nonce", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, channel, "new_sender", 0, now)
+		err := k.ValidateIncomingPacketNonce(ctx, channel, "new_sender", 0, timestamp)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "nonce must be greater than zero")
 	})
 
 	t.Run("fail - empty channel", func(t *testing.T) {
-		err := k.ValidateIncomingPacketNonce(ctx, "", sender, 1, now)
+		err := k.ValidateIncomingPacketNonce(ctx, "", sender, 1, timestamp)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "source channel missing")
 	})
@@ -57,9 +61,13 @@ func TestValidateIncomingPacketNonce(t *testing.T) {
 func TestValidateIncomingPacketNonce_TimestampValidation(t *testing.T) {
 	k, ctx := keepertest.OracleKeeper(t)
 
+	// Set block time to current time so timestamp validation works
+	now := time.Now()
+	ctx = ctx.WithBlockTime(now)
+
 	channel := "channel-1"
 	sender := "timestamp_sender"
-	currentTime := time.Now().Unix()
+	currentTime := now.Unix()
 
 	t.Run("success - recent timestamp", func(t *testing.T) {
 		recentTimestamp := currentTime - 100
@@ -109,9 +117,13 @@ func TestValidateIncomingPacketNonce_TimestampValidation(t *testing.T) {
 func TestValidateIncomingPacketNonce_ReplayAttackScenarios(t *testing.T) {
 	k, ctx := keepertest.OracleKeeper(t)
 
+	// Set block time to current time so timestamp validation works
+	now := time.Now()
+	ctx = ctx.WithBlockTime(now)
+
 	channel := "channel-replay"
 	sender := "attacker"
-	currentTime := time.Now().Unix()
+	currentTime := now.Unix()
 
 	t.Run("cannot replay old packet with same nonce and timestamp", func(t *testing.T) {
 		timestamp := currentTime - 100

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
@@ -134,10 +135,13 @@ func TestOnRecvPacketRejectsDuplicateNonce(t *testing.T) {
 	ibcModule := dex.NewIBCModule(*k, nil)
 
 	ctx = ctx.WithChainID("paw-local")
+	// Set block time for timestamp validation
+	ctx = ctx.WithBlockTime(time.Now())
 	authorizeDexChannel(t, k, ctx, "channel-0")
 	keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", math.NewInt(1_000_000), math.NewInt(2_000_000))
 
 	packetData := types.NewQueryPoolsPacket("upaw", "uusdt", 1)
+	packetData.Timestamp = ctx.BlockTime().Unix()
 	packetBytes, err := packetData.GetBytes()
 	require.NoError(t, err)
 

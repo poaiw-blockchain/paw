@@ -365,10 +365,11 @@ func ParsePacketData(data []byte) (IBCPacketData, error) {
 // NewQueryPoolsPacket creates a new query pools packet
 func NewQueryPoolsPacket(tokenA, tokenB string, nonce uint64) QueryPoolsPacketData {
 	return QueryPoolsPacketData{
-		Type:   QueryPoolsType,
-		Nonce:  nonce,
-		TokenA: tokenA,
-		TokenB: tokenB,
+		Type:      QueryPoolsType,
+		Nonce:     nonce,
+		Timestamp: 0, // Must be set by caller with actual block time
+		TokenA:    tokenA,
+		TokenB:    tokenB,
 	}
 }
 

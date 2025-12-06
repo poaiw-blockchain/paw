@@ -217,6 +217,45 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 	const minSampleForAdvancedDetection = 5
 	if len(prices) < minSampleForAdvancedDetection {
 		// Preserve all submissions when the validator set is small; statistical filters are unreliable here.
+		// However, we still need to check voting power threshold for security
+		params, err := k.GetParams(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Calculate total voting power from these prices
+		totalVotingPower := sdkmath.LegacyZeroDec()
+		for _, vp := range prices {
+			totalVotingPower = totalVotingPower.Add(sdkmath.LegacyNewDec(vp.VotingPower))
+		}
+
+		// Get total bonded voting power
+		bondedValidators, err := k.GetBondedValidators(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		totalBondedPower := int64(0)
+		powerReduction := k.stakingKeeper.PowerReduction(ctx)
+		for _, val := range bondedValidators {
+			totalBondedPower += val.GetConsensusPower(powerReduction)
+		}
+
+		// Fallback: if no bonded validators found (test environments), use submitted power
+		if totalBondedPower == 0 {
+			totalBondedPower = totalVotingPower.TruncateInt64()
+			if totalBondedPower == 0 {
+				totalBondedPower = 1 // Avoid division by zero
+			}
+		}
+
+		votingPowerPercentage := totalVotingPower.Quo(sdkmath.LegacyNewDec(totalBondedPower))
+
+		// Check if validators meet minimum voting power threshold
+		if votingPowerPercentage.LT(params.MinVotingPowerForConsensus) {
+			return nil, types.ErrInsufficientOracleConsensus
+		}
+
 		median := k.calculateMedian(priceValues)
 		return &FilteredPriceData{
 			ValidPrices:      prices,
