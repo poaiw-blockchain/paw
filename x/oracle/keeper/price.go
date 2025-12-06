@@ -26,11 +26,11 @@ func (k Keeper) SetPrice(ctx context.Context, price types.Price) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"price_updated",
-			sdk.NewAttribute("asset", price.Asset),
-			sdk.NewAttribute("price", price.Price.String()),
-			sdk.NewAttribute("block_height", fmt.Sprintf("%d", price.BlockHeight)),
-			sdk.NewAttribute("num_validators", fmt.Sprintf("%d", price.NumValidators)),
+			types.EventTypeOraclePriceUpdate,
+			sdk.NewAttribute(types.AttributeKeyAsset, price.Asset),
+			sdk.NewAttribute(types.AttributeKeyPrice, price.Price.String()),
+			sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", price.BlockHeight)),
+			sdk.NewAttribute(types.AttributeKeyNumValidators, fmt.Sprintf("%d", price.NumValidators)),
 		),
 	)
 
@@ -165,19 +165,19 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 	}
 
 	attrs := []sdk.Attribute{
-		sdk.NewAttribute("validator", validator.String()),
-		sdk.NewAttribute("asset", asset),
-		sdk.NewAttribute("price", price.String()),
-		sdk.NewAttribute("voting_power", fmt.Sprintf("%d", votingPower)),
+		sdk.NewAttribute(types.AttributeKeyValidator, validator.String()),
+		sdk.NewAttribute(types.AttributeKeyAsset, asset),
+		sdk.NewAttribute(types.AttributeKeyPrice, price.String()),
+		sdk.NewAttribute(types.AttributeKeyVotingPower, fmt.Sprintf("%d", votingPower)),
 	}
 
 	if len(feeders) > 0 && feeders[0] != nil {
-		attrs = append(attrs, sdk.NewAttribute("feeder", feeders[0].String()))
+		attrs = append(attrs, sdk.NewAttribute(types.AttributeKeyFeeder, feeders[0].String()))
 	}
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"price_submitted",
+			types.EventTypeOraclePriceSubmitted,
 			attrs...,
 		),
 	)

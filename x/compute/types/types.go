@@ -20,16 +20,16 @@ const (
 	VerificationPassThreshold = 50
 	MaxVerificationScore      = 100
 
-	// Event types
-	EventTypeChannelOpen        = "channel_open"
-	EventTypeChannelOpenAck     = "channel_open_ack"
-	EventTypeChannelOpenConfirm = "channel_open_confirm"
-	EventTypeChannelClose       = "channel_close"
-	EventTypePacketReceive      = "packet_receive"
-	EventTypePacketAck          = "packet_ack"
-	EventTypePacketTimeout      = "packet_timeout"
+	// IBC event types (kept here for IBC-specific events)
+	EventTypeChannelOpen        = "compute_channel_open"
+	EventTypeChannelOpenAck     = "compute_channel_open_ack"
+	EventTypeChannelOpenConfirm = "compute_channel_open_confirm"
+	EventTypeChannelClose       = "compute_channel_close"
+	EventTypePacketReceive      = "compute_packet_receive"
+	EventTypePacketAck          = "compute_packet_ack"
+	EventTypePacketTimeout      = "compute_packet_timeout"
 
-	// Event attribute keys
+	// IBC event attribute keys
 	AttributeKeyChannelID             = "channel_id"
 	AttributeKeyPortID                = "port_id"
 	AttributeKeyCounterpartyPortID    = "counterparty_port_id"

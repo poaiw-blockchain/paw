@@ -24,16 +24,16 @@ const (
 	// PortID is the default port ID for dex IBC module
 	PortID = "dex"
 
-	// Event types
-	EventTypeChannelOpen        = "channel_open"
-	EventTypeChannelOpenAck     = "channel_open_ack"
-	EventTypeChannelOpenConfirm = "channel_open_confirm"
-	EventTypeChannelClose       = "channel_close"
-	EventTypePacketReceive      = "packet_receive"
-	EventTypePacketAck          = "packet_ack"
-	EventTypePacketTimeout      = "packet_timeout"
+	// IBC event types (kept here for IBC-specific events)
+	EventTypeChannelOpen        = "dex_channel_open"
+	EventTypeChannelOpenAck     = "dex_channel_open_ack"
+	EventTypeChannelOpenConfirm = "dex_channel_open_confirm"
+	EventTypeChannelClose       = "dex_channel_close"
+	EventTypePacketReceive      = "dex_packet_receive"
+	EventTypePacketAck          = "dex_packet_ack"
+	EventTypePacketTimeout      = "dex_packet_timeout"
 
-	// Event attribute keys
+	// IBC event attribute keys
 	AttributeKeyChannelID             = "channel_id"
 	AttributeKeyPortID                = "port_id"
 	AttributeKeyCounterpartyPortID    = "counterparty_port_id"

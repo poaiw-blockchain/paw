@@ -7,6 +7,8 @@ import (
 	sdkmath "cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 const (
@@ -79,16 +81,16 @@ func (k Keeper) handleOutlierSlashing(ctx context.Context, asset string, outlier
 	// Emit detailed slashing event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"oracle_slash_outlier",
-			sdk.NewAttribute("validator", outlier.ValidatorAddr),
-			sdk.NewAttribute("asset", asset),
-			sdk.NewAttribute("severity", fmt.Sprintf("%d", outlier.Severity)),
-			sdk.NewAttribute("slash_fraction", slashFraction.String()),
-			sdk.NewAttribute("jailed", fmt.Sprintf("%t", shouldJail)),
-			sdk.NewAttribute("price", outlier.Price.String()),
-			sdk.NewAttribute("deviation", outlier.Deviation.String()),
-			sdk.NewAttribute("reason", outlier.Reason),
-			sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+			types.EventTypeOracleSlashOutlier,
+			sdk.NewAttribute(types.AttributeKeyValidator, outlier.ValidatorAddr),
+			sdk.NewAttribute(types.AttributeKeyAsset, asset),
+			sdk.NewAttribute(types.AttributeKeySeverity, fmt.Sprintf("%d", outlier.Severity)),
+			sdk.NewAttribute(types.AttributeKeySlashFraction, slashFraction.String()),
+			sdk.NewAttribute(types.AttributeKeyJailed, fmt.Sprintf("%t", shouldJail)),
+			sdk.NewAttribute(types.AttributeKeyPrice, outlier.Price.String()),
+			sdk.NewAttribute(types.AttributeKeyDeviation, outlier.Deviation.String()),
+			sdk.NewAttribute(types.AttributeKeyReason, outlier.Reason),
+			sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 		),
 	)
 
@@ -317,11 +319,11 @@ func (k Keeper) SlashMissVote(ctx context.Context, validatorAddrStr string) erro
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"oracle_slash",
-			sdk.NewAttribute("validator", validatorAddrStr),
-			sdk.NewAttribute("reason", "missed_vote"),
-			sdk.NewAttribute("slash_fraction", params.SlashFraction.String()),
-			sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+			types.EventTypeOracleSlash,
+			sdk.NewAttribute(types.AttributeKeyValidator, validatorAddrStr),
+			sdk.NewAttribute(types.AttributeKeyReason, "missed_vote"),
+			sdk.NewAttribute(types.AttributeKeySlashFraction, params.SlashFraction.String()),
+			sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 		),
 	)
 
@@ -369,12 +371,12 @@ func (k Keeper) SlashBadData(ctx context.Context, validatorAddr sdk.ValAddress, 
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"oracle_slash",
-			sdk.NewAttribute("validator", validatorAddr.String()),
-			sdk.NewAttribute("reason", "bad_data"),
-			sdk.NewAttribute("details", reason),
-			sdk.NewAttribute("slash_fraction", badDataSlashFraction.String()),
-			sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+			types.EventTypeOracleSlash,
+			sdk.NewAttribute(types.AttributeKeyValidator, validatorAddr.String()),
+			sdk.NewAttribute(types.AttributeKeyReason, "bad_data"),
+			sdk.NewAttribute(types.AttributeKeyReason, reason), // details
+			sdk.NewAttribute(types.AttributeKeySlashFraction, badDataSlashFraction.String()),
+			sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 		),
 	)
 

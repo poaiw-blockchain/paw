@@ -15,45 +15,15 @@ const (
 
 	// PortID is the default port ID for oracle IBC module
 	PortID = "oracle"
-)
 
-// Event types for the oracle module
-const (
-	EventTypePriceUpdated       = "price_updated"
-	EventTypePriceSubmitted     = "price_submitted"
-	EventTypeFeederDelegated    = "feeder_delegated"
-	EventTypeOracleSlash        = "oracle_slash"
-	EventTypeOracleSlashOutlier = "oracle_slash_outlier"
-	EventTypeOracleJail         = "oracle_jail"
-	EventTypeParamsUpdated      = "params_updated"
-	EventTypePriceAggregated    = "price_aggregated"
-	EventTypeOutlierDetected    = "oracle_outlier_detected"
-
-	// IBC event types
-	EventTypeChannelOpen        = "channel_open"
-	EventTypeChannelOpenAck     = "channel_open_ack"
-	EventTypeChannelOpenConfirm = "channel_open_confirm"
-	EventTypeChannelClose       = "channel_close"
-	EventTypePacketReceive      = "packet_receive"
-	EventTypePacketAck          = "packet_ack"
-	EventTypePacketTimeout      = "packet_timeout"
-
-	AttributeKeyAsset         = "asset"
-	AttributeKeyPrice         = "price"
-	AttributeKeyValidator     = "validator"
-	AttributeKeyFeeder        = "feeder"
-	AttributeKeyDelegate      = "delegate"
-	AttributeKeyVotingPower   = "voting_power"
-	AttributeKeyBlockHeight   = "block_height"
-	AttributeKeyNumValidators = "num_validators"
-	AttributeKeyReason        = "reason"
-	AttributeKeySlashFraction = "slash_fraction"
-	AttributeKeySeverity      = "severity"
-	AttributeKeyDeviation     = "deviation"
-	AttributeKeyMedian        = "median"
-	AttributeKeyMAD           = "mad"
-	AttributeKeyNumOutliers   = "num_outliers"
-	AttributeKeyJailed        = "jailed"
+	// IBC event types (kept here for IBC-specific events)
+	EventTypeChannelOpen        = "oracle_channel_open"
+	EventTypeChannelOpenAck     = "oracle_channel_open_ack"
+	EventTypeChannelOpenConfirm = "oracle_channel_open_confirm"
+	EventTypeChannelClose       = "oracle_channel_close"
+	EventTypePacketReceive      = "oracle_packet_receive"
+	EventTypePacketAck          = "oracle_packet_ack"
+	EventTypePacketTimeout      = "oracle_packet_timeout"
 
 	// IBC attribute keys
 	AttributeKeyChannelID             = "channel_id"
