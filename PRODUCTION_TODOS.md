@@ -283,10 +283,11 @@
 ### INFRA-MED-2: Docker Compose Healthchecks Inconsistent
 - [ ] Add healthchecks to all services
 
-### INFRA-MED-3: K8s RBAC Incomplete
+### INFRA-MED-3: K8s RBAC Incomplete ✅ COMPLETED
 - **File:** `k8s/monitoring-deployment.yaml:278-320`
-- [ ] Create ClusterRole for pod discovery
-- [ ] Add proper RoleBindings
+- [x] Create ClusterRole for pod discovery
+- [x] Add proper RoleBindings
+- **Resolution:** All RBAC properly configured in k8s/rbac.yaml with ServiceAccounts, ClusterRoles, Roles, and Bindings for all monitoring components (prometheus, grafana, alertmanager, loki, promtail). Duplicate RBAC removed from monitoring-deployment.yaml. All deployments now reference their ServiceAccounts.
 
 ### INFRA-MED-4: Loki Uses Filesystem Backend
 - **File:** `infra/logging/loki-config.yaml:8-17`
