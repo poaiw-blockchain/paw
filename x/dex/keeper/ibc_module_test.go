@@ -46,16 +46,19 @@ func authorizeDexChannel(t testing.TB, k *keeper.Keeper, ctx sdk.Context, channe
 func TestHandleQueryPoolsReturnsLivePoolState(t *testing.T) {
 	k, ctx := setupDexKeeper(t)
 	ctx = ctx.WithChainID("paw-local")
+	// Set block time for timestamp validation
+	ctx = ctx.WithBlockTime(time.Now())
 	authorizeDexChannel(t, k, ctx, "channel-0")
 
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", math.NewInt(1_000_000), math.NewInt(2_000_000))
 
 	ibcModule := dex.NewIBCModule(*k, nil)
 	req := types.QueryPoolsPacketData{
-		Type:   types.QueryPoolsType,
-		Nonce:  1,
-		TokenA: "upaw",
-		TokenB: "uusdt",
+		Type:      types.QueryPoolsType,
+		Nonce:     1,
+		Timestamp: ctx.BlockTime().Unix(),
+		TokenA:    "upaw",
+		TokenB:    "uusdt",
 	}
 
 	packetBytes, err := req.GetBytes()

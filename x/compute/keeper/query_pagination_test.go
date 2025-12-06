@@ -13,12 +13,26 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
+// Helper function to fund an account with sufficient tokens for testing
+func fundPaginationTestAccount(t *testing.T, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress) {
+	// Mint enough coins to cover provider stake and request payments
+	fundAmount := sdk.NewCoins(sdk.NewInt64Coin("upaw", 1_000_000_000))
+	bankKeeper := getBankKeeper(t, k)
+	err := bankKeeper.MintCoins(ctx, types.ModuleName, fundAmount)
+	require.NoError(t, err)
+	err = bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, fundAmount)
+	require.NoError(t, err)
+}
+
 // Helper function to register a test provider for pagination tests
 func registerPaginationTestProvider(t *testing.T, k *keeper.Keeper, ctx sdk.Context, index int) sdk.AccAddress {
 	addr := make([]byte, 20)
 	copy(addr, []byte("provider"))
 	addr[19] = byte(index)
 	providerAddr := sdk.AccAddress(addr)
+
+	// Fund the provider account
+	fundPaginationTestAccount(t, k, ctx, providerAddr)
 
 	params, err := k.GetParams(ctx)
 	require.NoError(t, err)
@@ -71,6 +85,9 @@ func TestQueryRequestsByProviderPagination(t *testing.T) {
 		copy(addr, []byte("req"))
 		addr[19] = byte(i)
 		requesterAddr := sdk.AccAddress(addr)
+
+		// Fund the requester account
+		fundPaginationTestAccount(t, k, ctx, requesterAddr)
 
 		_, err := k.SubmitRequest(ctx, requesterAddr, specs, containerImage, command, envVars, maxPayment, providerAddr.String())
 		require.NoError(t, err)
@@ -147,6 +164,9 @@ func TestQueryRequestsByStatusPagination(t *testing.T) {
 		copy(addr, []byte("req"))
 		addr[19] = byte(i)
 		requesterAddr := sdk.AccAddress(addr)
+
+		// Fund the requester account
+		fundPaginationTestAccount(t, k, ctx, requesterAddr)
 
 		_, err := k.SubmitRequest(ctx, requesterAddr, specs, containerImage, command, envVars, maxPayment, providerAddr.String())
 		require.NoError(t, err)

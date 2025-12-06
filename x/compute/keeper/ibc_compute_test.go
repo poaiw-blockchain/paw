@@ -26,23 +26,24 @@ func TestHandleJobResultReturnsAcknowledgement(t *testing.T) {
 	ctx = ctx.WithBlockTime(time.Now())
 	authorizeComputeChannel(t, k, ctx, "channel-0")
 
-	result := keeper.JobResult{
+	result := types.JobResult{
 		ResultData:      []byte(`{"result":"ok"}`),
 		ResultHash:      "hash-123",
 		ComputeTime:     1234,
 		AttestationSigs: [][]byte{[]byte("sig1")},
-		CompletedAt:     ctx.BlockTime(),
+		Timestamp:       ctx.BlockTime().Unix(),
 	}
 
-	packetData := keeper.JobResultPacketData{
-		Nonce:    1,
-		Type:     types.JobResultType,
-		JobID:    "job-ack-1",
-		Result:   result,
-		Provider: "provider-ack",
+	packetData := types.JobResultPacketData{
+		Nonce:     1,
+		Type:      types.JobResultType,
+		Timestamp: ctx.BlockTime().Unix(),
+		JobID:     "job-ack-1",
+		Result:    result,
+		Provider:  "provider-ack",
 	}
 
-	packetBytes, err := json.Marshal(packetData)
+	packetBytes, err := packetData.GetBytes()
 	require.NoError(t, err)
 
 	packet := channeltypes.NewPacket(
@@ -101,11 +102,12 @@ func TestHandleSubmitJobPersistsStateAndAck(t *testing.T) {
 	provider := sdk.AccAddress("provider1__________")
 
 	packetData := types.SubmitJobPacketData{
-		Nonce:   1,
-		Type:    types.SubmitJobType,
-		JobID:   "job-submit-1",
-		JobType: "docker",
-		JobData: []byte{0x1},
+		Nonce:     1,
+		Type:      types.SubmitJobType,
+		Timestamp: ctx.BlockTime().Unix(),
+		JobID:     "job-submit-1",
+		JobType:   "docker",
+		JobData:   []byte{0x1},
 		Requirements: types.JobRequirements{
 			CPUCores:    1,
 			MemoryMB:    512,
@@ -176,6 +178,7 @@ func TestHandleJobStatusQueryUsesStoredProgress(t *testing.T) {
 	packetData := types.JobStatusPacketData{
 		Nonce:     1,
 		Type:      types.JobStatusType,
+		Timestamp: ctx.BlockTime().Unix(),
 		JobID:     job.JobID,
 		Requester: job.Requester,
 	}

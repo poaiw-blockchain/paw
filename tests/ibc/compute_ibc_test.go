@@ -114,6 +114,7 @@ func (suite *ComputeIBCTestSuite) TestDiscoverProviders() {
 	packetData := computetypes.DiscoverProvidersPacketData{
 		Nonce:        1,
 		Type:         computetypes.DiscoverProvidersType,
+		Timestamp:    suite.chainA.GetContext().BlockTime().Unix(),
 		Capabilities: []string{"gpu", "tee"},
 		MaxPrice:     math.LegacyMustNewDecFromStr("10.0"),
 		Requester:    requester.String(),
@@ -161,11 +162,12 @@ func (suite *ComputeIBCTestSuite) TestSubmitJob() {
 	escrowProof := []byte(`{"job_id":"job-1","amount":"1000000","locked_at":1234567890}`)
 
 	packetData := computetypes.SubmitJobPacketData{
-		Nonce:   1,
-		Type:    computetypes.SubmitJobType,
-		JobID:   "job-1",
-		JobType: "wasm",
-		JobData: jobData,
+		Nonce:     1,
+		Type:      computetypes.SubmitJobType,
+		Timestamp: suite.chainA.GetContext().BlockTime().Unix(),
+		JobID:     "job-1",
+		JobType:   "wasm",
+		JobData:   jobData,
 		Requirements: computetypes.JobRequirements{
 			CPUCores:    4,
 			MemoryMB:    8192,
@@ -223,9 +225,10 @@ func (suite *ComputeIBCTestSuite) TestReceiveJobResult() {
 	}
 
 	packetData := computetypes.JobResultPacketData{
-		Nonce: 1,
-		Type:  computetypes.JobResultType,
-		JobID: "job-1",
+		Nonce:     1,
+		Type:      computetypes.JobResultType,
+		Timestamp: suite.chainB.GetContext().BlockTime().Unix(),
+		JobID:     "job-1",
 		Result: computetypes.JobResult{
 			ResultData:      resultData,
 			ResultHash:      "0x1234567890abcdef",
@@ -296,6 +299,7 @@ func (suite *ComputeIBCTestSuite) TestQueryJobStatus() {
 	packetData := computetypes.JobStatusPacketData{
 		Nonce:     1,
 		Type:      computetypes.JobStatusType,
+		Timestamp: suite.chainA.GetContext().BlockTime().Unix(),
 		JobID:     "job-1",
 		Requester: requester.String(),
 	}
@@ -335,11 +339,12 @@ func (suite *ComputeIBCTestSuite) TestJobTimeout() {
 	requester := suite.chainA.SenderAccount.GetAddress()
 
 	packetData := computetypes.SubmitJobPacketData{
-		Nonce:   1,
-		Type:    computetypes.SubmitJobType,
-		JobID:   "job-timeout",
-		JobType: "wasm",
-		JobData: []byte(`{"function":"test"}`),
+		Nonce:     1,
+		Type:      computetypes.SubmitJobType,
+		Timestamp: suite.chainA.GetContext().BlockTime().Unix(),
+		JobID:     "job-timeout",
+		JobType:   "wasm",
+		JobData:   []byte(`{"function":"test"}`),
 		Requirements: computetypes.JobRequirements{
 			CPUCores:    1,
 			MemoryMB:    1024,
@@ -400,9 +405,10 @@ func (suite *ComputeIBCTestSuite) TestZKProofVerification() {
 	}`)
 
 	packetData := computetypes.JobResultPacketData{
-		Nonce: 1,
-		Type:  computetypes.JobResultType,
-		JobID: "job-zk",
+		Nonce:     1,
+		Type:      computetypes.JobResultType,
+		Timestamp: suite.chainB.GetContext().BlockTime().Unix(),
+		JobID:     "job-zk",
 		Result: computetypes.JobResult{
 			ResultData:      []byte("encrypted_result"),
 			ResultHash:      "0xabcdef1234567890",
@@ -456,11 +462,12 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 	})
 
 	submitPacket := computetypes.SubmitJobPacketData{
-		Nonce:   1,
-		Type:    computetypes.SubmitJobType,
-		JobID:   "job-escrow",
-		JobType: "docker",
-		JobData: []byte(`{"image":"ubuntu:latest","cmd":"echo hello"}`),
+		Nonce:     1,
+		Type:      computetypes.SubmitJobType,
+		Timestamp: suite.chainA.GetContext().BlockTime().Unix(),
+		JobID:     "job-escrow",
+		JobType:   "docker",
+		JobData:   []byte(`{"image":"ubuntu:latest","cmd":"echo hello"}`),
 		Requirements: computetypes.JobRequirements{
 			CPUCores:    2,
 			MemoryMB:    4096,
@@ -495,9 +502,10 @@ func (suite *ComputeIBCTestSuite) TestEscrowManagement() {
 
 	// Job completes successfully
 	resultPacket := computetypes.JobResultPacketData{
-		Nonce: 2,
-		Type:  computetypes.JobResultType,
-		JobID: "job-escrow",
+		Nonce:     2,
+		Type:      computetypes.JobResultType,
+		Timestamp: suite.chainB.GetContext().BlockTime().Unix(),
+		JobID:     "job-escrow",
 		Result: computetypes.JobResult{
 			ResultData:  []byte("hello"),
 			ResultHash:  "0xabc123",
@@ -536,6 +544,7 @@ func (suite *ComputeIBCTestSuite) TestOnRecvPacketRejectsDuplicateNonce() {
 	packetData := computetypes.DiscoverProvidersPacketData{
 		Type:         computetypes.DiscoverProvidersType,
 		Nonce:        1,
+		Timestamp:    suite.chainA.GetContext().BlockTime().Unix(),
 		Capabilities: []string{"gpu"},
 		MaxPrice:     math.LegacyMustNewDecFromStr("10.0"),
 		Requester:    requester.String(),

@@ -97,6 +97,7 @@ func (suite *DEXCrossChainTestSuite) TestQueryRemotePools() {
 
 	// Create query packet
 	packetData := dextypes.NewQueryPoolsPacket("upaw", "uosmo", 1)
+	packetData.Timestamp = suite.chainA.GetContext().BlockTime().Unix()
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)
 
@@ -145,6 +146,7 @@ func (suite *DEXCrossChainTestSuite) TestCrossChainSwap() {
 		receiver.String(),
 		uint64(suite.chainA.GetContext().BlockTime().Add(time.Minute*10).Unix()),
 	)
+	packetData.Timestamp = suite.chainA.GetContext().BlockTime().Unix()
 
 	err := packetData.ValidateBasic()
 	suite.Require().NoError(err)
@@ -210,6 +212,7 @@ func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
 		math.NewInt(750000),
 		uint64(suite.chainA.GetContext().BlockTime().Add(time.Minute*10).Unix()),
 	)
+	packetData.Timestamp = suite.chainA.GetContext().BlockTime().Unix()
 
 	err := packetData.ValidateBasic()
 	suite.Require().NoError(err)
@@ -258,6 +261,7 @@ func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
 		sender.String(),
 		uint64(suite.chainA.GetContext().BlockTime().Add(time.Second).Unix()),
 	)
+	packetData.Timestamp = suite.chainA.GetContext().BlockTime().Unix()
 
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)
@@ -309,6 +313,7 @@ func (suite *DEXCrossChainTestSuite) TestSlippageProtection() {
 		sender.String(),
 		uint64(suite.chainA.GetContext().BlockTime().Add(time.Minute*10).Unix()),
 	)
+	packetData.Timestamp = suite.chainA.GetContext().BlockTime().Unix()
 
 	packetBytes, err := packetData.GetBytes()
 	suite.Require().NoError(err)

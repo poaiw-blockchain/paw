@@ -34,8 +34,8 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
-// ComputeKeeper creates a test keeper for the Compute module with mock dependencies
-func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
+// ComputeKeeperWithBank creates a test keeper for the Compute module with mock dependencies and returns the bank keeper
+func ComputeKeeperWithBank(t testing.TB) (*keeper.Keeper, sdk.Context, bankkeeper.Keeper) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
 	stakingStoreKey := storetypes.NewKVStoreKey(stakingtypes.StoreKey)
@@ -164,5 +164,11 @@ func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 		require.NoError(t, bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, fundCoins))
 	}
 
+	return k, ctx, bankKeeper
+}
+
+// ComputeKeeper creates a test keeper for the Compute module with mock dependencies
+func ComputeKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
+	k, ctx, _ := ComputeKeeperWithBank(t)
 	return k, ctx
 }
