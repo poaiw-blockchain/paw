@@ -7,6 +7,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // ExecuteSwap performs a token swap using the constant product AMM formula
@@ -150,14 +151,14 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"swap_executed",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
+			types.EventTypeDexSwap,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
 			sdk.NewAttribute("trader", trader.String()),
-			sdk.NewAttribute("token_in", tokenIn),
-			sdk.NewAttribute("token_out", tokenOut),
-			sdk.NewAttribute("amount_in", amountIn.String()),
-			sdk.NewAttribute("amount_out", amountOut.String()),
-			sdk.NewAttribute("fee", feeAmount.String()),
+			sdk.NewAttribute(types.AttributeKeyTokenIn, tokenIn),
+			sdk.NewAttribute(types.AttributeKeyTokenOut, tokenOut),
+			sdk.NewAttribute(types.AttributeKeyAmountIn, amountIn.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountOut, amountOut.String()),
+			sdk.NewAttribute(types.AttributeKeyFee, feeAmount.String()),
 		),
 	)
 

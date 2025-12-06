@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   certbot:
-    image: certbot/certbot:latest
+    image: certbot/certbot:v3.1.0
     container_name: paw-certbot
     volumes:
       # Certificate storage
@@ -30,7 +30,7 @@ services:
 
   # Certbot renewal service - runs periodically
   certbot-renew:
-    image: certbot/certbot:latest
+    image: certbot/certbot:v3.1.0
     container_name: paw-certbot-renew
     volumes:
       - certbot-etc:/etc/letsencrypt
@@ -45,7 +45,7 @@ services:
 
   # NGINX with SSL support
   nginx-ssl:
-    image: nginx:alpine
+    image: nginx:1.27.3-alpine3.21
     container_name: paw-nginx
     ports:
       - "80:80"

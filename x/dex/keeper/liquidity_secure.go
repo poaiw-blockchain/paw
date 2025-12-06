@@ -189,13 +189,13 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 	// 14. Emit event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
-			"liquidity_added",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("provider", provider.String()),
-			sdk.NewAttribute("amount_a", finalAmountA.String()),
-			sdk.NewAttribute("amount_b", finalAmountB.String()),
-			sdk.NewAttribute("shares", newShares.String()),
-			sdk.NewAttribute("total_shares", pool.TotalShares.String()),
+			types.EventTypeDexAddLiquidity,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountA, finalAmountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, finalAmountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, newShares.String()),
+			sdk.NewAttribute(types.AttributeKeyTotalShares, pool.TotalShares.String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,

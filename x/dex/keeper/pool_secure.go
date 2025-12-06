@@ -158,15 +158,15 @@ func (k Keeper) CreatePoolSecure(ctx context.Context, creator sdk.AccAddress, to
 	// 18. Emit comprehensive event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
-			"pool_created",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
+			types.EventTypeDexPoolCreated,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
 			sdk.NewAttribute("creator", creator.String()),
-			sdk.NewAttribute("token_a", tokenA),
-			sdk.NewAttribute("token_b", tokenB),
-			sdk.NewAttribute("amount_a", amountA.String()),
-			sdk.NewAttribute("amount_b", amountB.String()),
-			sdk.NewAttribute("shares", initialShares.String()),
-			sdk.NewAttribute("initial_price", cbState.LastPrice.String()),
+			sdk.NewAttribute(types.AttributeKeyTokenA, tokenA),
+			sdk.NewAttribute(types.AttributeKeyTokenB, tokenB),
+			sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, initialShares.String()),
+			sdk.NewAttribute(types.AttributeKeyPrice, cbState.LastPrice.String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,

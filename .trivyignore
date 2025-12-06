@@ -1,0 +1,13 @@
+# Trivy Ignore File
+# Suppress specific vulnerabilities that are false positives or accepted risks
+# Format: CVE-ID or vulnerability ID
+
+# Alpine base image - accepted risk for development environments
+# Production deployments should regularly update to latest patch versions
+
+# Add specific CVE IDs here if needed after reviewing Trivy scan results
+# Example:
+# CVE-2024-1234
+# GHSA-xxxx-xxxx-xxxx
+
+# Note: Keep this file minimal - prefer fixing over ignoring

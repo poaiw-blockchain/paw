@@ -91,7 +91,7 @@ services:
 
   # PostgreSQL for indexing (optional)
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15.10-alpine3.21
     container_name: paw-postgres-dev
     restart: unless-stopped
     volumes:
@@ -112,7 +112,7 @@ services:
 
   # Redis for caching
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.2-alpine3.21
     container_name: paw-redis-dev
     restart: unless-stopped
     volumes:
@@ -130,7 +130,7 @@ services:
 
   # Prometheus for metrics
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.1.0
     container_name: paw-prometheus-dev
     restart: unless-stopped
     volumes:
@@ -148,7 +148,7 @@ services:
 
   # Grafana for visualization
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.4.0
     container_name: paw-grafana-dev
     restart: unless-stopped
     volumes:

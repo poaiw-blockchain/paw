@@ -40,7 +40,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
 # ============================================================================
 # Stage 2: Runtime - Minimal production image
 # ============================================================================
-FROM alpine:3.18
+FROM alpine:3.18.9
 
 # Metadata labels
 LABEL maintainer="PAW Blockchain Team"

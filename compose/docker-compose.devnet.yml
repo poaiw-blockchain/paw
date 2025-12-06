@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   node1:
-    image: golang:1.24
+    image: golang:1.24.4-alpine3.21
     container_name: paw-node1
     working_dir: /paw
     volumes:
@@ -19,7 +19,7 @@ services:
       - pawnet
 
   node2:
-    image: golang:1.24
+    image: golang:1.24.4-alpine3.21
     container_name: paw-node2
     working_dir: /paw
     volumes:
@@ -38,7 +38,7 @@ services:
       - node1
 
   node3:
-    image: golang:1.24
+    image: golang:1.24.4-alpine3.21
     container_name: paw-node3
     working_dir: /paw
     volumes:
@@ -57,7 +57,7 @@ services:
       - node1
 
   node4:
-    image: golang:1.24
+    image: golang:1.24.4-alpine3.21
     container_name: paw-node4
     working_dir: /paw
     volumes:

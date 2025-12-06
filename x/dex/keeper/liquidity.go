@@ -7,6 +7,7 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // GetLiquidity retrieves a user's liquidity position in a pool
@@ -118,12 +119,12 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"liquidity_added",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("provider", provider.String()),
-			sdk.NewAttribute("amount_a", finalAmountA.String()),
-			sdk.NewAttribute("amount_b", finalAmountB.String()),
-			sdk.NewAttribute("shares", newShares.String()),
+			types.EventTypeDexAddLiquidity,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountA, finalAmountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, finalAmountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, newShares.String()),
 		),
 	)
 
@@ -197,12 +198,12 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
-			"liquidity_removed",
-			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-			sdk.NewAttribute("provider", provider.String()),
-			sdk.NewAttribute("amount_a", amountA.String()),
-			sdk.NewAttribute("amount_b", amountB.String()),
-			sdk.NewAttribute("shares", shares.String()),
+			types.EventTypeDexRemoveLiquidity,
+			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
+			sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
+			sdk.NewAttribute(types.AttributeKeyShares, shares.String()),
 		),
 	)
 

@@ -96,7 +96,7 @@ services:
   # Grafana PostgreSQL Backend
   # --------------------------------------------------------------------------
   grafana-postgres:
-    image: postgres:15-alpine
+    image: postgres:15.10-alpine3.21
     container_name: paw-grafana-db
     restart: unless-stopped
     environment:
