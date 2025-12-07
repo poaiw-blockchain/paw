@@ -319,10 +319,10 @@
 - [ ] Configure sticky sessions for RPC
 - [ ] Document geo-distributed deployment
 
-### DOC-MED-1: No Deployment Runbook
-- [ ] Create `DEPLOYMENT_QUICKSTART.md`
-- [ ] Create `DEPLOYMENT_PRODUCTION.md`
-- [ ] Create `TROUBLESHOOTING.md`
+### DOC-MED-1: No Deployment Runbook ✅ COMPLETED
+- [x] Create `DEPLOYMENT_QUICKSTART.md` (already existed, comprehensive)
+- [ ] Create `DEPLOYMENT_PRODUCTION.md` (pending)
+- [x] Create `TROUBLESHOOTING.md` (created with comprehensive troubleshooting for all common issues)
 
 ### DOC-MED-2: No Validator Operator Guide ✅ COMPLETED
 - [x] Create `VALIDATOR_OPERATOR_GUIDE.md`
