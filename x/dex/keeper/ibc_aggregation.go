@@ -108,17 +108,18 @@ const (
 //   - Fresh queries are initiated in background to update cache
 //
 // Usage:
-//   Used by routing algorithm to compare liquidity across chains and find
-//   optimal execution paths for cross-chain swaps.
+//
+//	Used by routing algorithm to compare liquidity across chains and find
+//	optimal execution paths for cross-chain swaps.
 type CrossChainPoolInfo struct {
-	ChainID     string         `json:"chain_id"`      // Cosmos chain ID (e.g., "osmosis-1")
-	PoolID      string         `json:"pool_id"`       // Pool identifier on remote chain
-	TokenA      string         `json:"token_a"`       // First token denomination (may be IBC denom)
-	TokenB      string         `json:"token_b"`       // Second token denomination (may be IBC denom)
-	ReserveA    math.Int       `json:"reserve_a"`     // Reserve amount for TokenA
-	ReserveB    math.Int       `json:"reserve_b"`     // Reserve amount for TokenB
-	SwapFee     math.LegacyDec `json:"swap_fee"`      // Fee percentage (e.g., 0.003 = 0.3%)
-	LastUpdated time.Time      `json:"last_updated"`  // Timestamp of last data refresh
+	ChainID     string         `json:"chain_id"`     // Cosmos chain ID (e.g., "osmosis-1")
+	PoolID      string         `json:"pool_id"`      // Pool identifier on remote chain
+	TokenA      string         `json:"token_a"`      // First token denomination (may be IBC denom)
+	TokenB      string         `json:"token_b"`      // Second token denomination (may be IBC denom)
+	ReserveA    math.Int       `json:"reserve_a"`    // Reserve amount for TokenA
+	ReserveB    math.Int       `json:"reserve_b"`    // Reserve amount for TokenB
+	SwapFee     math.LegacyDec `json:"swap_fee"`     // Fee percentage (e.g., 0.003 = 0.3%)
+	LastUpdated time.Time      `json:"last_updated"` // Timestamp of last data refresh
 }
 
 // CrossChainSwapRoute represents a multi-chain execution path for a swap.
@@ -128,13 +129,15 @@ type CrossChainPoolInfo struct {
 // with tokens transferred via IBC between chains as needed.
 //
 // Example Single-Chain Route:
-//   Steps: [{ ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "OSMO" }]
+//
+//	Steps: [{ ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "OSMO" }]
 //
 // Example Multi-Chain Route (ATOM → ETH via Osmosis):
-//   Steps: [
-//     { ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "IBC/OSMO" },
-//     { ChainID: "osmosis-1", TokenIn: "OSMO", TokenOut: "IBC/ETH" },
-//   ]
+//
+//	Steps: [
+//	  { ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "IBC/OSMO" },
+//	  { ChainID: "osmosis-1", TokenIn: "OSMO", TokenOut: "IBC/ETH" },
+//	]
 //
 // Execution Properties:
 //   - All steps execute atomically (all succeed or all revert)
@@ -183,8 +186,9 @@ type SwapStep struct {
 // matching pools.
 //
 // Usage:
-//   Sent asynchronously to update pool cache. Responses update local cache
-//   for use in future route calculations.
+//
+//	Sent asynchronously to update pool cache. Responses update local cache
+//	for use in future route calculations.
 type QueryPoolsPacketData struct {
 	Type   string `json:"type"`    // Always "query_pools"
 	Nonce  uint64 `json:"nonce"`   // Unique request identifier
@@ -239,17 +243,19 @@ type ExecuteSwapPacketData struct {
 // - Success=false with error message (triggers refund)
 //
 // Success Case:
-//   Remote chain executed swap and transferred output tokens back.
-//   AmountOut and SwapFee are recorded for user notification.
+//
+//	Remote chain executed swap and transferred output tokens back.
+//	AmountOut and SwapFee are recorded for user notification.
 //
 // Failure Case:
-//   Remote chain rejected swap (slippage, insufficient liquidity, etc.).
-//   Local chain refunds escrowed input tokens to sender.
+//
+//	Remote chain rejected swap (slippage, insufficient liquidity, etc.).
+//	Local chain refunds escrowed input tokens to sender.
 type ExecuteSwapPacketAck struct {
-	Success   bool     `json:"success"`           // Whether swap succeeded
-	AmountOut math.Int `json:"amount_out"`        // Actual output amount (if success)
+	Success   bool     `json:"success"`            // Whether swap succeeded
+	AmountOut math.Int `json:"amount_out"`         // Actual output amount (if success)
 	SwapFee   math.Int `json:"swap_fee,omitempty"` // Fee charged (if success)
-	Error     string   `json:"error,omitempty"`   // Error message (if failure)
+	Error     string   `json:"error,omitempty"`    // Error message (if failure)
 }
 
 // QueryCrossChainPools queries liquidity pools on remote chains via IBC
@@ -687,6 +693,11 @@ func (k Keeper) executeLocalSwap(ctx sdk.Context, sender sdk.AccAddress, step Sw
 		reserveOut = pool.ReserveA
 	} else {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid token pair for pool")
+	}
+
+	// DIVISION BY ZERO PROTECTION: Validate reserves before calculation
+	if reserveIn.IsZero() || reserveOut.IsZero() {
+		return nil, errorsmod.Wrap(types.ErrInsufficientLiquidity, "pool has zero reserves")
 	}
 
 	reserveInBefore := reserveIn

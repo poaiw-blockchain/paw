@@ -8,24 +8,24 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	dexkeeper "github.com/paw-chain/paw/x/dex/keeper"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oraclekeeper "github.com/paw-chain/paw/x/oracle/keeper"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
-	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-4: DEX Oracle Integration Comprehensive Tests
 
 // mockOracleKeeper implements the OracleKeeper interface for testing
 type mockOracleKeeper struct {
-	prices map[string]math.LegacyDec
+	prices     map[string]math.LegacyDec
 	timestamps map[string]int64
 }
 
 func newMockOracleKeeper() *mockOracleKeeper {
 	return &mockOracleKeeper{
-		prices: make(map[string]math.LegacyDec),
+		prices:     make(map[string]math.LegacyDec),
 		timestamps: make(map[string]int64),
 	}
 }

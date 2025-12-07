@@ -55,6 +55,83 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 		return math.ZeroInt(), err
 	}
 
+	// DIVISION BY ZERO PROTECTION: Explicit zero checks before Quo() operations
+	// Check for invalid pool states that would cause division by zero
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		// Pool has no reserves - this is the first liquidity provision
+		if !pool.TotalShares.IsZero() {
+			// CRITICAL: Pool has shares but no reserves - this is a corrupted state
+			return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has shares but zero reserves")
+		}
+
+		// First liquidity provider - calculate initial shares
+		// Use geometric mean: sqrt(amountA * amountB) to prevent initial share manipulation
+		// This follows Uniswap V2 pattern for initial liquidity
+		product := amountA.Mul(amountB)
+		sqrtShares, err := math.LegacyNewDecFromInt(product).ApproxSqrt()
+		if err != nil {
+			return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrapf("failed to calculate initial shares: %v", err)
+		}
+		newShares := sqrtShares.TruncateInt()
+
+		if newShares.IsZero() {
+			return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("initial liquidity amounts too small")
+		}
+
+		// Update pool reserves and total shares for first deposit
+		pool.ReserveA = amountA
+		pool.ReserveB = amountB
+		pool.TotalShares = newShares
+
+		if err := k.SetPool(ctx, pool); err != nil {
+			return math.ZeroInt(), err
+		}
+
+		// Set user's liquidity position
+		if err := k.SetLiquidity(ctx, poolID, provider, newShares); err != nil {
+			return math.ZeroInt(), err
+		}
+
+		// Transfer tokens from provider to module
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		moduleAddr := k.GetModuleAddress()
+
+		coinA := sdk.NewCoin(pool.TokenA, amountA)
+		coinB := sdk.NewCoin(pool.TokenB, amountB)
+
+		if err := k.bankKeeper.SendCoins(sdkCtx, provider, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
+			return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
+		}
+
+		// Emit event
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeDexAddLiquidity,
+				sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
+				sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
+				sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
+				sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
+				sdk.NewAttribute(types.AttributeKeyShares, newShares.String()),
+			),
+		)
+
+		// Record metrics
+		if k.metrics != nil {
+			poolIDStr := fmt.Sprintf("%d", poolID)
+			k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(amountA.Int64()))
+			k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(amountB.Int64()))
+		}
+
+		return newShares, nil
+	}
+
+	// Additional safety check: pool must have shares if it has reserves
+	if pool.TotalShares.IsZero() {
+		// CRITICAL: Pool has reserves but no shares - this is a corrupted state
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has reserves but zero shares")
+	}
+
+	// Now safe to perform division operations - all denominators are guaranteed non-zero
 	// Calculate optimal amounts and shares
 	// For proportional liquidity: amountA/reserveA = amountB/reserveB = shares/totalShares
 	optimalAmountB := amountA.Mul(pool.ReserveB).Quo(pool.ReserveA)
@@ -116,6 +193,12 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
+	// Mark pool as active for activity-based tracking
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the operation - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
+	}
+
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -151,6 +234,18 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
+	// DIVISION BY ZERO PROTECTION: Check pool state before Quo() operations
+	if pool.TotalShares.IsZero() {
+		// CRITICAL: Pool has no shares - cannot calculate withdrawal amounts
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has zero total shares")
+	}
+
+	// Additional safety: verify reserves are non-zero if shares exist
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		// CRITICAL: Pool has shares but zero reserves - corrupted state
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has shares but zero reserves")
+	}
+
 	// Check user's liquidity position
 	userShares, err := k.GetLiquidity(ctx, poolID, provider)
 	if err != nil {
@@ -161,7 +256,8 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf("have %s, need %s", userShares, shares)
 	}
 
-	// Calculate amounts to return (proportional to shares)
+	// Now safe to calculate amounts to return (proportional to shares)
+	// All denominators are guaranteed non-zero by the checks above
 	amountA := shares.Mul(pool.ReserveA).Quo(pool.TotalShares)
 	amountB := shares.Mul(pool.ReserveB).Quo(pool.TotalShares)
 
@@ -193,6 +289,12 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, provider, sdk.NewCoins(coinA, coinB)); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
+	}
+
+	// Mark pool as active for activity-based tracking
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the operation - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
 	}
 
 	// Emit event

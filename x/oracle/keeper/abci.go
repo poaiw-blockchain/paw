@@ -142,10 +142,9 @@ func (k Keeper) CleanupOldOutlierHistoryGlobal(ctx context.Context) error {
 	// This is O(1) memory instead of O(n+m)
 	store := k.getStore(ctx)
 
-	// Outlier history keys have format: 0x07 + validator + 0x00 + asset + 0x00 + height
-	// We iterate by prefix 0x07 and process entries in batches
-	outlierPrefix := []byte{0x07}
-	iterator := storetypes.KVStorePrefixIterator(store, outlierPrefix)
+	// Outlier history keys have format: OutlierHistoryKeyPrefix + validator + 0x00 + asset + 0x00 + height
+	// We iterate by prefix and process entries in batches
+	iterator := storetypes.KVStorePrefixIterator(store, OutlierHistoryKeyPrefix)
 	defer iterator.Close()
 
 	// Use block height modulo to determine which subset to process this block
@@ -166,7 +165,7 @@ func (k Keeper) CleanupOldOutlierHistoryGlobal(ctx context.Context) error {
 		key := iterator.Key()
 
 		// Extract validator+asset pair from key to track unique pairs
-		// Key format: 0x07 + validator + 0x00 + asset + 0x00 + height
+		// Key format: OutlierHistoryKeyPrefix + validator + 0x00 + asset + 0x00 + height
 		pairKey := extractValidatorAssetPair(key)
 		if pairKey == "" {
 			continue // Invalid key format
@@ -235,15 +234,15 @@ func (k Keeper) CleanupOldOutlierHistoryGlobal(ctx context.Context) error {
 // extractValidatorAssetPair extracts the validator+asset portion from outlier history key
 // for deduplication and batching purposes. Returns empty string if key format is invalid.
 //
-// Key format: 0x07 + validator + 0x00 + asset + 0x00 + height
+// Key format: OutlierHistoryKeyPrefix + validator + 0x00 + asset + 0x00 + height
 // Returns: "validator\x00asset" for grouping
 func extractValidatorAssetPair(key []byte) string {
-	if len(key) < 2 {
+	if len(key) < len(OutlierHistoryKeyPrefix)+1 {
 		return ""
 	}
 
-	// Skip prefix byte (0x07)
-	remainder := key[1:]
+	// Skip prefix bytes
+	remainder := key[len(OutlierHistoryKeyPrefix):]
 
 	// Find second separator (end of asset field)
 	separatorCount := 0

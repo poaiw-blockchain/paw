@@ -3,6 +3,7 @@ package oracle
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
@@ -111,7 +112,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	// Register module migrations
 	m := keeper.NewMigrator(*am.keeper)
 	if err := cfg.RegisterMigration(oracletypes.ModuleName, 1, m.Migrate1to2); err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to migrate x/%s from version 1 to 2: %v", oracletypes.ModuleName, err))
 	}
 }
 

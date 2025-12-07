@@ -53,11 +53,6 @@ func (k Keeper) SlashProviderStake(
 		sdkCtx.Logger().Error("failed to record provider slash", "error", err)
 	}
 
-	// Audit trail
-	if err := k.AuditProviderAction(sdkCtx, "slash", providerAddr.String(), reason, true, ""); err != nil {
-		sdkCtx.Logger().Error("failed to audit slash", "error", err)
-	}
-
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

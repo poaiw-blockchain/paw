@@ -234,8 +234,8 @@ func (k Keeper) getRecentOutliers(ctx context.Context, validatorAddr, asset stri
 
 // getOutlierHistoryKey generates a storage key for outlier history
 func (k Keeper) getOutlierHistoryKey(validatorAddr, asset string, blockHeight int64) []byte {
-	// Prefix: 0x07 + validator + asset + blockHeight
-	key := []byte{0x07}
+	// Prefix: OutlierHistoryKeyPrefix + validator + 0x00 + asset + 0x00 + blockHeight
+	key := append([]byte(nil), OutlierHistoryKeyPrefix...)
 	key = append(key, []byte(validatorAddr)...)
 	key = append(key, byte(0x00)) // separator
 	key = append(key, []byte(asset)...)
@@ -250,7 +250,7 @@ func (k Keeper) getOutlierHistoryKey(validatorAddr, asset string, blockHeight in
 
 // getOutlierHistoryPrefix generates a storage prefix for outlier history queries
 func (k Keeper) getOutlierHistoryPrefix(validatorAddr, asset string) []byte {
-	key := []byte{0x07}
+	key := append([]byte(nil), OutlierHistoryKeyPrefix...)
 	key = append(key, []byte(validatorAddr)...)
 	key = append(key, byte(0x00)) // separator
 	key = append(key, []byte(asset)...)

@@ -61,9 +61,9 @@ const (
 //
 // Returns:
 //   - error: nil if validation passes, or specific error indicating failure reason:
-//     * ErrInvalidInput: Insufficient deposit, invalid token denom, identical tokens
-//     * ErrPoolAlreadyExists: Pool already exists for this token pair
-//     * ErrRateLimitExceeded: Too many pools created recently
+//   - ErrInvalidInput: Insufficient deposit, invalid token denom, identical tokens
+//   - ErrPoolAlreadyExists: Pool already exists for this token pair
+//   - ErrRateLimitExceeded: Too many pools created recently
 //
 // Security Notes:
 //   - Records creation attempt even on failure to track rate limiting
@@ -197,11 +197,13 @@ func (k Keeper) validateTokenDenom(ctx context.Context, denom string) error {
 //   - NetProfitLoss: Overall profit/loss including both IL and fees (can be positive if fees > IL)
 //
 // Calculation Formula:
-//   IL% = (current_pool_value / hold_value - 1) * 100
-//   NetProfitLoss% = IL% + (fees_earned / initial_value * 100)
+//
+//	IL% = (current_pool_value / hold_value - 1) * 100
+//	NetProfitLoss% = IL% + (fees_earned / initial_value * 100)
 //
 // Example:
-//   If IL = -5% but FeesEarned = 8%, then NetProfitLoss = +3% (profitable position)
+//
+//	If IL = -5% but FeesEarned = 8%, then NetProfitLoss = +3% (profitable position)
 type ImpermanentLossInfo struct {
 	InitialValueA   math.Int       // Initial value of TokenA position
 	InitialValueB   math.Int       // Initial value of TokenB position
@@ -228,8 +230,8 @@ type ImpermanentLossInfo struct {
 // Returns:
 //   - *ImpermanentLossInfo: Detailed analysis struct containing IL, fees, and net P&L
 //   - error: nil on success, or:
-//     * ErrPoolNotFound: Pool does not exist
-//     * ErrInsufficientShares: Provider has no liquidity position in this pool
+//   - ErrPoolNotFound: Pool does not exist
+//   - ErrInsufficientShares: Provider has no liquidity position in this pool
 //
 // Calculation Process:
 //  1. Retrieves provider's share of pool reserves
@@ -245,11 +247,12 @@ type ImpermanentLossInfo struct {
 //   - Assumes current reserves represent fair value at current prices
 //
 // Usage Example:
-//   ilInfo, err := keeper.CalculateImpermanentLoss(ctx, 1, providerAddr, usdcPrice, ethPrice)
-//   if err != nil { return err }
-//   if ilInfo.NetProfitLoss.IsNegative() {
-//       // Position is underwater even with fees
-//   }
+//
+//	ilInfo, err := keeper.CalculateImpermanentLoss(ctx, 1, providerAddr, usdcPrice, ethPrice)
+//	if err != nil { return err }
+//	if ilInfo.NetProfitLoss.IsNegative() {
+//	    // Position is underwater even with fees
+//	}
 func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, provider sdk.AccAddress, priceOracleA, priceOracleB math.LegacyDec) (*ImpermanentLossInfo, error) {
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)

@@ -45,6 +45,20 @@ func (k Keeper) BeginBlocker(ctx context.Context) error {
 func (k Keeper) EndBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	// Process expired limit orders (must happen before matching)
+	// This refunds tokens for orders that have passed their expiration time
+	if err := k.ProcessExpiredOrders(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to process expired orders", "error", err)
+		// Don't return error - log and continue to prevent block production halt
+	}
+
+	// Match limit orders against current pool prices
+	// Uses batching and gas limits to prevent chain halt with large order books
+	if err := k.MatchAllOrders(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to match limit orders", "error", err)
+		// Don't return error - log and continue to prevent block production halt
+	}
+
 	// Process circuit breaker auto-recovery for all pools
 	if err := k.ProcessCircuitBreakerRecovery(ctx); err != nil {
 		sdkCtx.Logger().Error("failed to process circuit breaker recovery", "error", err)

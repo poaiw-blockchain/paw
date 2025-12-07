@@ -794,7 +794,7 @@ func TestCalculateSwapOutputSecure(t *testing.T) {
 			amountIn:        math.NewInt(1000),
 			reserveIn:       math.NewInt(100_000),
 			reserveOut:      math.NewInt(100_000),
-			swapFee:         math.LegacyNewDecWithPrec(3, 3), // 0.3%
+			swapFee:         math.LegacyNewDecWithPrec(3, 3),  // 0.3%
 			maxDrainPercent: math.LegacyNewDecWithPrec(30, 2), // 30%
 			expectErr:       false,
 		},

@@ -127,7 +127,7 @@ func BenchmarkExtractValidatorAssetPair(b *testing.B) {
 	asset := "BTC/USD"
 	height := int64(12345)
 
-	key := []byte{0x07}
+	key := append([]byte(nil), keeper.OutlierHistoryKeyPrefix...)
 	key = append(key, []byte(validator)...)
 	key = append(key, byte(0x00))
 	key = append(key, []byte(asset)...)
@@ -223,7 +223,7 @@ func recordOutlierEntry(tb testing.TB, k *keeper.Keeper, ctx sdk.Context, valida
 	// We need to access the store directly since recordOutlierHistory is not exported
 	store := ctx.KVStore(k.GetStoreKey())
 
-	key := []byte{0x07} // OutlierHistoryPrefix
+	key := append([]byte(nil), keeper.OutlierHistoryKeyPrefix...)
 	key = append(key, []byte(validator)...)
 	key = append(key, byte(0x00))
 	key = append(key, []byte(asset)...)
@@ -237,11 +237,11 @@ func recordOutlierEntry(tb testing.TB, k *keeper.Keeper, ctx sdk.Context, valida
 // extractValidatorAssetPairBenchHelper wraps the function for benchmarking
 // This is needed because the actual function is in the keeper package
 func extractValidatorAssetPairBenchHelper(key []byte) string {
-	if len(key) < 2 {
+	if len(key) < len(keeper.OutlierHistoryKeyPrefix)+1 {
 		return ""
 	}
 
-	remainder := key[1:]
+	remainder := key[len(keeper.OutlierHistoryKeyPrefix):]
 	separatorCount := 0
 	for i, b := range remainder {
 		if b == 0x00 {

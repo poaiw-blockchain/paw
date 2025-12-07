@@ -99,7 +99,7 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 	portKeeper := portkeeper.NewKeeper(scopedPortKeeper)
 	var ibcKeeper *ibckeeper.Keeper
 
-	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, &portKeeper, scopedDexKeeper)
+	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, &portKeeper, types.ModuleName, scopedDexKeeper)
 	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
 
 	// Setup module account for mint/burn

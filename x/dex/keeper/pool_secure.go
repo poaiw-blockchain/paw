@@ -251,13 +251,21 @@ func (k Keeper) GetAllPoolsSecure(ctx context.Context, limit, offset uint64) ([]
 }
 
 // DeletePool removes a pool (governance only - emergency use)
-func (k Keeper) DeletePool(ctx context.Context, poolID uint64) error {
+// This function requires governance authority and can only delete empty pools.
+func (k Keeper) DeletePool(ctx context.Context, poolID uint64, authority string) error {
+	// CRITICAL: Governance-only authorization check
+	// Only the governance module can delete pools, even empty ones
+	if authority != k.authority {
+		return types.ErrUnauthorized.Wrapf(
+			"invalid authority; expected %s, got %s", k.authority, authority)
+	}
+
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
 		return types.ErrPoolNotFound.Wrapf("pool %d not found", poolID)
 	}
 
-	// Verify pool is empty
+	// Verify pool is empty (safety check)
 	if !pool.ReserveA.IsZero() || !pool.ReserveB.IsZero() || !pool.TotalShares.IsZero() {
 		return types.ErrInvalidPoolState.Wrap("cannot delete pool with active liquidity")
 	}
@@ -278,6 +286,7 @@ func (k Keeper) DeletePool(ctx context.Context, poolID uint64) error {
 		sdk.NewEvent(
 			"pool_deleted",
 			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute("authority", authority),
 		),
 	)
 

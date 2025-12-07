@@ -179,7 +179,10 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 	// 11. Store old k for invariant check
 	oldK := pool.ReserveA.Mul(pool.ReserveB)
 
-	// 12. Transfer input tokens FIRST (checks-effects-interactions pattern)
+	// 12. ATOMICITY FIX: Execute ALL token transfers BEFORE updating pool state
+	// This ensures that if any transfer fails, pool state remains unchanged
+	// Following checks-effects-interactions pattern for maximum safety
+
 	// GAS_SWAP_TOKEN_TRANSFER = 15000 gas
 	// Calibration: Bank module SendCoins operation overhead:
 	// - Balance lookup for sender (~3000 gas)
@@ -191,21 +194,58 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 	sdkCtx.GasMeter().ConsumeGas(15000, "dex_swap_token_transfer")
 	moduleAddr := k.GetModuleAddress()
 
+	// Step 1: Transfer input tokens from trader to module
 	coinIn := sdk.NewCoin(tokenIn, amountIn)
 	if err := k.bankKeeper.SendCoins(sdkCtx, trader, moduleAddr, sdk.NewCoins(coinIn)); err != nil {
 		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer input tokens: %v", err)
 	}
 
-	// 12.5 Collect and transfer fees now that module holds tokens
+	// Step 2: Collect fees (must happen before output transfer)
 	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
 	if err != nil {
-		return math.ZeroInt(), err
+		// Revert the input transfer on fee collection failure
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after fee collection failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"amount", coinIn.String(),
+			)
+		}
+		return math.ZeroInt(), types.WrapWithRecovery(err, "failed to collect swap fees")
 	}
 	feeAmount, err = SafeAdd(lpFee, protocolFee)
 	if err != nil {
-		return math.ZeroInt(), err
+		// Revert the input transfer on fee calculation failure
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after fee calculation failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"amount", coinIn.String(),
+			)
+		}
+		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %v", err)
 	}
-	// 13. Update pool reserves AFTER receiving tokens
+
+	// Step 3: Transfer output tokens from module to trader
+	coinOut := sdk.NewCoin(tokenOut, amountOut)
+	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
+		// Revert the input transfer on output transfer failure
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after output transfer failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"input_amount", coinIn.String(),
+				"failed_output", coinOut.String(),
+			)
+		}
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %v", err)
+	}
+
+	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
+	// This ensures pool state is never inconsistent with actual token balances
 	if isTokenAIn {
 		pool.ReserveA, err = SafeAdd(pool.ReserveA, amountInAfterFee)
 		if err != nil {
@@ -226,17 +266,17 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		}
 	}
 
-	// 14. Validate invariant (k should increase or stay same due to fees)
+	// Step 5: Validate invariant (k should increase or stay same due to fees)
 	if err := k.ValidatePoolInvariant(ctx, pool, oldK); err != nil {
 		return math.ZeroInt(), err
 	}
 
-	// 15. Validate final pool state
+	// Step 6: Validate final pool state
 	if err := k.ValidatePoolState(pool); err != nil {
 		return math.ZeroInt(), err
 	}
 
-	// 16. Save updated pool
+	// Step 7: Save updated pool
 	// GAS_SWAP_STATE_UPDATE = 8000 gas
 	// Calibration: KVStore write operation for Pool state:
 	// - Protobuf marshaling of Pool struct (~2000 gas)
@@ -247,16 +287,28 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 	// requiring larger write cost than simple values
 	sdkCtx.GasMeter().ConsumeGas(8000, "dex_swap_state_update")
 	if err := k.SetPool(ctx, pool); err != nil {
-		return math.ZeroInt(), err
+		// Critical failure: transfers succeeded but state update failed
+		// This should never happen in normal operation
+		return math.ZeroInt(), types.ErrStateCorruption.Wrapf("transfers succeeded but pool state update failed: %v", err)
 	}
 
-	// 17. Transfer output tokens to trader
-	coinOut := sdk.NewCoin(tokenOut, amountOut)
-	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
-		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %v", err)
+	// Step 8: Update TWAP cumulative price (lazy update - only on swaps)
+	// Calculate current spot price for TWAP oracle
+	price0 := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+	price1 := math.LegacyNewDecFromInt(pool.ReserveA).Quo(math.LegacyNewDecFromInt(pool.ReserveB))
+	if err := k.UpdateCumulativePriceOnSwap(ctx, poolID, price0, price1); err != nil {
+		// Log error but don't fail the swap - TWAP update is non-critical
+		sdkCtx.Logger().Error("failed to update TWAP on swap", "pool_id", poolID, "error", err)
 	}
 
-	// 18. Emit comprehensive event
+	// Step 9: Mark pool as active for activity-based tracking
+	// This is used for monitoring which pools have recent activity
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the swap - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
+	}
+
+	// Step 10: Emit comprehensive event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDexSwap,

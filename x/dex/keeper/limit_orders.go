@@ -34,12 +34,13 @@ const (
 // OrderStatus represents the current status of a limit order in its lifecycle.
 //
 // Order Lifecycle:
-//   Open → Partial → Filled (successful execution path)
-//   Open → Cancelled (user cancellation)
-//   Open → Expired (timeout without full fill)
-//   Partial → Filled (gradual execution to completion)
-//   Partial → Cancelled (user cancels partially filled order)
-//   Partial → Expired (timeout with partial fill)
+//
+//	Open → Partial → Filled (successful execution path)
+//	Open → Cancelled (user cancellation)
+//	Open → Expired (timeout without full fill)
+//	Partial → Filled (gradual execution to completion)
+//	Partial → Cancelled (user cancels partially filled order)
+//	Partial → Expired (timeout with partial fill)
 type OrderStatus uint8
 
 const (
@@ -329,10 +330,10 @@ func (k Keeper) DeleteLimitOrder(ctx context.Context, order *LimitOrder) error {
 // Returns:
 //   - *LimitOrder: The created order with assigned ID
 //   - error: nil on success, or:
-//     * ErrPoolNotFound: Pool does not exist
-//     * ErrInvalidTokenPair: Tokens don't match pool
-//     * ErrInvalidOrder: Invalid amount or price
-//     * ErrInsufficientLiquidity: Failed to lock tokens
+//   - ErrPoolNotFound: Pool does not exist
+//   - ErrInvalidTokenPair: Tokens don't match pool
+//   - ErrInvalidOrder: Invalid amount or price
+//   - ErrInsufficientLiquidity: Failed to lock tokens
 //
 // Behavior:
 //  1. Validates pool exists and tokens match
@@ -460,10 +461,10 @@ func (k Keeper) PlaceLimitOrder(
 //
 // Returns:
 //   - error: nil on success, or:
-//     * ErrOrderNotFound: Order does not exist
-//     * ErrOrderNotAuthorized: Caller is not the order owner
-//     * ErrOrderNotCancellable: Order status doesn't allow cancellation (already filled/expired)
-//     * ErrInsufficientLiquidity: Failed to refund tokens
+//   - ErrOrderNotFound: Order does not exist
+//   - ErrOrderNotAuthorized: Caller is not the order owner
+//   - ErrOrderNotCancellable: Order status doesn't allow cancellation (already filled/expired)
+//   - ErrInsufficientLiquidity: Failed to refund tokens
 //
 // Behavior:
 //  1. Retrieves and validates order ownership
@@ -538,9 +539,9 @@ func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orde
 //
 // Returns:
 //   - error: nil if matching succeeds or order cannot execute at current price, or:
-//     * ErrPoolNotFound: Pool does not exist
-//     * ErrInvalidSwapAmount: Swap execution failed
-//     * ErrInsufficientLiquidity: Failed to transfer tokens
+//   - ErrPoolNotFound: Pool does not exist
+//   - ErrInvalidSwapAmount: Swap execution failed
+//   - ErrInsufficientLiquidity: Failed to transfer tokens
 //
 // Matching Logic:
 //  1. Retrieves current pool state and calculates spot price
@@ -569,6 +570,11 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	pool, err := k.GetPool(ctx, order.PoolID)
 	if err != nil {
 		return err
+	}
+
+	// DIVISION BY ZERO PROTECTION: Validate pool reserves before price calculation
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		return types.ErrInsufficientLiquidity.Wrap("pool has zero reserves")
 	}
 
 	// Calculate current pool price
@@ -941,32 +947,108 @@ func (k Keeper) GetOpenOrders(ctx context.Context) ([]*LimitOrder, error) {
 	return orders, nil
 }
 
-// GetOrderBook returns the order book for a pool (buy and sell orders sorted by price)
-func (k Keeper) GetOrderBook(ctx context.Context, poolID uint64) (buyOrders, sellOrders []*LimitOrder, err error) {
-	orders, err := k.GetOrdersByPool(ctx, poolID)
+// GetOrderBook returns the order book for a pool (buy and sell orders sorted by price).
+// The limit parameter controls how many orders of each type (buy/sell) to return.
+// If limit is 0 or exceeds MaxOrderBookLimit, DefaultOrderBookLimit is used.
+//
+// This function efficiently retrieves only active orders (Open or Partial status)
+// and enforces limits to prevent unbounded queries on large order books.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - poolID: The liquidity pool identifier
+//   - limit: Maximum number of orders per side (buy/sell) to return
+//
+// Returns:
+//   - buyOrders: Active buy orders (up to limit)
+//   - sellOrders: Active sell orders (up to limit)
+//   - error: Any retrieval error
+func (k Keeper) GetOrderBook(ctx context.Context, poolID uint64, limit int) (buyOrders, sellOrders []*LimitOrder, err error) {
+	// Enforce limits
+	if limit == 0 || limit > MaxOrderBookLimit {
+		limit = DefaultOrderBookLimit
+	}
+
+	// Get buy orders with limit
+	buyOrders, err = k.getOrdersByPoolAndSide(ctx, poolID, OrderTypeBuy, limit)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	for _, order := range orders {
-		if order.Status != OrderStatusOpen && order.Status != OrderStatusPartial {
-			continue
-		}
-		if order.OrderType == OrderTypeBuy {
-			buyOrders = append(buyOrders, order)
-		} else {
-			sellOrders = append(sellOrders, order)
-		}
+	// Get sell orders with limit
+	sellOrders, err = k.getOrdersByPoolAndSide(ctx, poolID, OrderTypeSell, limit)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return buyOrders, sellOrders, nil
 }
 
-// MatchAllOrders attempts to match all open limit orders against their respective pools.
+// getOrdersByPoolAndSide retrieves orders for a specific pool and order type (buy/sell).
+// It only returns active orders (Open or Partial status) and stops iteration
+// after collecting the specified limit.
+//
+// This is an internal helper that enables efficient, bounded retrieval of order book data.
+func (k Keeper) getOrdersByPoolAndSide(ctx context.Context, poolID uint64, orderType OrderType, limit int) ([]*LimitOrder, error) {
+	store := k.getStore(ctx)
+	var orders []*LimitOrder
+	count := 0
+
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	prefix := append(LimitOrderByPoolPrefix, poolIDBytes...)
+
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	for iterator.Valid() {
+		if count >= limit {
+			break // Stop iteration once limit is reached
+		}
+
+		orderID := binary.BigEndian.Uint64(iterator.Key()[len(prefix):])
+		order, err := k.GetLimitOrder(ctx, orderID)
+		if err != nil {
+			iterator.Next()
+			continue
+		}
+
+		// Only include orders matching the requested type and active status
+		if order.OrderType == orderType &&
+			(order.Status == OrderStatusOpen || order.Status == OrderStatusPartial) {
+			orders = append(orders, order)
+			count++
+		}
+
+		iterator.Next()
+	}
+
+	return orders, nil
+}
+
+// Order matching limits to prevent chain halt with large order books.
+//
+// These constants ensure EndBlock order matching remains bounded:
+//   - MaxOrdersPerBlock: Maximum number of orders to process per block
+//   - MaxGasForMatching: Maximum gas consumption for order matching per block
+//
+// Rationale:
+//   - With 10,000+ open orders, unbounded iteration would halt the chain
+//   - Batching ensures consistent block times and prevents DoS
+//   - Orders not processed in current block will be attempted in next block
+//   - Gas limit provides additional safety against expensive matching operations
+const (
+	MaxOrdersPerBlock     = 100
+	MaxGasForMatching     = 5_000_000
+	DefaultOrderBookLimit = 50
+	MaxOrderBookLimit     = 100
+)
+
+// MatchAllOrders attempts to match open limit orders against their respective pools.
 //
 // This function is called in the ABCI EndBlocker to provide continuous order matching
-// as pool prices change due to swaps. Each block, all open orders are checked to see
-// if they can now be executed at the current pool prices.
+// as pool prices change due to swaps. Uses batching and gas limits to prevent chain halt
+// with large order books.
 //
 // Parameters:
 //   - ctx: Blockchain context for state access (called from EndBlock)
@@ -975,44 +1057,99 @@ func (k Keeper) GetOrderBook(ctx context.Context, poolID uint64) (buyOrders, sel
 //   - error: Always returns nil (individual matching errors are logged)
 //
 // Behavior:
-//  1. Retrieves all open/partial orders via open orders index
-//  2. For each order, attempts matching via MatchLimitOrder()
-//  3. Successful matches execute swaps and update order status
-//  4. Failed matches are logged but don't stop processing
-//  5. Continues through all orders even if some fail
+//  1. Iterates open orders using store iterator (streaming, not loading all)
+//  2. Processes up to MaxOrdersPerBlock orders per block
+//  3. Halts early if gas consumption exceeds MaxGasForMatching
+//  4. For each order, attempts matching via MatchLimitOrder()
+//  5. Successful matches execute swaps and update order status
+//  6. Failed matches are logged but don't stop processing
+//  7. Unprocessed orders will be attempted in subsequent blocks
 //
-// Performance Considerations:
-//   - Only processes open/partial orders (not filled/cancelled/expired)
-//   - Order matching has O(n) complexity where n = number of open orders
-//   - Consider gas limits with large number of open orders
-//   - Future optimization: Priority queue by price for early termination
+// Performance Characteristics:
+//   - O(MaxOrdersPerBlock) bounded complexity (not O(n) of all orders)
+//   - Uses store iterator for streaming (constant memory usage)
+//   - Gas-aware processing prevents expensive operations
+//   - Orders processed in FIFO order (oldest first)
+//
+// Scalability:
+//   - Handles 10,000+ open orders without chain halt
+//   - 100 orders/block = 100 blocks to process 10,000 orders (~10 minutes)
+//   - Critical orders can be prioritized via future price-based iteration
 //
 // Error Handling:
 //   - Individual order matching errors are logged, not returned
-//   - Ensures all orders get matching attempt even if some fail
-//   - Prevents one problematic order from blocking all matching
+//   - Iterator failures are logged but don't panic
+//   - Ensures graceful degradation under adverse conditions
 //
 // Security Notes:
 //   - Only callable from EndBlock (not external transactions)
 //   - Each match applies full swap security checks
 //   - No risk of same order matching multiple times per block (status updated)
+//   - Gas limits prevent resource exhaustion attacks
 //
 // Integration:
-//   This should be called in EndBlock AFTER:
-//   - ProcessExpiredOrders() (removes expired orders first)
-//   - Any pool state updates (ensures current prices)
+//
+//	This should be called in EndBlock AFTER:
+//	- ProcessExpiredOrders() (removes expired orders first)
+//	- Any pool state updates (ensures current prices)
 func (k Keeper) MatchAllOrders(ctx context.Context) error {
-	orders, err := k.GetOpenOrders(ctx)
-	if err != nil {
-		return err
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	startGas := sdkCtx.GasMeter().GasConsumed()
+	matched := 0
+
+	// Use iterator instead of loading all orders (prevents memory exhaustion)
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, LimitOrderOpenPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// Check batch limit - ensures bounded processing per block
+		if matched >= MaxOrdersPerBlock {
+			sdkCtx.Logger().Info("order matching batch limit reached",
+				"matched", matched,
+				"limit", MaxOrdersPerBlock)
+			break
+		}
+
+		// Check gas limit - prevents expensive operations from halting chain
+		gasUsed := sdkCtx.GasMeter().GasConsumed() - startGas
+		if gasUsed > MaxGasForMatching {
+			sdkCtx.Logger().Info("order matching gas limit reached",
+				"gas_used", gasUsed,
+				"limit", MaxGasForMatching,
+				"matched", matched)
+			break
+		}
+
+		// Extract order ID from iterator key
+		orderID := binary.BigEndian.Uint64(iterator.Key()[len(LimitOrderOpenPrefix):])
+
+		// Retrieve full order from store
+		order, err := k.GetLimitOrder(ctx, orderID)
+		if err != nil {
+			sdkCtx.Logger().Debug("failed to retrieve order",
+				"order_id", orderID,
+				"error", err)
+			continue
+		}
+
+		// Attempt to match order against current pool price
+		if err := k.MatchLimitOrder(ctx, order); err != nil {
+			sdkCtx.Logger().Debug("order match failed",
+				"order_id", order.ID,
+				"pool_id", order.PoolID,
+				"error", err)
+		}
+
+		matched++
 	}
 
-	for _, order := range orders {
-		if err := k.MatchLimitOrder(ctx, order); err != nil {
-			// Log error but continue with other orders
-			sdkCtx := sdk.UnwrapSDKContext(ctx)
-			sdkCtx.Logger().Error("failed to match order", "order_id", order.ID, "error", err)
-		}
+	// Log summary statistics for monitoring
+	if matched > 0 {
+		finalGas := sdkCtx.GasMeter().GasConsumed() - startGas
+		sdkCtx.Logger().Debug("order matching complete",
+			"matched", matched,
+			"gas_used", finalGas)
 	}
 
 	return nil

@@ -10,47 +10,47 @@ import (
 // DEXMetrics holds all Prometheus metrics for the DEX module
 type DEXMetrics struct {
 	// Swap metrics
-	SwapsTotal       *prometheus.CounterVec
-	SwapVolume       *prometheus.CounterVec
-	SwapLatency      prometheus.Histogram
-	SwapSlippage     prometheus.Histogram
+	SwapsTotal        *prometheus.CounterVec
+	SwapVolume        *prometheus.CounterVec
+	SwapLatency       prometheus.Histogram
+	SwapSlippage      prometheus.Histogram
 	SwapFeesCollected *prometheus.CounterVec
 
 	// Liquidity metrics
-	LiquidityAdded    *prometheus.CounterVec
-	LiquidityRemoved  *prometheus.CounterVec
-	PoolReserves      *prometheus.GaugeVec
-	LPTokenSupply     *prometheus.GaugeVec
-	PoolTVL           *prometheus.GaugeVec
+	LiquidityAdded   *prometheus.CounterVec
+	LiquidityRemoved *prometheus.CounterVec
+	PoolReserves     *prometheus.GaugeVec
+	LPTokenSupply    *prometheus.GaugeVec
+	PoolTVL          *prometheus.GaugeVec
 
 	// Pool metrics
-	PoolsTotal           prometheus.Gauge
-	PoolCreationRate     prometheus.Counter
-	PoolImbalanceRatio   *prometheus.GaugeVec
-	PoolFeeTier          *prometheus.GaugeVec
+	PoolsTotal         prometheus.Gauge
+	PoolCreationRate   prometheus.Counter
+	PoolImbalanceRatio *prometheus.GaugeVec
+	PoolFeeTier        *prometheus.GaugeVec
 
 	// Circuit breaker metrics
-	CircuitBreakerActive    *prometheus.GaugeVec
-	CircuitBreakerTriggers  *prometheus.CounterVec
+	CircuitBreakerActive     *prometheus.GaugeVec
+	CircuitBreakerTriggers   *prometheus.CounterVec
 	CircuitBreakerRecoveries *prometheus.CounterVec
 
 	// Security metrics
-	MEVProtections       *prometheus.CounterVec
-	RateLimitExceeds     *prometheus.CounterVec
-	SuspiciousActivity   *prometheus.CounterVec
+	MEVProtections     *prometheus.CounterVec
+	RateLimitExceeds   *prometheus.CounterVec
+	SuspiciousActivity *prometheus.CounterVec
 
 	// TWAP metrics
-	TWAPUpdates       prometheus.Counter
-	TWAPValue         *prometheus.GaugeVec
+	TWAPUpdates prometheus.Counter
+	TWAPValue   *prometheus.GaugeVec
 
 	// ABCI metrics
 	ProtocolFeesDistributed *prometheus.CounterVec
 	RateLimitCleanups       prometheus.Counter
 
 	// IBC DEX metrics
-	IBCSwapsSent      *prometheus.CounterVec
-	IBCSwapsReceived  *prometheus.CounterVec
-	IBCTimeouts       *prometheus.CounterVec
+	IBCSwapsSent     *prometheus.CounterVec
+	IBCSwapsReceived *prometheus.CounterVec
+	IBCTimeouts      *prometheus.CounterVec
 }
 
 var (

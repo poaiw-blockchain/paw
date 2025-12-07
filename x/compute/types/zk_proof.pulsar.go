@@ -1454,13 +1454,14 @@ func (x *fastReflection_VerifyingKey) ProtoMethods() *protoiface.Methods {
 }
 
 var (
-	md_CircuitParams                protoreflect.MessageDescriptor
-	fd_CircuitParams_circuit_id     protoreflect.FieldDescriptor
-	fd_CircuitParams_description    protoreflect.FieldDescriptor
-	fd_CircuitParams_verifying_key  protoreflect.FieldDescriptor
-	fd_CircuitParams_max_proof_size protoreflect.FieldDescriptor
-	fd_CircuitParams_gas_cost       protoreflect.FieldDescriptor
-	fd_CircuitParams_enabled        protoreflect.FieldDescriptor
+	md_CircuitParams                             protoreflect.MessageDescriptor
+	fd_CircuitParams_circuit_id                  protoreflect.FieldDescriptor
+	fd_CircuitParams_description                 protoreflect.FieldDescriptor
+	fd_CircuitParams_verifying_key               protoreflect.FieldDescriptor
+	fd_CircuitParams_max_proof_size              protoreflect.FieldDescriptor
+	fd_CircuitParams_gas_cost                    protoreflect.FieldDescriptor
+	fd_CircuitParams_enabled                     protoreflect.FieldDescriptor
+	fd_CircuitParams_verification_deposit_amount protoreflect.FieldDescriptor
 )
 
 func init() {
@@ -1472,6 +1473,7 @@ func init() {
 	fd_CircuitParams_max_proof_size = md_CircuitParams.Fields().ByName("max_proof_size")
 	fd_CircuitParams_gas_cost = md_CircuitParams.Fields().ByName("gas_cost")
 	fd_CircuitParams_enabled = md_CircuitParams.Fields().ByName("enabled")
+	fd_CircuitParams_verification_deposit_amount = md_CircuitParams.Fields().ByName("verification_deposit_amount")
 }
 
 var _ protoreflect.Message = (*fastReflection_CircuitParams)(nil)
@@ -1575,6 +1577,12 @@ func (x *fastReflection_CircuitParams) Range(f func(protoreflect.FieldDescriptor
 			return
 		}
 	}
+	if x.VerificationDepositAmount != uint64(0) {
+		value := protoreflect.ValueOfUint64(x.VerificationDepositAmount)
+		if !f(fd_CircuitParams_verification_deposit_amount, value) {
+			return
+		}
+	}
 }
 
 // Has reports whether a field is populated.
@@ -1602,6 +1610,8 @@ func (x *fastReflection_CircuitParams) Has(fd protoreflect.FieldDescriptor) bool
 		return x.GasCost != uint64(0)
 	case "paw.compute.v1.CircuitParams.enabled":
 		return x.Enabled != false
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		return x.VerificationDepositAmount != uint64(0)
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1630,6 +1640,8 @@ func (x *fastReflection_CircuitParams) Clear(fd protoreflect.FieldDescriptor) {
 		x.GasCost = uint64(0)
 	case "paw.compute.v1.CircuitParams.enabled":
 		x.Enabled = false
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		x.VerificationDepositAmount = uint64(0)
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1664,6 +1676,9 @@ func (x *fastReflection_CircuitParams) Get(descriptor protoreflect.FieldDescript
 	case "paw.compute.v1.CircuitParams.enabled":
 		value := x.Enabled
 		return protoreflect.ValueOfBool(value)
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		value := x.VerificationDepositAmount
+		return protoreflect.ValueOfUint64(value)
 	default:
 		if descriptor.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1696,6 +1711,8 @@ func (x *fastReflection_CircuitParams) Set(fd protoreflect.FieldDescriptor, valu
 		x.GasCost = value.Uint()
 	case "paw.compute.v1.CircuitParams.enabled":
 		x.Enabled = value.Bool()
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		x.VerificationDepositAmount = value.Uint()
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1731,6 +1748,8 @@ func (x *fastReflection_CircuitParams) Mutable(fd protoreflect.FieldDescriptor) 
 		panic(fmt.Errorf("field gas_cost of message paw.compute.v1.CircuitParams is not mutable"))
 	case "paw.compute.v1.CircuitParams.enabled":
 		panic(fmt.Errorf("field enabled of message paw.compute.v1.CircuitParams is not mutable"))
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		panic(fmt.Errorf("field verification_deposit_amount of message paw.compute.v1.CircuitParams is not mutable"))
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1757,6 +1776,8 @@ func (x *fastReflection_CircuitParams) NewField(fd protoreflect.FieldDescriptor)
 		return protoreflect.ValueOfUint64(uint64(0))
 	case "paw.compute.v1.CircuitParams.enabled":
 		return protoreflect.ValueOfBool(false)
+	case "paw.compute.v1.CircuitParams.verification_deposit_amount":
+		return protoreflect.ValueOfUint64(uint64(0))
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.CircuitParams"))
@@ -1847,6 +1868,9 @@ func (x *fastReflection_CircuitParams) ProtoMethods() *protoiface.Methods {
 		if x.Enabled {
 			n += 2
 		}
+		if x.VerificationDepositAmount != 0 {
+			n += 1 + runtime.Sov(uint64(x.VerificationDepositAmount))
+		}
 		if x.unknownFields != nil {
 			n += len(x.unknownFields)
 		}
@@ -1875,6 +1899,11 @@ func (x *fastReflection_CircuitParams) ProtoMethods() *protoiface.Methods {
 		if x.unknownFields != nil {
 			i -= len(x.unknownFields)
 			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.VerificationDepositAmount != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.VerificationDepositAmount))
+			i--
+			dAtA[i] = 0x38
 		}
 		if x.Enabled {
 			i--
@@ -2131,6 +2160,25 @@ func (x *fastReflection_CircuitParams) ProtoMethods() *protoiface.Methods {
 					}
 				}
 				x.Enabled = bool(v != 0)
+			case 7:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field VerificationDepositAmount", wireType)
+				}
+				x.VerificationDepositAmount = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.VerificationDepositAmount |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
 			default:
 				iNdEx = preIndex
 				skippy, err := runtime.Skip(dAtA[iNdEx:])
@@ -3728,6 +3776,9 @@ type CircuitParams struct {
 	GasCost uint64 `protobuf:"varint,5,opt,name=gas_cost,json=gasCost,proto3" json:"gas_cost,omitempty"`
 	// enabled indicates whether this circuit is currently active
 	Enabled bool `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// verification_deposit_amount is the deposit required to submit a proof for verification (in upaw)
+	// This deposit is refunded if the proof is valid, slashed if invalid (DoS protection)
+	VerificationDepositAmount uint64 `protobuf:"varint,7,opt,name=verification_deposit_amount,json=verificationDepositAmount,proto3" json:"verification_deposit_amount,omitempty"`
 }
 
 func (x *CircuitParams) Reset() {
@@ -3790,6 +3841,13 @@ func (x *CircuitParams) GetEnabled() bool {
 		return x.Enabled
 	}
 	return false
+}
+
+func (x *CircuitParams) GetVerificationDepositAmount() uint64 {
+	if x != nil {
+		return x.VerificationDepositAmount
+	}
+	return 0
 }
 
 // ZKMetrics tracks ZK proof verification statistics.
@@ -3993,7 +4051,7 @@ var file_paw_compute_v1_zk_proof_proto_rawDesc = []byte{
 	0x90, 0xdf, 0x1f, 0x01, 0x52, 0x09, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64, 0x41, 0x74, 0x12,
 	0x2c, 0x0a, 0x12, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x5f, 0x69, 0x6e, 0x70, 0x75, 0x74, 0x5f,
 	0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x10, 0x70, 0x75, 0x62,
-	0x6c, 0x69, 0x63, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0xf4, 0x01,
+	0x6c, 0x69, 0x63, 0x49, 0x6e, 0x70, 0x75, 0x74, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x22, 0xb4, 0x02,
 	0x0a, 0x0d, 0x43, 0x69, 0x72, 0x63, 0x75, 0x69, 0x74, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12,
 	0x1d, 0x0a, 0x0a, 0x63, 0x69, 0x72, 0x63, 0x75, 0x69, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x09, 0x63, 0x69, 0x72, 0x63, 0x75, 0x69, 0x74, 0x49, 0x64, 0x12, 0x20,
@@ -4009,7 +4067,11 @@ var file_paw_compute_v1_zk_proof_proto_rawDesc = []byte{
 	0x19, 0x0a, 0x08, 0x67, 0x61, 0x73, 0x5f, 0x63, 0x6f, 0x73, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28,
 	0x04, 0x52, 0x07, 0x67, 0x61, 0x73, 0x43, 0x6f, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e,
 	0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x06, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x65, 0x6e, 0x61,
-	0x62, 0x6c, 0x65, 0x64, 0x22, 0xdd, 0x02, 0x0a, 0x09, 0x5a, 0x4b, 0x4d, 0x65, 0x74, 0x72, 0x69,
+	0x62, 0x6c, 0x65, 0x64, 0x12, 0x3e, 0x0a, 0x1b, 0x76, 0x65, 0x72, 0x69, 0x66, 0x69, 0x63, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x64, 0x65, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x5f, 0x61, 0x6d, 0x6f,
+	0x75, 0x6e, 0x74, 0x18, 0x07, 0x20, 0x01, 0x28, 0x04, 0x52, 0x19, 0x76, 0x65, 0x72, 0x69, 0x66,
+	0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x44, 0x65, 0x70, 0x6f, 0x73, 0x69, 0x74, 0x41, 0x6d,
+	0x6f, 0x75, 0x6e, 0x74, 0x22, 0xdd, 0x02, 0x0a, 0x09, 0x5a, 0x4b, 0x4d, 0x65, 0x74, 0x72, 0x69,
 	0x63, 0x73, 0x12, 0x34, 0x0a, 0x16, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x5f, 0x70, 0x72, 0x6f, 0x6f,
 	0x66, 0x73, 0x5f, 0x67, 0x65, 0x6e, 0x65, 0x72, 0x61, 0x74, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x04, 0x52, 0x14, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x6f, 0x66, 0x73, 0x47,

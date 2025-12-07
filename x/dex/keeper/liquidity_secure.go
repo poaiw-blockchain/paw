@@ -226,7 +226,13 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 		return math.ZeroInt(), err
 	}
 
-	// 14. Emit event
+	// 14. Mark pool as active for activity-based tracking
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the operation - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
+	}
+
+	// 15. Emit event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDexAddLiquidity,
@@ -384,7 +390,13 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
-	// 14. Emit event
+	// 14. Mark pool as active for activity-based tracking
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the operation - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
+	}
+
+	// 15. Emit event
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDexRemoveLiquidity,

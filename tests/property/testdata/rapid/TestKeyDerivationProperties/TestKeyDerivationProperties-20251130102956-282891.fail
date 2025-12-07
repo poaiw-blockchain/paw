@@ -1,9 +1,0 @@
-# 2025/11/30 10:29:56.817483 [TestKeyDerivationProperties] [rapid] draw path: 0x15
-# 2025/11/30 10:29:56.817490 [TestKeyDerivationProperties] [rapid] draw path2: 0x115
-# 2025/11/30 10:29:56.817492 [TestKeyDerivationProperties] different paths produced same key
-# 
-v0.4.8#14195347316636608499
-0x91f0816bb7983
-0x15
-0xfa47d88ff6803
-0x115

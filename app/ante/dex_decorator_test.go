@@ -47,6 +47,7 @@ func (suite *DEXDecoratorTestSuite) SetupTest() {
 		nil, // bankKeeper
 		nil, // ibcKeeper
 		nil, // portKeeper
+		"cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn", // authority (governance module address)
 		capabilitykeeper.ScopedKeeper{},
 	)
 

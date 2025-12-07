@@ -36,6 +36,10 @@ var (
 
 	// GeographicInfoKeyPrefix is the prefix for validator geographic information
 	GeographicInfoKeyPrefix = []byte{0x0A}
+
+	// OutlierHistoryKeyPrefix is the prefix for outlier history storage
+	// Tracks validator outlier submissions for reputation and slashing
+	OutlierHistoryKeyPrefix = []byte{0x0C}
 )
 
 // GetPriceKey returns the store key for a price by asset

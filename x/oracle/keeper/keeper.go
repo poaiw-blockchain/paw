@@ -2,9 +2,7 @@ package keeper
 
 import (
 	"context"
-	"strings"
 
-	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,6 +15,7 @@ import (
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
@@ -99,76 +98,70 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 	return nil
 }
 
-// IsAuthorizedChannel returns nil error if the provided IBC port/channel pair is whitelisted.
-// Returns an error if the channel is not authorized or if params cannot be loaded.
-func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) error {
+// GetAuthorizedChannels implements ibcutil.ChannelStore.
+// It retrieves the current list of authorized IBC channels from module params.
+func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.AuthorizedChannel, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		ctx.Logger().Error("failed to load oracle params for channel authorization", "error", err)
+		return nil, err
+	}
+
+	// Convert module-specific type to shared type
+	channels := make([]ibcutil.AuthorizedChannel, len(params.AuthorizedChannels))
+	for i, ch := range params.AuthorizedChannels {
+		channels[i] = ibcutil.AuthorizedChannel{
+			PortId:    ch.PortId,
+			ChannelId: ch.ChannelId,
+		}
+	}
+	return channels, nil
+}
+
+// SetAuthorizedChannels implements ibcutil.ChannelStore.
+// It persists the updated list of authorized IBC channels to module params.
+func (k Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.AuthorizedChannel) error {
+	params, err := k.GetParams(ctx)
+	if err != nil {
 		return err
 	}
 
-	for _, ch := range params.AuthorizedChannels {
-		if ch.PortId == portID && ch.ChannelId == channelID {
-			return nil // Authorized
+	// Convert shared type to module-specific type
+	moduleChannels := make([]types.AuthorizedChannel, len(channels))
+	for i, ch := range channels {
+		moduleChannels[i] = types.AuthorizedChannel{
+			PortId:    ch.PortId,
+			ChannelId: ch.ChannelId,
 		}
 	}
 
+	params.AuthorizedChannels = moduleChannels
+	return k.SetParams(ctx, params)
+}
+
+// IsAuthorizedChannel returns nil error if the provided IBC port/channel pair is whitelisted.
+// Returns an error if the channel is not authorized or if params cannot be loaded.
+func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) error {
+	if ibcutil.IsAuthorizedChannel(ctx, k, portID, channelID) {
+		return nil
+	}
 	return types.ErrUnauthorizedChannel
 }
 
 // AuthorizeChannel appends a new port/channel pair to the allowed list, preventing duplicates.
 func (k Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
-	portID = strings.TrimSpace(portID)
-	channelID = strings.TrimSpace(channelID)
-	if portID == "" || channelID == "" {
-		return errorsmod.Wrap(types.ErrInvalidAsset, "port_id and channel_id must be non-empty")
-	}
-
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, ch := range params.AuthorizedChannels {
-		if ch.PortId == portID && ch.ChannelId == channelID {
-			return nil
-		}
-	}
-
-	params.AuthorizedChannels = append(params.AuthorizedChannels, types.AuthorizedChannel{
-		PortId:    portID,
-		ChannelId: channelID,
-	})
-	return k.SetParams(ctx, params)
+	return ibcutil.AuthorizeChannel(ctx, k, portID, channelID)
 }
 
-// SetAuthorizedChannels replaces the currently authorized ports/channels.
-func (k Keeper) SetAuthorizedChannels(ctx sdk.Context, channels []types.AuthorizedChannel) error {
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return err
+// SetAuthorizedChannelsWithValidation replaces the currently authorized ports/channels with validation.
+func (k Keeper) SetAuthorizedChannelsWithValidation(ctx sdk.Context, channels []types.AuthorizedChannel) error {
+	// Convert module-specific type to shared type
+	ibcChannels := make([]ibcutil.AuthorizedChannel, len(channels))
+	for i, ch := range channels {
+		ibcChannels[i] = ibcutil.AuthorizedChannel{
+			PortId:    ch.PortId,
+			ChannelId: ch.ChannelId,
+		}
 	}
 
-	normalized := make([]types.AuthorizedChannel, 0, len(channels))
-	seen := make(map[string]struct{}, len(channels))
-	for _, ch := range channels {
-		portID := strings.TrimSpace(ch.PortId)
-		channelID := strings.TrimSpace(ch.ChannelId)
-		if portID == "" || channelID == "" {
-			return errorsmod.Wrap(types.ErrInvalidAsset, "port_id and channel_id must be non-empty")
-		}
-		key := portID + "/" + channelID
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		normalized = append(normalized, types.AuthorizedChannel{
-			PortId:    portID,
-			ChannelId: channelID,
-		})
-	}
-
-	params.AuthorizedChannels = normalized
-	return k.SetParams(ctx, params)
+	return ibcutil.SetAuthorizedChannelsWithValidation(ctx, k, ibcChannels)
 }

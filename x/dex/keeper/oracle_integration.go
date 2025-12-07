@@ -72,6 +72,16 @@ func (k Keeper) ValidatePoolPrice(ctx context.Context, poolID uint64, oracleKeep
 		return types.ErrOraclePrice.Wrap("oracle prices are stale")
 	}
 
+	// DIVISION BY ZERO PROTECTION: Validate oracle prices before division
+	if priceB.IsZero() {
+		return types.ErrOraclePrice.Wrap("oracle price for token B is zero")
+	}
+
+	// DIVISION BY ZERO PROTECTION: Validate pool reserves before division
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		return types.ErrInsufficientLiquidity.Wrap("pool has zero reserves")
+	}
+
 	// Calculate oracle-based price ratio
 	oracleRatio := priceA.Quo(priceB)
 
@@ -81,8 +91,16 @@ func (k Keeper) ValidatePoolPrice(ctx context.Context, poolID uint64, oracleKeep
 	// Calculate deviation
 	var deviation math.LegacyDec
 	if oracleRatio.GT(poolRatio) {
+		// DIVISION BY ZERO PROTECTION: Check oracleRatio is non-zero
+		if oracleRatio.IsZero() {
+			return types.ErrOraclePrice.Wrap("oracle ratio is zero")
+		}
 		deviation = oracleRatio.Sub(poolRatio).Quo(oracleRatio)
 	} else {
+		// DIVISION BY ZERO PROTECTION: Check poolRatio is non-zero
+		if poolRatio.IsZero() {
+			return types.ErrInvalidPoolState.Wrap("pool ratio is zero")
+		}
 		deviation = poolRatio.Sub(oracleRatio).Quo(poolRatio)
 	}
 
@@ -115,6 +133,11 @@ func (k Keeper) GetFairPoolPrice(ctx context.Context, poolID uint64, oracleKeepe
 	priceB, err := oracleKeeper.GetPrice(ctx, pool.TokenB)
 	if err != nil {
 		return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("failed to get price for %s: %v", pool.TokenB, err)
+	}
+
+	// DIVISION BY ZERO PROTECTION: Validate price before division
+	if priceB.IsZero() {
+		return math.LegacyZeroDec(), types.ErrOraclePrice.Wrap("oracle price for token B is zero")
 	}
 
 	// Return ratio of token A to token B
@@ -160,15 +183,28 @@ func (k Keeper) DetectArbitrageOpportunity(ctx context.Context, poolID uint64, o
 		return false, math.LegacyZeroDec(), err
 	}
 
+	// DIVISION BY ZERO PROTECTION: Validate pool reserves before division
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		return false, math.LegacyZeroDec(), types.ErrInsufficientLiquidity.Wrap("pool has zero reserves")
+	}
+
 	// Get current pool price
 	poolPrice := math.LegacyNewDecFromInt(pool.ReserveA).Quo(math.LegacyNewDecFromInt(pool.ReserveB))
 
 	// Calculate potential profit percentage
 	profitPercent := math.LegacyZeroDec()
 	if fairPrice.GT(poolPrice) {
+		// DIVISION BY ZERO PROTECTION: Check poolPrice is non-zero
+		if poolPrice.IsZero() {
+			return false, math.LegacyZeroDec(), types.ErrInvalidPoolState.Wrap("pool price is zero")
+		}
 		// Arbitrage: buy token A from pool, sell at oracle price
 		profitPercent = fairPrice.Sub(poolPrice).Quo(poolPrice)
 	} else if poolPrice.GT(fairPrice) {
+		// DIVISION BY ZERO PROTECTION: Check fairPrice is non-zero
+		if fairPrice.IsZero() {
+			return false, math.LegacyZeroDec(), types.ErrOraclePrice.Wrap("fair price is zero")
+		}
 		// Arbitrage: buy token A at oracle price, sell to pool
 		profitPercent = poolPrice.Sub(fairPrice).Quo(fairPrice)
 	}

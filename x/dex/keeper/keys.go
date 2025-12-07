@@ -48,6 +48,9 @@ var (
 
 	// PoolTWAPKeyPrefix stores pool TWAP snapshots
 	PoolTWAPKeyPrefix = []byte{0x0E}
+
+	// ActivePoolsKeyPrefix stores pools with recent activity for TWAP updates
+	ActivePoolsKeyPrefix = []byte{0x15}
 )
 
 // PoolKey returns the store key for a pool by ID
@@ -162,4 +165,11 @@ func PoolTWAPKey(poolID uint64) []byte {
 	poolIDBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(poolIDBytes, poolID)
 	return append(PoolTWAPKeyPrefix, poolIDBytes...)
+}
+
+// ActivePoolKey returns the store key for tracking active pools
+func ActivePoolKey(poolID uint64) []byte {
+	poolIDBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(poolIDBytes, poolID)
+	return append(ActivePoolsKeyPrefix, poolIDBytes...)
 }

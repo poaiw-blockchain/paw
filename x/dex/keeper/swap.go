@@ -253,6 +253,13 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		sdkCtx.Logger().Error("failed to update TWAP on swap", "pool_id", poolID, "error", err)
 	}
 
+	// Step 7: Mark pool as active for activity-based tracking
+	// This is used for monitoring which pools have recent activity
+	if err := k.MarkPoolActive(ctx, poolID); err != nil {
+		// Log error but don't fail the swap - activity tracking is non-critical
+		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
+	}
+
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

@@ -529,20 +529,6 @@ MIT License - see LICENSE file for details
 
 ## Roadmap
 
-- [x] Core blockchain indexing
-- [x] REST API
-- [x] GraphQL API
-- [x] WebSocket real-time updates
-- [x] DEX module support
-- [x] DEX price history (OHLCV)
-- [x] DEX pool analytics (TVL, volume, APR)
-- [x] DEX user positions tracking
-- [x] Individual pool detail pages
-- [x] Swap simulation
-- [x] Oracle module support
-- [x] Compute module support
-- [x] Advanced search
-- [x] Export functionality
 - [ ] DEX event indexer (real-time processing)
 - [ ] User portfolio dashboard
 - [ ] Chart visualization libraries

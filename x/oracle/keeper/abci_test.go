@@ -361,12 +361,12 @@ func TestExtractValidatorAssetPair(t *testing.T) {
 		},
 		{
 			name:     "too short key",
-			key:      []byte{0x07},
+			key:      keeper.OutlierHistoryKeyPrefix,
 			expected: "",
 		},
 		{
 			name:     "missing separator",
-			key:      []byte{0x07, 'a', 'b', 'c'},
+			key:      append(keeper.OutlierHistoryKeyPrefix, []byte{'a', 'b', 'c'}...),
 			expected: "",
 		},
 	}
@@ -382,7 +382,7 @@ func TestExtractValidatorAssetPair(t *testing.T) {
 
 // makeOutlierKey creates an outlier history key for testing
 func makeOutlierKey(validator, asset string, height int64) []byte {
-	key := []byte{0x07} // OutlierHistoryPrefix
+	key := append([]byte(nil), keeper.OutlierHistoryKeyPrefix...)
 	key = append(key, []byte(validator)...)
 	key = append(key, byte(0x00))
 	key = append(key, []byte(asset)...)
@@ -393,11 +393,11 @@ func makeOutlierKey(validator, asset string, height int64) []byte {
 
 // extractValidatorAssetPairHelper is a test helper that replicates the keeper logic
 func extractValidatorAssetPairHelper(key []byte) string {
-	if len(key) < 2 {
+	if len(key) < len(keeper.OutlierHistoryKeyPrefix)+1 {
 		return ""
 	}
 
-	remainder := key[1:]
+	remainder := key[len(keeper.OutlierHistoryKeyPrefix):]
 	separatorCount := 0
 	for i, b := range remainder {
 		if b == 0x00 {

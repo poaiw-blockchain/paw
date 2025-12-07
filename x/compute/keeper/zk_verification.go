@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	mimcfr "github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
@@ -413,7 +415,8 @@ func computeResultHashMiMC(
 // This is called on-chain during result submission to verify correctness.
 //
 // Security: Proof size is checked BEFORE any gas consumption to prevent DoS attacks
-// where attackers submit massive proofs to exhaust gas.
+// where attackers submit massive proofs to exhaust gas. Additionally, a deposit is required
+// and refunded on valid proofs, slashed on invalid proofs (economic DoS protection).
 func (zk *ZKVerifier) VerifyProof(
 	ctx context.Context,
 	zkProof *types.ZKProof,
@@ -447,23 +450,75 @@ func (zk *ZKVerifier) VerifyProof(
 		return false, types.ErrProofTooLarge
 	}
 
+	// CRITICAL SECURITY: Require deposit BEFORE any expensive verification operations
+	// This provides economic DoS protection - attackers must pay for invalid proofs
+	depositRequired := circuitParams.VerificationDepositAmount
+	if depositRequired > 0 {
+		depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
+		depositCoins := sdk.NewCoins(depositCoin)
+
+		// Transfer deposit from provider to module account
+		if err := zk.keeper.bankKeeper.SendCoinsFromAccountToModule(
+			sdkCtx,
+			providerAddress,
+			types.ModuleName,
+			depositCoins,
+		); err != nil {
+			return false, errorsmod.Wrap(types.ErrInsufficientDeposit, err.Error())
+		}
+
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"zk_proof_deposit_locked",
+				sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+				sdk.NewAttribute("provider", providerAddress.String()),
+				sdk.NewAttribute("deposit_amount", depositCoin.String()),
+				sdk.NewAttribute("circuit_id", zkProof.CircuitId),
+			),
+		)
+	}
+
 	// Now we can safely consume gas for validation
 	sdkCtx.GasMeter().ConsumeGas(500, "zk_proof_validation_setup")
 
+	// Helper function to handle deposit refund on early errors
+	refundDeposit := func() {
+		if depositRequired > 0 {
+			depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
+			depositCoins := sdk.NewCoins(depositCoin)
+			if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
+				sdkCtx,
+				types.ModuleName,
+				providerAddress,
+				depositCoins,
+			); err != nil {
+				sdkCtx.Logger().Error("failed to refund deposit on validation error",
+					"request_id", requestID,
+					"provider", providerAddress.String(),
+					"error", err.Error(),
+				)
+			}
+		}
+	}
+
 	// Validate proof system
 	if zkProof.ProofSystem != "groth16" {
+		refundDeposit()
 		return false, fmt.Errorf("unsupported proof system: %s", zkProof.ProofSystem)
 	}
 
 	// Validate proof is not empty
 	if len(zkProof.Proof) == 0 {
+		refundDeposit()
 		return false, fmt.Errorf("proof cannot be empty")
 	}
 	if len(resultHash) != sha256.Size {
+		refundDeposit()
 		return false, fmt.Errorf("result hash must be 32 bytes, got %d", len(resultHash))
 	}
 
 	if !circuitParams.Enabled {
+		refundDeposit()
 		return false, fmt.Errorf("circuit %s is not enabled", zkProof.CircuitId)
 	}
 
@@ -475,6 +530,7 @@ func (zk *ZKVerifier) VerifyProof(
 	vk, ok := zk.verifyingKeys[zkProof.CircuitId]
 	if !ok {
 		if len(circuitParams.VerifyingKey.VkData) == 0 {
+			refundDeposit()
 			return false, fmt.Errorf("verifying key not found for circuit %s", zkProof.CircuitId)
 		}
 		vk = groth16.NewVerifyingKey(ecc.BN254)
@@ -532,21 +588,68 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Verify the proof
-	err = groth16.Verify(proof, vk, publicWitness)
-	if err != nil {
-		// Proof verification failed
-		sdkCtx.Logger().Warn("ZK proof verification failed",
-			"request_id", requestID,
-			"provider", providerAddress.String(),
-			"error", err.Error(),
-		)
-		if updateErr := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); updateErr != nil {
-			sdkCtx.Logger().Error("failed to update verification metrics", "error", updateErr)
+	verificationErr := groth16.Verify(proof, vk, publicWitness)
+
+	// Handle deposit based on verification result
+	if depositRequired > 0 {
+		depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
+		depositCoins := sdk.NewCoins(depositCoin)
+
+		if verificationErr != nil {
+			// INVALID PROOF: Slash deposit (keep in module account, don't refund)
+			// The deposit is burned/kept as penalty for submitting invalid proof
+			sdkCtx.Logger().Warn("ZK proof verification failed - deposit slashed",
+				"request_id", requestID,
+				"provider", providerAddress.String(),
+				"deposit_slashed", depositCoin.String(),
+				"error", verificationErr.Error(),
+			)
+
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"zk_proof_deposit_slashed",
+					sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+					sdk.NewAttribute("provider", providerAddress.String()),
+					sdk.NewAttribute("deposit_amount", depositCoin.String()),
+					sdk.NewAttribute("circuit_id", zkProof.CircuitId),
+					sdk.NewAttribute("reason", "invalid_proof"),
+				),
+			)
+
+			if updateErr := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); updateErr != nil {
+				sdkCtx.Logger().Error("failed to update verification metrics", "error", updateErr)
+			}
+			return false, nil
+		} else {
+			// VALID PROOF: Refund deposit to provider
+			if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
+				sdkCtx,
+				types.ModuleName,
+				providerAddress,
+				depositCoins,
+			); err != nil {
+				// Log error but don't fail the verification since proof is valid
+				sdkCtx.Logger().Error("failed to refund verification deposit",
+					"request_id", requestID,
+					"provider", providerAddress.String(),
+					"deposit", depositCoin.String(),
+					"error", err.Error(),
+				)
+			} else {
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"zk_proof_deposit_refunded",
+						sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+						sdk.NewAttribute("provider", providerAddress.String()),
+						sdk.NewAttribute("deposit_amount", depositCoin.String()),
+						sdk.NewAttribute("circuit_id", zkProof.CircuitId),
+					),
+				)
+			}
 		}
-		return false, nil
 	}
 
-	// Proof verified successfully
+	// Update metrics for successful verification
 	if err := zk.updateVerificationMetrics(ctx, true, time.Since(startTime), circuitParams.GasCost); err != nil {
 		sdkCtx.Logger().Error("failed to update verification metrics", "error", err)
 	}
@@ -599,7 +702,8 @@ func (zk *ZKVerifier) InitializeCircuit(ctx context.Context, circuitID string) e
 	}
 
 	circuitParams.VerifyingKey.VkData = vkBytes.Bytes()
-	circuitParams.MaxProofSize = 2048 // Groth16 proofs can be ~1-2KB
+	circuitParams.MaxProofSize = 2048     // Groth16 proofs can be ~1-2KB
+	circuitParams.VerificationDepositAmount = 1000000 // 1 PAW deposit for DoS protection
 
 	return zk.keeper.SetCircuitParams(ctx, *circuitParams)
 }
@@ -658,9 +762,10 @@ func (k *Keeper) getDefaultCircuitParams(ctx context.Context, circuitID string) 
 			CreatedAt:        createdAt,
 			PublicInputCount: 3, // RequestID, ResultHash, ProviderAddress
 		},
-		MaxProofSize: 1024 * 1024, // 1MB max - prevents DoS via oversized proofs
-		GasCost:      500000,      // Gas cost for verification (~0.5M gas)
-		Enabled:      true,
+		MaxProofSize:                1024 * 1024, // 1MB max - prevents DoS via oversized proofs
+		GasCost:                     500000,      // Gas cost for verification (~0.5M gas)
+		Enabled:                     true,
+		VerificationDepositAmount:   1000000, // 1,000,000 upaw (1 PAW) - refunded on valid proof, slashed on invalid
 	}
 }
 

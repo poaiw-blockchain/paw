@@ -1,16 +1,16 @@
 # PAW Blockchain - Production Readiness Todos
 
-**Generated:** 2025-12-05
+**Generated:** 2025-12-07
 **Review Agents Used:** 7 specialized agents (security, performance, architecture, patterns, data-integrity, simplicity, git-history)
 
 ## Summary
 
 | Priority | Count | Description |
 |----------|-------|-------------|
-| **P1 (CRITICAL)** | 7 | Security vulnerabilities, data integrity - **BLOCKS TESTNET** |
-| **P2 (IMPORTANT)** | 8 | Performance, code quality, security hardening |
-| **P3 (NICE-TO-HAVE)** | 2 | Cleanup, documentation |
-| **TOTAL** | 17 | |
+| **P1 (CRITICAL)** | 11 | Security vulnerabilities, data integrity - **BLOCKS TESTNET** |
+| **P2 (IMPORTANT)** | 12 | Performance, code quality, security hardening |
+| **P3 (NICE-TO-HAVE)** | 1 | Cleanup, documentation |
+| **TOTAL** | 24 | |
 
 ## Testnet Readiness Assessment
 
@@ -24,6 +24,10 @@
 5. Oracle price manipulation with 3 validators
 6. Genesis export incomplete - chain restart loses data
 7. DEX reentrancy risk not fully verified
+8. Escrow state not exported in genesis - data loss on restart
+9. Dispute settlement ignores escrow errors - fund loss
+10. Unbounded O(n) order matching in EndBlocker - block timeout
+11. Panic in module registration - node crash on startup
 
 ### Estimated Remediation Time
 
@@ -45,6 +49,10 @@
 | [005](005-pending-p1-oracle-outlier-manipulation.md) | Oracle manipulation | Oracle | Price manipulation |
 | [006](006-pending-p1-genesis-export-incomplete.md) | Genesis incomplete | DEX | Data loss |
 | [007](007-pending-p1-dex-reentrancy-risk.md) | Reentrancy risk | DEX | Fund drain |
+| [018](018-pending-p1-escrow-genesis-export-missing.md) | Escrow genesis export missing | Compute | Data loss |
+| [019](019-pending-p1-dispute-settlement-atomicity.md) | Dispute settlement atomicity | Compute | Fund loss |
+| [020](020-pending-p1-unbounded-order-matching.md) | Unbounded order matching | DEX | Block timeout |
+| [021](021-pending-p1-panic-module-registration.md) | Panic in module registration | Oracle/Compute | Node crash |
 
 ## P2 - Important (Should Fix Before Mainnet)
 
@@ -58,13 +66,16 @@
 | [013](013-pending-p2-p2p-message-size-dos.md) | P2P message DoS | P2P | Node crash |
 | [014](014-pending-p2-flash-loan-protection.md) | Flash loan protection | DEX | MEV attacks |
 | [015](015-pending-p2-property-test-failures.md) | Property test failures | Wallet | Crypto bugs |
+| [022](022-pending-p2-division-zero-liquidity.md) | Division by zero in liquidity | DEX | Chain halt |
+| [023](023-pending-p2-grpc-gateway-missing.md) | Missing gRPC gateway | All | REST API broken |
+| [024](024-pending-p2-orderbook-unbounded.md) | Unbounded orderbook query | DEX | Node crash |
+| [025](025-pending-p2-deletepool-access-control.md) | DeletePool no auth check | DEX | Griefing |
 
 ## P3 - Nice to Have
 
 | ID | Issue | Module | Impact |
 |----|-------|--------|--------|
 | [016](016-pending-p3-privacy-module-unused.md) | Privacy module unused | Privacy | Cleanup |
-| [017](017-pending-p3-event-emission-standardization.md) | Event standardization | All | Indexing |
 
 ## Usage
 

@@ -69,6 +69,10 @@ message CircuitParams {
 
   // enabled indicates whether this circuit is currently active
   bool enabled = 6;
+
+  // verification_deposit_amount is the deposit required to submit a proof for verification (in upaw)
+  // This deposit is refunded if the proof is valid, slashed if invalid (DoS protection)
+  uint64 verification_deposit_amount = 7;
 }
 
 // ZKMetrics tracks ZK proof verification statistics.

@@ -386,6 +386,7 @@ func NewPAWApp(
 		app.BankKeeper,
 		app.IBCKeeper,
 		app.IBCKeeper.PortKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		scopedDEXKeeper,
 	)
 

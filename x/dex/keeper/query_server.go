@@ -266,20 +266,16 @@ func (qs queryServer) OrderBook(goCtx context.Context, req *types.QueryOrderBook
 
 	limit := int(req.Limit)
 	if limit == 0 {
-		limit = 50
+		limit = DefaultOrderBookLimit
+	}
+	if limit > MaxOrderBookLimit {
+		limit = MaxOrderBookLimit
 	}
 
-	buyOrders, sellOrders, err := qs.Keeper.GetOrderBook(goCtx, req.PoolId)
+	// GetOrderBook now handles limits efficiently at the storage level
+	buyOrders, sellOrders, err := qs.Keeper.GetOrderBook(goCtx, req.PoolId, limit)
 	if err != nil {
 		return nil, err
-	}
-
-	// Apply limit
-	if len(buyOrders) > limit {
-		buyOrders = buyOrders[:limit]
-	}
-	if len(sellOrders) > limit {
-		sellOrders = sellOrders[:limit]
 	}
 
 	var protoBuyOrders, protoSellOrders []types.LimitOrder

@@ -185,3 +185,48 @@ func (k Keeper) GetCurrentTWAP(ctx context.Context, poolID uint64) (math.LegacyD
 
 	return math.LegacyZeroDec(), types.ErrOraclePrice.Wrapf("no price data available for pool %d", poolID)
 }
+
+// MarkPoolActive marks a pool as having recent activity.
+// This enables activity-based TWAP updates, tracking which pools had swaps or liquidity changes.
+//
+// Security: This is purely for optimization/monitoring - marking a pool active has no effect
+// on swap execution or pricing. TWAP updates are lazy and triggered on the operations themselves.
+func (k Keeper) MarkPoolActive(ctx context.Context, poolID uint64) error {
+	store := k.getStore(ctx)
+	key := ActivePoolKey(poolID)
+	store.Set(key, []byte{1})
+	return nil
+}
+
+// GetActivePoolIDs returns all pool IDs that had activity since the last clear.
+// Used for monitoring which pools are actively traded.
+//
+// Note: In the current implementation, TWAP updates are fully lazy (triggered on swaps),
+// so this data is primarily for metrics/monitoring rather than critical path operations.
+func (k Keeper) GetActivePoolIDs(ctx context.Context) []uint64 {
+	var poolIDs []uint64
+	store := k.getStore(ctx)
+	iter := storetypes.KVStorePrefixIterator(store, ActivePoolsKeyPrefix)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		// Extract pool ID from key: ActivePoolsKeyPrefix(1 byte) + poolID(8 bytes)
+		poolID := sdk.BigEndianToUint64(iter.Key()[len(ActivePoolsKeyPrefix):])
+		poolIDs = append(poolIDs, poolID)
+	}
+	return poolIDs
+}
+
+// ClearActivePoolIDs clears all active pool markers.
+// This can be called periodically (e.g., in EndBlocker) to reset the tracking window.
+//
+// Note: Clearing this data does not affect TWAP accuracy since updates are lazy.
+func (k Keeper) ClearActivePoolIDs(ctx context.Context) {
+	store := k.getStore(ctx)
+	iter := storetypes.KVStorePrefixIterator(store, ActivePoolsKeyPrefix)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		store.Delete(iter.Key())
+	}
+}
