@@ -2,7 +2,6 @@ package keeper_test
 
 import (
 	"testing"
-	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,8 +21,10 @@ func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 	params, err := k.GetParams(ctx)
 	require.NoError(t, err)
 
-	// Register a provider first
+	// Register a provider first (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", params.MinProviderStake.Add(math.NewInt(100000)))
+
 	specs := types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -66,7 +67,8 @@ func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "not found")
 
 	// Verify requester balance unchanged (no escrow)
-	balance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	bankKeeper := getBankKeeper(t, k)
+	balance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	require.True(t, balance.Amount.IsZero(), "balance should remain zero")
 }
 
@@ -74,8 +76,9 @@ func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -109,7 +112,8 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	require.Greater(t, requestID, uint64(0))
 
 	// Verify escrow happened
-	requesterBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	bankKeeper := getBankKeeper(t, k)
+	requesterBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	expectedBalance := fundAmount.Sub(maxPayment)
 	require.Equal(t, expectedBalance, requesterBalance.Amount)
 
@@ -128,7 +132,7 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	require.Equal(t, types.REQUEST_STATUS_CANCELLED, requestAfter.Status)
 
 	// Verify refund occurred
-	finalBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	finalBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	require.Equal(t, fundAmount, finalBalance.Amount, "full amount should be refunded")
 }
 
@@ -136,8 +140,9 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -177,11 +182,12 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Drain module account to simulate payment release failure
+	bankKeeper := getBankKeeper(t, k)
 	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
-	moduleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+	moduleBalance := bankKeeper.GetBalance(ctx, moduleAddr, "upaw")
 	if moduleBalance.Amount.IsPositive() {
 		burnAddr := authtypes.NewModuleAddress("burn")
-		err = k.GetBankKeeper().SendCoins(ctx, moduleAddr, burnAddr, sdk.NewCoins(moduleBalance))
+		err = bankKeeper.SendCoins(ctx, moduleAddr, burnAddr, sdk.NewCoins(moduleBalance))
 		require.NoError(t, err)
 	}
 
@@ -203,8 +209,9 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -255,8 +262,9 @@ func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
 func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -276,8 +284,9 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	requester := sdk.AccAddress("requester__________")
 
 	// Get initial module balance
+	bankKeeper := getBankKeeper(t, k)
 	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
-	initialModuleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+	initialModuleBalance := bankKeeper.GetBalance(ctx, moduleAddr, "upaw")
 
 	// Attempt request submission (will fail)
 	maxPayment := math.NewInt(1000000)
@@ -291,7 +300,7 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	require.Error(t, err)
 
 	// Verify state unchanged
-	finalModuleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+	finalModuleBalance := bankKeeper.GetBalance(ctx, moduleAddr, "upaw")
 	require.Equal(t, initialModuleBalance, finalModuleBalance, "module balance should be unchanged on failed request")
 
 	// Verify no dangling request data
@@ -303,8 +312,9 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 func TestCancelRequestFailurePreservesStatus(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -357,8 +367,9 @@ func TestCancelRequestFailurePreservesStatus(t *testing.T) {
 func TestDoubleCompletionPrevented(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -420,8 +431,9 @@ func TestDoubleCompletionPrevented(t *testing.T) {
 func TestRequestRefundOnFailure(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Register provider
+	// Register provider (fund them first for stake)
 	provider := sdk.AccAddress("test_provider______")
+	fundTestAccount(t, k, ctx, provider, "upaw", math.NewInt(2000000))
 	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -443,7 +455,8 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
 
 	// Get initial balance
-	initialBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	bankKeeper := getBankKeeper(t, k)
+	initialBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 
 	// Submit request
 	maxPayment := math.NewInt(1000000)
@@ -457,7 +470,7 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify escrow occurred
-	balanceAfterEscrow := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	balanceAfterEscrow := bankKeeper.GetBalance(ctx, requester, "upaw")
 	require.Equal(t, initialBalance.Amount.Sub(maxPayment), balanceAfterEscrow.Amount)
 
 	// Move to processing state
@@ -472,7 +485,7 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify refund occurred
-	finalBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	finalBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	require.Equal(t, initialBalance.Amount, finalBalance.Amount, "full refund should occur on failed request")
 
 	// Verify request marked as failed
@@ -484,14 +497,17 @@ func TestRequestRefundOnFailure(t *testing.T) {
 
 // Helper function to fund accounts in compute module tests
 func fundTestAccount(t *testing.T, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress, denom string, amount math.Int) {
+	// Get bank keeper using reflection
+	bankKeeper := getBankKeeper(t, k)
+
 	// Mint coins to module account first
 	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
 	coins := sdk.NewCoins(sdk.NewCoin(denom, amount))
 
-	err := k.GetBankKeeper().MintCoins(ctx, types.ModuleName, coins)
+	err := bankKeeper.MintCoins(ctx, types.ModuleName, coins)
 	require.NoError(t, err)
 
 	// Transfer to target address
-	err = k.GetBankKeeper().SendCoins(ctx, moduleAddr, addr, coins)
+	err = bankKeeper.SendCoins(ctx, moduleAddr, addr, coins)
 	require.NoError(t, err)
 }
