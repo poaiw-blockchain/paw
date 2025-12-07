@@ -12,6 +12,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -31,6 +32,7 @@ type ZKVerificationTestSuite struct {
 	suite.Suite
 	ctx        sdk.Context
 	keeper     *computekeeper.Keeper
+	bankKeeper bankkeeper.Keeper
 	zkVerifier *computekeeper.ZKVerifier
 	requester  sdk.AccAddress
 	provider   sdk.AccAddress
@@ -41,10 +43,11 @@ func TestZKVerificationTestSuite(t *testing.T) {
 }
 
 func (suite *ZKVerificationTestSuite) SetupTest() {
-	// Setup test keeper and context
-	k, ctx := keeper.ComputeKeeper(suite.T())
+	// Setup test keeper and context with bank keeper for funding accounts
+	k, ctx, bk := keeper.ComputeKeeperWithBank(suite.T())
 	suite.keeper = k
 	suite.ctx = ctx
+	suite.bankKeeper = bk
 
 	// Initialize ZK verifier
 	suite.zkVerifier = computekeeper.NewZKVerifier(suite.keeper)
@@ -54,6 +57,23 @@ func (suite *ZKVerificationTestSuite) SetupTest() {
 	provKey := secp256k1.GenPrivKey()
 	suite.requester = sdk.AccAddress(reqKey.PubKey().Address())
 	suite.provider = sdk.AccAddress(provKey.PubKey().Address())
+
+	// Fund test accounts with sufficient tokens for DoS protection deposits
+	// The deposit requirement is configurable via circuit params, but we fund generously
+	// to ensure all tests have sufficient balance for proof verification deposits
+	fundAmount := sdk.NewCoins(sdk.NewInt64Coin("upaw", 100_000_000)) // 100M upaw
+	suite.fundAccount(suite.requester, fundAmount)
+	suite.fundAccount(suite.provider, fundAmount)
+}
+
+// fundAccount mints and sends tokens to the specified address.
+// This is essential for DoS protection which requires deposits before verification.
+func (suite *ZKVerificationTestSuite) fundAccount(addr sdk.AccAddress, amount sdk.Coins) {
+	err := suite.bankKeeper.MintCoins(suite.ctx, types.ModuleName, amount)
+	suite.Require().NoError(err, "failed to mint coins for test account")
+
+	err = suite.bankKeeper.SendCoinsFromModuleToAccount(suite.ctx, types.ModuleName, addr, amount)
+	suite.Require().NoError(err, "failed to send coins to test account")
 }
 
 // TestComputeCircuitCompilation tests circuit compilation and constraint count.
