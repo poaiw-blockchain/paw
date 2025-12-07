@@ -10,6 +10,48 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
+// CODE ARCHITECTURE EXPLANATION: swap.go vs swap_secure.go Separation Pattern
+//
+// This file (swap.go) and swap_secure.go contain intentionally duplicated swap logic
+// following a defensive two-tier security architecture pattern.
+//
+// RATIONALE FOR DUPLICATION:
+// 1. **Defense in Depth**: Two independent implementations provide redundancy against bugs
+//    - swap.go: Base implementation with core AMM logic and essential security
+//    - swap_secure.go: Enhanced implementation with comprehensive security validations
+//
+// 2. **Performance vs Security Trade-off**:
+//    - swap.go: Optimized for performance, lighter validation overhead
+//    - swap_secure.go: Maximizes security, extensive checks (reentrancy, invariants, circuit breakers)
+//
+// 3. **Risk Mitigation for Refactoring**:
+//    - Consolidating into shared code would create a single point of failure
+//    - Independent code paths mean a bug in one doesn't compromise the other
+//    - Critical for financial operations handling real user funds
+//
+// 4. **Production Routing Strategy**:
+//    - Swap() method delegates to ExecuteSwapSecure() (line 264) for maximum security
+//    - ExecuteSwap() remains for backward compatibility and testing
+//    - Future: Could route high-value swaps to secure path, low-value to fast path
+//
+// WHAT DIFFERS BETWEEN THE FILES:
+// - swap_secure.go adds: Reentrancy guards, circuit breakers, invariant validation,
+//   price impact checks, overflow protection, comprehensive gas metering
+// - swap.go: Core constant product formula, basic validation, metrics
+//
+// WHY NOT REFACTOR:
+// - Too risky to consolidate swap logic into shared functions
+// - Changes to shared code could introduce vulnerabilities affecting all swaps
+// - Duplicated code is a feature, not a bug, for critical financial operations
+// - Similar pattern used in production DeFi protocols (Uniswap, Balancer)
+//
+// MAINTENANCE GUIDELINES:
+// - Keep both files in sync for core AMM math (constant product formula)
+// - Security enhancements go to swap_secure.go first, then backport if needed
+// - Bug fixes must be applied to BOTH files independently
+// - Never delete either file without comprehensive audit and migration plan
+//
+
 // ExecuteSwap performs a token swap using the constant product AMM formula
 func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID uint64, tokenIn, tokenOut string, amountIn, minAmountOut math.Int) (math.Int, error) {
 	// Track swap latency

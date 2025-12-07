@@ -3,22 +3,43 @@ package oracle_test
 import (
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/oracle"
+	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-1: IBC Channel Lifecycle Tests for Oracle Module
 
-func TestOnChanOpenInit_Success(t *testing.T) {
+// setupOracleIBCModule creates an oracle keeper, context, and IBC module for testing
+func setupOracleIBCModule(t *testing.T) (*oracle.IBCModule, sdk.Context) {
 	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 	ibcModule := oracle.NewIBCModule(*k, cdc)
+	return &ibcModule, ctx
+}
+
+// setupOracleIBCModuleWithKeeper creates an oracle keeper, context, and IBC module for testing (with keeper returned)
+func setupOracleIBCModuleWithKeeper(t *testing.T) (*oracle.IBCModule, *keeper.Keeper, sdk.Context) {
+	k, ctx := keepertest.OracleKeeper(t)
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
+	ibcModule := oracle.NewIBCModule(*k, cdc)
+	return &ibcModule, k, ctx
+}
+
+func TestOnChanOpenInit_Success(t *testing.T) {
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	version, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -51,9 +72,7 @@ func TestOnChanOpenInit_Success(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -74,9 +93,7 @@ func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
 }
 
 func TestOnChanOpenTry_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	version, err := ibcModule.OnChanOpenTry(
 		ctx,
@@ -97,9 +114,7 @@ func TestOnChanOpenTry_Success(t *testing.T) {
 }
 
 func TestOnChanOpenAck_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	err := ibcModule.OnChanOpenAck(
 		ctx,
@@ -113,9 +128,7 @@ func TestOnChanOpenAck_Success(t *testing.T) {
 }
 
 func TestOnChanOpenConfirm_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	err := ibcModule.OnChanOpenConfirm(
 		ctx,
@@ -127,9 +140,7 @@ func TestOnChanOpenConfirm_Success(t *testing.T) {
 }
 
 func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	err := ibcModule.OnChanCloseInit(
 		ctx,
@@ -142,31 +153,14 @@ func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, k, ctx := setupOracleIBCModuleWithKeeper(t)
 
 	channelID := "channel-0"
+	chainID := "test-chain"
 
 	// Simulate pending operations
-	pendingOps := []types.PendingOperation{
-		{
-			ChannelID:  channelID,
-			Sequence:   1,
-			PacketType: types.QueryPriceType,
-			Sender:     sdk.AccAddress([]byte("test_sender________")).String(),
-		},
-		{
-			ChannelID:  channelID,
-			Sequence:   2,
-			PacketType: types.SubscribePricesType,
-			Sender:     sdk.AccAddress([]byte("test_subscriber____")).String(),
-		},
-	}
-
-	for _, op := range pendingOps {
-		k.SetPendingOperation(ctx, op)
-	}
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, chainID, types.QueryPriceType, 1)
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, chainID, types.SubscribePricesType, 2)
 
 	err := ibcModule.OnChanCloseConfirm(
 		ctx,
@@ -189,9 +183,7 @@ func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_NoPendingOperations(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
-	cdc := k.Codec()
-	ibcModule := oracle.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupOracleIBCModule(t)
 
 	err := ibcModule.OnChanCloseConfirm(
 		ctx,

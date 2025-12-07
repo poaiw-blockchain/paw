@@ -12,21 +12,75 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
-// Security constants
+// Security constants - Production-grade parameters calibrated for mainnet security
+//
+// SECURITY DESIGN PHILOSOPHY:
+// These parameters balance three critical concerns:
+// 1. Attack prevention (MEV, flash loans, price manipulation)
+// 2. Normal market operations (legitimate large trades, volatile assets)
+// 3. System availability (avoiding false-positive circuit breaker triggers)
+//
+// All values are conservative, erring on the side of security over convenience.
+// Parameters are intentionally NOT governable to prevent governance attacks.
 const (
-	// Maximum price deviation allowed before circuit breaker triggers (25%)
+	// MaxPriceDeviation = "0.25" (25%)
+	// SECURITY RATIONALE:
+	// - Triggers circuit breaker if pool price changes >25% in single operation
+	// - Prevents flash crash attacks and oracle manipulation
+	// - 25% chosen as balance: strict enough to catch attacks, loose enough for volatile crypto markets
+	// - Bitcoin has seen 20%+ single-day moves, so 25% allows legitimate volatility
+	// - Lower values (e.g., 10%) would trigger false positives during normal market stress
+	// - Higher values (e.g., 50%) would allow attackers to drain significant liquidity
+	// ATTACK SCENARIO PREVENTED: Attacker cannot manipulate pool price >25% without triggering pause
 	MaxPriceDeviation = "0.25"
 
-	// Maximum single swap size as percentage of pool reserves (10%)
+	// MaxSwapSizePercent = "0.1" (10%)
+	// SECURITY RATIONALE:
+	// - Limits single swap to max 10% of pool reserves (MEV protection)
+	// - Prevents sandwich attacks with excessive slippage
+	// - Protects against pool drainage via repeated max-size swaps
+	// - 10% allows institutional trades while preventing market manipulation
+	// - Example: $1M pool allows max $100K single swap (reasonable for DeFi)
+	// - Lower values (e.g., 5%) would fragment large legitimate trades
+	// - Higher values (e.g., 20%) would enable significant price impact attacks
+	// ATTACK SCENARIO PREVENTED: Attacker cannot drain >10% reserves in single transaction,
+	// requiring multiple blocks and exposing manipulation to arbitrageurs
 	MaxSwapSizePercent = "0.1"
 
-	// Minimum lock period for LP tokens to prevent flash loan attacks (1 block)
+	// MinLPLockBlocks = 1 (1 block)
+	// SECURITY RATIONALE:
+	// - Prevents same-block add-liquidity-then-remove (flash loan attack pattern)
+	// - Forces minimum 1 block delay between add/remove operations
+	// - Exposes flash loan attackers to block time risk and arbitrage
+	// - 1 block (~6 seconds) is minimum to break atomic flash loan execution
+	// - Higher values (e.g., 10 blocks) would harm legitimate LP experience
+	// - 0 blocks would allow atomic flash loan attacks to manipulate pricing
+	// ATTACK SCENARIO PREVENTED: Attacker cannot add liquidity, manipulate price via swap,
+	// then remove liquidity in same transaction to extract value
 	MinLPLockBlocks = int64(1)
 
-	// Maximum pools to prevent unbounded iteration
+	// MaxPools = 1000 (maximum pools)
+	// SECURITY RATIONALE:
+	// - Prevents unbounded iteration DoS attacks
+	// - Limits gas costs for operations that iterate all pools
+	// - 1000 pools is orders of magnitude beyond expected mainnet usage
+	// - Typical DEX (Uniswap v2) has ~100-200 meaningful pairs
+	// - Prevents attacker from creating infinite pools to DoS iteration
+	// - Still allows extensive pair coverage (e.g., 50 tokens = 1225 possible pairs)
+	// ATTACK SCENARIO PREVENTED: Attacker cannot create millions of pools to make
+	// pool iteration operations exceed block gas limit
 	MaxPools = uint64(1000)
 
-	// Price update tolerance for invariant checks (0.1%)
+	// PriceUpdateTolerance = "0.001" (0.1%)
+	// SECURITY RATIONALE:
+	// - Invariant check tolerance for k=x*y enforcement
+	// - Accounts for rounding errors in decimal math while remaining strict
+	// - 0.1% allows ~10 basis points of computational drift
+	// - Prevents k-value manipulation attacks within rounding error bounds
+	// - Lower values (e.g., 0.01%) would fail legitimate operations due to precision limits
+	// - Higher values (e.g., 1%) would allow attackers to slowly drain pools via rounding exploitation
+	// ATTACK SCENARIO PREVENTED: Attacker cannot craft sequences of operations that
+	// gradually decrease k-value through accumulated rounding errors
 	PriceUpdateTolerance = "0.001"
 )
 

@@ -4,22 +4,43 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/compute"
+	"github.com/paw-chain/paw/x/compute/keeper"
 	"github.com/paw-chain/paw/x/compute/types"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-1: IBC Channel Lifecycle Tests for Compute Module
 
-func TestOnChanOpenInit_Success(t *testing.T) {
+// setupComputeIBCModule creates a compute keeper, context, and IBC module for testing
+func setupComputeIBCModule(t *testing.T) (*compute.IBCModule, sdk.Context) {
 	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 	ibcModule := compute.NewIBCModule(*k, cdc)
+	return &ibcModule, ctx
+}
+
+// setupComputeIBCModuleWithKeeper creates a compute keeper, context, and IBC module for testing (with keeper returned)
+func setupComputeIBCModuleWithKeeper(t *testing.TB) (*compute.IBCModule, *keeper.Keeper, sdk.Context) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
+	ibcModule := compute.NewIBCModule(*k, cdc)
+	return &ibcModule, k, ctx
+}
+
+func TestOnChanOpenInit_Success(t *testing.T) {
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	// Compute requires ORDERED channels
 	version, err := ibcModule.OnChanOpenInit(
@@ -53,9 +74,7 @@ func TestOnChanOpenInit_Success(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	// Compute requires ORDERED channels, UNORDERED should fail
 	_, err := ibcModule.OnChanOpenInit(
@@ -77,9 +96,7 @@ func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidVersion(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -100,9 +117,7 @@ func TestOnChanOpenInit_InvalidVersion(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidPort(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -123,9 +138,7 @@ func TestOnChanOpenInit_InvalidPort(t *testing.T) {
 }
 
 func TestOnChanOpenTry_Success(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	version, err := ibcModule.OnChanOpenTry(
 		ctx,
@@ -146,9 +159,7 @@ func TestOnChanOpenTry_Success(t *testing.T) {
 }
 
 func TestOnChanOpenTry_InvalidCounterpartyVersion(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenTry(
 		ctx,
@@ -169,9 +180,7 @@ func TestOnChanOpenTry_InvalidCounterpartyVersion(t *testing.T) {
 }
 
 func TestOnChanOpenAck_Success(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	err := ibcModule.OnChanOpenAck(
 		ctx,
@@ -185,9 +194,7 @@ func TestOnChanOpenAck_Success(t *testing.T) {
 }
 
 func TestOnChanOpenAck_InvalidVersion(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	err := ibcModule.OnChanOpenAck(
 		ctx,
@@ -202,9 +209,7 @@ func TestOnChanOpenAck_InvalidVersion(t *testing.T) {
 }
 
 func TestOnChanOpenConfirm_Success(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	err := ibcModule.OnChanOpenConfirm(
 		ctx,
@@ -216,9 +221,7 @@ func TestOnChanOpenConfirm_Success(t *testing.T) {
 }
 
 func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	err := ibcModule.OnChanCloseInit(
 		ctx,
@@ -231,36 +234,22 @@ func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
-	k, ctx, _ := keepertest.ComputeKeeperWithBank(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, k, ctx := setupComputeIBCModuleWithKeeper(t)
 
 	channelID := "channel-0"
 
 	// Simulate pending compute job operations with escrow
-	pendingOps := []types.PendingOperation{
-		{
-			ChannelID:  channelID,
-			Sequence:   1,
-			PacketType: types.SubmitJobType,
-			Sender:     sdk.AccAddress([]byte("test_requester_addr")).String(),
-			JobID:      "job-001",
-			EscrowAmount: &sdk.Coin{
-				Denom:  "upaw",
-				Amount: math.NewInt(10000),
-			},
-		},
-		{
-			ChannelID:  channelID,
-			Sequence:   2,
-			PacketType: types.DiscoverProvidersType,
-			Sender:     sdk.AccAddress([]byte("test_requester_addr")).String(),
-		},
-	}
-
-	for _, op := range pendingOps {
-		k.SetPendingOperation(ctx, op)
-	}
+	keeper.TrackPendingOperationForTest(k, ctx, keeper.ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   1,
+		PacketType: types.SubmitJobType,
+		JobID:      "job-001",
+	})
+	keeper.TrackPendingOperationForTest(k, ctx, keeper.ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   2,
+		PacketType: types.DiscoverProvidersType,
+	})
 
 	// Close channel - should refund escrow and cleanup
 	err := ibcModule.OnChanCloseConfirm(
@@ -294,9 +283,7 @@ func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_NoPendingOperations(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupComputeIBCModule(t)
 
 	err := ibcModule.OnChanCloseConfirm(
 		ctx,
@@ -308,33 +295,23 @@ func TestOnChanCloseConfirm_NoPendingOperations(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_PartialRefundFailure(t *testing.T) {
-	k, ctx, _ := keepertest.ComputeKeeperWithBank(t)
-	cdc := k.Codec()
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule, k, ctx := setupComputeIBCModuleWithKeeper(t)
 
 	channelID := "channel-0"
 
 	// Create operations with potentially problematic data
-	pendingOps := []types.PendingOperation{
-		{
-			ChannelID:  channelID,
-			Sequence:   1,
-			PacketType: types.SubmitJobType,
-			Sender:     "", // Invalid sender
-			JobID:      "job-invalid",
-		},
-		{
-			ChannelID:  channelID,
-			Sequence:   2,
-			PacketType: types.JobResultType,
-			Sender:     sdk.AccAddress([]byte("valid_sender_______")).String(),
-			JobID:      "nonexistent-job",
-		},
-	}
-
-	for _, op := range pendingOps {
-		k.SetPendingOperation(ctx, op)
-	}
+	keeper.TrackPendingOperationForTest(k, ctx, keeper.ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   1,
+		PacketType: types.SubmitJobType,
+		JobID:      "job-invalid",
+	})
+	keeper.TrackPendingOperationForTest(k, ctx, keeper.ChannelOperation{
+		ChannelID:  channelID,
+		Sequence:   2,
+		PacketType: types.JobResultType,
+		JobID:      "nonexistent-job",
+	})
 
 	// Should not fail even if some refunds fail
 	err := ibcModule.OnChanCloseConfirm(

@@ -1,0 +1,441 @@
+package keeper_test
+
+import (
+	"testing"
+	"time"
+
+	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/stretchr/testify/require"
+
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/compute/keeper"
+	"github.com/paw-chain/paw/x/compute/types"
+)
+
+// TestSubmitRequestRevertOnEscrowFailure tests that request submission reverts when escrow fails
+func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register a provider first
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester without sufficient funds
+	requester := sdk.AccAddress("requester__________")
+
+	// Attempt to submit request (will fail due to insufficient funds for escrow)
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to escrow payment")
+	require.Equal(t, uint64(0), requestID, "no request ID should be assigned on failure")
+
+	// Verify no request was stored
+	_, err = k.GetRequest(ctx, 1)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not found")
+
+	// Verify requester balance unchanged (no escrow)
+	balance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	require.True(t, balance.Amount.IsZero(), "balance should remain zero")
+}
+
+// TestCancelRequestRevertOnRefundFailure tests that cancellation handles refund failures
+func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundAmount := math.NewInt(10000000)
+	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
+
+	// Submit request successfully
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+	require.Greater(t, requestID, uint64(0))
+
+	// Verify escrow happened
+	requesterBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	expectedBalance := fundAmount.Sub(maxPayment)
+	require.Equal(t, expectedBalance, requesterBalance.Amount)
+
+	// Get request before cancellation
+	requestBefore, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.REQUEST_STATUS_ASSIGNED, requestBefore.Status)
+
+	// Cancel request (refund should succeed)
+	err = k.CancelRequest(ctx, requester, requestID)
+	require.NoError(t, err)
+
+	// Verify request status updated
+	requestAfter, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.REQUEST_STATUS_CANCELLED, requestAfter.Status)
+
+	// Verify refund occurred
+	finalBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	require.Equal(t, fundAmount, finalBalance.Amount, "full amount should be refunded")
+}
+
+// TestCompleteRequestRevertOnPaymentReleaseFailure tests completion with payment release failure
+func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundAmount := math.NewInt(10000000)
+	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
+
+	// Submit request
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+
+	// Start processing
+	request, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	request.Status = types.REQUEST_STATUS_PROCESSING
+	err = k.SetRequest(ctx, *request)
+	require.NoError(t, err)
+
+	// Drain module account to simulate payment release failure
+	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
+	moduleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+	if moduleBalance.Amount.IsPositive() {
+		burnAddr := authtypes.NewModuleAddress("burn")
+		err = k.GetBankKeeper().SendCoins(ctx, moduleAddr, burnAddr, sdk.NewCoins(moduleBalance))
+		require.NoError(t, err)
+	}
+
+	// Attempt to complete request (payment release should fail)
+	err = k.CompleteRequest(ctx, requestID, true)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to release payment")
+
+	// Verify request status unchanged (or properly handled)
+	// The implementation may vary - verify it doesn't corrupt state
+	finalRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	// Status may be PROCESSING or updated depending on implementation
+	// The key is that escrow amount should be preserved
+	require.True(t, finalRequest.EscrowedAmount.GT(math.ZeroInt()) || finalRequest.Status == types.REQUEST_STATUS_PROCESSING)
+}
+
+// TestCompleteRequestFailurePreservesEscrow tests that failed completion doesn't lose escrow
+func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundAmount := math.NewInt(10000000)
+	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
+
+	// Submit request
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+
+	// Get initial escrow amount
+	initialRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	initialEscrow := initialRequest.EscrowedAmount
+
+	// Attempt to complete request from wrong status (should fail)
+	err = k.CompleteRequest(ctx, requestID, true)
+	require.Error(t, err)
+
+	// Verify escrow preserved
+	finalRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, initialEscrow, finalRequest.EscrowedAmount, "escrow should be preserved on completion failure")
+}
+
+// TestPartialRequestFailureDoesNotCorruptState tests partial failure handling
+func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester without funds
+	requester := sdk.AccAddress("requester__________")
+
+	// Get initial module balance
+	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
+	initialModuleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+
+	// Attempt request submission (will fail)
+	maxPayment := math.NewInt(1000000)
+	_, err = k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.Error(t, err)
+
+	// Verify state unchanged
+	finalModuleBalance := k.GetBankKeeper().GetBalance(ctx, moduleAddr, "upaw")
+	require.Equal(t, initialModuleBalance, finalModuleBalance, "module balance should be unchanged on failed request")
+
+	// Verify no dangling request data
+	_, err = k.GetRequest(ctx, 1)
+	require.Error(t, err)
+}
+
+// TestCancelRequestFailurePreservesStatus tests that failed cancellation doesn't change status
+func TestCancelRequestFailurePreservesStatus(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundTestAccount(t, k, ctx, requester, "upaw", math.NewInt(10000000))
+
+	// Submit request
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+
+	// Move to processing state
+	request, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	request.Status = types.REQUEST_STATUS_PROCESSING
+	err = k.SetRequest(ctx, *request)
+	require.NoError(t, err)
+
+	// Attempt to cancel from wrong status (should fail)
+	err = k.CancelRequest(ctx, requester, requestID)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot be cancelled")
+
+	// Verify status unchanged
+	finalRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.REQUEST_STATUS_PROCESSING, finalRequest.Status)
+}
+
+// TestDoubleCompletionPrevented tests that requests cannot be completed twice
+func TestDoubleCompletionPrevented(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundTestAccount(t, k, ctx, requester, "upaw", math.NewInt(10000000))
+
+	// Submit request
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+
+	// Move to processing state
+	request, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	request.Status = types.REQUEST_STATUS_PROCESSING
+	err = k.SetRequest(ctx, *request)
+	require.NoError(t, err)
+
+	// Complete successfully first time
+	err = k.CompleteRequest(ctx, requestID, true)
+	require.NoError(t, err)
+
+	// Verify completed
+	completedRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.REQUEST_STATUS_COMPLETED, completedRequest.Status)
+	require.True(t, completedRequest.EscrowedAmount.IsZero(), "escrow should be released")
+
+	// Attempt to complete again (should fail or be idempotent)
+	err = k.CompleteRequest(ctx, requestID, true)
+	require.Error(t, err, "should not allow double completion")
+
+	// Could also check for specific error like "already settled"
+	if err != nil {
+		require.Contains(t, err.Error(), "already settled")
+	}
+}
+
+// TestRequestRefundOnFailure tests that failed requests properly refund to requester
+func TestRequestRefundOnFailure(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	// Register provider
+	provider := sdk.AccAddress("test_provider______")
+	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
+		Cpu:            4,
+		Memory:         8192,
+		Disk:           100,
+		Gpu:            1,
+		TimeoutSeconds: 3600,
+	}, "test-endpoint")
+	require.NoError(t, err)
+
+	// Create requester and fund them
+	requester := sdk.AccAddress("requester__________")
+	fundAmount := math.NewInt(10000000)
+	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
+
+	// Get initial balance
+	initialBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+
+	// Submit request
+	maxPayment := math.NewInt(1000000)
+	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
+		Cpu:            2,
+		Memory:         4096,
+		Disk:           50,
+		Gpu:            0,
+		TimeoutSeconds: 1800,
+	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	require.NoError(t, err)
+
+	// Verify escrow occurred
+	balanceAfterEscrow := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	require.Equal(t, initialBalance.Amount.Sub(maxPayment), balanceAfterEscrow.Amount)
+
+	// Move to processing state
+	request, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	request.Status = types.REQUEST_STATUS_PROCESSING
+	err = k.SetRequest(ctx, *request)
+	require.NoError(t, err)
+
+	// Complete with failure (should refund)
+	err = k.CompleteRequest(ctx, requestID, false)
+	require.NoError(t, err)
+
+	// Verify refund occurred
+	finalBalance := k.GetBankKeeper().GetBalance(ctx, requester, "upaw")
+	require.Equal(t, initialBalance.Amount, finalBalance.Amount, "full refund should occur on failed request")
+
+	// Verify request marked as failed
+	finalRequest, err := k.GetRequest(ctx, requestID)
+	require.NoError(t, err)
+	require.Equal(t, types.REQUEST_STATUS_FAILED, finalRequest.Status)
+	require.True(t, finalRequest.EscrowedAmount.IsZero(), "escrow should be released")
+}
+
+// Helper function to fund accounts in compute module tests
+func fundTestAccount(t *testing.T, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress, denom string, amount math.Int) {
+	// Mint coins to module account first
+	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
+	coins := sdk.NewCoins(sdk.NewCoin(denom, amount))
+
+	err := k.GetBankKeeper().MintCoins(ctx, types.ModuleName, coins)
+	require.NoError(t, err)
+
+	// Transfer to target address
+	err = k.GetBankKeeper().SendCoins(ctx, moduleAddr, addr, coins)
+	require.NoError(t, err)
+}

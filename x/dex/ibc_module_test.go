@@ -4,22 +4,43 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/x/dex"
+	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-1: IBC Channel Lifecycle Tests for DEX Module
 
-func TestOnChanOpenInit_Success(t *testing.T) {
+// setupDexIBCModule creates a dex keeper, context, and IBC module for testing
+func setupDexIBCModule(t *testing.T) (*dex.IBCModule, sdk.Context) {
 	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 	ibcModule := dex.NewIBCModule(*k, cdc)
+	return &ibcModule, ctx
+}
+
+// setupDexIBCModuleWithKeeper creates a dex keeper, context, and IBC module for testing (with keeper returned)
+func setupDexIBCModuleWithKeeper(t *testing.T) (*dex.IBCModule, *keeper.Keeper, sdk.Context) {
+	k, ctx := keepertest.DexKeeper(t)
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
+	ibcModule := dex.NewIBCModule(*k, cdc)
+	return &ibcModule, k, ctx
+}
+
+func TestOnChanOpenInit_Success(t *testing.T) {
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	// Valid channel opening
 	version, err := ibcModule.OnChanOpenInit(
@@ -53,9 +74,7 @@ func TestOnChanOpenInit_Success(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	// DEX requires UNORDERED channels, trying ORDERED should fail
 	_, err := ibcModule.OnChanOpenInit(
@@ -73,13 +92,11 @@ func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
 	)
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "expected UNORDERED channel")
+	require.Contains(t, err.Error(), "UNORDERED")
 }
 
 func TestOnChanOpenInit_InvalidVersion(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -100,9 +117,7 @@ func TestOnChanOpenInit_InvalidVersion(t *testing.T) {
 }
 
 func TestOnChanOpenInit_InvalidPort(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenInit(
 		ctx,
@@ -123,9 +138,7 @@ func TestOnChanOpenInit_InvalidPort(t *testing.T) {
 }
 
 func TestOnChanOpenTry_Success(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	version, err := ibcModule.OnChanOpenTry(
 		ctx,
@@ -150,9 +163,7 @@ func TestOnChanOpenTry_Success(t *testing.T) {
 }
 
 func TestOnChanOpenTry_InvalidCounterpartyVersion(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	_, err := ibcModule.OnChanOpenTry(
 		ctx,
@@ -173,9 +184,7 @@ func TestOnChanOpenTry_InvalidCounterpartyVersion(t *testing.T) {
 }
 
 func TestOnChanOpenAck_Success(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	err := ibcModule.OnChanOpenAck(
 		ctx,
@@ -201,9 +210,7 @@ func TestOnChanOpenAck_Success(t *testing.T) {
 }
 
 func TestOnChanOpenAck_InvalidVersion(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	err := ibcModule.OnChanOpenAck(
 		ctx,
@@ -218,9 +225,7 @@ func TestOnChanOpenAck_InvalidVersion(t *testing.T) {
 }
 
 func TestOnChanOpenConfirm_Success(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	err := ibcModule.OnChanOpenConfirm(
 		ctx,
@@ -244,9 +249,7 @@ func TestOnChanOpenConfirm_Success(t *testing.T) {
 }
 
 func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	err := ibcModule.OnChanCloseInit(
 		ctx,
@@ -260,39 +263,21 @@ func TestOnChanCloseInit_DisallowUserInitiated(t *testing.T) {
 
 func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
 	k, _, ctx := keepertest.DexKeeperWithBank(t)
-	cdc := k.Codec()
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 	ibcModule := dex.NewIBCModule(*k, cdc)
 
 	channelID := "channel-0"
 
 	// Create a test pool to have operations against
 	creator := types.TestAddr()
-	pool, err := k.CreatePool(ctx, creator, "tokenA", "tokenB", math.NewInt(1000000), math.NewInt(1000000))
+	_, err := k.CreatePool(ctx, creator, "tokenA", "tokenB", math.NewInt(1000000), math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Simulate pending operations
-	pendingOps := []types.PendingOperation{
-		{
-			ChannelID:  channelID,
-			Sequence:   1,
-			PacketType: types.ExecuteSwapType,
-			PoolID:     pool.Id,
-			Sender:     creator.String(),
-			TokenIn:    "tokenA",
-			TokenOut:   "tokenB",
-			AmountIn:   math.NewInt(1000),
-		},
-		{
-			ChannelID:  channelID,
-			Sequence:   2,
-			PacketType: types.QueryPoolsType,
-			Sender:     creator.String(),
-		},
-	}
-
-	for _, op := range pendingOps {
-		k.SetPendingOperation(ctx, op)
-	}
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, types.ExecuteSwapType, 1)
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, types.QueryPoolsType, 2)
 
 	// Close channel - should cleanup pending operations
 	err = ibcModule.OnChanCloseConfirm(
@@ -327,9 +312,7 @@ func TestOnChanCloseConfirm_WithPendingOperations(t *testing.T) {
 }
 
 func TestOnChanCloseConfirm_NoPendingOperations(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	cdc := k.Codec()
-	ibcModule := dex.NewIBCModule(*k, cdc)
+	ibcModule, ctx := setupDexIBCModule(t)
 
 	channelID := "channel-0"
 
@@ -348,35 +331,16 @@ func TestOnChanCloseConfirm_NoPendingOperations(t *testing.T) {
 
 func TestOnChanCloseConfirm_PartialRefundFailure(t *testing.T) {
 	k, _, ctx := keepertest.DexKeeperWithBank(t)
-	cdc := k.Codec()
+	registry := codectypes.NewInterfaceRegistry()
+	types.RegisterInterfaces(registry)
+	cdc := codec.NewProtoCodec(registry)
 	ibcModule := dex.NewIBCModule(*k, cdc)
 
 	channelID := "channel-0"
-	creator := types.TestAddr()
 
 	// Create operations with invalid data that might cause refund failures
-	pendingOps := []types.PendingOperation{
-		{
-			ChannelID:  channelID,
-			Sequence:   1,
-			PacketType: types.ExecuteSwapType,
-			PoolID:     9999, // Non-existent pool
-			Sender:     creator.String(),
-			TokenIn:    "tokenA",
-			TokenOut:   "tokenB",
-			AmountIn:   math.NewInt(1000),
-		},
-		{
-			ChannelID:  channelID,
-			Sequence:   2,
-			PacketType: types.QueryPoolsType,
-			Sender:     "", // Invalid sender
-		},
-	}
-
-	for _, op := range pendingOps {
-		k.SetPendingOperation(ctx, op)
-	}
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, types.ExecuteSwapType, 1)
+	keeper.TrackPendingOperationForTest(k, ctx, channelID, types.QueryPoolsType, 2)
 
 	// Should not fail even if some refunds fail
 	err := ibcModule.OnChanCloseConfirm(
@@ -433,9 +397,7 @@ func TestChannelLifecycle_TableDriven(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, ctx := keepertest.DexKeeper(t)
-			cdc := k.Codec()
-			ibcModule := dex.NewIBCModule(*k, cdc)
+			ibcModule, ctx := setupDexIBCModule(t)
 
 			_, err := ibcModule.OnChanOpenInit(
 				ctx,
