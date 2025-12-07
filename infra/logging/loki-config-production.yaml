@@ -1,0 +1,382 @@
+# Loki Production Configuration
+# This configuration uses object storage (S3/GCS) for production deployments
+#
+# STORAGE BACKEND OPTIONS:
+#
+# 1. AWS S3 (default configuration below)
+#    - Replace BUCKET_NAME with your S3 bucket
+#    - Replace REGION with your AWS region (e.g., us-east-1)
+#    - Ensure Loki has proper IAM permissions (see IAM section below)
+#
+# 2. Google Cloud Storage (see commented GCS section)
+#    - Uncomment GCS configuration and comment out S3
+#    - Replace BUCKET_NAME with your GCS bucket
+#    - Ensure Loki has proper GCP service account permissions
+#
+# REQUIRED IAM PERMISSIONS:
+#
+# AWS S3 IAM Policy:
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "s3:ListBucket",
+#         "s3:PutObject",
+#         "s3:GetObject",
+#         "s3:DeleteObject"
+#       ],
+#       "Resource": [
+#         "arn:aws:s3:::BUCKET_NAME",
+#         "arn:aws:s3:::BUCKET_NAME/*"
+#       ]
+#     }
+#   ]
+# }
+#
+# GCP Service Account Permissions:
+# - Storage Object Admin (roles/storage.objectAdmin) on the bucket
+# - Or custom role with: storage.objects.{create,delete,get,list}
+#
+# STORAGE SIZING RECOMMENDATIONS:
+#
+# Chunk Storage:
+# - Low volume (~1GB/day logs): 100GB minimum
+# - Medium volume (~10GB/day logs): 500GB-1TB
+# - High volume (~100GB/day logs): 5TB+
+# - Growth rate: Plan for 3-6 months of retention
+#
+# Index Storage:
+# - Typically 5-10% of chunk storage size
+# - More if you have high cardinality labels
+#
+# Total Storage Calculation:
+#   daily_log_volume * retention_days * 1.2 (overhead)
+#   Example: 10GB/day * 90 days * 1.2 = 1.08TB
+#
+# Performance Considerations:
+# - Use S3 Standard for active data (last 30 days)
+# - Use S3 Intelligent-Tiering or Glacier for older data
+# - Enable S3 lifecycle policies for automatic tiering
+# - Consider using S3 Transfer Acceleration for high-throughput writes
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  # Increase timeout for large query results
+  http_server_read_timeout: 600s
+  http_server_write_timeout: 600s
+
+# Common configuration for distributed deployment
+common:
+  # Path prefix for local temporary files
+  path_prefix: /loki
+  # Replication factor for high availability (3 for production)
+  replication_factor: 3
+  ring:
+    # Kubernetes-based service discovery (adjust for your environment)
+    kvstore:
+      store: memberlist
+    # Enable memberlist for peer discovery
+    instance_addr: ${POD_IP}
+    instance_port: 7946
+
+# Memberlist configuration for clustering
+memberlist:
+  node_name: ${HOSTNAME}
+  bind_addr: ['${POD_IP}']
+  bind_port: 7946
+  join_members:
+    - loki-gossip-ring:7946
+
+# ============================================================================
+# STORAGE BACKEND: AWS S3 (Default)
+# ============================================================================
+storage_config:
+  aws:
+    # S3 bucket name - REPLACE WITH YOUR BUCKET
+    bucketnames: BUCKET_NAME
+    # AWS region - REPLACE WITH YOUR REGION (e.g., us-east-1, eu-west-1)
+    region: REGION
+    # Endpoint URL (optional, for S3-compatible storage like MinIO)
+    # endpoint: https://s3.amazonaws.com
+    # S3 storage class (STANDARD, STANDARD_IA, INTELLIGENT_TIERING)
+    s3forcepathstyle: false
+    insecure: false
+    sse_encryption: true
+    # Authentication: uses IAM instance profile/role by default
+    # Alternatively, set access_key_id and secret_access_key (not recommended)
+    # access_key_id: ${AWS_ACCESS_KEY_ID}
+    # secret_access_key: ${AWS_SECRET_ACCESS_KEY}
+
+  # Chunk storage configuration
+  boltdb_shipper:
+    # Active index directory (local SSD recommended)
+    active_index_directory: /loki/boltdb-shipper-active
+    # Cache directory for index files
+    cache_location: /loki/boltdb-shipper-cache
+    # TTL for cached index files
+    cache_ttl: 24h
+    # Shared store for index persistence
+    shared_store: s3
+
+  # Filesystem configuration for local cache only
+  filesystem:
+    directory: /loki/chunks
+
+# ============================================================================
+# ALTERNATIVE: Google Cloud Storage (GCS)
+# Uncomment this section and comment out the S3 section above
+# ============================================================================
+# storage_config:
+#   gcs:
+#     # GCS bucket name - REPLACE WITH YOUR BUCKET
+#     bucket_name: BUCKET_NAME
+#     # Optional: Service account JSON key file path
+#     # If not specified, uses Application Default Credentials (ADC)
+#     # service_account: /path/to/service-account-key.json
+#     # Chunk buffer size (increase for better throughput)
+#     chunk_buffer_size: 10485760  # 10MB
+#     # Request timeout
+#     request_timeout: 0s  # No timeout
+#
+#   boltdb_shipper:
+#     active_index_directory: /loki/boltdb-shipper-active
+#     cache_location: /loki/boltdb-shipper-cache
+#     cache_ttl: 24h
+#     shared_store: gcs
+#
+#   filesystem:
+#     directory: /loki/chunks
+
+# Schema configuration for production workloads
+schema_config:
+  configs:
+    # Current schema version (v12 recommended for new deployments)
+    - from: 2024-01-01
+      # BoltDB Shipper for index storage (scalable, cost-effective)
+      store: boltdb-shipper
+      # Object store backend (s3 or gcs)
+      object_store: s3
+      # Schema version (v12 for better compression and performance)
+      schema: v12
+      index:
+        # Index prefix (helps organize objects in bucket)
+        prefix: loki_index_
+        # Index period (24h standard, reduce for high-cardinality workloads)
+        period: 24h
+
+    # Example: Multiple schema versions for migration scenarios
+    # Uncomment if migrating from older schema
+    # - from: 2023-01-01
+    #   store: boltdb-shipper
+    #   object_store: s3
+    #   schema: v11
+    #   index:
+    #     prefix: loki_index_
+    #     period: 24h
+
+# Query performance configuration
+query_range:
+  # Align queries to step interval for better caching
+  align_queries_with_step: true
+  # Maximum query parallelization
+  max_retries: 5
+  # Split queries by interval
+  split_queries_by_interval: 15m
+  # Results cache configuration
+  results_cache:
+    cache:
+      # Use memcached for distributed caching (recommended for production)
+      memcached_client:
+        consistent_hash: true
+        host: memcached:11211
+        service: memcached
+        timeout: 500ms
+        max_idle_conns: 16
+        update_interval: 1m
+      # Alternative: Redis cache (comment out memcached and uncomment below)
+      # redis:
+      #   endpoint: redis:6379
+      #   timeout: 500ms
+      #   expiration: 1h
+
+# Chunk cache configuration (optional but recommended for performance)
+chunk_store_config:
+  max_look_back_period: 0s  # Disabled (use retention instead)
+  chunk_cache_config:
+    memcached_client:
+      consistent_hash: true
+      host: memcached:11211
+      service: memcached
+      timeout: 500ms
+      max_idle_conns: 16
+
+# Query frontend configuration for horizontal scaling
+frontend:
+  # Log queries slower than this threshold
+  log_queries_longer_than: 5s
+  # Compress HTTP responses
+  compress_responses: true
+  # Maximum outstanding requests per tenant
+  max_outstanding_per_tenant: 2048
+  # Downstream URL for querier
+  downstream_url: http://loki-querier:3100
+
+# Frontend worker configuration (runs in querier pods)
+frontend_worker:
+  frontend_address: loki-query-frontend:9095
+  grpc_client_config:
+    max_send_msg_size: 104857600  # 100MB
+  parallelism: 10
+
+# Ruler configuration for alerting and recording rules
+ruler:
+  # Storage configuration for rules
+  storage:
+    type: s3  # or 'gcs' for Google Cloud Storage
+    s3:
+      bucketnames: BUCKET_NAME
+      region: REGION
+  # Rule evaluation configuration
+  rule_path: /loki/rules-temp
+  # Alertmanager endpoint
+  alertmanager_url: http://alertmanager:9093
+  # Ring configuration for distributed ruler
+  ring:
+    kvstore:
+      store: memberlist
+  # Enable API for rule management
+  enable_api: true
+  # Enable alerting
+  enable_alertmanager_v2: true
+
+# Limits configuration (tune based on workload)
+limits_config:
+  # Ingestion limits
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h  # 7 days
+  ingestion_rate_mb: 50  # Per-tenant ingestion rate limit
+  ingestion_burst_size_mb: 100
+
+  # Query limits
+  max_query_length: 721h  # 30 days (align with retention)
+  max_query_series: 500000
+  max_query_parallelism: 64
+  max_streams_per_user: 0  # Unlimited (set to limit for cost control)
+  max_global_streams_per_user: 0
+  max_entries_limit_per_query: 10000
+  max_cache_freshness_per_query: 10m
+
+  # Label limits (prevent cardinality explosion)
+  max_label_name_length: 1024
+  max_label_value_length: 2048
+  max_label_names_per_series: 30
+
+  # Chunk limits
+  max_chunks_per_query: 2000000
+
+  # Per-stream rate limits
+  per_stream_rate_limit: 5MB
+  per_stream_rate_limit_burst: 20MB
+
+  # Cardinality limit (optional, prevents abuse)
+  # cardinality_limit: 100000
+
+  # Retention per stream (optional, override global retention)
+  # retention_period: 720h
+
+# Compactor configuration for index cleanup and retention
+compactor:
+  # Working directory for compaction process
+  working_directory: /loki/compactor
+  # Shared store type (s3 or gcs)
+  shared_store: s3
+  # Compaction interval
+  compaction_interval: 10m
+  # Retention settings
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  # Compaction settings
+  max_compaction_parallelism: 1
+
+# Table manager configuration (for retention policies)
+table_manager:
+  # Enable retention deletion
+  retention_deletes_enabled: true
+  # Global retention period (90 days for production)
+  retention_period: 2160h  # 90 days
+  # Poll interval for table management
+  poll_interval: 10m
+  # Index tables cache TTL
+  index_tables_provisioning:
+    inactive_read_throughput: 300
+    inactive_write_throughput: 1
+    provisioned_read_throughput: 1000
+    provisioned_write_throughput: 1000
+  # Chunk tables cache TTL
+  chunk_tables_provisioning:
+    inactive_read_throughput: 300
+    inactive_write_throughput: 1
+    provisioned_read_throughput: 1000
+    provisioned_write_throughput: 1000
+
+# Distributor configuration (ingestion path)
+distributor:
+  ring:
+    kvstore:
+      store: memberlist
+
+# Ingester configuration (write path)
+ingester:
+  # Lifecycle configuration
+  lifecycler:
+    ring:
+      kvstore:
+        store: memberlist
+      replication_factor: 3
+    # Ingester tokens (for consistent hashing)
+    num_tokens: 128
+    # Join behavior
+    join_after: 30s
+    observe_period: 30s
+    # Shutdown behavior
+    final_sleep: 30s
+  # Chunk configuration
+  chunk_idle_period: 30m  # Flush chunks idle for 30m
+  chunk_block_size: 262144  # 256KB
+  chunk_encoding: snappy
+  chunk_retain_period: 15m  # Retain chunks in memory for 15m
+  max_chunk_age: 2h  # Force flush after 2h
+  # WAL configuration for crash recovery
+  wal:
+    enabled: true
+    dir: /loki/wal
+    checkpoint_duration: 5m
+    flush_on_shutdown: true
+    replay_memory_ceiling: 4GB
+
+# Querier configuration (read path)
+querier:
+  # Query ingesters within this lookback period
+  query_ingesters_within: 3h
+  # Timeout for individual queries
+  query_timeout: 300s
+  # Engine configuration
+  engine:
+    timeout: 300s
+    max_look_back_period: 30s
+
+# Analytics configuration (optional, disable for privacy)
+analytics:
+  reporting_enabled: false
+
+# Runtime configuration (optional, for dynamic config updates)
+# runtime_config:
+#   file: /etc/loki/runtime-config.yaml
+#   period: 10s
