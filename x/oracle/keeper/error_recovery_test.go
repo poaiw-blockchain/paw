@@ -81,6 +81,9 @@ func TestPriceAggregationPreservesOldPriceOnFailure(t *testing.T) {
 	asset := "BTC/USD"
 	price := math.LegacyNewDec(50000)
 
+	// Ensure validator is bonded before submitting price
+	require.NoError(t, keepertest.EnsureBondedValidator(ctx, validator))
+
 	// Submit and aggregate successfully first
 	err := k.SubmitPrice(ctx, validator, asset, price)
 	require.NoError(t, err)
@@ -125,6 +128,11 @@ func TestOutlierDetectionDoesNotCorruptValidPrices(t *testing.T) {
 		sdk.ValAddress("validator1"),
 		sdk.ValAddress("validator2"),
 		sdk.ValAddress("validator3"),
+	}
+
+	// Ensure all validators are bonded before submitting prices
+	for _, val := range validators {
+		require.NoError(t, keepertest.EnsureBondedValidator(ctx, val))
 	}
 
 	for i, val := range validators {
@@ -244,11 +252,7 @@ func TestMissCounterIncrementRevert(t *testing.T) {
 
 	validatorAddr := sdk.ValAddress("validator1").String()
 
-	// Initialize validator oracle state
-	err := k.InitializeValidatorOracle(ctx, validatorAddr)
-	require.NoError(t, err)
-
-	// Get initial miss counter
+	// Initialize validator oracle state by getting it (which returns default if not found)
 	initialOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	require.NoError(t, err)
 	initialMissCount := initialOracle.MissCounter
@@ -269,7 +273,7 @@ func TestMissCounterIncrementRevert(t *testing.T) {
 	// Verify reset
 	finalOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	require.NoError(t, err)
-	require.Equal(t, uint32(0), finalOracle.MissCounter)
+	require.Equal(t, uint64(0), finalOracle.MissCounter)
 }
 
 // TestSlashingRevertOnInvalidValidator tests that slashing handles invalid validators
@@ -280,7 +284,8 @@ func TestSlashingRevertOnInvalidValidator(t *testing.T) {
 	nonExistentValidator := sdk.ValAddress("nonexistent_val____")
 
 	// This may error or handle gracefully depending on implementation
-	err := k.SlashMissVote(ctx, nonExistentValidator)
+	// SlashMissVote expects a string parameter
+	err := k.SlashMissVote(ctx, nonExistentValidator.String())
 	// Just verify it doesn't panic and handles errors
 	if err != nil {
 		t.Logf("Expected error for non-existent validator: %v", err)
@@ -349,10 +354,21 @@ func TestPartialAggregationFailurePreservesConsistency(t *testing.T) {
 	// Submit price from single validator
 	validator := sdk.ValAddress("validator1")
 	price := math.LegacyNewDec(50000)
+
+	// Create 99 additional validators to dilute voting power
+	// 1/100 = 1% which is below the 10% minimum threshold
+	for i := 0; i < 99; i++ {
+		dummyVal := sdk.ValAddress([]byte("dummy_validator_" + string(rune(i))))
+		require.NoError(t, keepertest.EnsureBondedValidator(ctx, dummyVal))
+	}
+
+	// Ensure test validator is bonded
+	require.NoError(t, keepertest.EnsureBondedValidator(ctx, validator))
+
 	err := k.SubmitPrice(ctx, validator, asset, price)
 	require.NoError(t, err)
 
-	// Set insufficient voting power
+	// Set insufficient voting power (1 out of 100 validators = 1% < 10% threshold)
 	vp, err := k.GetValidatorPrice(ctx, validator, asset)
 	require.NoError(t, err)
 	vp.VotingPower = 1 // Very low, won't meet threshold
