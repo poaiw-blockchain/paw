@@ -119,9 +119,12 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	computetypes.RegisterQueryServer(cfg.QueryServer(), rateLimitedQueryServer)
 
 	// Register module migrations
+	// Note: RegisterMigration must be called during module initialization.
+	// Failure here indicates a programmer error (e.g., duplicate registration)
+	// and should terminate the application before serving requests.
 	m := keeper.NewMigrator(*am.keeper)
 	if err := cfg.RegisterMigration(computetypes.ModuleName, 1, m.Migrate1to2); err != nil {
-		panic(fmt.Sprintf("failed to migrate x/%s from version 1 to 2: %v", computetypes.ModuleName, err))
+		panic(fmt.Sprintf("failed to register migration for x/%s from version 1 to 2: %v", computetypes.ModuleName, err))
 	}
 }
 
