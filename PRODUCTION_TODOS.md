@@ -294,10 +294,17 @@
 - [ ] Create production config with S3/GCS backend
 - [ ] Document persistent storage setup
 
-### INFRA-MED-5: Grafana Dashboards Not Provisioned
-- [ ] Create node metrics dashboard
-- [ ] Create blockchain metrics dashboard
-- [ ] Create DEX metrics dashboard
+### INFRA-MED-5: Grafana Dashboards Not Provisioned ✅ COMPLETED
+- [x] Create node metrics dashboard
+- [x] Create blockchain metrics dashboard
+- [x] Create DEX metrics dashboard
+- **Resolution:** Three comprehensive Grafana dashboards created in `infra/monitoring/dashboards/`:
+  - `node-metrics.json` (29KB): System resources (CPU, memory, disk), network I/O, Go runtime metrics (goroutines, GC), process metrics and uptime
+  - `blockchain-metrics.json` (30KB): Block height/time, transaction throughput (TPS), consensus rounds, validator participation, P2P peer count, mempool, state/storage
+  - `dex-metrics.json` (38KB): Swap volume/count/latency/slippage, pool TVL/reserves/count, limit orders (open/placed/filled/cancelled/expired), liquidity changes, fee collection and tiers
+  - All dashboards use Prometheus datasource, include proper templating for instance selection, follow Grafana JSON format
+  - Provisioning configuration already exists in `infra/grafana/provisioning/dashboards/dashboard.yml` with three providers for auto-loading dashboards
+  - K8s ConfigMaps configured in `k8s/grafana-dashboards-configmap.yaml` for deployment
 
 ### INFRA-MED-6: No Custom Blockchain Metrics Documented
 - [ ] Document metrics endpoint at `:26660/metrics`
