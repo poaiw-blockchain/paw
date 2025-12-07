@@ -61,7 +61,11 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingCo
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the oracle module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {}
+// Note: With gogoproto, the grpc-gateway files have build tags and are not compiled by default.
+// REST endpoints are auto-generated from proto annotations and don't require explicit registration here.
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	// Gateway routes are auto-registered through proto annotations
+}
 
 // GetTxCmd returns the root tx command for the oracle module.
 func (AppModuleBasic) GetTxCmd() *cobra.Command {

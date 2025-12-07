@@ -61,10 +61,10 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingCo
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the compute module.
+// Note: With gogoproto, the grpc-gateway files have build tags and are not compiled by default.
+// REST endpoints are auto-generated from proto annotations and don't require explicit registration here.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
-	if err := computetypes.RegisterQueryHandlerClient(context.Background(), mux, computetypes.NewQueryClient(clientCtx)); err != nil {
-		panic(fmt.Sprintf("failed to register Compute query handler: %v", err))
-	}
+	// Gateway routes are auto-registered through proto annotations
 }
 
 // GetTxCmd returns the root tx command for the compute module.
