@@ -398,8 +398,9 @@ func (k Keeper) GetSpotPrice(ctx context.Context, poolID uint64, tokenIn, tokenO
 		return math.LegacyZeroDec(), types.ErrInvalidTokenPair.Wrapf("invalid token pair for pool %d", poolID)
 	}
 
-	if reserveIn.IsZero() {
-		return math.LegacyZeroDec(), types.ErrInsufficientLiquidity.Wrap("reserve is zero")
+	// DIVISION BY ZERO PROTECTION: Validate both reserves before division
+	if reserveIn.IsZero() || reserveOut.IsZero() {
+		return math.LegacyZeroDec(), types.ErrInsufficientLiquidity.Wrap("pool reserves must be positive")
 	}
 
 	// Spot price = reserveOut / reserveIn
