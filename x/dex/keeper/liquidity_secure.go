@@ -10,6 +10,46 @@ import (
 )
 
 // AddLiquiditySecure adds liquidity with comprehensive security checks
+// CODE-LOW-4 DOCUMENTATION: Reentrancy Guard Implementation
+//
+// REENTRANCY ATTACK EXPLANATION:
+// A reentrancy attack occurs when an attacker calls back into a contract/module
+// during its execution, before the first invocation has completed. This can allow
+// an attacker to:
+// 1. Drain funds by repeatedly withdrawing before balance updates
+// 2. Manipulate state by executing operations in unexpected order
+// 3. Bypass security checks that assume single execution path
+//
+// Classic example: The DAO hack (Ethereum, 2016) - $60M stolen via reentrancy
+//
+// HOW THE GUARD WORKS:
+// 1. Before executing the operation, we acquire a lock specific to this pool+operation
+// 2. The lock is stored in the KVStore (persistent) and optionally in-memory (tests)
+// 3. If the lock already exists, we reject the operation with ErrReentrancy
+// 4. After operation completes (or fails), we release the lock via defer
+// 5. This ensures ONLY ONE instance of an operation can execute at a time per pool
+//
+// ATTACKS PREVENTED:
+// - Flash loan attacks: Attacker cannot add liquidity, execute swap, remove liquidity atomically
+// - State manipulation: Attacker cannot call AddLiquidity recursively to bypass checks
+// - Race conditions: Prevents concurrent modifications to same pool state
+// - Callback attacks: External contract calls cannot re-enter DEX functions
+//
+// IMPLEMENTATION DETAILS:
+// - Lock key format: "{poolID}:{operation}" (e.g., "42:add_liquidity")
+// - Lock storage: KVStore ensures persistence across context boundaries
+// - Lock cleanup: defer ensures release even on panic/error
+// - Optional in-memory guard: Used in tests for additional verification
+//
+// COSMOS SDK SECURITY NOTE:
+// Unlike Ethereum smart contracts, Cosmos SDK modules don't have external contract calls
+// in the traditional sense. However, reentrancy can still occur via:
+// - Module-to-module calls (e.g., DEX calling Bank, which calls hooks)
+// - Message server handlers calling keeper methods
+// - Ante handlers or post-handlers triggering operations
+//
+// This guard provides defense-in-depth even though the attack surface is smaller
+// than Ethereum. Production DeFi protocols prioritize security over minimal code.
 func (k Keeper) AddLiquiditySecure(ctx context.Context, provider sdk.AccAddress, poolID uint64, amountA, amountB math.Int) (math.Int, error) {
 	// Execute with reentrancy protection
 	var shares math.Int

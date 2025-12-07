@@ -119,6 +119,31 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	}
 
 	// Check slippage protection
+	// CODE-LOW-3 MITIGATION: Precision Loss Risk in Pool Reserves
+	//
+	// SECURITY CONCERN: Accumulated rounding errors in swap calculations could theoretically
+	// lead to precision loss over many transactions, particularly for low-decimal tokens.
+	//
+	// PRECISION HANDLING IN THIS IMPLEMENTATION:
+	// 1. We use cosmossdk.io/math.LegacyDec for intermediate calculations (18 decimal precision)
+	// 2. Final amounts are truncated to integer tokens via TruncateInt()
+	// 3. Truncation always rounds DOWN, favoring the pool (security-first)
+	// 4. Each swap's rounding error is bounded to <1 smallest token unit per operation
+	//
+	// SAFETY GUARANTEES:
+	// - Constant product invariant k = x * y is validated to NEVER decrease (line 201-212)
+	// - PriceUpdateTolerance (0.1%) allows detection of accumulated precision drift
+	// - Slippage check below prevents users from accepting bad exchange rates due to precision loss
+	// - Pool state validation ensures reserves remain positive after all operations
+	//
+	// ADDITIONAL SAFETY: After this slippage check passes, we validate the constant product
+	// invariant hasn't decreased (ValidatePoolInvariant), which would detect any precision
+	// loss that materially harms the pool.
+	//
+	// FUTURE IMPROVEMENT: If precision concerns arise, consider:
+	// - Implementing periodic k-value restoration via governance
+	// - Adding explicit precision loss metrics/alerts
+	// - Upgrading to higher-precision decimal library if available
 	if amountOut.LT(minAmountOut) {
 		k.metrics.SwapsTotal.WithLabelValues(fmt.Sprintf("%d", poolID), tokenIn, tokenOut, "failed").Inc()
 		// Calculate and record slippage
@@ -146,13 +171,27 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	lpFee, protocolFee, err := k.CollectSwapFees(ctx, poolID, tokenIn, amountIn)
 	if err != nil {
 		// Revert the input transfer on fee collection failure
-		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after fee collection failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"amount", coinIn.String(),
+			)
+		}
 		return math.ZeroInt(), types.WrapWithRecovery(err, "failed to collect swap fees")
 	}
 	feeAmount, err = SafeAdd(lpFee, protocolFee)
 	if err != nil {
 		// Revert the input transfer on fee calculation failure
-		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after fee calculation failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"amount", coinIn.String(),
+			)
+		}
 		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %v", err)
 	}
 
@@ -160,18 +199,42 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	coinOut := sdk.NewCoin(tokenOut, amountOut)
 	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinOut)); err != nil {
 		// Revert the input transfer on output transfer failure
-		_ = k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn))
+		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
+			sdkCtx.Logger().Error("failed to revert input transfer after output transfer failure",
+				"original_error", err,
+				"revert_error", revertErr,
+				"trader", trader.String(),
+				"input_amount", coinIn.String(),
+				"failed_output", coinOut.String(),
+			)
+		}
 		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer output tokens: %v", err)
 	}
 
 	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
 	// This ensures pool state is never inconsistent with actual token balances
+	//
+	// PRECISION SAFETY CHECK: Store old k-value before state update to validate invariant
+	oldK := pool.ReserveA.Mul(pool.ReserveB)
+
 	if isTokenAIn {
 		pool.ReserveA = pool.ReserveA.Add(amountInAfterFee)
 		pool.ReserveB = pool.ReserveB.Sub(amountOut)
 	} else {
 		pool.ReserveB = pool.ReserveB.Add(amountInAfterFee)
 		pool.ReserveA = pool.ReserveA.Sub(amountOut)
+	}
+
+	// INVARIANT VALIDATION: Verify constant product k hasn't decreased due to precision loss
+	// This catches accumulated rounding errors that could harm pool LPs
+	newK := pool.ReserveA.Mul(pool.ReserveB)
+	if newK.LT(oldK) {
+		// Critical invariant violation - precision loss or calculation error
+		// This should NEVER happen in a correct AMM implementation
+		return math.ZeroInt(), types.ErrInvariantViolation.Wrapf(
+			"constant product invariant violated in swap: old_k=%s, new_k=%s (precision loss detected)",
+			oldK.String(), newK.String(),
+		)
 	}
 
 	// Step 5: Save updated pool
