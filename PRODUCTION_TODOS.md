@@ -340,10 +340,11 @@
 - [x] Document staking, rewards, slashing
 - **Resolution:** Created comprehensive 1,800-line validator operator guide covering all aspects of validator operations including hardware requirements, setup procedures, key management, monitoring, commission management, slashing conditions, unjailing procedures, staking economics, security best practices (sentry architecture, firewall, DDoS protection), maintenance (upgrades referencing UPGRADE_PROCEDURES.md when created, backups, migration), and governance participation. References VALIDATOR_KEY_MANAGEMENT.md for key security details.
 
-### DOC-MED-3: No Upgrade Procedures
-- [ ] Create `UPGRADE_PROCEDURES.md`
-- [ ] Document consensus upgrade governance
-- [ ] Document rollback procedures
+### DOC-MED-3: No Upgrade Procedures ✅ COMPLETED
+- [x] Create `UPGRADE_PROCEDURES.md`
+- [x] Document consensus upgrade governance
+- [x] Document rollback procedures
+- **Resolution:** Created comprehensive 1,300-line upgrade procedures guide at `docs/UPGRADE_PROCEDURES.md` covering all aspects of blockchain upgrades including: types of upgrades (soft fork, hard fork, state migration), pre-upgrade checklist with detailed backup and verification procedures, governance-based upgrade process with proposal submission and voting, manual upgrade procedure with step-by-step instructions, Cosmovisor automatic upgrade setup and configuration, emergency upgrade procedures, rollback procedures (references existing ROLLBACK.md), comprehensive post-upgrade verification (node health, validator status, consensus, IBC channels, module-specific checks, transaction testing, performance metrics, log analysis, API testing, security validation), and extensive troubleshooting section covering 7 common issues with solutions. Integrates with existing documentation in `docs/upgrades/` directory and references VALIDATOR_OPERATOR_GUIDE.md, VALIDATOR_KEY_MANAGEMENT.md, and DISASTER_RECOVERY.md for related procedures.
 
 ### DOC-MED-4: No API Documentation
 - [ ] Create OpenAPI 3.0 specification
