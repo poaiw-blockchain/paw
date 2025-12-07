@@ -375,17 +375,51 @@
   - Provisioning configuration already exists in `infra/grafana/provisioning/dashboards/dashboard.yml` with three providers for auto-loading dashboards
   - K8s ConfigMaps configured in `k8s/grafana-dashboards-configmap.yaml` for deployment
 
-### INFRA-MED-6: No Custom Blockchain Metrics Documented
-- [ ] Document metrics endpoint at `:26660/metrics`
-- [ ] Document required metric names
+### INFRA-MED-6: No Custom Blockchain Metrics Documented ✅ COMPLETED
+- [x] Document metrics endpoint at `:26660/metrics`
+- [x] Document required metric names
+- **Resolution:** Created comprehensive `docs/METRICS.md` (56KB) documenting all metrics:
+  - Metrics endpoints (CometBFT :26660, Cosmos SDK API :1317, Custom app :26661)
+  - Complete Cosmos SDK metrics reference (transactions, blocks, modules, state sync)
+  - CometBFT/Tendermint metrics (consensus, P2P networking, mempool, storage)
+  - Custom PAW module metrics (DEX: swap/pool/liquidity/limit orders, Oracle: prices/aggregation/TWAP/volatility, Compute: requests/verification/escrow/rate limiting)
+  - Prometheus scrape configuration examples (basic, Kubernetes service discovery, Docker Compose)
+  - Grafana dashboard integration (references existing dashboards in infra/monitoring/dashboards/)
+  - Production-ready alert rules (consensus, performance, DEX, Oracle modules)
+  - Comprehensive troubleshooting section for common metrics issues
 
-### INFRA-MED-7: Environment Variables Not Standardized
-- [ ] Standardize to `PAW_*` prefix
-- [ ] Document all supported variables
+### INFRA-MED-7: Environment Variables Not Standardized ✅ COMPLETED
+- [x] Standardize to `PAW_*` prefix
+- [x] Document all supported variables
+- **Resolution:** Created comprehensive `docs/ENVIRONMENT_VARIABLES.md` (63KB) documenting all PAW environment variables:
+  - Variable naming convention and hierarchy (env vars > config files > defaults)
+  - Core configuration (PAW_HOME, PAW_CHAIN_ID, PAW_MONIKER, PAW_MINIMUM_GAS_PRICE)
+  - Network configuration (P2P listen/external addresses, seeds, persistent peers, PEX, peer limits)
+  - RPC and API configuration (RPC/REST/gRPC addresses and endpoints)
+  - Logging configuration (levels, formats, per-module levels)
+  - Telemetry and monitoring (Prometheus metrics, global labels, retention)
+  - Security and cryptography (keyring backends, unsafe upgrade skips)
+  - Module-specific variables (DEX, Oracle, Compute modules)
+  - Development and testing variables (CometMock, smoke tests)
+  - Cloud provider configuration (AWS S3, GCP GCS, Azure Blob)
+  - Complete reference table with all variables, types, defaults, and descriptions
+  - Best practices for environment-specific configs, secret management, validation, configuration management
+  - Troubleshooting section for common environment variable issues
 
-### INFRA-MED-8: No Load Balancer Configuration
-- [ ] Configure sticky sessions for RPC
-- [ ] Document geo-distributed deployment
+### INFRA-MED-8: No Load Balancer Configuration ✅ COMPLETED
+- [x] Configure sticky sessions for RPC
+- [x] Document geo-distributed deployment
+- **Resolution:** Created comprehensive `docs/LOAD_BALANCER.md` (72KB) documenting load balancer configurations:
+  - RPC load balancing requirements (sticky sessions, WebSocket support, health checks, connection pooling)
+  - Complete Nginx configuration (RPC with IP hash sticky sessions, WebSocket upgrade, SSL/TLS, CORS, rate limiting, REST API with caching)
+  - Complete HAProxy configuration (sticky sessions with source balancing, WebSocket backend with long timeouts, health checks with sync status validation, rate limiting via stick tables, SSL termination)
+  - Cloud load balancers (AWS ALB CloudFormation template with sticky sessions and health checks, GCP Load Balancer Terraform with session affinity)
+  - Geo-distributed deployment (DNS-based geographic routing with Route 53, multi-region architecture diagram, latency-based routing with Cloudflare)
+  - Advanced health check script (validates sync status, block age, peer count, validator jailing)
+  - SSL/TLS termination (Let's Encrypt with Certbot, automated renewal)
+  - Rate limiting and DDoS protection (Nginx rate limiting zones, Cloudflare WAF integration)
+  - Monitoring and metrics (Nginx VTS module for Prometheus, HAProxy exporter, Grafana dashboards)
+  - Comprehensive troubleshooting section (sticky sessions, WebSocket failures, health check failures)
 
 ### DOC-MED-1: No Deployment Runbook ✅ COMPLETED
 - [x] Create `DEPLOYMENT_QUICKSTART.md` (already existed, comprehensive)
