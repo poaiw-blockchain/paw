@@ -535,6 +535,7 @@ func (zk *ZKVerifier) VerifyProof(
 		}
 		vk = groth16.NewVerifyingKey(ecc.BN254)
 		if _, err := vk.ReadFrom(bytes.NewReader(circuitParams.VerifyingKey.VkData)); err != nil {
+			refundDeposit()
 			return false, fmt.Errorf("failed to deserialize verifying key: %w", err)
 		}
 		zk.verifyingKeys[zkProof.CircuitId] = vk
@@ -547,6 +548,7 @@ func (zk *ZKVerifier) VerifyProof(
 	// Deserialize proof
 	proof := groth16.NewProof(ecc.BN254)
 	if _, err := proof.ReadFrom(bytes.NewReader(zkProof.Proof)); err != nil {
+		refundDeposit()
 		return false, fmt.Errorf("failed to deserialize proof: %w", err)
 	}
 
@@ -565,6 +567,7 @@ func (zk *ZKVerifier) VerifyProof(
 			"expected_len", len(expectedPublicInputs),
 			"actual_len", len(zkProof.PublicInputs),
 		)
+		refundDeposit()
 		return false, fmt.Errorf("public inputs mismatch")
 	}
 
@@ -584,6 +587,7 @@ func (zk *ZKVerifier) VerifyProof(
 
 	publicWitness, err := frontend.NewWitness(publicAssignment, ecc.BN254.ScalarField(), frontend.PublicOnly())
 	if err != nil {
+		refundDeposit()
 		return false, fmt.Errorf("failed to create public witness: %w", err)
 	}
 

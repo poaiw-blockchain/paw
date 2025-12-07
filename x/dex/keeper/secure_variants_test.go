@@ -1396,7 +1396,7 @@ func TestDeletePool(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 1: Cannot delete pool with active liquidity
-	err = k.DeletePool(ctx, poolID)
+	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "active liquidity")
 
@@ -1428,7 +1428,7 @@ func TestDeletePool(t *testing.T) {
 	require.True(t, pool.TotalShares.IsZero())
 
 	// Test 3: Now deletion should succeed
-	err = k.DeletePool(ctx, poolID)
+	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
 	require.NoError(t, err)
 
 	// Test 4: Verify pool is deleted
@@ -1440,9 +1440,54 @@ func TestDeletePool(t *testing.T) {
 func TestDeletePool_NonExistent(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
-	err := k.DeletePool(ctx, 9999)
+	err := k.DeletePool(ctx, 9999, types.DefaultAuthority())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not found")
+}
+
+// TestDeletePool_Unauthorized tests that only governance can delete pools
+func TestDeletePool_Unauthorized(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	// Create a pool and empty it
+	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		math.NewInt(1_000_000), math.NewInt(1_000_000))
+
+	pool, err := k.GetPool(ctx, poolID)
+	require.NoError(t, err)
+
+	// Get creator and remove all liquidity
+	creator := sdk.MustAccAddressFromBech32(pool.Creator)
+	creatorShares, err := k.GetLiquidity(ctx, poolID, creator)
+	require.NoError(t, err)
+
+	// Advance blocks for flash loan protection
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
+
+	// Remove all liquidity to make pool empty
+	_, _, err = k.RemoveLiquiditySecure(ctx, creator, poolID, creatorShares)
+	require.NoError(t, err)
+
+	// Verify pool is empty
+	pool, err = k.GetPool(ctx, poolID)
+	require.NoError(t, err)
+	require.True(t, pool.ReserveA.IsZero())
+	require.True(t, pool.ReserveB.IsZero())
+	require.True(t, pool.TotalShares.IsZero())
+
+	// Test: Attempt to delete with wrong authority should fail
+	unauthorizedAddr := "cosmos1unauthorized000000000000000000000000000"
+	err = k.DeletePool(ctx, poolID, unauthorizedAddr)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid authority")
+
+	// Test: Deletion with correct authority should succeed
+	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
+	require.NoError(t, err)
+
+	// Verify pool is deleted
+	_, err = k.GetPool(ctx, poolID)
+	require.Error(t, err)
 }
 
 // TestCircuitBreakerPersistence tests circuit breaker state persistence

@@ -4,7 +4,14 @@ import (
 	"encoding/binary"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
+
+// DefaultAuthority returns the default module authority (governance module address string)
+func DefaultAuthority() string {
+	return authtypes.NewModuleAddress(govtypes.ModuleName).String()
+}
 
 var (
 	// PoolKeyPrefix is the prefix for pool store keys

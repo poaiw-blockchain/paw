@@ -61,7 +61,11 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingCo
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the compute module.
-func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {}
+func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	if err := computetypes.RegisterQueryHandlerClient(context.Background(), mux, computetypes.NewQueryClient(clientCtx)); err != nil {
+		panic(fmt.Sprintf("failed to register Compute query handler: %v", err))
+	}
+}
 
 // GetTxCmd returns the root tx command for the compute module.
 func (AppModuleBasic) GetTxCmd() *cobra.Command {

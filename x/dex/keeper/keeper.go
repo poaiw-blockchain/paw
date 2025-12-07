@@ -62,6 +62,11 @@ func (k Keeper) GetStoreKey() storetypes.StoreKey {
 	return k.storeKey
 }
 
+// GetAuthority returns the module authority for testing purposes
+func (k Keeper) GetAuthority() string {
+	return k.authority
+}
+
 // ClaimCapability claims a channel capability for later authentication.
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.scopedKeeper.ClaimCapability(ctx, cap, name)
