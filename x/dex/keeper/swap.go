@@ -181,19 +181,7 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 		}
 		return math.ZeroInt(), types.WrapWithRecovery(err, "failed to collect swap fees")
 	}
-	feeAmount, err = SafeAdd(lpFee, protocolFee)
-	if err != nil {
-		// Revert the input transfer on fee calculation failure
-		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
-			sdkCtx.Logger().Error("failed to revert input transfer after fee calculation failure",
-				"original_error", err,
-				"revert_error", revertErr,
-				"trader", trader.String(),
-				"amount", coinIn.String(),
-			)
-		}
-		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %v", err)
-	}
+	feeAmount = lpFee.Add(protocolFee)
 
 	// Step 3: Transfer output tokens from module to trader
 	coinOut := sdk.NewCoin(tokenOut, amountOut)

@@ -103,23 +103,23 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 	}
 
 	// Calculate optimal amounts to maintain price ratio
-	optimalAmountB, err := SafeMul(amountA, pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	optimalAmountB, err = SafeQuo(optimalAmountB, pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	optimalAmountB := amountA.Mul(pool.ReserveB)
 
-	optimalAmountA, err := SafeMul(amountB, pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), err
+	// Check for division by zero before Quo
+	if pool.ReserveA.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve A is zero")
 	}
-	optimalAmountA, err = SafeQuo(optimalAmountA, pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), err
+	optimalAmountB = optimalAmountB.Quo(pool.ReserveA)
+
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	optimalAmountA := amountB.Mul(pool.ReserveA)
+
+	// Check for division by zero before Quo
+	if pool.ReserveB.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve B is zero")
 	}
+	optimalAmountA = optimalAmountA.Quo(pool.ReserveB)
 
 	// Use the optimal amounts that fit within provided limits
 	if optimalAmountB.LTE(amountB) {
@@ -132,23 +132,23 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 
 	// 5. Calculate shares to mint (proportional to contribution)
 	sdkCtx.GasMeter().ConsumeGas(8000, "dex_add_liquidity_calculation")
-	sharesA, err := SafeMul(finalAmountA, pool.TotalShares)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	sharesA, err = SafeQuo(sharesA, pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	sharesA := finalAmountA.Mul(pool.TotalShares)
 
-	sharesB, err := SafeMul(finalAmountB, pool.TotalShares)
-	if err != nil {
-		return math.ZeroInt(), err
+	// Check for division by zero before Quo (already validated above, but explicit check)
+	if pool.ReserveA.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve A is zero")
 	}
-	sharesB, err = SafeQuo(sharesB, pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), err
+	sharesA = sharesA.Quo(pool.ReserveA)
+
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	sharesB := finalAmountB.Mul(pool.TotalShares)
+
+	// Check for division by zero before Quo (already validated above, but explicit check)
+	if pool.ReserveB.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve B is zero")
 	}
+	sharesB = sharesB.Quo(pool.ReserveB)
 
 	// Use minimum to maintain proportionality
 	newShares = sharesA
@@ -175,20 +175,10 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 	}
 
 	// 8. Update pool state AFTER receiving tokens
-	pool.ReserveA, err = SafeAdd(pool.ReserveA, finalAmountA)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-
-	pool.ReserveB, err = SafeAdd(pool.ReserveB, finalAmountB)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-
-	pool.TotalShares, err = SafeAdd(pool.TotalShares, newShares)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
+	// math.Int.Add is safe from overflow (uses big.Int internally)
+	pool.ReserveA = pool.ReserveA.Add(finalAmountA)
+	pool.ReserveB = pool.ReserveB.Add(finalAmountB)
+	pool.TotalShares = pool.TotalShares.Add(newShares)
 
 	// 9. Validate invariant
 	if err := k.ValidatePoolInvariant(ctx, pool, oldK); err != nil {
@@ -212,10 +202,8 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 		return math.ZeroInt(), err
 	}
 
-	newTotalShares, err := SafeAdd(currentShares, newShares)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
+	// math.Int.Add is safe from overflow (uses big.Int internally)
+	newTotalShares := currentShares.Add(newShares)
 
 	if err := k.SetLiquidity(ctx, poolID, provider, newTotalShares); err != nil {
 		return math.ZeroInt(), err
@@ -315,43 +303,55 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 
 	// 6. Calculate amounts to return (proportional to shares)
 	sdkCtx.GasMeter().ConsumeGas(8000, "dex_remove_liquidity_calculation")
-	amountA, err := SafeMul(shares, pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
-	}
-	amountA, err = SafeQuo(amountA, pool.TotalShares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
-	}
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	amountA := shares.Mul(pool.ReserveA)
 
-	amountB, err := SafeMul(shares, pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	// Check for division by zero before Quo
+	if pool.TotalShares.IsZero() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool total shares is zero")
 	}
-	amountB, err = SafeQuo(amountB, pool.TotalShares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	amountA = amountA.Quo(pool.TotalShares)
+
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	amountB := shares.Mul(pool.ReserveB)
+
+	// Check for division by zero before Quo
+	if pool.TotalShares.IsZero() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool total shares is zero")
 	}
+	amountB = amountB.Quo(pool.TotalShares)
 
 	if amountA.IsZero() || amountB.IsZero() {
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("withdrawal amounts too small")
 	}
 
 	// 7. Update pool state BEFORE transfers (checks-effects-interactions)
-	pool.ReserveA, err = SafeSub(pool.ReserveA, amountA)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	// Check for underflow before subtraction
+	if pool.ReserveA.LT(amountA) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf(
+			"insufficient reserve A: have %s, need %s",
+			pool.ReserveA, amountA,
+		)
 	}
+	pool.ReserveA = pool.ReserveA.Sub(amountA)
 
-	pool.ReserveB, err = SafeSub(pool.ReserveB, amountB)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	// Check for underflow before subtraction
+	if pool.ReserveB.LT(amountB) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf(
+			"insufficient reserve B: have %s, need %s",
+			pool.ReserveB, amountB,
+		)
 	}
+	pool.ReserveB = pool.ReserveB.Sub(amountB)
 
-	pool.TotalShares, err = SafeSub(pool.TotalShares, shares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	// Check for underflow before subtraction
+	if pool.TotalShares.LT(shares) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf(
+			"insufficient total shares: have %s, need %s",
+			pool.TotalShares, shares,
+		)
 	}
+	pool.TotalShares = pool.TotalShares.Sub(shares)
 
 	// 9. Validate pool state (note: k will decrease, which is expected)
 	if err := k.ValidatePoolState(pool); err != nil {
@@ -365,10 +365,14 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 	}
 
 	// 11. Update user's liquidity position
-	newUserShares, err := SafeSub(userShares, shares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+	// Check for underflow before subtraction (already validated above in step 5, but explicit check)
+	if userShares.LT(shares) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf(
+			"insufficient user shares: have %s, need %s",
+			userShares, shares,
+		)
 	}
+	newUserShares := userShares.Sub(shares)
 
 	if err := k.SetLiquidity(ctx, poolID, provider, newUserShares); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err

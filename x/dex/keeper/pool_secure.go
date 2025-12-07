@@ -58,10 +58,7 @@ func (k Keeper) CreatePoolSecure(ctx context.Context, creator sdk.AccAddress, to
 
 	// 6. Calculate initial shares using geometric mean (sqrt(x * y))
 	// This prevents initial liquidity manipulation
-	product, err := SafeMul(amountA, amountB)
-	if err != nil {
-		return nil, err
-	}
+	product := amountA.Mul(amountB)
 
 	sqrtShares, err := math.LegacyNewDecFromInt(product).ApproxSqrt()
 	if err != nil {

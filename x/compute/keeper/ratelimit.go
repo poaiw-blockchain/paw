@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/paw-chain/paw/x/compute/types"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -98,54 +97,6 @@ func (rl *RateLimiter) cleanup() {
 			bucket.mu.Unlock()
 		}
 		rl.mu.Unlock()
-	}
-}
-
-// UnaryRateLimitInterceptor creates a gRPC unary interceptor for rate limiting
-func UnaryRateLimitInterceptor(limiter *RateLimiter) grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (interface{}, error) {
-		// Extract client identifier (IP address or other identifier)
-		clientID := getClientID(ctx)
-
-		// Check rate limit
-		if !limiter.Allow(clientID) {
-			return nil, status.Errorf(
-				codes.ResourceExhausted,
-				"rate limit exceeded for client %s", clientID,
-			)
-		}
-
-		// Call the handler
-		return handler(ctx, req)
-	}
-}
-
-// StreamRateLimitInterceptor creates a gRPC stream interceptor for rate limiting
-func StreamRateLimitInterceptor(limiter *RateLimiter) grpc.StreamServerInterceptor {
-	return func(
-		srv interface{},
-		ss grpc.ServerStream,
-		info *grpc.StreamServerInfo,
-		handler grpc.StreamHandler,
-	) error {
-		// Extract client identifier
-		clientID := getClientID(ss.Context())
-
-		// Check rate limit
-		if !limiter.Allow(clientID) {
-			return status.Errorf(
-				codes.ResourceExhausted,
-				"rate limit exceeded for client %s", clientID,
-			)
-		}
-
-		// Call the handler
-		return handler(srv, ss)
 	}
 }
 

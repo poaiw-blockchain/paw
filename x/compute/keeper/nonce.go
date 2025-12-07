@@ -1,55 +1,29 @@
 package keeper
 
 import (
-	"encoding/binary"
-	"fmt"
-
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/compute/types"
+	"github.com/paw-chain/paw/x/shared/nonce"
 )
 
-const (
-	incomingNoncePrefix = "nonce"
-	sendNoncePrefix     = "nonce_send"
-)
+// computeErrorProvider implements nonce.ErrorProvider for the compute module.
+// It wraps shared nonce errors with compute-specific error types.
+type computeErrorProvider struct{}
 
-func encodeNonce(n uint64) []byte {
-	bz := make([]byte, 8)
-	binary.BigEndian.PutUint64(bz, n)
-	return bz
+// InvalidNonceError returns compute module's invalid nonce error with the given message
+func (p computeErrorProvider) InvalidNonceError(msg string) error {
+	return errorsmod.Wrap(types.ErrInvalidNonce, msg)
 }
 
-func decodeNonce(bz []byte) uint64 {
-	if len(bz) != 8 {
-		return 0
-	}
-	return binary.BigEndian.Uint64(bz)
+// InvalidPacketError returns compute module's invalid packet error with the given message
+func (p computeErrorProvider) InvalidPacketError(msg string) error {
+	return errorsmod.Wrap(types.ErrInvalidPacket, msg)
 }
 
-func normalizeSender(sender string) string {
-	if sender == "" {
-		return types.ModuleName
-	}
-	return sender
-}
-
-func (k Keeper) incomingNonceKey(channel, sender string) []byte {
-	return []byte(fmt.Sprintf("%s/%s/%s", incomingNoncePrefix, channel, normalizeSender(sender)))
-}
-
-func (k Keeper) sendNonceKey(channel, sender string) []byte {
-	return []byte(fmt.Sprintf("%s/%s/%s", sendNoncePrefix, channel, normalizeSender(sender)))
-}
-
-func (k Keeper) getIncomingNonce(ctx sdk.Context, channel, sender string) uint64 {
-	store := ctx.KVStore(k.storeKey)
-	return decodeNonce(store.Get(k.incomingNonceKey(channel, sender)))
-}
-
-func (k Keeper) setIncomingNonce(ctx sdk.Context, channel, sender string, nonce uint64) {
-	store := ctx.KVStore(k.storeKey)
-	store.Set(k.incomingNonceKey(channel, sender), encodeNonce(nonce))
+// nonceManager returns the shared nonce manager instance for the compute module
+func (k Keeper) nonceManager() *nonce.Manager {
+	return nonce.NewManager(k.storeKey, computeErrorProvider{}, types.ModuleName)
 }
 
 // ValidateIncomingPacketNonce validates packet nonce and timestamp to prevent replay attacks.
@@ -57,65 +31,18 @@ func (k Keeper) setIncomingNonce(ctx sdk.Context, channel, sender string, nonce 
 // 1. Timestamp must be within 24 hours of current block time (prevents old packet replay)
 // 2. Nonce must be monotonically increasing per channel/sender pair
 // 3. Stores the new nonce after successful validation
+//
+// This method delegates to the shared nonce manager while maintaining the compute module's
+// public API and error types.
 func (k Keeper) ValidateIncomingPacketNonce(ctx sdk.Context, channel, sender string, packetNonce uint64, timestamp int64) error {
-	if packetNonce == 0 {
-		return errorsmod.Wrap(types.ErrInvalidNonce, "nonce must be greater than zero")
-	}
-	if channel == "" {
-		return errorsmod.Wrap(types.ErrInvalidPacket, "source channel missing")
-	}
-	if timestamp <= 0 {
-		return errorsmod.Wrap(types.ErrInvalidPacket, "timestamp must be positive")
-	}
-
-	// Check timestamp is within 24 hours (86400 seconds)
-	const maxTimestampAge = int64(86400)
-	currentTime := ctx.BlockTime().Unix()
-	timeDiff := currentTime - timestamp
-
-	if timeDiff > maxTimestampAge {
-		return errorsmod.Wrapf(types.ErrInvalidPacket,
-			"packet timestamp too old: %d seconds ago (max: %d seconds)",
-			timeDiff, maxTimestampAge)
-	}
-
-	// Allow small clock drift into the future (5 minutes)
-	const maxFutureDrift = int64(300)
-	if timeDiff < -maxFutureDrift {
-		return errorsmod.Wrapf(types.ErrInvalidPacket,
-			"packet timestamp too far in future: %d seconds ahead (max: %d seconds)",
-			-timeDiff, maxFutureDrift)
-	}
-
-	// Enforce monotonically increasing nonce
-	stored := k.getIncomingNonce(ctx, channel, sender)
-	if packetNonce <= stored {
-		return errorsmod.Wrapf(types.ErrInvalidNonce,
-			"replay attack detected: packet nonce %d not greater than stored %d",
-			packetNonce, stored)
-	}
-
-	// Store the new nonce after successful validation
-	k.setIncomingNonce(ctx, channel, sender, packetNonce)
-	return nil
+	return k.nonceManager().ValidateIncomingPacketNonce(ctx, channel, sender, packetNonce, timestamp)
 }
 
-func (k Keeper) getSendNonce(ctx sdk.Context, channel, sender string) uint64 {
-	store := ctx.KVStore(k.storeKey)
-	return decodeNonce(store.Get(k.sendNonceKey(channel, sender)))
-}
-
-func (k Keeper) setSendNonce(ctx sdk.Context, channel, sender string, nonce uint64) {
-	store := ctx.KVStore(k.storeKey)
-	store.Set(k.sendNonceKey(channel, sender), encodeNonce(nonce))
-}
-
+// NextOutboundNonce generates the next monotonically increasing nonce for outgoing packets.
+// It atomically increments and returns the next nonce for the given channel/sender pair.
+//
+// This method delegates to the shared nonce manager while maintaining the compute module's
+// public API.
 func (k Keeper) NextOutboundNonce(ctx sdk.Context, channel, sender string) uint64 {
-	if channel == "" {
-		channel = "unknown"
-	}
-	current := k.getSendNonce(ctx, channel, sender)
-	next := current + 1
-	k.setSendNonce(ctx, channel, sender, next)
-	return next
+	return k.nonceManager().NextOutboundNonce(ctx, channel, sender)
 }

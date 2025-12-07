@@ -18,7 +18,7 @@ import (
 // 1. **Reentrancy Protection**: WithReentrancyGuard wraps execution (line 17)
 // 2. **Circuit Breaker Integration**: CheckCircuitBreaker validates pool safety (line 60)
 // 3. **Invariant Validation**: ValidatePoolInvariant ensures k=x*y before/after (line 167)
-// 4. **Overflow Protection**: SafeAdd/SafeSub prevent integer overflow (lines 147-164)
+// 4. **Overflow Protection**: math.Int operations are inherently safe from overflow
 // 5. **Price Impact Validation**: ValidatePriceImpact prevents large market movements (line 102)
 // 6. **MEV Protection**: ValidateSwapSize limits manipulation potential (line 84)
 // 7. **Comprehensive Gas Metering**: All operations explicitly gas-metered (lines 36, 55, 62, 112, 153, 210)
@@ -214,19 +214,7 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		}
 		return math.ZeroInt(), types.WrapWithRecovery(err, "failed to collect swap fees")
 	}
-	feeAmount, err = SafeAdd(lpFee, protocolFee)
-	if err != nil {
-		// Revert the input transfer on fee calculation failure
-		if revertErr := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, trader, sdk.NewCoins(coinIn)); revertErr != nil {
-			sdkCtx.Logger().Error("failed to revert input transfer after fee calculation failure",
-				"original_error", err,
-				"revert_error", revertErr,
-				"trader", trader.String(),
-				"amount", coinIn.String(),
-			)
-		}
-		return math.ZeroInt(), types.WrapWithRecovery(types.ErrOverflow, "failed to calculate total fees: %v", err)
-	}
+	feeAmount = lpFee.Add(protocolFee)
 
 	// Step 3: Transfer output tokens from module to trader
 	coinOut := sdk.NewCoin(tokenOut, amountOut)
@@ -247,23 +235,11 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
 	// This ensures pool state is never inconsistent with actual token balances
 	if isTokenAIn {
-		pool.ReserveA, err = SafeAdd(pool.ReserveA, amountInAfterFee)
-		if err != nil {
-			return math.ZeroInt(), err
-		}
-		pool.ReserveB, err = SafeSub(pool.ReserveB, amountOut)
-		if err != nil {
-			return math.ZeroInt(), err
-		}
+		pool.ReserveA = pool.ReserveA.Add(amountInAfterFee)
+		pool.ReserveB = pool.ReserveB.Sub(amountOut)
 	} else {
-		pool.ReserveB, err = SafeAdd(pool.ReserveB, amountInAfterFee)
-		if err != nil {
-			return math.ZeroInt(), err
-		}
-		pool.ReserveA, err = SafeSub(pool.ReserveA, amountOut)
-		if err != nil {
-			return math.ZeroInt(), err
-		}
+		pool.ReserveB = pool.ReserveB.Add(amountInAfterFee)
+		pool.ReserveA = pool.ReserveA.Sub(amountOut)
 	}
 
 	// Step 5: Validate invariant (k should increase or stay same due to fees)

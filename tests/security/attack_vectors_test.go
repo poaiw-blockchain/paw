@@ -100,18 +100,28 @@ func (suite *AttackVectorsTestSuite) TestReentrancyProtection() {
 	suite.Require().NoError(err)
 }
 
-// TestIntegerOverflow validates that SafeMath helpers and oracle TWAP overflow guards reject unsafe values.
+// TestIntegerOverflow validates that math.Int overflow protection and oracle TWAP
+// overflow guards reject unsafe values.
+// Note: Cosmos SDK math.Int panics on values exceeding 2^256 bits for security.
+// This test verifies both levels of protection: SDK-level panics and app-level bounds.
 func (suite *AttackVectorsTestSuite) TestIntegerOverflow() {
+	// Test 1: Verify math.Int panics on overflow beyond 2^256
+	// Cosmos SDK intentionally panics on overflow as a security measure
 	limit := new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil)
 	nearLimit := new(big.Int).Sub(limit, big.NewInt(1))
 	huge := sdkmath.NewIntFromBigInt(nearLimit)
 
-	_, err := dexkeeper.SafeAdd(huge, sdkmath.OneInt())
-	suite.Require().Error(err, "SafeAdd must reject overflow beyond 2^256")
+	// Addition that would exceed 2^256 should panic
+	suite.Require().Panics(func() {
+		_ = huge.Add(sdkmath.OneInt())
+	}, "math.Int should panic on overflow beyond 2^256")
 
-	_, err = dexkeeper.SafeMul(huge, sdkmath.NewInt(2))
-	suite.Require().Error(err, "SafeMul must reject overflow")
+	// Multiplication that would exceed 2^256 should panic
+	suite.Require().Panics(func() {
+		_ = huge.Mul(sdkmath.NewInt(2))
+	}, "math.Int should panic on overflow in multiplication")
 
+	// Test 2: Application-level overflow protection - TWAP time delta bounds
 	params, err := suite.app.OracleKeeper.GetParams(suite.ctx)
 	suite.Require().NoError(err)
 	params.TwapLookbackWindow = 128

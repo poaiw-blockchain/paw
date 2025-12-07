@@ -39,10 +39,7 @@ func (k Keeper) ValidateLPMinting(ctx context.Context, pool *types.Pool, provide
 	}
 
 	// 2. Calculate new total shares
-	newTotalShares, err := SafeAdd(pool.TotalShares, sharesToMint)
-	if err != nil {
-		return types.ErrInvalidInput.Wrap("total shares overflow")
-	}
+	newTotalShares := pool.TotalShares.Add(sharesToMint)
 
 	// 3. Check for share supply manipulation
 	// Ensure shares don't exceed reasonable bounds relative to reserves
@@ -113,10 +110,7 @@ func (k Keeper) validateProviderConcentration(ctx context.Context, poolID uint64
 	}
 
 	// Calculate provider's new total shares
-	providerTotalShares, err := SafeAdd(currentShares, newShares)
-	if err != nil {
-		return err
-	}
+	providerTotalShares := currentShares.Add(newShares)
 
 	// Calculate provider's percentage
 	providerPercentage := math.LegacyNewDecFromInt(providerTotalShares).
@@ -242,10 +236,7 @@ func (k Keeper) ValidateLPBurning(ctx context.Context, pool *types.Pool, provide
 	}
 
 	// 4. Ensure pool maintains minimum liquidity
-	newTotalShares, err := SafeSub(pool.TotalShares, sharesToBurn)
-	if err != nil {
-		return err
-	}
+	newTotalShares := pool.TotalShares.Sub(sharesToBurn)
 
 	if newTotalShares.LT(math.NewInt(MinimumLiquidity)) && !newTotalShares.IsZero() {
 		return types.ErrInvalidInput.Wrapf(

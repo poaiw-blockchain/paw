@@ -236,15 +236,15 @@ func (k Keeper) ValidateSwapWithOracle(ctx context.Context, poolID uint64, token
 	maxDeviation := math.LegacyNewDecWithPrec(5, 2)
 	tolerance := math.LegacyNewDecFromInt(oracleExpectedOut).Mul(maxDeviation).TruncateInt()
 
-	minAcceptable, err := SafeSub(oracleExpectedOut, tolerance)
-	if err != nil {
+	// Calculate acceptable range with underflow protection
+	var minAcceptable math.Int
+	if oracleExpectedOut.GT(tolerance) {
+		minAcceptable = oracleExpectedOut.Sub(tolerance)
+	} else {
 		minAcceptable = math.ZeroInt()
 	}
 
-	maxAcceptable, err := SafeAdd(oracleExpectedOut, tolerance)
-	if err != nil {
-		return types.ErrInvalidInput.Wrap("overflow in oracle validation")
-	}
+	maxAcceptable := oracleExpectedOut.Add(tolerance)
 
 	// Check if expected output is within acceptable range
 	if expectedOut.LT(minAcceptable) || expectedOut.GT(maxAcceptable) {

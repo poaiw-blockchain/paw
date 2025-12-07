@@ -5,6 +5,7 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/stretchr/testify/require"
 
@@ -132,7 +133,7 @@ func TestQueryServer_LimitOrder(t *testing.T) {
 	t.Run("nil request error", func(t *testing.T) {
 		_, err := server.LimitOrder(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("order not found error", func(t *testing.T) {
@@ -250,7 +251,7 @@ func TestQueryServer_LimitOrders(t *testing.T) {
 	t.Run("nil request error", func(t *testing.T) {
 		_, err := server.LimitOrders(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("verify order details in list", func(t *testing.T) {
@@ -386,7 +387,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	t.Run("nil request error", func(t *testing.T) {
 		_, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("invalid owner address error", func(t *testing.T) {
@@ -531,7 +532,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	t.Run("nil request error", func(t *testing.T) {
 		_, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("non-existent pool", func(t *testing.T) {
@@ -661,7 +662,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	t.Run("nil request error", func(t *testing.T) {
 		_, err := server.OrderBook(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("non-existent pool returns empty", func(t *testing.T) {
@@ -707,31 +708,31 @@ func TestQueryServer_NilRequestHandling(t *testing.T) {
 	t.Run("Pool nil request", func(t *testing.T) {
 		_, err := server.Pool(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("Pools nil request", func(t *testing.T) {
 		_, err := server.Pools(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("PoolByTokens nil request", func(t *testing.T) {
 		_, err := server.PoolByTokens(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("Liquidity nil request", func(t *testing.T) {
 		_, err := server.Liquidity(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("SimulateSwap nil request", func(t *testing.T) {
 		_, err := server.SimulateSwap(sdk.WrapSDKContext(ctx), nil)
 		require.Error(t, err)
-		require.Equal(t, keeper.ErrInvalidRequest, err)
+		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 }
 

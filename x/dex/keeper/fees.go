@@ -38,10 +38,7 @@ func (k Keeper) CollectSwapFees(ctx context.Context, poolID uint64, tokenIn stri
 	protocolFee = math.LegacyNewDecFromInt(totalFeeAmount).Mul(params.ProtocolFee).TruncateInt()
 
 	// Ensure fees don't exceed total fee
-	totalCalculated, err := SafeAdd(lpFee, protocolFee)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
-	}
+	totalCalculated := lpFee.Add(protocolFee)
 
 	if totalCalculated.GT(totalFeeAmount) {
 		// Adjust to prevent overflow
@@ -81,10 +78,7 @@ func (k Keeper) accumulateFees(ctx context.Context, poolID uint64, token string,
 		}
 	}
 
-	newLPFee, err := SafeAdd(currentLPFee, lpFee)
-	if err != nil {
-		return err
-	}
+	newLPFee := currentLPFee.Add(lpFee)
 
 	bz, err := newLPFee.Marshal()
 	if err != nil {
@@ -102,10 +96,7 @@ func (k Keeper) accumulateFees(ctx context.Context, poolID uint64, token string,
 		}
 	}
 
-	newProtocolFee, err := SafeAdd(currentProtocolFee, protocolFee)
-	if err != nil {
-		return err
-	}
+	newProtocolFee := currentProtocolFee.Add(protocolFee)
 
 	bz, err = newProtocolFee.Marshal()
 	if err != nil {
@@ -209,10 +200,7 @@ func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID
 		}
 
 		// Deduct claimed amount from accumulated fees
-		newLPFees, err := SafeSub(totalLPFees, providerShare)
-		if err != nil {
-			return err
-		}
+		newLPFees := totalLPFees.Sub(providerShare)
 
 		// Update stored fees
 		store := k.getStore(ctx)
@@ -265,10 +253,7 @@ func (k Keeper) WithdrawProtocolFees(ctx context.Context, recipient sdk.AccAddre
 	}
 
 	// Deduct withdrawn amount
-	newFees, err := SafeSub(totalFees, amount)
-	if err != nil {
-		return err
-	}
+	newFees := totalFees.Sub(amount)
 
 	// Update stored fees
 	store := k.getStore(ctx)

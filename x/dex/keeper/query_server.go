@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -24,7 +25,7 @@ var _ types.QueryServer = queryServer{}
 // Params returns the module parameters
 func (qs queryServer) Params(goCtx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	params, err := qs.Keeper.GetParams(goCtx)
@@ -40,7 +41,7 @@ func (qs queryServer) Params(goCtx context.Context, req *types.QueryParamsReques
 // Pool returns a specific pool by ID
 func (qs queryServer) Pool(goCtx context.Context, req *types.QueryPoolRequest) (*types.QueryPoolResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	pool, err := qs.Keeper.GetPool(goCtx, req.PoolId)
@@ -56,7 +57,7 @@ func (qs queryServer) Pool(goCtx context.Context, req *types.QueryPoolRequest) (
 // Pools returns all pools with pagination
 func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest) (*types.QueryPoolsResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	var pools []types.Pool
@@ -85,7 +86,7 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 // PoolByTokens returns a pool by its token pair
 func (qs queryServer) PoolByTokens(goCtx context.Context, req *types.QueryPoolByTokensRequest) (*types.QueryPoolByTokensResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	pool, err := qs.Keeper.GetPoolByTokens(goCtx, req.TokenA, req.TokenB)
@@ -101,7 +102,7 @@ func (qs queryServer) PoolByTokens(goCtx context.Context, req *types.QueryPoolBy
 // Liquidity returns a user's liquidity position in a pool
 func (qs queryServer) Liquidity(goCtx context.Context, req *types.QueryLiquidityRequest) (*types.QueryLiquidityResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	provider, err := sdk.AccAddressFromBech32(req.Provider)
@@ -122,7 +123,7 @@ func (qs queryServer) Liquidity(goCtx context.Context, req *types.QueryLiquidity
 // SimulateSwap simulates a swap without executing it
 func (qs queryServer) SimulateSwap(goCtx context.Context, req *types.QuerySimulateSwapRequest) (*types.QuerySimulateSwapResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	amountOut, err := qs.Keeper.SimulateSwap(goCtx, req.PoolId, req.TokenIn, req.TokenOut, req.AmountIn)
@@ -138,7 +139,7 @@ func (qs queryServer) SimulateSwap(goCtx context.Context, req *types.QuerySimula
 // LimitOrder returns a specific limit order by ID
 func (qs queryServer) LimitOrder(goCtx context.Context, req *types.QueryLimitOrderRequest) (*types.QueryLimitOrderResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	order, err := qs.Keeper.GetLimitOrder(goCtx, req.OrderId)
@@ -157,7 +158,7 @@ func (qs queryServer) LimitOrder(goCtx context.Context, req *types.QueryLimitOrd
 // LimitOrders returns all limit orders with pagination
 func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOrdersRequest) (*types.QueryLimitOrdersResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	var orders []types.LimitOrder
@@ -186,7 +187,7 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 // LimitOrdersByOwner returns limit orders for a specific owner
 func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.QueryLimitOrdersByOwnerRequest) (*types.QueryLimitOrdersByOwnerResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	owner, err := sdk.AccAddressFromBech32(req.Owner)
@@ -226,7 +227,7 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 // LimitOrdersByPool returns limit orders for a specific pool
 func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryLimitOrdersByPoolRequest) (*types.QueryLimitOrdersByPoolResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	// Extract pagination parameters
@@ -261,7 +262,7 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 // OrderBook returns the order book for a pool
 func (qs queryServer) OrderBook(goCtx context.Context, req *types.QueryOrderBookRequest) (*types.QueryOrderBookResponse, error) {
 	if req == nil {
-		return nil, ErrInvalidRequest
+		return nil, sdkerrors.ErrInvalidRequest
 	}
 
 	limit := int(req.Limit)
