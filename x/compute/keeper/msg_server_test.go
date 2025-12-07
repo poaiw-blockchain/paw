@@ -775,7 +775,7 @@ func TestMsgServer_VoteOnDispute(t *testing.T) {
 	err = k.SubmitResult(sdkCtx, provider, requestID, "hash", "https://output.url", 0, "https://logs.url", []byte("proof"))
 	require.NoError(t, err)
 
-	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue with result", []byte("Evidence"),math.NewInt(10000))
+	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue with result", []byte("Evidence"), math.NewInt(1000000))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -858,7 +858,7 @@ func TestMsgServer_ResolveDispute(t *testing.T) {
 	err = k.SubmitResult(sdkCtx, provider, requestID, "hash", "https://output.url", 0, "https://logs.url", []byte("proof"))
 	require.NoError(t, err)
 
-	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue", []byte("Evidence"),math.NewInt(10000))
+	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue", []byte("Evidence"), math.NewInt(1000000))
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -930,7 +930,7 @@ func TestMsgServer_SubmitEvidence(t *testing.T) {
 	err = k.SubmitResult(sdkCtx, provider, requestID, "hash", "https://output.url", 0, "https://logs.url", []byte("proof"))
 	require.NoError(t, err)
 
-	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue", []byte("Initial evidence"),math.NewInt(10000))
+	disputeID, err := k.CreateDispute(sdkCtx, requester, requestID, "Issue", []byte("Initial evidence"), math.NewInt(1000000))
 	require.NoError(t, err)
 
 	tests := []struct {
