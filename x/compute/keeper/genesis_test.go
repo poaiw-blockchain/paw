@@ -133,6 +133,40 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 		ResolvedAt:    &appealResolvedAt,
 	}
 
+	// Create escrow states - one LOCKED, one RELEASED
+	lockedEscrow := types.EscrowState{
+		RequestId:       2,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          sdkmath.NewInt(500_000),
+		Status:          types.ESCROW_STATUS_LOCKED,
+		LockedAt:        baseTime.Add(20 * time.Minute),
+		ExpiresAt:       baseTime.Add(24 * time.Hour),
+		ReleasedAt:      nil,
+		RefundedAt:      nil,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 0,
+		Nonce:           1,
+	}
+
+	releasedAt := baseTime.Add(30 * time.Minute)
+	releasedEscrow := types.EscrowState{
+		RequestId:       request.Id,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          request.EscrowedAmount,
+		Status:          types.ESCROW_STATUS_RELEASED,
+		LockedAt:        baseTime.Add(3 * time.Minute),
+		ExpiresAt:       baseTime.Add(12 * time.Hour),
+		ReleasedAt:      &releasedAt,
+		RefundedAt:      nil,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 1,
+		Nonce:           2,
+	}
+
 	genesis := types.GenesisState{
 		Params:           params,
 		GovernanceParams: govParams,
@@ -142,10 +176,12 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 		Disputes:         []types.Dispute{dispute},
 		SlashRecords:     []types.SlashRecord{slash},
 		Appeals:          []types.Appeal{appeal},
+		EscrowStates:     []types.EscrowState{lockedEscrow, releasedEscrow},
 		NextRequestId:    2,
 		NextDisputeId:    3,
 		NextSlashId:      4,
 		NextAppealId:     5,
+		NextEscrowNonce:  3,
 	}
 
 	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
@@ -160,8 +196,155 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 	require.Equal(t, genesis.Disputes, exported.Disputes)
 	require.Equal(t, genesis.SlashRecords, exported.SlashRecords)
 	require.Equal(t, genesis.Appeals, exported.Appeals)
+	// EscrowStates may be in different order due to KV store iteration
+	require.ElementsMatch(t, genesis.EscrowStates, exported.EscrowStates)
 	require.Equal(t, genesis.NextRequestId, exported.NextRequestId)
 	require.Equal(t, genesis.NextDisputeId, exported.NextDisputeId)
 	require.Equal(t, genesis.NextSlashId, exported.NextSlashId)
 	require.Equal(t, genesis.NextAppealId, exported.NextAppealId)
+	require.Equal(t, genesis.NextEscrowNonce, exported.NextEscrowNonce)
+
+	// Verify timeout index was restored for LOCKED escrow
+	// We can verify this by checking the escrow can be retrieved
+	retrievedLockedEscrow, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), lockedEscrow.RequestId)
+	require.NoError(t, err)
+	require.Equal(t, lockedEscrow.Status, retrievedLockedEscrow.Status)
+	require.Equal(t, lockedEscrow.Amount, retrievedLockedEscrow.Amount)
+
+	// Verify released escrow
+	retrievedReleasedEscrow, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), releasedEscrow.RequestId)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_RELEASED, retrievedReleasedEscrow.Status)
+}
+
+// TestEscrowGenesisTimeoutIndexRestoration verifies that timeout indexes are properly restored
+func TestEscrowGenesisTimeoutIndexRestoration(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	baseTime := time.Unix(1_700_000_000, 0).UTC()
+	providerAddr := sdk.AccAddress(bytes.Repeat([]byte{0x11}, 20)).String()
+	requesterAddr := sdk.AccAddress(bytes.Repeat([]byte{0x33}, 20)).String()
+
+	// Create multiple escrow states with different statuses
+	lockedEscrow1 := types.EscrowState{
+		RequestId:       1,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          sdkmath.NewInt(500_000),
+		Status:          types.ESCROW_STATUS_LOCKED,
+		LockedAt:        baseTime,
+		ExpiresAt:       baseTime.Add(1 * time.Hour),
+		ReleasedAt:      nil,
+		RefundedAt:      nil,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 0,
+		Nonce:           1,
+	}
+
+	challengedEscrow := types.EscrowState{
+		RequestId:       2,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          sdkmath.NewInt(600_000),
+		Status:          types.ESCROW_STATUS_CHALLENGED,
+		LockedAt:        baseTime,
+		ExpiresAt:       baseTime.Add(2 * time.Hour),
+		ReleasedAt:      nil,
+		RefundedAt:      nil,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 1,
+		Nonce:           2,
+	}
+
+	releasedAt := baseTime.Add(30 * time.Minute)
+	releasedEscrow := types.EscrowState{
+		RequestId:       3,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          sdkmath.NewInt(700_000),
+		Status:          types.ESCROW_STATUS_RELEASED,
+		LockedAt:        baseTime,
+		ExpiresAt:       baseTime.Add(3 * time.Hour),
+		ReleasedAt:      &releasedAt,
+		RefundedAt:      nil,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 1,
+		Nonce:           3,
+	}
+
+	refundedAt := baseTime.Add(45 * time.Minute)
+	refundedEscrow := types.EscrowState{
+		RequestId:       4,
+		Requester:       requesterAddr,
+		Provider:        providerAddr,
+		Amount:          sdkmath.NewInt(800_000),
+		Status:          types.ESCROW_STATUS_REFUNDED,
+		LockedAt:        baseTime,
+		ExpiresAt:       baseTime.Add(4 * time.Hour),
+		ReleasedAt:      nil,
+		RefundedAt:      &refundedAt,
+		DisputeId:       0,
+		ChallengeEndsAt: nil,
+		ReleaseAttempts: 0,
+		Nonce:           4,
+	}
+
+	genesis := types.GenesisState{
+		Params:           types.DefaultParams(),
+		GovernanceParams: types.DefaultGovernanceParams(),
+		Providers:        []types.Provider{},
+		Requests:         []types.Request{},
+		Results:          []types.Result{},
+		Disputes:         []types.Dispute{},
+		SlashRecords:     []types.SlashRecord{},
+		Appeals:          []types.Appeal{},
+		EscrowStates: []types.EscrowState{
+			lockedEscrow1,
+			challengedEscrow,
+			releasedEscrow,
+			refundedEscrow,
+		},
+		NextRequestId:   1,
+		NextDisputeId:   1,
+		NextSlashId:     1,
+		NextAppealId:    1,
+		NextEscrowNonce: 5,
+	}
+
+	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
+
+	// Verify all escrow states were imported
+	retrieved1, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 1)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_LOCKED, retrieved1.Status)
+
+	retrieved2, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 2)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_CHALLENGED, retrieved2.Status)
+
+	retrieved3, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 3)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_RELEASED, retrieved3.Status)
+
+	retrieved4, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 4)
+	require.NoError(t, err)
+	require.Equal(t, types.ESCROW_STATUS_REFUNDED, retrieved4.Status)
+
+	// Verify timeout indexes were created for LOCKED and CHALLENGED escrows only
+	// We test this by iterating over timeouts and checking we get the right ones
+	var foundRequestIDs []uint64
+	err = k.IterateEscrowTimeouts(sdk.WrapSDKContext(ctx), baseTime.Add(5*time.Hour), func(requestID uint64, expiresAt time.Time) (bool, error) {
+		foundRequestIDs = append(foundRequestIDs, requestID)
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.ElementsMatch(t, []uint64{1, 2}, foundRequestIDs, "Only LOCKED and CHALLENGED escrows should have timeout indexes")
+
+	// Verify nonce counter was set correctly
+	exported, err := k.ExportGenesis(sdk.WrapSDKContext(ctx))
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), exported.NextEscrowNonce)
 }

@@ -583,11 +583,14 @@ func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, reso
 	}
 
 	// helper to refund deposit
-	refundDeposit := func() {
+	refundDeposit := func() error {
 		if dispute.Deposit.IsPositive() {
 			coins := sdk.NewCoins(sdk.NewCoin("upaw", dispute.Deposit))
-			_ = k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requesterAddr, coins)
+			if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requesterAddr, coins); err != nil {
+				return fmt.Errorf("failed to refund dispute deposit: %w", err)
+			}
 		}
+		return nil
 	}
 
 	params, err := k.GetGovernanceParams(ctx)
@@ -601,6 +604,14 @@ func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, reso
 		return err
 	}
 	denom := k.bondDenom(ctx)
+
+	// Check if escrow state exists before attempting operations
+	hasEscrow := false
+	if !escrowAmount.IsZero() {
+		if _, err := k.GetEscrowState(ctx, request.Id); err == nil {
+			hasEscrow = true
+		}
+	}
 
 	switch resolution {
 	case types.DISPUTE_RESOLUTION_SLASH_PROVIDER:
@@ -627,26 +638,42 @@ func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, reso
 				return err
 			}
 		}
-		if !escrowAmount.IsZero() {
-			_ = k.RefundEscrow(ctx, request.Id, "provider_fault")
+		if hasEscrow {
+			if err := k.RefundEscrow(ctx, request.Id, "provider_fault"); err != nil {
+				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+			}
 		}
-		refundDeposit()
+		if err := refundDeposit(); err != nil {
+			return err
+		}
 	case types.DISPUTE_RESOLUTION_NO_REFUND:
-		if !escrowAmount.IsZero() {
-			_ = k.ReleaseEscrow(ctx, request.Id, true)
+		if hasEscrow {
+			if err := k.ReleaseEscrow(ctx, request.Id, true); err != nil {
+				return fmt.Errorf("failed to release escrow during dispute settlement: %w", err)
+			}
 		}
-		refundDeposit()
+		if err := refundDeposit(); err != nil {
+			return err
+		}
 	case types.DISPUTE_RESOLUTION_PARTIAL_REFUND:
 		// conservative default: refund escrow; governance can adopt finer-grained policies later
-		if !escrowAmount.IsZero() {
-			_ = k.RefundEscrow(ctx, request.Id, "dispute_partial_refund")
+		if hasEscrow {
+			if err := k.RefundEscrow(ctx, request.Id, "dispute_partial_refund"); err != nil {
+				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+			}
 		}
-		refundDeposit()
+		if err := refundDeposit(); err != nil {
+			return err
+		}
 	default:
-		if !escrowAmount.IsZero() {
-			_ = k.RefundEscrow(ctx, request.Id, "dispute_default_refund")
+		if hasEscrow {
+			if err := k.RefundEscrow(ctx, request.Id, "dispute_default_refund"); err != nil {
+				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+			}
 		}
-		refundDeposit()
+		if err := refundDeposit(); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -18,10 +18,12 @@ func DefaultGenesis() *GenesisState {
 		Disputes:         []Dispute{},
 		SlashRecords:     []SlashRecord{},
 		Appeals:          []Appeal{},
+		EscrowStates:     []EscrowState{},
 		NextRequestId:    1,
 		NextDisputeId:    1,
 		NextSlashId:      1,
 		NextAppealId:     1,
+		NextEscrowNonce:  1,
 	}
 }
 

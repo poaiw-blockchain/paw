@@ -788,4 +788,10 @@ message GenesisState {
 
   // next_appeal_id is the next appeal ID to be assigned
   uint64 next_appeal_id = 12;
+
+  // escrow_states is the list of escrow states at genesis
+  repeated EscrowState escrow_states = 13 [(gogoproto.nullable) = false];
+
+  // next_escrow_nonce is the next escrow nonce to be assigned
+  uint64 next_escrow_nonce = 14;
 }

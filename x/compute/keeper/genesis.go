@@ -143,6 +143,36 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 		return fmt.Errorf("failed to set next appeal ID: %w", err)
 	}
 
+	var maxEscrowNonce uint64
+
+	// Initialize escrow states
+	for _, escrowState := range data.EscrowStates {
+		if escrowState.Nonce > maxEscrowNonce {
+			maxEscrowNonce = escrowState.Nonce
+		}
+
+		if err := k.SetEscrowState(ctx, escrowState); err != nil {
+			return fmt.Errorf("failed to initialize escrow state for request %d: %w", escrowState.RequestId, err)
+		}
+
+		// Restore timeout indexes for LOCKED and CHALLENGED escrows
+		// This is critical for automatic expiry processing in EndBlocker
+		if escrowState.Status == types.ESCROW_STATUS_LOCKED || escrowState.Status == types.ESCROW_STATUS_CHALLENGED {
+			if err := k.setEscrowTimeoutIndex(ctx, escrowState.RequestId, escrowState.ExpiresAt); err != nil {
+				return fmt.Errorf("failed to restore timeout index for escrow %d: %w", escrowState.RequestId, err)
+			}
+		}
+	}
+
+	// Set next escrow nonce
+	nextEscrowNonce := data.NextEscrowNonce
+	if nextEscrowNonce == 0 || nextEscrowNonce <= maxEscrowNonce {
+		nextEscrowNonce = maxEscrowNonce + 1
+	}
+	if err := k.setNextEscrowNonce(ctx, nextEscrowNonce); err != nil {
+		return fmt.Errorf("failed to set next escrow nonce: %w", err)
+	}
+
 	return nil
 }
 
@@ -245,6 +275,24 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, fmt.Errorf("failed to get next appeal ID: %w", err)
 	}
 
+	// Collect all escrow states
+	var escrowStates []types.EscrowState
+	escrowIter := storetypes.KVStorePrefixIterator(store, EscrowStateKeyPrefix)
+	defer escrowIter.Close()
+	for ; escrowIter.Valid(); escrowIter.Next() {
+		var escrowState types.EscrowState
+		if err := k.cdc.Unmarshal(escrowIter.Value(), &escrowState); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal escrow state: %w", err)
+		}
+		escrowStates = append(escrowStates, escrowState)
+	}
+
+	// Get next escrow nonce
+	nextEscrowNonce, err := k.getNextEscrowNonceForExport(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next escrow nonce: %w", err)
+	}
+
 	return &types.GenesisState{
 		Params:           params,
 		GovernanceParams: govParams,
@@ -254,10 +302,12 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		Disputes:         disputes,
 		SlashRecords:     slashRecords,
 		Appeals:          appeals,
+		EscrowStates:     escrowStates,
 		NextRequestId:    nextRequestID,
 		NextDisputeId:    nextDisputeID,
 		NextSlashId:      nextSlashID,
 		NextAppealId:     nextAppealID,
+		NextEscrowNonce:  nextEscrowNonce,
 	}, nil
 }
 
@@ -341,4 +391,21 @@ func (k Keeper) getNextAppealIDForExport(ctx context.Context) (uint64, error) {
 		return 1, nil
 	}
 	return binary.BigEndian.Uint64(bz), nil
+}
+
+func (k Keeper) getNextEscrowNonceForExport(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextEscrowNonceKey)
+	if bz == nil {
+		return 1, nil
+	}
+	return binary.BigEndian.Uint64(bz), nil
+}
+
+func (k Keeper) setNextEscrowNonce(ctx context.Context, nextNonce uint64) error {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, nextNonce)
+	store.Set(NextEscrowNonceKey, bz)
+	return nil
 }
