@@ -11,22 +11,64 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
-// Task 123: Pool Creation Spam Prevention
+// Pool Creation Spam Prevention Constants
+//
+// These constants protect against pool creation spam attacks where malicious actors
+// create numerous low-liquidity pools to:
+// - Inflate storage costs and bloat the blockchain state
+// - Fragment liquidity across many pools (reducing efficiency)
+// - Confuse users with fake/duplicate trading pairs
+// - Conduct sybil attacks to manipulate pool discovery
 const (
-	// MinPoolCreationDeposit is the minimum deposit required to create a pool
+	// MinPoolCreationDeposit is the minimum deposit required to create a pool (100 tokens).
+	// This economic barrier prevents trivial spam while remaining accessible for legitimate pools.
+	// Value chosen to be high enough to deter abuse but low enough to encourage real liquidity.
 	MinPoolCreationDeposit = 100_000_000 // 100 tokens
 
-	// PoolCreationCooldown is the minimum blocks between pool creations by same address
+	// PoolCreationCooldown is the minimum blocks between pool creations by the same address.
+	// Enforces a time delay (approximately 10 minutes at 6s blocks) to rate-limit pool creation.
+	// Prevents rapid-fire pool creation attacks while allowing legitimate multi-pool creation.
 	PoolCreationCooldown = 100
 
-	// MaxPoolsPerAddress is the maximum pools a single address can create in a time period
+	// MaxPoolsPerAddress is the maximum pools a single address can create in PoolCreationWindow.
+	// Limits total pools per address to prevent sybil attacks and state bloat.
+	// Value of 10 allows legitimate market makers while blocking spam.
 	MaxPoolsPerAddress = 10
 
-	// PoolCreationWindow is the number of blocks to track pool creation rate
+	// PoolCreationWindow is the number of blocks to track pool creation rate (approximately 1 day).
+	// Sliding window of 10,000 blocks (~16.7 hours at 6s blocks) for rate limiting.
+	// Long enough to prevent circumventing limits via waiting, short enough to not permanently restrict.
 	PoolCreationWindow = 10000 // approximately 1 day
 )
 
-// ValidatePoolCreation implements comprehensive spam prevention for pool creation
+// ValidatePoolCreation implements comprehensive spam prevention for pool creation.
+//
+// This function enforces multiple layers of protection against pool creation attacks:
+//  1. Minimum deposit requirement - economic barrier to spam
+//  2. Duplicate pool detection - prevents redundant pools for same token pair
+//  3. Creation cooldown - time-based rate limiting per address
+//  4. Creation rate limit - maximum pools per address in time window
+//  5. Token denomination validation - ensures valid token names
+//  6. Token pair validation - prevents identical token pairs
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - creator: Address attempting to create the pool
+//   - tokenA: First token denomination in the pair
+//   - tokenB: Second token denomination in the pair
+//   - initialA: Initial liquidity for tokenA (must meet MinPoolCreationDeposit)
+//   - initialB: Initial liquidity for tokenB (must meet MinPoolCreationDeposit)
+//
+// Returns:
+//   - error: nil if validation passes, or specific error indicating failure reason:
+//     * ErrInvalidInput: Insufficient deposit, invalid token denom, identical tokens
+//     * ErrPoolAlreadyExists: Pool already exists for this token pair
+//     * ErrRateLimitExceeded: Too many pools created recently
+//
+// Security Notes:
+//   - Records creation attempt even on failure to track rate limiting
+//   - Uses sliding window for rate limits to prevent circumvention
+//   - Validates both token denominations to prevent malformed pool creation
 func (k Keeper) ValidatePoolCreation(ctx context.Context, creator sdk.AccAddress, tokenA, tokenB string, initialA, initialB math.Int) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := k.getStore(ctx)
@@ -139,18 +181,75 @@ func (k Keeper) validateTokenDenom(ctx context.Context, denom string) error {
 	return nil
 }
 
-// Task 125: Impermanent Loss Calculation
+// ImpermanentLossInfo represents comprehensive impermanent loss analysis for liquidity providers.
+//
+// Impermanent loss occurs when the price ratio of pooled assets changes compared to when
+// they were deposited. This struct calculates both the loss and offsetting fee earnings
+// to give LPs a complete picture of their position performance.
+//
+// Fields:
+//   - InitialValueA: Initial value of TokenA position (in USD or base denomination)
+//   - InitialValueB: Initial value of TokenB position (in USD or base denomination)
+//   - CurrentValueA: Current value of TokenA position in the pool
+//   - CurrentValueB: Current value of TokenB position in the pool
+//   - ImpermanentLoss: Loss percentage compared to holding tokens outside pool (negative = loss)
+//   - FeesEarned: Total trading fees accumulated by this LP position
+//   - NetProfitLoss: Overall profit/loss including both IL and fees (can be positive if fees > IL)
+//
+// Calculation Formula:
+//   IL% = (current_pool_value / hold_value - 1) * 100
+//   NetProfitLoss% = IL% + (fees_earned / initial_value * 100)
+//
+// Example:
+//   If IL = -5% but FeesEarned = 8%, then NetProfitLoss = +3% (profitable position)
 type ImpermanentLossInfo struct {
-	InitialValueA   math.Int
-	InitialValueB   math.Int
-	CurrentValueA   math.Int
-	CurrentValueB   math.Int
-	ImpermanentLoss math.LegacyDec // Percentage
-	FeesEarned      math.Int
-	NetProfitLoss   math.LegacyDec
+	InitialValueA   math.Int       // Initial value of TokenA position
+	InitialValueB   math.Int       // Initial value of TokenB position
+	CurrentValueA   math.Int       // Current value of TokenA position in pool
+	CurrentValueB   math.Int       // Current value of TokenB position in pool
+	ImpermanentLoss math.LegacyDec // Loss percentage vs holding (negative value)
+	FeesEarned      math.Int       // Total fees accumulated
+	NetProfitLoss   math.LegacyDec // Net profit/loss including fees
 }
 
-// CalculateImpermanentLoss calculates the impermanent loss for a liquidity position
+// CalculateImpermanentLoss calculates the impermanent loss for a liquidity provider position.
+//
+// This function computes the financial impact of providing liquidity compared to simply holding
+// the tokens. It considers both the impermanent loss from price divergence and the offsetting
+// effect of accumulated trading fees.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - poolID: Unique identifier of the liquidity pool
+//   - provider: Address of the liquidity provider to analyze
+//   - priceOracleA: Current oracle price for TokenA (in USD or base denomination)
+//   - priceOracleB: Current oracle price for TokenB (in USD or base denomination)
+//
+// Returns:
+//   - *ImpermanentLossInfo: Detailed analysis struct containing IL, fees, and net P&L
+//   - error: nil on success, or:
+//     * ErrPoolNotFound: Pool does not exist
+//     * ErrInsufficientShares: Provider has no liquidity position in this pool
+//
+// Calculation Process:
+//  1. Retrieves provider's share of pool reserves
+//  2. Calculates current value of position at oracle prices
+//  3. Computes hypothetical value if tokens were held outside pool
+//  4. Determines impermanent loss as percentage difference
+//  5. Calculates provider's share of accumulated fees
+//  6. Computes net profit/loss (IL + fees)
+//
+// Security Notes:
+//   - Requires accurate oracle prices - stale prices will give incorrect results
+//   - Does not account for initial deposit values (would need separate storage)
+//   - Assumes current reserves represent fair value at current prices
+//
+// Usage Example:
+//   ilInfo, err := keeper.CalculateImpermanentLoss(ctx, 1, providerAddr, usdcPrice, ethPrice)
+//   if err != nil { return err }
+//   if ilInfo.NetProfitLoss.IsNegative() {
+//       // Position is underwater even with fees
+//   }
 func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, provider sdk.AccAddress, priceOracleA, priceOracleB math.LegacyDec) (*ImpermanentLossInfo, error) {
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
@@ -230,11 +329,11 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 	}, nil
 }
 
-// Task 126: Flash Loan Prevention
+// Flash Loan Attack Prevention
 //
 // SECURITY: This module prevents flash loan attacks on liquidity pools.
 //
-// Attack Vector (TODO 014):
+// Attack Vector:
 // 1. Attacker adds huge liquidity (becomes dominant LP)
 // 2. Executes large swap to manipulate pool price
 // 3. Arbitrages price difference on another pool/chain
@@ -250,12 +349,14 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 // - SetLastLiquidityActionBlock: Records block height on add/remove
 // - CheckFlashLoanProtection: Validates minimum blocks elapsed before removal
 // - RemoveLiquiditySecure: Calls CheckFlashLoanProtection before allowing removal
-//
 const (
-	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset
+	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset.
+	// Value of 10 blocks (~1 minute at 6s blocks) provides security while not overly restricting LPs.
+	// This prevents same-block or near-block attacks while allowing normal liquidity management.
 	DefaultFlashLoanProtectionBlocks = int64(10)
 
-	// FlashLoanDetectionWindow is blocks to analyze for flash loan patterns
+	// FlashLoanDetectionWindow is the number of blocks to analyze for flash loan attack patterns.
+	// Monitors recent liquidity actions to detect suspicious add-swap-remove sequences.
 	FlashLoanDetectionWindow = 10
 )
 
@@ -300,11 +401,22 @@ func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, pro
 	return nil
 }
 
-// Task 127: MEV Protection
+// MEVProtectionConfig defines parameters for preventing Maximal Extractable Value (MEV) attacks.
+//
+// MEV attacks occur when block producers reorder, insert, or censor transactions to extract
+// value from users. Common MEV strategies include:
+// - Front-running: Placing trades before user transactions
+// - Back-running: Placing trades after user transactions
+// - Sandwich attacks: Front-run AND back-run a victim transaction
+//
+// This configuration limits the exploitability of these attacks by:
+// - Restricting maximum price impact per swap
+// - Limiting swap size relative to pool reserves
+// - Enforcing delays between large swaps
 type MEVProtectionConfig struct {
-	MaxPriceImpact    math.LegacyDec // Maximum allowed price impact (5%)
-	MaxSwapPercentage math.LegacyDec // Maximum swap as % of reserve (10%)
-	MinBlocksForLarge int64          // Minimum blocks between large swaps
+	MaxPriceImpact    math.LegacyDec // Maximum allowed price impact (default 10%)
+	MaxSwapPercentage math.LegacyDec // Maximum swap as % of reserve (default 10%)
+	MinBlocksForLarge int64          // Minimum blocks between large swaps (default 3)
 }
 
 var defaultMEVConfig = MEVProtectionConfig{
@@ -437,13 +549,25 @@ func (k Keeper) DetectSandwichAttack(ctx context.Context, poolID uint64, trader 
 	return nil
 }
 
-// Task 130: Fee Tier Customization
+// FeeTier represents a fee tier configuration for liquidity pools.
+//
+// Different token pairs have different characteristics that warrant different fee structures:
+// - Stablecoins (USDC/USDT): Low volatility → low fees (0.05%)
+// - Major pairs (ETH/BTC): Medium volatility → standard fees (0.3%)
+// - Exotic pairs (low-cap tokens): High volatility → high fees (1%)
+//
+// Fee distribution:
+// - SwapFee: Total fee charged to swappers
+// - LPFee: Portion of SwapFee that goes to liquidity providers
+// - ProtocolFee: Portion of SwapFee that goes to protocol treasury
+//
+// Note: SwapFee = LPFee + ProtocolFee
 type FeeTier struct {
-	Name         string
-	SwapFee      math.LegacyDec
-	LPFee        math.LegacyDec
-	ProtocolFee  math.LegacyDec
-	MinLiquidity math.Int
+	Name         string         // Tier name (e.g., "low", "standard", "high")
+	SwapFee      math.LegacyDec // Total fee charged on swaps
+	LPFee        math.LegacyDec // Fee portion for liquidity providers
+	ProtocolFee  math.LegacyDec // Fee portion for protocol treasury
+	MinLiquidity math.Int       // Minimum liquidity required for this tier
 }
 
 var (

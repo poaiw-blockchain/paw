@@ -17,26 +17,65 @@ import (
 // Limit Order Types and Constants
 // ============================================================================
 
-// OrderType represents the type of order (buy or sell)
+// OrderType represents the type of order (buy or sell).
+//
+// Buy orders exchange TokenIn for TokenOut with a minimum price requirement.
+// Sell orders are conceptually the same but viewed from the opposite perspective.
 type OrderType uint8
 
 const (
-	OrderTypeBuy  OrderType = 1
+	// OrderTypeBuy indicates a buy order (exchanging TokenIn for TokenOut at limit price or better).
+	OrderTypeBuy OrderType = 1
+
+	// OrderTypeSell indicates a sell order (exchanging TokenIn for TokenOut at limit price or better).
 	OrderTypeSell OrderType = 2
 )
 
-// OrderStatus represents the status of a limit order
+// OrderStatus represents the current status of a limit order in its lifecycle.
+//
+// Order Lifecycle:
+//   Open → Partial → Filled (successful execution path)
+//   Open → Cancelled (user cancellation)
+//   Open → Expired (timeout without full fill)
+//   Partial → Filled (gradual execution to completion)
+//   Partial → Cancelled (user cancels partially filled order)
+//   Partial → Expired (timeout with partial fill)
 type OrderStatus uint8
 
 const (
-	OrderStatusOpen      OrderStatus = 1
-	OrderStatusFilled    OrderStatus = 2
-	OrderStatusPartial   OrderStatus = 3
+	// OrderStatusOpen indicates the order is active and unfilled.
+	OrderStatusOpen OrderStatus = 1
+
+	// OrderStatusFilled indicates the order has been completely executed.
+	OrderStatusFilled OrderStatus = 2
+
+	// OrderStatusPartial indicates the order has been partially executed but not completed.
+	OrderStatusPartial OrderStatus = 3
+
+	// OrderStatusCancelled indicates the order was cancelled by the user.
 	OrderStatusCancelled OrderStatus = 4
-	OrderStatusExpired   OrderStatus = 5
+
+	// OrderStatusExpired indicates the order expired before being fully filled.
+	OrderStatusExpired OrderStatus = 5
 )
 
-// LimitOrder represents a limit order in the DEX
+// LimitOrder represents a limit order in the DEX order book.
+//
+// Limit orders allow traders to specify a price at which they are willing to trade,
+// rather than accepting the current market price. Orders are matched against the pool's
+// constant product curve when the pool price reaches the limit price.
+//
+// Key Features:
+//   - Tokens are locked when order is placed (prevents double-spending)
+//   - Orders can be partially filled over multiple blocks
+//   - Unfilled orders can be cancelled to retrieve locked tokens
+//   - Orders automatically expire after the specified duration
+//   - Matching is attempted in every EndBlock against current pool prices
+//
+// Security Notes:
+//   - Token custody is handled by module account (no external escrow)
+//   - Price manipulation is limited by pool's own MEV protections
+//   - Order IDs are unique and monotonically increasing (no replay attacks)
 type LimitOrder struct {
 	// ID is the unique identifier of the order
 	ID uint64 `json:"id"`
@@ -70,19 +109,40 @@ type LimitOrder struct {
 	CreatedAtHeight int64 `json:"created_at_height"`
 }
 
-// Store key prefixes for limit orders
+// Store key prefixes for limit orders.
+//
+// These prefixes organize limit order data in the key-value store for efficient querying:
+// - Primary storage: Orders indexed by order ID
+// - Secondary indexes: Orders indexed by owner, pool, price, and open status
+//
+// Index Design Rationale:
+// - Owner index: Fast retrieval of all orders for a user
+// - Pool index: Fast retrieval of all orders for a specific pool
+// - Price index: Efficient order book construction and matching
+// - Open index: Fast iteration over all active orders for EndBlock matching
 var (
-	// LimitOrderKeyPrefix is the prefix for limit order storage
+	// LimitOrderKeyPrefix is the prefix for primary limit order storage (key: orderID).
 	LimitOrderKeyPrefix = []byte{0x0E}
-	// LimitOrderCountKey is the key for the next order ID
+
+	// LimitOrderCountKey is the key for storing the next available order ID (global counter).
 	LimitOrderCountKey = []byte{0x0F}
-	// LimitOrderByOwnerPrefix is for indexing orders by owner
+
+	// LimitOrderByOwnerPrefix is the prefix for indexing orders by owner address.
+	// Key format: 0x10 || ownerAddr || orderID
 	LimitOrderByOwnerPrefix = []byte{0x10}
-	// LimitOrderByPoolPrefix is for indexing orders by pool
+
+	// LimitOrderByPoolPrefix is the prefix for indexing orders by pool ID.
+	// Key format: 0x11 || poolID || orderID
 	LimitOrderByPoolPrefix = []byte{0x11}
-	// LimitOrderByPricePrefix is for indexing orders by price (for matching)
+
+	// LimitOrderByPricePrefix is the prefix for indexing orders by price for efficient matching.
+	// Key format: 0x12 || poolID || orderType || encodedPrice || orderID
+	// Price is encoded to maintain lexicographic ordering for range queries.
 	LimitOrderByPricePrefix = []byte{0x12}
-	// LimitOrderOpenPrefix indexes only open orders
+
+	// LimitOrderOpenPrefix is the prefix for indexing only open/partial orders.
+	// Key format: 0x13 || orderID
+	// This index enables efficient iteration over active orders in EndBlock.
 	LimitOrderOpenPrefix = []byte{0x13}
 )
 
@@ -249,7 +309,44 @@ func (k Keeper) DeleteLimitOrder(ctx context.Context, order *LimitOrder) error {
 // Limit Order Operations
 // ============================================================================
 
-// PlaceLimitOrder creates a new limit order
+// PlaceLimitOrder creates a new limit order and locks the input tokens.
+//
+// This function creates a limit order that will execute when the pool price reaches
+// the specified limit price. The input tokens are immediately locked in the module account
+// to prevent double-spending.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - owner: Address placing the order (tokens will be locked from this account)
+//   - poolID: ID of the liquidity pool for this order
+//   - orderType: Buy or sell order type
+//   - tokenIn: Denomination of token being sold
+//   - tokenOut: Denomination of token being bought
+//   - amountIn: Amount of tokenIn to sell
+//   - limitPrice: Minimum acceptable price (tokenOut per tokenIn)
+//   - expiryDuration: Time until order expires (0 = no expiry)
+//
+// Returns:
+//   - *LimitOrder: The created order with assigned ID
+//   - error: nil on success, or:
+//     * ErrPoolNotFound: Pool does not exist
+//     * ErrInvalidTokenPair: Tokens don't match pool
+//     * ErrInvalidOrder: Invalid amount or price
+//     * ErrInsufficientLiquidity: Failed to lock tokens
+//
+// Behavior:
+//  1. Validates pool exists and tokens match
+//  2. Validates amount and limit price
+//  3. Calculates minimum output based on limit price
+//  4. Locks input tokens in module account
+//  5. Creates and stores order with Open status
+//  6. Attempts immediate matching against current pool price
+//  7. Emits order_placed event
+//
+// Security Notes:
+//   - Tokens are locked immediately to prevent double-spending
+//   - Order matching uses same security checks as regular swaps
+//   - Failed matching doesn't revert order creation (order remains open)
 func (k Keeper) PlaceLimitOrder(
 	ctx context.Context,
 	owner sdk.AccAddress,
@@ -350,7 +447,37 @@ func (k Keeper) PlaceLimitOrder(
 	return order, nil
 }
 
-// CancelLimitOrder cancels an existing limit order
+// CancelLimitOrder cancels an existing limit order and refunds remaining tokens.
+//
+// This function allows the order owner to cancel their order at any time, retrieving
+// any unfilled token amounts. For partially filled orders, only the remaining unfilled
+// amount is refunded.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - owner: Address requesting cancellation (must be order owner)
+//   - orderID: Unique identifier of the order to cancel
+//
+// Returns:
+//   - error: nil on success, or:
+//     * ErrOrderNotFound: Order does not exist
+//     * ErrOrderNotAuthorized: Caller is not the order owner
+//     * ErrOrderNotCancellable: Order status doesn't allow cancellation (already filled/expired)
+//     * ErrInsufficientLiquidity: Failed to refund tokens
+//
+// Behavior:
+//  1. Retrieves and validates order ownership
+//  2. Checks order is cancellable (Open or Partial status)
+//  3. Calculates remaining unfilled amount
+//  4. Refunds remaining tokens from module account to owner
+//  5. Updates order status to Cancelled
+//  6. Removes from open orders index
+//  7. Emits order_cancelled event
+//
+// Security Notes:
+//   - Only order owner can cancel (enforced by ownership check)
+//   - Refund amount is AmountIn - FilledAmount (prevents over-refund)
+//   - Failed refund returns error (order not marked as cancelled)
 func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orderID uint64) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -399,7 +526,42 @@ func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orde
 	return nil
 }
 
-// MatchLimitOrder attempts to match a limit order against the pool
+// MatchLimitOrder attempts to execute a limit order against the current pool price.
+//
+// This function checks if the current pool price satisfies the order's limit price,
+// and if so, executes the swap using the pool's constant product formula. Orders can
+// be partially or fully filled depending on pool liquidity and slippage constraints.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access
+//   - order: The limit order to attempt matching
+//
+// Returns:
+//   - error: nil if matching succeeds or order cannot execute at current price, or:
+//     * ErrPoolNotFound: Pool does not exist
+//     * ErrInvalidSwapAmount: Swap execution failed
+//     * ErrInsufficientLiquidity: Failed to transfer tokens
+//
+// Matching Logic:
+//  1. Retrieves current pool state and calculates spot price
+//  2. For Buy orders: Executes if pool price <= limit price
+//  3. For Sell orders: Executes if pool price >= limit price
+//  4. Calculates fillable amount (may be partial if liquidity limited)
+//  5. Executes swap using ExecuteSwap() (applies all security checks)
+//  6. Transfers received tokens to order owner
+//  7. Updates order status (Partial or Filled)
+//  8. Emits order_matched event
+//
+// Behavior Notes:
+//   - Returns nil (not error) if order cannot execute at current price
+//   - Partial fills update FilledAmount and ReceivedAmount fields
+//   - Full fills set status to Filled and remove from open index
+//   - Uses module account as swap trader (tokens already locked)
+//
+// Security Notes:
+//   - All swap security checks apply (MEV protection, price impact, etc.)
+//   - Slippage protection via MinAmountOut (calculated from limit price)
+//   - No reentrancy risk (state updated after token transfers)
 func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -487,7 +649,43 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	return nil
 }
 
-// ProcessExpiredOrders processes and expires old orders
+// ProcessExpiredOrders processes and expires old orders, refunding unfilled amounts.
+//
+// This function is called in EndBlock to automatically expire orders that have passed
+// their expiration time. Expired orders have their remaining tokens refunded to the owner
+// and are marked as Expired.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access (typically called from EndBlock)
+//
+// Returns:
+//   - error: Always returns nil (errors are logged but don't halt processing)
+//
+// Behavior:
+//  1. Iterates through all open/partial orders
+//  2. Checks each order's ExpiresAt timestamp against current block time
+//  3. For expired orders:
+//     - Calculates remaining unfilled amount
+//     - Refunds tokens from module account to owner
+//     - Updates order status to Expired
+//     - Removes from open orders index
+//     - Emits order_expired event
+//  4. Continues processing even if individual orders fail (errors logged)
+//
+// Error Handling:
+//   - Individual order failures are logged but don't stop processing
+//   - Ensures all expired orders are processed even if some fail
+//   - Prevents one bad order from blocking all other expirations
+//
+// Performance Notes:
+//   - Only iterates open orders (not all orders)
+//   - Uses index for efficient iteration
+//   - Batch processes all expirations in single EndBlock call
+//
+// Security Notes:
+//   - Only callable from EndBlock (not external transactions)
+//   - Refund failures are logged (manual intervention may be needed)
+//   - No partial state updates (order stays Open if refund fails)
 func (k Keeper) ProcessExpiredOrders(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := k.getStore(ctx)
@@ -764,8 +962,45 @@ func (k Keeper) GetOrderBook(ctx context.Context, poolID uint64) (buyOrders, sel
 	return buyOrders, sellOrders, nil
 }
 
-// MatchAllOrders attempts to match all open orders against their pools
-// This is called in the ABCI EndBlocker
+// MatchAllOrders attempts to match all open limit orders against their respective pools.
+//
+// This function is called in the ABCI EndBlocker to provide continuous order matching
+// as pool prices change due to swaps. Each block, all open orders are checked to see
+// if they can now be executed at the current pool prices.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access (called from EndBlock)
+//
+// Returns:
+//   - error: Always returns nil (individual matching errors are logged)
+//
+// Behavior:
+//  1. Retrieves all open/partial orders via open orders index
+//  2. For each order, attempts matching via MatchLimitOrder()
+//  3. Successful matches execute swaps and update order status
+//  4. Failed matches are logged but don't stop processing
+//  5. Continues through all orders even if some fail
+//
+// Performance Considerations:
+//   - Only processes open/partial orders (not filled/cancelled/expired)
+//   - Order matching has O(n) complexity where n = number of open orders
+//   - Consider gas limits with large number of open orders
+//   - Future optimization: Priority queue by price for early termination
+//
+// Error Handling:
+//   - Individual order matching errors are logged, not returned
+//   - Ensures all orders get matching attempt even if some fail
+//   - Prevents one problematic order from blocking all matching
+//
+// Security Notes:
+//   - Only callable from EndBlock (not external transactions)
+//   - Each match applies full swap security checks
+//   - No risk of same order matching multiple times per block (status updated)
+//
+// Integration:
+//   This should be called in EndBlock AFTER:
+//   - ProcessExpiredOrders() (removes expired orders first)
+//   - Any pool state updates (ensures current prices)
 func (k Keeper) MatchAllOrders(ctx context.Context) error {
 	orders, err := k.GetOpenOrders(ctx)
 	if err != nil {

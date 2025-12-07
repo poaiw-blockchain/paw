@@ -20,99 +20,236 @@ import (
 
 // Cross-Chain DEX Liquidity Aggregation
 //
-// This module enables PAW DEX to aggregate liquidity from other Cosmos chains
-// (Osmosis, Injective, etc.) and execute cross-chain swaps for optimal pricing.
+// This module enables PAW DEX to aggregate liquidity from other Cosmos SDK chains
+// (Osmosis, Injective, etc.) and execute cross-chain swaps for optimal pricing and routing.
 //
-// Features:
-// - Query remote pool liquidity via IBC
-// - Route swaps across multiple chains
-// - Execute atomic cross-chain swaps
-// - Handle IBC timeouts and acknowledgements
+// Architecture:
+// The aggregator acts as a liquidity router that can split trades across multiple chains
+// to achieve better pricing than any single pool could provide. This is particularly
+// valuable for:
+// - Large trades that would face high slippage on a single pool
+// - Exotic token pairs not available locally
+// - Arbitrage opportunities across chain boundaries
 //
-// Flow:
-// 1. User submits cross-chain swap request
-// 2. Query pools on remote chains (Osmosis, Injective)
-// 3. Find best execution path (may span multiple chains)
-// 4. Execute swap via IBC transfers + remote swap + IBC return
-// 5. Handle callbacks (success or timeout)
+// Core Features:
+// 1. Remote Pool Discovery: Query liquidity on other chains via IBC
+// 2. Multi-Hop Routing: Find optimal execution path across chains
+// 3. Atomic Execution: All-or-nothing cross-chain swaps with rollback
+// 4. Timeout Handling: Automatic refunds if IBC packets timeout
+// 5. Price Caching: Cache remote pool state to reduce IBC latency
+//
+// Typical Flow:
+// 1. User submits cross-chain swap request with max slippage
+// 2. Aggregator queries cached + fresh pool data from remote chains
+// 3. Routing algorithm finds best execution path (may span multiple chains)
+// 4. Execution: IBC transfer → remote swap → IBC return
+// 5. Acknowledgement handling: Confirm success or refund on timeout
+//
+// Security Considerations:
+// - Tokens are escrowed locally before IBC transfer (prevents double-spend)
+// - Timeout periods enforce automatic refunds (no stuck funds)
+// - Each chain's swap security applies to its portion of the route
+// - Price manipulation limited by caching TTL and validation
+//
+// Performance Notes:
+// - Pool queries are asynchronous (results cached for future use)
+// - Route calculation is local (no IBC round-trip)
+// - Execution may span multiple blocks (IBC latency)
+// - Consider using state channels for high-frequency trading
 
 const (
-	// IBC packet types
-	PacketTypeQueryPools     = "query_pools"
-	PacketTypeExecuteSwap    = "execute_swap"
+	// IBC Packet Types
+	// These constants identify different types of IBC packets for cross-chain DEX operations.
+
+	// PacketTypeQueryPools identifies packets that query pool liquidity on remote chains.
+	// Response contains pool reserves, fees, and metadata.
+	PacketTypeQueryPools = "query_pools"
+
+	// PacketTypeExecuteSwap identifies packets that request swap execution on remote chains.
+	// Includes token amounts, slippage limits, and sender/receiver addresses.
+	PacketTypeExecuteSwap = "execute_swap"
+
+	// PacketTypeCrossChainSwap identifies packets for multi-hop cross-chain swaps.
+	// May involve multiple remote chains in a single atomic operation.
 	PacketTypeCrossChainSwap = "cross_chain_swap"
 
-	// Target chains
-	OsmosisChainID   = "osmosis-1"
+	// Target Chain Identifiers
+	// Production chain IDs for major Cosmos SDK chains with DEX functionality.
+
+	// OsmosisChainID is the chain ID for Osmosis mainnet.
+	// Osmosis is the largest Cosmos DEX with deep liquidity across many pairs.
+	OsmosisChainID = "osmosis-1"
+
+	// InjectiveChainID is the chain ID for Injective mainnet.
+	// Injective provides orderbook-based trading and derivatives markets.
 	InjectiveChainID = "injective-1"
 
-	// IBC timeout
+	// IBC Timeout Configuration
+
+	// DefaultIBCTimeout is the default timeout for IBC packets (10 minutes).
+	// This provides sufficient time for cross-chain communication while preventing
+	// indefinite fund locking. Timeouts trigger automatic refunds to users.
+	// Value chosen to accommodate:
+	// - Network latency (typically <1 minute)
+	// - Remote chain processing (may be slow under load)
+	// - Multiple hops (if routing through intermediate chains)
 	DefaultIBCTimeout = 10 * time.Minute
 )
 
-// CrossChainPoolInfo represents liquidity info from a remote chain
+// CrossChainPoolInfo represents liquidity information from a remote chain pool.
+//
+// This struct caches pool state from other Cosmos chains to enable local route
+// calculation without repeated IBC queries. Pool data is refreshed periodically
+// via asynchronous IBC queries.
+//
+// Cache Freshness:
+//   - LastUpdated tracks when data was retrieved
+//   - Stale data (>5 minutes old) is excluded from routing
+//   - Fresh queries are initiated in background to update cache
+//
+// Usage:
+//   Used by routing algorithm to compare liquidity across chains and find
+//   optimal execution paths for cross-chain swaps.
 type CrossChainPoolInfo struct {
-	ChainID     string         `json:"chain_id"`
-	PoolID      string         `json:"pool_id"`
-	TokenA      string         `json:"token_a"`
-	TokenB      string         `json:"token_b"`
-	ReserveA    math.Int       `json:"reserve_a"`
-	ReserveB    math.Int       `json:"reserve_b"`
-	SwapFee     math.LegacyDec `json:"swap_fee"`
-	LastUpdated time.Time      `json:"last_updated"`
+	ChainID     string         `json:"chain_id"`      // Cosmos chain ID (e.g., "osmosis-1")
+	PoolID      string         `json:"pool_id"`       // Pool identifier on remote chain
+	TokenA      string         `json:"token_a"`       // First token denomination (may be IBC denom)
+	TokenB      string         `json:"token_b"`       // Second token denomination (may be IBC denom)
+	ReserveA    math.Int       `json:"reserve_a"`     // Reserve amount for TokenA
+	ReserveB    math.Int       `json:"reserve_b"`     // Reserve amount for TokenB
+	SwapFee     math.LegacyDec `json:"swap_fee"`      // Fee percentage (e.g., 0.003 = 0.3%)
+	LastUpdated time.Time      `json:"last_updated"`  // Timestamp of last data refresh
 }
 
-// CrossChainSwapRoute represents an execution path across multiple chains
+// CrossChainSwapRoute represents a multi-chain execution path for a swap.
+//
+// A route consists of one or more swap steps that may execute on different chains.
+// Each step represents an individual swap operation, and steps are executed sequentially
+// with tokens transferred via IBC between chains as needed.
+//
+// Example Single-Chain Route:
+//   Steps: [{ ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "OSMO" }]
+//
+// Example Multi-Chain Route (ATOM → ETH via Osmosis):
+//   Steps: [
+//     { ChainID: "paw-1", TokenIn: "ATOM", TokenOut: "IBC/OSMO" },
+//     { ChainID: "osmosis-1", TokenIn: "OSMO", TokenOut: "IBC/ETH" },
+//   ]
+//
+// Execution Properties:
+//   - All steps execute atomically (all succeed or all revert)
+//   - Slippage protection applies to final output only
+//   - Each chain's swap fees apply to its step
+//   - IBC transfer fees apply between chains
 type CrossChainSwapRoute struct {
-	Steps []SwapStep `json:"steps"`
+	Steps []SwapStep `json:"steps"` // Ordered sequence of swap operations
 }
 
-// SwapStep represents a single swap in a cross-chain route
+// SwapStep represents a single swap operation in a cross-chain route.
+//
+// Each step executes on a specific chain using that chain's liquidity pool.
+// Steps are executed sequentially, with IBC transfers bridging between chains.
+//
+// Fields:
+//   - ChainID: Which Cosmos chain executes this swap
+//   - PoolID: Which pool on that chain to use
+//   - TokenIn: Input token for this step (may be IBC denom from previous step)
+//   - TokenOut: Output token for this step (may be IBC denom for next step)
+//   - AmountIn: Exact input amount (from previous step or initial input)
+//   - MinAmountOut: Minimum acceptable output (for slippage protection)
+//
+// Security Notes:
+//   - MinAmountOut is calculated by routing algorithm based on pool state
+//   - Each step validates independently (doesn't trust previous step)
+//   - Failed steps trigger rollback of entire route
 type SwapStep struct {
-	ChainID      string   `json:"chain_id"`
-	PoolID       string   `json:"pool_id"`
-	TokenIn      string   `json:"token_in"`
-	TokenOut     string   `json:"token_out"`
-	AmountIn     math.Int `json:"amount_in"`
-	MinAmountOut math.Int `json:"min_amount_out"`
+	ChainID      string   `json:"chain_id"`       // Chain executing this swap
+	PoolID       string   `json:"pool_id"`        // Pool identifier on that chain
+	TokenIn      string   `json:"token_in"`       // Input token denomination
+	TokenOut     string   `json:"token_out"`      // Output token denomination
+	AmountIn     math.Int `json:"amount_in"`      // Input amount for this step
+	MinAmountOut math.Int `json:"min_amount_out"` // Minimum output (slippage limit)
 }
 
 // IBC Packet Data Structures
+//
+// These structs define the payload formats for IBC packets used in cross-chain
+// DEX operations. All packets are JSON-encoded for interoperability.
 
-// QueryPoolsPacketData is sent to query pools on remote chains
+// QueryPoolsPacketData is sent via IBC to query pool liquidity on remote chains.
+//
+// This packet requests information about pools matching a specific token pair.
+// The remote chain responds with pool reserves, fees, and metadata for all
+// matching pools.
+//
+// Usage:
+//   Sent asynchronously to update pool cache. Responses update local cache
+//   for use in future route calculations.
 type QueryPoolsPacketData struct {
-	Type   string `json:"type"` // "query_pools"
-	Nonce  uint64 `json:"nonce"`
-	TokenA string `json:"token_a"`
-	TokenB string `json:"token_b"`
+	Type   string `json:"type"`    // Always "query_pools"
+	Nonce  uint64 `json:"nonce"`   // Unique request identifier
+	TokenA string `json:"token_a"` // First token in pair (may be IBC denom)
+	TokenB string `json:"token_b"` // Second token in pair (may be IBC denom)
 }
 
-// QueryPoolsPacketAck is the acknowledgement for pool queries
+// QueryPoolsPacketAck is the IBC acknowledgement for pool query packets.
+//
+// Contains either:
+// - Success=true with list of matching pools
+// - Success=false with error message
+//
+// Successful responses are cached locally to avoid repeated IBC queries.
 type QueryPoolsPacketAck struct {
-	Success bool                 `json:"success"`
-	Pools   []CrossChainPoolInfo `json:"pools"`
-	Error   string               `json:"error,omitempty"`
+	Success bool                 `json:"success"`         // Whether query succeeded
+	Pools   []CrossChainPoolInfo `json:"pools"`           // Matching pools (if success)
+	Error   string               `json:"error,omitempty"` // Error message (if failure)
 }
 
-// ExecuteSwapPacketData is sent to execute a swap on a remote chain
+// ExecuteSwapPacketData is sent via IBC to execute a swap on a remote chain.
+//
+// This packet contains all information needed to execute a swap on the target chain:
+// - Which pool to use
+// - Input/output tokens and amounts
+// - Slippage protection (MinAmountOut)
+// - Sender (for refunds on failure)
+// - Receiver (for output tokens on success)
+//
+// Execution Flow:
+//  1. Tokens are escrowed locally before sending packet
+//  2. IBC transfer sends tokens to remote chain
+//  3. Remote chain executes swap
+//  4. Output tokens sent back via IBC
+//  5. Acknowledgement confirms success or triggers refund
 type ExecuteSwapPacketData struct {
-	Type         string   `json:"type"` // "execute_swap"
-	Nonce        uint64   `json:"nonce"`
-	PoolID       string   `json:"pool_id"`
-	TokenIn      string   `json:"token_in"`
-	TokenOut     string   `json:"token_out"`
-	AmountIn     math.Int `json:"amount_in"`
-	MinAmountOut math.Int `json:"min_amount_out"`
-	Sender       string   `json:"sender"`
-	Receiver     string   `json:"receiver"`
+	Type         string   `json:"type"`           // Always "execute_swap"
+	Nonce        uint64   `json:"nonce"`          // Unique request identifier
+	PoolID       string   `json:"pool_id"`        // Pool to execute on
+	TokenIn      string   `json:"token_in"`       // Input token denomination
+	TokenOut     string   `json:"token_out"`      // Output token denomination
+	AmountIn     math.Int `json:"amount_in"`      // Input amount
+	MinAmountOut math.Int `json:"min_amount_out"` // Minimum output (slippage limit)
+	Sender       string   `json:"sender"`         // Original sender (for refunds)
+	Receiver     string   `json:"receiver"`       // Output recipient
 }
 
-// ExecuteSwapPacketAck is the acknowledgement for swap execution
+// ExecuteSwapPacketAck is the IBC acknowledgement for swap execution packets.
+//
+// Contains either:
+// - Success=true with actual output amount and fee
+// - Success=false with error message (triggers refund)
+//
+// Success Case:
+//   Remote chain executed swap and transferred output tokens back.
+//   AmountOut and SwapFee are recorded for user notification.
+//
+// Failure Case:
+//   Remote chain rejected swap (slippage, insufficient liquidity, etc.).
+//   Local chain refunds escrowed input tokens to sender.
 type ExecuteSwapPacketAck struct {
-	Success   bool     `json:"success"`
-	AmountOut math.Int `json:"amount_out"`
-	SwapFee   math.Int `json:"swap_fee,omitempty"`
-	Error     string   `json:"error,omitempty"`
+	Success   bool     `json:"success"`           // Whether swap succeeded
+	AmountOut math.Int `json:"amount_out"`        // Actual output amount (if success)
+	SwapFee   math.Int `json:"swap_fee,omitempty"` // Fee charged (if success)
+	Error     string   `json:"error,omitempty"`   // Error message (if failure)
 }
 
 // QueryCrossChainPools queries liquidity pools on remote chains via IBC

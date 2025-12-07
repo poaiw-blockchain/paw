@@ -478,20 +478,74 @@
 - [x] Document what would need to change for governance control
 - **Resolution:** Added extensive documentation outlining path to governance control including design changes needed, security requirements, implementation steps, migration strategy, risks, and audit requirements. Recommends keeping critical parameters hard-coded for security.
 
-### INFRA-LOW-1: Port Mapping Matrix Not Documented
-- [ ] Create port mapping documentation
+### INFRA-LOW-1: Port Mapping Matrix Not Documented ✅ COMPLETED
+- [x] Create port mapping documentation
+- **Resolution:** Created comprehensive `docs/NETWORK_PORTS.md` (82KB) documenting all network ports:
+  - Complete port matrix for all services (CometBFT, Cosmos SDK, monitoring stack, external services)
+  - Detailed documentation for each port: P2P (26656), RPC (26657), ABCI (26658), Prometheus (26660), REST API (1317), gRPC (9090), gRPC-Web (9091)
+  - Security considerations for each port with defense-in-depth strategy
+  - Firewall configuration examples (Ubuntu/Debian ufw, CentOS/RHEL firewalld, advanced iptables with rate limiting)
+  - Kubernetes port mappings (Service definitions, NodePort, LoadBalancer, NetworkPolicies)
+  - Docker port mappings (docker-compose and CLI examples)
+  - Port conflict resolution strategies (Prometheus/gRPC conflict, multiple chains on same host)
+  - Diagnostic commands for checking listening ports, firewall rules, connectivity
+  - Production deployment quick reference for validators, sentry nodes, API nodes
 
-### INFRA-LOW-2: Resource Quota Documentation Missing
-- [ ] Document sizing guidance
+### INFRA-LOW-2: Resource Quota Documentation Missing ✅ COMPLETED
+- [x] Document sizing guidance
+- **Resolution:** Created comprehensive `docs/RESOURCE_REQUIREMENTS.md` (72KB) covering all node types:
+  - Node type comparison matrix (validator, full node, archive node, API node, sentry node, dev environment)
+  - Detailed requirements for testnet validators (4 cores, 16 GB, 200 GB) and mainnet validators (8 cores, 32 GB, 500 GB NVMe)
+  - Resource allocation breakdowns (CPU, RAM, storage, network bandwidth per component)
+  - Growth projections (annual storage growth, RAM usage, P2P connections)
+  - Kubernetes resource quotas (StatefulSet, Deployment, HorizontalPodAutoscaler configurations)
+  - Scaling guidelines (vertical scaling tiers, horizontal scaling for API nodes, geographic distribution)
+  - Performance benchmarks (TPS, block processing time, query performance)
+  - Quick decision matrix for choosing node type based on use case
+  - Cost optimization tips (pruning, spot instances, reserved instances)
 
-### INFRA-LOW-3: Cost Estimation Not Provided
-- [ ] Create AWS/GCP/Azure cost estimates
+### INFRA-LOW-3: Cost Estimation Not Provided ✅ COMPLETED
+- [x] Create AWS/GCP/Azure cost estimates
+- **Resolution:** Created comprehensive `docs/COST_ESTIMATES.md` (70KB) with detailed pricing:
+  - Monthly cost comparison across providers for all node types (testnet validator: $95-150, mainnet validator: $210-350)
+  - Detailed AWS cost breakdown (EC2 instance types, EBS storage, bandwidth, load balancers) with on-demand and 1-year/3-year RI pricing
+  - GCP cost estimates (n2/c2 instance types, SSD persistent disks, network egress) with CUD pricing
+  - Azure cost estimates (F/D-series VMs, Premium SSD, bandwidth) with Reserved Instance pricing
+  - Bare metal / self-hosted estimates (hardware costs, colocation pricing, 3-year TCO comparison)
+  - Complete production deployment costs (validator + sentries + API nodes + monitoring: $11,500-37,500/year depending on provider and commitment)
+  - Cost optimization strategies (multi-cloud, right-sizing, scheduled scaling, data transfer optimization, storage lifecycle policies)
+  - 3-year TCO analysis showing Azure 3-year RI as lowest cost ($52,920 total)
+  - Cost breakdown by component (compute 65%, storage 15%, network 12%, backup 3%)
 
-### INFRA-LOW-4: SLO Targets Not Defined
-- [ ] Define availability, latency, error rate targets
+### INFRA-LOW-4: SLO Targets Not Defined ✅ COMPLETED
+- [x] Define availability, latency, error rate targets
+- **Resolution:** Created comprehensive `docs/SLO_TARGETS.md` (65KB) defining all performance objectives:
+  - SLO framework and hierarchy (SLA > SLO > SLI) with tier definitions (Critical 99.99%, High 99.9%, Standard 99%, Best Effort 95%)
+  - Validator node SLOs: uptime (99.9%), consensus participation (99.9%), block processing time (<1s p99), resource utilization (CPU <70%, memory <80%)
+  - API service SLOs: availability (99.9%), latency (REST p99 <1000ms, gRPC p99 <500ms), throughput (1000 req/sec per node), error rate (<0.1% 5xx)
+  - Network performance SLOs: block time (3s ±0.5s), transaction finality (2 blocks/6s), sustained TPS (≥300), mempool size (<5000 normal, <10000 peak)
+  - Storage and database SLOs: read latency (p99 <50ms), write latency (p99 <100ms), disk IOPS (5000+ read, 2000+ write), free space (≥20%)
+  - Monitoring and alerting SLOs: metrics collection (99% scrape success), alert delivery (<1 min), on-call response (ack in 15 min)
+  - Error budgets: validator (0.1% = 43 min/month), API (0.1% = 100k failed requests/month) with budget allocation and tracking
+  - SLO measurement with Prometheus queries and Grafana dashboard template
+  - Incident response targets by severity (SEV-1: 15 min response, 1 hour resolution)
+  - Weekly SLO report template
 
-### INFRA-LOW-5: Performance Tuning Guide Missing
-- [ ] Create `PERFORMANCE_TUNING.md`
+### INFRA-LOW-5: Performance Tuning Guide Missing ✅ COMPLETED
+- [x] Create `PERFORMANCE_TUNING.md`
+- **Resolution:** Created comprehensive `docs/PERFORMANCE_TUNING.md` (95KB) covering all optimization areas:
+  - Performance goals and tuning philosophy (measure first, tune config, optimize system, scale horizontally, validate)
+  - CometBFT configuration tuning: consensus timeouts for different network latencies, mempool configuration (high-throughput vs low-memory), RPC connection limits
+  - Cosmos SDK application tuning: state sync and pruning strategies (custom 100/1000 for validators), API/gRPC configuration, database backend comparison (goleveldb vs rocksdb)
+  - Database optimization: LevelDB cache sizing (512 MB - 2 GB), RocksDB advanced tuning (separate configs for validator vs archive nodes), manual and automatic compaction
+  - P2P network optimization: peer configuration for validators (sentry architecture), sentries (public-facing), full nodes (max connectivity), connection pool tuning
+  - Operating system tuning: Linux kernel parameters (network buffers, TCP optimization, file descriptors, virtual memory), systemd service limits, CPU governor (performance mode)
+  - Storage and I/O optimization: filesystem tuning (XFS recommended with noatime/logbsize/allocsize), I/O scheduler (none for NVMe, mq-deadline for SATA), direct I/O
+  - Memory management: swap configuration (swappiness=1), huge pages for database performance
+  - API and query performance: nginx reverse proxy with caching, gRPC load balancing, Redis query caching
+  - Monitoring performance metrics (Prometheus queries, Grafana dashboard)
+  - Benchmarking and testing (baseline performance test, API load testing with ab/wrk)
+  - Common performance issues with diagnosis and solutions (high block processing time, OOM kills, slow sync speed, high API latency)
 
 ---
 
