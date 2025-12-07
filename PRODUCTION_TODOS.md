@@ -290,10 +290,21 @@
 - [x] Add proper RoleBindings
 - **Resolution:** All RBAC properly configured in k8s/rbac.yaml with ServiceAccounts, ClusterRoles, Roles, and Bindings for all monitoring components (prometheus, grafana, alertmanager, loki, promtail). Duplicate RBAC removed from monitoring-deployment.yaml. All deployments now reference their ServiceAccounts.
 
-### INFRA-MED-4: Loki Uses Filesystem Backend
+### INFRA-MED-4: Loki Uses Filesystem Backend ✅ COMPLETED
 - **File:** `infra/logging/loki-config.yaml:8-17`
-- [ ] Create production config with S3/GCS backend
-- [ ] Document persistent storage setup
+- [x] Create production config with S3/GCS backend
+- [x] Document persistent storage setup
+- **Resolution:** Created comprehensive production configuration in `infra/logging/loki-config-production.yaml` with:
+  - AWS S3 backend configuration (default) with SSE encryption and proper IAM permission documentation
+  - Google Cloud Storage backend as commented alternative with GCP service account permissions
+  - Distributed deployment with memberlist clustering (replication factor 3)
+  - Production-grade retention policies (90 days default) with compactor and table manager
+  - BoltDB Shipper for scalable index storage with schema v12 for optimal compression
+  - Query caching with memcached and chunk caching for performance optimization
+  - Frontend/worker separation for horizontal scaling with configurable parallelism
+  - WAL configuration for ingester crash recovery
+  - Detailed inline documentation explaining storage sizing recommendations, IAM permissions, and configuration options
+  - Preserved original `loki-config.yaml` for development use
 
 ### INFRA-MED-5: Grafana Dashboards Not Provisioned ✅ COMPLETED
 - [x] Create node metrics dashboard
