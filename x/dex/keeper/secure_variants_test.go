@@ -1058,7 +1058,7 @@ func TestWithReentrancyGuard_NestedProtection(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "already locked")
+	require.Contains(t, err.Error(), "reentrancy detected")
 	require.True(t, outerExecuted)
 	require.False(t, innerExecuted)
 }
@@ -1230,7 +1230,7 @@ func TestValidatePoolState(t *testing.T) {
 				TotalShares: math.NewInt(100),
 			},
 			expectErr:  true,
-			errContain: "reserve A is zero",
+			errContain: "missing reserves",
 		},
 		{
 			name: "shares with zero reserve B (security check)",
@@ -1241,7 +1241,7 @@ func TestValidatePoolState(t *testing.T) {
 				TotalShares: math.NewInt(100),
 			},
 			expectErr:  true,
-			errContain: "reserve B is zero",
+			errContain: "missing reserves",
 		},
 	}
 
@@ -1526,7 +1526,7 @@ func TestReentrancyGuard_ComplexScenario(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "already locked")
+	require.Contains(t, err.Error(), "reentrancy detected")
 	require.True(t, outerExecuted)
 	require.False(t, innerExecuted)
 }
