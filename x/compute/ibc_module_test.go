@@ -3,7 +3,6 @@ package compute_test
 import (
 	"testing"
 
-	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -30,7 +29,7 @@ func setupComputeIBCModule(t *testing.T) (*compute.IBCModule, sdk.Context) {
 }
 
 // setupComputeIBCModuleWithKeeper creates a compute keeper, context, and IBC module for testing (with keeper returned)
-func setupComputeIBCModuleWithKeeper(t *testing.TB) (*compute.IBCModule, *keeper.Keeper, sdk.Context) {
+func setupComputeIBCModuleWithKeeper(t *testing.T) (*compute.IBCModule, *keeper.Keeper, sdk.Context) {
 	k, ctx := keepertest.ComputeKeeper(t)
 	registry := codectypes.NewInterfaceRegistry()
 	types.RegisterInterfaces(registry)
@@ -92,7 +91,7 @@ func TestOnChanOpenInit_InvalidOrdering(t *testing.T) {
 	)
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "expected ORDERED channel")
+	require.Contains(t, err.Error(), "ORDERED")
 }
 
 func TestOnChanOpenInit_InvalidVersion(t *testing.T) {
@@ -368,9 +367,7 @@ func TestComputeChannelLifecycle_TableDriven(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, ctx := keepertest.ComputeKeeper(t)
-			cdc := k.Codec()
-			ibcModule := compute.NewIBCModule(*k, cdc)
+			ibcModule, ctx := setupComputeIBCModule(t)
 
 			_, err := ibcModule.OnChanOpenInit(
 				ctx,

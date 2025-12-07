@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
-	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -116,7 +116,7 @@ func TestGasRefundNotAppliedOnFailure(t *testing.T) {
 
 	// Set up gas meter with specific limit
 	initialGas := uint64(1000000)
-	gasMeter := sdk.NewGasMeter(initialGas)
+	gasMeter := storetypes.NewGasMeter(initialGas)
 	ctx = ctx.WithGasMeter(gasMeter)
 
 	gasBefore := ctx.GasMeter().GasConsumed()
@@ -151,14 +151,14 @@ func TestOutOfGasDoesNotCorruptState(t *testing.T) {
 
 	// Set up gas meter with very low limit to trigger out-of-gas
 	lowGasLimit := uint64(1000) // Very low
-	gasMeter := sdk.NewGasMeter(lowGasLimit)
+	gasMeter := storetypes.NewGasMeter(lowGasLimit)
 	ctx = ctx.WithGasMeter(gasMeter)
 
 	// Attempt swap (will likely run out of gas)
 	defer func() {
 		if r := recover(); r != nil {
 			// Out of gas panic occurred, verify state unchanged
-			finalPool, err := k.GetPool(ctx.WithGasMeter(sdk.NewInfiniteGasMeter()), pool.Id)
+			finalPool, err := k.GetPool(ctx.WithGasMeter(storetypes.NewInfiniteGasMeter()), pool.Id)
 			require.NoError(t, err)
 			require.Equal(t, initialReserveA, finalPool.ReserveA, "pool state should not be corrupted by out-of-gas")
 			require.Equal(t, initialReserveB, finalPool.ReserveB, "pool state should not be corrupted by out-of-gas")

@@ -26,3 +26,8 @@ func (k Keeper) GetAuthority() string {
 func (k Keeper) GetDisputeForTesting(ctx context.Context, id uint64) (*types.Dispute, error) {
 	return k.getDispute(ctx, id)
 }
+
+// GetBankKeeper exports bankKeeper for testing
+func (k Keeper) GetBankKeeper() types.BankKeeper {
+	return k.bankKeeper
+}

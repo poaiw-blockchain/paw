@@ -18,15 +18,27 @@ import (
 func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
+	// Get params first
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+
 	// Register a provider first
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	specs := types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}
+	pricing := types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}
+	err = k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", specs, pricing, params.MinProviderStake)
 	require.NoError(t, err)
 
 	// Create requester without sufficient funds
@@ -34,13 +46,15 @@ func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 
 	// Attempt to submit request (will fail due to insufficient funds for escrow)
 	maxPayment := math.NewInt(1000000)
-	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+	requestSpecs := types.ComputeSpec{
+		CpuCores:       2000,
+		MemoryMb:       4096,
+		GpuCount:       0,
+		GpuType:        "",
+		StorageGb:      50,
 		TimeoutSeconds: 1800,
-	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
+	}
+	requestID, err := k.SubmitRequest(ctx, requester, requestSpecs, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to escrow payment")
@@ -62,13 +76,19 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -79,10 +99,10 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	// Submit request successfully
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -118,13 +138,19 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -135,10 +161,10 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -179,13 +205,19 @@ func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -196,10 +228,10 @@ func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -225,13 +257,19 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester without funds
@@ -244,10 +282,10 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	// Attempt request submission (will fail)
 	maxPayment := math.NewInt(1000000)
 	_, err = k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.Error(t, err)
@@ -267,13 +305,19 @@ func TestCancelRequestFailurePreservesStatus(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -283,10 +327,10 @@ func TestCancelRequestFailurePreservesStatus(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -315,13 +359,19 @@ func TestDoubleCompletionPrevented(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -331,10 +381,10 @@ func TestDoubleCompletionPrevented(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -372,13 +422,19 @@ func TestRequestRefundOnFailure(t *testing.T) {
 
 	// Register provider
 	provider := sdk.AccAddress("test_provider______")
-	err := k.RegisterProvider(ctx, provider, types.ComputeSpec{
-		Cpu:            4,
-		Memory:         8192,
-		Disk:           100,
-		Gpu:            1,
+	err := k.RegisterProvider(ctx, provider, "TestProvider", "https://test.example.com", types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		GpuCount:       1,
+		GpuType:        "",
+		StorageGb:      100,
 		TimeoutSeconds: 3600,
-	}, "test-endpoint")
+	}, types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+		MemoryPricePerMbHour:  math.LegacyNewDec(1),
+		GpuPricePerHour:       math.LegacyNewDec(10),
+		StoragePricePerGbHour: math.LegacyNewDec(1),
+	}, math.NewInt(1000000))
 	require.NoError(t, err)
 
 	// Create requester and fund them
@@ -392,10 +448,10 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		Cpu:            2,
-		Memory:         4096,
-		Disk:           50,
-		Gpu:            0,
+		CpuCores:            2,
+		MemoryMb:         4096,
+		StorageGb:           50,
+		GpuCount:            0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)

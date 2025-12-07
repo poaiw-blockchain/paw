@@ -239,9 +239,7 @@ func TestOracleChannelLifecycle_TableDriven(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, ctx := keepertest.OracleKeeper(t)
-			cdc := k.Codec()
-			ibcModule := oracle.NewIBCModule(*k, cdc)
+			ibcModule, ctx := setupOracleIBCModule(t)
 
 			_, err := ibcModule.OnChanOpenInit(
 				ctx,
