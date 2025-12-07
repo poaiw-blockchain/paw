@@ -517,9 +517,12 @@ func TestValidatePoolPrice_FreshPrices(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	oracle := newMockOracleKeeper()
 
-	poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+	// Create pool with reserves matching oracle ratio
+	// Pool ratio: 2000000 / 1000000 = 2.0
+	poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(2000000), math.NewInt(1000000))
 
 	// Set prices with current timestamp
+	// Oracle ratio: 10 / 5 = 2.0 (matches pool ratio)
 	currentTime := ctx.BlockTime().Unix()
 	oracle.setPrice("atom", math.LegacyMustNewDecFromStr("10.00"), currentTime)
 	oracle.setPrice("osmo", math.LegacyMustNewDecFromStr("5.00"), currentTime)
@@ -849,9 +852,12 @@ func TestValidatePoolPrice_BoundaryTimestamp(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	oracle := newMockOracleKeeper()
 
-	poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(1000000), math.NewInt(2000000))
+	// Create pool with reserves matching oracle ratio
+	// Pool ratio: 2000000 / 1000000 = 2.0
+	poolID := createTestPoolForOracle(t, k, ctx, "atom", "osmo", math.NewInt(2000000), math.NewInt(1000000))
 
 	// Set timestamp exactly 60 seconds ago (boundary)
+	// Oracle ratio: 10 / 5 = 2.0 (matches pool ratio)
 	boundaryTimestamp := ctx.BlockTime().Unix() - 60
 	oracle.setPrice("atom", math.LegacyMustNewDecFromStr("10.00"), boundaryTimestamp)
 	oracle.setPrice("osmo", math.LegacyMustNewDecFromStr("5.00"), boundaryTimestamp)

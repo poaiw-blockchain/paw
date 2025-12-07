@@ -164,7 +164,7 @@ func (k Keeper) DetectArbitrageOpportunity(ctx context.Context, poolID uint64, o
 	poolPrice := math.LegacyNewDecFromInt(pool.ReserveA).Quo(math.LegacyNewDecFromInt(pool.ReserveB))
 
 	// Calculate potential profit percentage
-	var profitPercent math.LegacyDec
+	profitPercent := math.LegacyZeroDec()
 	if fairPrice.GT(poolPrice) {
 		// Arbitrage: buy token A from pool, sell at oracle price
 		profitPercent = fairPrice.Sub(poolPrice).Quo(poolPrice)
@@ -172,6 +172,7 @@ func (k Keeper) DetectArbitrageOpportunity(ctx context.Context, poolID uint64, o
 		// Arbitrage: buy token A at oracle price, sell to pool
 		profitPercent = poolPrice.Sub(fairPrice).Quo(fairPrice)
 	}
+	// If fairPrice equals poolPrice, profitPercent remains zero
 
 	hasOpportunity := profitPercent.GT(minProfitPercent)
 
