@@ -14,12 +14,12 @@ import (
 
 var (
 	// Key prefixes - must match the keeper
-	RequestKeyPrefix      = []byte{0x01}
-	ProviderKeyPrefix     = []byte{0x02}
-	ParamsKey             = []byte{0x03}
-	RequestCounterKey     = []byte{0x04}
-	ActiveProvidersPrefix = []byte{0x10}
-	RequestByStatusPrefix = []byte{0x11}
+	RequestKeyPrefix        = []byte{0x01}
+	ProviderKeyPrefix       = []byte{0x02}
+	ParamsKey               = []byte{0x03}
+	RequestCounterKey       = []byte{0x04}
+	ActiveProvidersPrefix   = []byte{0x10}
+	RequestByStatusPrefix   = []byte{0x11}
 	RequestByProviderPrefix = []byte{0x12}
 )
 
@@ -156,9 +156,9 @@ func validateProviderReputations(ctx sdk.Context, store storetypes.KVStore, cdc 
 		needsUpdate := false
 
 		// Ensure reputation is between 0 and 100
-		if provider.Reputation < 0 {
-			ctx.Logger().Warn("fixing negative reputation", "provider", provider.Address, "old", provider.Reputation)
-			provider.Reputation = 0
+		if provider.Reputation == 0 {
+			ctx.Logger().Warn("fixing zero reputation", "provider", provider.Address, "old", provider.Reputation)
+			provider.Reputation = 1
 			needsUpdate = true
 		} else if provider.Reputation > 100 {
 			ctx.Logger().Warn("fixing reputation above 100", "provider", provider.Address, "old", provider.Reputation)
@@ -182,7 +182,7 @@ func validateProviderReputations(ctx sdk.Context, store storetypes.KVStore, cdc 
 				ctx.Logger().Warn("recalculating reputation", "provider", provider.Address,
 					"old", provider.Reputation, "new", expectedReputation,
 					"completed", provider.TotalRequestsCompleted, "failed", provider.TotalRequestsFailed)
-				provider.Reputation = uint32(expectedReputation)
+				provider.Reputation = types.SaturateUint64ToUint32(expectedReputation)
 				needsUpdate = true
 			}
 		}
@@ -230,8 +230,6 @@ func migrateParams(ctx sdk.Context, store storetypes.KVStore, cdc codec.BinaryCo
 		params.MinProviderStake = math.NewInt(1000000) // 1 PAW
 		updated = true
 	}
-
-
 
 	if params.MaxRequestTimeoutSeconds == 0 {
 		params.MaxRequestTimeoutSeconds = 3600 // 1 hour

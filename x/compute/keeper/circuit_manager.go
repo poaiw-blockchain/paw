@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend"
 	"github.com/consensys/gnark/backend/groth16"
+	"github.com/consensys/gnark/backend/witness"
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -44,6 +46,31 @@ type CircuitManager struct {
 	// Circuit metadata
 	circuitVersions map[string]string
 	initialized     bool
+}
+
+// groth16Verify is a function pointer to allow tests to stub verification without
+// running heavy cryptographic checks.
+var groth16Verify = groth16.Verify
+var groth16Setup = groth16.Setup
+
+// SetGroth16Setup allows tests to stub key generation for fast execution.
+func SetGroth16Setup(fn func(constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error)) {
+	groth16Setup = fn
+}
+
+// Groth16SetupFunc exposes the current setup function (useful for restoring after stubs).
+func Groth16SetupFunc() func(constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
+	return groth16Setup
+}
+
+// SetGroth16Verify allows tests to stub proof verification.
+func SetGroth16Verify(fn func(groth16.Proof, groth16.VerifyingKey, witness.Witness, ...backend.VerifierOption) error) {
+	groth16Verify = fn
+}
+
+// Groth16VerifyFunc exposes the current verify function (useful for restoring after stubs).
+func Groth16VerifyFunc() func(groth16.Proof, groth16.VerifyingKey, witness.Witness, ...backend.VerifierOption) error {
+	return groth16Verify
 }
 
 // CircuitType identifies the type of ZK circuit.
@@ -130,7 +157,7 @@ func (cm *CircuitManager) initializeComputeCircuit(ctx context.Context) error {
 			return cm.generateAndStoreComputeKeys(ctx, circuitID, ccs)
 		}
 		// Need to regenerate proving key since it's not stored
-		pk, _, err := groth16.Setup(ccs)
+		pk, _, err := groth16Setup(ccs)
 		if err != nil {
 			return fmt.Errorf("failed to regenerate proving key: %w", err)
 		}
@@ -145,7 +172,7 @@ func (cm *CircuitManager) initializeComputeCircuit(ctx context.Context) error {
 
 // generateAndStoreComputeKeys generates new proving/verifying keys and stores them.
 func (cm *CircuitManager) generateAndStoreComputeKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
-	pk, vk, err := groth16.Setup(ccs)
+	pk, vk, err := groth16Setup(ccs)
 	if err != nil {
 		return fmt.Errorf("failed to setup compute circuit: %w", err)
 	}
@@ -169,7 +196,7 @@ func (cm *CircuitManager) generateAndStoreComputeKeys(ctx context.Context, circu
 			ProofSystem:      "groth16",
 			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
 			VkData:           vkBytes.Bytes(),
-			PublicInputCount: uint32(circuit.GetPublicInputCount()),
+			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
 		},
 		MaxProofSize: 2048,
 		GasCost:      500000,
@@ -196,7 +223,7 @@ func (cm *CircuitManager) initializeEscrowCircuit(ctx context.Context) error {
 		if _, err := cm.escrowVerifyingKey.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); err != nil {
 			return cm.generateAndStoreEscrowKeys(ctx, circuitID, ccs)
 		}
-		pk, _, err := groth16.Setup(ccs)
+		pk, _, err := groth16Setup(ccs)
 		if err != nil {
 			return fmt.Errorf("failed to regenerate proving key: %w", err)
 		}
@@ -211,7 +238,7 @@ func (cm *CircuitManager) initializeEscrowCircuit(ctx context.Context) error {
 
 // generateAndStoreEscrowKeys generates and stores escrow circuit keys.
 func (cm *CircuitManager) generateAndStoreEscrowKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
-	pk, vk, err := groth16.Setup(ccs)
+	pk, vk, err := groth16Setup(ccs)
 	if err != nil {
 		return fmt.Errorf("failed to setup escrow circuit: %w", err)
 	}
@@ -234,7 +261,7 @@ func (cm *CircuitManager) generateAndStoreEscrowKeys(ctx context.Context, circui
 			ProofSystem:      "groth16",
 			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
 			VkData:           vkBytes.Bytes(),
-			PublicInputCount: uint32(circuit.GetPublicInputCount()),
+			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
 		},
 		MaxProofSize: 2048,
 		GasCost:      450000,
@@ -261,7 +288,7 @@ func (cm *CircuitManager) initializeResultCircuit(ctx context.Context) error {
 		if _, err := cm.resultVerifyingKey.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); err != nil {
 			return cm.generateAndStoreResultKeys(ctx, circuitID, ccs)
 		}
-		pk, _, err := groth16.Setup(ccs)
+		pk, _, err := groth16Setup(ccs)
 		if err != nil {
 			return fmt.Errorf("failed to regenerate proving key: %w", err)
 		}
@@ -276,7 +303,7 @@ func (cm *CircuitManager) initializeResultCircuit(ctx context.Context) error {
 
 // generateAndStoreResultKeys generates and stores result circuit keys.
 func (cm *CircuitManager) generateAndStoreResultKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
-	pk, vk, err := groth16.Setup(ccs)
+	pk, vk, err := groth16Setup(ccs)
 	if err != nil {
 		return fmt.Errorf("failed to setup result circuit: %w", err)
 	}
@@ -299,7 +326,7 @@ func (cm *CircuitManager) generateAndStoreResultKeys(ctx context.Context, circui
 			ProofSystem:      "groth16",
 			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
 			VkData:           vkBytes.Bytes(),
-			PublicInputCount: uint32(circuit.GetPublicInputCount()),
+			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
 		},
 		MaxProofSize: 2048,
 		GasCost:      550000,
@@ -352,7 +379,7 @@ func (cm *CircuitManager) VerifyComputeProof(
 	ctx.GasMeter().ConsumeGas(400000, "zk_compute_proof_verification")
 
 	// Verify the proof
-	if err := groth16.Verify(proof, cm.computeVerifyingKey, witness); err != nil {
+	if err := groth16Verify(proof, cm.computeVerifyingKey, witness); err != nil {
 		ctx.Logger().Warn("compute proof verification failed",
 			"request_id", publicInputs.RequestID,
 			"error", err.Error(),
@@ -418,7 +445,7 @@ func (cm *CircuitManager) VerifyEscrowProof(
 
 	ctx.GasMeter().ConsumeGas(350000, "zk_escrow_proof_verification")
 
-	if err := groth16.Verify(proof, cm.escrowVerifyingKey, witness); err != nil {
+	if err := groth16Verify(proof, cm.escrowVerifyingKey, witness); err != nil {
 		ctx.Logger().Warn("escrow proof verification failed",
 			"request_id", publicInputs.RequestID,
 			"error", err.Error(),
@@ -485,7 +512,7 @@ func (cm *CircuitManager) VerifyResultProof(
 
 	ctx.GasMeter().ConsumeGas(450000, "zk_result_proof_verification")
 
-	if err := groth16.Verify(proof, cm.resultVerifyingKey, witness); err != nil {
+	if err := groth16Verify(proof, cm.resultVerifyingKey, witness); err != nil {
 		ctx.Logger().Warn("result proof verification failed",
 			"request_id", publicInputs.RequestID,
 			"error", err.Error(),

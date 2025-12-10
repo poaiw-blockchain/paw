@@ -536,7 +536,7 @@ func (ab *AddressBook) save() error {
 func (ab *AddressBook) load() error {
 	filePath := filepath.Join(ab.dataDir, "address_book.json")
 
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) // #nosec G304 - address book path resides under node data directory
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil // No existing address book

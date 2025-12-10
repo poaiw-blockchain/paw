@@ -915,6 +915,13 @@ func TestMsgServer_ResolveDispute(t *testing.T) {
 			}
 		})
 	}
+
+	// Already resolved dispute should error
+	_, err = msgServer.ResolveDispute(goCtx, &types.MsgResolveDispute{
+		Authority: authority,
+		DisputeId: disputeID,
+	})
+	require.Error(t, err)
 }
 
 // TestMsgServer_SubmitEvidence tests the SubmitEvidence message handler
@@ -1077,7 +1084,7 @@ func TestMsgServer_AppealSlashing(t *testing.T) {
 				// In production tests, you'd create the slash first
 				if err != nil {
 					// May fail if slash doesn't exist - that's expected
-				require.True(t, err != nil && (strings.Contains(err.Error(), "slash") || strings.Contains(err.Error(), "deposit")))
+					require.True(t, err != nil && (strings.Contains(err.Error(), "slash") || strings.Contains(err.Error(), "deposit")))
 				} else {
 					require.NotNil(t, resp)
 					require.Greater(t, resp.AppealId, uint64(0))
@@ -1386,4 +1393,59 @@ func getMsgServerBankKeeper(t *testing.T, k *keeper.Keeper) bankkeeper.Keeper {
 	t.Helper()
 	val := reflect.ValueOf(k).Elem().FieldByName("bankKeeper")
 	return reflect.NewAt(val.Type(), unsafe.Pointer(val.UnsafeAddr())).Elem().Interface().(bankkeeper.Keeper)
+}
+
+func TestMsgServer_UpdateGovernanceParams_InvalidAuthority(t *testing.T) {
+	k, _, goCtx := newComputeKeeperCtx(t)
+	msgServer := keeper.NewMsgServerImpl(*k)
+
+	_, err := msgServer.UpdateGovernanceParams(goCtx, &types.MsgUpdateGovernanceParams{
+		Authority: "bad",
+		Params:    types.GovernanceParams{},
+	})
+	require.Error(t, err)
+}
+
+func TestMsgServer_ResolveAppeal_InvalidAuthority(t *testing.T) {
+	k, sdkCtx, goCtx := newComputeKeeperCtx(t)
+	msgServer := keeper.NewMsgServerImpl(*k)
+
+	// Seed appeal with slash record
+	slash := types.SlashRecord{Id: 99, Provider: sdk.AccAddress([]byte("prov")).String()}
+	require.NoError(t, k.SetSlashRecordForTest(sdkCtx, slash))
+	appeal := types.Appeal{Id: 5, SlashId: slash.Id, Status: types.APPEAL_STATUS_PENDING}
+	require.NoError(t, k.SetAppealForTest(sdkCtx, appeal))
+
+	_, err := msgServer.ResolveAppeal(goCtx, &types.MsgResolveAppeal{
+		Authority: "bad",
+		AppealId:  appeal.Id,
+	})
+	require.Error(t, err)
+}
+
+// Additional coverage for appeal resolution edge cases
+func TestMsgServer_ResolveAppeal_DoubleResolution(t *testing.T) {
+	k, sdkCtx, goCtx := newComputeKeeperCtx(t)
+	msgServer := keeper.NewMsgServerImpl(*k)
+
+	authority := k.GetAuthority()
+	provider := createTestProvider(t)
+	slashID := uint64(1)
+
+	// Seed slash record via exported helper
+	record := types.SlashRecord{Id: slashID, Provider: provider.String()}
+	require.NoError(t, k.SetSlashRecordForTest(sdkCtx, record))
+
+	appeal := types.Appeal{
+		Id:      1,
+		SlashId: slashID,
+		Status:  types.APPEAL_STATUS_PENDING,
+	}
+	require.NoError(t, k.SetAppealForTest(sdkCtx, appeal))
+
+	// Two successive resolves should not panic; verify appeal status updates when possible.
+	_, _ = msgServer.ResolveAppeal(goCtx, &types.MsgResolveAppeal{Authority: authority, AppealId: appeal.Id})
+	resp, err := msgServer.ResolveAppeal(goCtx, &types.MsgResolveAppeal{Authority: authority, AppealId: appeal.Id})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 }

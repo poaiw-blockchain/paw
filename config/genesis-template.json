@@ -1,0 +1,297 @@
+{
+  "app_hash": "",
+  "app_state": {
+    "auth": {
+      "accounts": [],
+      "params": {
+        "max_memo_characters": "256",
+        "sig_verify_cost_ed25519": "590",
+        "sig_verify_cost_secp256k1": "1000",
+        "tx_sig_limit": "7",
+        "tx_size_cost_per_byte": "10"
+      }
+    },
+    "bank": {
+      "balances": [],
+      "denom_metadata": [],
+      "params": {
+        "default_send_enabled": true,
+        "send_enabled": []
+      },
+      "send_enabled": [],
+      "supply": []
+    },
+    "compute": {
+      "appeals": [],
+      "disputes": [],
+      "escrow_states": [],
+      "governance_params": {
+        "appeal_deposit_percentage": "0.050000000000000000",
+        "consensus_threshold": "0.500000000000000000",
+        "dispute_deposit": "1000000",
+        "evidence_period_seconds": "86400",
+        "max_evidence_size": "10485760",
+        "quorum_percentage": "0.334000000000000000",
+        "slash_percentage": "0.100000000000000000",
+        "voting_period_seconds": "86400"
+      },
+      "next_appeal_id": "1",
+      "next_dispute_id": "1",
+      "next_escrow_nonce": "1",
+      "next_request_id": "1",
+      "next_slash_id": "1",
+      "params": {
+        "authorized_channels": [],
+        "escrow_release_delay_seconds": "3600",
+        "max_request_timeout_seconds": "3600",
+        "min_provider_stake": "1000000",
+        "min_reputation_score": "50",
+        "reputation_slash_percentage": "10",
+        "stake_slash_percentage": "1",
+        "verification_timeout_seconds": "300"
+      },
+      "providers": [],
+      "requests": [],
+      "results": [],
+      "slash_records": []
+    },
+    "crisis": {
+      "constant_fee": {
+        "amount": "1000",
+        "denom": "stake"
+      }
+    },
+    "dex": {
+      "circuit_breaker_states": [],
+      "limit_orders": [],
+      "liquidity_positions": [],
+      "next_order_id": "0",
+      "next_pool_id": "1",
+      "params": {
+        "authorized_channels": [],
+        "flash_loan_protection_blocks": "10",
+        "liquidity_gas": "1200",
+        "lp_fee": "0.002500000000000000",
+        "max_pool_drain_percent": "0.300000000000000000",
+        "max_slippage_percent": "0.500000000000000000",
+        "min_liquidity": "1000",
+        "pool_creation_gas": "1000",
+        "protocol_fee": "0.000500000000000000",
+        "swap_fee": "0.003000000000000000",
+        "swap_validation_gas": "1500"
+      },
+      "pool_twap_records": [],
+      "pools": []
+    },
+    "distribution": {
+      "delegator_starting_infos": [],
+      "delegator_withdraw_infos": [],
+      "fee_pool": {
+        "community_pool": []
+      },
+      "outstanding_rewards": [],
+      "params": {
+        "base_proposer_reward": "0.000000000000000000",
+        "bonus_proposer_reward": "0.000000000000000000",
+        "community_tax": "0.020000000000000000",
+        "withdraw_addr_enabled": true
+      },
+      "previous_proposer": "",
+      "validator_accumulated_commissions": [],
+      "validator_current_rewards": [],
+      "validator_historical_rewards": [],
+      "validator_slash_events": []
+    },
+    "evidence": {
+      "evidence": []
+    },
+    "feegrant": {
+      "allowances": []
+    },
+    "genutil": {
+      "gen_txs": []
+    },
+    "gov": {
+      "constitution": "",
+      "deposit_params": null,
+      "deposits": [],
+      "params": {
+        "burn_proposal_deposit_prevote": false,
+        "burn_vote_quorum": false,
+        "burn_vote_veto": true,
+        "expedited_min_deposit": [
+          {
+            "amount": "50000000",
+            "denom": "stake"
+          }
+        ],
+        "expedited_threshold": "0.667000000000000000",
+        "expedited_voting_period": "86400s",
+        "max_deposit_period": "172800s",
+        "min_deposit": [
+          {
+            "amount": "10000000",
+            "denom": "stake"
+          }
+        ],
+        "min_deposit_ratio": "0.010000000000000000",
+        "min_initial_deposit_ratio": "0.000000000000000000",
+        "proposal_cancel_dest": "",
+        "proposal_cancel_ratio": "0.500000000000000000",
+        "quorum": "0.334000000000000000",
+        "threshold": "0.500000000000000000",
+        "veto_threshold": "0.334000000000000000",
+        "voting_period": "172800s"
+      },
+      "proposals": [],
+      "starting_proposal_id": "1",
+      "tally_params": null,
+      "votes": [],
+      "voting_params": null
+    },
+    "ibc": {
+      "channel_genesis": {
+        "ack_sequences": [],
+        "acknowledgements": [],
+        "channels": [],
+        "commitments": [],
+        "next_channel_sequence": "0",
+        "params": {
+          "upgrade_timeout": {
+            "height": {
+              "revision_height": "0",
+              "revision_number": "0"
+            },
+            "timestamp": "600000000000"
+          }
+        },
+        "receipts": [],
+        "recv_sequences": [],
+        "send_sequences": []
+      },
+      "client_genesis": {
+        "clients": [],
+        "clients_consensus": [],
+        "clients_metadata": [],
+        "create_localhost": false,
+        "next_client_sequence": "0",
+        "params": {
+          "allowed_clients": [
+            "*"
+          ]
+        }
+      },
+      "connection_genesis": {
+        "client_connection_paths": [],
+        "connections": [],
+        "next_connection_sequence": "0",
+        "params": {
+          "max_expected_time_per_block": "30000000000"
+        }
+      }
+    },
+    "mint": {
+      "minter": {
+        "annual_provisions": "0.000000000000000000",
+        "inflation": "0.130000000000000000"
+      },
+      "params": {
+        "blocks_per_year": "6311520",
+        "goal_bonded": "0.670000000000000000",
+        "inflation_max": "0.200000000000000000",
+        "inflation_min": "0.070000000000000000",
+        "inflation_rate_change": "0.130000000000000000",
+        "mint_denom": "stake"
+      }
+    },
+    "oracle": {
+      "params": {
+        "allowed_regions": [
+          "global",
+          "na",
+          "eu",
+          "apac",
+          "latam",
+          "africa"
+        ],
+        "authorized_channels": [],
+        "min_geographic_regions": "1",
+        "min_valid_per_window": "100",
+        "min_voting_power_for_consensus": "0.100000000000000000",
+        "slash_fraction": "0.010000000000000000",
+        "slash_window": "10000",
+        "twap_lookback_window": "1000",
+        "vote_period": "30",
+        "vote_threshold": "0.670000000000000000"
+      },
+      "price_snapshots": [],
+      "prices": [],
+      "validator_oracles": [],
+      "validator_prices": []
+    },
+    "slashing": {
+      "missed_blocks": [],
+      "params": {
+        "downtime_jail_duration": "600s",
+        "min_signed_per_window": "0.500000000000000000",
+        "signed_blocks_window": "100",
+        "slash_fraction_double_sign": "0.050000000000000000",
+        "slash_fraction_downtime": "0.010000000000000000"
+      },
+      "signing_infos": []
+    },
+    "staking": {
+      "delegations": [],
+      "exported": false,
+      "last_total_power": "0",
+      "last_validator_powers": [],
+      "params": {
+        "bond_denom": "stake",
+        "historical_entries": "10000",
+        "max_entries": "7",
+        "max_validators": "100",
+        "min_commission_rate": "0.000000000000000000",
+        "unbonding_time": "1814400s"
+      },
+      "redelegations": [],
+      "unbonding_delegations": [],
+      "validators": []
+    },
+    "transfer": {
+      "denom_traces": [],
+      "params": {
+        "receive_enabled": true,
+        "send_enabled": true
+      },
+      "port_id": "transfer",
+      "total_escrowed": []
+    },
+    "upgrade": {},
+    "vesting": {}
+  },
+  "chain_id": "paw-testnet-1",
+  "consensus_params": {
+    "abci": {
+      "vote_extensions_enable_height": "0"
+    },
+    "block": {
+      "max_bytes": "2097152",
+      "max_gas": "100000000"
+    },
+    "evidence": {
+      "max_age_duration": "1814400000000000",
+      "max_age_num_blocks": "500000",
+      "max_bytes": "1048576"
+    },
+    "validator": {
+      "pub_key_types": [
+        "ed25519"
+      ]
+    },
+    "version": {
+      "app": "0"
+    }
+  },
+  "genesis_time": "2025-12-10T00:31:51.270288717Z",
+  "initial_height": "1"
+}

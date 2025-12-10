@@ -209,8 +209,12 @@ Example:
 	cmd.Flags().String(FlagStoragePrice, "0.0001", "Price per GB-hour")
 	cmd.Flags().String("amount", "1000000", "Stake amount (in base denomination)")
 
-	cmd.MarkFlagRequired(FlagMoniker)
-	cmd.MarkFlagRequired(FlagEndpoint)
+	if err := cmd.MarkFlagRequired(FlagMoniker); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired(FlagEndpoint); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -490,8 +494,12 @@ Example:
 	cmd.Flags().String(FlagMaxPayment, "", "Maximum payment willing to pay")
 	cmd.Flags().String(FlagPreferredProvider, "", "Preferred provider address (optional)")
 
-	cmd.MarkFlagRequired(FlagContainerImage)
-	cmd.MarkFlagRequired(FlagMaxPayment)
+	if err := cmd.MarkFlagRequired(FlagContainerImage); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired(FlagMaxPayment); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -624,8 +632,12 @@ Example:
 	cmd.Flags().String(FlagLogsURL, "", "URL where execution logs can be retrieved")
 	cmd.Flags().String(FlagVerificationProof, "", "Path to verification proof file")
 
-	cmd.MarkFlagRequired(FlagOutputHash)
-	cmd.MarkFlagRequired(FlagOutputURL)
+	if err := cmd.MarkFlagRequired(FlagOutputHash); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired(FlagOutputURL); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -709,8 +721,12 @@ Example:
 	cmd.Flags().String(FlagEvidence, "", "Path to evidence file")
 	cmd.Flags().String(FlagDepositAmount, "", "Deposit amount for dispute")
 
-	cmd.MarkFlagRequired(FlagReason)
-	cmd.MarkFlagRequired(FlagDepositAmount)
+	if err := cmd.MarkFlagRequired(FlagReason); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired(FlagDepositAmount); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -776,7 +792,9 @@ Example:
 	cmd.Flags().String(FlagVote, "", "Vote option (provider_fault, requester_fault, insufficient_evidence, no_fault)")
 	cmd.Flags().String(FlagJustification, "", "Justification for the vote")
 
-	cmd.MarkFlagRequired(FlagVote)
+	if err := cmd.MarkFlagRequired(FlagVote); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -843,7 +861,9 @@ Example:
 	cmd.Flags().String(FlagEvidence, "", "Path to evidence file")
 	cmd.Flags().String(FlagReason, "", "Description of the evidence")
 
-	cmd.MarkFlagRequired(FlagEvidence)
+	if err := cmd.MarkFlagRequired(FlagEvidence); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -912,8 +932,12 @@ Example:
 	cmd.Flags().String(FlagJustification, "", "Justification for the appeal")
 	cmd.Flags().String(FlagDepositAmount, "", "Deposit amount for appeal")
 
-	cmd.MarkFlagRequired(FlagJustification)
-	cmd.MarkFlagRequired(FlagDepositAmount)
+	if err := cmd.MarkFlagRequired(FlagJustification); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired(FlagDepositAmount); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -985,7 +1009,9 @@ Example:
 	cmd.Flags().String(FlagVote, "", "Vote option (approve or reject)")
 	cmd.Flags().String(FlagJustification, "", "Justification for the vote")
 
-	cmd.MarkFlagRequired(FlagVote)
+	if err := cmd.MarkFlagRequired(FlagVote); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd

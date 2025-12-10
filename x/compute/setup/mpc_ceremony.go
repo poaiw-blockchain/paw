@@ -18,6 +18,8 @@ import (
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/constraint"
 	"golang.org/x/crypto/blake2b"
+
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 )
 
 // MPCCeremony implements a multi-party computation ceremony for trusted setup.
@@ -725,7 +727,7 @@ func (mpc *MPCCeremony) Finalize(ctx context.Context) (*groth16.ProvingKey, *gro
 	}
 
 	// Apply randomness beacon for final contribution
-	beaconRound := uint64(time.Now().Unix())
+	beaconRound := computetypes.SaturateInt64ToUint64(time.Now().Unix())
 	finalRandomness, err := mpc.beacon.GetRandomness(beaconRound)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get beacon randomness: %w", err)
@@ -813,7 +815,9 @@ func getNextPowerOfTwo(n int) int {
 
 func generateCeremonyID() string {
 	var randomBytes [16]byte
-	rand.Read(randomBytes[:])
+	if _, err := rand.Read(randomBytes[:]); err != nil {
+		panic(fmt.Errorf("failed to generate ceremony ID randomness: %w", err))
+	}
 	return fmt.Sprintf("ceremony-%x", randomBytes)
 }
 
@@ -829,7 +833,7 @@ func (mpc *MPCCeremony) computeContributionHash(contribution *Contribution) ([]b
 	}
 
 	timestampBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBytes, uint64(contribution.Timestamp.Unix()))
+	binary.BigEndian.PutUint64(timestampBytes, computetypes.SaturateInt64ToUint64(contribution.Timestamp.Unix()))
 	h.Write(timestampBytes)
 
 	return h.Sum(nil), nil

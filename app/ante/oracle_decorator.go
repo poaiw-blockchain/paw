@@ -68,9 +68,7 @@ func (od OracleDecorator) validateSubmitPrice(ctx sdk.Context, msg *oracletypes.
 		return sdkerrors.ErrInvalidRequest.Wrap("price must be positive")
 	}
 
-	goCtx := sdk.WrapSDKContext(ctx)
-
-	if err := od.keeper.ValidateFeeder(goCtx, validator, feeder); err != nil {
+	if err := od.keeper.ValidateFeeder(ctx, validator, feeder); err != nil {
 		return sdkerrors.ErrUnauthorized.Wrap(err.Error())
 	}
 
@@ -89,8 +87,7 @@ func (od OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *orac
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid delegate address: %s", err)
 	}
 
-	goCtx := sdk.WrapSDKContext(ctx)
-	isActive, err := od.keeper.IsActiveValidator(goCtx, validator)
+	isActive, err := od.keeper.IsActiveValidator(ctx, validator)
 	if err != nil {
 		return fmt.Errorf("failed to verify validator activity: %w", err)
 	}

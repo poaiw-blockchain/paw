@@ -84,7 +84,7 @@ func (nk *NodeKey) Verify(msg, sig []byte) bool {
 
 // LoadNodeKey loads a node key from a file
 func LoadNodeKey(keyFile string) (*NodeKey, error) {
-	data, err := os.ReadFile(keyFile)
+	data, err := os.ReadFile(keyFile) // #nosec G304 - key path managed by operator node home
 	if err != nil {
 		return nil, fmt.Errorf("failed to read node key file: %w", err)
 	}
@@ -183,7 +183,7 @@ func LoadOrGenNodeKey(keyFile string) (*NodeKey, error) {
 // This is a placeholder - in production, the chain ID should be loaded from genesis.json
 func DeriveChainID(genesisFile string) (string, error) {
 	// Read genesis file
-	data, err := os.ReadFile(genesisFile)
+	data, err := os.ReadFile(genesisFile) // #nosec G304 - genesis file path supplied by operator
 	if err != nil {
 		return "", fmt.Errorf("failed to read genesis file: %w", err)
 	}

@@ -381,7 +381,9 @@ func (s *Service) BanPeer(peerID reputation.PeerID, duration time.Duration) {
 	s.peerManager.RemovePeer(peerID, "banned")
 
 	if s.repManager != nil {
-		s.repManager.BanPeer(peerID, duration, "manual ban")
+		if err := s.repManager.BanPeer(peerID, duration, "manual ban"); err != nil {
+			s.logger.Error("failed to record manual ban", "peer_id", peerID, "error", err)
+		}
 	}
 }
 
@@ -390,7 +392,9 @@ func (s *Service) UnbanPeer(peerID reputation.PeerID) {
 	s.addressBook.Unban(peerID)
 
 	if s.repManager != nil {
-		s.repManager.UnbanPeer(peerID)
+		if err := s.repManager.UnbanPeer(peerID); err != nil {
+			s.logger.Error("failed to unban peer", "peer_id", peerID, "error", err)
+		}
 	}
 }
 

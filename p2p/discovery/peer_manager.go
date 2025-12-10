@@ -185,14 +185,11 @@ func (pm *PeerManager) addPeerWithConn(peerID reputation.PeerID, addr *PeerAddr,
 		pm.onPeerConnected(peerID, outbound)
 	}
 
-	// Record connection event
-	if pm.repManager != nil {
-		pm.repManager.RecordEvent(reputation.PeerEvent{
-			PeerID:    peerID,
-			EventType: reputation.EventTypeConnected,
-			Timestamp: time.Now(),
-		})
-	}
+	pm.recordReputationEvent(reputation.PeerEvent{
+		PeerID:    peerID,
+		EventType: reputation.EventTypeConnected,
+		Timestamp: time.Now(),
+	}, "peer_connected")
 
 	return nil
 }
@@ -234,14 +231,11 @@ func (pm *PeerManager) RemovePeer(peerID reputation.PeerID, reason string) {
 		pm.onPeerDisconnected(peerID)
 	}
 
-	// Record disconnection event
-	if pm.repManager != nil {
-		pm.repManager.RecordEvent(reputation.PeerEvent{
-			PeerID:    peerID,
-			EventType: reputation.EventTypeDisconnected,
-			Timestamp: time.Now(),
-		})
-	}
+	pm.recordReputationEvent(reputation.PeerEvent{
+		PeerID:    peerID,
+		EventType: reputation.EventTypeDisconnected,
+		Timestamp: time.Now(),
+	}, "peer_disconnected")
 
 	// Schedule reconnect for persistent peers
 	if conn.Persistent && pm.config.EnableAutoReconnect {
@@ -505,7 +499,9 @@ func (pm *PeerManager) performDial(addr *PeerAddr) {
 		// Add peer to connection pool
 		if addErr := pm.addPeerWithConn(addr.ID, addr, conn, true); addErr != nil {
 			pm.logger.Error("failed to add peer after dial", "peer_id", addr.ID, "error", addErr)
-			conn.Close()
+			if closeErr := conn.Close(); closeErr != nil {
+				pm.logger.Debug("error closing dialed connection", "peer_id", addr.ID, "error", closeErr)
+			}
 			result.Success = false
 			result.Error = addErr
 		} else {
@@ -545,7 +541,9 @@ func (pm *PeerManager) dialPeerTCP(addr *PeerAddr) (net.Conn, error) {
 
 	// Perform protocol handshake
 	if err := pm.performHandshake(conn, addr); err != nil {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			pm.logger.Debug("error closing connection after failed handshake", "peer_id", addr.ID, "error", err)
+		}
 		return nil, fmt.Errorf("handshake failed: %w", err)
 	}
 
@@ -633,13 +631,11 @@ func (pm *PeerManager) performHandshake(conn net.Conn, addr *PeerAddr) error {
 			"peer_address", addr.NetAddr())
 
 		// Record security event
-		if pm.repManager != nil {
-			pm.repManager.RecordEvent(reputation.PeerEvent{
-				PeerID:    addr.ID,
-				EventType: reputation.EventTypeSecurity,
-				Timestamp: time.Now(),
-			})
-		}
+		pm.recordReputationEvent(reputation.PeerEvent{
+			PeerID:    addr.ID,
+			EventType: reputation.EventTypeSecurity,
+			Timestamp: time.Now(),
+		}, "handshake_chain_mismatch")
 
 		return fmt.Errorf("chain ID mismatch: expected %s, got %s", pm.config.ChainID, peerChainIDStr)
 	}
@@ -676,7 +672,9 @@ func (pm *PeerManager) performHandshake(conn net.Conn, addr *PeerAddr) error {
 func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn) {
 	defer pm.wg.Done()
 	defer func() {
-		conn.Close()
+		if err := conn.Close(); err != nil {
+			pm.logger.Debug("error closing peer connection", "peer_id", peerID, "error", err)
+		}
 		pm.RemovePeer(peerID, "connection closed")
 	}()
 
@@ -714,18 +712,19 @@ func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn)
 					"max_allowed", maxMessageSize)
 
 				// Penalize peer in reputation system with specific event type
-				if pm.repManager != nil {
-					pm.repManager.RecordEvent(reputation.PeerEvent{
-						PeerID:    peerID,
-						EventType: reputation.EventTypeOversizedMessage,
-						Timestamp: time.Now(),
-						Data: reputation.EventData{
-							MessageSize:   int64(msgLen),
-							ViolationType: "oversized_message",
-							Details:       fmt.Sprintf("message size %d exceeds max %d", msgLen, maxMessageSize),
-						},
-					})
+				event := reputation.PeerEvent{
+					PeerID:    peerID,
+					EventType: reputation.EventTypeOversizedMessage,
+					Timestamp: time.Now(),
+					Data: reputation.EventData{
+						MessageSize:   int64(msgLen),
+						ViolationType: "oversized_message",
+						Details:       fmt.Sprintf("message size %d exceeds max %d", msgLen, maxMessageSize),
+					},
+				}
+				pm.recordReputationEvent(event, "oversized_message")
 
+				if pm.repManager != nil {
 					// Check if peer should be banned after repeated violations
 					rep, err := pm.repManager.GetReputation(peerID)
 					if err == nil && rep != nil {
@@ -747,7 +746,7 @@ func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn)
 								"oversized_messages", rep.Metrics.OversizedMessages,
 								"ban_duration", banDuration)
 
-							pm.repManager.BanPeer(peerID, banDuration, "oversized message attack")
+							pm.banPeer(peerID, banDuration, "oversized message attack")
 						}
 					}
 				}
@@ -989,8 +988,20 @@ func (pm *PeerManager) reconnectPersistent() {
 		if !lastDial.IsZero() {
 			attempts := pm.persistentAttempts[peerID]
 
-			// Exponential backoff
-			backoff := time.Duration(1<<uint(attempts)) * time.Second
+			// Exponential backoff with bounded shift to avoid overflow
+			const maxBackoffShift = 20
+			shift := attempts
+			if shift > maxBackoffShift {
+				shift = maxBackoffShift
+			}
+			backoff := time.Second
+			for j := 0; j < shift; j++ {
+				backoff *= 2
+				if backoff >= 10*time.Minute {
+					backoff = 10 * time.Minute
+					break
+				}
+			}
 			if backoff > 10*time.Minute {
 				backoff = 10 * time.Minute
 			}
@@ -1016,4 +1027,22 @@ func (pm *PeerManager) scheduleReconnect(peerID reputation.PeerID, addr *PeerAdd
 	// This would typically use a timer, but for simplicity we rely on
 	// the maintenance loop to handle reconnection
 	pm.logger.Debug("scheduled reconnect", "peer_id", peerID)
+}
+
+func (pm *PeerManager) recordReputationEvent(event reputation.PeerEvent, context string) {
+	if pm.repManager == nil {
+		return
+	}
+	if err := pm.repManager.RecordEvent(event); err != nil {
+		pm.logger.Error("failed to record reputation event", "peer_id", event.PeerID, "context", context, "error", err)
+	}
+}
+
+func (pm *PeerManager) banPeer(peerID reputation.PeerID, duration time.Duration, reason string) {
+	if pm.repManager == nil {
+		return
+	}
+	if err := pm.repManager.BanPeer(peerID, duration, reason); err != nil {
+		pm.logger.Error("failed to ban peer", "peer_id", peerID, "reason", reason, "error", err)
+	}
 }

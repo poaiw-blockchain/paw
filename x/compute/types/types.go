@@ -122,7 +122,7 @@ func (vp *VerificationProof) ComputeMessageHash(requestID uint64, resultHash str
 
 	// Include timestamp
 	timestampBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBytes, uint64(vp.Timestamp))
+	binary.BigEndian.PutUint64(timestampBytes, SaturateInt64ToUint64(vp.Timestamp))
 	hasher.Write(timestampBytes)
 
 	return hasher.Sum(nil)

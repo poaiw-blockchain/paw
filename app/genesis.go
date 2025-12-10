@@ -2,6 +2,8 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
+	stdmath "math"
 	"time"
 
 	"cosmossdk.io/math"
@@ -43,6 +45,9 @@ func NewGenesisStateFromConfig(config GenesisConfig) GenesisState {
 	mustUnmarshalJSON(genesis[slashingtypes.ModuleName], &slashingGenesis)
 	slashingGenesis.Params.SlashFractionDoubleSign = math.LegacyMustNewDecFromStr(config.DoubleSignPenalty)
 	slashingGenesis.Params.SlashFractionDowntime = math.LegacyMustNewDecFromStr(config.DowntimePenalty)
+	if config.DowntimeWindowBlocks > uint64(stdmath.MaxInt64) {
+		panic(fmt.Sprintf("downtime window blocks %d exceed int64 range", config.DowntimeWindowBlocks))
+	}
 	slashingGenesis.Params.SignedBlocksWindow = int64(config.DowntimeWindowBlocks)
 	slashingGenesis.Params.DowntimeJailDuration = time.Duration(config.DowntimeJailDurationSeconds) * time.Second
 	genesis[slashingtypes.ModuleName] = mustMarshalJSON(slashingGenesis)
@@ -86,7 +91,7 @@ type GenesisConfig struct {
 // DefaultGenesisConfig returns default configuration from node-config.yaml
 func DefaultGenesisConfig() GenesisConfig {
 	return GenesisConfig{
-		ChainID:                     "paw-testnet",
+		ChainID:                     "paw-testnet-1",
 		TotalSupply:                 50000000000000, // 50M PAW
 		MaxValidators:               125,
 		UnbondingPeriodSeconds:      1814400, // 21 days

@@ -94,7 +94,9 @@ func (c *CLI) ListPeers(minScore float64, maxResults int) error {
 		}
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush peer list: %w", err)
+	}
 	return nil
 }
 
@@ -302,7 +304,9 @@ func (c *CLI) ShowTopPeers(count int, minScore float64) error {
 		)
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush top peers table: %w", err)
+	}
 	return nil
 }
 

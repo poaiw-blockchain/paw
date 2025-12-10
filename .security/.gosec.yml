@@ -1,149 +1,64 @@
-# GoSec Security Configuration for PAW Blockchain
-
-global:
-  # Minimum severity to report (low, medium, high)
-  severity: medium
-
-  # Minimum confidence to report (low, medium, high)
-  confidence: medium
-
-  # Exclude certain test files
-  exclude_dir:
-    - testutil/
-    - tests/
-
-  # Global rules to exclude (by ID)
-  exclude_generated: true
-
-rules:
-  # Hardcoded passwords and secrets
-  G101:
-    enabled: false  # Too many false positives in tests
-
-  # SQL Injection
-  G201:
-    enabled: true
-
-  G202:
-    enabled: true
-
-  G203:
-    enabled: true
-
-  # Cryptography issues
-  G303:
-    enabled: true
-
-  G304:
-    enabled: true
-
-  G305:
-    enabled: true
-
-  # File permission issues
-  G306:
-    enabled: true
-
-  G307:
-    enabled: true
-
-  # Weak random number generation
-  G404:
-    enabled: true
-
-  # Dangerous functions
-  G501:
-    enabled: true
-
-  G502:
-    enabled: true
-
-  # TLS version issues
-  G505:
-    enabled: true
-
-  # Insecure HTTP
-  G506:
-    enabled: true
-
-  # XML parsing vulnerabilities
-  G507:
-    enabled: true
-
-  # Unsafe template execution
-  G508:
-    enabled: true
-
-  # Weak cryptography
-  G509:
-    enabled: true
-
-  # Insecure deserialization
-  G301:
-    enabled: true
-
-  G302:
-    enabled: true
-
-# CWE (Common Weakness Enumeration) mappings
-cwe_mappings:
-  G101: "CWE-798"  # Hard-coded credentials
-  G102: "CWE-307"  # Weak password recovery mechanism
-  G103: "CWE-242"  # Use of inherently dangerous functions
-  G201: "CWE-89"   # SQL Injection
-  G202: "CWE-90"   # LDAP Injection
-  G203: "CWE-94"   # Code Injection
-  G301: "CWE-502"  # Deserialization of untrusted data
-  G302: "CWE-434"  # Unrestricted upload of dangerous file type
-  G303: "CWE-338"  # Use of cryptographically weak PRNG
-  G304: "CWE-22"   # Path Traversal
-  G305: "CWE-22"   # Path Traversal
-  G306: "CWE-276"  # Incorrect default permissions
-  G307: "CWE-276"  # Incorrect default permissions
-  G401: "CWE-326"  # Inadequate encryption strength
-  G402: "CWE-327"  # Use of broken cryptographic algorithm
-  G403: "CWE-326"  # Inadequate encryption strength
-  G404: "CWE-338"  # Use of weak PRNG
-  G405: "CWE-327"  # Use of broken cryptographic algorithm
-  G406: "CWE-326"  # Inadequate encryption strength
-  G407: "CWE-378"  # Randomness not from a secure source
-  G501: "CWE-95"   # Improper Neutralization of Directives
-  G502: "CWE-426"  # Untrusted search path
-  G503: "CWE-95"   # Improper Neutralization of Directives
-  G504: "CWE-426"  # Untrusted search path
-  G505: "CWE-327"  # Use of broken cryptographic algorithm
-  G506: "CWE-295"  # Improper Certificate Validation
-  G507: "CWE-611"  # XML External Entity Reference
-  G508: "CWE-95"   # Code Injection
-  G509: "CWE-327"  # Use of broken cryptographic algorithm
-  G601: "CWE-20"   # Improper Input Validation
-
-# Audit mode - log all findings without failing
-audit: false
-
-# Parallel execution
-concurrency: 4
-
-# Report configuration
-report:
-  # Format: json, json-with-metadata, junit-xml, csv, sarif, text
-  format: json
-
-  # Include code snippets in output
-  include_code: true
-
-# Output paths
-output:
-  json: "gosec-report.json"
-  xml: "gosec-report.xml"
-
-# Exemptions and suppressions
-exemptions:
-  # Paths to completely ignore
-  paths:
-    - vendor/
-    - testutil/
-    - *_test.go
-
-  # Specific issue suppressions can be added here
-  issues: []
+{
+  "global": {
+    "severity": "medium",
+    "confidence": "medium",
+    "exclude_dir": [
+      "testutil/",
+      "tests/"
+    ],
+    "exclude_generated": true
+  },
+  "rules": {
+    "G101": {
+      "enabled": false
+    },
+    "G201": {
+      "enabled": true
+    },
+    "G202": {
+      "enabled": true
+    },
+    "G203": {
+      "enabled": true
+    },
+    "G303": {
+      "enabled": true
+    },
+    "G304": {
+      "enabled": true
+    },
+    "G305": {
+      "enabled": true
+    },
+    "G306": {
+      "enabled": true
+    },
+    "G307": {
+      "enabled": true
+    },
+    "G404": {
+      "enabled": true
+    },
+    "G501": {
+      "enabled": true
+    },
+    "G502": {
+      "enabled": true
+    },
+    "G505": {
+      "enabled": true
+    },
+    "G506": {
+      "enabled": true
+    },
+    "G507": {
+      "enabled": true
+    },
+    "G508": {
+      "enabled": true
+    },
+    "G509": {
+      "enabled": true
+    }
+  }
+}

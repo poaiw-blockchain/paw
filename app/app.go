@@ -496,7 +496,9 @@ func NewPAWApp(
 
 	// Register module services (msg and query servers)
 	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
-	app.mm.RegisterServices(app.configurator)
+	if err := app.mm.RegisterServices(app.configurator); err != nil {
+		panic(fmt.Errorf("failed to register module services: %w", err))
+	}
 
 	// Set init genesis order
 	// NOTE: The genutil module must occur after staking so that pools are
@@ -685,7 +687,9 @@ func (app *PAWApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APICon
 
 	// Register legacy REST routes (if needed)
 	if apiConfig.Swagger {
-		server.RegisterSwaggerAPI(clientCtx, apiSvr.Router, apiConfig.Swagger)
+		if err := server.RegisterSwaggerAPI(clientCtx, apiSvr.Router, apiConfig.Swagger); err != nil {
+			app.Logger().Error("failed to register swagger API routes", "err", err)
+		}
 	}
 }
 
@@ -801,7 +805,7 @@ func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []
 			panic(err)
 		}
 
-		delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
+		delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress) //nolint:staticcheck // DelegatorAddress retained for SDK compatibility during reward withdrawal.
 		if err != nil {
 			panic(err)
 		}
@@ -914,7 +918,7 @@ func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []
 		if err != nil {
 			panic(err)
 		}
-		delAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress)
+		delAddr, err := sdk.AccAddressFromBech32(del.DelegatorAddress) //nolint:staticcheck // DelegatorAddress retained for SDK compatibility during reward reset.
 		if err != nil {
 			panic(err)
 		}

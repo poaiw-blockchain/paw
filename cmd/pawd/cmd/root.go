@@ -247,7 +247,7 @@ func initAppConfig() (string, interface{}) {
 	//   own app.toml to override, or use this default value.
 	//
 	// In PAW, we set the min gas prices to 0.001upaw
-	srvCfg.MinGasPrices = "0.001upaw"
+	srvCfg.MinGasPrices = app.DefaultMinGasPrice.String()
 
 	customAppConfig := CustomAppConfig{
 		Config: *srvCfg,

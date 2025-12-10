@@ -184,9 +184,9 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 		NextEscrowNonce:  3,
 	}
 
-	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
+	require.NoError(t, k.InitGenesis(ctx, genesis))
 
-	exported, err := k.ExportGenesis(sdk.WrapSDKContext(ctx))
+	exported, err := k.ExportGenesis(ctx)
 	require.NoError(t, err)
 	require.Equal(t, genesis.Params, exported.Params)
 	require.Equal(t, genesis.GovernanceParams, exported.GovernanceParams)
@@ -206,13 +206,13 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 
 	// Verify timeout index was restored for LOCKED escrow
 	// We can verify this by checking the escrow can be retrieved
-	retrievedLockedEscrow, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), lockedEscrow.RequestId)
+	retrievedLockedEscrow, err := k.GetEscrowState(ctx, lockedEscrow.RequestId)
 	require.NoError(t, err)
 	require.Equal(t, lockedEscrow.Status, retrievedLockedEscrow.Status)
 	require.Equal(t, lockedEscrow.Amount, retrievedLockedEscrow.Amount)
 
 	// Verify released escrow
-	retrievedReleasedEscrow, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), releasedEscrow.RequestId)
+	retrievedReleasedEscrow, err := k.GetEscrowState(ctx, releasedEscrow.RequestId)
 	require.NoError(t, err)
 	require.Equal(t, types.ESCROW_STATUS_RELEASED, retrievedReleasedEscrow.Status)
 }
@@ -314,29 +314,29 @@ func TestEscrowGenesisTimeoutIndexRestoration(t *testing.T) {
 		NextEscrowNonce: 5,
 	}
 
-	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
+	require.NoError(t, k.InitGenesis(ctx, genesis))
 
 	// Verify all escrow states were imported
-	retrieved1, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 1)
+	retrieved1, err := k.GetEscrowState(ctx, 1)
 	require.NoError(t, err)
 	require.Equal(t, types.ESCROW_STATUS_LOCKED, retrieved1.Status)
 
-	retrieved2, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 2)
+	retrieved2, err := k.GetEscrowState(ctx, 2)
 	require.NoError(t, err)
 	require.Equal(t, types.ESCROW_STATUS_CHALLENGED, retrieved2.Status)
 
-	retrieved3, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 3)
+	retrieved3, err := k.GetEscrowState(ctx, 3)
 	require.NoError(t, err)
 	require.Equal(t, types.ESCROW_STATUS_RELEASED, retrieved3.Status)
 
-	retrieved4, err := k.GetEscrowState(sdk.WrapSDKContext(ctx), 4)
+	retrieved4, err := k.GetEscrowState(ctx, 4)
 	require.NoError(t, err)
 	require.Equal(t, types.ESCROW_STATUS_REFUNDED, retrieved4.Status)
 
 	// Verify timeout indexes were created for LOCKED and CHALLENGED escrows only
 	// We test this by iterating over timeouts and checking we get the right ones
 	var foundRequestIDs []uint64
-	err = k.IterateEscrowTimeouts(sdk.WrapSDKContext(ctx), baseTime.Add(5*time.Hour), func(requestID uint64, expiresAt time.Time) (bool, error) {
+	err = k.IterateEscrowTimeouts(ctx, baseTime.Add(5*time.Hour), func(requestID uint64, expiresAt time.Time) (bool, error) {
 		foundRequestIDs = append(foundRequestIDs, requestID)
 		return false, nil
 	})
@@ -344,7 +344,7 @@ func TestEscrowGenesisTimeoutIndexRestoration(t *testing.T) {
 	require.ElementsMatch(t, []uint64{1, 2}, foundRequestIDs, "Only LOCKED and CHALLENGED escrows should have timeout indexes")
 
 	// Verify nonce counter was set correctly
-	exported, err := k.ExportGenesis(sdk.WrapSDKContext(ctx))
+	exported, err := k.ExportGenesis(ctx)
 	require.NoError(t, err)
 	require.Equal(t, uint64(5), exported.NextEscrowNonce)
 }

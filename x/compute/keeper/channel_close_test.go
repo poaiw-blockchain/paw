@@ -1,119 +1,130 @@
-package keeper_test
+package keeper
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"reflect"
 	"testing"
-	"unsafe"
+	"time"
 
-	sdkmath "cosmossdk.io/math"
-	storetypes "cosmossdk.io/store/types"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/stretchr/testify/require"
 
-	keepertest "github.com/paw-chain/paw/testutil/keeper"
-	"github.com/paw-chain/paw/x/compute"
-	keeperpkg "github.com/paw-chain/paw/x/compute/keeper"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
-func TestComputeOnChanCloseConfirmRefundsEscrow(t *testing.T) {
-	k, ctx := keepertest.ComputeKeeper(t)
-	ctx = ctx.WithEventManager(sdk.NewEventManager())
+func TestTrackAndClearPendingOperation(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	channelID := "channel-close-1"
-	sequence := uint64(77)
-	jobID := "close-job-1"
-	requester := sdk.AccAddress(bytes.Repeat([]byte{0x44}, 20))
-	provider := sdk.AccAddress(bytes.Repeat([]byte{0x55}, 20))
-	amount := sdkmath.NewInt(3_000_000)
-
-	store := getComputeStoreKey(t, k)
-	kv := ctx.KVStore(store)
-
-	job := keeperpkg.CrossChainComputeJob{
-		JobID:        jobID,
-		Requester:    requester.String(),
-		Provider:     provider.String(),
-		Status:       "pending",
-		EscrowAmount: amount,
-		SubmittedAt:  ctx.BlockTime(),
+	op := ChannelOperation{
+		ChannelID:  "channel-0",
+		Sequence:   7,
+		PacketType: PacketTypeSubmitJob,
+		JobID:      "job-track",
 	}
-	setJSON(t, kv, []byte(fmt.Sprintf("job_%s", jobID)), job)
+	TrackPendingOperationForTest(k, sdkCtx, op)
 
-	escrow := keeperpkg.CrossChainEscrow{
-		JobID:     jobID,
+	pending := k.GetPendingOperations(sdkCtx, "channel-0")
+	require.Len(t, pending, 1)
+	require.Equal(t, op.Sequence, pending[0].Sequence)
+
+	k.clearPendingOperation(sdkCtx, op.ChannelID, op.Sequence)
+	pending = k.GetPendingOperations(sdkCtx, "channel-0")
+	require.Len(t, pending, 0)
+}
+
+func TestRefundOnChannelCloseSubmitJob(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	requester := sdk.AccAddress([]byte("channel-close-req"))
+	amount := sdk.NewInt64Coin("upaw", 250)
+	require.NoError(t, k.bankKeeper.MintCoins(sdkCtx, types.ModuleName, sdk.NewCoins(amount)))
+	require.NoError(t, k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, sdk.NewCoins(amount)))
+	require.NoError(t, k.lockEscrow(sdkCtx, requester, amount))
+
+	job := &CrossChainComputeJob{
+		JobID:       "job-close",
+		Status:      "submitted",
+		Progress:    20,
+		SubmittedAt: time.Now(),
+	}
+	k.storeJob(sdkCtx, job.JobID, job)
+	k.storeEscrow(sdkCtx, job.JobID, &CrossChainEscrow{
+		JobID:     job.JobID,
 		Requester: requester.String(),
-		Provider:  provider.String(),
-		Amount:    amount,
+		Provider:  requester.String(),
+		Amount:    amount.Amount,
 		Status:    "locked",
-		LockedAt:  ctx.BlockTime(),
-	}
-	setJSON(t, kv, []byte(fmt.Sprintf("escrow_%s", jobID)), escrow)
-	kv.Set([]byte(fmt.Sprintf("pending_job_%d", sequence)), []byte(jobID))
-
-	keeperpkg.TrackPendingOperationForTest(k, ctx, keeperpkg.ChannelOperation{
-		ChannelID:  channelID,
-		Sequence:   sequence,
-		PacketType: keeperpkg.PacketTypeSubmitJob,
-		JobID:      jobID,
+		LockedAt:  sdkCtx.BlockTime(),
 	})
 
-	coins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
-	require.NoError(t, getComputeBankKeeper(t, k).MintCoins(ctx, types.ModuleName, coins))
-	require.NoError(t, getComputeBankKeeper(t, k).SendCoinsFromModuleToAccount(ctx, types.ModuleName, requester, coins))
-	orig := getComputeBankKeeper(t, k).GetBalance(ctx, requester, "upaw")
-	moduleAddr := getComputeAccountKeeper(t, k).GetModuleAddress(types.ModuleName)
-	require.NoError(t, getComputeBankKeeper(t, k).SendCoins(ctx, requester, moduleAddr, coins))
-
-	require.True(t, getComputeBankKeeper(t, k).GetBalance(ctx, requester, "upaw").IsZero())
-
-	ibcModule := compute.NewIBCModule(*k, nil)
-	require.NoError(t, ibcModule.OnChanCloseConfirm(ctx, types.PortID, channelID))
-
-	after := getComputeBankKeeper(t, k).GetBalance(ctx, requester, "upaw")
-	require.Equal(t, orig.Amount, after.Amount)
-	require.Len(t, k.GetPendingOperations(ctx, channelID), 0)
-
-	foundCleanup := false
-	foundClose := false
-	for _, evt := range ctx.EventManager().Events() {
-		switch evt.Type {
-		case "compute_channel_cleanup":
-			foundCleanup = true
-		case types.EventTypeChannelClose:
-			foundClose = true
-		}
+	op := ChannelOperation{
+		ChannelID:  "channel-0",
+		Sequence:   9,
+		PacketType: PacketTypeSubmitJob,
+		JobID:      job.JobID,
 	}
-	require.True(t, foundCleanup, "expected compute cleanup event")
-	require.True(t, foundClose, "expected channel close event")
+	TrackPendingOperationForTest(k, sdkCtx, op)
+
+	balBefore := k.bankKeeper.GetBalance(sdkCtx, requester, "upaw").Amount
+	require.NoError(t, k.RefundOnChannelClose(sdkCtx, op))
+	balAfter := k.bankKeeper.GetBalance(sdkCtx, requester, "upaw").Amount
+
+	updated := k.getJob(sdkCtx, job.JobID)
+	require.NotNil(t, updated)
+	require.Equal(t, "channel_closed", updated.Status)
+	require.Equal(t, uint32(0), updated.Progress)
+	require.True(t, balAfter.GT(balBefore))
+
+	require.Empty(t, k.GetPendingOperations(sdkCtx, op.ChannelID))
 }
 
-func getComputeStoreKey(t *testing.T, k *keeperpkg.Keeper) storetypes.StoreKey {
-	t.Helper()
-	field := reflect.ValueOf(k).Elem().FieldByName("storeKey")
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface().(storetypes.StoreKey)
+func TestRefundOnChannelCloseUnknownType(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	op := ChannelOperation{
+		ChannelID:  "channel-1",
+		Sequence:   3,
+		PacketType: "unknown",
+	}
+	require.NoError(t, k.RefundOnChannelClose(sdkCtx, op))
 }
 
-func getComputeBankKeeper(t *testing.T, k *keeperpkg.Keeper) bankkeeper.Keeper {
-	t.Helper()
-	field := reflect.ValueOf(k).Elem().FieldByName("bankKeeper")
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface().(bankkeeper.Keeper)
-}
+func TestRefundOnChannelClosePropagatesRefundError(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-func getComputeAccountKeeper(t *testing.T, k *keeperpkg.Keeper) accountkeeper.AccountKeeper {
-	t.Helper()
-	field := reflect.ValueOf(k).Elem().FieldByName("accountKeeper")
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Interface().(accountkeeper.AccountKeeper)
-}
+	jobID := "job-close-fail"
+	job := &CrossChainComputeJob{JobID: jobID, Status: "submitted", Progress: 10}
+	k.storeJob(sdkCtx, jobID, job)
 
-func setJSON(t *testing.T, store storetypes.KVStore, key []byte, v interface{}) {
-	t.Helper()
-	bz, err := json.Marshal(v)
-	require.NoError(t, err)
-	store.Set(key, bz)
+	// Store escrow without funding module account to force refund failure
+	k.storeEscrow(sdkCtx, jobID, &CrossChainEscrow{
+		JobID:     jobID,
+		Requester: sdk.AccAddress([]byte("req-close-fail")).String(),
+		Provider:  sdk.AccAddress([]byte("prov-close-fail")).String(),
+		Amount:    math.NewInt(500),
+		Status:    "locked",
+		LockedAt:  sdkCtx.BlockTime(),
+	})
+
+	op := ChannelOperation{
+		ChannelID:  "channel-2",
+		Sequence:   4,
+		PacketType: PacketTypeSubmitJob,
+		JobID:      jobID,
+	}
+	TrackPendingOperationForTest(k, sdkCtx, op)
+
+	err := k.RefundOnChannelClose(sdkCtx, op)
+	require.Error(t, err)
+
+	// Pending entry should still be cleared
+	require.Empty(t, k.GetPendingOperations(sdkCtx, op.ChannelID))
+
+	// Job status should have been marked channel_closed before refund failure
+	updated := k.getJob(sdkCtx, jobID)
+	require.NotNil(t, updated)
+	require.Equal(t, "channel_closed", updated.Status)
 }

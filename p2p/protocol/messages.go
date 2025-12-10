@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"math"
 	"time"
 
 	"github.com/cosmos/gogoproto/proto"
@@ -23,6 +24,44 @@ const (
 	MaxTxSize          = 1 * 1024 * 1024  // 1 MB
 	MaxPeerAddressList = 1000
 )
+
+func ensureUint32Length(field string, length int) (uint32, error) {
+	if length < 0 || length > math.MaxUint32 {
+		return 0, fmt.Errorf("%s length %d exceeds uint32 range", field, length)
+	}
+	return uint32(length), nil
+}
+
+func ensureInt32Value(field string, value int) (int32, error) {
+	if value < math.MinInt32 || value > math.MaxInt32 {
+		return 0, fmt.Errorf("%s value %d exceeds int32 range", field, value)
+	}
+	return int32(value), nil
+}
+
+func writeStringWithLength(buf *bytes.Buffer, field, value string) error {
+	length, err := ensureUint32Length(field, len(value))
+	if err != nil {
+		return err
+	}
+	if err := binary.Write(buf, binary.BigEndian, length); err != nil {
+		return err
+	}
+	_, err = buf.WriteString(value)
+	return err
+}
+
+func writeBytesWithLength(buf *bytes.Buffer, field string, data []byte) error {
+	length, err := ensureUint32Length(field, len(data))
+	if err != nil {
+		return err
+	}
+	if err := binary.Write(buf, binary.BigEndian, length); err != nil {
+		return err
+	}
+	_, err = buf.Write(data)
+	return err
+}
 
 // MessageType defines the type of P2P message
 type MessageType uint8
@@ -195,39 +234,32 @@ func (m *HandshakeMessage) Marshal() ([]byte, error) {
 	}
 
 	// Write strings with length prefix
-	writeString := func(s string) error {
-		if err := binary.Write(buf, binary.BigEndian, uint32(len(s))); err != nil {
-			return err
-		}
-		_, err := buf.WriteString(s)
-		return err
-	}
-
-	if err := writeString(m.ChainID); err != nil {
+	if err := writeStringWithLength(buf, "chain_id", m.ChainID); err != nil {
 		return nil, err
 	}
-	if err := writeString(m.NodeID); err != nil {
+	if err := writeStringWithLength(buf, "node_id", m.NodeID); err != nil {
 		return nil, err
 	}
-	if err := writeString(m.ListenAddr); err != nil {
+	if err := writeStringWithLength(buf, "listen_addr", m.ListenAddr); err != nil {
 		return nil, err
 	}
 
 	// Write capabilities
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Capabilities))); err != nil {
+	capCount, err := ensureUint32Length("capabilities", len(m.Capabilities))
+	if err != nil {
 		return nil, err
 	}
-	for _, cap := range m.Capabilities {
-		if err := writeString(cap); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, capCount); err != nil {
+		return nil, err
+	}
+	for i, cap := range m.Capabilities {
+		if err := writeStringWithLength(buf, fmt.Sprintf("capability_%d", i), cap); err != nil {
 			return nil, err
 		}
 	}
 
 	// Write genesis hash
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.GenesisHash))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.GenesisHash); err != nil {
+	if err := writeBytesWithLength(buf, "genesis_hash", m.GenesisHash); err != nil {
 		return nil, err
 	}
 
@@ -235,10 +267,7 @@ func (m *HandshakeMessage) Marshal() ([]byte, error) {
 	if err := binary.Write(buf, binary.BigEndian, m.BestHeight); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.BestHash))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.BestHash); err != nil {
+	if err := writeBytesWithLength(buf, "best_hash", m.BestHash); err != nil {
 		return nil, err
 	}
 
@@ -363,18 +392,10 @@ func (m *HandshakeAckMessage) Marshal() ([]byte, error) {
 		return nil, err
 	}
 
-	writeString := func(s string) error {
-		if err := binary.Write(buf, binary.BigEndian, uint32(len(s))); err != nil {
-			return err
-		}
-		_, err := buf.WriteString(s)
-		return err
-	}
-
-	if err := writeString(m.Reason); err != nil {
+	if err := writeStringWithLength(buf, "reason", m.Reason); err != nil {
 		return nil, err
 	}
-	if err := writeString(m.NodeID); err != nil {
+	if err := writeStringWithLength(buf, "node_id", m.NodeID); err != nil {
 		return nil, err
 	}
 
@@ -448,24 +469,15 @@ func (m *BlockMessage) Marshal() ([]byte, error) {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Hash))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.Hash); err != nil {
+	if err := writeBytesWithLength(buf, "block_hash", m.Hash); err != nil {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.BlockData))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.BlockData); err != nil {
+	if err := writeBytesWithLength(buf, "block_data", m.BlockData); err != nil {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Source))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.WriteString(m.Source); err != nil {
+	if err := writeStringWithLength(buf, "block_source", m.Source); err != nil {
 		return nil, err
 	}
 
@@ -544,24 +556,15 @@ func (m *TxMessage) Validate() error {
 func (m *TxMessage) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.TxHash))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.TxHash); err != nil {
+	if err := writeBytesWithLength(buf, "tx_hash", m.TxHash); err != nil {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.TxData))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.TxData); err != nil {
+	if err := writeBytesWithLength(buf, "tx_data", m.TxData); err != nil {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Source))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.WriteString(m.Source); err != nil {
+	if err := writeStringWithLength(buf, "tx_source", m.Source); err != nil {
 		return nil, err
 	}
 
@@ -636,22 +639,20 @@ func (m *PeerListMessage) Validate() error {
 func (m *PeerListMessage) Marshal() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Peers))); err != nil {
+	peerCount, err := ensureUint32Length("peer_list", len(m.Peers))
+	if err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, peerCount); err != nil {
 		return nil, err
 	}
 
-	for _, peer := range m.Peers {
-		if err := binary.Write(buf, binary.BigEndian, uint32(len(peer.ID))); err != nil {
-			return nil, err
-		}
-		if _, err := buf.WriteString(peer.ID); err != nil {
+	for i, peer := range m.Peers {
+		if err := writeStringWithLength(buf, fmt.Sprintf("peer_id_%d", i), peer.ID); err != nil {
 			return nil, err
 		}
 
-		if err := binary.Write(buf, binary.BigEndian, uint32(len(peer.IP))); err != nil {
-			return nil, err
-		}
-		if _, err := buf.WriteString(peer.IP); err != nil {
+		if err := writeStringWithLength(buf, fmt.Sprintf("peer_ip_%d", i), peer.IP); err != nil {
 			return nil, err
 		}
 
@@ -746,20 +747,25 @@ func (m *StatusMessage) Marshal() ([]byte, error) {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.BestHash))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(m.BestHash); err != nil {
+	if err := writeBytesWithLength(buf, "status_best_hash", m.BestHash); err != nil {
 		return nil, err
 	}
 
 	if err := binary.Write(buf, binary.BigEndian, m.Timestamp); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.BigEndian, int32(m.TxPoolSize)); err != nil {
+	txPoolSize, err := ensureInt32Value("tx_pool_size", m.TxPoolSize)
+	if err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.BigEndian, int32(m.PeerCount)); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, txPoolSize); err != nil {
+		return nil, err
+	}
+	peerCount, err := ensureInt32Value("peer_count", m.PeerCount)
+	if err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buf, binary.BigEndian, peerCount); err != nil {
 		return nil, err
 	}
 
@@ -844,10 +850,7 @@ func (m *ErrorMessage) Marshal() ([]byte, error) {
 		return nil, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(m.Message))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.WriteString(m.Message); err != nil {
+	if err := writeStringWithLength(buf, "error_message", m.Message); err != nil {
 		return nil, err
 	}
 
@@ -896,6 +899,10 @@ func MarshalEnvelope(msg Message) (*MessageEnvelope, error) {
 	}
 
 	checksum := crc32.ChecksumIEEE(payload)
+	payloadLen, err := ensureUint32Length("payload", len(payload))
+	if err != nil {
+		return nil, err
+	}
 
 	envelope := &MessageEnvelope{
 		Header: MessageHeader{
@@ -903,7 +910,7 @@ func MarshalEnvelope(msg Message) (*MessageEnvelope, error) {
 			Type:       msg.Type(),
 			Flags:      0,
 			Timestamp:  time.Now().Unix(),
-			PayloadLen: uint32(len(payload)),
+			PayloadLen: payloadLen,
 			Checksum:   checksum,
 		},
 		Payload: payload,

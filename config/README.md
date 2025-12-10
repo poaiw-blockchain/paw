@@ -6,7 +6,18 @@ This directory contains configuration templates for PAW blockchain nodes.
 
 - `node-config.toml.template` - Full node configuration template
 - `validator-config.toml.template` - Validator node configuration template (security hardened)
+- `app.toml.template` - Application configuration template (gas price, pruning, API/gRPC)
 - `genesis-template.json` - Genesis file template
+
+## Baseline Values (testnet-ready)
+
+- Chain ID: `paw-testnet-1` (set explicitly when running `pawd init`)
+- Bech32 prefix: `paw`
+- Base denom: `upaw` (display: `PAW`)
+- Minimum gas price: `0.001upaw`
+- Pruning/min-retain: `pruning = custom`, `pruning-keep-recent = 500000`, `pruning-interval = 10`, `min-retain-blocks = 500000`
+- Default keyring backend: `os` (native OS keyring)
+- RPC defaults: bound to `127.0.0.1:26657`, CORS disabled (`[]`), `filter_peers = true`, limited gRPC/RPC connection caps.
 
 ## Environment Variables
 
@@ -14,9 +25,10 @@ Create a `.env` file with the following variables:
 
 ```bash
 # Chain Configuration
-CHAIN_ID=paw-1
+CHAIN_ID=paw-testnet-1
 MONIKER=my-node
 MINIMUM_GAS_PRICES=0.001upaw
+MIN_RETAIN_BLOCKS=500000
 
 # Network Configuration
 SEEDS=seed1@seed1.paw.network:26656,seed2@seed2.paw.network:26656
@@ -45,9 +57,10 @@ STATE_SYNC_TRUST_HASH=
 
 ```bash
 # Initialize node
-pawd init my-node --chain-id paw-1 --home ~/.paw
+pawd init my-node --chain-id paw-testnet-1 --home ~/.paw
 
-# Copy configuration template
+# Copy configuration templates
+cp app.toml.template ~/.paw/config/app.toml
 cp node-config.toml.template ~/.paw/config/config.toml
 
 # Edit configuration
@@ -64,7 +77,7 @@ pawd start --home ~/.paw
 
 ```bash
 # Initialize validator
-pawd init my-validator --chain-id paw-1 --home ~/.paw
+pawd init my-validator --chain-id paw-testnet-1 --home ~/.paw
 
 # Copy validator configuration template
 cp validator-config.toml.template ~/.paw/config/config.toml
@@ -81,6 +94,33 @@ cp ~/.paw/config/node_key.json ~/validator-keys-backup/
 
 # Start validator
 pawd start --home ~/.paw
+
+## Deterministic Testnet Init (Scripted)
+
+Use the helper to build `pawd`, initialize the home, apply hardened templates, and patch seeds/peers deterministically:
+
+```bash
+./scripts/init-testnet.sh <moniker>
+# Optional environment overrides:
+#   PAW_HOME=~/.paw-testnet   PAW_CHAIN_ID=paw-testnet-1
+#   SEEDS="id1@seed1:26656,id2@seed2:26656"   PERSISTENT_PEERS="id3@p2p:26656"
+#   EXTERNAL_ADDRESS="1.2.3.4:26656"          MIN_GAS_PRICES=0.001upaw
+#   PRUNING_KEEP_RECENT=500000 PRUNING_INTERVAL=10 MIN_RETAIN_BLOCKS=500000
+#   OVERWRITE=true   MONIKER=my-node
+```
+
+The script **never touches git** and writes only to `${PAW_HOME}` (default `~/.paw`). Do not commit any files from `${PAW_HOME}`; back up keys and data separately per `docs/DISASTER_RECOVERY.md`.
+
+## Genesis Template
+
+`config/genesis-template.json` is generated from `pawd init` with the hardened consensus/evidence settings above for `paw-testnet-1`. Use it as the base for testnet genesis creation (fund accounts, tweak module params) and keep the canonical format (numeric fields serialized as strings).
+
+## Network Hardening Defaults
+
+- RPC bound to `127.0.0.1:26657` with CORS disabled; expose via a reverse proxy if remote access is needed.
+- `filter_peers = true`, `addr_book_strict = true`, conservative connection limits (gRPC/RPC caps reduced).
+- Set seeds/persistent peers via `SEEDS` / `PERSISTENT_PEERS` when running `scripts/init-testnet.sh` (or edit `config.toml` manually). For private/internal testnets, leave `SEEDS` empty and set `PERSISTENT_PEERS` to the known validator ring only.
+- Leave `pprof_laddr` empty unless secured behind auth.
 ```
 
 ## Security Best Practices
@@ -141,6 +181,12 @@ max_num_outbound_peers = 5
 size = 2000
 cache_size = 5000
 ```
+
+## Observability
+
+- Prometheus: enable in `config.toml` (`prometheus = true`, `prometheus_listen_addr = ":26660"`); keep behind firewall/proxy.
+- Logging: use `log_format = "json"` for aggregation; apply logrotate to `pawd` output (see `docs/OBSERVABILITY.md`).
+- Health checks: `RPC_ENDPOINT=http://127.0.0.1:26657 ./scripts/health-check.sh` probes `/status`, `/net_info`, `/validators` and fails fast on lag/zero peers/empty validator set.
 
 ## Troubleshooting
 

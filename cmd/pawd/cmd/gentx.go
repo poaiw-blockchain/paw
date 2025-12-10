@@ -166,6 +166,7 @@ Example:
 			}
 
 			// Ensure delegator address is populated (constructor defaults to validator address only).
+			//lint:ignore SA1019 DelegatorAddress remains for MsgCreateValidator compatibility in upstream SDK.
 			msg.DelegatorAddress = addr.String()
 
 			// ValidateBasic was removed in SDK v0.50 - validation happens in message server
@@ -194,12 +195,12 @@ Example:
 
 			// Write gentx to file
 			gentxDir := filepath.Join(config.RootDir, "config", "gentx")
-			if err := os.MkdirAll(gentxDir, 0755); err != nil {
+			if err := os.MkdirAll(gentxDir, 0o750); err != nil {
 				return fmt.Errorf("failed to create gentx dir: %w", err)
 			}
 
 			gentxFile := filepath.Join(gentxDir, fmt.Sprintf("gentx-%s.json", nodeID))
-			if err := os.WriteFile(gentxFile, txBz, 0644); err != nil {
+			if err := os.WriteFile(gentxFile, txBz, 0o600); err != nil {
 				return fmt.Errorf("failed to write gentx file: %w", err)
 			}
 

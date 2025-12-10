@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
@@ -14,7 +15,9 @@ func main() {
 	// This runs in background goroutine
 	if err := StartPrometheusServer(36660); err != nil {
 		// Log error but don't fail - metrics are optional
-		os.Stderr.WriteString("Warning: Failed to start Prometheus metrics server\n")
+		if _, writeErr := os.Stderr.WriteString("Warning: Failed to start Prometheus metrics server\n"); writeErr != nil {
+			fmt.Fprintf(os.Stderr, "failed to log metrics warning: %v\n", writeErr)
+		}
 	}
 
 	rootCmd := cmd.NewRootCmd()

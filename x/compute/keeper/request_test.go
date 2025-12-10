@@ -529,13 +529,13 @@ func TestIterateRequests(t *testing.T) {
 
 // TestRequestTimestamps tests timestamp tracking for requests
 func TestRequestTimestamps(t *testing.T) {
-	k, sdkCtx, ctx := newComputeKeeperCtx(t)
+	k, sdkCtx, _ := newComputeKeeperCtx(t)
 	requester := createTestRequester(t)
 	_ = setupProviderForRequests(t, k, sdkCtx)
 
 	blockTime := time.Now().UTC()
 	sdkCtx = sdkCtx.WithBlockTime(blockTime)
-	ctx = sdk.WrapSDKContext(sdkCtx)
+	ctx := sdkCtx
 
 	specs := createValidComputeSpec()
 	containerImage := "ubuntu:22.04"

@@ -18,7 +18,6 @@ type MockPeerManager struct {
 	malicious   map[string]bool
 	queryDelay  time.Duration
 	chunkDelay  time.Duration
-	failureRate float64 // 0.0 to 1.0
 	reliability map[string]float64
 }
 

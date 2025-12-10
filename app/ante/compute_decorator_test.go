@@ -490,6 +490,7 @@ func (suite *ComputeDecoratorTestSuite) TestValidateSubmitResult_GasConsumption(
 	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
 		return ctx, nil
 	})
+	suite.Require().NoError(err)
 
 	gasAfterDecorator := suite.ctx.GasMeter().GasConsumed()
 	// Gas consumed includes overhead from GetProvider and GetRequest calls

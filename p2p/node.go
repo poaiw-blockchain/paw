@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -10,6 +11,20 @@ import (
 	"github.com/paw-chain/paw/p2p/discovery"
 	"github.com/paw-chain/paw/p2p/reputation"
 )
+
+func toUint16Length(field string, length int) (uint16, error) {
+	if length < 0 || length > math.MaxUint16 {
+		return 0, fmt.Errorf("%s length %d exceeds uint16 range", field, length)
+	}
+	return uint16(length), nil
+}
+
+func toUint32Length(field string, length int) (uint32, error) {
+	if length < 0 || length > math.MaxUint32 {
+		return 0, fmt.Errorf("%s length %d exceeds uint32 range", field, length)
+	}
+	return uint32(length), nil
+}
 
 // Node represents a P2P network node
 type Node struct {
@@ -233,7 +248,9 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 	if err != nil {
 		cancel()
 		if repManager != nil {
-			repManager.Close()
+			if closeErr := repManager.Close(); closeErr != nil {
+				logger.Error("failed to close reputation manager", "error", closeErr)
+			}
 		}
 		return nil, fmt.Errorf("failed to create discovery service: %w", err)
 	}
@@ -373,7 +390,7 @@ func (n *Node) handlePeerMessage(peerID reputation.PeerID, msgType string, data 
 
 		// Report misbehavior to reputation system
 		if n.repManager != nil {
-			n.repManager.RecordEvent(reputation.PeerEvent{
+			event := reputation.PeerEvent{
 				PeerID:    peerID,
 				EventType: reputation.EventTypeOversizedMessage,
 				Timestamp: time.Now(),
@@ -382,7 +399,10 @@ func (n *Node) handlePeerMessage(peerID reputation.PeerID, msgType string, data 
 					ViolationType: "oversized_message",
 					Details:       fmt.Sprintf("message size %d exceeds max %d for type %s", len(data), maxSize, msgType),
 				},
-			})
+			}
+			if err := n.repManager.RecordEvent(event); err != nil {
+				n.logger.Error("failed to record oversized message event", "peer_id", peerID, "error", err)
+			}
 		}
 
 		// Disconnect peer for repeated violations
@@ -424,8 +444,16 @@ func (n *Node) SendMessage(peerID reputation.PeerID, msgType string, data []byte
 
 	// Serialize message: [4 bytes length][msgType length (2 bytes)][msgType][data]
 	msgTypeBytes := []byte(msgType)
-	msgTypeLen := uint16(len(msgTypeBytes))
-	totalLen := uint32(2 + len(msgTypeBytes) + len(data))
+	msgTypeLen, err := toUint16Length("message type", len(msgTypeBytes))
+	if err != nil {
+		return err
+	}
+
+	totalPayloadLen := 2 + len(msgTypeBytes) + len(data)
+	totalLen, err := toUint32Length("message payload", totalPayloadLen)
+	if err != nil {
+		return err
+	}
 
 	// Create message buffer
 	buf := make([]byte, 4+2+len(msgTypeBytes)+len(data))
@@ -479,6 +507,9 @@ func (n *Node) SendMessage(peerID reputation.PeerID, msgType string, data []byte
 
 	// Update peer activity and traffic
 	n.discoveryService.UpdatePeerActivity(peerID)
+	if written < 0 {
+		return fmt.Errorf("invalid write length %d", written)
+	}
 	peerMgr.UpdateTraffic(peerID, uint64(written), 0)
 
 	// Update message counter
@@ -708,34 +739,6 @@ func (n *Node) handlePeerDisconnected(peerID reputation.PeerID) {
 	if n.onPeerDisconnected != nil {
 		n.onPeerDisconnected(peerID)
 	}
-}
-
-// handleMessage handles incoming messages
-func (n *Node) handleMessage(peerID reputation.PeerID, msgType string, data []byte) error {
-	n.handlerMu.RLock()
-	handler, exists := n.messageHandlers[msgType]
-	n.handlerMu.RUnlock()
-
-	if !exists {
-		n.logger.Warn("no handler for message type",
-			"type", msgType,
-			"peer_id", peerID)
-		return fmt.Errorf("no handler for message type: %s", msgType)
-	}
-
-	// Update peer activity
-	n.discoveryService.UpdatePeerActivity(peerID)
-
-	// Call handler
-	if err := handler(peerID, data); err != nil {
-		n.logger.Error("message handler error",
-			"type", msgType,
-			"peer_id", peerID,
-			"error", err)
-		return err
-	}
-
-	return nil
 }
 
 // GetDiscoveryService returns the discovery service (for testing/inspection)

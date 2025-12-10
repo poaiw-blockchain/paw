@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	errorsmod "cosmossdk.io/errors"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/compute/types"
@@ -17,8 +18,8 @@ import (
 
 // TASK 99: ZK proof format version checking
 const (
-	ZKProofVersion1 = "1.0"
-	ZKProofVersion2 = "2.0"
+	ZKProofVersion1  = "1.0"
+	ZKProofVersion2  = "2.0"
 	CurrentZKVersion = ZKProofVersion2
 )
 
@@ -59,10 +60,14 @@ func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) 
 	// Extract provider address
 	providerAddress := sdk.AccAddress(resultData[40:60])
 
+	// Derive the public inputs expected by the circuit (request + hash + provider hash)
+	providerHash := sha256.Sum256(providerAddress.Bytes())
+	publicInputs := serializePublicInputs(requestID, resultHash, providerHash[:])
+
 	// Create ZKProof struct
 	zkProof := &types.ZKProof{
 		Proof:        proof,
-		PublicInputs: resultData,
+		PublicInputs: publicInputs,
 		ProofSystem:  "groth16",
 		CircuitId:    "compute-verification-v1",
 		GeneratedAt:  ctx.BlockTime(),
@@ -123,19 +128,19 @@ func (k Keeper) VerifyZKProofWithParams(
 func (k Keeper) ValidateZKProofVersion(proof *types.ZKProof) error {
 	// Version check disabled as ZKProof struct does not have Version field
 	/*
-	if proof.Version == "" {
-		return fmt.Errorf("ZK proof missing version information")
-	}
+		if proof.Version == "" {
+			return fmt.Errorf("ZK proof missing version information")
+		}
 
-	supportedVersions := map[string]bool{
-		ZKProofVersion1: true,
-		ZKProofVersion2: true,
-	}
+		supportedVersions := map[string]bool{
+			ZKProofVersion1: true,
+			ZKProofVersion2: true,
+		}
 
-	if !supportedVersions[proof.Version] {
-		return fmt.Errorf("unsupported ZK proof version: %s (supported: %v)",
-			proof.Version, supportedVersions)
-	}
+		if !supportedVersions[proof.Version] {
+			return fmt.Errorf("unsupported ZK proof version: %s (supported: %v)",
+				proof.Version, supportedVersions)
+		}
 	*/
 
 	return nil
@@ -143,14 +148,14 @@ func (k Keeper) ValidateZKProofVersion(proof *types.ZKProof) error {
 
 // TASK 100: Trusted setup verification for ZK circuits
 type TrustedSetup struct {
-	CircuitID       string
-	SetupHash       string
-	Contributors    []string
+	CircuitID         string
+	SetupHash         string
+	Contributors      []string
 	ContributionCount int
-	Finalized       bool
-	FinalizedAt     time.Time
-	VerificationKey []byte
-	ProvingKey      []byte
+	Finalized         bool
+	FinalizedAt       time.Time
+	VerificationKey   []byte
+	ProvingKey        []byte
 }
 
 func (k Keeper) VerifyTrustedSetup(ctx context.Context, circuitID string) error {
@@ -202,6 +207,14 @@ func (k Keeper) GetTrustedSetup(ctx context.Context, circuitID string) (*Trusted
 
 	if contribCount, ok := setupData["contribution_count"].(float64); ok {
 		setup.ContributionCount = int(contribCount)
+	}
+
+	if contributors, ok := setupData["contributors"].([]interface{}); ok {
+		for _, c := range contributors {
+			if s, ok := c.(string); ok {
+				setup.Contributors = append(setup.Contributors, s)
+			}
+		}
 	}
 
 	return setup, nil
@@ -269,11 +282,11 @@ func (k Keeper) ValidatePublicInputs(proof *types.ZKProof, expectedInputCount in
 
 // TASK 103: ZK proof caching for repeated verifications
 type ProofCacheEntry struct {
-	ProofHash      string
-	Verified       bool
-	VerifiedAt     time.Time
+	ProofHash       string
+	Verified        bool
+	VerifiedAt      time.Time
 	VerificationGas uint64
-	RequestID      uint64
+	RequestID       uint64
 }
 
 func (k Keeper) GetCachedProofVerification(ctx context.Context, proofHash string) (*ProofCacheEntry, error) {
@@ -355,6 +368,11 @@ func (k Keeper) VerifyProofWithCache(
 	proof *types.ZKProof,
 	requestID uint64,
 ) (bool, error) {
+	// Validate proof is not nil
+	if proof == nil {
+		return false, errorsmod.Wrap(types.ErrInvalidProof, "proof cannot be nil")
+	}
+
 	// Calculate proof hash
 	proofHash := k.calculateProofHash(proof)
 
@@ -521,13 +539,11 @@ func (k Keeper) ScheduleKeyRotation(
 
 func (k Keeper) CheckAndPerformKeyRotation(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	store := sdkCtx.KVStore(k.storeKey)
-
 	now := sdkCtx.BlockTime()
 	rotatedCount := 0
 
 	// Iterate through all rotation schedules
-	store = sdkCtx.KVStore(k.storeKey)
+	store := sdkCtx.KVStore(k.storeKey)
 	iterator := storetypes.KVStorePrefixIterator(store, []byte("circuit_stats_"))
 	defer iterator.Close()
 
@@ -600,16 +616,16 @@ func (k Keeper) rotateKeys(ctx context.Context, circuitID string) error {
 
 // TASK 106-110: MPC ceremony management
 type MPCCeremony struct {
-	ID               string
-	CircuitID        string
-	Phase            string // setup, contribution, verification, finalized
-	Contributors     []string
+	ID                 string
+	CircuitID          string
+	Phase              string // setup, contribution, verification, finalized
+	Contributors       []string
 	TotalContributions int
-	MinContributions int
-	StartedAt        time.Time
-	FinalizedAt      *time.Time
-	CurrentHash      string
-	FinalHash        string
+	MinContributions   int
+	StartedAt          time.Time
+	FinalizedAt        *time.Time
+	CurrentHash        string
+	FinalHash          string
 }
 
 func (k Keeper) InitializeMPCCeremony(
@@ -649,13 +665,13 @@ func (k Keeper) storeMPCCeremony(ctx context.Context, ceremony *MPCCeremony) err
 	store := sdkCtx.KVStore(k.storeKey)
 
 	ceremonyData := map[string]interface{}{
-		"id":           ceremony.ID,
-		"circuit_id":   ceremony.CircuitID,
-		"phase":        ceremony.Phase,
-		"contributors": ceremony.Contributors,
+		"id":            ceremony.ID,
+		"circuit_id":    ceremony.CircuitID,
+		"phase":         ceremony.Phase,
+		"contributors":  ceremony.Contributors,
 		"total_contrib": ceremony.TotalContributions,
-		"min_contrib":  ceremony.MinContributions,
-		"started_at":   ceremony.StartedAt.Unix(),
+		"min_contrib":   ceremony.MinContributions,
+		"started_at":    ceremony.StartedAt.Unix(),
 	}
 
 	bz, err := json.Marshal(ceremonyData)

@@ -445,7 +445,7 @@ func ImportKeyCommand() *cobra.Command {
 			keyfile := args[1]
 
 			// Read key file
-			armor, err := os.ReadFile(keyfile)
+			armor, err := os.ReadFile(keyfile) // #nosec G304 - key import path provided by operator
 			if err != nil {
 				return fmt.Errorf("failed to read key file: %w", err)
 			}

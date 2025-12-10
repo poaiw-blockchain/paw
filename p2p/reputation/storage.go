@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -129,8 +130,11 @@ func (fs *FileStorage) Load(peerID PeerID) (*PeerReputation, error) {
 	fs.mu.RUnlock()
 
 	// Load from disk
-	filePath := fs.getPeerFilePath(peerID)
-	data, err := os.ReadFile(filePath)
+	filePath, err := fs.getPeerFilePath(peerID)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(filePath) // #nosec G304 - reputation files live under operator-controlled dataDir
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil // Peer not found
@@ -164,8 +168,12 @@ func (fs *FileStorage) LoadAll() (map[PeerID]*PeerReputation, error) {
 			continue
 		}
 
-		filePath := filepath.Join(fs.dataDir, entry.Name())
-		data, err := os.ReadFile(filePath)
+		filePath, err := fs.joinDataPath(entry.Name())
+		if err != nil {
+			fs.logger.Error("invalid peer file path", "file", entry.Name(), "error", err)
+			continue
+		}
+		data, err := os.ReadFile(filePath) // #nosec G304 - reputation files live under operator-controlled dataDir
 		if err != nil {
 			fs.logger.Error("failed to read peer file", "file", entry.Name(), "error", err)
 			continue
@@ -197,7 +205,10 @@ func (fs *FileStorage) Delete(peerID PeerID) error {
 	delete(fs.writeCache, peerID)
 
 	// Remove from disk
-	filePath := fs.getPeerFilePath(peerID)
+	filePath, err := fs.getPeerFilePath(peerID)
+	if err != nil {
+		return err
+	}
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete peer file: %w", err)
 	}
@@ -211,7 +222,10 @@ func (fs *FileStorage) SaveSnapshot(snapshot *ReputationSnapshot) error {
 	defer fs.mu.Unlock()
 
 	filename := fmt.Sprintf("snapshot_%d.json", snapshot.Timestamp.Unix())
-	filePath := filepath.Join(fs.snapshotDir, filename)
+	filePath, err := fs.joinSnapshotPath(filename)
+	if err != nil {
+		return err
+	}
 
 	data, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
@@ -255,8 +269,11 @@ func (fs *FileStorage) LoadLatestSnapshot() (*ReputationSnapshot, error) {
 		return nil, nil
 	}
 
-	filePath := filepath.Join(fs.snapshotDir, latestEntry.Name())
-	data, err := os.ReadFile(filePath)
+	filePath, err := fs.joinSnapshotPath(latestEntry.Name())
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(filePath) // #nosec G304 - reputation files live under operator-controlled dataDir
 	if err != nil {
 		return nil, fmt.Errorf("failed to read snapshot: %w", err)
 	}
@@ -287,7 +304,10 @@ func (fs *FileStorage) Cleanup(olderThan time.Time) error {
 			continue
 		}
 
-		filePath := filepath.Join(fs.dataDir, entry.Name())
+		filePath, err := fs.joinDataPath(entry.Name())
+		if err != nil {
+			continue
+		}
 		info, err := entry.Info()
 		if err != nil {
 			continue
@@ -311,7 +331,10 @@ func (fs *FileStorage) Cleanup(olderThan time.Time) error {
 	if len(snapshotEntries) > 30 {
 		// Sort by name (timestamp-based) and remove oldest
 		for i := 0; i < len(snapshotEntries)-30; i++ {
-			filePath := filepath.Join(fs.snapshotDir, snapshotEntries[i].Name())
+			filePath, err := fs.joinSnapshotPath(snapshotEntries[i].Name())
+			if err != nil {
+				continue
+			}
 			if err := os.Remove(filePath); err != nil {
 				fs.logger.Error("failed to remove old snapshot", "file", snapshotEntries[i].Name(), "error", err)
 			}
@@ -369,7 +392,10 @@ func (fs *FileStorage) flushCache() error {
 
 // saveToDisk saves a single peer to disk (must be called with lock held)
 func (fs *FileStorage) saveToDisk(rep *PeerReputation) error {
-	filePath := fs.getPeerFilePath(rep.PeerID)
+	filePath, err := fs.getPeerFilePath(rep.PeerID)
+	if err != nil {
+		return err
+	}
 
 	data, err := json.MarshalIndent(rep, "", "  ")
 	if err != nil {
@@ -384,9 +410,27 @@ func (fs *FileStorage) saveToDisk(rep *PeerReputation) error {
 }
 
 // getPeerFilePath returns the file path for a peer
-func (fs *FileStorage) getPeerFilePath(peerID PeerID) string {
+func (fs *FileStorage) getPeerFilePath(peerID PeerID) (string, error) {
 	filename := fmt.Sprintf("%s.json", peerID)
-	return filepath.Join(fs.dataDir, filename)
+	return fs.joinDataPath(filename)
+}
+
+func (fs *FileStorage) joinDataPath(name string) (string, error) {
+	return joinSafe(fs.dataDir, name)
+}
+
+func (fs *FileStorage) joinSnapshotPath(name string) (string, error) {
+	return joinSafe(fs.snapshotDir, name)
+}
+
+func joinSafe(base, name string) (string, error) {
+	path := filepath.Join(base, name)
+	cleanBase := filepath.Clean(base)
+	cleanPath := filepath.Clean(path)
+	if cleanPath == cleanBase || strings.HasPrefix(cleanPath, cleanBase+string(os.PathSeparator)) {
+		return cleanPath, nil
+	}
+	return "", fmt.Errorf("path %s escapes base %s", cleanPath, cleanBase)
 }
 
 // backgroundFlusher periodically flushes the cache

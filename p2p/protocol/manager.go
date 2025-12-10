@@ -82,7 +82,6 @@ type ProtocolManager struct {
 
 	// Protocol negotiation
 	supportedVersions []uint8
-	versionsMu        sync.RWMutex
 
 	// Control
 	ctx    context.Context
@@ -229,7 +228,9 @@ func (pm *ProtocolManager) ConnectPeer(address string) error {
 
 	peer, err := pm.setupPeer(conn, false)
 	if err != nil {
-		conn.Close()
+		if closeErr := conn.Close(); closeErr != nil {
+			pm.logger.Error("error closing failed outbound connection", "error", closeErr)
+		}
 		pm.peersMu.Lock()
 		pm.outboundCount--
 		pm.peersMu.Unlock()
@@ -264,7 +265,9 @@ func (pm *ProtocolManager) DisconnectPeer(peerID string) error {
 
 	peer.cancel()
 	peer.wg.Wait()
-	peer.Conn.Close()
+	if err := peer.Conn.Close(); err != nil {
+		pm.logger.Error("error closing peer connection", "peer_id", peerID, "error", err)
+	}
 
 	pm.gossip.RemovePeer(peerID)
 	pm.handlers.CleanupPeer(peerID)
@@ -381,7 +384,9 @@ func (pm *ProtocolManager) stopListener() {
 	defer pm.listenerMu.Unlock()
 
 	if pm.listener != nil {
-		pm.listener.Close()
+		if err := pm.listener.Close(); err != nil {
+			pm.logger.Error("error closing listener", "error", err)
+		}
 		pm.listener = nil
 	}
 }
@@ -402,12 +407,14 @@ func (pm *ProtocolManager) acceptLoop() {
 		}
 
 		// Check if we can accept more inbound peers
-		pm.peersMu.Lock()
-		if pm.inboundCount >= pm.config.MaxInboundPeers {
-			pm.peersMu.Unlock()
-			conn.Close()
-			continue
-		}
+			pm.peersMu.Lock()
+			if pm.inboundCount >= pm.config.MaxInboundPeers {
+				pm.peersMu.Unlock()
+				if err := conn.Close(); err != nil {
+					pm.logger.Error("error closing inbound connection", "error", err)
+				}
+				continue
+			}
 		pm.inboundCount++
 		pm.peersMu.Unlock()
 
@@ -416,7 +423,9 @@ func (pm *ProtocolManager) acceptLoop() {
 			peer, err := pm.setupPeer(conn, true)
 			if err != nil {
 				pm.logger.Error("failed to setup peer", "error", err)
-				conn.Close()
+				if closeErr := conn.Close(); closeErr != nil {
+					pm.logger.Error("error closing rejected connection", "error", closeErr)
+				}
 				pm.peersMu.Lock()
 				pm.inboundCount--
 				pm.peersMu.Unlock()
@@ -433,7 +442,10 @@ func (pm *ProtocolManager) acceptLoop() {
 
 func (pm *ProtocolManager) setupPeer(conn net.Conn, inbound bool) (*Peer, error) {
 	// Set deadline for handshake
-	conn.SetDeadline(time.Now().Add(pm.config.HandshakeTimeout))
+	if err := conn.SetDeadline(time.Now().Add(pm.config.HandshakeTimeout)); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("failed to set handshake deadline: %w", err)
+	}
 
 	var handshake *HandshakeMessage
 	var peerID string
@@ -531,7 +543,10 @@ func (pm *ProtocolManager) setupPeer(conn net.Conn, inbound bool) (*Peer, error)
 	}
 
 	// Clear deadline
-	conn.SetDeadline(time.Time{})
+	if err := conn.SetDeadline(time.Time{}); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("failed to clear handshake deadline: %w", err)
+	}
 
 	// Create peer
 	ctx, cancel := context.WithCancel(pm.ctx)
@@ -559,7 +574,17 @@ func (pm *ProtocolManager) setupPeer(conn net.Conn, inbound bool) (*Peer, error)
 	pm.peersMu.Unlock()
 
 	// Add to gossip network
-	pm.gossip.AddPeer(peerID, peer.Address, !inbound)
+	if err := pm.gossip.AddPeer(peerID, peer.Address, !inbound); err != nil {
+		pm.logger.Error("failed to add peer to gossip", "peer_id", peerID, "error", err)
+		peer.cancel()
+		if closeErr := peer.Conn.Close(); closeErr != nil {
+			pm.logger.Error("error closing connection after gossip failure", "peer_id", peerID, "error", closeErr)
+		}
+		pm.peersMu.Lock()
+		delete(pm.peers, peerID)
+		pm.peersMu.Unlock()
+		return nil, err
+	}
 
 	// Start peer workers
 	peer.wg.Add(2)
@@ -576,14 +601,18 @@ func (pm *ProtocolManager) peerReadLoop(peer *Peer) {
 
 	for {
 		// Set read deadline
-		peer.Conn.SetReadDeadline(time.Now().Add(pm.config.ReadTimeout))
+		if err := peer.Conn.SetReadDeadline(time.Now().Add(pm.config.ReadTimeout)); err != nil {
+			pm.logger.Error("failed to set read deadline", "peer_id", peer.ID, "error", err)
+			pm.safeDisconnectPeer(peer.ID, "read deadline failed")
+			return
+		}
 
 		envelope, err := ReadEnvelope(peer.Conn)
 		if err != nil {
 			if err != io.EOF {
 				pm.logger.Error("read error", "peer_id", peer.ID, "error", err)
 			}
-			pm.DisconnectPeer(peer.ID)
+			pm.safeDisconnectPeer(peer.ID, "read failure")
 			return
 		}
 
@@ -621,7 +650,11 @@ func (pm *ProtocolManager) peerWriteLoop(peer *Peer) {
 		select {
 		case msg := <-peer.sendChan:
 			// Set write deadline
-			peer.Conn.SetWriteDeadline(time.Now().Add(pm.config.WriteTimeout))
+			if err := peer.Conn.SetWriteDeadline(time.Now().Add(pm.config.WriteTimeout)); err != nil {
+				pm.logger.Error("failed to set write deadline", "peer_id", peer.ID, "error", err)
+				pm.safeDisconnectPeer(peer.ID, "write deadline failed")
+				return
+			}
 
 			envelope, err := MarshalEnvelope(msg)
 			if err != nil {
@@ -631,7 +664,7 @@ func (pm *ProtocolManager) peerWriteLoop(peer *Peer) {
 
 			if err := WriteEnvelope(peer.Conn, envelope); err != nil {
 				pm.logger.Error("write error", "peer_id", peer.ID, "error", err)
-				pm.DisconnectPeer(peer.ID)
+				pm.safeDisconnectPeer(peer.ID, "write failure")
 				return
 			}
 
@@ -663,7 +696,9 @@ func (pm *ProtocolManager) disconnectAllPeers() {
 	for _, peer := range peers {
 		peer.cancel()
 		peer.wg.Wait()
-		peer.Conn.Close()
+		if err := peer.Conn.Close(); err != nil {
+			pm.logger.Error("error closing peer during shutdown", "peer_id", peer.ID, "error", err)
+		}
 	}
 }
 
@@ -704,7 +739,7 @@ func (pm *ProtocolManager) maintainPeers() {
 
 	for _, id := range idlePeers {
 		pm.logger.Info("disconnecting idle peer", "peer_id", id)
-		pm.DisconnectPeer(id)
+		pm.safeDisconnectPeer(id, "idle timeout")
 	}
 }
 
@@ -716,6 +751,12 @@ func (pm *ProtocolManager) setupHandlerCallbacks() {
 			NodeID:   pm.config.NodeID,
 		}, nil
 	})
+}
+
+func (pm *ProtocolManager) safeDisconnectPeer(peerID, context string) {
+	if err := pm.DisconnectPeer(peerID); err != nil {
+		pm.logger.Error("failed to disconnect peer", "peer_id", peerID, "context", context, "error", err)
+	}
 }
 
 // Metrics

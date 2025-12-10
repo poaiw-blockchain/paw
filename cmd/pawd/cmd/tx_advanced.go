@@ -19,6 +19,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func addProgress(bar *progressbar.ProgressBar, delta int) error {
+	if bar == nil {
+		return nil
+	}
+	if err := bar.Add(delta); err != nil {
+		return fmt.Errorf("progress bar update failed: %w", err)
+	}
+	return nil
+}
+
+func finishProgress(bar *progressbar.ProgressBar) error {
+	if bar == nil {
+		return nil
+	}
+	if err := bar.Finish(); err != nil {
+		return fmt.Errorf("progress bar finalize failed: %w", err)
+	}
+	return nil
+}
+
 // GetTxSimulateCmd returns a command to simulate a transaction
 func GetTxSimulateCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,7 +56,7 @@ This is useful for testing transactions before actually submitting them to the c
 
 			// Read transaction from file
 			txFile := args[0]
-			txBytes, err := os.ReadFile(txFile)
+			txBytes, err := os.ReadFile(txFile) // #nosec G304 - tx files are operator-provided inputs
 			if err != nil {
 				return fmt.Errorf("failed to read tx file: %w", err)
 			}
@@ -54,9 +74,15 @@ This is useful for testing transactions before actually submitting them to the c
 			)
 
 			// Simulate transaction
-			bar.Add(30)
-			bar.Add(70)
-			bar.Finish()
+			if err := addProgress(bar, 30); err != nil {
+				return err
+			}
+			if err := addProgress(bar, 70); err != nil {
+				return err
+			}
+			if err := finishProgress(bar); err != nil {
+				return err
+			}
 
 			// Display results
 			fmt.Println("\n=== Simulation Results ===")
@@ -118,14 +144,18 @@ This is useful for executing multiple operations efficiently.`,
 			results := make([]string, 0)
 
 			for _, txFile := range args {
-				bar.Add(1)
+				if err := addProgress(bar, 1); err != nil {
+					return err
+				}
 
 				// Read and broadcast transaction
 				txHash, err := processBatchTransaction(clientCtx, txFile)
 				if err != nil {
 					fmt.Printf("\nFailed to process %s: %v\n", txFile, err)
 					if sequential {
-						bar.Finish()
+						if finishErr := finishProgress(bar); finishErr != nil {
+							fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+						}
 						return fmt.Errorf("batch processing stopped due to error")
 					}
 					continue
@@ -139,7 +169,9 @@ This is useful for executing multiple operations efficiently.`,
 				}
 			}
 
-			bar.Finish()
+			if err := finishProgress(bar); err != nil {
+				return err
+			}
 
 			// Display results
 			fmt.Println("\n=== Batch Results ===")
@@ -158,7 +190,7 @@ This is useful for executing multiple operations efficiently.`,
 
 // processBatchTransaction processes a single transaction in a batch
 func processBatchTransaction(clientCtx client.Context, txFile string) (string, error) {
-	txBytes, err := os.ReadFile(txFile)
+	txBytes, err := os.ReadFile(txFile) // #nosec G304 - tx files are operator-provided inputs
 	if err != nil {
 		return "", err
 	}
@@ -207,7 +239,7 @@ Useful for air-gapped or cold storage signing.`,
 			outputFile, _ := cmd.Flags().GetString("output")
 
 			// Read unsigned transaction
-			txBytes, err := os.ReadFile(txFile)
+			txBytes, err := os.ReadFile(txFile) // #nosec G304 - tx files are operator-provided inputs
 			if err != nil {
 				return fmt.Errorf("failed to read tx file: %w", err)
 			}
@@ -239,7 +271,7 @@ Useful for air-gapped or cold storage signing.`,
 				outputFile = strings.TrimSuffix(txFile, ".json") + ".signed.json"
 			}
 
-			err = os.WriteFile(outputFile, signedBytes, 0644)
+			err = os.WriteFile(outputFile, signedBytes, 0o600)
 			if err != nil {
 				return fmt.Errorf("failed to write signed tx: %w", err)
 			}
@@ -254,8 +286,12 @@ Useful for air-gapped or cold storage signing.`,
 	cmd.Flags().Uint64("account-number", 0, "Account number for offline signing")
 	cmd.Flags().Uint64("sequence", 0, "Sequence number for offline signing")
 	cmd.Flags().String("output", "", "Output file for signed transaction")
-	cmd.MarkFlagRequired("account-number")
-	cmd.MarkFlagRequired("sequence")
+	if err := cmd.MarkFlagRequired("account-number"); err != nil {
+		return nil
+	}
+	if err := cmd.MarkFlagRequired("sequence"); err != nil {
+		return nil
+	}
 
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -304,7 +340,7 @@ Supports creating multi-sig transactions and collecting signatures from multiple
 			sigFiles := args[2:]
 
 			// Read transaction
-			txBytes, err := os.ReadFile(txFile)
+			txBytes, err := os.ReadFile(txFile) // #nosec G304 - tx files are operator-provided inputs
 			if err != nil {
 				return fmt.Errorf("failed to read tx: %w", err)
 			}
@@ -326,52 +362,70 @@ Supports creating multi-sig transactions and collecting signatures from multiple
 				progressbar.OptionSetWidth(40),
 			)
 
-			bar.Add(1) // Parsing tx
+			if err := addProgress(bar, 1); err != nil {
+				return err
+			}
 
 			// Collect signatures
 			signatures := make([]signingtypes.SignatureV2, 0)
 			for _, sigFile := range sigFiles {
-				sigBytes, err := os.ReadFile(sigFile)
+				sigBytes, err := os.ReadFile(sigFile) // #nosec G304 - signature files are provided by operator
 				if err != nil {
-					bar.Finish()
+					if finishErr := finishProgress(bar); finishErr != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+					}
 					return fmt.Errorf("failed to read signature %s: %w", sigFile, err)
 				}
 				signedTx, err := txDecoder(sigBytes)
 				if err != nil {
-					bar.Finish()
+					if finishErr := finishProgress(bar); finishErr != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+					}
 					return fmt.Errorf("failed to decode signed tx %s: %w", sigFile, err)
 				}
 				signed := signedTx.(authsigning.Tx)
 				sigs, err := signed.GetSignaturesV2()
 				if err != nil {
-					bar.Finish()
+					if finishErr := finishProgress(bar); finishErr != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+					}
 					return fmt.Errorf("failed to extract signatures from %s: %w", sigFile, err)
 				}
 				signatures = append(signatures, sigs...)
-				bar.Add(1)
+				if err := addProgress(bar, 1); err != nil {
+					return err
+				}
 			}
 
 			// Combine signatures
 			if err := txBuilder.SetSignatures(signatures...); err != nil {
-				bar.Finish()
+				if finishErr := finishProgress(bar); finishErr != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+				}
 				return fmt.Errorf("failed to set signatures: %w", err)
 			}
 
 			txEncoder := clientCtx.TxConfig.TxJSONEncoder()
 			signedJSON, err := txEncoder(txBuilder.GetTx())
 			if err != nil {
-				bar.Finish()
+				if finishErr := finishProgress(bar); finishErr != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "progress finalize failed: %v\n", finishErr)
+				}
 				return fmt.Errorf("failed to encode multisigned tx: %w", err)
 			}
 
-			bar.Add(1)
-			bar.Finish()
+			if err := addProgress(bar, 1); err != nil {
+				return err
+			}
+			if err := finishProgress(bar); err != nil {
+				return err
+			}
 
 			fmt.Printf("\n✓ Multi-signature transaction created\n")
 			fmt.Printf("Signers: %s\n", multisigName)
 			fmt.Printf("Signatures collected: %d/%d\n", len(signatures), len(sigFiles))
 			if output, _ := cmd.Flags().GetString("output"); output != "" {
-				if err := os.WriteFile(output, signedJSON, 0644); err != nil {
+				if err := os.WriteFile(output, signedJSON, 0o600); err != nil {
 					return fmt.Errorf("failed to write output: %w", err)
 				}
 				fmt.Printf("Multisigned transaction saved to: %s\n", output)

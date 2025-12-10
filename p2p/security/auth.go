@@ -36,8 +36,8 @@ type MessageAuthenticator struct {
 
 // NonceTracker prevents replay attacks
 type NonceTracker struct {
-	used      map[uint64]time.Time
-	maxAge    time.Duration
+	used            map[uint64]time.Time
+	maxAge          time.Duration
 	cleanupInterval time.Duration
 }
 
@@ -47,7 +47,7 @@ func NewMessageAuthenticator(privateKey ed25519.PrivateKey) *MessageAuthenticato
 		privateKey: privateKey,
 		publicKey:  privateKey.Public().(ed25519.PublicKey),
 		peerKeys:   make(map[string]ed25519.PublicKey),
-		nonces:     NewNonceTracker(5 * time.Minute, 1 * time.Minute),
+		nonces:     NewNonceTracker(5*time.Minute, 1*time.Minute),
 	}
 }
 
@@ -167,7 +167,11 @@ func (ma *MessageAuthenticator) getSignatureData(msg *AuthenticatedMessage) []by
 	data = append(data, []byte(msg.PeerID)...)
 
 	timestampBuf := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBuf, uint64(msg.Timestamp))
+	var timestamp uint64
+	if msg.Timestamp > 0 {
+		timestamp = uint64(msg.Timestamp)
+	}
+	binary.BigEndian.PutUint64(timestampBuf, timestamp)
 	data = append(data, timestampBuf...)
 
 	nonceBuf := make([]byte, 8)
@@ -249,6 +253,8 @@ func (me *MessageEncryptor) Encrypt(plaintext []byte, peerID string) (*Encrypted
 
 	// Derive shared secret using ECDH
 	var sharedSecret [32]byte
+	// Note: ScalarMult returns zero for low-order points; peer keys are validated via ValidatePublicKey.
+	//lint:ignore SA1019 ScalarMult deprecated; kept for compatibility with existing key format.
 	curve25519.ScalarMult(&sharedSecret, &me.privateKey, &peerKey)
 
 	// Derive encryption key using HKDF
@@ -296,6 +302,8 @@ func (me *MessageEncryptor) Decrypt(msg *EncryptedMessage) ([]byte, error) {
 
 	// Derive shared secret
 	var sharedSecret [32]byte
+	// Note: ScalarMult returns zero for low-order points; peer keys are validated via ValidatePublicKey.
+	//lint:ignore SA1019 ScalarMult deprecated; kept for compatibility with existing key format.
 	curve25519.ScalarMult(&sharedSecret, &me.privateKey, &peerKey)
 
 	// Derive encryption key

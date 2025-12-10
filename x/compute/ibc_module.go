@@ -3,7 +3,6 @@ package compute
 import (
 	"fmt"
 	"sort"
-	"time"
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
@@ -386,7 +385,7 @@ func (im IBCModule) handleDiscoverProviders(
 		return channeltypes.NewErrorAcknowledgement(errorsmod.Wrap(types.ErrInvalidPacket, "no providers match requested capabilities"))
 	}
 
-	total := uint32(len(providers))
+	total := types.SaturateIntToUint32(len(providers))
 	if len(providers) > maxProvidersPerAck {
 		providers = providers[:maxProvidersPerAck]
 	}
@@ -433,7 +432,7 @@ func (im IBCModule) handleSubmitJob(
 			StorageGB:   req.StorageGB,
 			GPURequired: req.GPURequired,
 			TEERequired: req.TEERequired,
-			MaxDuration: time.Duration(req.MaxDuration) * time.Second,
+			MaxDuration: types.SecondsToDuration(req.MaxDuration),
 		},
 		Status:      "running",
 		SubmittedAt: ctx.BlockTime(),

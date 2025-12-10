@@ -77,3 +77,14 @@ When running a PAW node:
 - Enable firewall and restrict RPC access
 - Monitor for unusual activity
 - Back up your keys securely offline
+
+## Local Security Gate
+
+Run before releases/merges to catch common issues:
+
+```bash
+./scripts/security-gate.sh
+# Requires: gosec, staticcheck, govulncheck (install via go install)
+```
+
+This gate runs gosec, staticcheck, govulncheck, and `go mod verify`. Install missing tools if prompted.

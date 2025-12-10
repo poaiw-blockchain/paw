@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,15 @@ import (
 )
 
 // Manager handles snapshot creation, storage, and retrieval
+const maxUint32Value = ^uint32(0)
+
+func intToUint32(field string, value int) (uint32, error) {
+	if value < 0 || value > int(maxUint32Value) {
+		return 0, fmt.Errorf("%s %d exceeds uint32 range", field, value)
+	}
+	return uint32(value), nil
+}
+
 type Manager struct {
 	config      *ManagerConfig
 	logger      log.Logger
@@ -30,14 +40,14 @@ type ManagerConfig struct {
 	SnapshotDir string
 
 	// Snapshot creation
-	SnapshotInterval  uint64 // Blocks between snapshots (e.g., 1000)
+	SnapshotInterval   uint64 // Blocks between snapshots (e.g., 1000)
 	SnapshotKeepRecent uint32 // Number of recent snapshots to keep
 
 	// Chunk settings
 	ChunkSize uint32 // Bytes per chunk (default 16MB)
 
 	// Pruning
-	PruneOldSnapshots bool
+	PruneOldSnapshots  bool
 	MinSnapshotsToKeep uint32
 
 	// Chain info
@@ -63,13 +73,13 @@ func NewManager(config *ManagerConfig, logger log.Logger) (*Manager, error) {
 	}
 
 	// Create snapshot directory
-	if err := os.MkdirAll(config.SnapshotDir, 0755); err != nil {
+	if err := os.MkdirAll(config.SnapshotDir, 0o750); err != nil {
 		return nil, fmt.Errorf("failed to create snapshot directory: %w", err)
 	}
 
 	// Create chunks subdirectory
 	chunksDir := filepath.Join(config.SnapshotDir, "chunks")
-	if err := os.MkdirAll(chunksDir, 0755); err != nil {
+	if err := os.MkdirAll(chunksDir, 0o750); err != nil {
 		return nil, fmt.Errorf("failed to create chunks directory: %w", err)
 	}
 
@@ -119,6 +129,12 @@ func (m *Manager) CreateSnapshot(height int64, stateData []byte, appHash, valida
 		chunkHashes[i] = HashData(chunk)
 	}
 
+	chunkCount := len(chunks)
+	numChunks, err := intToUint32("chunk count", chunkCount)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create snapshot metadata
 	snapshot := &Snapshot{
 		Height:        height,
@@ -126,7 +142,7 @@ func (m *Manager) CreateSnapshot(height int64, stateData []byte, appHash, valida
 		Timestamp:     time.Now().Unix(),
 		Format:        SnapshotFormatV1,
 		ChainID:       m.config.ChainID,
-		NumChunks:     uint32(len(chunks)),
+		NumChunks:     numChunks,
 		ChunkHashes:   chunkHashes,
 		AppHash:       appHash,
 		ValidatorHash: validatorHash,
@@ -142,7 +158,11 @@ func (m *Manager) CreateSnapshot(height int64, stateData []byte, appHash, valida
 
 	// Save chunks to disk
 	for i, chunk := range chunks {
-		if err := m.saveChunk(snapshot, uint32(i), chunk); err != nil {
+		chunkIndex, err := intToUint32("chunk index", i)
+		if err != nil {
+			return nil, err
+		}
+		if err := m.saveChunk(snapshot, chunkIndex, chunk); err != nil {
 			return nil, fmt.Errorf("failed to save chunk %d: %w", i, err)
 		}
 	}
@@ -183,7 +203,7 @@ func (m *Manager) LoadSnapshot(height int64) (*Snapshot, error) {
 
 	// Load from disk
 	metadataPath := m.metadataPath(height)
-	data, err := os.ReadFile(metadataPath)
+	data, err := m.readFileSafe(metadataPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read snapshot metadata: %w", err)
 	}
@@ -203,7 +223,7 @@ func (m *Manager) LoadChunk(height int64, chunkIndex uint32) (*SnapshotChunk, er
 
 	// Load chunk from disk
 	chunkPath := m.chunkPath(height, chunkIndex)
-	data, err := os.ReadFile(chunkPath)
+	data, err := m.readFileSafe(chunkPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read chunk: %w", err)
 	}
@@ -393,12 +413,12 @@ func (m *Manager) saveChunk(snapshot *Snapshot, chunkIndex uint32, data []byte) 
 	chunkPath := m.chunkPath(snapshot.Height, chunkIndex)
 
 	// Create parent directory
-	if err := os.MkdirAll(filepath.Dir(chunkPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(chunkPath), 0o750); err != nil {
 		return fmt.Errorf("failed to create chunk directory: %w", err)
 	}
 
 	// Write chunk
-	if err := os.WriteFile(chunkPath, data, 0644); err != nil {
+	if err := os.WriteFile(chunkPath, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write chunk: %w", err)
 	}
 
@@ -413,7 +433,7 @@ func (m *Manager) saveMetadata(snapshot *Snapshot) error {
 	}
 
 	metadataPath := m.metadataPath(snapshot.Height)
-	if err := os.WriteFile(metadataPath, data, 0644); err != nil {
+	if err := os.WriteFile(metadataPath, data, 0o600); err != nil {
 		return fmt.Errorf("failed to write metadata: %w", err)
 	}
 
@@ -444,7 +464,7 @@ func (m *Manager) loadSnapshots() error {
 
 		// Read metadata
 		path := filepath.Join(m.snapshotDir, entry.Name())
-		data, err := os.ReadFile(path)
+		data, err := m.readFileSafe(path)
 		if err != nil {
 			m.logger.Error("failed to read snapshot metadata", "file", entry.Name(), "error", err)
 			continue
@@ -468,6 +488,15 @@ func (m *Manager) loadSnapshots() error {
 
 	m.logger.Info("loaded snapshots from disk", "count", len(m.snapshots))
 	return nil
+}
+
+func (m *Manager) readFileSafe(path string) ([]byte, error) {
+	cleanBase := filepath.Clean(m.snapshotDir)
+	cleanPath := filepath.Clean(path)
+	if !strings.HasPrefix(cleanPath, cleanBase+string(os.PathSeparator)) && cleanPath != cleanBase {
+		return nil, fmt.Errorf("snapshot path %s escapes base %s", cleanPath, cleanBase)
+	}
+	return os.ReadFile(cleanPath)
 }
 
 // pruneOldSnapshots removes old snapshots

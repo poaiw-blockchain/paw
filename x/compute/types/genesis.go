@@ -36,11 +36,11 @@ func (gs GenesisState) Validate() error {
 	if p.VerificationTimeoutSeconds == 0 || p.MaxRequestTimeoutSeconds == 0 {
 		return fmt.Errorf("timeouts must be non-zero")
 	}
-	if p.ReputationSlashPercentage < 0 || p.StakeSlashPercentage < 0 {
-		return fmt.Errorf("slash percentages must be non-negative")
+	if p.ReputationSlashPercentage == 0 || p.StakeSlashPercentage == 0 {
+		return fmt.Errorf("slash percentages must be positive")
 	}
-	if p.MinReputationScore < 0 {
-		return fmt.Errorf("min reputation score must be non-negative")
+	if p.MinReputationScore == 0 {
+		return fmt.Errorf("min reputation score must be positive")
 	}
 	if p.EscrowReleaseDelaySeconds == 0 {
 		return fmt.Errorf("escrow release delay must be non-zero")

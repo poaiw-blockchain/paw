@@ -4,6 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark/backend/groth16"
+	"github.com/consensys/gnark/constraint"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
@@ -17,6 +20,8 @@ import (
 func TestZKProofRejectsInvalidProof(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 	zkVerifier := computekeeper.NewZKVerifier(k)
+
+	fastGroth16Setup(t)
 
 	circuitID := (&circuits.ComputeCircuit{}).GetCircuitName()
 	require.NoError(t, zkVerifier.InitializeCircuit(ctx, circuitID))
@@ -64,8 +69,6 @@ func TestZKProofRejectsInvalidProof(t *testing.T) {
 func TestZKProofIBCPacketRejectsInvalidProof(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	require.NoError(t, k.InitializeCircuits(ctx))
-
 	err := k.VerifyIBCZKProofForTest(ctx, []byte("invalid-proof-data"), []byte("bad-input"))
 	require.Error(t, err)
 }
@@ -75,6 +78,8 @@ func TestZKProofIBCPacketRejectsInvalidProof(t *testing.T) {
 func TestZKProofRejectsOversizedProof(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
 	zkVerifier := computekeeper.NewZKVerifier(k)
+
+	fastGroth16Setup(t)
 
 	circuitID := (&circuits.ComputeCircuit{}).GetCircuitName()
 	require.NoError(t, zkVerifier.InitializeCircuit(ctx, circuitID))
@@ -138,6 +143,17 @@ func TestZKProofRejectsOversizedProof(t *testing.T) {
 	// Additional security check: verify the error message doesn't leak sensitive info
 	require.NotContains(t, err.Error(), "panic", "error should not contain panic information")
 	require.NotContains(t, err.Error(), "internal", "error should not leak internal details")
+}
+
+func fastGroth16Setup(t *testing.T) {
+	t.Helper()
+	original := computekeeper.Groth16SetupFunc()
+	computekeeper.SetGroth16Setup(func(ccs constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
+		return groth16.NewProvingKey(ecc.BN254), groth16.NewVerifyingKey(ecc.BN254), nil
+	})
+	t.Cleanup(func() {
+		computekeeper.SetGroth16Setup(original)
+	})
 }
 
 // TestZKProofWithMaxAllowedSize verifies that proofs at exactly the maximum

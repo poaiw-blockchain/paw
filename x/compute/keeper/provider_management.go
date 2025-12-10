@@ -210,7 +210,10 @@ func (k Keeper) TrackProviderPerformance(
 	totalJobs := metrics.JobsCompleted + metrics.JobsFailed
 	if totalJobs > 0 {
 		oldAvg := metrics.AverageResponseTime
-		metrics.AverageResponseTime = (oldAvg*time.Duration(totalJobs-1) + responseTime) / time.Duration(totalJobs)
+		jobCount := saturateUint64ToInt64(totalJobs)
+		if jobCount > 0 {
+			metrics.AverageResponseTime = (oldAvg*time.Duration(jobCount-1) + responseTime) / time.Duration(jobCount)
+		}
 	}
 
 	// Store updated metrics
@@ -273,7 +276,11 @@ func (k Keeper) MonitorProviderAvailability(ctx context.Context) error {
 						// Update availability score in reputation
 						if rep, err := k.GetProviderReputation(ctx, sdk.MustAccAddressFromBech32(provider.Address)); err == nil {
 							rep.AvailabilityScore *= 0.95 // Reduce availability score by 5%
-							k.SetProviderReputation(ctx, *rep)
+							if err := k.SetProviderReputation(ctx, *rep); err != nil {
+								sdkCtx.Logger().Error("failed to persist availability score adjustment", "provider", provider.Address, "error", err)
+							}
+						} else {
+							sdkCtx.Logger().Error("failed to load provider reputation for availability penalty", "provider", provider.Address, "error", err)
 						}
 					}
 				}
@@ -483,7 +490,9 @@ func (k Keeper) HandleRequestTimeout(ctx context.Context, requestID uint64) erro
 
 	// Update request status
 	request.Status = types.REQUEST_STATUS_FAILED // timeout -> failed
-	k.SetRequest(ctx, *request)
+	if err := k.SetRequest(ctx, *request); err != nil {
+		sdkCtx.Logger().Error("failed to persist timed-out request", "request_id", requestID, "error", err)
+	}
 
 	// Emit timeout event
 	sdkCtx.EventManager().EmitEvent(
@@ -579,10 +588,9 @@ func (k Keeper) DequeueHighestPriorityRequest(ctx context.Context) (*Prioritized
 	store := sdkCtx.KVStore(k.storeKey)
 
 	// Iterate from highest to lowest priority
-	for priority := PriorityCritical; priority >= PriorityLow; priority-- {
+	for priority := PriorityCritical; ; priority-- {
 		prefix := []byte(fmt.Sprintf("priority_%d_", priority))
 		iterator := storetypes.KVStorePrefixIterator(store, prefix)
-		defer iterator.Close()
 
 		if iterator.Valid() {
 			var data map[string]interface{}
@@ -594,9 +602,19 @@ func (k Keeper) DequeueHighestPriorityRequest(ctx context.Context) (*Prioritized
 
 				// Remove from queue
 				store.Delete(iterator.Key())
+				if err := iterator.Close(); err != nil {
+					sdkCtx.Logger().Error("failed closing iterator after dequeue", "priority", priority, "error", err)
+				}
 
 				return request, nil
 			}
+		}
+		if err := iterator.Close(); err != nil {
+			sdkCtx.Logger().Error("failed closing iterator for priority bucket", "priority", priority, "error", err)
+		}
+
+		if priority == PriorityLow {
+			break
 		}
 	}
 

@@ -83,13 +83,13 @@ func (cd ComputeDecorator) validateRegisterProvider(ctx sdk.Context, msg *comput
 	ctx.GasMeter().ConsumeGas(1500, "provider registration validation")
 
 	// Check if provider is already registered
-	existingProvider, err := cd.keeper.GetProvider(sdk.WrapSDKContext(ctx), provider)
+	existingProvider, err := cd.keeper.GetProvider(ctx, provider)
 	if err == nil && existingProvider != nil && existingProvider.Active {
 		return sdkerrors.ErrInvalidRequest.Wrap("provider already registered and active")
 	}
 
 	// Get module params
-	params, err := cd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	params, err := cd.keeper.GetParams(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -114,7 +114,7 @@ func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetyp
 	ctx.GasMeter().ConsumeGas(2000, "result submission validation")
 
 	// Verify provider is registered and active
-	existingProvider, err := cd.keeper.GetProvider(sdk.WrapSDKContext(ctx), provider)
+	existingProvider, err := cd.keeper.GetProvider(ctx, provider)
 	if err != nil {
 		return sdkerrors.ErrNotFound.Wrap("provider not found")
 	}
@@ -124,7 +124,7 @@ func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetyp
 	}
 
 	// Verify request exists and is assigned to this provider
-	request, err := cd.keeper.GetRequest(sdk.WrapSDKContext(ctx), msg.RequestId)
+	request, err := cd.keeper.GetRequest(ctx, msg.RequestId)
 	if err != nil {
 		return sdkerrors.ErrNotFound.Wrapf("request %d not found", msg.RequestId)
 	}

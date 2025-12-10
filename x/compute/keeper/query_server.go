@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"cosmossdk.io/store/prefix"
 	storeprefix "cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -73,7 +72,7 @@ func (qs queryServer) Providers(goCtx context.Context, req *types.QueryProviders
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	providerStore := prefix.NewStore(store, ProviderKeyPrefix)
+	providerStore := storeprefix.NewStore(store, ProviderKeyPrefix)
 
 	var providers []types.Provider
 	pageRes, err := query.Paginate(providerStore, req.Pagination, func(key []byte, value []byte) error {
@@ -103,7 +102,7 @@ func (qs queryServer) ActiveProviders(goCtx context.Context, req *types.QueryAct
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	activeProviderStore := prefix.NewStore(store, ActiveProvidersPrefix)
+	activeProviderStore := storeprefix.NewStore(store, ActiveProvidersPrefix)
 
 	var providers []types.Provider
 	pageRes, err := query.Paginate(activeProviderStore, req.Pagination, func(key []byte, value []byte) error {
@@ -151,7 +150,7 @@ func (qs queryServer) Requests(goCtx context.Context, req *types.QueryRequestsRe
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	requestStore := prefix.NewStore(store, RequestKeyPrefix)
+	requestStore := storeprefix.NewStore(store, RequestKeyPrefix)
 
 	var requests []types.Request
 	pageRes, err := query.Paginate(requestStore, req.Pagination, func(key []byte, value []byte) error {
@@ -192,7 +191,7 @@ func (qs queryServer) RequestsByRequester(goCtx context.Context, req *types.Quer
 
 	store := qs.Keeper.getStore(ctx)
 	requesterPrefix := append(RequestsByRequesterPrefix, requesterAddr.Bytes()...)
-	requesterStore := prefix.NewStore(store, requesterPrefix)
+	requesterStore := storeprefix.NewStore(store, requesterPrefix)
 
 	var requests []types.Request
 	pageRes, err := query.Paginate(requesterStore, req.Pagination, func(key []byte, value []byte) error {
@@ -235,7 +234,7 @@ func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.Query
 
 	store := qs.Keeper.getStore(ctx)
 	providerPrefix := append(RequestsByProviderPrefix, providerAddr.Bytes()...)
-	providerStore := prefix.NewStore(store, providerPrefix)
+	providerStore := storeprefix.NewStore(store, providerPrefix)
 
 	var requests []types.Request
 	pageRes, err := query.Paginate(providerStore, req.Pagination, func(key []byte, value []byte) error {
@@ -269,9 +268,9 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 
 	store := qs.Keeper.getStore(ctx)
 	statusBz := make([]byte, 4)
-	binary.BigEndian.PutUint32(statusBz, uint32(req.Status))
+	binary.BigEndian.PutUint32(statusBz, saturateInt64ToUint32(int64(req.Status)))
 	statusPrefix := append(RequestsByStatusPrefix, statusBz...)
-	statusStore := prefix.NewStore(store, statusPrefix)
+	statusStore := storeprefix.NewStore(store, statusPrefix)
 
 	var requests []types.Request
 	pageRes, err := query.Paginate(statusStore, req.Pagination, func(key []byte, value []byte) error {
@@ -431,7 +430,7 @@ func (qs queryServer) DisputesByStatus(goCtx context.Context, req *types.QueryDi
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	statusPrefix := DisputeByStatusKey(uint32(req.Status), 0)[:len(DisputesByStatusPrefix)+4]
+	statusPrefix := DisputeByStatusKey(saturateInt64ToUint32(int64(req.Status)), 0)[:len(DisputesByStatusPrefix)+4]
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var disputes []types.Dispute
@@ -555,7 +554,7 @@ func (qs queryServer) AppealsByStatus(goCtx context.Context, req *types.QueryApp
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	statusPrefix := AppealByStatusKey(uint32(req.Status), 0)[:len(AppealsByStatusPrefix)+4]
+	statusPrefix := AppealByStatusKey(saturateInt64ToUint32(int64(req.Status)), 0)[:len(AppealsByStatusPrefix)+4]
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var appeals []types.Appeal

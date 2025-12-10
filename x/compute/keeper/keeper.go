@@ -32,7 +32,6 @@ type Keeper struct {
 	portKeeper     *portkeeper.Keeper
 	authority      string
 	scopedKeeper   capabilitykeeper.ScopedKeeper
-	portCapability *capabilitytypes.Capability
 
 	// circuitManager handles ZK circuit operations for compute verification.
 	// It is lazily initialized on first use to avoid expensive circuit compilation at startup.
@@ -96,21 +95,16 @@ func (k Keeper) GetChannelCapability(ctx sdk.Context, portID, channelID string) 
 // BindPort binds the compute module's IBC port and claims the capability.
 func (k Keeper) BindPort(ctx sdk.Context) error {
 	if k.portKeeper.IsBound(ctx, computetypes.PortID) {
-		if cap, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(computetypes.PortID)); ok {
-			k.portCapability = cap
-		}
 		return nil
 	}
 
 	portCap := k.portKeeper.BindPort(ctx, computetypes.PortID)
 	if err := k.scopedKeeper.ClaimCapability(ctx, portCap, host.PortPath(computetypes.PortID)); err != nil {
 		if errors.Is(err, capabilitytypes.ErrOwnerClaimed) {
-			k.portCapability = portCap
 			return nil
 		}
 		return err
 	}
-	k.portCapability = portCap
 	return nil
 }
 
@@ -162,6 +156,16 @@ func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) b
 // AuthorizeChannel appends a port/channel pair to the allowlist when governance approves it.
 func (k Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
 	return ibcutil.AuthorizeChannel(ctx, k, portID, channelID)
+}
+
+// SetSlashRecordForTest exposes slash record setter for tests.
+func (k Keeper) SetSlashRecordForTest(ctx sdk.Context, record computetypes.SlashRecord) error {
+	return k.setSlashRecord(ctx, record)
+}
+
+// SetAppealForTest exposes appeal setter for tests.
+func (k Keeper) SetAppealForTest(ctx sdk.Context, appeal computetypes.Appeal) error {
+	return k.setAppeal(ctx, appeal)
 }
 
 // SetAuthorizedChannelsWithValidation replaces the allowlist with the provided slice, with validation.

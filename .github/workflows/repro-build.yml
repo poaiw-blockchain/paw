@@ -1,0 +1,20 @@
+name: reproducible-build
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  repro-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      - name: Verify reproducible build (hash)
+        run: |
+          go build -o /tmp/pawd1 ./cmd/...
+          go build -o /tmp/pawd2 ./cmd/...
+          sha256sum /tmp/pawd1 /tmp/pawd2
+          diff <(sha256sum /tmp/pawd1 | awk '{print $1}') <(sha256sum /tmp/pawd2 | awk '{print $1}')

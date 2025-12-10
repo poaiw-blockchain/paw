@@ -19,19 +19,12 @@ type Bootstrapper struct {
 	addressBook *AddressBook
 	peerManager *PeerManager
 	mu          sync.RWMutex
-
-	// Bootstrap state
+	seedPeers   map[reputation.PeerID]bool
+	requiredPeers    int
+	bootstrapTimeout time.Duration
 	bootstrapped     bool
 	bootstrapAttempt int
 	lastAttempt      time.Time
-
-	// Seed connections
-	seedPeers map[reputation.PeerID]bool
-
-	// Bootstrap tracking
-	requiredPeers    int
-	connectedPeers   int
-	bootstrapTimeout time.Duration
 }
 
 // NewBootstrapper creates a new bootstrapper

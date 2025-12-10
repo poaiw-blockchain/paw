@@ -12,6 +12,13 @@ import (
 	"github.com/paw-chain/paw/p2p/snapshot"
 )
 
+func stateSyncUint32(field string, value int) (uint32, error) {
+	if value < 0 || value > int(math.MaxUint32) {
+		return 0, fmt.Errorf("%s %d exceeds uint32 range", field, value)
+	}
+	return uint32(value), nil
+}
+
 // downloadSnapshotChunks downloads all snapshot chunks in parallel with Byzantine fault tolerance
 func (ssp *StateSyncProtocol) downloadSnapshotChunks(ctx context.Context, snap *snapshot.Snapshot) error {
 	ssp.logger.Info("downloading snapshot chunks",
@@ -359,7 +366,12 @@ func (ssp *StateSyncProtocol) verifyChunk(
 	}
 
 	// Verify chunk hash against snapshot metadata (if available)
-	if chunkIndex < uint32(len(snap.ChunkHashes)) && snap.ChunkHashes[chunkIndex] != nil {
+	chunkHashCount := len(snap.ChunkHashes)
+	chunkHashLimit, err := stateSyncUint32("chunk hash count", chunkHashCount)
+	if err != nil {
+		return err
+	}
+	if chunkIndex < chunkHashLimit && snap.ChunkHashes[chunkIndex] != nil {
 		expectedHash := snap.ChunkHashes[chunkIndex]
 		if !bytesEqual(chunk.Hash, expectedHash) {
 			return fmt.Errorf("chunk hash mismatch")
@@ -377,6 +389,15 @@ func (ssp *StateSyncProtocol) storeChunks(snap *snapshot.Snapshot, chunks map[ui
 	}
 
 	// Store each chunk
+	chunkHashCount := len(snap.ChunkHashes)
+	chunkHashLimit := uint32(math.MaxUint32)
+	if chunkHashCount < int(math.MaxUint32) {
+		limit, err := stateSyncUint32("chunk hash count", chunkHashCount)
+		if err != nil {
+			return
+		}
+		chunkHashLimit = limit
+	}
 	for i := uint32(0); i < snap.NumChunks; i++ {
 		chunk, exists := chunks[i]
 		if !exists {
@@ -385,7 +406,7 @@ func (ssp *StateSyncProtocol) storeChunks(snap *snapshot.Snapshot, chunks map[ui
 		}
 
 		// Update snapshot chunk hash if not set
-		if i < uint32(len(snap.ChunkHashes)) && snap.ChunkHashes[i] == nil {
+		if i < chunkHashLimit && snap.ChunkHashes[i] == nil {
 			snap.ChunkHashes[i] = chunk.Hash
 		}
 	}
@@ -501,7 +522,19 @@ func (ssp *StateSyncProtocol) GetProgress() (downloaded, total uint32) {
 		return 0, 0
 	}
 
-	return uint32(len(ssp.downloadedChunks)), ssp.selectedSnapshot.NumChunks
+	count := len(ssp.downloadedChunks)
+	maxUint32 := int(math.MaxUint32)
+	if count > maxUint32 {
+		ssp.logger.Warn("downloaded chunk count exceeds uint32 range; clipping value", "count", count)
+		count = maxUint32
+	}
+
+	downloadedCount, err := stateSyncUint32("downloaded_chunks", count)
+	if err != nil {
+		return 0, ssp.selectedSnapshot.NumChunks
+	}
+
+	return downloadedCount, ssp.selectedSnapshot.NumChunks
 }
 
 // GetMetrics returns state sync metrics

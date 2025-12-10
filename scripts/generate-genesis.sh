@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-CHAIN_ID="${CHAIN_ID:-paw-1}"
+CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
 GENESIS_TIME="${GENESIS_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}"
 WORK_DIR="${WORK_DIR:-./genesis-work}"
 OUTPUT_DIR="${OUTPUT_DIR:-./genesis-output}"
@@ -75,8 +75,8 @@ mv "$WORK_DIR/config/genesis.tmp.json" "$WORK_DIR/config/genesis.json"
 # Configure consensus parameters
 jq '.consensus_params.block.max_bytes = "2097152" |
     .consensus_params.block.max_gas = "100000000" |
-    .consensus_params.evidence.max_age_num_blocks = "100000" |
-    .consensus_params.evidence.max_age_duration = "172800000000000"' \
+    .consensus_params.evidence.max_age_num_blocks = "500000" |
+    .consensus_params.evidence.max_age_duration = "1814400000000000"' \
     "$WORK_DIR/config/genesis.json" > "$WORK_DIR/config/genesis.tmp.json"
 mv "$WORK_DIR/config/genesis.tmp.json" "$WORK_DIR/config/genesis.json"
 
@@ -109,13 +109,13 @@ echo -e "${YELLOW}[4/10] Configuring modules...${NC}"
 
 # Configure staking module
 jq '.app_state.staking.params.unbonding_time = "1814400s" |
-    .app_state.staking.params.max_validators = 100 |
+    .app_state.staking.params.max_validators = 125 |
     .app_state.staking.params.bond_denom = "upaw"' \
     "$WORK_DIR/config/genesis.json" > "$WORK_DIR/config/genesis.tmp.json"
 mv "$WORK_DIR/config/genesis.tmp.json" "$WORK_DIR/config/genesis.json"
 
 # Configure governance module
-jq '.app_state.gov.voting_params.voting_period = "259200s" |
+jq '.app_state.gov.voting_params.voting_period = "1209600s" |
     .app_state.gov.deposit_params.min_deposit[0].denom = "upaw" |
     .app_state.gov.deposit_params.min_deposit[0].amount = "10000000000"' \
     "$WORK_DIR/config/genesis.json" > "$WORK_DIR/config/genesis.tmp.json"

@@ -163,11 +163,11 @@ func ComputeMiMCHash(
 	h.Write(computationDataHash)
 
 	tsBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(tsBytes, uint64(executionTimestamp))
+	binary.BigEndian.PutUint64(tsBytes, saturateInt64ToUint64(executionTimestamp))
 	h.Write(tsBytes)
 
 	ecBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(ecBytes, uint32(exitCode))
+	binary.BigEndian.PutUint32(ecBytes, saturateInt64ToUint32(int64(exitCode)))
 	h.Write(ecBytes)
 
 	cpuBytes := make([]byte, 8)
@@ -322,7 +322,13 @@ func (zk *ZKVerifier) GenerateProof(
 	}
 
 	// Update metrics
-	if err := zk.updateProofGenerationMetrics(ctx, requestID, providerAddress.String(), uint64(provingTime.Milliseconds()), uint32(len(proofBytes.Bytes()))); err != nil {
+	if err := zk.updateProofGenerationMetrics(
+		ctx,
+		requestID,
+		providerAddress.String(),
+		saturateInt64ToUint64(provingTime.Milliseconds()),
+		saturateInt64ToUint32(int64(len(proofBytes.Bytes()))),
+	); err != nil {
 		// Log but don't fail on metrics update
 		sdkCtx.Logger().Error("failed to update proof generation metrics", "error", err)
 	}
@@ -453,9 +459,13 @@ func (zk *ZKVerifier) VerifyProof(
 	// CRITICAL SECURITY: Require deposit BEFORE any expensive verification operations
 	// This provides economic DoS protection - attackers must pay for invalid proofs
 	depositRequired := circuitParams.VerificationDepositAmount
+	var (
+		depositCoin  sdk.Coin
+		depositCoins sdk.Coins
+	)
 	if depositRequired > 0 {
-		depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
-		depositCoins := sdk.NewCoins(depositCoin)
+		depositCoin = sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
+		depositCoins = sdk.NewCoins(depositCoin)
 
 		// Transfer deposit from provider to module account
 		if err := zk.keeper.bankKeeper.SendCoinsFromAccountToModule(
@@ -484,7 +494,7 @@ func (zk *ZKVerifier) VerifyProof(
 	// Helper function to handle deposit refund on early errors
 	refundDeposit := func() {
 		if depositRequired > 0 {
-			depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
+			depositCoin := sdk.NewCoin("upaw", math.NewInt(saturateUint64ToInt64(depositRequired)))
 			depositCoins := sdk.NewCoins(depositCoin)
 			if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
 				sdkCtx,
@@ -523,7 +533,7 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Consume gas for deserializing keys - proportional to size
-	vkGas := uint64(len(circuitParams.VerifyingKey.VkData)/32) + 1000
+	vkGas := saturateInt64ToUint64(int64(len(circuitParams.VerifyingKey.VkData)/32)) + 1000
 	sdkCtx.GasMeter().ConsumeGas(vkGas, "zk_verifying_key_deserialization")
 
 	// Get or deserialize verifying key
@@ -542,7 +552,7 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Consume gas for deserializing proof - proportional to size
-	proofGas := uint64(len(zkProof.Proof)/32) + 1000
+	proofGas := saturateInt64ToUint64(int64(len(zkProof.Proof)/32)) + 1000
 	sdkCtx.GasMeter().ConsumeGas(proofGas, "zk_proof_deserialization")
 
 	// Deserialize proof
@@ -592,14 +602,11 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Verify the proof
-	verificationErr := groth16.Verify(proof, vk, publicWitness)
+	verificationErr := groth16Verify(proof, vk, publicWitness)
 
-	// Handle deposit based on verification result
-	if depositRequired > 0 {
-		depositCoin := sdk.NewCoin("upaw", math.NewInt(int64(depositRequired)))
-		depositCoins := sdk.NewCoins(depositCoin)
-
-		if verificationErr != nil {
+	// Handle verification failures before proceeding
+	if verificationErr != nil {
+		if depositRequired > 0 {
 			// INVALID PROOF: Slash deposit (keep in module account, don't refund)
 			// The deposit is burned/kept as penalty for submitting invalid proof
 			sdkCtx.Logger().Warn("ZK proof verification failed - deposit slashed",
@@ -619,37 +626,41 @@ func (zk *ZKVerifier) VerifyProof(
 					sdk.NewAttribute("reason", "invalid_proof"),
 				),
 			)
+		}
 
-			if updateErr := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); updateErr != nil {
-				sdkCtx.Logger().Error("failed to update verification metrics", "error", updateErr)
-			}
-			return false, nil
+		if updateErr := zk.updateVerificationMetrics(ctx, false, time.Since(startTime), circuitParams.GasCost); updateErr != nil {
+			sdkCtx.Logger().Error("failed to update verification metrics", "error", updateErr)
+		}
+
+		return false, fmt.Errorf("zk proof verification failed: %w", verificationErr)
+	}
+
+	// Handle deposit refunds on success
+	if depositRequired > 0 {
+		// VALID PROOF: Refund deposit to provider
+		if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
+			sdkCtx,
+			types.ModuleName,
+			providerAddress,
+			depositCoins,
+		); err != nil {
+			// Log error but don't fail the verification since proof is valid
+			sdkCtx.Logger().Error("failed to refund verification deposit",
+				"request_id", requestID,
+				"provider", providerAddress.String(),
+				"deposit", depositCoin.String(),
+				"error", err.Error(),
+			)
 		} else {
-			// VALID PROOF: Refund deposit to provider
-			if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
-				sdkCtx,
-				types.ModuleName,
-				providerAddress,
-				depositCoins,
-			); err != nil {
-				// Log error but don't fail the verification since proof is valid
-				sdkCtx.Logger().Error("failed to refund verification deposit",
-					"request_id", requestID,
-					"provider", providerAddress.String(),
-					"deposit", depositCoin.String(),
-					"error", err.Error(),
-				)
-			} else {
-				sdkCtx.EventManager().EmitEvent(
-					sdk.NewEvent(
-						"zk_proof_deposit_refunded",
-						sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
-						sdk.NewAttribute("provider", providerAddress.String()),
-						sdk.NewAttribute("deposit_amount", depositCoin.String()),
-						sdk.NewAttribute("circuit_id", zkProof.CircuitId),
-					),
-				)
-			}
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"zk_proof_deposit_refunded",
+					sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+					sdk.NewAttribute("provider", providerAddress.String()),
+					sdk.NewAttribute("deposit_amount", depositCoin.String()),
+					sdk.NewAttribute("circuit_id", zkProof.CircuitId),
+				),
+			)
 		}
 	}
 
@@ -686,7 +697,7 @@ func (zk *ZKVerifier) InitializeCircuit(ctx context.Context, circuitID string) e
 	zk.circuitCCS[circuitID] = ccs
 
 	// Generate proving and verifying keys
-	pk, vk, err := groth16.Setup(ccs)
+	pk, vk, err := groth16Setup(ccs)
 	if err != nil {
 		return fmt.Errorf("failed to setup circuit: %w", err)
 	}
@@ -706,7 +717,7 @@ func (zk *ZKVerifier) InitializeCircuit(ctx context.Context, circuitID string) e
 	}
 
 	circuitParams.VerifyingKey.VkData = vkBytes.Bytes()
-	circuitParams.MaxProofSize = 2048     // Groth16 proofs can be ~1-2KB
+	circuitParams.MaxProofSize = 2048                 // Groth16 proofs can be ~1-2KB
 	circuitParams.VerificationDepositAmount = 1000000 // 1 PAW deposit for DoS protection
 
 	return zk.keeper.SetCircuitParams(ctx, *circuitParams)
@@ -766,10 +777,10 @@ func (k *Keeper) getDefaultCircuitParams(ctx context.Context, circuitID string) 
 			CreatedAt:        createdAt,
 			PublicInputCount: 3, // RequestID, ResultHash, ProviderAddress
 		},
-		MaxProofSize:                1024 * 1024, // 1MB max - prevents DoS via oversized proofs
-		GasCost:                     500000,      // Gas cost for verification (~0.5M gas)
-		Enabled:                     true,
-		VerificationDepositAmount:   1000000, // 1,000,000 upaw (1 PAW) - refunded on valid proof, slashed on invalid
+		MaxProofSize:              1024 * 1024, // 1MB max - prevents DoS via oversized proofs
+		GasCost:                   500000,      // Gas cost for verification (~0.5M gas)
+		Enabled:                   true,
+		VerificationDepositAmount: 1000000, // 1,000,000 upaw (1 PAW) - refunded on valid proof, slashed on invalid
 	}
 }
 
@@ -792,7 +803,7 @@ func (zk *ZKVerifier) updateVerificationMetrics(ctx context.Context, success boo
 
 	// Update average verification time (exponential moving average)
 	alpha := 0.1 // Smoothing factor
-	newTime := uint64(duration.Milliseconds())
+	newTime := saturateInt64ToUint64(duration.Milliseconds())
 	if metrics.AverageVerificationTimeMs == 0 {
 		metrics.AverageVerificationTimeMs = newTime
 	} else {
@@ -864,13 +875,13 @@ func HashComputationResult(computationData []byte, metadata map[string]interface
 	// Hash metadata in deterministic order
 	if timestamp, ok := metadata["timestamp"].(int64); ok {
 		tsBytes := make([]byte, 8)
-		binary.BigEndian.PutUint64(tsBytes, uint64(timestamp))
+		binary.BigEndian.PutUint64(tsBytes, saturateInt64ToUint64(timestamp))
 		hasher.Write(tsBytes)
 	}
 
 	if exitCode, ok := metadata["exit_code"].(int32); ok {
 		ecBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(ecBytes, uint32(exitCode))
+		binary.BigEndian.PutUint32(ecBytes, saturateInt64ToUint32(int64(exitCode)))
 		hasher.Write(ecBytes)
 	}
 

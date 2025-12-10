@@ -24,7 +24,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
@@ -186,6 +186,28 @@ type JobResultPacketData struct {
 	JobID    string    `json:"job_id"`
 	Result   JobResult `json:"result"`
 	Provider string    `json:"provider"`
+}
+
+func (p JobResultPacketData) ValidateBasic() error {
+	if p.Type != PacketTypeJobResult {
+		return errors.Wrapf(types.ErrInvalidPacket, "invalid packet type: %s", p.Type)
+	}
+	if p.Nonce == 0 {
+		return errors.Wrap(types.ErrInvalidPacket, "nonce must be greater than zero")
+	}
+	if p.JobID == "" {
+		return errors.Wrap(types.ErrInvalidPacket, "job ID cannot be empty")
+	}
+	if len(p.Result.ResultData) == 0 {
+		return errors.Wrap(types.ErrInvalidPacket, "result data cannot be empty")
+	}
+	if p.Result.ResultHash == "" {
+		return errors.Wrap(types.ErrInvalidPacket, "result hash cannot be empty")
+	}
+	if p.Provider == "" {
+		return errors.Wrap(types.ErrInvalidPacket, "provider cannot be empty")
+	}
+	return nil
 }
 
 // JobStatusPacketData queries job status
@@ -353,7 +375,9 @@ func (k Keeper) SubmitCrossChainJob(
 	)
 	if err != nil {
 		// Refund escrow if packet send fails
-		k.refundEscrow(sdkCtx, jobID)
+		if refundErr := k.refundEscrow(sdkCtx, jobID); refundErr != nil {
+			sdkCtx.Logger().Error("failed to refund escrow after packet send failure", "job_id", jobID, "error", refundErr)
+		}
 		return nil, errors.Wrapf(err, "failed to send job packet")
 	}
 
@@ -520,18 +544,22 @@ func (k Keeper) OnRecvPacket(
 		return channeltypes.NewErrorAcknowledgement(err), nil
 	}
 
-	packetType, ok := packetData["type"].(string)
-	if !ok {
-		return channeltypes.NewErrorAcknowledgement(
-			errors.Wrap(sdkerrors.ErrInvalidType, "missing packet type")), nil
+	packetBytes, err := json.Marshal(packetData)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
 	}
 
-	switch packetType {
-	case PacketTypeJobResult:
+	parsedPacket, err := types.ParsePacketData(packetBytes)
+	if err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
+	}
+
+	switch pd := parsedPacket.(type) {
+	case types.JobResultPacketData:
 		return k.handleJobResult(ctx, packet, packetNonce)
 	default:
 		return channeltypes.NewErrorAcknowledgement(
-			errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %s", packetType)), nil
+			errors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown packet type: %T", pd)), nil
 	}
 }
 
@@ -566,6 +594,26 @@ func (k Keeper) OnTimeoutPacket(
 
 // Helper functions
 
+// sendPacketFn allows tests to stub channel keeper interactions.
+var sendPacketFn = func(
+	k *Keeper,
+	ctx sdk.Context,
+	channelCap *capabilitytypes.Capability,
+	sourcePort, channelID string,
+	timeoutTimestamp uint64,
+	data []byte,
+) (uint64, error) {
+	return k.ibcKeeper.ChannelKeeper.SendPacket(
+		ctx,
+		channelCap,
+		sourcePort,
+		channelID,
+		clienttypes.ZeroHeight(),
+		timeoutTimestamp,
+		data,
+	)
+}
+
 func (k Keeper) sendComputeIBCPacket(
 	ctx sdk.Context,
 	channelID string,
@@ -576,7 +624,7 @@ func (k Keeper) sendComputeIBCPacket(
 		return 0, errors.Wrap(types.ErrInvalidRequest, "ibc keeper not configured for compute module")
 	}
 
-	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
+	timeoutTimestamp := saturateInt64ToUint64(ctx.BlockTime().Add(timeout).UnixNano())
 	sourcePort := types.PortID
 
 	channelCap, found := k.GetChannelCapability(ctx, sourcePort, channelID)
@@ -584,15 +632,7 @@ func (k Keeper) sendComputeIBCPacket(
 		return 0, errors.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "port: %s, channel: %s", sourcePort, channelID)
 	}
 
-	sequence, err := k.ibcKeeper.ChannelKeeper.SendPacket(
-		ctx,
-		channelCap,
-		sourcePort,
-		channelID,
-		clienttypes.ZeroHeight(),
-		timeoutTimestamp,
-		data,
-	)
+	sequence, err := sendPacketFn(&k, ctx, channelCap, sourcePort, channelID, timeoutTimestamp, data)
 	if err != nil {
 		return 0, errors.Wrapf(err, "failed to send compute IBC packet")
 	}
@@ -807,7 +847,7 @@ func (k Keeper) buildMerkleProofPath(ctx sdk.Context, key []byte) [][]byte {
 
 	// Include the block height hash
 	heightBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBytes, uint64(ctx.BlockHeight()))
+	binary.BigEndian.PutUint64(heightBytes, saturateInt64ToUint64(ctx.BlockHeight()))
 	heightHash := sha256.Sum256(heightBytes)
 	proofPath = append(proofPath, heightHash[:])
 
@@ -1201,9 +1241,9 @@ func (k Keeper) storePendingDiscovery(ctx sdk.Context, channelID string, sequenc
 	key := []byte(fmt.Sprintf("pending_discovery_%d", sequence))
 	store.Set(key, []byte(chainID))
 	k.trackPendingOperation(ctx, ChannelOperation{
-		ChannelID:  channelID,
-		Sequence:   sequence,
-		PacketType: PacketTypeDiscoverProviders,
+		ChannelID:   channelID,
+		Sequence:    sequence,
+		PacketType:  PacketTypeDiscoverProviders,
 		TargetChain: chainID,
 	})
 }
@@ -1607,6 +1647,10 @@ func (k Keeper) handleJobResultAckError(
 func (k Keeper) handleJobResult(ctx sdk.Context, packet channeltypes.Packet, packetNonce uint64) (channeltypes.Acknowledgement, error) {
 	var resultData JobResultPacketData
 	if err := json.Unmarshal(packet.Data, &resultData); err != nil {
+		return channeltypes.NewErrorAcknowledgement(err), nil
+	}
+
+	if err := resultData.ValidateBasic(); err != nil {
 		return channeltypes.NewErrorAcknowledgement(err), nil
 	}
 

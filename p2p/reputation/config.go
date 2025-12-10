@@ -201,7 +201,7 @@ func DefaultConfig(homeDir string) Config {
 
 // LoadConfig loads configuration from file
 func LoadConfig(filePath string) (*Config, error) {
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) // #nosec G304 - configuration path supplied by operator
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}

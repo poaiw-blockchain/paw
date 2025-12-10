@@ -18,5 +18,5 @@ func newComputeKeeperCtx(t *testing.T) (*keeper.Keeper, sdk.Context, context.Con
 	k, sdkCtx := keepertest.ComputeKeeper(t)
 	sdkCtx = sdkCtx.WithContext(context.Background())
 	sdkCtx = sdkCtx.WithBlockTime(time.Now().UTC())
-	return k, sdkCtx, sdk.WrapSDKContext(sdkCtx)
+	return k, sdkCtx, sdkCtx
 }

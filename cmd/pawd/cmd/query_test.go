@@ -796,7 +796,7 @@ func TestQueryDistributionModule(t *testing.T) {
 	cmd := queryCommand()
 	var distrCmd *cobra.Command
 	for _, subcmd := range cmd.Commands() {
-		if subcmd.Name() == "distribution" || subcmd.Name() == "distribution" {
+		if subcmd.Name() == "distribution" {
 			distrCmd = subcmd
 			break
 		}

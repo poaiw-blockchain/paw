@@ -490,7 +490,7 @@ func (k Keeper) parseVerificationProof(proofBytes []byte) (*types.VerificationPr
 	if offset+8 > len(proofBytes) {
 		return nil, fmt.Errorf("proof truncated at timestamp")
 	}
-	proof.Timestamp = int64(binary.BigEndian.Uint64(proofBytes[offset : offset+8]))
+	proof.Timestamp = saturateUint64ToInt64(binary.BigEndian.Uint64(proofBytes[offset : offset+8]))
 
 	return proof, nil
 }
@@ -651,7 +651,7 @@ func (k Keeper) recordNonceUsage(ctx context.Context, provider sdk.AccAddress, n
 
 	// Store timestamp as 8-byte big-endian integer
 	timestampBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBz, uint64(sdkCtx.BlockTime().Unix()))
+	binary.BigEndian.PutUint64(timestampBz, saturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
 
 	// Store the nonce with timestamp in the main nonce store
 	key := NonceKey(provider, nonce)
@@ -686,7 +686,7 @@ func (k Keeper) hasProofHash(ctx context.Context, provider sdk.AccAddress, hash 
 func (k Keeper) recordProofHashUsage(ctx context.Context, provider sdk.AccAddress, hash []byte, timestamp time.Time) {
 	store := k.getStore(ctx)
 	timeBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timeBz, uint64(timestamp.Unix()))
+	binary.BigEndian.PutUint64(timeBz, saturateInt64ToUint64(timestamp.Unix()))
 	store.Set(ProofHashKey(provider, hash), timeBz)
 }
 

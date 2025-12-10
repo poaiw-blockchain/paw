@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"time"
 
 	"cosmossdk.io/math"
 	storeprefix "cosmossdk.io/store/prefix"
@@ -53,7 +52,7 @@ func (k Keeper) setDispute(ctx context.Context, dispute types.Dispute) error {
 
 	// indexes
 	store.Set(DisputeByRequestKey(dispute.RequestId, dispute.Id), []byte{})
-	store.Set(DisputeByStatusKey(uint32(dispute.Status), dispute.Id), []byte{})
+	store.Set(DisputeByStatusKey(saturateInt64ToUint32(int64(dispute.Status)), dispute.Id), []byte{})
 	return nil
 }
 
@@ -135,8 +134,8 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 		Status:         types.DISPUTE_STATUS_EVIDENCE_SUBMISSION,
 		Deposit:        deposit,
 		CreatedAt:      now,
-		EvidenceEndsAt: now.Add(time.Duration(govParams.EvidencePeriodSeconds) * time.Second),
-		VotingEndsAt:   now.Add(time.Duration(govParams.EvidencePeriodSeconds+govParams.VotingPeriodSeconds) * time.Second),
+		EvidenceEndsAt: now.Add(secondsToDuration(govParams.EvidencePeriodSeconds)),
+		VotingEndsAt:   now.Add(secondsToDuration(govParams.EvidencePeriodSeconds + govParams.VotingPeriodSeconds)),
 		Votes:          []types.DisputeVote{},
 		Resolution:     types.DISPUTE_RESOLUTION_UNSPECIFIED,
 	}
@@ -272,18 +271,6 @@ func (k Keeper) ResolveDispute(ctx context.Context, authority sdk.AccAddress, di
 	return resolution, nil
 }
 
-func (k Keeper) maxVote(counts map[types.DisputeVoteOption]int) types.DisputeVoteOption {
-	var maxOpt types.DisputeVoteOption
-	maxCount := -1
-	for opt, c := range counts {
-		if c > maxCount {
-			maxCount = c
-			maxOpt = opt
-		}
-	}
-	return maxOpt
-}
-
 func (k Keeper) maxWeightedVote(weighted map[types.DisputeVoteOption]math.Int) types.DisputeVoteOption {
 	var maxOpt types.DisputeVoteOption
 	maxPower := math.ZeroInt()
@@ -341,7 +328,7 @@ func (k Keeper) CreateAppeal(ctx context.Context, provider sdk.AccAddress, slash
 		Status:        types.APPEAL_STATUS_PENDING,
 		Deposit:       deposit,
 		CreatedAt:     now,
-		VotingEndsAt:  now.Add(time.Duration(govParams.VotingPeriodSeconds) * time.Second),
+		VotingEndsAt:  now.Add(secondsToDuration(govParams.VotingPeriodSeconds)),
 		Votes:         []types.AppealVote{},
 	}
 
@@ -367,7 +354,7 @@ func (k Keeper) setAppeal(ctx context.Context, appeal types.Appeal) error {
 		return err
 	}
 	store.Set(AppealKey(appeal.Id), bz)
-	store.Set(AppealByStatusKey(uint32(appeal.Status), appeal.Id), []byte{})
+	store.Set(AppealByStatusKey(saturateInt64ToUint32(int64(appeal.Status)), appeal.Id), []byte{})
 	return nil
 }
 

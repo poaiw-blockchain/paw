@@ -17,12 +17,12 @@ import (
 
 // Simulation operation weights constants
 const (
-	OpWeightMsgRegisterProvider   = "op_weight_msg_register_provider"
-	OpWeightMsgUpdateProvider     = "op_weight_msg_update_provider"
-	OpWeightMsgDeactivateProvider = "op_weight_msg_deactivate_provider"
-	OpWeightMsgSubmitRequest      = "op_weight_msg_submit_request"
-	OpWeightMsgSubmitResult       = "op_weight_msg_submit_result"
-	OpWeightMsgCancelRequest      = "op_weight_msg_cancel_request"
+	OpWeightMsgRegisterProvider   = "op_weight_msg_register_provider"   // #nosec G101 - identifier string
+	OpWeightMsgUpdateProvider     = "op_weight_msg_update_provider"     // #nosec G101 - identifier string
+	OpWeightMsgDeactivateProvider = "op_weight_msg_deactivate_provider" // #nosec G101 - identifier string
+	OpWeightMsgSubmitRequest      = "op_weight_msg_submit_request"      // #nosec G101 - identifier string
+	OpWeightMsgSubmitResult       = "op_weight_msg_submit_result"       // #nosec G101 - identifier string
+	OpWeightMsgCancelRequest      = "op_weight_msg_cancel_request"      // #nosec G101 - identifier string
 
 	DefaultWeightMsgRegisterProvider   = 20
 	DefaultWeightMsgUpdateProvider     = 10
@@ -147,12 +147,12 @@ func SimulateMsgRegisterProvider(
 			Moniker:  "sim-provider",
 			Endpoint: "https://github.com/compute",
 			AvailableSpecs: types.ComputeSpec{
-				CpuCores:       uint64(simtypes.RandIntBetween(r, 2, 16)),
-				MemoryMb:       uint64(simtypes.RandIntBetween(r, 2048, 16384)),
-				GpuCount:       uint32(simtypes.RandIntBetween(r, 0, 2)),
+				CpuCores:       types.SaturateIntToUint64(simtypes.RandIntBetween(r, 2, 16)),
+				MemoryMb:       types.SaturateIntToUint64(simtypes.RandIntBetween(r, 2048, 16384)),
+				GpuCount:       types.SaturateIntToUint32(simtypes.RandIntBetween(r, 0, 2)),
 				GpuType:        "generic",
-				StorageGb:      uint64(simtypes.RandIntBetween(r, 10, 200)),
-				TimeoutSeconds: uint64(simtypes.RandIntBetween(r, 300, 7200)),
+				StorageGb:      types.SaturateIntToUint64(simtypes.RandIntBetween(r, 10, 200)),
+				TimeoutSeconds: types.SaturateIntToUint64(simtypes.RandIntBetween(r, 300, 7200)),
 			},
 			Pricing: types.Pricing{
 				CpuPricePerMcoreHour:  math.LegacyNewDecFromInt(math.NewInt(int64(simtypes.RandIntBetween(r, 1, 10)))),
@@ -321,12 +321,12 @@ func SimulateMsgSubmitRequest(
 
 		// Random compute specs
 		specs := types.ComputeSpec{
-			CpuCores:       uint64(simtypes.RandIntBetween(r, 1, 16)),
-			MemoryMb:       uint64(simtypes.RandIntBetween(r, 1024, 16384)),
-			GpuCount:       uint32(simtypes.RandIntBetween(r, 0, 2)),
+			CpuCores:       types.SaturateIntToUint64(simtypes.RandIntBetween(r, 1, 16)),
+			MemoryMb:       types.SaturateIntToUint64(simtypes.RandIntBetween(r, 1024, 16384)),
+			GpuCount:       types.SaturateIntToUint32(simtypes.RandIntBetween(r, 0, 2)),
 			GpuType:        "generic",
-			StorageGb:      uint64(simtypes.RandIntBetween(r, 10, 100)),
-			TimeoutSeconds: uint64(simtypes.RandIntBetween(r, 60, 3600)),
+			StorageGb:      types.SaturateIntToUint64(simtypes.RandIntBetween(r, 10, 100)),
+			TimeoutSeconds: types.SaturateIntToUint64(simtypes.RandIntBetween(r, 60, 3600)),
 		}
 
 		// Estimate payment needed

@@ -6,13 +6,15 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"net/url"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -74,14 +76,15 @@ func InitTelemetry(cfg TelemetryConfig) (*Telemetry, error) {
 	return tel, nil
 }
 
-// initTracing sets up Jaeger tracing
+// initTracing sets up OTLP/HTTP tracing
 func (t *Telemetry) initTracing(res *resource.Resource) error {
-	// Create Jaeger exporter
-	exp, err := jaeger.New(
-		jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint(t.config.JaegerEndpoint),
-		),
-	)
+	// Validate endpoint
+	if _, err := url.Parse(t.config.JaegerEndpoint); err != nil {
+		return err
+	}
+
+	endpoint := strings.TrimPrefix(t.config.JaegerEndpoint, "http://")
+	exp, err := otlptracehttp.New(context.Background(), otlptracehttp.WithEndpoint(endpoint), otlptracehttp.WithInsecure())
 	if err != nil {
 		return err
 	}

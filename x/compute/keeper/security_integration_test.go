@@ -188,6 +188,7 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_DoubleSpend() {
 	// Try to complete request again
 	err = suite.keeper.CompleteRequest(suite.ctx, requestID, true)
 	// Should fail or not change balance
+	suite.Require().Error(err)
 
 	providerBalanceAfterAttack := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
@@ -226,7 +227,7 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_PrematureWithdrawal() {
 
 	// ATTACK: Try to complete request without submitting result
 	err = suite.keeper.CompleteRequest(suite.ctx, requestID, true)
-	// This may or may not error, but balance should not increase
+	suite.Require().Error(err)
 
 	providerBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 
@@ -267,10 +268,6 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_TimeoutExploit() {
 	// Advance time past timeout
 	suite.ctx = suite.ctx.WithBlockTime(suite.ctx.BlockTime().Add(15 * time.Second))
 
-	// Request should timeout and refund requester
-	request, err := suite.keeper.GetRequest(suite.ctx, requestID)
-	suite.Require().NoError(err)
-
 	// ATTACK: Provider tries to submit result after timeout
 	outputHash := "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
 	proof := suite.createValidProof(provider, requestID, outputHash)
@@ -285,11 +282,12 @@ func (suite *ComputeSecuritySuite) TestEscrowAttack_TimeoutExploit() {
 		"http://logs.github.com",
 		proof,
 	)
+	suite.Require().Error(err)
 
 	// Submission after timeout should fail or not pay provider
 	providerBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, provider, "upaw")
 	requesterBalanceAfter := suite.bankKeeper.GetBalance(suite.ctx, requester, "upaw")
-	request, err = suite.keeper.GetRequest(suite.ctx, requestID)
+	request, err := suite.keeper.GetRequest(suite.ctx, requestID)
 	suite.Require().NoError(err)
 	suite.Require().True(providerBalanceAfter.Amount.LTE(providerBalanceBefore.Amount))
 
@@ -356,6 +354,7 @@ func (suite *ComputeSecuritySuite) TestVerificationAttack_InvalidProof() {
 		"http://logs.github.com",
 		invalidProof,
 	)
+	suite.Require().NoError(err)
 
 	// Invalid proof should result in low verification score
 	result, err := suite.keeper.GetResult(suite.ctx, requestID)
@@ -446,6 +445,7 @@ func (suite *ComputeSecuritySuite) TestVerificationAttack_ReplayAttack() {
 		"http://logs2.github.com",
 		replayProof,
 	)
+	suite.Require().NoError(err)
 
 	// Check if replay was detected
 	result2, err := suite.keeper.GetResult(suite.ctx, requestID2)
@@ -551,6 +551,7 @@ func (suite *ComputeSecuritySuite) TestVerificationAttack_SignatureForgery() {
 		"http://logs.github.com",
 		proofBytes,
 	)
+	suite.Require().NoError(err)
 
 	result, err := suite.keeper.GetResult(suite.ctx, requestID)
 	if err == nil {
@@ -647,6 +648,7 @@ func (suite *ComputeSecuritySuite) TestVerificationAttack_MerkleProofManipulatio
 		"http://logs.github.com",
 		proofBytes,
 	)
+	suite.Require().NoError(err)
 
 	result, err := suite.keeper.GetResult(suite.ctx, requestID)
 	if err == nil {
@@ -1116,6 +1118,7 @@ func (suite *ComputeSecuritySuite) TestEd25519_KeySubstitution() {
 		"http://logs.github.com",
 		proofBytes,
 	)
+	suite.Require().NoError(err)
 
 	result, err := suite.keeper.GetResult(suite.ctx, requestID)
 	if err == nil {
@@ -1174,6 +1177,9 @@ func (suite *ComputeSecuritySuite) TestNonceReplay_SameNonceMultipleTimes() {
 			"http://logs.github.com",
 			proof,
 		)
+		if err != nil {
+			continue
+		}
 
 		result, err := suite.keeper.GetResult(suite.ctx, requestID)
 		if err == nil && result.Verified {

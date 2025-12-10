@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -86,7 +85,7 @@ func TestGenesisExportImport_DisputeAppealState(t *testing.T) {
 		NextAppealId:  3,
 	}
 
-	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(sdkCtx), genesis))
+	require.NoError(t, k.InitGenesis(sdkCtx, genesis))
 
 	// Invariants should hold after genesis init.
 	msg, broken := keeper.DisputeIndexInvariant(*k)(sdkCtx)
@@ -94,7 +93,7 @@ func TestGenesisExportImport_DisputeAppealState(t *testing.T) {
 	msg, broken = keeper.AppealIndexInvariant(*k)(sdkCtx)
 	require.False(t, broken, msg)
 
-	exported, err := k.ExportGenesis(sdk.WrapSDKContext(sdkCtx))
+	exported, err := k.ExportGenesis(sdkCtx)
 	require.NoError(t, err)
 
 	require.Equal(t, genesis.NextRequestId, exported.NextRequestId)
@@ -107,14 +106,14 @@ func TestGenesisExportImport_DisputeAppealState(t *testing.T) {
 
 	// Re-import into a fresh keeper and ensure invariants still pass.
 	k2, sdkCtx2 := keepertest.ComputeKeeper(t)
-	require.NoError(t, k2.InitGenesis(sdk.WrapSDKContext(sdkCtx2), *exported))
+	require.NoError(t, k2.InitGenesis(sdkCtx2, *exported))
 
 	msg, broken = keeper.DisputeIndexInvariant(*k2)(sdkCtx2)
 	require.False(t, broken, msg)
 	msg, broken = keeper.AppealIndexInvariant(*k2)(sdkCtx2)
 	require.False(t, broken, msg)
 
-	exported2, err := k2.ExportGenesis(sdk.WrapSDKContext(sdkCtx2))
+	exported2, err := k2.ExportGenesis(sdkCtx2)
 	require.NoError(t, err)
 	require.Equal(t, exported.Disputes, exported2.Disputes)
 	require.Equal(t, exported.SlashRecords, exported2.SlashRecords)

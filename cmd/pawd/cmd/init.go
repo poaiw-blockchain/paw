@@ -18,6 +18,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/spf13/cobra"
+
+	"github.com/paw-chain/paw/app"
 )
 
 const (
@@ -35,7 +37,7 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 		Long: `Initialize validators's and node's configuration files.
 
 Example:
-  pawd init paw-controller --chain-id paw-testnet --home ~/.paw
+  pawd init paw-controller --chain-id paw-testnet-1 --home ~/.paw
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -53,9 +55,9 @@ Example:
 
 			// Initialize node validator files
 			nodeID, _, err := genutil.InitializeNodeValidatorFiles(config)
-	if err != nil {
-		return err
-	}
+			if err != nil {
+				return err
+			}
 
 			config.Moniker = args[0]
 
@@ -70,7 +72,7 @@ Example:
 			// Get default denom
 			defaultDenom, _ := cmd.Flags().GetString(flagDefaultDenom)
 			if defaultDenom == "" {
-				defaultDenom = "upaw"
+				defaultDenom = app.BondDenom
 			}
 
 			// Create default genesis state
@@ -88,12 +90,19 @@ Example:
 			}
 
 			// Update consensus params with PAW-specific values
-			genDoc.ConsensusParams.Block.MaxBytes = 2097152 // 2 MB
-			genDoc.ConsensusParams.Block.MaxGas = 100000000 // 100M gas
+			const (
+				maxBlockBytes        int64 = 2_097_152   // 2 MB
+				maxBlockGas          int64 = 100_000_000 // 100M gas
+				evidenceMaxAgeBlocks       = 500_000     // ~23 days @ 4s block time
+				evidenceMaxBytes     int64 = 1_048_576   // 1 MB
+			)
+
+			genDoc.ConsensusParams.Block.MaxBytes = maxBlockBytes
+			genDoc.ConsensusParams.Block.MaxGas = maxBlockGas
 			// TimeIotaMs was removed in CometBFT - block time is controlled by consensus
-			genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks = 100000
-			genDoc.ConsensusParams.Evidence.MaxAgeDuration = 172800000000000 // 48 hours
-			genDoc.ConsensusParams.Evidence.MaxBytes = 1048576               // 1 MB
+			genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks = evidenceMaxAgeBlocks
+			genDoc.ConsensusParams.Evidence.MaxAgeDuration = 21 * 24 * time.Hour
+			genDoc.ConsensusParams.Evidence.MaxBytes = evidenceMaxBytes // 1 MB
 
 			if err = genDoc.ValidateAndComplete(); err != nil {
 				return fmt.Errorf("failed to validate genesis doc: %w", err)
@@ -103,13 +112,13 @@ Example:
 			genDoc.AppHash = cmtbytes.HexBytes{} // avoid null
 
 			type canonicalGenesis struct {
-				GenesisTime     time.Time                `json:"genesis_time"`
-				ChainID         string                   `json:"chain_id"`
-				InitialHeight   string                   `json:"initial_height"`
-				ConsensusParams *tmtypes.ConsensusParams `json:"consensus_params,omitempty"`
+				GenesisTime     time.Time                  `json:"genesis_time"`
+				ChainID         string                     `json:"chain_id"`
+				InitialHeight   string                     `json:"initial_height"`
+				ConsensusParams *tmtypes.ConsensusParams   `json:"consensus_params,omitempty"`
 				Validators      []tmtypes.GenesisValidator `json:"validators,omitempty"`
-				AppHash         string                   `json:"app_hash"`
-				AppState        json.RawMessage          `json:"app_state,omitempty"`
+				AppHash         string                     `json:"app_hash"`
+				AppState        json.RawMessage            `json:"app_state,omitempty"`
 			}
 
 			canon := canonicalGenesis{
@@ -152,7 +161,7 @@ Example:
 			// Create config directory structure
 			configDir := filepath.Dir(genFile)
 			dataDir := filepath.Join(clientCtx.HomeDir, "data")
-			if err := os.MkdirAll(dataDir, 0755); err != nil {
+			if err := os.MkdirAll(dataDir, 0o750); err != nil {
 				return fmt.Errorf("failed to create data directory: %w", err)
 			}
 
@@ -202,7 +211,7 @@ Example:
 	cmd.Flags().String(flags.FlagChainID, "", "genesis file chain-id, if left blank will be randomly created")
 	cmd.Flags().Bool(flagOverwrite, false, "overwrite the genesis.json file")
 	cmd.Flags().Bool(flagRecover, false, "provide seed phrase to recover existing key instead of creating")
-	cmd.Flags().String(flagDefaultDenom, "upaw", "default denomination for the chain")
+	cmd.Flags().String(flagDefaultDenom, app.BondDenom, "default denomination for the chain")
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "node's home directory")
 
 	return cmd
@@ -250,7 +259,7 @@ func decodeJSONWithNumbers(bz []byte) (interface{}, error) {
 // canonicalizeGenesisFile rewrites the genesis file ensuring all int64-like fields are encoded as strings,
 // app_hash is non-null, and the result passes CometBFT genesis validation.
 func canonicalizeGenesisFile(path string) error {
-	bz, err := os.ReadFile(path)
+	bz, err := os.ReadFile(path) // #nosec G304 - path originates from operator-controlled init arguments
 	if err != nil {
 		return fmt.Errorf("failed to read genesis file for canonicalization: %w", err)
 	}
@@ -287,7 +296,7 @@ func canonicalizeGenesisFile(path string) error {
 
 // forceInitialHeightString is a hardening pass to ensure initial_height is encoded as a string.
 func forceInitialHeightString(path string) error {
-	bz, err := os.ReadFile(path)
+	bz, err := os.ReadFile(path) // #nosec G304 - path is operator-provided during init flow
 	if err != nil {
 		return err
 	}

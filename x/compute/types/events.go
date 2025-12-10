@@ -4,14 +4,14 @@ package types
 // All event types use lowercase with underscore separator (module_action format)
 const (
 	// Request events
-	EventTypeComputeRequest        = "compute_request"
+	EventTypeComputeRequest         = "compute_request"
 	EventTypeComputeRequestAccepted = "compute_request_accepted"
 	EventTypeComputeRequestRejected = "compute_request_rejected"
 
 	// Result events
-	EventTypeComputeResult          = "compute_result"
-	EventTypeComputeResultVerified  = "compute_result_verified"
-	EventTypeComputeResultRejected  = "compute_result_rejected"
+	EventTypeComputeResult         = "compute_result"
+	EventTypeComputeResultVerified = "compute_result_verified"
+	EventTypeComputeResultRejected = "compute_result_rejected"
 
 	// Provider events
 	EventTypeComputeProviderRegistered   = "compute_provider_registered"
@@ -29,9 +29,9 @@ const (
 	EventTypeComputeEscrowRefunded = "compute_escrow_refunded"
 
 	// Verification events
-	EventTypeComputeVerification        = "compute_verification"
-	EventTypeComputeVerificationPassed  = "compute_verification_passed"
-	EventTypeComputeVerificationFailed  = "compute_verification_failed"
+	EventTypeComputeVerification       = "compute_verification"        // #nosec G101 - event identifiers, not credentials
+	EventTypeComputeVerificationPassed = "compute_verification_passed" // #nosec G101 - event identifiers, not credentials
+	EventTypeComputeVerificationFailed = "compute_verification_failed" // #nosec G101 - event identifiers, not credentials
 
 	// ZK proof events
 	EventTypeComputeZKProof         = "compute_zk_proof"
@@ -42,9 +42,9 @@ const (
 	EventTypeComputeReputationUpdate = "compute_reputation_update"
 
 	// Cross-chain events
-	EventTypeComputeCrossChainJob        = "compute_cross_chain_job"
+	EventTypeComputeCrossChainJob         = "compute_cross_chain_job"
 	EventTypeComputeCrossChainJobComplete = "compute_cross_chain_job_complete"
-	EventTypeComputeCrossChainJobFailed  = "compute_cross_chain_job_failed"
+	EventTypeComputeCrossChainJobFailed   = "compute_cross_chain_job_failed"
 
 	// Circuit breaker events
 	EventTypeComputeCircuitBreakerTripped = "compute_circuit_breaker_tripped"
@@ -59,11 +59,11 @@ const (
 // All attribute keys use lowercase with underscore separator
 const (
 	// Request attributes
-	AttributeKeyRequestID   = "request_id"
-	AttributeKeyRequester   = "requester"
-	AttributeKeyCodeHash    = "code_hash"
-	AttributeKeyInput       = "input"
-	AttributeKeyInputHash   = "input_hash"
+	AttributeKeyRequestID = "request_id"
+	AttributeKeyRequester = "requester"
+	AttributeKeyCodeHash  = "code_hash"
+	AttributeKeyInput     = "input"
+	AttributeKeyInputHash = "input_hash"
 
 	// Result attributes
 	AttributeKeyResult     = "result"
@@ -99,10 +99,10 @@ const (
 	AttributeKeyProofHash          = "proof_hash"
 
 	// ZK proof attributes
-	AttributeKeyZKProof      = "zk_proof"
-	AttributeKeyZKPublicKey  = "zk_public_key"
-	AttributeKeyZKNonce      = "zk_nonce"
-	AttributeKeyZKTimestamp  = "zk_timestamp"
+	AttributeKeyZKProof     = "zk_proof"
+	AttributeKeyZKPublicKey = "zk_public_key"
+	AttributeKeyZKNonce     = "zk_nonce"
+	AttributeKeyZKTimestamp = "zk_timestamp"
 
 	// Reputation attributes
 	AttributeKeyReputation      = "reputation"
@@ -111,9 +111,9 @@ const (
 	AttributeKeyTotalJobs       = "total_jobs"
 
 	// Timing attributes
-	AttributeKeyTimestamp    = "timestamp"
-	AttributeKeyBlockHeight  = "block_height"
-	AttributeKeyDeadline     = "deadline"
+	AttributeKeyTimestamp     = "timestamp"
+	AttributeKeyBlockHeight   = "block_height"
+	AttributeKeyDeadline      = "deadline"
 	AttributeKeyExecutionTime = "execution_time"
 
 	// Cross-chain attributes (excluding IBC-specific ones in types.go)
@@ -127,10 +127,10 @@ const (
 	AttributeKeyThreshold    = "threshold"
 
 	// Monitoring attributes
-	AttributeKeyAnomalyType  = "anomaly_type"
-	AttributeKeyAlertLevel   = "alert_level"
-	AttributeKeyMetric       = "metric"
-	AttributeKeyValue        = "value"
+	AttributeKeyAnomalyType = "anomaly_type"
+	AttributeKeyAlertLevel  = "alert_level"
+	AttributeKeyMetric      = "metric"
+	AttributeKeyValue       = "value"
 
 	// Status attributes
 	AttributeKeyStatus = "status"

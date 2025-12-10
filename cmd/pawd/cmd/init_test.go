@@ -327,8 +327,8 @@ func TestInitCmdConsensusParams(t *testing.T) {
 	// Verify PAW-specific consensus params
 	require.Equal(t, int64(2097152), genDoc.ConsensusParams.Block.MaxBytes, "Block MaxBytes should be 2MB")
 	require.Equal(t, int64(100000000), genDoc.ConsensusParams.Block.MaxGas, "Block MaxGas should be 100M")
-	require.Equal(t, int64(100000), genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks, "Evidence MaxAgeNumBlocks should be 100000")
-	require.Equal(t, time.Duration(172800000000000), genDoc.ConsensusParams.Evidence.MaxAgeDuration, "Evidence MaxAgeDuration should be 48 hours")
+	require.Equal(t, int64(500000), genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks, "Evidence MaxAgeNumBlocks should be ~23 days")
+	require.Equal(t, 21*24*time.Hour, genDoc.ConsensusParams.Evidence.MaxAgeDuration, "Evidence MaxAgeDuration should be 21 days")
 	require.Equal(t, int64(1048576), genDoc.ConsensusParams.Evidence.MaxBytes, "Evidence MaxBytes should be 1MB")
 }
 
@@ -850,8 +850,8 @@ func TestInitCmdEvidenceParams(t *testing.T) {
 
 	// Verify evidence params
 	require.NotNil(t, genDoc.ConsensusParams.Evidence)
-	require.Equal(t, int64(100000), genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks)
-	require.Equal(t, time.Duration(172800000000000), genDoc.ConsensusParams.Evidence.MaxAgeDuration)
+	require.Equal(t, int64(500000), genDoc.ConsensusParams.Evidence.MaxAgeNumBlocks)
+	require.Equal(t, 21*24*time.Hour, genDoc.ConsensusParams.Evidence.MaxAgeDuration)
 	require.Equal(t, int64(1048576), genDoc.ConsensusParams.Evidence.MaxBytes)
 }
 

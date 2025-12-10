@@ -31,7 +31,7 @@ func TestCeremonyKeySinkPersistsKeysInKeeper(t *testing.T) {
 	t.Parallel()
 
 	k, sdkCtx := newCeremonyKeeper(t)
-	goCtx := sdk.WrapSDKContext(sdkCtx)
+	goCtx := sdkCtx
 
 	circuit := &testEqualityCircuit{}
 	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)

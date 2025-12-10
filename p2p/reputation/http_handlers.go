@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"cosmossdk.io/log"
 )
 
 // HTTPHandlers provides HTTP endpoints for reputation system
@@ -12,14 +14,20 @@ type HTTPHandlers struct {
 	manager *Manager
 	monitor *Monitor
 	metrics *Metrics
+	logger  log.Logger
 }
 
 // NewHTTPHandlers creates HTTP handlers
 func NewHTTPHandlers(manager *Manager, monitor *Monitor, metrics *Metrics) *HTTPHandlers {
+	logger := log.NewNopLogger()
+	if manager != nil && manager.logger != nil {
+		logger = manager.logger
+	}
 	return &HTTPHandlers{
 		manager: manager,
 		monitor: monitor,
 		metrics: metrics,
+		logger:  logger,
 	}
 }
 
@@ -265,7 +273,9 @@ func (h *HTTPHandlers) handlePrometheusMetrics(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(output))
+	if _, err := w.Write([]byte(output)); err != nil {
+		h.logWriteError("prometheus_metrics", err)
+	}
 }
 
 // POST /api/p2p/reputation/ban
@@ -350,5 +360,14 @@ func (h *HTTPHandlers) handleUnbanPeer(w http.ResponseWriter, r *http.Request) {
 func respondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "failed to encode JSON response", http.StatusInternalServerError)
+	}
+}
+
+func (h *HTTPHandlers) logWriteError(context string, err error) {
+	if err == nil || h.logger == nil {
+		return
+	}
+	h.logger.Error("http response write failed", "context", context, "error", err)
 }

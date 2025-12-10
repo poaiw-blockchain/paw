@@ -61,7 +61,7 @@ func (dd DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCrea
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid creator address: %s", err)
 	}
 
-	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	params, err := dd.keeper.GetParams(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -93,7 +93,7 @@ func (dd DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) erro
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid trader address: %s", err)
 	}
 
-	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	params, err := dd.keeper.GetParams(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -112,7 +112,7 @@ func (dd DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) erro
 		return sdkerrors.ErrInvalidRequest.Wrap("minimum amount out cannot be negative")
 	}
 
-	if _, err := dd.keeper.GetPool(sdk.WrapSDKContext(ctx), msg.PoolId); err != nil {
+	if _, err := dd.keeper.GetPool(ctx, msg.PoolId); err != nil {
 		return sdkerrors.ErrNotFound.Wrapf("pool %d not found", msg.PoolId)
 	}
 
@@ -125,7 +125,7 @@ func (dd DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAd
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}
 
-	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	params, err := dd.keeper.GetParams(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -136,7 +136,7 @@ func (dd DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAd
 		return sdkerrors.ErrInvalidRequest.Wrap("liquidity amounts must be positive")
 	}
 
-	if _, err := dd.keeper.GetPool(sdk.WrapSDKContext(ctx), msg.PoolId); err != nil {
+	if _, err := dd.keeper.GetPool(ctx, msg.PoolId); err != nil {
 		return sdkerrors.ErrNotFound.Wrapf("pool %d not found", msg.PoolId)
 	}
 
@@ -149,7 +149,7 @@ func (dd DEXDecorator) validateRemoveLiquidity(ctx sdk.Context, msg *dextypes.Ms
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}
 
-	params, err := dd.keeper.GetParams(sdk.WrapSDKContext(ctx))
+	params, err := dd.keeper.GetParams(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get params: %w", err)
 	}
@@ -160,7 +160,7 @@ func (dd DEXDecorator) validateRemoveLiquidity(ctx sdk.Context, msg *dextypes.Ms
 		return sdkerrors.ErrInvalidRequest.Wrap("shares to remove must be positive")
 	}
 
-	if _, err := dd.keeper.GetPool(sdk.WrapSDKContext(ctx), msg.PoolId); err != nil {
+	if _, err := dd.keeper.GetPool(ctx, msg.PoolId); err != nil {
 		return sdkerrors.ErrNotFound.Wrapf("pool %d not found", msg.PoolId)
 	}
 

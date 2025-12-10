@@ -327,7 +327,7 @@ func DisputeIndexInvariant(k Keeper) sdk.Invariant {
 			}
 
 			// verify status index exists
-			if !store.Has(DisputeByStatusKey(uint32(dispute.Status), dispute.Id)) {
+			if !store.Has(DisputeByStatusKey(saturateInt64ToUint32(int64(dispute.Status)), dispute.Id)) {
 				broken = true
 				failCount++
 				msg += fmt.Sprintf("missing dispute-by-status index for dispute %d\n", dispute.Id)
@@ -378,7 +378,7 @@ func AppealIndexInvariant(k Keeper) sdk.Invariant {
 			}
 
 			// status index must exist
-			if !store.Has(AppealByStatusKey(uint32(appeal.Status), appeal.Id)) {
+			if !store.Has(AppealByStatusKey(saturateInt64ToUint32(int64(appeal.Status)), appeal.Id)) {
 				broken = true
 				failCount++
 				msg += fmt.Sprintf("missing appeal-by-status index for appeal %d\n", appeal.Id)

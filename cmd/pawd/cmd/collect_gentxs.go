@@ -71,7 +71,7 @@ Example:
 					gentxPath := filepath.Join(gentxDir, gentxFile.Name())
 
 					// Read gentx file
-					gentxBz, err := os.ReadFile(gentxPath)
+					gentxBz, err := os.ReadFile(gentxPath) // #nosec G304 - gentx files are operator supplied
 					if err != nil {
 						return fmt.Errorf("failed to read gentx file %s: %w", gentxPath, err)
 					}
