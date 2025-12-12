@@ -623,6 +623,10 @@ func NewPAWApp(
 		if err := app.LoadLatestVersion(); err != nil {
 			panic(err)
 		}
+
+		// Set the query multi-store to enable state queries
+		// This is required for gRPC/REST queries to work properly
+		app.SetQueryMultiStore(app.CommitMultiStore())
 	}
 
 	return app

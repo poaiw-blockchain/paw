@@ -247,5 +247,3 @@ replace (
 	github.com/cometbft/cometbft => github.com/cometbft/cometbft v0.38.17
 	github.com/paw-chain/paw => ./
 )
-
-replace github.com/cosmos/iavl => github.com/cosmos/iavl v1.2.0

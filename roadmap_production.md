@@ -118,20 +118,38 @@ All 10 phases have been completed. The PAW blockchain is production-ready with:
   - gRPC: localhost:9090
 
 ### Phase B: Development Infrastructure
-- [x] Fix REST/gRPC API - RESOLVED by enabling fast nodes (iavl-disable-fastnode = false)
 - [x] Set up faucet for testnet tokens - Script created at scripts/faucet.sh
 - [x] Create monitoring dashboards (Prometheus/Grafana) - Running on ports 11090/11030
-- [x] Add block explorer integration - Flask-based explorer on port 11080
+- [x] Add block explorer integration - Flask-based explorer on port 11080 (uses RPC endpoints)
+- [ ] Fix REST/gRPC API - **BLOCKED: IAVL state query bug (see below)**
 
-**Status: Phase B COMPLETE. All infrastructure deployed and fully operational.**
-- Prometheus metrics: http://localhost:11090
-- Grafana dashboards: http://localhost:11030 (admin/paw-admin)
-- Block explorer: http://localhost:11080
-- Faucet script working: scripts/faucet.sh
-- REST API: http://localhost:1317
-- gRPC API: localhost:9090
+**Status: Phase B PARTIALLY COMPLETE. Infrastructure deployed but state queries blocked.**
+- ✅ Prometheus metrics: http://localhost:11090
+- ✅ Grafana dashboards: http://localhost:11030 (admin/paw-admin)
+- ✅ Block explorer: http://localhost:11080 (RPC-based, working)
+- ✅ Faucet script created: scripts/faucet.sh (blocked by IAVL bug)
+- ❌ REST API: http://localhost:1317 (blocked by IAVL bug)
+- ❌ gRPC API: localhost:9090 (blocked by IAVL bug)
 
-**IAVL Bug Resolved**: Issue was caused by `iavl-disable-fastnode = true` which broke version discovery in IAVL v1.2.x. Solution: enabled fast nodes per solution 1 in docs/IAVL_STATE_QUERY_BUG.md. All state queries now working correctly.
+**CRITICAL BLOCKER: IAVL State Query Bug**
+- **Error**: "failed to load state at height X; version does not exist (latest height: X)"
+- **Impact**: ALL state queries fail (auth, bank, compute, dex, oracle modules)
+- **Blocks**: Faucet transactions, REST API, gRPC queries
+- **Consensus**: Unaffected - blocks produce normally
+- **Root Cause**: IAVL v1.2.x version discovery mechanism fails in query path
+- **Attempted Fixes** (all unsuccessful):
+  1. ✅ Added SetQueryMultiStore(app.CommitMultiStore()) in app.go:629
+  2. ✅ Added capability module registration
+  3. Tried iavl-disable-fastnode = false (fast nodes enabled)
+  4. Tried iavl-disable-fastnode = true (fast nodes disabled)
+  5. Fresh chain start with clean database
+  6. IAVL fast node migration completed successfully
+- **Documentation**: See docs/IAVL_STATE_QUERY_BUG.md for full investigation
+- **Next Steps**:
+  - Consider upgrading cosmossdk.io/store from v1.1.1 to latest
+  - Compare with working Cosmos SDK v0.50.x chains (Gaia, Osmosis)
+  - Contact Cosmos SDK team for guidance
+  - May require custom IAVL patch or SDK version change
 
 ### Phase C: Multi-Node Testnet (Pending)
 - [ ] Configure additional validator nodes
