@@ -12,7 +12,7 @@ import (
 )
 
 func TestCheckByzantineToleranceGeography(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	params := types.DefaultParams()
 	params.MinGeographicRegions = 2
 	params.AllowedRegions = []string{"na", "eu", "apac"}

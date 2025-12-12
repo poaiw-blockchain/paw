@@ -17,7 +17,7 @@ import (
 func setupOracleQueryServer(t *testing.T) (types.QueryServer, *keeper.Keeper, sdk.Context) {
 	t.Helper()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	return keeper.NewQueryServerImpl(*k), k, ctx
 }
 

@@ -13,7 +13,7 @@ import (
 
 // TestPriceSubmissionRevertOnValidationFailure tests that invalid price submissions don't corrupt state
 func TestPriceSubmissionRevertOnValidationFailure(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validator := sdk.ValAddress("validator1")
 	asset := "BTC/USD"
@@ -35,7 +35,7 @@ func TestPriceSubmissionRevertOnValidationFailure(t *testing.T) {
 
 // TestPriceSubmissionRevertOnInactiveValidator tests rejection of inactive validator submissions
 func TestPriceSubmissionRevertOnInactiveValidator(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Use a validator address that doesn't exist or isn't bonded
 	inactiveValidator := sdk.ValAddress("inactive_validator_")
@@ -54,7 +54,7 @@ func TestPriceSubmissionRevertOnInactiveValidator(t *testing.T) {
 
 // TestAggregationRevertOnInsufficientVotingPower tests that aggregation fails gracefully
 func TestAggregationRevertOnInsufficientVotingPower(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 
@@ -75,7 +75,7 @@ func TestAggregationRevertOnInsufficientVotingPower(t *testing.T) {
 
 // TestPriceAggregationPreservesOldPriceOnFailure tests that failed aggregation doesn't remove old prices
 func TestPriceAggregationPreservesOldPriceOnFailure(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validator := sdk.ValAddress("validator1")
 	asset := "BTC/USD"
@@ -118,7 +118,7 @@ func TestPriceAggregationPreservesOldPriceOnFailure(t *testing.T) {
 
 // TestOutlierDetectionDoesNotCorruptValidPrices tests that outlier filtering doesn't corrupt data
 func TestOutlierDetectionDoesNotCorruptValidPrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	basePrice := math.LegacyNewDec(50000)
@@ -169,7 +169,7 @@ func TestOutlierDetectionDoesNotCorruptValidPrices(t *testing.T) {
 
 // TestPriceSnapshotRevertOnStorageFailure tests snapshot storage error handling
 func TestPriceSnapshotRevertOnStorageFailure(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	blockHeight := ctx.BlockHeight()
@@ -194,7 +194,7 @@ func TestPriceSnapshotRevertOnStorageFailure(t *testing.T) {
 
 // TestTWAPCalculationFailureDoesNotCorruptState tests TWAP calculation error handling
 func TestTWAPCalculationFailureDoesNotCorruptState(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 
@@ -217,7 +217,7 @@ func TestTWAPCalculationFailureDoesNotCorruptState(t *testing.T) {
 
 // TestFeederDelegationRevertOnInvalidAddress tests feeder delegation with invalid addresses
 func TestFeederDelegationRevertOnInvalidAddress(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validator := sdk.ValAddress("validator1")
 
@@ -248,7 +248,7 @@ func TestFeederDelegationRevertOnInvalidAddress(t *testing.T) {
 
 // TestMissCounterIncrementRevert tests that miss counter operations don't corrupt state
 func TestMissCounterIncrementRevert(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validatorAddr := sdk.ValAddress("validator1").String()
 
@@ -278,7 +278,7 @@ func TestMissCounterIncrementRevert(t *testing.T) {
 
 // TestSlashingRevertOnInvalidValidator tests that slashing handles invalid validators
 func TestSlashingRevertOnInvalidValidator(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Attempt to slash non-existent validator (should fail gracefully)
 	nonExistentValidator := sdk.ValAddress("nonexistent_val____")
@@ -303,7 +303,7 @@ func TestSlashingRevertOnInvalidValidator(t *testing.T) {
 
 // TestDeleteOldSnapshotsPreservesRecentData tests that cleanup doesn't delete recent snapshots
 func TestDeleteOldSnapshotsPreservesRecentData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 
@@ -347,7 +347,7 @@ func TestDeleteOldSnapshotsPreservesRecentData(t *testing.T) {
 
 // TestPartialAggregationFailurePreservesConsistency tests consistency on partial aggregation failure
 func TestPartialAggregationFailurePreservesConsistency(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 

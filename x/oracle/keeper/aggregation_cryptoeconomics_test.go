@@ -15,7 +15,7 @@ import (
 
 // TestCalculateMedian tests the median calculation with various edge cases
 func TestCalculateMedian(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name     string
@@ -92,7 +92,7 @@ func TestCalculateMedian(t *testing.T) {
 
 // TestCalculateMAD tests Median Absolute Deviation calculation
 func TestCalculateMAD(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name         string
@@ -138,7 +138,7 @@ func TestCalculateMAD(t *testing.T) {
 
 // TestCalculateIQR tests Interquartile Range calculation using R-7 method
 func TestCalculateIQR(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name         string
@@ -214,7 +214,7 @@ func TestCalculateIQR(t *testing.T) {
 
 // TestCalculateWeightedMedian tests weighted median calculation
 func TestCalculateWeightedMedian(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name          string
@@ -293,7 +293,7 @@ func TestCalculateWeightedMedian(t *testing.T) {
 
 // TestClassifyOutlierSeverity tests outlier severity classification
 func TestClassifyOutlierSeverity(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	median := math.LegacyNewDec(100)
 	mad := math.LegacyNewDec(10)
@@ -361,7 +361,7 @@ func TestClassifyOutlierSeverity(t *testing.T) {
 
 // TestIsIQROutlier tests IQR-based outlier detection
 func TestIsIQROutlier(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	q1 := math.LegacyNewDec(50)
 	q3 := math.LegacyNewDec(150)
@@ -444,7 +444,7 @@ func TestIsIQROutlier(t *testing.T) {
 
 // TestGrubbsTest tests Grubbs' test for outlier detection
 func TestGrubbsTest(t *testing.T) {
-	k, _ := keepertest.OracleKeeper(t)
+	k, _, _ := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name       string
@@ -508,7 +508,7 @@ func TestGrubbsTest(t *testing.T) {
 
 // TestCalculateVolatility tests volatility calculation
 func TestCalculateVolatility(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name              string
@@ -564,7 +564,7 @@ func TestCalculateVolatility(t *testing.T) {
 
 // TestAnalyzeCryptoeconomicSecurity tests game-theoretic security analysis
 func TestAnalyzeCryptoeconomicSecurity(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup: create bonded validators with sufficient stake
 	for i := 0; i < 10; i++ {
@@ -596,7 +596,7 @@ func TestAnalyzeCryptoeconomicSecurity(t *testing.T) {
 
 // TestCalculateOptimalSlashFraction tests optimal slashing calculation
 func TestCalculateOptimalSlashFraction(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup validators
 	for i := 0; i < 5; i++ {
@@ -618,7 +618,7 @@ func TestCalculateOptimalSlashFraction(t *testing.T) {
 
 // TestAnalyzeValidatorIncentives tests validator incentive analysis
 func TestAnalyzeValidatorIncentives(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create a validator
 	val := sdk.ValAddress(secp256k1.GenPrivKey().PubKey().Address())
@@ -648,7 +648,7 @@ func TestAnalyzeValidatorIncentives(t *testing.T) {
 
 // TestCalculateNashEquilibrium tests Nash equilibrium analysis
 func TestCalculateNashEquilibrium(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup validators
 	for i := 0; i < 10; i++ {
@@ -681,7 +681,7 @@ func TestCalculateNashEquilibrium(t *testing.T) {
 
 // TestCalculateSchellingPoint tests Schelling point calculation
 func TestCalculateSchellingPoint(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	params := types.DefaultParams()
 	err := k.SetParams(ctx, params)
@@ -763,7 +763,7 @@ func TestAnalyzeCollusionResistance(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Fresh keeper and context for each test
-			freshK, freshCtx := keepertest.OracleKeeper(t)
+			freshK, _, freshCtx := keepertest.OracleKeeper(t)
 
 			// Setup validators
 			for i := 0; i < tt.numValidators; i++ {
@@ -790,7 +790,7 @@ func TestAnalyzeCollusionResistance(t *testing.T) {
 
 // TestCalculateSystemSecurityScore tests composite security score
 func TestCalculateSystemSecurityScore(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup validators
 	for i := 0; i < 15; i++ {
@@ -815,7 +815,7 @@ func TestCalculateSystemSecurityScore(t *testing.T) {
 
 // TestValidateCryptoeconomicSecurity tests security validation
 func TestValidateCryptoeconomicSecurity(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup sufficient validators for good security
 	for i := 0; i < 20; i++ {
@@ -835,7 +835,7 @@ func TestValidateCryptoeconomicSecurity(t *testing.T) {
 
 // TestDetectAndFilterOutliers_SmallSample tests outlier detection with small validator set
 func TestDetectAndFilterOutliers_SmallSample(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create 3 validators (< 5 minimum for advanced detection)
 	validators := make([]sdk.ValAddress, 3)
@@ -877,7 +877,7 @@ func TestDetectAndFilterOutliers_SmallSample(t *testing.T) {
 
 // TestDetectAndFilterOutliers_LargeSample tests outlier detection with sufficient validators
 func TestDetectAndFilterOutliers_LargeSample(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create 10 validators (>= 5 for advanced detection)
 	validators := make([]sdk.ValAddress, 10)

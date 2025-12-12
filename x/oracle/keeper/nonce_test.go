@@ -10,7 +10,7 @@ import (
 )
 
 func TestValidateIncomingPacketNonce(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set block time to current time so timestamp validation works
 	now := time.Now()
@@ -59,7 +59,7 @@ func TestValidateIncomingPacketNonce(t *testing.T) {
 }
 
 func TestValidateIncomingPacketNonce_TimestampValidation(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set block time to current time so timestamp validation works
 	now := time.Now()
@@ -115,7 +115,7 @@ func TestValidateIncomingPacketNonce_TimestampValidation(t *testing.T) {
 }
 
 func TestValidateIncomingPacketNonce_ReplayAttackScenarios(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set block time to current time so timestamp validation works
 	now := time.Now()

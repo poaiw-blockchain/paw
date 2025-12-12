@@ -14,7 +14,7 @@ import (
 )
 
 func TestOracleGenesisRoundTrip(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	params := types.DefaultParams()
 	params.VotePeriod = 15

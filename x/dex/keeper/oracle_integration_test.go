@@ -437,7 +437,7 @@ func TestOracleIntegration_EdgeCases(t *testing.T) {
 func TestRealOracleKeeper_Integration(t *testing.T) {
 	// Create both DEX and Oracle keepers
 	dexK, dexCtx := keepertest.DexKeeper(t)
-	oracleK, oracleCtx := keepertest.OracleKeeper(t)
+	oracleK, _, oracleCtx := keepertest.OracleKeeper(t)
 
 	// Set up oracle prices in oracle context
 	atomPrice := oracletypes.Price{

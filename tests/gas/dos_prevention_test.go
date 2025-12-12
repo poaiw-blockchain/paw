@@ -17,7 +17,7 @@ import (
 
 func TestDoS_UnboundedLoop_Prevention(t *testing.T) {
 	t.Run("Oracle aggregation with many validators", func(t *testing.T) {
-		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 		k := NewOracleGasKeeper(rawKeeper)
 
 		// Try to create a scenario with excessive validators
@@ -168,7 +168,7 @@ func TestDoS_LargeInputData(t *testing.T) {
 	})
 
 	t.Run("Oracle batch submission limit", func(t *testing.T) {
-		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 		k := NewOracleGasKeeper(rawKeeper)
 
 		oracle := sdk.AccAddress("oracle1_____________")
@@ -328,7 +328,7 @@ func TestDoS_StateIterations(t *testing.T) {
 
 func TestDoS_MalformedData(t *testing.T) {
 	t.Run("Invalid price submissions", func(t *testing.T) {
-		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 		k := NewOracleGasKeeper(rawKeeper)
 
 		oracle := sdk.AccAddress("oracle1_____________")
@@ -466,7 +466,7 @@ func TestDoS_GasExhaustion(t *testing.T) {
 	})
 
 	t.Run("Verify gas meter accuracy", func(t *testing.T) {
-		rawKeeper, ctx := keepertest.OracleKeeper(t)
+		rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 		k := NewOracleGasKeeper(rawKeeper)
 
 		ctx = ctx.WithGasMeter(storetypes.NewGasMeter(1000000))

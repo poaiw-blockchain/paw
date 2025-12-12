@@ -16,7 +16,7 @@ import (
 )
 
 func TestBeginBlocker_AggregatePrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	ctx = ctx.WithBlockHeight(30).
 		WithBlockTime(time.Unix(1_700_000_000, 0)).
 		WithEventManager(sdk.NewEventManager())
@@ -53,7 +53,7 @@ func TestBeginBlocker_AggregatePrices(t *testing.T) {
 }
 
 func TestEndBlocker_ProcessSlashWindows(t *testing.T) {
-	kImpl, ctx := keepertest.OracleKeeper(t)
+	kImpl, _, ctx := keepertest.OracleKeeper(t)
 	ctx = ctx.WithBlockHeight(1).
 		WithBlockTime(time.Unix(1_700_000_100, 0)).
 		WithEventManager(sdk.NewEventManager())
@@ -125,7 +125,7 @@ func eventExists(events sdk.Events, eventType string, attrKey string, attrValue 
 
 // TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing tests the amortized cleanup algorithm
 func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Setup: 20 validators × 5 assets = 100 pairs
 	// With maxCleanupPerBlock=50, should process in 2 blocks
@@ -244,7 +244,7 @@ func TestCleanupOldOutlierHistoryGlobal_NoTimeoutWithLargeData(t *testing.T) {
 		t.Skip("skipping large data test in short mode")
 	}
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Simulate large validator set: 100 validators × 20 assets = 2000 pairs
 	numValidators := 100
@@ -300,7 +300,7 @@ func TestCleanupOldOutlierHistoryGlobal_NoTimeoutWithLargeData(t *testing.T) {
 
 // TestCleanupOldOutlierHistoryGlobal_EmptyState tests cleanup with no data
 func TestCleanupOldOutlierHistoryGlobal_EmptyState(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	ctx = ctx.WithBlockHeight(10000).WithEventManager(sdk.NewEventManager())
 
 	// Run cleanup on empty state - should not error
@@ -317,7 +317,7 @@ func TestCleanupOldOutlierHistoryGlobal_EmptyState(t *testing.T) {
 
 // TestCleanupOldOutlierHistoryGlobal_EarlyBlocks tests cleanup in early blocks
 func TestCleanupOldOutlierHistoryGlobal_EarlyBlocks(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	ctx = ctx.WithBlockHeight(100).WithEventManager(sdk.NewEventManager())
 
 	// Create some outlier entries

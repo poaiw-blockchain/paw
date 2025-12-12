@@ -20,7 +20,7 @@ func createTestValidatorAddr() sdk.ValAddress {
 // TestAggregation_NoVotingPowerManipulation tests the core security fix:
 // 3 colluding low-stake validators cannot set price even if they pass outlier detection
 func TestAggregation_NoVotingPowerManipulation(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set params with 10% minimum voting power (default)
 	params := types.DefaultParams()
@@ -91,7 +91,7 @@ func TestAggregation_NoVotingPowerManipulation(t *testing.T) {
 // TestAggregation_VotingPowerThreshold_Legitimate tests that legitimate
 // validators with sufficient voting power can still set prices
 func TestAggregation_VotingPowerThreshold_Legitimate(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set params
 	params := types.DefaultParams()
@@ -148,7 +148,7 @@ func TestAggregation_VotingPowerThreshold_Legitimate(t *testing.T) {
 
 // TestAggregation_VotingPowerThreshold_JustBelow tests edge case just below threshold
 func TestAggregation_VotingPowerThreshold_JustBelow(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set params
 	params := types.DefaultParams()
@@ -194,7 +194,7 @@ func TestAggregation_VotingPowerThreshold_JustBelow(t *testing.T) {
 
 // TestAggregation_VotingPowerThreshold_HighStake tests that high-stake validator succeeds
 func TestAggregation_VotingPowerThreshold_HighStake(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set params
 	params := types.DefaultParams()
@@ -241,7 +241,7 @@ func TestAggregation_VotingPowerThreshold_HighStake(t *testing.T) {
 // TestAggregation_VotingPowerAfterOutlierFiltering tests that voting power
 // threshold is checked AFTER outlier filtering
 func TestAggregation_VotingPowerAfterOutlierFiltering(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set params
 	params := types.DefaultParams()

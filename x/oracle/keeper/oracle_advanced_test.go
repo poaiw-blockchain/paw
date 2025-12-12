@@ -23,7 +23,7 @@ func createTestValAddr(t *testing.T, index int) sdk.ValAddress {
 func TestAggregateWeightedPrices(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name      string
@@ -111,7 +111,7 @@ func TestAggregateWeightedPrices(t *testing.T) {
 func TestDetectOutliersAdvanced(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name           string
@@ -198,7 +198,7 @@ func TestDetectOutliersAdvanced(t *testing.T) {
 func TestValidateDataFreshness(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name        string
@@ -225,7 +225,7 @@ func TestValidateDataFreshness(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k2, ctx2 := keepertest.OracleKeeper(t)
+			k2, _, ctx2 := keepertest.OracleKeeper(t)
 
 			err := k2.ValidateDataFreshness(ctx2, tc.asset, tc.submittedAt)
 
@@ -246,7 +246,7 @@ func TestValidateDataFreshness(t *testing.T) {
 func TestIsActiveOracleValidator(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validator := createTestValAddr(t, 1)
 
@@ -259,7 +259,7 @@ func TestIsActiveOracleValidator(t *testing.T) {
 func TestCommitRevealPrice(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	tests := []struct {
@@ -292,7 +292,7 @@ func TestCommitRevealPrice(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k2, ctx2 := keepertest.OracleKeeper(t)
+			k2, _, ctx2 := keepertest.OracleKeeper(t)
 
 			err := k2.CommitPrice(ctx2, validator, "BTC", tc.priceHash)
 
@@ -315,7 +315,7 @@ func TestCommitRevealPrice(t *testing.T) {
 func TestTrackValidatorActivity(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	// Track a successful submission
@@ -333,7 +333,7 @@ func TestTrackValidatorActivity(t *testing.T) {
 func TestSubmitEncryptedPrice(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	tests := []struct {
@@ -370,7 +370,7 @@ func TestSubmitEncryptedPrice(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k2, ctx2 := keepertest.OracleKeeper(t)
+			k2, _, ctx2 := keepertest.OracleKeeper(t)
 
 			err := k2.SubmitEncryptedPrice(ctx2, validator, "BTC", tc.encryptedData, tc.nonce)
 
@@ -435,7 +435,7 @@ func TestRegisterPriceSource(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k, ctx := keepertest.OracleKeeper(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
 
 			err := k.RegisterPriceSource(ctx, tc.source)
 
@@ -455,7 +455,7 @@ func TestRegisterPriceSource(t *testing.T) {
 func TestGetValidatorAccuracy(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	// Get accuracy for new validator (should return default values)
@@ -470,7 +470,7 @@ func TestGetValidatorAccuracy(t *testing.T) {
 func TestSetValidatorAccuracy(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	accuracy := &keeper.ValidatorAccuracy{
@@ -497,7 +497,7 @@ func TestSetValidatorAccuracy(t *testing.T) {
 func TestUpdateValidatorAccuracy(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	// Accurate submission (within 1%)
@@ -562,7 +562,7 @@ func TestCalculateAccuracyBonus(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k, ctx := keepertest.OracleKeeper(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
 			validator := createTestValAddr(t, 1)
 
 			// Set accuracy score
@@ -585,7 +585,7 @@ func TestCalculateAccuracyBonus(t *testing.T) {
 func TestGetValidatorGeographicInfo(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	// Get info for new validator (should return defaults)
@@ -600,7 +600,7 @@ func TestGetValidatorGeographicInfo(t *testing.T) {
 func TestSetValidatorGeographicInfo(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValAddr(t, 1)
 
 	info := &keeper.GeographicInfo{
@@ -627,7 +627,7 @@ func TestSetValidatorGeographicInfo(t *testing.T) {
 func TestGeographicDiversityScore(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
 		name       string
@@ -656,7 +656,7 @@ func TestGeographicDiversityScore(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			k2, ctx2 := keepertest.OracleKeeper(t)
+			k2, _, ctx2 := keepertest.OracleKeeper(t)
 
 			// Create validators with regions
 			validators := make([]sdk.ValAddress, len(tc.regions))
@@ -686,7 +686,7 @@ func TestGeographicDiversityScore(t *testing.T) {
 func TestSelectDiverseValidators(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create validators across regions
 	validators := make([]sdk.ValAddress, 12)
@@ -716,7 +716,7 @@ func TestSelectDiverseValidators(t *testing.T) {
 func TestCheckSubmissionGeographicDiversity(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create validators with known regions
 	val1 := createTestValAddr(t, 1)
@@ -748,7 +748,7 @@ func TestCheckSubmissionGeographicDiversity(t *testing.T) {
 func TestGetGeographicDiversityMetrics(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create validators across regions
 	regions := []string{
@@ -775,7 +775,7 @@ func TestGetGeographicDiversityMetrics(t *testing.T) {
 func TestDistributeOracleRewards(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Distribution should work even with no reward pool
 	err := k.DistributeOracleRewards(ctx)
@@ -786,7 +786,7 @@ func TestDistributeOracleRewards(t *testing.T) {
 func TestDistributeOracleRewardsWithAccuracy(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Distribution should work even with no reward pool
 	err := k.DistributeOracleRewardsWithAccuracy(ctx)
@@ -797,7 +797,7 @@ func TestDistributeOracleRewardsWithAccuracy(t *testing.T) {
 func TestProcessPriceRoundAccuracy(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	val1 := createTestValAddr(t, 1)
 	val2 := createTestValAddr(t, 2)
@@ -827,7 +827,7 @@ func TestProcessPriceRoundAccuracy(t *testing.T) {
 func TestRotateOracleValidators(t *testing.T) {
 	t.Parallel()
 
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Rotation should not error even with no validators
 	err := k.RotateOracleValidators(ctx)

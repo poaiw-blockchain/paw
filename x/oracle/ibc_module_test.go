@@ -20,7 +20,7 @@ import (
 
 // setupOracleIBCModule creates an oracle keeper, context, and IBC module for testing
 func setupOracleIBCModule(t *testing.T) (*oracle.IBCModule, sdk.Context) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	registry := codectypes.NewInterfaceRegistry()
 	types.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
@@ -30,7 +30,7 @@ func setupOracleIBCModule(t *testing.T) (*oracle.IBCModule, sdk.Context) {
 
 // setupOracleIBCModuleWithKeeper creates an oracle keeper, context, and IBC module for testing (with keeper returned)
 func setupOracleIBCModuleWithKeeper(t *testing.T) (*oracle.IBCModule, *keeper.Keeper, sdk.Context) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	registry := codectypes.NewInterfaceRegistry()
 	types.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)

@@ -30,7 +30,7 @@ func BenchmarkEndBlocker(b *testing.B) {
 
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
-			k, ctx := keepertest.OracleKeeper(b)
+			k, _, ctx := keepertest.OracleKeeper(b)
 			ctx = ctx.WithBlockHeight(10000).WithEventManager(sdk.NewEventManager())
 
 			// Setup: create validators, assets, and outlier history
@@ -71,7 +71,7 @@ func BenchmarkCleanupOldOutlierHistoryGlobal(b *testing.B) {
 
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
-			k, ctx := keepertest.OracleKeeper(b)
+			k, _, ctx := keepertest.OracleKeeper(b)
 
 			// Setup baseline data
 			currentHeight := int64(10000)
@@ -96,7 +96,7 @@ func BenchmarkCleanupOldOutlierHistoryGlobal(b *testing.B) {
 
 // BenchmarkCleanupOldOutlierHistory_SinglePair benchmarks cleanup for a single validator-asset pair
 func BenchmarkCleanupOldOutlierHistory_SinglePair(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, _, ctx := keepertest.OracleKeeper(b)
 	ctx = ctx.WithBlockHeight(10000)
 
 	validator := makeValidatorAddress(0x01)

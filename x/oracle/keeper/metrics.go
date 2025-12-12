@@ -331,8 +331,7 @@ func NewOracleMetrics() *OracleMetrics {
 
 // GetOracleMetrics returns the singleton Oracle metrics instance
 func GetOracleMetrics() *OracleMetrics {
-	if oracleMetrics == nil {
-		return NewOracleMetrics()
-	}
-	return oracleMetrics
+	// Always call NewOracleMetrics which uses sync.Once internally.
+	// Avoids check-then-act race when reading oracleMetrics directly.
+	return NewOracleMetrics()
 }

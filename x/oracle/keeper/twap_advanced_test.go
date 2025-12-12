@@ -32,7 +32,7 @@ func createPriceSnapshots(ctx sdk.Context, k *keeper.Keeper, asset string, price
 }
 
 func TestCalculateVolumeWeightedTWAP_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	prices := []math.LegacyDec{
@@ -60,7 +60,7 @@ func TestCalculateVolumeWeightedTWAP_Success(t *testing.T) {
 }
 
 func TestCalculateVolumeWeightedTWAP_InsufficientData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "ETH/USD"
 
@@ -70,7 +70,7 @@ func TestCalculateVolumeWeightedTWAP_InsufficientData(t *testing.T) {
 }
 
 func TestCalculateVolumeWeightedTWAP_OverflowProtection(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "TEST/USD"
 
@@ -97,7 +97,7 @@ func TestCalculateVolumeWeightedTWAP_OverflowProtection(t *testing.T) {
 }
 
 func TestCalculateExponentialTWAP_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	prices := []math.LegacyDec{
@@ -123,7 +123,7 @@ func TestCalculateExponentialTWAP_Success(t *testing.T) {
 }
 
 func TestCalculateExponentialTWAP_InsufficientData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	_, err := k.CalculateExponentialTWAP(ctx, "NONEXISTENT/USD")
 	require.Error(t, err)
@@ -131,7 +131,7 @@ func TestCalculateExponentialTWAP_InsufficientData(t *testing.T) {
 }
 
 func TestCalculateTrimmedTWAP_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	// Include outliers that should be trimmed
@@ -163,7 +163,7 @@ func TestCalculateTrimmedTWAP_Success(t *testing.T) {
 }
 
 func TestCalculateTrimmedTWAP_InsufficientData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "ETH/USD"
 	// Only 3 snapshots - need at least 4 for trimming
@@ -181,7 +181,7 @@ func TestCalculateTrimmedTWAP_InsufficientData(t *testing.T) {
 }
 
 func TestCalculateTrimmedTWAP_OverflowProtection(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "TEST/USD"
 	prices := []math.LegacyDec{
@@ -215,7 +215,7 @@ func TestCalculateTrimmedTWAP_OverflowProtection(t *testing.T) {
 }
 
 func TestCalculateKalmanTWAP_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	// Prices with some noise
@@ -243,7 +243,7 @@ func TestCalculateKalmanTWAP_Success(t *testing.T) {
 }
 
 func TestCalculateKalmanTWAP_InsufficientData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "ETH/USD"
 	// Only 1 snapshot - need at least 2
@@ -259,7 +259,7 @@ func TestCalculateKalmanTWAP_InsufficientData(t *testing.T) {
 }
 
 func TestCalculateTWAPMultiMethod_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	prices := []math.LegacyDec{
@@ -294,7 +294,7 @@ func TestCalculateTWAPMultiMethod_Success(t *testing.T) {
 }
 
 func TestGetRobustTWAP_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	prices := []math.LegacyDec{
@@ -319,14 +319,14 @@ func TestGetRobustTWAP_Success(t *testing.T) {
 }
 
 func TestGetRobustTWAP_NoData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	_, err := k.GetRobustTWAP(ctx, "NONEXISTENT/USD")
 	require.Error(t, err)
 }
 
 func TestValidateTWAPConsistency_Consistent(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	// Tightly clustered prices should be consistent
@@ -351,7 +351,7 @@ func TestValidateTWAPConsistency_Consistent(t *testing.T) {
 }
 
 func TestValidateTWAPConsistency_Inconsistent(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "VOLATILE/USD"
 	// Even with widely varying input prices, TWAP methods are designed to smooth
@@ -381,7 +381,7 @@ func TestValidateTWAPConsistency_Inconsistent(t *testing.T) {
 }
 
 func TestCalculateTWAPWithConfidenceInterval_Success(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	prices := []math.LegacyDec{
@@ -460,7 +460,7 @@ func TestTWAPAdvanced_EdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, ctx := keepertest.OracleKeeper(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
 			asset := fmt.Sprintf("TEST/%s/USD", tt.name)
 
 			createPriceSnapshots(ctx, k, asset, tt.prices, 1)
@@ -481,7 +481,7 @@ func TestTWAPAdvanced_EdgeCases(t *testing.T) {
 
 // Precision tests
 func TestTWAPAdvanced_PrecisionMaintenance(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "PRECISE/USD"
 	// High precision prices
@@ -517,7 +517,7 @@ func TestTWAPAdvanced_PrecisionMaintenance(t *testing.T) {
 
 // Test lookback window behavior
 func TestTWAPAdvanced_LookbackWindow(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set custom lookback window
 	params, err := k.GetParams(ctx)
@@ -563,7 +563,7 @@ func TestTWAPAdvanced_LookbackWindow(t *testing.T) {
 
 // Test multiple price updates within a window (rapid price changes)
 func TestTWAPAdvanced_RapidPriceChanges(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "VOLATILE/USD"
 
@@ -621,7 +621,7 @@ func TestTWAPAdvanced_RapidPriceChanges(t *testing.T) {
 
 // Test TWAP with non-uniform time intervals
 func TestTWAPAdvanced_NonUniformTimeIntervals(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 	baseHeight := ctx.BlockHeight()
@@ -668,7 +668,7 @@ func TestTWAPAdvanced_NonUniformTimeIntervals(t *testing.T) {
 
 // Test TWAP calculation accuracy with varying volatility
 func TestTWAPAdvanced_VaryingVolatility(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	testCases := []struct {
 		name           string
@@ -736,7 +736,7 @@ func TestTWAPAdvanced_VaryingVolatility(t *testing.T) {
 
 // Test TWAP with identical prices (no volatility)
 func TestTWAPAdvanced_IdenticalPrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "STABLE/USD"
 	constantPrice := math.LegacyMustNewDecFromStr("50000.00")
@@ -779,7 +779,7 @@ func TestTWAPAdvanced_IdenticalPrices(t *testing.T) {
 
 // Test TWAP with zero time deltas
 func TestTWAPAdvanced_ZeroTimeDelta(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "FAST/USD"
 	baseHeight := ctx.BlockHeight()
@@ -811,7 +811,7 @@ func TestTWAPAdvanced_ZeroTimeDelta(t *testing.T) {
 
 // Test confidence interval bounds
 func TestTWAPAdvanced_ConfidenceIntervalBounds(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "BTC/USD"
 
@@ -864,7 +864,7 @@ func TestTWAPAdvanced_ConfidenceIntervalBounds(t *testing.T) {
 
 // Test trimmed TWAP with minimal outliers
 func TestTWAPAdvanced_TrimmedMinimalOutliers(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "CLEAN/USD"
 
@@ -890,7 +890,7 @@ func TestTWAPAdvanced_TrimmedMinimalOutliers(t *testing.T) {
 
 // Test EWMA with different alpha values (via multiple runs)
 func TestTWAPAdvanced_ExponentialWeighting(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "TREND/USD"
 
@@ -918,7 +918,7 @@ func TestTWAPAdvanced_ExponentialWeighting(t *testing.T) {
 
 // Test Kalman filter convergence
 func TestTWAPAdvanced_KalmanConvergence(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "CONVERGE/USD"
 
@@ -952,7 +952,7 @@ func TestTWAPAdvanced_KalmanConvergence(t *testing.T) {
 
 // Test robust TWAP with single method available
 func TestTWAPAdvanced_RobustSingleMethod(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "SINGLE/USD"
 
@@ -972,7 +972,7 @@ func TestTWAPAdvanced_RobustSingleMethod(t *testing.T) {
 
 // Test all error conditions comprehensively
 func TestTWAPAdvanced_ErrorConditions(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	t.Run("MultiMethod_NoData", func(t *testing.T) {
 		_, err := k.CalculateTWAPMultiMethod(ctx, "NONEXISTENT/USD")
@@ -1069,7 +1069,7 @@ func TestTWAPAdvanced_ErrorConditions(t *testing.T) {
 
 // Test TWAP with negative time deltas (out of order blocks)
 func TestTWAPAdvanced_NegativeTimeDelta(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "OUTOFORDER/USD"
 	baseHeight := ctx.BlockHeight()
@@ -1114,7 +1114,7 @@ func TestTWAPAdvanced_NegativeTimeDelta(t *testing.T) {
 
 // Test GetRobustTWAP with multiple methods having different prices
 func TestTWAPAdvanced_RobustMedian(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "MEDIAN/USD"
 
@@ -1165,7 +1165,7 @@ func TestTWAPAdvanced_RobustMedian(t *testing.T) {
 
 // Test ValidateTWAPConsistency with zero mean (edge case)
 func TestTWAPAdvanced_ConsistencyZeroMean(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "ZEROMEAN/USD"
 
@@ -1188,7 +1188,7 @@ func TestTWAPAdvanced_ConsistencyZeroMean(t *testing.T) {
 
 // Test CalculateTWAPWithConfidenceInterval with high variance
 func TestTWAPAdvanced_ConfidenceHighVariance(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "HIGHVAR/USD"
 
@@ -1218,7 +1218,7 @@ func TestTWAPAdvanced_ConfidenceHighVariance(t *testing.T) {
 
 // Test historical TWAP queries (verifying lookback window behavior)
 func TestTWAPAdvanced_HistoricalQueries(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "HIST/USD"
 
@@ -1266,7 +1266,7 @@ func TestTWAPAdvanced_HistoricalQueries(t *testing.T) {
 
 // Test price smoothing effectiveness
 func TestTWAPAdvanced_SmoothingEffectiveness(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	asset := "SMOOTH/USD"
 

@@ -12,7 +12,7 @@ import (
 )
 
 func TestOnTimeoutPricePacketEmitsEvent(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 	packet := channeltypes.Packet{

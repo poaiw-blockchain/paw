@@ -12,7 +12,7 @@ import (
 
 // TestOutlierSubmissionRejected ensures statistical outliers are rejected with a typed error.
 func TestOutlierSubmissionRejected(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	asset := "ATOM"
 
 	// Seed honest validator prices clustered around 100

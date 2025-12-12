@@ -11,7 +11,7 @@ import (
 )
 
 func TestIsAuthorizedFeeder(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	valA := sdk.ValAddress(secp256k1.GenPrivKey().PubKey().Address())
 	valB := sdk.ValAddress(secp256k1.GenPrivKey().PubKey().Address())

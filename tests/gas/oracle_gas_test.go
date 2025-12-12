@@ -24,7 +24,7 @@ const (
 )
 
 func TestOracleGas_RegisterOracle(t *testing.T) {
-	rawKeeper, ctx := keepertest.OracleKeeper(t)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	ctx = ctx.WithGasMeter(storetypes.NewGasMeter(200000))
@@ -45,7 +45,7 @@ func TestOracleGas_RegisterOracle(t *testing.T) {
 }
 
 func TestOracleGas_SubmitPrice(t *testing.T) {
-	rawKeeper, ctx := keepertest.OracleKeeper(t)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	// Register oracle first
@@ -84,7 +84,7 @@ func TestOracleGas_SubmitPrice(t *testing.T) {
 }
 
 func TestOracleGas_AggregatePrices(t *testing.T) {
-	rawKeeper, ctx := keepertest.OracleKeeper(t)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	tests := []struct {
@@ -140,7 +140,7 @@ func TestOracleGas_AggregatePrices(t *testing.T) {
 }
 
 func TestOracleGas_TWAPCalculation(t *testing.T) {
-	rawKeeper, ctx := keepertest.OracleKeeper(t)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	// Setup: Register oracle and submit prices at different times
@@ -198,7 +198,7 @@ func TestOracleGas_TWAPCalculation(t *testing.T) {
 }
 
 func TestOracleGas_GasRegression(t *testing.T) {
-	rawKeeper, ctx := keepertest.OracleKeeper(t)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(t)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	// Baseline gas values

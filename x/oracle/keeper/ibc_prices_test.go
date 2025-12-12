@@ -21,7 +21,8 @@ import (
 
 func setupOracleKeeper(t *testing.T) (*keeper.Keeper, sdk.Context) {
 	t.Helper()
-	return keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
+	return k, ctx
 }
 
 func TestGetPriceMetadataFallback(t *testing.T) {

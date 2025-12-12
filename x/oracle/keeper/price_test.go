@@ -31,7 +31,7 @@ func createTestFeeder(t *testing.T) sdk.AccAddress {
 
 // TestSetPrice tests setting aggregated price
 func TestSetPrice(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	price := types.Price{
 		Asset:         "BTC",
@@ -54,7 +54,7 @@ func TestSetPrice(t *testing.T) {
 
 // TestGetPrice_NotFound tests retrieval of non-existent price
 func TestGetPrice_NotFound(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	_, err := k.GetPrice(ctx, "NONEXISTENT")
 	require.Error(t, err)
@@ -63,7 +63,7 @@ func TestGetPrice_NotFound(t *testing.T) {
 
 // TestDeletePrice tests price deletion
 func TestDeletePrice(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	price := types.Price{
 		Asset:         "ETH",
@@ -85,7 +85,7 @@ func TestDeletePrice(t *testing.T) {
 
 // TestIteratePrices tests price iteration
 func TestIteratePrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set multiple prices
 	assets := []string{"BTC", "ETH", "ATOM", "SOL"}
@@ -114,7 +114,7 @@ func TestIteratePrices(t *testing.T) {
 
 // TestGetAllPrices tests getting all prices
 func TestGetAllPrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set multiple prices
 	assets := []string{"BTC", "ETH", "ATOM"}
@@ -143,7 +143,7 @@ func TestGetAllPrices(t *testing.T) {
 
 // TestSetValidatorPrice tests validator price submission
 func TestSetValidatorPrice(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 
 	validatorPrice := types.ValidatorPrice{
@@ -167,7 +167,7 @@ func TestSetValidatorPrice(t *testing.T) {
 
 // TestSetValidatorPrice_InvalidAddress tests rejection of invalid validator address
 func TestSetValidatorPrice_InvalidAddress(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	validatorPrice := types.ValidatorPrice{
 		ValidatorAddr: "invalid_address",
@@ -182,7 +182,7 @@ func TestSetValidatorPrice_InvalidAddress(t *testing.T) {
 
 // TestGetValidatorPrice_NotFound tests retrieval of non-existent validator price
 func TestGetValidatorPrice_NotFound(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 
 	_, err := k.GetValidatorPrice(ctx, validator, "BTC")
@@ -192,7 +192,7 @@ func TestGetValidatorPrice_NotFound(t *testing.T) {
 
 // TestDeleteValidatorPrice tests validator price deletion
 func TestDeleteValidatorPrice(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 
 	validatorPrice := types.ValidatorPrice{
@@ -215,7 +215,7 @@ func TestDeleteValidatorPrice(t *testing.T) {
 
 // TestIterateValidatorPrices tests validator price iteration
 func TestIterateValidatorPrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Submit prices from multiple validators
 	numValidators := 5
@@ -245,7 +245,7 @@ func TestIterateValidatorPrices(t *testing.T) {
 
 // TestGetValidatorPricesByAsset tests getting all validator prices for an asset
 func TestGetValidatorPricesByAsset(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Submit prices from multiple validators
 	numValidators := 3
@@ -275,7 +275,7 @@ func TestGetValidatorPricesByAsset(t *testing.T) {
 
 // TestSetPriceSnapshot tests setting price snapshot
 func TestSetPriceSnapshot(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	snapshot := types.PriceSnapshot{
 		Asset:       "BTC",
@@ -298,7 +298,7 @@ func TestSetPriceSnapshot(t *testing.T) {
 
 // TestGetPriceSnapshot_NotFound tests retrieval of non-existent snapshot
 func TestGetPriceSnapshot_NotFound(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	_, err := k.GetPriceSnapshot(ctx, "BTC", 999)
 	require.Error(t, err)
@@ -307,7 +307,7 @@ func TestGetPriceSnapshot_NotFound(t *testing.T) {
 
 // TestIteratePriceSnapshots tests snapshot iteration
 func TestIteratePriceSnapshots(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create multiple snapshots
 	numSnapshots := 10
@@ -336,7 +336,7 @@ func TestIteratePriceSnapshots(t *testing.T) {
 
 // TestDeleteOldSnapshots tests snapshot cleanup
 func TestDeleteOldSnapshots(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create snapshots at different heights
 	for i := 0; i < 20; i++ {
@@ -369,7 +369,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 
 // TestSetFeederDelegation tests feeder delegation
 func TestSetFeederDelegation(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 	feeder := createTestFeeder(t)
 
@@ -384,7 +384,7 @@ func TestSetFeederDelegation(t *testing.T) {
 
 // TestGetFeederDelegation_NotFound tests retrieval when no delegation exists
 func TestGetFeederDelegation_NotFound(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 
 	// No delegation exists, should return nil without error
@@ -395,7 +395,7 @@ func TestGetFeederDelegation_NotFound(t *testing.T) {
 
 // TestDeleteFeederDelegation tests delegation deletion
 func TestDeleteFeederDelegation(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 	feeder := createTestFeeder(t)
 
@@ -413,7 +413,7 @@ func TestDeleteFeederDelegation(t *testing.T) {
 
 // TestMultipleValidatorPrices tests handling prices from multiple validators
 func TestMultipleValidatorPrices(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Submit prices from 10 validators
 	numValidators := 10
@@ -437,7 +437,7 @@ func TestMultipleValidatorPrices(t *testing.T) {
 
 // TestValidatorPriceUpdate tests updating validator price
 func TestValidatorPriceUpdate(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 	validator := createTestValidator(t)
 
 	// Submit initial price
@@ -469,7 +469,7 @@ func TestValidatorPriceUpdate(t *testing.T) {
 
 // TestPriceSnapshot_TimeSeriesData tests creating time series of snapshots
 func TestPriceSnapshot_TimeSeriesData(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create snapshots over time
 	basePrice := int64(50000)
@@ -499,7 +499,7 @@ func TestPriceSnapshot_TimeSeriesData(t *testing.T) {
 
 // TestCalculateTWAP verifies TWAP over a controlled snapshot window.
 func TestCalculateTWAP(t *testing.T) {
-	k, ctx := keepertest.OracleKeeper(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Ensure lookback window covers our snapshots
 	params, err := k.GetParams(ctx)

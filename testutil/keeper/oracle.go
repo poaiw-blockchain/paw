@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"cosmossdk.io/log"
@@ -38,15 +39,22 @@ import (
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
-var oracleStakingKeeper *stakingkeeper.Keeper
+// lastStakingKeeper is a thread-safe storage for the most recently created
+// staking keeper. Tests that don't use parallel subtests can use EnsureBondedValidator
+// without passing the keeper explicitly. For parallel tests, use EnsureBondedValidatorWithKeeper.
+var lastStakingKeeper struct {
+	mu     sync.Mutex
+	keeper *stakingkeeper.Keeper
+}
 
-// EnsureBondedValidator seeds a bonded validator into the oracle staking keeper for tests.
-func EnsureBondedValidator(ctx sdk.Context, valAddr sdk.ValAddress) error {
-	if oracleStakingKeeper == nil {
+// EnsureBondedValidatorWithKeeper seeds a bonded validator into the given staking keeper.
+// This is the thread-safe version for parallel tests.
+func EnsureBondedValidatorWithKeeper(ctx sdk.Context, sk *stakingkeeper.Keeper, valAddr sdk.ValAddress) error {
+	if sk == nil {
 		return fmt.Errorf("staking keeper not initialized")
 	}
 
-	if val, err := oracleStakingKeeper.GetValidator(ctx, valAddr); err == nil && val.IsBonded() {
+	if val, err := sk.GetValidator(ctx, valAddr); err == nil && val.IsBonded() {
 		return nil
 	}
 
@@ -59,14 +67,24 @@ func EnsureBondedValidator(ctx sdk.Context, valAddr sdk.ValAddress) error {
 	validatorObj.Tokens = math.NewInt(1_000_000)
 	validatorObj.DelegatorShares = math.LegacyNewDecFromInt(validatorObj.Tokens)
 
-	if err := oracleStakingKeeper.SetValidator(ctx, validatorObj); err != nil {
+	if err := sk.SetValidator(ctx, validatorObj); err != nil {
 		return err
 	}
-	return oracleStakingKeeper.SetNewValidatorByPowerIndex(ctx, validatorObj)
+	return sk.SetNewValidatorByPowerIndex(ctx, validatorObj)
 }
 
-// OracleKeeper creates a test keeper for the Oracle module with mock dependencies
-func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
+// EnsureBondedValidator seeds a bonded validator into the oracle staking keeper for tests.
+// DEPRECATED: Use EnsureBondedValidatorWithKeeper for parallel tests.
+func EnsureBondedValidator(ctx sdk.Context, valAddr sdk.ValAddress) error {
+	lastStakingKeeper.mu.Lock()
+	sk := lastStakingKeeper.keeper
+	lastStakingKeeper.mu.Unlock()
+	return EnsureBondedValidatorWithKeeper(ctx, sk, valAddr)
+}
+
+// OracleKeeper creates a test keeper for the Oracle module with mock dependencies.
+// Returns the oracle keeper, staking keeper (for EnsureBondedValidatorWithKeeper), and context.
+func OracleKeeper(t testing.TB) (*keeper.Keeper, *stakingkeeper.Keeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
 	stakingStoreKey := storetypes.NewKVStoreKey(stakingtypes.StoreKey)
@@ -151,7 +169,10 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	scopedOracleKeeper := capKeeper.ScopeToModule(types.ModuleName)
 	scopedPortKeeper := capKeeper.ScopeToModule(porttypes.SubModuleName)
 	portKeeper := portkeeper.NewKeeper(scopedPortKeeper)
-	oracleStakingKeeper = stakingKeeper
+	// Store for backward compatibility with non-parallel tests using EnsureBondedValidator
+	lastStakingKeeper.mu.Lock()
+	lastStakingKeeper.keeper = stakingKeeper
+	lastStakingKeeper.mu.Unlock()
 
 	var ibcKeeper *ibckeeper.Keeper
 
@@ -171,15 +192,16 @@ func OracleKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 	require.NoError(t, stakingKeeper.SetParams(ctx, stakingtypes.DefaultParams()))
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 
-	return k, ctx
+	return k, stakingKeeper, ctx
 }
 
-// RegisterTestOracle registers a test oracle validator
-func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validator string) {
+// RegisterTestOracleWithKeeper registers a test oracle validator using the given staking keeper.
+// This is the thread-safe version for parallel tests.
+func RegisterTestOracleWithKeeper(t testing.TB, sk *stakingkeeper.Keeper, ctx sdk.Context, validator string) {
 	valAddr, err := sdk.ValAddressFromBech32(validator)
 	require.NoError(t, err)
 
-	require.NotNil(t, oracleStakingKeeper)
+	require.NotNil(t, sk)
 
 	pubKey := ed25519.GenPrivKey().PubKey()
 	validatorObj, err := stakingtypes.NewValidator(valAddr.String(), pubKey, stakingtypes.Description{})
@@ -188,8 +210,17 @@ func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validat
 	validatorObj.Tokens = math.NewInt(1_000_000)
 	validatorObj.DelegatorShares = math.LegacyNewDecFromInt(validatorObj.Tokens)
 
-	oracleStakingKeeper.SetValidator(ctx, validatorObj)
-	oracleStakingKeeper.SetNewValidatorByPowerIndex(ctx, validatorObj)
+	sk.SetValidator(ctx, validatorObj)
+	sk.SetNewValidatorByPowerIndex(ctx, validatorObj)
+}
+
+// RegisterTestOracle registers a test oracle validator.
+// DEPRECATED: Use RegisterTestOracleWithKeeper for parallel tests.
+func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validator string) {
+	lastStakingKeeper.mu.Lock()
+	sk := lastStakingKeeper.keeper
+	lastStakingKeeper.mu.Unlock()
+	RegisterTestOracleWithKeeper(t, sk, ctx, validator)
 }
 
 // SubmitTestPrice submits a test price feed

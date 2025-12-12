@@ -149,7 +149,7 @@ func BenchmarkGas_DEX_RemoveLiquidity(b *testing.B) {
 }
 
 func BenchmarkGas_Oracle_SubmitPrice(b *testing.B) {
-	rawKeeper, ctx := keepertest.OracleKeeper(b)
+	rawKeeper, _, ctx := keepertest.OracleKeeper(b)
 	k := NewOracleGasKeeper(rawKeeper)
 
 	// Setup: Register oracle
@@ -187,7 +187,7 @@ func BenchmarkGas_Oracle_AggregatePrices(b *testing.B) {
 
 	for _, numValidators := range validatorCounts {
 		b.Run(fmt.Sprintf("validators_%d", numValidators), func(b *testing.B) {
-			rawKeeper, ctx := keepertest.OracleKeeper(b)
+			rawKeeper, _, ctx := keepertest.OracleKeeper(b)
 			k := NewOracleGasKeeper(rawKeeper)
 
 			// Setup: Register oracles and submit prices
