@@ -71,4 +71,31 @@
   - Run: `./scripts/release.sh --help` for usage
 
 ### Phase 10: Deployment
-- [ ] Prepare `k8s/` or systemd manifests with `~/.paw` volumes, resource limits, liveness/readiness probes, upgrade/migration steps, and snapshot strategy documentation.
+- [x] Prepare `k8s/` or systemd manifests with `~/.paw` volumes, resource limits, liveness/readiness probes, upgrade/migration steps, and snapshot strategy documentation.
+  - Kubernetes manifests in `k8s/`:
+    - `validator-statefulset.yaml` - Validator nodes with anti-affinity, backup sidecars
+    - `paw-node-deployment.yaml` - Full nodes with rolling updates
+    - `hpa.yaml` - Horizontal pod autoscaler
+    - `network-policy.yaml` - Network security policies
+    - `storage.yaml` - PersistentVolume claims for SSD/standard storage
+  - Systemd services in `infra/systemd/`:
+    - `pawd.service` - Standard node with security hardening
+    - `pawd-validator.service` - Validator with stricter security
+    - `pawd.env` - Environment template
+    - `README.md` - Installation and management guide
+  - Upgrade documentation in `docs/upgrades/`:
+    - Cosmovisor setup and automatic upgrades
+    - State export and rollback procedures
+    - Governance-based upgrade process
+
+## Production Readiness Complete
+
+All 10 phases have been completed. The PAW blockchain is production-ready with:
+- Hardened configuration and genesis pipeline
+- Key management and P2P networking
+- Comprehensive observability (Prometheus, Grafana, Jaeger)
+- Security scanning (gosec, staticcheck, govulncheck)
+- Testing (unit, integration, race, fuzz, property)
+- Protobuf API surface verified
+- Reproducible build pipeline (goreleaser)
+- Kubernetes and systemd deployment options

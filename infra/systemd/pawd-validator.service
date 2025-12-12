@@ -1,0 +1,108 @@
+# PAW Blockchain Validator Node - systemd service file
+#
+# IMPORTANT: This service is for validator nodes with stricter security requirements
+#
+# Installation:
+#   sudo cp pawd-validator.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable pawd-validator
+#   sudo systemctl start pawd-validator
+#
+# Pre-requisites:
+#   1. Create paw user: useradd -r -s /sbin/nologin paw
+#   2. Initialize node: pawd init <moniker> --home /home/paw/.paw
+#   3. Configure validator keys securely
+#   4. Verify genesis file before starting
+
+[Unit]
+Description=PAW Blockchain Validator Node
+Documentation=https://github.com/decristofaroj/paw/docs/VALIDATOR_QUICKSTART.md
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=3
+ConditionPathExists=/home/paw/.paw/config/genesis.json
+ConditionPathExists=/home/paw/.paw/config/priv_validator_key.json
+
+[Service]
+# User and group
+User=paw
+Group=paw
+
+# Environment
+EnvironmentFile=-/etc/paw/validator.env
+Environment=HOME=/home/paw
+Environment=PAW_HOME=/home/paw/.paw
+
+# Working directory
+WorkingDirectory=/home/paw
+
+# Pre-start: verify genesis integrity
+ExecStartPre=/bin/bash -c 'if [ -n "${GENESIS_CHECKSUM}" ]; then echo "${GENESIS_CHECKSUM}  ${PAW_HOME}/config/genesis.json" | sha256sum -c -; fi'
+
+# Start command (validator mode)
+ExecStart=/usr/local/bin/pawd start \
+    --home ${PAW_HOME} \
+    --log_level ${LOG_LEVEL:-info} \
+    --minimum-gas-prices ${MIN_GAS_PRICES:-0.001upaw} \
+    --p2p.persistent_peers ${PERSISTENT_PEERS:-} \
+    --p2p.seeds ${SEEDS:-}
+
+# Restart policy (more conservative for validators)
+Restart=on-failure
+RestartSec=30
+RestartPreventExitStatus=137
+
+# Security hardening (stricter for validators)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/paw/.paw
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+ProtectClock=true
+ProtectHostname=true
+RemoveIPC=true
+
+# Capabilities (minimal)
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Resource limits (higher for validators)
+LimitNOFILE=131072
+LimitNPROC=16384
+MemoryMax=32G
+TasksMax=8192
+
+# CPU affinity (optional: pin to specific cores)
+# CPUAffinity=0 1 2 3
+
+# Nice value (higher priority)
+Nice=-5
+IOSchedulingClass=realtime
+IOSchedulingPriority=2
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pawd-validator
+
+# Kill settings (longer timeout for validators)
+KillMode=process
+KillSignal=SIGTERM
+TimeoutStopSec=180
+
+# Watchdog (optional: enable for monitoring)
+# WatchdogSec=60
+# NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target
