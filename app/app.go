@@ -100,6 +100,7 @@ import (
 	"github.com/spf13/cast"
 
 	// IBC modules
+	capability "github.com/cosmos/ibc-go/modules/capability"
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
@@ -446,6 +447,7 @@ func NewPAWApp(
 		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts, app.GetSubspace(authtypes.ModuleName)),
 		vesting.NewAppModule(app.AccountKeeper, app.BankKeeper),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper, app.GetSubspace(banktypes.ModuleName)),
+		capability.NewAppModule(appCodec, *app.CapabilityKeeper, false),
 		crisis.NewAppModule(app.CrisisKeeper, false, app.GetSubspace(crisistypes.ModuleName)),
 		feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeeGrantKeeper, app.interfaceRegistry),
 		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper, app.GetSubspace(govtypes.ModuleName)),
@@ -539,6 +541,7 @@ func NewPAWApp(
 		stakingtypes.ModuleName,
 		genutiltypes.ModuleName,
 		// IBC modules
+		capabilitytypes.ModuleName,
 		ibcexported.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
@@ -553,6 +556,7 @@ func NewPAWApp(
 		stakingtypes.ModuleName,
 		feegrant.ModuleName,
 		// IBC modules
+		capabilitytypes.ModuleName,
 		ibcexported.ModuleName,
 		// PAW custom modules
 		dextypes.ModuleName,
