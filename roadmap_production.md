@@ -99,3 +99,38 @@ All 10 phases have been completed. The PAW blockchain is production-ready with:
 - Protobuf API surface verified
 - Reproducible build pipeline (goreleaser)
 - Kubernetes and systemd deployment options
+
+---
+
+## Testnet Transition Roadmap
+
+### Phase A: Local Single-Node Testnet
+- [x] Build pawd binary (`make build`)
+- [x] Initialize node with custom chain-id (`pawd init --chain-id paw-testnet-1`)
+- [x] Fix genesis denoms (bond_denom, mint_denom, gov deposit → upaw)
+- [x] Create validator key and add genesis account
+- [x] Generate gentx and collect gentxs
+- [x] Start node and verify block production
+  - Node running at block 1500+ (producing ~13 blocks/sec)
+  - Validator active with 100 voting power
+  - Chain ID: paw-testnet-1
+  - RPC: tcp://localhost:26657
+  - gRPC: localhost:9090
+
+### Phase B: Development Infrastructure (Pending)
+- [ ] Enable and configure REST API (currently has startup issue)
+- [ ] Set up faucet for testnet tokens
+- [ ] Create monitoring dashboards (Prometheus/Grafana)
+- [ ] Add block explorer integration
+
+### Phase C: Multi-Node Testnet (Pending)
+- [ ] Configure additional validator nodes
+- [ ] Set up persistent peers and seeds
+- [ ] Test consensus with multiple validators
+- [ ] Verify slashing and jailing mechanics
+
+### Phase D: Public Testnet (Pending)
+- [ ] Deploy to cloud infrastructure
+- [ ] Publish seeds and genesis file
+- [ ] Open for external validators
+- [ ] Document joining instructions
