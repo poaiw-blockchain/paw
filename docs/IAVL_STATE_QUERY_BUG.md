@@ -1,10 +1,29 @@
 # IAVL State Query Bug - Comprehensive Analysis
 
-**Status**: CRITICAL - Blocks all REST/gRPC queries, prevents faucet operation, testnet validation fails
+**Status**: RESOLVED
 
 **Date Discovered**: 2025-12-12
 
+**Date Resolved**: 2025-12-12
+
 **Last Updated**: 2025-12-12
+
+---
+
+## RESOLVED - Solution Applied
+
+**Fix Applied**: Solution 1 - Enable Fast Nodes
+
+**Configuration Change**:
+- Changed `iavl-disable-fastnode` from `true` to `false` in `~/.paw/config/app.toml`
+- Chain data reset and reinitialized with fast nodes enabled
+- Node now successfully produces blocks AND responds to state queries
+
+**Verification**:
+- gRPC queries working: ✓ (cosmos.bank.v1beta1.Query/TotalSupply succeeds)
+- REST API responding: ✓ (http://localhost:1317 endpoints accessible)
+- Block explorer state views: ✓ (states properly loaded)
+- Faucet operations: ✓ (accounts and balances queryable)
 
 ---
 
