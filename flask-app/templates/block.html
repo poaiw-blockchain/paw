@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Block {{ block.height }} - PAW Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Block #{{ block.height }}</h2>
+</div>
+
+<div class="detail-card">
+    <div class="detail-row">
+        <div class="detail-label">Height</div>
+        <div class="detail-value">{{ block.height }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Hash</div>
+        <div class="detail-value"><code class="hash-full">{{ block.hash }}</code></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Parent Hash</div>
+        <div class="detail-value"><code class="hash-full">{{ block.parent_hash }}</code></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Time</div>
+        <div class="detail-value">{{ block.time }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Chain ID</div>
+        <div class="detail-value">{{ block.chain_id }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Proposer Address</div>
+        <div class="detail-value"><code class="hash-full">{{ block.proposer }}</code></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Transactions</div>
+        <div class="detail-value">{{ block.num_txs }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">App Hash</div>
+        <div class="detail-value"><code class="hash-full">{{ block.app_hash }}</code></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Validators Hash</div>
+        <div class="detail-value"><code class="hash-full">{{ block.validators_hash }}</code></div>
+    </div>
+</div>
+
+{% if block.transactions %}
+<div class="section">
+    <h3>Transactions ({{ block.num_txs }})</h3>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Index</th>
+                    <th>Hash</th>
+                    <th>Status</th>
+                    <th>Gas Used</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in block.transactions %}
+                <tr>
+                    <td>{{ tx.index }}</td>
+                    <td><code class="hash">{{ tx.hash }}</code></td>
+                    <td>
+                        <span class="status-badge {% if tx.success %}status-ok{% else %}status-error{% endif %}">
+                            {% if tx.success %}Success{% else %}Failed{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ tx.gas_used }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="section">
+    <p class="text-muted">No transactions in this block</p>
+</div>
+{% endif %}
+
+<div class="navigation">
+    {% if block.height|int > 1 %}
+    <a href="/block/{{ block.height|int - 1 }}" class="btn">← Previous Block</a>
+    {% endif %}
+    <a href="/" class="btn">Back to Home</a>
+    <a href="/block/{{ block.height|int + 1 }}" class="btn">Next Block →</a>
+</div>
+{% endblock %}

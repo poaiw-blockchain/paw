@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Validators - PAW Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Validator Set</h2>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Validators</div>
+        <div class="stat-value">{{ total_validators }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Voting Power</div>
+        <div class="stat-value">{{ total_power }}</div>
+    </div>
+</div>
+
+<div class="section">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Address</th>
+                    <th>Public Key</th>
+                    <th>Voting Power</th>
+                    <th>Voting %</th>
+                    <th>Proposer Priority</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for val in validators %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><code class="hash">{{ val.address }}</code></td>
+                    <td><code class="hash">{{ val.pub_key }}</code></td>
+                    <td>{{ val.voting_power }}</td>
+                    <td>{{ "%.2f"|format((val.voting_power / total_power * 100) if total_power > 0 else 0) }}%</td>
+                    <td>{{ val.proposer_priority }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="navigation">
+    <a href="/" class="btn">Back to Home</a>
+</div>
+{% endblock %}

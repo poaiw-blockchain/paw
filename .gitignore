@@ -126,3 +126,5 @@ docker-compose.override.yml
 proto/**/*.pb.go
 proto/**/*_grpc.pb.go
 pawd
+__pycache__/
+*.pyc

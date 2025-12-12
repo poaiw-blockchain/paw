@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction {{ tx.hash[:16] }}... - PAW Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Transaction Details</h2>
+</div>
+
+<div class="detail-card">
+    <div class="detail-row">
+        <div class="detail-label">Hash</div>
+        <div class="detail-value"><code class="hash-full">{{ tx.hash }}</code></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Status</div>
+        <div class="detail-value">
+            <span class="status-badge {% if tx.success %}status-ok{% else %}status-error{% endif %}">
+                {% if tx.success %}Success (Code: {{ tx.code }}){% else %}Failed (Code: {{ tx.code }}){% endif %}
+            </span>
+        </div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Block Height</div>
+        <div class="detail-value"><a href="/block/{{ tx.height }}" class="link">{{ tx.height }}</a></div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Transaction Index</div>
+        <div class="detail-value">{{ tx.index }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Gas Wanted</div>
+        <div class="detail-value">{{ tx.gas_wanted }}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Gas Used</div>
+        <div class="detail-value">{{ tx.gas_used }}</div>
+    </div>
+    {% if tx.log %}
+    <div class="detail-row">
+        <div class="detail-label">Log</div>
+        <div class="detail-value"><pre class="log-text">{{ tx.log }}</pre></div>
+    </div>
+    {% endif %}
+</div>
+
+{% if tx.events %}
+<div class="section">
+    <h3>Events ({{ tx.events|length }})</h3>
+    {% for event in tx.events %}
+    <div class="event-card">
+        <h4>{{ event.type }}</h4>
+        {% if event.attributes %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attr in event.attributes %}
+                <tr>
+                    <td><code>{{ attr.key }}</code></td>
+                    <td><code>{{ attr.value }}</code></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="navigation">
+    <a href="/block/{{ tx.height }}" class="btn">← Back to Block</a>
+    <a href="/" class="btn">Back to Home</a>
+</div>
+{% endblock %}

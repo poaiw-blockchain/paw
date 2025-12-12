@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Search - PAW Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Search Results</h2>
+</div>
+
+{% if results %}
+    {% if results.type == 'block' %}
+    <div class="alert alert-success">
+        <p>Block found! Redirecting to <a href="/block/{{ results.height }}">Block #{{ results.height }}</a></p>
+    </div>
+    <script>
+        setTimeout(function() {
+            window.location.href = "/block/{{ results.height }}";
+        }, 1000);
+    </script>
+    {% elif results.type == 'tx' %}
+    <div class="alert alert-success">
+        <p>Transaction found! Redirecting to <a href="/tx/{{ results.hash }}">transaction details</a></p>
+    </div>
+    <script>
+        setTimeout(function() {
+            window.location.href = "/tx/{{ results.hash }}";
+        }, 1000);
+    </script>
+    {% elif results.type == 'none' %}
+    <div class="alert alert-error">
+        <p>No results found for "{{ query }}"</p>
+        <p>Try searching by:</p>
+        <ul>
+            <li>Block height (e.g., 606)</li>
+            <li>Transaction hash (full hash)</li>
+        </ul>
+    </div>
+    {% endif %}
+{% else %}
+<div class="search-help">
+    <h3>How to search</h3>
+    <p>You can search for:</p>
+    <ul>
+        <li><strong>Block height:</strong> Enter a number (e.g., 606)</li>
+        <li><strong>Transaction hash:</strong> Enter the full transaction hash</li>
+    </ul>
+</div>
+{% endif %}
+
+<div class="navigation">
+    <a href="/" class="btn">Back to Home</a>
+</div>
+{% endblock %}

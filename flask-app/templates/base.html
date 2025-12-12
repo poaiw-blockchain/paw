@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PAW Explorer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1><a href="/">PAW Block Explorer</a></h1>
+                <span class="chain-id">{{ chain_id }}</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/validators">Validators</a></li>
+                <li>
+                    <form action="/search" method="get" class="search-form">
+                        <input type="text" name="q" placeholder="Block height or tx hash..." class="search-input">
+                        <button type="submit" class="search-btn">Search</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>PAW Blockchain Explorer | RPC: {{ request.host }}</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}PAW Explorer - Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Network Overview</h2>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Latest Block</div>
+        <div class="stat-value">{{ latest_height }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Latest Block Time</div>
+        <div class="stat-value small">{{ latest_time }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Node Version</div>
+        <div class="stat-value small">{{ node_version }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Sync Status</div>
+        <div class="stat-value small {% if catching_up %}status-warning{% else %}status-ok{% endif %}">
+            {% if catching_up %}Syncing...{% else %}Synced{% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="section">
+    <h3>Recent Blocks</h3>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Height</th>
+                    <th>Hash</th>
+                    <th>Time</th>
+                    <th>Proposer</th>
+                    <th>Txs</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for block in recent_blocks %}
+                <tr>
+                    <td><a href="/block/{{ block.height }}" class="link">{{ block.height }}</a></td>
+                    <td><code class="hash">{{ block.hash }}</code></td>
+                    <td>{{ block.time }}</td>
+                    <td><code class="hash">{{ block.proposer }}</code></td>
+                    <td>{{ block.num_txs }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
