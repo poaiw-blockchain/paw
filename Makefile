@@ -1,11 +1,12 @@
 #!/usr/bin/make -f
 
-VERSION := $(shell echo $(shell  describe --tags) | sed 's/^v//')
-COMMIT := $(shell  log -1 --format='%H')
+VERSION := $(shell git describe --tags 2>/dev/null | sed 's/^v//' || echo "0.0.0-dev")
+COMMIT := $(shell git log -1 --format='%H' 2>/dev/null || echo "unknown")
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
-PROJECT_NAME = $(shell  remote get-url origin | xargs basename -s )
+PROJECT_NAME = $(shell git remote get-url origin 2>/dev/null | xargs basename -s .git 2>/dev/null || echo "paw")
+CHAIN_ID ?= paw-1
 
 # Build flags
 build_tags = netgo
@@ -44,6 +45,7 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=paw \
 	-X github.com/cosmos/cosmos-sdk/version.AppName=pawd \
 	-X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 	-X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
+	-X github.com/paw-chain/paw/app.DefaultChainID=$(CHAIN_ID) \
 	-X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
 
 ifeq (,$(findstring nostrip,$(BUILD_OPTIONS)))
@@ -202,7 +204,7 @@ run-hooks:
 
 update-swagger-docs: statik
 	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
-	@if [ -n "$( status --porcelain)" ]; then \
+	@if [ -n "$$(git status --porcelain)" ]; then \
         echo "\033[91mSwagger docs are out of sync!!!\033[0m";\
         exit 1;\
     else \

@@ -62,7 +62,13 @@
   - API docs in docs/api/ with examples (curl, JavaScript, Python, Go)
 
 ### Phase 9: Release Engineering
-- [ ] Add reproducible build pipeline (`Makefile` or `scripts/release.sh`) with ldflags (version/commit/chain-id), checksums/signatures, and Docker image build/push.
+- [x] Add reproducible build pipeline (`Makefile` or `scripts/release.sh`) with ldflags (version/commit/chain-id), checksums/signatures, and Docker image build/push.
+  - Fixed Makefile: added missing `git` commands, added CHAIN_ID ldflag
+  - Created `.goreleaser.yml` with multi-platform builds (linux/darwin, amd64/arm64)
+  - Created `scripts/release.sh` for local/CI release builds
+  - Created `docker/Dockerfile.release` for production container images
+  - Supports GPG signing, SHA256 checksums, and Docker multi-arch manifests
+  - Run: `./scripts/release.sh --help` for usage
 
 ### Phase 10: Deployment
 - [ ] Prepare `k8s/` or systemd manifests with `~/.paw` volumes, resource limits, liveness/readiness probes, upgrade/migration steps, and snapshot strategy documentation.

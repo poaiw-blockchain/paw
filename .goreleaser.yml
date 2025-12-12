@@ -1,0 +1,217 @@
+# GoReleaser configuration for PAW blockchain
+# https://goreleaser.com/customization/
+
+project_name: paw
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: pawd
+    main: ./cmd/pawd
+    binary: pawd
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: arm64
+        # Temporarily ignore darwin/arm64 if cross-compilation issues arise
+    ldflags:
+      - -s -w
+      - -X github.com/cosmos/cosmos-sdk/version.Name=paw
+      - -X github.com/cosmos/cosmos-sdk/version.AppName=pawd
+      - -X github.com/cosmos/cosmos-sdk/version.Version={{ .Version }}
+      - -X github.com/cosmos/cosmos-sdk/version.Commit={{ .Commit }}
+      - -X github.com/paw-chain/paw/app.DefaultChainID=paw-1
+      - -X "github.com/cosmos/cosmos-sdk/version.BuildTags=netgo,ledger"
+    tags:
+      - netgo
+      - ledger
+
+  - id: pawcli
+    main: ./cmd/pawcli
+    binary: pawcli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/cosmos/cosmos-sdk/version.Name=paw
+      - -X github.com/cosmos/cosmos-sdk/version.AppName=pawcli
+      - -X github.com/cosmos/cosmos-sdk/version.Version={{ .Version }}
+      - -X github.com/cosmos/cosmos-sdk/version.Commit={{ .Commit }}
+      - -X github.com/paw-chain/paw/app.DefaultChainID=paw-1
+
+archives:
+  - id: pawd
+    builds:
+      - pawd
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+      - docs/VALIDATOR_QUICKSTART.md
+      - scripts/init-testnet.sh
+
+  - id: pawcli
+    builds:
+      - pawcli
+    name_template: "{{ .ProjectName }}-cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-dev-{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "typo"
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: "^.*feat.*:+.*$"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^.*fix.*:+.*$"
+      order: 1
+    - title: Security
+      regexp: "^.*security.*:+.*$"
+      order: 2
+    - title: Performance
+      regexp: "^.*perf.*:+.*$"
+      order: 3
+    - title: Other
+      order: 999
+
+release:
+  github:
+    owner: decristofaroj
+    name: paw
+  draft: true
+  prerelease: auto
+  name_template: "v{{ .Version }}"
+  header: |
+    ## PAW Blockchain Release v{{ .Version }}
+
+    This release includes the following binaries:
+    - `pawd` - PAW blockchain node daemon
+    - `pawcli` - PAW command-line interface
+
+    ### Installation
+
+    ```bash
+    # Download and extract the appropriate archive for your platform
+    # Then move the binary to your PATH:
+    sudo mv pawd /usr/local/bin/
+    sudo chmod +x /usr/local/bin/pawd
+
+    # Verify installation
+    pawd version
+    ```
+
+    ### Checksums
+
+    Verify your download with the checksums file:
+    ```bash
+    sha256sum -c paw_{{ .Version }}_checksums.txt
+    ```
+  footer: |
+
+    ---
+
+    Full changelog: https://github.com/decristofaroj/paw/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    Documentation: https://github.com/decristofaroj/paw/tree/main/docs
+
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+dockers:
+  - id: pawd-amd64
+    goos: linux
+    goarch: amd64
+    ids:
+      - pawd
+    image_templates:
+      - "ghcr.io/decristofaroj/paw:{{ .Version }}-amd64"
+      - "ghcr.io/decristofaroj/paw:latest-amd64"
+    dockerfile: docker/Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/decristofaroj/paw"
+    extra_files:
+      - scripts/init-testnet.sh
+
+  - id: pawd-arm64
+    goos: linux
+    goarch: arm64
+    ids:
+      - pawd
+    image_templates:
+      - "ghcr.io/decristofaroj/paw:{{ .Version }}-arm64"
+      - "ghcr.io/decristofaroj/paw:latest-arm64"
+    dockerfile: docker/Dockerfile.release
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/decristofaroj/paw"
+    extra_files:
+      - scripts/init-testnet.sh
+
+docker_manifests:
+  - name_template: "ghcr.io/decristofaroj/paw:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/decristofaroj/paw:{{ .Version }}-amd64"
+      - "ghcr.io/decristofaroj/paw:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/decristofaroj/paw:latest"
+    image_templates:
+      - "ghcr.io/decristofaroj/paw:latest-amd64"
+      - "ghcr.io/decristofaroj/paw:latest-arm64"
+
+announce:
+  skip: true

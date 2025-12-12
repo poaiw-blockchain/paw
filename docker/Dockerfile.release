@@ -1,0 +1,56 @@
+# PAW Blockchain Release Dockerfile
+# This Dockerfile is used by goreleaser to create minimal production images
+
+FROM alpine:3.19
+
+# Install required packages
+RUN apk add --no-cache \
+    ca-certificates \
+    curl \
+    jq \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for security
+RUN addgroup -S paw && adduser -S paw -G paw
+
+# Set working directory
+WORKDIR /home/paw
+
+# Copy binary from goreleaser build
+COPY pawd /usr/local/bin/pawd
+
+# Copy initialization script
+COPY scripts/init-testnet.sh /usr/local/bin/init-testnet.sh
+RUN chmod +x /usr/local/bin/init-testnet.sh
+
+# Create data directory
+RUN mkdir -p /home/paw/.paw && chown -R paw:paw /home/paw
+
+# Switch to non-root user
+USER paw
+
+# Expose ports
+# P2P
+EXPOSE 26656
+# RPC
+EXPOSE 26657
+# REST API
+EXPOSE 1317
+# gRPC
+EXPOSE 9090
+# gRPC-Web
+EXPOSE 9091
+# Prometheus metrics
+EXPOSE 26660
+
+# Data volume
+VOLUME ["/home/paw/.paw"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:26657/status || exit 1
+
+# Default command
+ENTRYPOINT ["pawd"]
+CMD ["start", "--home", "/home/paw/.paw"]
