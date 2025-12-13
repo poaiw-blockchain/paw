@@ -305,6 +305,9 @@ func SimulateMsgSwap(
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSwap, "insufficient balance"), nil, nil
 		}
 
+		// Set deadline to current block time + 10 minutes (600 seconds)
+		deadline := ctx.BlockTime().Unix() + 600
+
 		msg := &types.MsgSwap{
 			Trader:       simAccount.Address.String(),
 			PoolId:       pool.Id,
@@ -312,6 +315,7 @@ func SimulateMsgSwap(
 			TokenOut:     tokenOut,
 			AmountIn:     amountIn,
 			MinAmountOut: math.NewInt(1),
+			Deadline:     deadline,
 		}
 
 		txCtx := simulation.OperationInput{

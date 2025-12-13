@@ -86,6 +86,8 @@ help:
 	@echo "  test-coverage         ## Generate coverage report"
 	@echo "  test-keeper           ## Run keeper module tests"
 	@echo "  test-types            ## Run type definition tests"
+	@echo "  test-config           ## Run exhaustive configuration tests (Phase 2.2)"
+	@echo "  test-config-quick     ## Run quick configuration tests"
 	@echo "  benchmark             ## Run benchmark tests"
 	@echo "  test-invariants       ## Run invariant tests"
 	@echo "  test-properties       ## Run property-based tests"
@@ -261,7 +263,7 @@ test-properties:
 
 test-simulation:
 	@echo "--> Running simulation tests (this may take a while)"
-	@go test -v ./tests/simulation/... -timeout 30m
+	@go test -v ./tests/simulation/... -Enabled=true -timeout 30m
 
 test-simulation-genesis:
 	@if [ -z "$(GENESIS)" ]; then echo "GENESIS path is required, e.g. make test-simulation-genesis GENESIS=/path/to/genesis.json"; exit 1; fi
@@ -271,6 +273,19 @@ test-simulation-genesis:
 test-cometmock:
 	@echo "--> Running E2E tests with CometMock"
 	@USE_COMETMOCK=true go test -v ./tests/e2e/...
+
+test-config:
+	@echo "--> Running exhaustive configuration tests (Phase 2.2)"
+	@./scripts/test-config-exhaustive.sh
+
+test-config-quick:
+	@echo "--> Running quick configuration tests"
+	@./scripts/test-config-exhaustive.sh --quick
+
+test-config-category:
+	@if [ -z "$(CATEGORY)" ]; then echo "CATEGORY is required, e.g. make test-config-category CATEGORY=p2p"; exit 1; fi
+	@echo "--> Running configuration tests for category: $(CATEGORY)"
+	@./scripts/test-config-exhaustive.sh --category $(CATEGORY)
 
 test-all-advanced:
 	@echo "--> Running all advanced tests"
@@ -305,7 +320,7 @@ benchmark-invariants:
 
 lint:
 	@echo "--> Running linter"
-	@golangci-lint run --timeout=10m
+	@GOLANGCI_LINT_ALLOW_PARALLEL_RUNS=true golangci-lint run --allow-parallel-runners --timeout=10m
 
 format:
 	@echo "--> Formatting code"

@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
@@ -29,7 +30,7 @@ func WeightedOperations(
 	appParams simtypes.AppParams,
 	cdc codec.JSONCodec,
 	txGen client.TxConfig,
-	k keeper.Keeper,
+	k *keeper.Keeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	sk types.StakingKeeper,
@@ -69,7 +70,7 @@ func WeightedOperations(
 func SimulateMsgSubmitPrice(
 	txGen client.TxConfig,
 	cdc *codec.ProtoCodec,
-	k keeper.Keeper,
+	k *keeper.Keeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	sk types.StakingKeeper,
@@ -77,13 +78,25 @@ func SimulateMsgSubmitPrice(
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
-		// Get a random validator
+		// Get all validators
 		validators, err := sk.GetAllValidators(ctx)
 		if err != nil || len(validators) == 0 {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitPrice, "no validators"), nil, nil
 		}
 
-		validator := validators[r.Intn(len(validators))]
+		// Filter for bonded validators with voting power
+		var bondedValidators []stakingtypes.Validator
+		for _, val := range validators {
+			if val.IsBonded() && val.GetConsensusPower(sdk.DefaultPowerReduction) >= 1 {
+				bondedValidators = append(bondedValidators, val)
+			}
+		}
+
+		if len(bondedValidators) == 0 {
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitPrice, "no bonded validators with voting power"), nil, nil
+		}
+
+		validator := bondedValidators[r.Intn(len(bondedValidators))]
 		valAddr, err := sdk.ValAddressFromBech32(validator.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgSubmitPrice, "invalid validator"), nil, nil
@@ -140,7 +153,7 @@ func SimulateMsgSubmitPrice(
 func SimulateMsgDelegateFeeder(
 	txGen client.TxConfig,
 	cdc *codec.ProtoCodec,
-	k keeper.Keeper,
+	k *keeper.Keeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
 	sk types.StakingKeeper,
@@ -148,13 +161,25 @@ func SimulateMsgDelegateFeeder(
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
 	) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
-		// Get a random validator
+		// Get all validators
 		validators, err := sk.GetAllValidators(ctx)
 		if err != nil || len(validators) == 0 {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDelegateFeedConsent, "no validators"), nil, nil
 		}
 
-		validator := validators[r.Intn(len(validators))]
+		// Filter for bonded validators
+		var bondedValidators []stakingtypes.Validator
+		for _, val := range validators {
+			if val.IsBonded() {
+				bondedValidators = append(bondedValidators, val)
+			}
+		}
+
+		if len(bondedValidators) == 0 {
+			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDelegateFeedConsent, "no bonded validators"), nil, nil
+		}
+
+		validator := bondedValidators[r.Intn(len(bondedValidators))]
 		valAddr, err := sdk.ValAddressFromBech32(validator.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, types.TypeMsgDelegateFeedConsent, "invalid validator"), nil, nil
