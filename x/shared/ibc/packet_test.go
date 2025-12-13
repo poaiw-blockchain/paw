@@ -4,6 +4,11 @@ import (
 	"errors"
 	"testing"
 
+	"cosmossdk.io/log"
+	"cosmossdk.io/store"
+	"cosmossdk.io/store/metrics"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
@@ -12,6 +17,13 @@ import (
 )
 
 // Mock implementations for testing
+
+// createTestContext creates a minimal SDK context for testing
+func createTestContext() sdk.Context {
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
+	return sdk.NewContext(cms, cmtproto.Header{}, false, log.NewNopLogger())
+}
 
 type mockPacketData struct {
 	packetType string
@@ -63,7 +75,7 @@ func (m *mockCapabilityClaimer) ClaimCapability(ctx sdk.Context, cap *capability
 }
 
 type mockChannelCloseHandler struct {
-	operations      []PendingOperation
+	operations       []PendingOperation
 	refundShouldFail bool
 }
 
@@ -79,19 +91,19 @@ func (m *mockChannelCloseHandler) RefundOnChannelClose(ctx sdk.Context, op Pendi
 }
 
 func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
-	ctx := sdk.Context{}
+	ctx := createTestContext()
 
 	tests := []struct {
-		name             string
-		packet           channeltypes.Packet
-		packetData       PacketData
-		nonce            uint64
-		timestamp        int64
-		sender           string
-		authorizerFails  bool
+		name                string
+		packet              channeltypes.Packet
+		packetData          PacketData
+		nonce               uint64
+		timestamp           int64
+		sender              string
+		authorizerFails     bool
 		nonceValidatorFails bool
-		wantErr          bool
-		errContains      string
+		wantErr             bool
+		errContains         string
 	}{
 		{
 			name: "valid packet",
@@ -135,10 +147,10 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				packetType: "test",
 				valid:      false,
 			},
-			nonce:     1,
-			timestamp: 12345,
-			sender:    "sender-1",
-			wantErr:   true,
+			nonce:       1,
+			timestamp:   12345,
+			sender:      "sender-1",
+			wantErr:     true,
 			errContains: "invalid packet data",
 		},
 		{
@@ -214,7 +226,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 }
 
 func TestChannelOpenValidator_ValidateChannelOpenInit(t *testing.T) {
-	ctx := sdk.Context{}
+	ctx := createTestContext()
 
 	tests := []struct {
 		name         string
@@ -311,7 +323,7 @@ func TestChannelOpenValidator_ValidateChannelOpenInit(t *testing.T) {
 }
 
 func TestChannelOpenValidator_ValidateChannelOpenTry(t *testing.T) {
-	ctx := sdk.Context{}
+	ctx := createTestContext()
 
 	tests := []struct {
 		name                string
@@ -428,7 +440,7 @@ func TestChannelOpenValidator_ValidateChannelOpenAck(t *testing.T) {
 }
 
 func TestHandleChannelClose(t *testing.T) {
-	ctx := sdk.Context{}
+	ctx := createTestContext()
 
 	tests := []struct {
 		name             string
@@ -467,7 +479,7 @@ func TestHandleChannelClose(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := &mockChannelCloseHandler{
-				operations:      tt.operations,
+				operations:       tt.operations,
 				refundShouldFail: tt.refundShouldFail,
 			}
 
