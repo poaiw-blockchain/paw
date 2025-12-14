@@ -140,21 +140,21 @@ func (ma *MessageAuthenticator) VerifyMessage(msg *AuthenticatedMessage) error {
 		return ErrExpiredMessage
 	}
 
-	// Check nonce for replay attacks
-	if !ma.nonces.CheckAndMark(msg.Nonce) {
-		return ErrReplayAttack
-	}
-
 	// Get peer public key
 	peerKey, exists := ma.peerKeys[msg.PeerID]
 	if !exists {
 		return fmt.Errorf("unknown peer: %s", msg.PeerID)
 	}
 
-	// Verify signature
+	// Verify signature BEFORE checking nonce (avoid marking invalid messages)
 	sigData := ma.getSignatureData(msg)
 	if !ed25519.Verify(peerKey, sigData, msg.Signature) {
 		return ErrInvalidSignature
+	}
+
+	// Check nonce for replay attacks (only after signature is valid)
+	if !ma.nonces.CheckAndMark(msg.Nonce) {
+		return ErrReplayAttack
 	}
 
 	return nil
@@ -223,14 +223,16 @@ func NewMessageEncryptor() (*MessageEncryptor, error) {
 }
 
 // generateCurve25519KeyPair generates a Curve25519 key pair
-func generateCurve25519KeyPair() ([32]byte, [32]byte, error) {
-	var privateKey, publicKey [32]byte
-
-	if _, err := rand.Read(privateKey[:]); err != nil {
+func generateCurve25519KeyPair() (publicKey, privateKey [32]byte, err error) {
+	if _, err = rand.Read(privateKey[:]); err != nil {
 		return publicKey, privateKey, err
 	}
 
-	curve25519.ScalarBaseMult(&publicKey, &privateKey)
+	pubBytes, err := curve25519.X25519(privateKey[:], curve25519.Basepoint)
+	if err != nil {
+		return publicKey, privateKey, err
+	}
+	copy(publicKey[:], pubBytes)
 
 	return publicKey, privateKey, nil
 }
@@ -252,14 +254,14 @@ func (me *MessageEncryptor) Encrypt(plaintext []byte, peerID string) (*Encrypted
 	}
 
 	// Derive shared secret using ECDH
-	var sharedSecret [32]byte
-	// Note: ScalarMult returns zero for low-order points; peer keys are validated via ValidatePublicKey.
-	//lint:ignore SA1019 ScalarMult deprecated; kept for compatibility with existing key format.
-	curve25519.ScalarMult(&sharedSecret, &me.privateKey, &peerKey)
+	sharedSecret, err := curve25519.X25519(me.privateKey[:], peerKey[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to derive shared secret: %w", err)
+	}
 
 	// Derive encryption key using HKDF
 	encKey := make([]byte, 32)
-	kdf := hkdf.New(sha256.New, sharedSecret[:], []byte("p2p-encryption"), []byte(peerID))
+	kdf := hkdf.New(sha256.New, sharedSecret, []byte("p2p-encryption"), nil)
 	if _, err := io.ReadFull(kdf, encKey); err != nil {
 		return nil, fmt.Errorf("failed to derive encryption key: %w", err)
 	}
@@ -301,14 +303,14 @@ func (me *MessageEncryptor) Decrypt(msg *EncryptedMessage) ([]byte, error) {
 	}
 
 	// Derive shared secret
-	var sharedSecret [32]byte
-	// Note: ScalarMult returns zero for low-order points; peer keys are validated via ValidatePublicKey.
-	//lint:ignore SA1019 ScalarMult deprecated; kept for compatibility with existing key format.
-	curve25519.ScalarMult(&sharedSecret, &me.privateKey, &peerKey)
+	sharedSecret, err := curve25519.X25519(me.privateKey[:], peerKey[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to derive shared secret: %w", err)
+	}
 
 	// Derive encryption key
 	encKey := make([]byte, 32)
-	kdf := hkdf.New(sha256.New, sharedSecret[:], []byte("p2p-encryption"), []byte(msg.PeerID))
+	kdf := hkdf.New(sha256.New, sharedSecret, []byte("p2p-encryption"), nil)
 	if _, err := io.ReadFull(kdf, encKey); err != nil {
 		return nil, fmt.Errorf("failed to derive encryption key: %w", err)
 	}
