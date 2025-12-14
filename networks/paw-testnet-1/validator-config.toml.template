@@ -1,0 +1,153 @@
+# PAW Validator - CometBFT Configuration Template
+# Copy to ~/.paw/config/config.toml and customize
+
+#######################################################################
+###                   Main Base Config Options                      ###
+#######################################################################
+
+# A custom human readable name for this node
+moniker = "<YOUR-VALIDATOR-NAME>"
+
+# Mode of Node: full | validator | seed
+# * validator: Recommended, participates in consensus
+mode = "validator"
+
+#######################################################################
+###                 Advanced Configuration Options                  ###
+#######################################################################
+
+#######################################################
+###       RPC Server Configuration Options          ###
+#######################################################
+[rpc]
+
+# TCP or UNIX socket address for the RPC server to listen on
+# SECURITY: Only expose to localhost for validators
+# Use sentries for public RPC access
+laddr = "tcp://127.0.0.1:26657"
+
+#######################################################
+###           P2P Configuration Options             ###
+#######################################################
+[p2p]
+
+# Address to listen for incoming connections
+laddr = "tcp://0.0.0.0:26656"
+
+# Comma separated list of seed nodes to connect to
+# Seeds help discover other peers
+seeds = ""
+
+# Comma separated list of nodes to keep persistent connections to
+# IMPORTANT: Add all seed/sentry node IDs here
+# Get from: networks/paw-testnet-1/peers.txt
+persistent_peers = "<paste-from-peers.txt>"
+
+# ADVANCED: For sentry architecture, list sentry node IDs here
+# This hides your validator from public peer exchange
+private_peer_ids = ""
+
+# Comma separated list of peer IDs to keep private (will not be gossiped to other peers)
+# Use for sentry-validator connections
+unconditional_peer_ids = ""
+
+# Maximum number of inbound peers
+# Validators: 40 (default)
+# Sentries: 100+ (handle more public traffic)
+max_num_inbound_peers = 40
+
+# Maximum number of outbound peers to connect to, excluding persistent peers
+max_num_outbound_peers = 10
+
+# Toggle to disable guard against peers connecting from the same ip.
+addr_book_strict = true
+
+# Maximum pause when redialing a persistent peer (if zero, exponential backoff is used)
+persistent_peers_max_dial_period = "0s"
+
+# Seed mode, in which node constantly crawls the network and looks for
+# peers. If another node asks it for addresses, it responds and disconnects.
+seed_mode = false
+
+# Set true to enable the peer-exchange reactor
+# Validators: false (only connect to known peers)
+# Sentries/Full nodes: true (discover public peers)
+pex = false
+
+#######################################################
+###          Mempool Configuration Options          ###
+#######################################################
+[mempool]
+
+# Maximum number of transactions in the mempool
+size = 5000
+
+# Maximum size in bytes for a transaction
+max_tx_bytes = 1048576
+
+# Size of the cache (used to filter transactions we saw earlier)
+cache_size = 10000
+
+#######################################################
+###         State Sync Configuration Options        ###
+#######################################################
+[statesync]
+
+# State sync rapidly bootstraps a new node by discovering, fetching, and restoring a state machine
+# snapshot from peers instead of fetching and replaying historical blocks. Requires some peers in
+# the network to take and serve state machine snapshots.
+enable = false
+
+# RPC servers (comma-separated) for light client verification of the synced state machine
+# Get trusted state sync servers from PAW team
+rpc_servers = ""
+
+# Trust height and hash for state sync
+# Update these values based on current network state
+trust_height = 0
+trust_hash = ""
+
+#######################################################
+###       Consensus Configuration Options           ###
+#######################################################
+[consensus]
+
+# How long we wait for a proposal block before prevoting nil
+timeout_propose = "3s"
+
+# How much timeout_propose increases with each round
+timeout_propose_delta = "500ms"
+
+# How long we wait after receiving +2/3 prevotes for "anything" (ie. not a single block or nil)
+timeout_prevote = "1s"
+
+# How much the timeout_prevote increases with each round
+timeout_prevote_delta = "500ms"
+
+# How long we wait after receiving +2/3 precommits for "anything" (ie. not a single block or nil)
+timeout_precommit = "1s"
+
+# How much the timeout_precommit increases with each round
+timeout_precommit_delta = "500ms"
+
+# How long we wait after committing a block, before starting on the new
+# height (this gives us a chance to receive some more precommits, even
+# though we already have +2/3).
+timeout_commit = "5s"
+
+#######################################################
+###         Instrumentation Configuration           ###
+#######################################################
+[instrumentation]
+
+# When true, Prometheus metrics are served under /metrics on
+# PrometheusListenAddr.
+# RECOMMENDED: Enable for monitoring
+prometheus = true
+
+# Address to listen for Prometheus collector(s) connections
+# SECURITY: Restrict to monitoring server only
+prometheus_listen_addr = ":26660"
+
+# Instrumentation namespace
+namespace = "cometbft"
