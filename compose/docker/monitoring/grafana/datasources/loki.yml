@@ -1,0 +1,21 @@
+# ============================================================================
+# Grafana Datasource Configuration - Loki
+# ============================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://paw-loki:3100
+    isDefault: false
+    jsonData:
+      maxLines: 1000
+      timeout: 60
+      derivedFields:
+        - datasourceUid: Loki
+          matcherRegex: "tx_hash=([A-Fa-f0-9]{64})"
+          name: Transaction
+          url: "https://explorer.paw.network/tx/$${__value.raw}"
+    editable: true
