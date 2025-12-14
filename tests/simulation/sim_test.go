@@ -462,18 +462,28 @@ func TestMultiSeedFullSimulation(t *testing.T) {
 			config.AllInvariants = true
 			config.Commit = true
 
-			db, dir, logger, _, err := simtestutil.SetupSimulation(
+			db, dir, logger, skip, err := simtestutil.SetupSimulation(
 				config,
 				"leveldb-app-sim",
 				"Simulation",
 				simcli.FlagVerboseValue,
 				simcli.FlagEnabledValue,
 			)
+			if skip {
+				t.Skip("skipping simulation")
+			}
 			require.NoError(t, err)
+			if err != nil {
+				return // Setup failed, skip test
+			}
 
 			defer func() {
-				require.NoError(t, db.Close())
-				require.NoError(t, os.RemoveAll(dir))
+				if db != nil {
+					require.NoError(t, db.Close())
+				}
+				if dir != "" {
+					require.NoError(t, os.RemoveAll(dir))
+				}
 			}()
 
 			appOptions := make(simtestutil.AppOptionsMap, 0)
