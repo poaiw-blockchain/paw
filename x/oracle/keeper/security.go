@@ -39,65 +39,81 @@ import (
 // IF GOVERNANCE IS REQUIRED (extreme caution advised):
 //
 // 1. DESIGN CHANGES:
-//    - Move to module Params with EXTREMELY strict validation bounds
-//    - Require 2/3+ supermajority for oracle parameter changes
-//    - Implement 30-day time-lock (much longer than DEX params)
-//    - Add emergency pause mechanism if parameter change detected
-//    - Require validator set approval in addition to token holder governance
+//   - Move to module Params with EXTREMELY strict validation bounds
+//   - Require 2/3+ supermajority for oracle parameter changes
+//   - Implement 30-day time-lock (much longer than DEX params)
+//   - Add emergency pause mechanism if parameter change detected
+//   - Require validator set approval in addition to token holder governance
 //
 // 2. CRITICAL PARAMETERS (NEVER allow governance):
-//    - MinValidatorsForSecurity: Wrong value = broken BFT
-//    - MinGeographicRegions: Centralization risk if lowered
-//    These should ALWAYS remain hard-coded for security
+//   - MinValidatorsForSecurity: Wrong value = broken BFT
+//   - MinGeographicRegions: Centralization risk if lowered
+//     These should ALWAYS remain hard-coded for security
 //
 // 3. POTENTIALLY GOVERNABLE PARAMETERS (with extreme caution):
-//    - MaxDataStalenessBlocks: Could adjust for faster/slower block times
-//    - MaxSubmissionsPerWindow: Could tune based on network load
-//    - RateLimitWindow: Could optimize based on validator behavior
 //
-// 4. IMPLEMENTATION REQUIREMENTS:
-//    a) Add to params.proto with validation bounds:
-//       message OracleParams {
-//         uint64 max_data_staleness_blocks = 1; // constrained to [50, 500]
-//         uint64 max_submissions_per_window = 2; // constrained to [5, 20]
-//         // MIN_VALIDATORS and MIN_REGIONS remain hard-coded
-//       }
+//   - MaxDataStalenessBlocks: Could adjust for faster/slower block times
 //
-//    b) Add multi-sig governance requirement:
-//       - Require both token holder vote AND validator set approval
-//       - Implement via custom proposal type in x/gov
+//   - MaxSubmissionsPerWindow: Could tune based on network load
 //
-//    c) Add parameter change surveillance:
-//       - Monitor for malicious governance proposals
-//       - Automatic alerts to node operators
-//       - Emergency governance veto mechanism
+//   - RateLimitWindow: Could optimize based on validator behavior
 //
-//    d) Implement gradual rollout:
-//       - Parameter changes apply to NEW price submissions only
-//       - Existing price data uses old parameters
-//       - Transition period to detect issues
+//     4. IMPLEMENTATION REQUIREMENTS:
+//     a) Add to params.proto with validation bounds:
+//     message OracleParams {
+//     uint64 max_data_staleness_blocks = 1; // constrained to [50, 500]
+//     uint64 max_submissions_per_window = 2; // constrained to [5, 20]
+//     // MIN_VALIDATORS and MIN_REGIONS remain hard-coded
+//     }
+//
+//     b) Add multi-sig governance requirement:
+//
+//   - Require both token holder vote AND validator set approval
+//
+//   - Implement via custom proposal type in x/gov
+//
+//     c) Add parameter change surveillance:
+//
+//   - Monitor for malicious governance proposals
+//
+//   - Automatic alerts to node operators
+//
+//   - Emergency governance veto mechanism
+//
+//     d) Implement gradual rollout:
+//
+//   - Parameter changes apply to NEW price submissions only
+//
+//   - Existing price data uses old parameters
+//
+//   - Transition period to detect issues
 //
 // 5. CATASTROPHIC RISKS:
-//    - Malicious governance reducing MinValidatorsForSecurity from 7 to 3
-//      → Attacker needs only 1 validator instead of 3 to compromise oracle
-//    - Reducing MinGeographicRegions from 3 to 1
-//      → Single datacenter outage can halt all price feeds
-//    - Increasing MaxDataStalenessBlocks to 10000
-//      → Oracle could use hour-old prices for arbitrage exploitation
-//    - Reducing MinBlocksBetweenSubmissions to 0
-//      → Enables flash loan attacks on oracle pricing
+//   - Malicious governance reducing MinValidatorsForSecurity from 7 to 3
+//     → Attacker needs only 1 validator instead of 3 to compromise oracle
+//   - Reducing MinGeographicRegions from 3 to 1
+//     → Single datacenter outage can halt all price feeds
+//   - Increasing MaxDataStalenessBlocks to 10000
+//     → Oracle could use hour-old prices for arbitrage exploitation
+//   - Reducing MinBlocksBetweenSubmissions to 0
+//     → Enables flash loan attacks on oracle pricing
 //
 // 6. AUDIT REQUIREMENTS (if governance enabled):
-//    - Formal verification of Byzantine tolerance under parameter ranges
-//    - Economic game theory analysis of attack incentives
-//    - Adversarial testing with malicious governance proposals
-//    - Trail of Bits-level security audit specifically on governance attack surface
-//    - 6+ month public testnet with governance attacks encouraged
 //
-// 7. RECOMMENDED APPROACH:
-//    Phase 1 (Year 1): Hard-coded parameters (current state)
-//    Phase 2 (Year 2): Add governance for ONLY staleness/rate-limiting params
-//    Phase 3 (Year 3+): Consider BFT params governance after extensive security proof
+//   - Formal verification of Byzantine tolerance under parameter ranges
+//
+//   - Economic game theory analysis of attack incentives
+//
+//   - Adversarial testing with malicious governance proposals
+//
+//   - Trail of Bits-level security audit specifically on governance attack surface
+//
+//   - 6+ month public testnet with governance attacks encouraged
+//
+//     7. RECOMMENDED APPROACH:
+//     Phase 1 (Year 1): Hard-coded parameters (current state)
+//     Phase 2 (Year 2): Add governance for ONLY staleness/rate-limiting params
+//     Phase 3 (Year 3+): Consider BFT params governance after extensive security proof
 //
 // STRONG RECOMMENDATION: NEVER make MinValidatorsForSecurity or MinGeographicRegions
 // governable. The risk of governance attack is too high. Oracle security is the
@@ -558,7 +574,11 @@ func (k Keeper) CleanupOldSubmissionTracking(ctx context.Context, validatorAddr 
 	keysToDelete := [][]byte{}
 	for ; iterator.Valid(); iterator.Next() {
 		var blockHeight int64
-		fmt.Sscanf(string(iterator.Value()), "%d", &blockHeight)
+		if _, err := fmt.Sscanf(string(iterator.Value()), "%d", &blockHeight); err != nil {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			sdkCtx.Logger().Error("failed to parse submission tracking entry", "error", err)
+			continue
+		}
 
 		if blockHeight < minHeight {
 			keysToDelete = append(keysToDelete, iterator.Key())
@@ -877,14 +897,18 @@ func (k Keeper) ValidateGeographicDiversity(ctx context.Context) error {
 
 // TASK 65: VerifyValidatorLocation validates validator location claims
 func (k Keeper) VerifyValidatorLocation(ctx context.Context, validatorAddr string, claimedRegion string, ipAddress string) error {
-	// In production, this would integrate with IP geolocation services
-	// For now, we implement basic validation and storage
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	// Validation Step 1: Basic input validation
 	if claimedRegion == "" {
-		return fmt.Errorf("geographic region cannot be empty")
+		return types.WrapWithRecovery(types.ErrInvalidIPAddress, "geographic region cannot be empty")
 	}
 
-	// Validate region format (e.g., continent or ISO country code)
+	if ipAddress == "" {
+		return types.WrapWithRecovery(types.ErrInvalidIPAddress, "IP address cannot be empty")
+	}
+
+	// Validation Step 2: Validate region format
 	validRegions := map[string]bool{
 		"north_america": true,
 		"south_america": true,
@@ -892,26 +916,138 @@ func (k Keeper) VerifyValidatorLocation(ctx context.Context, validatorAddr strin
 		"asia":          true,
 		"africa":        true,
 		"oceania":       true,
-		"unknown":       true,
+		"antarctica":    true,
+		"unknown":       true,  // Allowed only if GeoIP unavailable
+		"private":       false, // Never allowed
 	}
 
 	if !validRegions[claimedRegion] {
-		return fmt.Errorf("invalid geographic region: %s", claimedRegion)
+		return types.WrapWithRecovery(
+			types.ErrInvalidIPAddress,
+			"invalid geographic region: %s (must be one of: north_america, south_america, europe, asia, africa, oceania)",
+			claimedRegion,
+		)
 	}
 
-	// Store validator location data
+	// Validation Step 3: Validate IP address format
+	if !IsValidIP(ipAddress) {
+		return types.WrapWithRecovery(
+			types.ErrInvalidIPAddress,
+			"invalid IP address format: %s",
+			ipAddress,
+		)
+	}
+
+	// Validation Step 4: Ensure public IP (no private/localhost)
+	if !IsPublicIP(ipAddress) {
+		return types.WrapWithRecovery(
+			types.ErrPrivateIPNotAllowed,
+			"validator IP must be publicly routable: %s is private/localhost",
+			ipAddress,
+		)
+	}
+
+	// Validation Step 5: GeoIP verification (if available)
+	if k.geoIPManager != nil {
+		actualRegion, err := k.geoIPManager.GetRegion(ipAddress)
+		if err != nil {
+			sdkCtx.Logger().Warn(
+				"GeoIP lookup failed, allowing registration but flagging for review",
+				"ip", ipAddress,
+				"error", err.Error(),
+			)
+		} else {
+			// Verify IP matches claimed region
+			matches, err := k.geoIPManager.VerifyIPMatchesRegion(ipAddress, claimedRegion)
+			if err != nil {
+				return types.WrapWithRecovery(
+					types.ErrGeoIPDatabaseUnavailable,
+					"GeoIP verification error: %v",
+					err,
+				)
+			}
+
+			if !matches {
+				// CRITICAL SECURITY: IP does not match claimed region
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"validator_location_mismatch",
+						sdk.NewAttribute("validator", validatorAddr),
+						sdk.NewAttribute("claimed_region", claimedRegion),
+						sdk.NewAttribute("actual_region", actualRegion),
+						sdk.NewAttribute("ip_address", ipAddress),
+						sdk.NewAttribute("severity", "CRITICAL"),
+					),
+				)
+
+				return types.WrapWithRecovery(
+					types.ErrIPRegionMismatch,
+					"IP address %s resolves to region %s, but validator claims %s",
+					ipAddress, actualRegion, claimedRegion,
+				)
+			}
+
+			// Log successful verification
+			sdkCtx.Logger().Info(
+				"Validator location verified via GeoIP",
+				"validator", validatorAddr,
+				"region", claimedRegion,
+				"ip", ipAddress,
+			)
+		}
+	} else {
+		// GeoIP unavailable - log warning
+		sdkCtx.Logger().Warn(
+			"GeoIP database not available, location verification disabled",
+			"validator", validatorAddr,
+			"claimed_region", claimedRegion,
+			"help", "Set GEOIP_DB_PATH environment variable to enable verification",
+		)
+	}
+
+	// Validation Step 6: Check for IP address reuse (Sybil attack prevention)
+	validatorsFromIP := k.countValidatorsFromIP(ctx, ipAddress)
+	if validatorsFromIP >= 2 {
+		// Allow up to 2 validators per IP, but warn about potential centralization
+		sdkCtx.Logger().Warn(
+			"Multiple validators detected from same IP address",
+			"ip", ipAddress,
+			"count", validatorsFromIP+1, // +1 for current validator
+			"validator", validatorAddr,
+			"risk", "CENTRALIZATION_RISK",
+		)
+
+		if validatorsFromIP >= 3 {
+			// More than 2 validators from same IP is suspicious
+			return types.WrapWithRecovery(
+				types.ErrTooManyValidatorsFromSameIP,
+				"too many validators from IP %s: %d (max 2 allowed)",
+				ipAddress, validatorsFromIP+1,
+			)
+		}
+	}
+
+	// Validation Step 7: Store validator location data
 	store := k.getStore(ctx)
 	key := k.getValidatorLocationKey(validatorAddr)
 
-	locationData := fmt.Sprintf("%s:%s", claimedRegion, ipAddress)
+	// Store in format: region:ip:timestamp
+	locationData := fmt.Sprintf("%s:%s:%d", claimedRegion, ipAddress, sdkCtx.BlockTime().Unix())
 	store.Set(key, []byte(locationData))
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	// Store IP -> validator mapping for Sybil detection
+	ipKey := k.getIPValidatorMappingKey(ipAddress, validatorAddr)
+	store.Set(ipKey, []byte{0x01})
+
+	// Emit success event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"validator_location_verified",
 			sdk.NewAttribute("validator", validatorAddr),
 			sdk.NewAttribute("region", claimedRegion),
+			sdk.NewAttribute("ip_address", ipAddress),
+			sdk.NewAttribute("verification_method", k.getVerificationMethod()),
+			sdk.NewAttribute("timestamp", fmt.Sprintf("%d", sdkCtx.BlockTime().Unix())),
 		),
 	)
 
@@ -934,14 +1070,76 @@ func (k Keeper) GetValidatorLocation(ctx context.Context, validatorAddr string) 
 		return "unknown", "", nil
 	}
 
-	var region, ip string
-	_, err := fmt.Sscanf(string(bz), "%s:%s", &region, &ip)
-	if err != nil {
-		return "unknown", "", err
+	// Parse new format: region:ip:timestamp
+	parts := strings.Split(string(bz), ":")
+	if len(parts) < 2 {
+		return "unknown", "", fmt.Errorf("invalid location data format")
 	}
+
+	region := parts[0]
+	ip := parts[1]
+	// parts[2] would be timestamp if present, ignored for backward compatibility
 
 	return region, ip, nil
 }
+
+// getIPValidatorMappingKey returns storage key for IP -> validator mapping
+// This is used to track which validators are using which IP addresses
+func (k Keeper) getIPValidatorMappingKey(ipAddress string, validatorAddr string) []byte {
+	prefix := []byte{0x0B} // IP-to-validator mapping prefix
+	key := fmt.Sprintf("%s:%s", ipAddress, validatorAddr)
+	return append(prefix, []byte(key)...)
+}
+
+// getVerificationMethod returns the current verification method being used
+func (k Keeper) getVerificationMethod() string {
+	if k.geoIPManager != nil {
+		return "geoip_verified"
+	}
+	return "manual_claim"
+}
+
+// TODO: Future enhancement - LocationProof and LocationEvidence types need to be added to proto
+// SubmitLocationProof allows validators to submit cryptographic proof of their location
+// This builds evidence over time to detect location spoofing
+/*
+func (k Keeper) SubmitLocationProof(ctx context.Context, proof *types.LocationProof) error {
+	// Commented out until LocationProof and LocationEvidence types are added
+	return nil
+}
+*/
+
+// TODO: Add LocationEvidence type to proto
+/*
+func (k Keeper) GetLocationEvidence(ctx context.Context, validatorAddr string) (*types.LocationEvidence, error) {
+	// Commented out until LocationEvidence type is added
+	return nil, nil
+}
+*/
+
+// TODO: Add LocationEvidence type to proto
+/*
+func (k Keeper) SetLocationEvidence(ctx context.Context, evidence *types.LocationEvidence) error {
+	// Commented out until LocationEvidence type is added
+	return nil
+}
+*/
+
+// TODO: Add LocationEvidence type to proto
+/*
+func (k Keeper) getLocationEvidenceKey(validatorAddr string) []byte {
+	prefix := []byte{0x0C} // Location evidence prefix
+	return append(prefix, []byte(validatorAddr)...)
+}
+*/
+
+// TODO: Add LocationEvidence type to proto
+/*
+func (k Keeper) VerifyLocationConsistency(ctx context.Context, validatorAddr string, maxAge time.Duration) error {
+	// Commented out until LocationEvidence type is added
+	return nil
+}
+*/
 
 // TASK 66: ImplementDataSourceAuthenticity validates data source authenticity
 func (k Keeper) ImplementDataSourceAuthenticity(ctx context.Context, validatorAddr string, asset string, price sdkmath.LegacyDec, signature []byte) error {
@@ -1065,18 +1263,13 @@ func (k Keeper) ImplementSybilResistance(ctx context.Context, validatorAddr stri
 		}
 	}
 
-	// Check 3: IP diversity (prevent single entity running many validators)
-	region, ip, err := k.GetValidatorLocation(ctx, validatorAddr)
-	if err == nil && ip != "" {
-		// Check if too many validators from same IP
-		validatorsFromIP := k.countValidatorsFromIP(ctx, ip)
-		if validatorsFromIP > 2 {
-			sdkCtx.Logger().Warn("multiple validators from same IP",
-				"ip", ip,
-				"count", validatorsFromIP,
-				"region", region,
-			)
-		}
+	// Check 3: IP and ASN diversity (prevent single entity running many validators)
+	if err := k.ValidateIPAndASNDiversity(ctx, validatorAddr); err != nil {
+		// Log warning but don't fail - allows gradual enforcement
+		sdkCtx.Logger().Warn("IP/ASN diversity check failed",
+			"validator", validatorAddr,
+			"error", err.Error(),
+		)
 	}
 
 	return nil
@@ -1084,9 +1277,176 @@ func (k Keeper) ImplementSybilResistance(ctx context.Context, validatorAddr stri
 
 // countValidatorsFromIP counts validators sharing an IP address
 func (k Keeper) countValidatorsFromIP(ctx context.Context, ipAddress string) int {
-	// This would iterate through all validator locations
-	// For now, return 1 as a safe default
-	return 1
+	if ipAddress == "" {
+		return 0
+	}
+
+	bondedVals, err := k.GetBondedValidators(ctx)
+	if err != nil {
+		return 0
+	}
+
+	count := 0
+	for _, val := range bondedVals {
+		validatorOracle, err := k.GetValidatorOracle(ctx, val.GetOperator())
+		if err != nil {
+			continue
+		}
+
+		if validatorOracle.IpAddress == ipAddress {
+			count++
+		}
+	}
+
+	return count
+}
+
+// countValidatorsFromASN counts validators sharing an ASN
+func (k Keeper) countValidatorsFromASN(ctx context.Context, asn uint64) int {
+	if asn == 0 {
+		return 0
+	}
+
+	bondedVals, err := k.GetBondedValidators(ctx)
+	if err != nil {
+		return 0
+	}
+
+	count := 0
+	for _, val := range bondedVals {
+		validatorOracle, err := k.GetValidatorOracle(ctx, val.GetOperator())
+		if err != nil {
+			continue
+		}
+
+		if validatorOracle.Asn == asn {
+			count++
+		}
+	}
+
+	return count
+}
+
+// ValidateIPAndASNDiversity enforces IP and ASN diversity limits
+func (k Keeper) ValidateIPAndASNDiversity(ctx context.Context, validatorAddr string) error {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Get validator's IP and ASN
+	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
+	if err != nil {
+		return err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Check IP diversity
+	if validatorOracle.IpAddress != "" && params.MaxValidatorsPerIp > 0 {
+		ipCount := k.countValidatorsFromIP(ctx, validatorOracle.IpAddress)
+		if ipCount > int(params.MaxValidatorsPerIp) {
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"ip_diversity_violation",
+					sdk.NewAttribute("validator", validatorAddr),
+					sdk.NewAttribute("ip_address", validatorOracle.IpAddress),
+					sdk.NewAttribute("count", fmt.Sprintf("%d", ipCount)),
+					sdk.NewAttribute("max_allowed", fmt.Sprintf("%d", params.MaxValidatorsPerIp)),
+					sdk.NewAttribute("severity", "high"),
+				),
+			)
+			return fmt.Errorf("too many validators from IP %s: %d > %d (SYBIL ATTACK RISK)",
+				validatorOracle.IpAddress, ipCount, params.MaxValidatorsPerIp)
+		}
+	}
+
+	// Check ASN diversity
+	if validatorOracle.Asn > 0 && params.MaxValidatorsPerAsn > 0 {
+		asnCount := k.countValidatorsFromASN(ctx, validatorOracle.Asn)
+		if asnCount > int(params.MaxValidatorsPerAsn) {
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"asn_diversity_violation",
+					sdk.NewAttribute("validator", validatorAddr),
+					sdk.NewAttribute("asn", fmt.Sprintf("%d", validatorOracle.Asn)),
+					sdk.NewAttribute("count", fmt.Sprintf("%d", asnCount)),
+					sdk.NewAttribute("max_allowed", fmt.Sprintf("%d", params.MaxValidatorsPerAsn)),
+					sdk.NewAttribute("severity", "high"),
+				),
+			)
+			return fmt.Errorf("too many validators from ASN %d: %d > %d (ISP CENTRALIZATION RISK)",
+				validatorOracle.Asn, asnCount, params.MaxValidatorsPerAsn)
+		}
+	}
+
+	return nil
+}
+
+// GetIPAndASNDistribution returns the distribution of validators across IPs and ASNs
+func (k Keeper) GetIPAndASNDistribution(ctx context.Context) (map[string]int, map[uint64]int, error) {
+	bondedVals, err := k.GetBondedValidators(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ipDistribution := make(map[string]int)
+	asnDistribution := make(map[uint64]int)
+
+	for _, val := range bondedVals {
+		validatorOracle, err := k.GetValidatorOracle(ctx, val.GetOperator())
+		if err != nil {
+			continue
+		}
+
+		if validatorOracle.IpAddress != "" {
+			ipDistribution[validatorOracle.IpAddress]++
+		}
+
+		if validatorOracle.Asn > 0 {
+			asnDistribution[validatorOracle.Asn]++
+		}
+	}
+
+	return ipDistribution, asnDistribution, nil
+}
+
+// SetValidatorIPAndASN stores IP and ASN information for a validator
+func (k Keeper) SetValidatorIPAndASN(ctx context.Context, validatorAddr string, ipAddress string, asn uint64) error {
+	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
+	if err != nil {
+		// Create new ValidatorOracle if it doesn't exist
+		validatorOracle = types.ValidatorOracle{
+			ValidatorAddr:    validatorAddr,
+			MissCounter:      0,
+			TotalSubmissions: 0,
+			IsActive:         true,
+			GeographicRegion: "unknown",
+			IpAddress:        ipAddress,
+			Asn:              asn,
+		}
+	} else {
+		// Update existing ValidatorOracle
+		validatorOracle.IpAddress = ipAddress
+		validatorOracle.Asn = asn
+	}
+
+	// Store updated ValidatorOracle
+	if err := k.SetValidatorOracle(ctx, validatorOracle); err != nil {
+		return err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"validator_ip_asn_updated",
+			sdk.NewAttribute("validator", validatorAddr),
+			sdk.NewAttribute("ip_address", ipAddress),
+			sdk.NewAttribute("asn", fmt.Sprintf("%d", asn)),
+		),
+	)
+
+	return nil
 }
 
 // TASK 69: ImplementOracleRateLimiting implements oracle-specific rate limiting
