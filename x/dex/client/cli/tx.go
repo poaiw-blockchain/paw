@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"cosmossdk.io/math"
 	"github.com/spf13/cobra"
@@ -266,6 +267,15 @@ With slippage calculation (5%):
 				return fmt.Errorf("min-amount-out cannot be negative")
 			}
 
+			// Get deadline from flag (seconds from now)
+			deadlineSeconds, err := cmd.Flags().GetInt64("deadline")
+			if err != nil {
+				return err
+			}
+
+			// Calculate deadline timestamp (current time + deadline seconds)
+			deadline := time.Now().Unix() + deadlineSeconds
+
 			msg := &types.MsgSwap{
 				Trader:       clientCtx.GetFromAddress().String(),
 				PoolId:       poolID,
@@ -273,6 +283,7 @@ With slippage calculation (5%):
 				TokenOut:     tokenOut,
 				AmountIn:     amountIn,
 				MinAmountOut: minAmountOut,
+				Deadline:     deadline,
 			}
 
 			if err := msg.ValidateBasic(); err != nil {
@@ -284,5 +295,6 @@ With slippage calculation (5%):
 	}
 
 	flags.AddTxFlagsToCmd(cmd)
+	cmd.Flags().Int64("deadline", 300, "Deadline in seconds from now for swap to be valid")
 	return cmd
 }

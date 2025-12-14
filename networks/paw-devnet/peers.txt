@@ -1,0 +1,18 @@
+# PAW Devnet Peer Information
+# Generated: 2025-12-14
+
+# Node IDs (for persistent_peers configuration)
+node1_id=72d84a1a213b2e341d0926dfc8e91332bd06a584
+node2_id=b39bdfa2a5aee02104d03dafe80d27b5e2a7289a
+node3_id=bafcc29ed4607a4d4f5b3c88d2459c3027be6468
+node4_id=a0b3a9daa37ec69bef5341638afbed7cad9c16dc
+
+# Seed nodes (comma-separated, for seeds configuration)
+seeds=
+
+# Persistent peers (comma-separated, for persistent_peers configuration)
+# Example format for local docker network:
+# persistent_peers=72d84a1a213b2e341d0926dfc8e91332bd06a584@paw-node1:26656,b39bdfa2a5aee02104d03dafe80d27b5e2a7289a@paw-node2:26656
+
+# For external validators connecting to this testnet, use your node's public IP:
+# persistent_peers=72d84a1a213b2e341d0926dfc8e91332bd06a584@YOUR_IP:26656

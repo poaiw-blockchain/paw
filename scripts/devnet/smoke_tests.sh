@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib.sh
+source "${SCRIPT_DIR}/lib.sh"
+cd "${DEVNET_ROOT}"
+
 COMPOSE_FILE="${COMPOSE_FILE:-compose/docker-compose.devnet.yml}"
 COMPOSE_CMD=(docker compose -f "${COMPOSE_FILE}")
 CHAIN_ID="paw-devnet"
@@ -13,7 +18,7 @@ API_ENDPOINT="${API_ENDPOINT:-http://localhost:1317}"
 # readiness window so we don't flake while the first build completes.
 READY_RETRIES=${READY_RETRIES:-300}
 READY_SLEEP_SECONDS=${READY_SLEEP_SECONDS:-2}
-REQUIRED_BINARIES=(docker curl jq)
+REQUIRED_BINARIES=(docker curl jq sha256sum)
 # Comma separated list of phases. Default covers the whole flow but operators
 # can run `PAW_SMOKE_PHASES=setup` or `PAW_SMOKE_PHASES=bank` to isolate a step.
 PAW_SMOKE_PHASES=${PAW_SMOKE_PHASES:-setup,bank,dex,swap,summary}
@@ -26,8 +31,11 @@ for bin in "${REQUIRED_BINARIES[@]}"; do
   fi
 done
 
+ensure_pawd_binary "smoke"
+
 STACK_OWNER=0
 RPC_READY=0
+API_READY=0
 BANK_DELTA=0
 POOL_ID=""
 SWAP_COUNT=""
@@ -40,7 +48,7 @@ log() {
 }
 
 pawd_exec() {
-  docker exec -i "$NODE_CONTAINER" pawd --home "$PAW_HOME" "$@"
+  docker exec -i "$NODE_CONTAINER" pawd --home "$PAW_HOME" "$@" 2>&1 | grep -v "prometheus server error"
 }
 
 query_balance() {
@@ -97,6 +105,43 @@ wait_for_rpc() {
   done
 }
 
+latest_height() {
+  curl -sf "${RPC_ENDPOINT}/status" | jq -r '.result.sync_info.latest_block_height // "0"' 2>/dev/null || echo "0"
+}
+
+wait_for_height() {
+  local target_height=$1
+  log setup "waiting for chain height >= ${target_height}"
+  for ((attempt=1; attempt<=READY_RETRIES; attempt++)); do
+    local height
+    height=$(latest_height)
+    if [[ "${height}" != "" ]] && (( height >= target_height )); then
+      log setup "chain at height ${height}"
+      return
+    fi
+    sleep "${READY_SLEEP_SECONDS}"
+  done
+  log setup "chain failed to reach height ${target_height}"
+  exit 1
+}
+
+wait_for_api() {
+  if (( API_READY == 1 )); then
+    return
+  fi
+  log setup "waiting for API at ${API_ENDPOINT}"
+  for ((attempt=1; attempt<=READY_RETRIES; attempt++)); do
+    if curl -sf "${API_ENDPOINT}/cosmos/bank/v1beta1/supply" >/dev/null 2>&1; then
+      API_READY=1
+      log setup "API ready on attempt ${attempt}"
+      return
+    fi
+    sleep "${READY_SLEEP_SECONDS}"
+  done
+  log setup "API never became ready"
+  exit 1
+}
+
 fetch_addresses() {
   if [[ -z "${TRADER_ADDR}" ]]; then
     TRADER_ADDR=$(pawd_exec keys show smoke-trader --keyring-backend "$KEYRING" | awk '/address:/ {print $2; exit}')
@@ -112,13 +157,18 @@ bank_phase() {
   start_balance=$(query_balance "$COUNTER_ADDR")
 
   log bank "executing bank send smoke-trader -> smoke-counterparty"
+  local start_height
+  start_height=$(latest_height)
   pawd_exec tx bank send smoke-trader "$COUNTER_ADDR" 5000000upaw \
     --chain-id "$CHAIN_ID" \
     --keyring-backend "$KEYRING" \
     --yes \
-    --broadcast-mode block \
+    --broadcast-mode sync \
     --gas 200000 \
     --fees 5000upaw >/dev/null
+  if [[ -n "${start_height}" ]]; then
+    wait_for_height $((start_height + 1))
+  fi
 
   end_balance=$(query_balance "$COUNTER_ADDR")
   BANK_DELTA=$(( end_balance - start_balance ))
@@ -134,14 +184,19 @@ bank_phase() {
 dex_phase() {
   fetch_addresses
   log dex "creating liquidity pool upaw/ufoo"
+  local start_height
+  start_height=$(latest_height)
   pawd_exec tx dex create-pool upaw 1000000 ufoo 1000000 \
     --chain-id "$CHAIN_ID" \
     --from smoke-trader \
     --keyring-backend "$KEYRING" \
     --yes \
-    --broadcast-mode block \
+    --broadcast-mode sync \
     --gas 400000 \
     --fees 12000upaw >/dev/null
+  if [[ -n "${start_height}" ]]; then
+    wait_for_height $((start_height + 1))
+  fi
 
   POOL_ID=$(pawd_exec query dex pools -o json | jq -r '.pools[0].id // empty')
   if [[ -z "$POOL_ID" ]]; then
@@ -161,14 +216,20 @@ swap_phase() {
   fi
 
   log swap "swapping 100000 upaw -> ufoo on pool ${POOL_ID}"
+  local start_height
+  start_height=$(latest_height)
   pawd_exec tx dex swap "$POOL_ID" upaw 100000 ufoo 1 \
     --chain-id "$CHAIN_ID" \
     --from smoke-trader \
     --keyring-backend "$KEYRING" \
+    --deadline 300 \
     --yes \
-    --broadcast-mode block \
+    --broadcast-mode sync \
     --gas 400000 \
     --fees 12000upaw >/dev/null
+  if [[ -n "${start_height}" ]]; then
+    wait_for_height $((start_height + 1))
+  fi
 
   SWAP_COUNT=$(pawd_exec query dex pools -o json | jq '.pools | length')
   log swap "swap complete, pools indexed: ${SWAP_COUNT}"
@@ -196,25 +257,30 @@ run_phase() {
     setup)
       ensure_stack_running
       wait_for_rpc
+      wait_for_api
       ;;
     bank)
       ensure_stack_running
       wait_for_rpc
+      wait_for_api
       bank_phase
       ;;
     dex)
       ensure_stack_running
       wait_for_rpc
+      wait_for_api
       dex_phase
       ;;
     swap)
       ensure_stack_running
       wait_for_rpc
+      wait_for_api
       swap_phase
       ;;
     summary)
       ensure_stack_running
       wait_for_rpc
+      wait_for_api
       summary_phase
       ;;
     *)
