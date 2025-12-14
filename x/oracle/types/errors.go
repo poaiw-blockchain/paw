@@ -66,6 +66,10 @@ var (
 	ErrInsufficientGeoDiversity  = sdkerrors.Register(ModuleName, 49, "insufficient geographic diversity")
 	ErrGeoIPDatabaseUnavailable  = sdkerrors.Register(ModuleName, 51, "GeoIP database unavailable")
 	ErrTooManyValidatorsFromSameIP = sdkerrors.Register(ModuleName, 52, "too many validators from same IP address")
+
+	// Circuit breaker errors
+	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 53, "circuit breaker already open")
+	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 54, "circuit breaker already closed")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions

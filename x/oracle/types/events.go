@@ -80,4 +80,19 @@ const (
 	// Status attributes
 	AttributeKeyStatus = "status"
 	AttributeKeyError  = "error"
+	AttributeKeyActor  = "actor"
+
+	// Circuit breaker attributes
+	AttributeKeyPair     = "pair"
+	AttributeKeyFeedType = "feed_type"
+)
+
+// Circuit breaker event types
+const (
+	EventTypeCircuitBreakerOpen  = "oracle_circuit_breaker_open"
+	EventTypeCircuitBreakerClose = "oracle_circuit_breaker_close"
+	EventTypePriceOverride       = "oracle_price_override"
+	EventTypePriceOverrideClear  = "oracle_price_override_clear"
+	EventTypeSlashingDisabled    = "oracle_slashing_disabled"
+	EventTypeSlashingEnabled     = "oracle_slashing_enabled"
 )

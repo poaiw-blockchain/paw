@@ -43,14 +43,14 @@ var (
 	ErrProofExpired           = sdkerrors.Register(ModuleName, 45, "proof has expired")
 
 	// ZK proof errors
-	ErrInvalidZKProof          = sdkerrors.Register(ModuleName, 50, "invalid zero-knowledge proof")
-	ErrZKVerificationFailed    = sdkerrors.Register(ModuleName, 51, "zero-knowledge verification failed")
-	ErrInvalidCircuit          = sdkerrors.Register(ModuleName, 52, "invalid verification circuit")
-	ErrInvalidPublicInputs     = sdkerrors.Register(ModuleName, 53, "invalid public inputs")
-	ErrInvalidWitness          = sdkerrors.Register(ModuleName, 54, "invalid witness")
-	ErrProofTooLarge           = sdkerrors.Register(ModuleName, 55, "proof size exceeds maximum allowed")
-	ErrInsufficientDeposit     = sdkerrors.Register(ModuleName, 56, "insufficient deposit for proof verification")
-	ErrDepositTransferFailed   = sdkerrors.Register(ModuleName, 57, "failed to transfer verification deposit")
+	ErrInvalidZKProof        = sdkerrors.Register(ModuleName, 50, "invalid zero-knowledge proof")
+	ErrZKVerificationFailed  = sdkerrors.Register(ModuleName, 51, "zero-knowledge verification failed")
+	ErrInvalidCircuit        = sdkerrors.Register(ModuleName, 52, "invalid verification circuit")
+	ErrInvalidPublicInputs   = sdkerrors.Register(ModuleName, 53, "invalid public inputs")
+	ErrInvalidWitness        = sdkerrors.Register(ModuleName, 54, "invalid witness")
+	ErrProofTooLarge         = sdkerrors.Register(ModuleName, 55, "proof size exceeds maximum allowed")
+	ErrInsufficientDeposit   = sdkerrors.Register(ModuleName, 56, "insufficient deposit for proof verification")
+	ErrDepositTransferFailed = sdkerrors.Register(ModuleName, 57, "failed to transfer verification deposit")
 
 	// Resource errors
 	ErrInsufficientResources = sdkerrors.Register(ModuleName, 60, "insufficient computational resources")
@@ -71,6 +71,10 @@ var (
 	ErrInvalidNonce           = sdkerrors.Register(ModuleName, 84, "invalid packet nonce")
 	ErrInvalidAck             = ErrInvalidAcknowledgement
 	ErrUnauthorizedChannel    = sdkerrors.Register(ModuleName, 85, "unauthorized IBC channel")
+
+	// Circuit breaker errors
+	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 86, "circuit breaker already open")
+	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 87, "circuit breaker already closed")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions
@@ -117,14 +121,14 @@ var RecoverySuggestions = map[error]string{
 	ErrReplayAttackDetected:   "Nonce was already used. Generate new unique nonce. Check nonce tracking storage. Ensure proof is freshly generated.",
 	ErrProofExpired:           "Proof timestamp exceeded validity period. Generate new proof with current timestamp. Maximum age is configurable in params.",
 
-	ErrInvalidZKProof:          "Zero-knowledge proof structure invalid. Verify proof matches circuit specification. Check proof size and format. Ensure correct circuit version.",
-	ErrZKVerificationFailed:    "ZK proof verification failed. Public inputs may be incorrect. Verify witness is valid. Check circuit constraints are satisfied.",
-	ErrInvalidCircuit:          "Verification circuit not found or invalid. Use supported circuit types. Query available circuits. Verify circuit version compatibility.",
-	ErrInvalidPublicInputs:     "Public inputs don't match circuit requirements. Check input count and types. Verify input encoding. See circuit documentation.",
-	ErrInvalidWitness:          "Private witness invalid or incomplete. Generate witness from valid computation trace. Verify witness satisfies all constraints.",
-	ErrProofTooLarge:           "Proof exceeds maximum allowed size. Reduce proof size or check circuit configuration. Maximum proof size is defined in circuit parameters to prevent DoS attacks.",
-	ErrInsufficientDeposit:     "Insufficient deposit for ZK proof verification. Query circuit params for required deposit amount. Deposit is refunded on valid proof, slashed on invalid proof.",
-	ErrDepositTransferFailed:   "Failed to transfer verification deposit. Check account balance and module permissions. Ensure account has sufficient funds for deposit.",
+	ErrInvalidZKProof:        "Zero-knowledge proof structure invalid. Verify proof matches circuit specification. Check proof size and format. Ensure correct circuit version.",
+	ErrZKVerificationFailed:  "ZK proof verification failed. Public inputs may be incorrect. Verify witness is valid. Check circuit constraints are satisfied.",
+	ErrInvalidCircuit:        "Verification circuit not found or invalid. Use supported circuit types. Query available circuits. Verify circuit version compatibility.",
+	ErrInvalidPublicInputs:   "Public inputs don't match circuit requirements. Check input count and types. Verify input encoding. See circuit documentation.",
+	ErrInvalidWitness:        "Private witness invalid or incomplete. Generate witness from valid computation trace. Verify witness satisfies all constraints.",
+	ErrProofTooLarge:         "Proof exceeds maximum allowed size. Reduce proof size or check circuit configuration. Maximum proof size is defined in circuit parameters to prevent DoS attacks.",
+	ErrInsufficientDeposit:   "Insufficient deposit for ZK proof verification. Query circuit params for required deposit amount. Deposit is refunded on valid proof, slashed on invalid proof.",
+	ErrDepositTransferFailed: "Failed to transfer verification deposit. Check account balance and module permissions. Ensure account has sufficient funds for deposit.",
 
 	ErrInsufficientResources: "Provider lacks required resources. Reduce CPU/memory/storage requirements. Select provider with higher capacity. Split computation into smaller jobs.",
 	ErrResourceQuotaExceeded: "Account resource quota exceeded. Wait for quota reset period. Upgrade account tier. Optimize resource usage.",

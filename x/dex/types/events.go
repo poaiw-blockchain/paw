@@ -4,14 +4,14 @@ package types
 // All event types use lowercase with underscore separator (module_action format)
 const (
 	// Swap events
-	EventTypeDexSwap        = "dex_swap"
-	EventTypeDexSwapFailed  = "dex_swap_failed"
-	EventTypeDexLimitOrder  = "dex_limit_order"
-	EventTypeDexOrderFilled = "dex_order_filled"
+	EventTypeDexSwap           = "dex_swap"
+	EventTypeDexSwapFailed     = "dex_swap_failed"
+	EventTypeDexLimitOrder     = "dex_limit_order"
+	EventTypeDexOrderFilled    = "dex_order_filled"
 	EventTypeDexOrderCancelled = "limit_order_cancelled"
-	EventTypeDexOrderPlaced = "limit_order_placed"
-	EventTypeDexOrderMatched = "limit_order_matched"
-	EventTypeDexOrderExpired = "limit_order_expired"
+	EventTypeDexOrderPlaced    = "limit_order_placed"
+	EventTypeDexOrderMatched   = "limit_order_matched"
+	EventTypeDexOrderExpired   = "limit_order_expired"
 
 	// Liquidity events
 	EventTypeDexAddLiquidity    = "dex_add_liquidity"
@@ -23,9 +23,9 @@ const (
 	EventTypeDexPoolUpdated = "dex_pool_updated"
 
 	// Security events
-	EventTypeDexLargeSwap             = "dex_large_swap"
-	EventTypeDexLargeLiquidityAddition = "dex_large_liquidity_addition"
-	EventTypeDexSlippageExceeded      = "dex_slippage_exceeded"
+	EventTypeDexLargeSwap               = "dex_large_swap"
+	EventTypeDexLargeLiquidityAddition  = "dex_large_liquidity_addition"
+	EventTypeDexSlippageExceeded        = "dex_slippage_exceeded"
 	EventTypeDexPotentialSandwichAttack = "potential_sandwich_attack"
 
 	// Cross-chain events
@@ -49,11 +49,11 @@ const (
 	AttributeKeyPoolID    = "pool_id"
 
 	// Token attributes
-	AttributeKeyTokenIn   = "token_in"
-	AttributeKeyTokenOut  = "token_out"
-	AttributeKeyTokenA    = "token_a"
-	AttributeKeyTokenB    = "token_b"
-	AttributeKeyDenom     = "denom"
+	AttributeKeyTokenIn  = "token_in"
+	AttributeKeyTokenOut = "token_out"
+	AttributeKeyTokenA   = "token_a"
+	AttributeKeyTokenB   = "token_b"
+	AttributeKeyDenom    = "denom"
 
 	// Amount attributes
 	AttributeKeyAmount         = "amount"
@@ -108,4 +108,11 @@ const (
 	// Status attributes
 	AttributeKeyStatus = "status"
 	AttributeKeyReason = "reason"
+	AttributeKeyActor  = "actor"
+)
+
+// Circuit breaker event types
+const (
+	EventTypeCircuitBreakerOpen  = "dex_circuit_breaker_open"
+	EventTypeCircuitBreakerClose = "dex_circuit_breaker_close"
 )

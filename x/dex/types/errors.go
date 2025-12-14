@@ -115,6 +115,10 @@ var (
 
 	// ErrOrderNotCancellable is returned when order cannot be cancelled
 	ErrOrderNotCancellable = sdkerrors.Register(ModuleName, 35, "order cannot be cancelled")
+
+	// Circuit breaker errors
+	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 36, "circuit breaker already open")
+	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 37, "circuit breaker already closed")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions
