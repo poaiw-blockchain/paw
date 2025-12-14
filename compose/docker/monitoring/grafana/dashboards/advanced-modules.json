@@ -1,0 +1,790 @@
+{
+  "dashboard": {
+    "title": "PAW Advanced Modules Overview",
+    "description": "Combined overview of Oracle and Compute modules with health status and resource utilization",
+    "tags": ["paw", "oracle", "compute", "overview", "health"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "row",
+        "title": "Oracle Module Overview",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Oracle - Assets Tracked",
+        "gridPos": {
+          "x": 0,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_assets_tracked_total",
+            "legendFormat": "Assets",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Oracle - Submissions (1h)",
+        "gridPos": {
+          "x": 4,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_price_submissions_total[1h]))",
+            "legendFormat": "Submissions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Oracle - Avg Deviation",
+        "gridPos": {
+          "x": 8,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "avg(paw_oracle_price_deviation_percent)",
+            "legendFormat": "Deviation",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 2,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Oracle - Health Status",
+        "gridPos": {
+          "x": 12,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "(sum(increase(paw_oracle_price_aggregations_total{status=\"success\"}[1h])) / sum(increase(paw_oracle_price_aggregations_total[1h]))) * 100",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 90,
+                  "color": "yellow"
+                },
+                {
+                  "value": 98,
+                  "color": "green"
+                }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "null",
+                  "result": {
+                    "text": "N/A",
+                    "color": "text"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Oracle - Slashes (24h)",
+        "gridPos": {
+          "x": 16,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_slashing_events_total[24h]))",
+            "legendFormat": "Slashes",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "Oracle - IBC Activity",
+        "gridPos": {
+          "x": 20,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_ibc_prices_sent_total[5m]) + rate(paw_oracle_ibc_prices_received_total[5m]))",
+            "legendFormat": "IBC Msgs/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 8,
+        "type": "row",
+        "title": "Compute Module Overview",
+        "gridPos": {
+          "x": 0,
+          "y": 5,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 9,
+        "type": "stat",
+        "title": "Compute - Active Providers",
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_providers_active",
+            "legendFormat": "Providers",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "stat",
+        "title": "Compute - Jobs (1h)",
+        "gridPos": {
+          "x": 4,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_jobs_submitted_total[1h]))",
+            "legendFormat": "Jobs",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "stat",
+        "title": "Compute - Queue Size",
+        "gridPos": {
+          "x": 8,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_job_queue_size",
+            "legendFormat": "Queue",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 200,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "stat",
+        "title": "Compute - Health Status",
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "(sum(increase(paw_compute_jobs_completed_total{status=\"success\"}[1h])) / sum(increase(paw_compute_jobs_completed_total[1h]))) * 100",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 90,
+                  "color": "yellow"
+                },
+                {
+                  "value": 98,
+                  "color": "green"
+                }
+              ]
+            },
+            "mappings": [
+              {
+                "type": "special",
+                "options": {
+                  "match": "null",
+                  "result": {
+                    "text": "N/A",
+                    "color": "text"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "stat",
+        "title": "Compute - Escrow Locked",
+        "gridPos": {
+          "x": 16,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(paw_compute_escrow_balance)",
+            "legendFormat": "Escrow",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "stat",
+        "title": "Compute - IBC Activity",
+        "gridPos": {
+          "x": 20,
+          "y": 6,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_ibc_jobs_distributed_total[5m]) + rate(paw_compute_ibc_results_received_total[5m]))",
+            "legendFormat": "IBC Jobs/sec",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 15,
+        "type": "row",
+        "title": "Side-by-Side Comparison",
+        "gridPos": {
+          "x": 0,
+          "y": 10,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 16,
+        "type": "graph",
+        "title": "Module Activity Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 11,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_price_submissions_total[5m]))",
+            "legendFormat": "Oracle - Price Submissions/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(paw_compute_jobs_submitted_total[5m]))",
+            "legendFormat": "Compute - Job Submissions/sec",
+            "refId": "B"
+          }
+        ],
+        "description": "Activity rate comparison between Oracle and Compute modules",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 17,
+        "type": "graph",
+        "title": "Module Success Rates",
+        "gridPos": {
+          "x": 12,
+          "y": 11,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "(sum(rate(paw_oracle_price_aggregations_total{status=\"success\"}[5m])) / sum(rate(paw_oracle_price_aggregations_total[5m]))) * 100",
+            "legendFormat": "Oracle - Success %",
+            "refId": "A"
+          },
+          {
+            "expr": "(sum(rate(paw_compute_jobs_completed_total{status=\"success\"}[5m])) / sum(rate(paw_compute_jobs_completed_total[5m]))) * 100",
+            "legendFormat": "Compute - Success %",
+            "refId": "B"
+          }
+        ],
+        "description": "Success rate comparison",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0
+          }
+        }
+      },
+      {
+        "id": 18,
+        "type": "graph",
+        "title": "IBC Activity - Cross-Module",
+        "gridPos": {
+          "x": 0,
+          "y": 19,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_ibc_prices_sent_total[5m]))",
+            "legendFormat": "Oracle - Prices Sent",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(paw_oracle_ibc_prices_received_total[5m]))",
+            "legendFormat": "Oracle - Prices Received",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(paw_compute_ibc_jobs_distributed_total[5m]))",
+            "legendFormat": "Compute - Jobs Sent",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(paw_compute_ibc_results_received_total[5m]))",
+            "legendFormat": "Compute - Results Received",
+            "refId": "D"
+          }
+        ],
+        "description": "IBC activity across both modules",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 19,
+        "type": "graph",
+        "title": "Security Events - Cross-Module",
+        "gridPos": {
+          "x": 12,
+          "y": 19,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_circuit_breaker_triggers_total[5m]))",
+            "legendFormat": "Oracle - Circuit Breakers",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(paw_oracle_slashing_events_total[5m]))",
+            "legendFormat": "Oracle - Slashing Events",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(paw_compute_circuit_breaker_triggers_total[5m]))",
+            "legendFormat": "Compute - Circuit Breakers",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(paw_compute_security_incidents_total[5m]))",
+            "legendFormat": "Compute - Security Incidents",
+            "refId": "D"
+          }
+        ],
+        "description": "Security events across both modules",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 1,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 20,
+        "type": "row",
+        "title": "Resource Utilization",
+        "gridPos": {
+          "x": 0,
+          "y": 27,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 21,
+        "type": "graph",
+        "title": "Processing Latency Comparison",
+        "gridPos": {
+          "x": 0,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "Oracle - Aggregation p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_job_execution_seconds_bucket[5m]))",
+            "legendFormat": "Compute - Execution p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_proof_verification_seconds_bucket[5m]))",
+            "legendFormat": "Compute - Proof Verify p95",
+            "refId": "C"
+          }
+        ],
+        "description": "Processing latency comparison (p95)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 22,
+        "type": "graph",
+        "title": "Cleanup Operations",
+        "gridPos": {
+          "x": 12,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_stale_data_cleanups_total[5m])",
+            "legendFormat": "Oracle - Stale Data Cleanups",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(paw_compute_timeout_cleanups_total[5m])",
+            "legendFormat": "Compute - Timeout Cleanups",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(paw_compute_stale_job_cleanups_total[5m])",
+            "legendFormat": "Compute - Stale Job Cleanups",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(paw_compute_nonce_cleanups_total[5m])",
+            "legendFormat": "Compute - Nonce Cleanups",
+            "refId": "D"
+          }
+        ],
+        "description": "Cleanup operations across modules",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 23,
+        "type": "table",
+        "title": "Module Health Summary",
+        "gridPos": {
+          "x": 0,
+          "y": 36,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "label_replace(paw_oracle_assets_tracked_total, \"module\", \"Oracle\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "label_replace(sum(increase(paw_oracle_price_submissions_total[1h])), \"module\", \"Oracle\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "B",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "label_replace((sum(increase(paw_oracle_price_aggregations_total{status=\"success\"}[1h])) / sum(increase(paw_oracle_price_aggregations_total[1h]))) * 100, \"module\", \"Oracle\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "C",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "label_replace(paw_compute_providers_active, \"module\", \"Compute\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "D",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "label_replace(sum(increase(paw_compute_jobs_submitted_total[1h])), \"module\", \"Compute\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "E",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "label_replace((sum(increase(paw_compute_jobs_completed_total{status=\"success\"}[1h])) / sum(increase(paw_compute_jobs_completed_total[1h]))) * 100, \"module\", \"Compute\", \"\", \"\")",
+            "legendFormat": "",
+            "refId": "F",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "description": "Summary table of key health metrics for both modules",
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #A"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Assets/Providers"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #B"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Operations (1h)"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #C"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Success Rate %"
+                },
+                {
+                  "id": "unit",
+                  "value": "percent"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

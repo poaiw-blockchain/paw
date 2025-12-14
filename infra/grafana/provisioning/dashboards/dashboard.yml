@@ -38,3 +38,30 @@ providers:
     allowUiUpdates: true
     options:
       path: /var/lib/grafana/dashboards/dex-metrics.json
+  - name: 'PAW Oracle Metrics'
+    orgId: 1
+    folder: 'PAW/Oracle'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/oracle-metrics.json
+  - name: 'PAW Compute Metrics'
+    orgId: 1
+    folder: 'PAW/Compute'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/compute-metrics.json
+  - name: 'PAW Advanced Modules'
+    orgId: 1
+    folder: 'PAW/Advanced'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/advanced-modules.json

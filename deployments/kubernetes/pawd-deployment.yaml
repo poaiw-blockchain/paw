@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pawd
+  namespace: paw
+  labels:
+    app: pawd
+    component: blockchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pawd
+  template:
+    metadata:
+      labels:
+        app: pawd
+        component: blockchain
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "36660"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: pawd
+        image: paw-chain/pawd:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: rpc
+          containerPort: 26657
+          protocol: TCP
+        - name: grpc
+          containerPort: 9090
+          protocol: TCP
+        - name: api
+          containerPort: 1317
+          protocol: TCP
+        - name: prometheus
+          containerPort: 36660
+          protocol: TCP
+        - name: health
+          containerPort: 36661
+          protocol: TCP
+
+        # Startup probe - gives 10 minutes for initialization
+        # This prevents liveness probe from killing the pod during slow startup
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 60  # 60 * 10s = 10 minutes
+
+        # Liveness probe - restart container if unhealthy for extended period
+        # Uses basic /health endpoint (just checks if process is alive)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 0  # startup probe handles initial delay
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3  # Restart after 90 seconds (3 * 30s) of failures
+
+        # Readiness probe - remove from service if can't handle traffic
+        # Uses /health/ready endpoint (checks dependencies)
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 0  # startup probe handles initial delay
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3  # Remove after 30 seconds (3 * 10s) of failures
+
+        env:
+        - name: PAW_VERSION
+          value: "v1.0.0"
+        - name: CHAIN_ID
+          value: "paw-testnet-1"
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+
+        volumeMounts:
+        - name: data
+          mountPath: /root/.paw
+        - name: config
+          mountPath: /root/.paw/config
+          readOnly: true
+
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: pawd-data
+      - name: config
+        configMap:
+          name: pawd-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pawd
+  namespace: paw
+  labels:
+    app: pawd
+spec:
+  type: ClusterIP
+  selector:
+    app: pawd
+  ports:
+  - name: rpc
+    port: 26657
+    targetPort: rpc
+    protocol: TCP
+  - name: grpc
+    port: 9090
+    targetPort: grpc
+    protocol: TCP
+  - name: api
+    port: 1317
+    targetPort: api
+    protocol: TCP
+  - name: prometheus
+    port: 36660
+    targetPort: prometheus
+    protocol: TCP
+  - name: health
+    port: 36661
+    targetPort: health
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pawd-data
+  namespace: paw
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard

@@ -1,0 +1,250 @@
+groups:
+- name: paw_health_checks
+  interval: 30s
+  rules:
+  # ============================================================================
+  # Service Health Alerts
+  # ============================================================================
+
+  - alert: PAWServiceUnhealthy
+    expr: paw_service_healthy == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: health
+    annotations:
+      summary: "PAW service {{ $labels.service }} is unhealthy"
+      description: |
+        Service {{ $labels.service }} has been unhealthy for 1 minute.
+        Current status: {{ $value }}
+        Check logs and health endpoint for details.
+
+  - alert: PAWServiceDegraded
+    expr: paw_service_healthy == 0.5
+    for: 5m
+    labels:
+      severity: warning
+      component: health
+    annotations:
+      summary: "PAW service {{ $labels.service }} is degraded"
+      description: |
+        Service {{ $labels.service }} has been in degraded state for 5 minutes.
+        This may indicate partial functionality or non-critical issues.
+
+  # ============================================================================
+  # Health Check Performance
+  # ============================================================================
+
+  - alert: PAWHealthCheckFailing
+    expr: rate(paw_health_check_total{status!="200"}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: warning
+      component: health
+    annotations:
+      summary: "PAW health check {{ $labels.endpoint }} is failing"
+      description: |
+        Health check {{ $labels.endpoint }} has a failure rate > 10% over 5 minutes.
+        Current rate: {{ $value | humanizePercentage }}
+        Check service logs for underlying issues.
+
+  - alert: PAWHealthCheckSlow
+    expr: histogram_quantile(0.99, rate(paw_health_check_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+      component: health
+    annotations:
+      summary: "PAW health check {{ $labels.endpoint }} is slow"
+      description: |
+        99th percentile health check duration is over 1 second.
+        Current p99: {{ $value }}s
+        This may indicate performance issues with dependencies.
+
+  - alert: PAWHealthCheckTimeout
+    expr: histogram_quantile(0.95, rate(paw_health_check_duration_seconds_bucket[5m])) > 5
+    for: 2m
+    labels:
+      severity: critical
+      component: health
+    annotations:
+      summary: "PAW health check {{ $labels.endpoint }} timing out"
+      description: |
+        95th percentile health check duration exceeds timeout threshold.
+        Current p95: {{ $value }}s
+        Immediate investigation required.
+
+  # ============================================================================
+  # Explorer-Specific Health
+  # ============================================================================
+
+  - alert: ExplorerDatabaseUnhealthy
+    expr: |
+      paw_service_healthy{service="database"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: explorer
+    annotations:
+      summary: "Explorer database connection is unhealthy"
+      description: |
+        The explorer cannot connect to the database.
+        Check database service status and credentials.
+
+  - alert: ExplorerCacheUnhealthy
+    expr: |
+      paw_service_healthy{service="cache"} == 0
+    for: 2m
+    labels:
+      severity: warning
+      component: explorer
+    annotations:
+      summary: "Explorer cache connection is unhealthy"
+      description: |
+        The explorer cannot connect to Redis cache.
+        Performance may be degraded. Check Redis service status.
+
+  # ============================================================================
+  # Node-Specific Health
+  # ============================================================================
+
+  - alert: PAWNodeSyncing
+    expr: |
+      paw_service_healthy{service="sync"} == 0
+    for: 10m
+    labels:
+      severity: warning
+      component: node
+    annotations:
+      summary: "PAW node is syncing"
+      description: |
+        The node has been syncing for more than 10 minutes.
+        This is expected after restarts but may indicate slow sync or network issues.
+
+  - alert: PAWNodeRPCUnreachable
+    expr: |
+      paw_service_healthy{service="rpc"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: node
+    annotations:
+      summary: "PAW node RPC is unreachable"
+      description: |
+        The node RPC endpoint is not responding.
+        Check if the node process is running and ports are accessible.
+
+  - alert: PAWNodeConsensusDegraded
+    expr: |
+      paw_service_healthy{service="consensus"} == 0.5
+    for: 5m
+    labels:
+      severity: warning
+      component: node
+    annotations:
+      summary: "PAW node consensus participation is degraded"
+      description: |
+        The validator node may not be participating in consensus properly.
+        Check validator status and peer connections.
+
+  # ============================================================================
+  # Health Check Availability
+  # ============================================================================
+
+  - alert: HealthCheckEndpointDown
+    expr: |
+      up{job=~".*paw.*",port="36661"} == 0
+      or
+      up{job=~".*explorer.*",port="11080"} == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: health
+    annotations:
+      summary: "Health check endpoint is down"
+      description: |
+        The health check endpoint for {{ $labels.job }} is not responding.
+        Service may be down or health check server has failed.
+
+  # ============================================================================
+  # Module-Specific Health (from detailed endpoint)
+  # ============================================================================
+
+  - alert: PAWModuleUnhealthy
+    expr: |
+      paw_module_healthy{module=~"dex|oracle|compute"} == 0
+    for: 5m
+    labels:
+      severity: warning
+      component: module
+    annotations:
+      summary: "PAW module {{ $labels.module }} is unhealthy"
+      description: |
+        Module {{ $labels.module }} reported unhealthy status.
+        Check module-specific logs and metrics for details.
+
+  # ============================================================================
+  # System Resource Alerts (from health endpoint)
+  # ============================================================================
+
+  - alert: PAWHighMemoryUsage
+    expr: |
+      (paw_health_system_memory_bytes / paw_health_system_memory_total_bytes) > 0.9
+    for: 10m
+    labels:
+      severity: warning
+      component: system
+    annotations:
+      summary: "PAW service has high memory usage"
+      description: |
+        Memory usage is above 90%.
+        Current: {{ $value | humanizePercentage }}
+        May need to increase memory limits or investigate memory leak.
+
+  - alert: PAWHighGoroutineCount
+    expr: |
+      paw_health_system_goroutines > 10000
+    for: 10m
+    labels:
+      severity: warning
+      component: system
+    annotations:
+      summary: "PAW service has high goroutine count"
+      description: |
+        Goroutine count is above 10000.
+        Current: {{ $value }}
+        May indicate goroutine leak or high concurrency.
+
+  - alert: PAWNoPeers
+    expr: |
+      paw_health_system_peers < 1
+    for: 5m
+    labels:
+      severity: warning
+      component: network
+    annotations:
+      summary: "PAW node has no peers"
+      description: |
+        The node is not connected to any peers.
+        Check network connectivity and peer configuration.
+
+  - alert: PAWFewPeers
+    expr: |
+      paw_health_system_peers < 3
+    for: 10m
+    labels:
+      severity: info
+      component: network
+    annotations:
+      summary: "PAW node has few peers"
+      description: |
+        The node has fewer than 3 peers.
+        Current: {{ $value }}
+        Consider checking seed nodes and network configuration.
+
+# ============================================================================
+# Runbook Links
+# ============================================================================
+# Add runbook_url annotation to alerts for quick reference:
+# annotations:
+#   runbook_url: "https://docs.paw-chain.com/runbooks/health-checks"
