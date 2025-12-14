@@ -74,7 +74,20 @@ Production-like testnet with sentry nodes:
 
 **Use when:** Setting up production-like testing, learning about validator protection, or simulating real-world network conditions.
 
-### 6. Main README
+### 6. Sentry Testing Guide
+**File:** [SENTRY_TESTING_GUIDE.md](SENTRY_TESTING_GUIDE.md)
+
+Automated testing for sentry architecture:
+- Three comprehensive test suites (basic, load, chaos)
+- Performance benchmarks and metrics
+- Chaos engineering scenarios
+- Test results interpretation
+- CI/CD integration
+- Troubleshooting failed tests
+
+**Use when:** Validating sentry setup, performance testing, chaos engineering, or CI/CD integration.
+
+### 7. Main README
 **File:** [../README.md](../README.md)
 
 Project overview with:
@@ -130,6 +143,23 @@ curl -s http://localhost:30658/status | jq '.result.sync_info'  # Sentry1
 curl -s http://localhost:30668/status | jq '.result.sync_info'  # Sentry2
 ```
 
+### "I want to validate the sentry architecture with automated tests"
+
+```bash
+# Follow SENTRY_TESTING_GUIDE.md
+# Network must be running first
+docker compose -f compose/docker-compose.4nodes-with-sentries.yml up -d
+sleep 60
+
+# Run all test suites
+./scripts/devnet/test-sentry-all.sh
+
+# Or run individual tests
+./scripts/devnet/test-sentry-scenarios.sh     # Basic scenarios
+./scripts/devnet/test-load-distribution.sh    # Load testing
+./scripts/devnet/test-network-chaos.sh        # Chaos engineering
+```
+
 ## Critical Rules (Memorize These)
 
 From [TESTNET_QUICK_REFERENCE.md](TESTNET_QUICK_REFERENCE.md):
@@ -175,6 +205,7 @@ paw/
 │   ├── TESTNET_QUICK_REFERENCE.md              # One-page cheat sheet
 │   ├── MULTI_VALIDATOR_TESTNET.md              # Complete guide
 │   ├── SENTRY_ARCHITECTURE.md                  # Sentry node guide
+│   ├── SENTRY_TESTING_GUIDE.md                 # Automated testing guide
 │   └── ...
 ├── scripts/
 │   └── devnet/
@@ -182,6 +213,10 @@ paw/
 │       ├── setup-validators.sh                  # Genesis generator
 │       ├── init_node.sh                         # Validator initializer
 │       ├── init_sentry.sh                       # Sentry initializer
+│       ├── test-sentry-scenarios.sh             # Basic sentry tests
+│       ├── test-load-distribution.sh            # Load/performance tests
+│       ├── test-network-chaos.sh                # Chaos engineering tests
+│       ├── test-sentry-all.sh                   # Run all tests
 │       └── .state/                              # Generated files (git-ignored)
 │           ├── genesis.json
 │           ├── node*.priv_validator_key.json
@@ -217,6 +252,7 @@ If you encounter issues not covered in the documentation:
 - [Quick Reference](TESTNET_QUICK_REFERENCE.md) - Fastest way to get started
 - [Complete Guide](MULTI_VALIDATOR_TESTNET.md) - Full instructions
 - [Sentry Architecture](SENTRY_ARCHITECTURE.md) - Production-like testing with sentries
+- [Sentry Testing Guide](SENTRY_TESTING_GUIDE.md) - Automated sentry tests
 - [Script Docs](../scripts/devnet/README.md) - Technical details
 - [Fix Summary](../CONSENSUS_FIX_SUMMARY.md) - What was fixed and why
 - [Main README](../README.md) - Project overview
