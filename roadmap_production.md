@@ -29,16 +29,15 @@ This file only tracks the open work items that still require engineering attenti
 
 ## 4. CLI Commands & Integration
 
-**Status**: ✅ All core commands functional | ⚠️ Orphaned code exists
+**Status**: ✅ All core commands functional | ✅ Clean codebase
 
 - [x] All integrated CLI commands work (`pawd --help`, `pawd tx --help`, `pawd query --help`)
 - [x] Init, gentx, keys, and all module commands verified functional
-- [ ] **CRITICAL**: Remove or integrate orphaned `cmd/pawd/cmd/tx_advanced.go` functions
-  - Lines 499, 503, 505 contain placeholder responses ("feature coming soon...")
-  - Lines 556-558 return mock transaction hashes (`ABC123DEF456...`)
-  - Lines 578-581 return hardcoded balance (1000000 upaw)
-  - **Action**: Either integrate into root command or delete file entirely
-- [ ] Verify binary builds include all intended commands (no accidentally excluded functions)
+- [x] **CRITICAL**: Remove or integrate orphaned `cmd/pawd/cmd/tx_advanced.go` functions
+  - File deleted - all functionality redundant with SDK commands
+  - SDK provides: `tx simulate`, `tx sign --offline`, `tx multi-sign`, `tx broadcast`
+  - DEX module provides proper interactive terminal via `tx dex advanced`
+- [x] Verify binary builds include all intended commands (no accidentally excluded functions)
 - [ ] Add CLI integration tests for all command paths
 
 ---
@@ -534,7 +533,7 @@ docker-compose -f compose/docker-compose.monitoring.yml up -d
 
 | Category | Score | Status | Critical Items |
 |----------|-------|--------|----------------|
-| **CLI Commands** | 9/10 | ✅ Good | Remove orphaned tx_advanced.go |
+| **CLI Commands** | 10/10 | ✅ Production | None - all commands functional and clean |
 | **Wallets** | 9/10 | ✅ Production | Platform-specific testing, store submissions |
 | **User Interfaces** | 8/10 | ✅ Good | Activate archived dashboards, deploy explorer |
 | **Blockchain Explorer** | 10/10 | ✅ Production | None - ready for immediate deployment |
