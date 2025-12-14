@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -396,8 +397,8 @@ func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, pro
 
 	if blocksSince < minBlocks {
 		return types.ErrFlashLoanDetected.Wrapf(
-			"must wait %d blocks between liquidity actions (waited %d)",
-			minBlocks, blocksSince,
+			"must wait %d blocks between liquidity actions (waited %d, last action at block %d, current block %d)",
+			minBlocks, blocksSince, lastBlock, sdkCtx.BlockHeight(),
 		)
 	}
 
