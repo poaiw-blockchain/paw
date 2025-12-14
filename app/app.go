@@ -784,7 +784,7 @@ func (app *PAWApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*ab
 func (app *PAWApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
 	// Trace block processing with OpenTelemetry
 	if app.telemetryProvider != nil {
-		tracedCtx, span := pawtelemetry.StartBlockSpan(ctx.Context(), ctx.BlockHeight(), ctx.BlockHeader().ProposerAddress.String())
+		tracedCtx, span := pawtelemetry.StartBlockSpan(ctx.Context(), ctx.BlockHeight(), sdk.ConsAddress(ctx.BlockHeader().ProposerAddress).String())
 		defer span.End()
 		ctx = ctx.WithContext(tracedCtx)
 	}
