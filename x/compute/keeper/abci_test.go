@@ -169,19 +169,21 @@ func TestEndBlocker(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestCleanupExpiredNonces tests nonce cleanup
+// TestCleanupExpiredNonces tests nonce cleanup with configurable retention
 func TestCleanupExpiredNonces(t *testing.T) {
 	t.Parallel()
 
 	k, ctx := keepertest.ComputeKeeper(t)
 
-	// Get params with default nonce expiry
+	// Set retention period to 1000 blocks for testing
 	params := types.DefaultParams()
+	params.NonceRetentionBlocks = 1000
 	require.NoError(t, k.SetParams(ctx, params))
 
 	// Create test provider addresses
 	provider1 := createTestProviderAddr(t, 1)
 	provider2 := createTestProviderAddr(t, 2)
+
 	// Record nonces at different heights
 	// Height 100: Record nonces that will be old
 	ctx = ctx.WithBlockHeight(100)
@@ -209,7 +211,7 @@ func TestCleanupExpiredNonces(t *testing.T) {
 	require.True(t, k.CheckReplayAttackForTesting(ctx, provider2, 3))
 
 	// Advance to height 1105 and run cleanup
-	// This should clean nonces older than height 150 (1105 - 1000) = 105, cleaning 95-105
+	// Cutoff = 1105 - 1000 = 105, so nonces at height 100 should be cleaned
 	ctx = ctx.WithBlockHeight(1105)
 	err := k.CleanupExpiredNonces(ctx)
 	require.NoError(t, err)
@@ -231,6 +233,88 @@ func TestCleanupExpiredNonces(t *testing.T) {
 	ctx = ctx.WithBlockHeight(500)
 	err = k.CleanupExpiredNonces(ctx)
 	require.NoError(t, err)
+}
+
+// TestCleanupExpiredNoncesCustomRetention tests cleanup with custom retention periods
+func TestCleanupExpiredNoncesCustomRetention(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	provider := createTestProviderAddr(t, 1)
+
+	// Test with shorter retention for testing (300 blocks)
+	params := types.DefaultParams()
+	params.NonceRetentionBlocks = 300
+	require.NoError(t, k.SetParams(ctx, params))
+
+	// Record nonce at height 1
+	ctx = ctx.WithBlockHeight(1)
+	k.RecordNonceUsageForTesting(ctx, provider, 1)
+
+	// Record nonce at height 50 (should be cleaned)
+	ctx = ctx.WithBlockHeight(50)
+	k.RecordNonceUsageForTesting(ctx, provider, 2)
+
+	// Record nonce at height 250 (should be kept)
+	ctx = ctx.WithBlockHeight(250)
+	k.RecordNonceUsageForTesting(ctx, provider, 3)
+
+	// Cleanup at height 400 (cutoff = 400 - 300 = 100)
+	// Cleanup processes heights 0-99 (startHeight=0, cutoffHeight=100, loop is height < cutoffHeight)
+	// So nonces at heights 1 and 50 should be cleaned, but not height 100 or above
+	ctx = ctx.WithBlockHeight(400)
+	err := k.CleanupExpiredNonces(ctx)
+	require.NoError(t, err)
+
+	// Nonces at heights 1 and 50 should be deleted (< cutoff height)
+	require.False(t, k.CheckReplayAttackForTesting(ctx, provider, 1), "nonce at height 1 should be deleted")
+	require.False(t, k.CheckReplayAttackForTesting(ctx, provider, 2), "nonce at height 50 should be deleted")
+
+	// Nonce at height 250 should be kept (within retention window)
+	require.True(t, k.CheckReplayAttackForTesting(ctx, provider, 3), "nonce at height 250 should be kept")
+}
+
+// TestCleanupExpiredNoncesZeroRetention tests behavior with zero retention
+func TestCleanupExpiredNoncesZeroRetention(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	provider := createTestProviderAddr(t, 1)
+
+	// Set zero retention (should use default of 17280)
+	params := types.DefaultParams()
+	params.NonceRetentionBlocks = 0
+	require.NoError(t, k.SetParams(ctx, params))
+
+	// Record nonce at recent height
+	ctx = ctx.WithBlockHeight(100)
+	k.RecordNonceUsageForTesting(ctx, provider, 1)
+
+	// Cleanup at height 200 should NOT clean (default retention is 17280)
+	ctx = ctx.WithBlockHeight(200)
+	err := k.CleanupExpiredNonces(ctx)
+	require.NoError(t, err)
+	require.True(t, k.CheckReplayAttackForTesting(ctx, provider, 1), "nonce should be kept with default retention")
+
+	// Cleanup at a much later height (> 17280 blocks later)
+	// At height 18000, cutoff = 18000 - 17280 = 720
+	// Cleanup will process heights 620-719 (startHeight = 720-100 = 620)
+	// Height 100 is not in this range, so we need to go even later
+	ctx = ctx.WithBlockHeight(18000)
+	err = k.CleanupExpiredNonces(ctx)
+	require.NoError(t, err)
+	// Height 100 is well below cutoff (720) but cleanup only processes last 100 blocks
+	// Need to advance block height so that height 100 falls within the cleanup range
+	// For height 100 to be in range, we need cutoffHeight > 100 and startHeight <= 100
+	// startHeight = cutoffHeight - 100, so cutoffHeight - 100 <= 100, cutoffHeight <= 200
+	// currentHeight - retentionBlocks <= 200, currentHeight <= 200 + 17280 = 17480
+	ctx = ctx.WithBlockHeight(17480)
+	err = k.CleanupExpiredNonces(ctx)
+	require.NoError(t, err)
+	// Cutoff = 17480 - 17280 = 200, startHeight = 100, processes heights 100-199
+	require.False(t, k.CheckReplayAttackForTesting(ctx, provider, 1), "nonce should be deleted with default retention")
 }
 
 // TestProcessPendingDisputes tests dispute processing

@@ -44,9 +44,9 @@ type ComputeMetrics struct {
 	IBCTimeouts          *prometheus.CounterVec
 
 	// Security metrics
-	SecurityIncidents    *prometheus.CounterVec
-	PanicRecoveries      prometheus.Counter
-	RateLimitExceeds     *prometheus.CounterVec
+	SecurityIncidents      *prometheus.CounterVec
+	PanicRecoveries        prometheus.Counter
+	RateLimitExceeds       *prometheus.CounterVec
 	CircuitBreakerTriggers *prometheus.CounterVec
 
 	// Performance metrics
@@ -54,6 +54,8 @@ type ComputeMetrics struct {
 	StateRecoveries     prometheus.Counter
 	TimeoutCleanups     prometheus.Counter
 	StaleJobCleanups    prometheus.Counter
+	NonceCleanups       prometheus.Counter
+	NoncesCleanedTotal  prometheus.Counter
 }
 
 var (
@@ -359,6 +361,22 @@ func NewComputeMetrics() *ComputeMetrics {
 					Help:      "Stale job cleanup operations",
 				},
 			),
+			NonceCleanups: promauto.NewCounter(
+				prometheus.CounterOpts{
+					Namespace: "paw",
+					Subsystem: "compute",
+					Name:      "nonce_cleanups_total",
+					Help:      "Nonce cleanup operations executed",
+				},
+			),
+			NoncesCleanedTotal: promauto.NewCounter(
+				prometheus.CounterOpts{
+					Namespace: "paw",
+					Subsystem: "compute",
+					Name:      "nonces_cleaned_total",
+					Help:      "Total number of nonces cleaned up",
+				},
+			),
 		}
 	})
 	return computeMetrics
@@ -370,4 +388,13 @@ func GetComputeMetrics() *ComputeMetrics {
 		return NewComputeMetrics()
 	}
 	return computeMetrics
+}
+
+// RecordNonceCleanup records nonce cleanup metrics
+func (m *ComputeMetrics) RecordNonceCleanup(cleanedCount int) {
+	if m == nil {
+		return
+	}
+	m.NonceCleanups.Inc()
+	m.NoncesCleanedTotal.Add(float64(cleanedCount))
 }

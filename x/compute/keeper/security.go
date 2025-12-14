@@ -10,6 +10,7 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -357,50 +358,6 @@ func (k Keeper) ReleaseProviderResources(ctx context.Context, provider sdk.AccAd
 
 	return nil
 }
-
-/*
-// CleanupExpiredNonces removes old nonces to prevent unbounded state growth
-// Should be called periodically in EndBlocker
-func (k Keeper) CleanupExpiredNonces(ctx context.Context, olderThan time.Time) (int, error) {
-	store := k.getStore(ctx)
-	iterator := storetypes.KVStorePrefixIterator(store, NonceKeyPrefix)
-	defer iterator.Close()
-
-	cleaned := 0
-	var keysToDelete [][]byte
-
-	for ; iterator.Valid(); iterator.Next() {
-		// Value is timestamp (8 bytes)
-		if len(iterator.Value()) >= 8 {
-			timestampUnix := binary.BigEndian.Uint64(iterator.Value())
-			timestamp := time.Unix(int64(timestampUnix), 0)
-
-			if timestamp.Before(olderThan) {
-				keysToDelete = append(keysToDelete, iterator.Key())
-			}
-		}
-	}
-
-	// Delete old nonces
-	for _, key := range keysToDelete {
-		store.Delete(key)
-		cleaned++
-	}
-
-	if cleaned > 0 {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		sdkCtx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				"nonces_cleaned",
-				sdk.NewAttribute("count", fmt.Sprintf("%d", cleaned)),
-				sdk.NewAttribute("older_than", olderThan.Format(time.RFC3339)),
-			),
-		)
-	}
-
-	return cleaned, nil
-}
-*/
 
 // GenerateSecureRandomness generates cryptographically secure randomness for provider selection
 // Uses block hash, timestamp, and deterministic seed for reproducibility

@@ -9,6 +9,7 @@ import (
 
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -69,14 +70,23 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 }
 
 // CleanupExpiredNonces removes old nonce entries to prevent state bloat
-// Nonces older than 1000 blocks are safe to remove
+// It uses the configurable nonce_retention_blocks parameter from module params
 func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
 
-	// Keep nonces for the last 1000 blocks
-	const NonceRetentionBlocks = 1000
-	cutoffHeight := currentHeight - NonceRetentionBlocks
+	// Get retention period from params
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	retentionBlocks := params.NonceRetentionBlocks
+	if retentionBlocks <= 0 {
+		retentionBlocks = 17280 // Default to ~24 hours
+	}
+
+	cutoffHeight := currentHeight - retentionBlocks
 
 	if cutoffHeight <= 0 {
 		return nil // Don't cleanup in early blocks
@@ -85,10 +95,16 @@ func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 	store := k.getStore(ctx)
 	cleanedCount := 0
 
+	// Clean up in batches to avoid unbounded gas consumption
+	// Process up to 100 blocks worth of nonces per cleanup cycle
+	const maxBlocksPerCleanup = 100
+	startHeight := cutoffHeight - maxBlocksPerCleanup
+	if startHeight < 0 {
+		startHeight = 0
+	}
+
 	// Iterate through heights that need cleanup
-	// We clean up one block at a time to avoid unbounded gas consumption
-	// The cleanup will catch up over multiple blocks if needed
-	for height := cutoffHeight - 10; height < cutoffHeight; height++ {
+	for height := startHeight; height < cutoffHeight; height++ {
 		if height <= 0 {
 			continue
 		}
@@ -96,13 +112,13 @@ func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 		// Get all nonces at this height
 		heightPrefix := NonceByHeightPrefixForHeight(height)
 		iterator := storetypes.KVStorePrefixIterator(store, heightPrefix)
-		defer iterator.Close()
 
 		noncesToDelete := [][]byte{}
 		for ; iterator.Valid(); iterator.Next() {
 			noncesToDelete = append(noncesToDelete, iterator.Key())
 			cleanedCount++
 		}
+		iterator.Close()
 
 		// Delete the nonces
 		for _, key := range noncesToDelete {
@@ -129,15 +145,21 @@ func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 		}
 	}
 
+	// Update metrics
+	k.metrics.RecordNonceCleanup(cleanedCount)
+
 	// Emit event with cleanup statistics
-	sdkCtx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			"nonces_cleaned",
-			sdk.NewAttribute("cutoff_height", fmt.Sprintf("%d", cutoffHeight)),
-			sdk.NewAttribute("current_height", fmt.Sprintf("%d", currentHeight)),
-			sdk.NewAttribute("nonces_cleaned", fmt.Sprintf("%d", cleanedCount)),
-		),
-	)
+	if cleanedCount > 0 {
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"nonces_cleaned",
+				sdk.NewAttribute("cutoff_height", fmt.Sprintf("%d", cutoffHeight)),
+				sdk.NewAttribute("current_height", fmt.Sprintf("%d", currentHeight)),
+				sdk.NewAttribute("nonces_cleaned", fmt.Sprintf("%d", cleanedCount)),
+				sdk.NewAttribute("retention_blocks", fmt.Sprintf("%d", retentionBlocks)),
+			),
+		)
+	}
 
 	return nil
 }

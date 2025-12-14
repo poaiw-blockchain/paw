@@ -671,6 +671,39 @@ Trustless payment system:
 - Only validators can vote on disputes
 - Only requester can create disputes
 
+### Nonce Cleanup and Replay Protection
+
+Prevents replay attacks while managing state growth:
+
+- **Replay Protection**: Each result submission requires a unique, monotonically increasing nonce
+- **Automatic Cleanup**: Old nonces are automatically cleaned up to prevent unbounded state growth
+- **Configurable Retention**: `nonce_retention_blocks` parameter controls how long nonces are kept
+  - Default: 17,280 blocks (~24 hours at 5-second block time)
+  - Nonces older than retention period are eligible for cleanup
+- **Batched Processing**: Cleanup processes 100 blocks worth of nonces per EndBlocker to manage gas consumption
+- **Height-Indexed Storage**: Nonces are indexed by block height for efficient cleanup
+- **Metrics**: Cleanup operations are tracked via Prometheus metrics
+  - `paw_compute_nonce_cleanups_total`: Number of cleanup operations executed
+  - `paw_compute_nonces_cleaned_total`: Total number of nonces cleaned up
+
+**How it works:**
+
+1. When a provider submits a result, a nonce is recorded with the current block height
+2. Every block, EndBlocker runs cleanup for nonces older than `nonce_retention_blocks`
+3. Cleanup processes the oldest 100 blocks of expired nonces per cycle
+4. Old nonces are removed from both the main store and height index
+5. Events are emitted with cleanup statistics
+
+**Configuration:**
+
+```json
+{
+  "params": {
+    "nonce_retention_blocks": 17280  // ~24 hours at 5s block time
+  }
+}
+```
+
 ### Circuit Breaker
 
 Emergency halt mechanism:

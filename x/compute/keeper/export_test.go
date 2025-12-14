@@ -3,7 +3,9 @@ package keeper
 import (
 	"context"
 
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -30,4 +32,9 @@ func (k Keeper) GetDisputeForTesting(ctx context.Context, id uint64) (*types.Dis
 // GetBankKeeper exports bankKeeper for testing
 func (k Keeper) GetBankKeeper() types.BankKeeper {
 	return k.bankKeeper
+}
+
+// GetStoreKeyForTesting exports the store key for testing
+func GetStoreKeyForTesting(k *Keeper) storetypes.StoreKey {
+	return k.storeKey
 }

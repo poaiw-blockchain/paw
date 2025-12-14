@@ -296,6 +296,11 @@ message Params {
 
   // authorized_channels lists IBC port/channel pairs allowed to deliver packets
   repeated AuthorizedChannel authorized_channels = 8 [(gogoproto.nullable) = false];
+
+  // nonce_retention_blocks is the number of blocks to retain nonce entries for replay protection
+  // After this period, old nonces are cleaned up to prevent unbounded state growth
+  // Default: 17280 blocks (approximately 24 hours at 5 second block time)
+  int64 nonce_retention_blocks = 9;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets
