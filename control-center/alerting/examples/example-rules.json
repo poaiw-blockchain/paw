@@ -1,0 +1,284 @@
+[
+  {
+    "name": "Critical - Consensus Failure",
+    "description": "Alert when consensus rounds fail repeatedly",
+    "source": "network_health",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "tendermint_consensus_failed_rounds",
+        "operator": "gt",
+        "threshold": 5.0
+      }
+    ],
+    "evaluation_interval": "10s",
+    "for_duration": "1m",
+    "labels": {
+      "component": "consensus",
+      "priority": "p0"
+    },
+    "annotations": {
+      "summary": "Consensus failure detected",
+      "runbook": "https://docs.paw.network/runbooks/consensus-failure"
+    },
+    "channels": ["pagerduty", "sms-oncall"]
+  },
+  {
+    "name": "Warning - High Block Latency",
+    "description": "Alert when block production time exceeds threshold",
+    "source": "performance",
+    "severity": "warning",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "tendermint_consensus_block_interval_seconds",
+        "operator": "gt",
+        "threshold": 10.0
+      }
+    ],
+    "evaluation_interval": "30s",
+    "for_duration": "5m",
+    "labels": {
+      "component": "consensus",
+      "priority": "p2"
+    },
+    "channels": ["slack-devops"]
+  },
+  {
+    "name": "Critical - TPS Drop",
+    "description": "Alert on sudden transaction throughput decrease",
+    "source": "performance",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "rate_of_change",
+    "conditions": [
+      {
+        "metric_name": "paw_transactions_per_second",
+        "operator": "lt",
+        "threshold": -70.0,
+        "duration": "5m"
+      }
+    ],
+    "evaluation_interval": "30s",
+    "labels": {
+      "component": "performance",
+      "priority": "p1"
+    },
+    "channels": ["pagerduty", "slack-devops"]
+  },
+  {
+    "name": "Warning - DEX Volume Anomaly",
+    "description": "Alert on suspicious DEX trading patterns",
+    "source": "module_dex",
+    "severity": "warning",
+    "enabled": true,
+    "rule_type": "composite",
+    "composite_op": "AND",
+    "conditions": [
+      {
+        "metric_name": "paw_dex_volume_24h_usd",
+        "operator": "gt",
+        "threshold": 1000000.0
+      },
+      {
+        "metric_name": "paw_dex_unique_traders_24h",
+        "operator": "lt",
+        "threshold": 5.0
+      }
+    ],
+    "evaluation_interval": "1m",
+    "for_duration": "10m",
+    "labels": {
+      "component": "dex",
+      "category": "security"
+    },
+    "channels": ["email-security", "slack-security"]
+  },
+  {
+    "name": "Critical - Oracle Price Deviation",
+    "description": "Alert when oracle price deviates significantly from external sources",
+    "source": "module_oracle",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "paw_oracle_price_deviation_percent",
+        "operator": "gt",
+        "threshold": 10.0
+      }
+    ],
+    "evaluation_interval": "15s",
+    "for_duration": "1m",
+    "labels": {
+      "component": "oracle",
+      "priority": "p0"
+    },
+    "channels": ["pagerduty", "sms-oncall", "slack-devops"]
+  },
+  {
+    "name": "Warning - Compute Request Backlog",
+    "description": "Alert when compute requests are backing up",
+    "source": "module_compute",
+    "severity": "warning",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "paw_compute_pending_requests",
+        "operator": "gt",
+        "threshold": 100.0
+      }
+    ],
+    "evaluation_interval": "1m",
+    "for_duration": "5m",
+    "labels": {
+      "component": "compute"
+    },
+    "channels": ["slack-devops"]
+  },
+  {
+    "name": "Critical - Disk Space",
+    "description": "Alert when disk space is critically low",
+    "source": "infrastructure",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "node_filesystem_avail_bytes",
+        "operator": "lt",
+        "threshold": 5368709120.0
+      }
+    ],
+    "evaluation_interval": "1m",
+    "for_duration": "5m",
+    "labels": {
+      "component": "infrastructure",
+      "priority": "p1"
+    },
+    "annotations": {
+      "summary": "Less than 5GB disk space remaining"
+    },
+    "channels": ["pagerduty", "email-ops"]
+  },
+  {
+    "name": "Warning - High Memory Usage",
+    "description": "Alert when memory usage is consistently high",
+    "source": "infrastructure",
+    "severity": "warning",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "node_memory_MemAvailable_bytes",
+        "operator": "lt",
+        "threshold": 1073741824.0
+      }
+    ],
+    "evaluation_interval": "1m",
+    "for_duration": "10m",
+    "labels": {
+      "component": "infrastructure"
+    },
+    "annotations": {
+      "summary": "Less than 1GB memory available"
+    },
+    "channels": ["slack-devops"]
+  },
+  {
+    "name": "Critical - Validator Offline",
+    "description": "Alert when validator stops signing blocks",
+    "source": "network_health",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "paw_validator_missed_blocks",
+        "operator": "gt",
+        "threshold": 10.0
+      }
+    ],
+    "evaluation_interval": "30s",
+    "for_duration": "2m",
+    "labels": {
+      "component": "validator",
+      "priority": "p0"
+    },
+    "channels": ["pagerduty", "sms-oncall"]
+  },
+  {
+    "name": "Warning - Peer Count Low",
+    "description": "Alert when peer count drops below healthy threshold",
+    "source": "network_health",
+    "severity": "warning",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "tendermint_p2p_peers",
+        "operator": "lt",
+        "threshold": 5.0
+      }
+    ],
+    "evaluation_interval": "1m",
+    "for_duration": "5m",
+    "labels": {
+      "component": "p2p"
+    },
+    "channels": ["slack-devops"]
+  },
+  {
+    "name": "Info - Chain Upgrade Available",
+    "description": "Notification when chain upgrade is scheduled",
+    "source": "network_health",
+    "severity": "info",
+    "enabled": true,
+    "rule_type": "threshold",
+    "conditions": [
+      {
+        "metric_name": "paw_upgrade_height_remaining",
+        "operator": "lt",
+        "threshold": 1000.0
+      }
+    ],
+    "evaluation_interval": "5m",
+    "labels": {
+      "component": "governance"
+    },
+    "channels": ["slack-general", "email-all"]
+  },
+  {
+    "name": "Critical - Security: Unusual Transaction Pattern",
+    "description": "Alert on potential security threats from transaction patterns",
+    "source": "security",
+    "severity": "critical",
+    "enabled": true,
+    "rule_type": "composite",
+    "composite_op": "AND",
+    "conditions": [
+      {
+        "metric_name": "paw_failed_tx_rate",
+        "operator": "gt",
+        "threshold": 0.5
+      },
+      {
+        "metric_name": "paw_total_tx_rate",
+        "operator": "gt",
+        "threshold": 100.0
+      }
+    ],
+    "evaluation_interval": "30s",
+    "for_duration": "2m",
+    "labels": {
+      "component": "security",
+      "priority": "p0",
+      "category": "threat_detection"
+    },
+    "channels": ["pagerduty", "email-security", "slack-security"]
+  }
+]

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Blockchain Testing Control Panel</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-paw"></i>
+                <h1>PAW Testing Control Panel</h1>
+            </div>
+            <div class="network-selector">
+                <label for="network-select">Network:</label>
+                <select id="network-select" class="network-dropdown">
+                    <option value="local">Local Testnet</option>
+                    <option value="testnet">Public Testnet</option>
+                    <option value="mainnet">Mainnet (Read-Only)</option>
+                </select>
+                <div class="network-status" id="network-status">
+                    <span class="status-indicator" id="status-indicator"></span>
+                    <span id="status-text">Connecting...</span>
+                </div>
+            </div>
+            <div class="theme-toggle">
+                <button id="theme-toggle-btn" class="icon-btn" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar - Quick Actions -->
+        <aside class="sidebar left-sidebar">
+            <div class="sidebar-section">
+                <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                <div class="quick-actions">
+                    <button class="action-btn primary" id="send-tx-btn" data-tooltip="Send a test transaction">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send Transaction</span>
+                    </button>
+                    <button class="action-btn" id="create-wallet-btn" data-tooltip="Generate a new test wallet">
+                        <i class="fas fa-wallet"></i>
+                        <span>Create Wallet</span>
+                    </button>
+                    <button class="action-btn" id="delegate-btn" data-tooltip="Delegate tokens to a validator">
+                        <i class="fas fa-hand-holding-usd"></i>
+                        <span>Delegate Tokens</span>
+                    </button>
+                    <button class="action-btn" id="proposal-btn" data-tooltip="Submit a governance proposal">
+                        <i class="fas fa-vote-yea"></i>
+                        <span>Submit Proposal</span>
+                    </button>
+                    <button class="action-btn" id="swap-btn" data-tooltip="Test DEX token swap">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Swap Tokens</span>
+                    </button>
+                    <button class="action-btn" id="query-balance-btn" data-tooltip="Check wallet balance">
+                        <i class="fas fa-search-dollar"></i>
+                        <span>Query Balance</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2><i class="fas fa-flask"></i> Testing Tools</h2>
+                <div class="testing-tools">
+                    <button class="tool-btn" id="tx-simulator-btn">
+                        <i class="fas fa-microscope"></i>
+                        <span>Transaction Simulator</span>
+                    </button>
+                    <button class="tool-btn" id="bulk-wallet-btn">
+                        <i class="fas fa-users"></i>
+                        <span>Bulk Wallet Generator</span>
+                    </button>
+                    <button class="tool-btn" id="load-test-btn">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Load Testing</span>
+                    </button>
+                    <button class="tool-btn" id="stress-test-btn">
+                        <i class="fas fa-fire"></i>
+                        <span>Stress Test</span>
+                    </button>
+                    <button class="tool-btn" id="faucet-btn">
+                        <i class="fas fa-faucet"></i>
+                        <span>Request Tokens</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2><i class="fas fa-magic"></i> Test Scenarios</h2>
+                <div class="test-scenarios">
+                    <button class="scenario-btn" id="test-tx-flow">
+                        <i class="fas fa-route"></i>
+                        <span>Transaction Flow</span>
+                    </button>
+                    <button class="scenario-btn" id="test-staking-flow">
+                        <i class="fas fa-coins"></i>
+                        <span>Staking Flow</span>
+                    </button>
+                    <button class="scenario-btn" id="test-gov-flow">
+                        <i class="fas fa-landmark"></i>
+                        <span>Governance Flow</span>
+                    </button>
+                    <button class="scenario-btn" id="test-dex-flow">
+                        <i class="fas fa-chart-area"></i>
+                        <span>DEX Trading Flow</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Network Overview -->
+            <section class="overview-section">
+                <h2><i class="fas fa-network-wired"></i> Network Overview</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-cube"></i></div>
+                        <div class="metric-info">
+                            <span class="metric-label">Block Height</span>
+                            <span class="metric-value" id="block-height">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="metric-info">
+                            <span class="metric-label">TPS</span>
+                            <span class="metric-value" id="tps">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-server"></i></div>
+                        <div class="metric-info">
+                            <span class="metric-label">Peers</span>
+                            <span class="metric-value" id="peer-count">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="metric-info">
+                            <span class="metric-label">Consensus</span>
+                            <span class="metric-value" id="consensus">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs Section -->
+            <section class="tabs-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="blocks">
+                        <i class="fas fa-cubes"></i> Recent Blocks
+                    </button>
+                    <button class="tab-btn" data-tab="transactions">
+                        <i class="fas fa-list"></i> Recent Transactions
+                    </button>
+                    <button class="tab-btn" data-tab="validators">
+                        <i class="fas fa-shield-alt"></i> Validators
+                    </button>
+                    <button class="tab-btn" data-tab="proposals">
+                        <i class="fas fa-clipboard-list"></i> Proposals
+                    </button>
+                    <button class="tab-btn" data-tab="liquidity">
+                        <i class="fas fa-water"></i> Liquidity Pools
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Recent Blocks Tab -->
+                    <div class="tab-pane active" id="blocks-pane">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Height</th>
+                                        <th>Hash</th>
+                                        <th>Proposer</th>
+                                        <th>Transactions</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="blocks-table-body">
+                                    <tr>
+                                        <td colspan="5" class="loading">Loading blocks...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions Tab -->
+                    <div class="tab-pane" id="transactions-pane">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Hash</th>
+                                        <th>Type</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactions-table-body">
+                                    <tr>
+                                        <td colspan="6" class="loading">Loading transactions...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Validators Tab -->
+                    <div class="tab-pane" id="validators-pane">
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Staked:</span>
+                                <span class="stat-value" id="total-staked">Loading...</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Active Validators:</span>
+                                <span class="stat-value" id="active-validators">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Validator</th>
+                                        <th>Status</th>
+                                        <th>Voting Power</th>
+                                        <th>Commission</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="validators-table-body">
+                                    <tr>
+                                        <td colspan="5" class="loading">Loading validators...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Proposals Tab -->
+                    <div class="tab-pane" id="proposals-pane">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Voting End</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="proposals-table-body">
+                                    <tr>
+                                        <td colspan="5" class="loading">Loading proposals...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Liquidity Pools Tab -->
+                    <div class="tab-pane" id="liquidity-pane">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pool ID</th>
+                                        <th>Token Pair</th>
+                                        <th>Liquidity</th>
+                                        <th>Volume (24h)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="liquidity-table-body">
+                                    <tr>
+                                        <td colspan="5" class="loading">Loading liquidity pools...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Right Sidebar - Logs & Events -->
+        <aside class="sidebar right-sidebar">
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-terminal"></i> Live Logs</h2>
+                    <div class="section-actions">
+                        <button class="icon-btn" id="clear-logs-btn" title="Clear Logs">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="icon-btn" id="export-logs-btn" title="Export Logs">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="logs-container" id="logs-container">
+                    <div class="log-entry info">
+                        <span class="log-time">Loading...</span>
+                        <span class="log-message">Initializing dashboard...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2><i class="fas fa-bell"></i> Recent Events</h2>
+                <div class="events-container" id="events-container">
+                    <div class="event-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Waiting for events...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2><i class="fas fa-chart-bar"></i> System Metrics</h2>
+                <div class="system-metrics">
+                    <div class="metric-row">
+                        <span class="metric-name">CPU Usage</span>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="cpu-usage" style="width: 0%"></div>
+                        </div>
+                        <span class="metric-percent" id="cpu-percent">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-name">Memory</span>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="memory-usage" style="width: 0%"></div>
+                        </div>
+                        <span class="metric-percent" id="memory-percent">0%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-name">Disk I/O</span>
+                        <div class="metric-bar">
+                            <div class="metric-fill" id="disk-usage" style="width: 0%"></div>
+                        </div>
+                        <span class="metric-percent" id="disk-percent">0%</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Help Button -->
+    <button class="help-btn" id="help-btn" title="Help & Documentation">
+        <i class="fas fa-question-circle"></i>
+    </button>
+
+    <!-- Scripts -->
+    <script type="module" src="config.js"></script>
+    <script type="module" src="services/blockchain.js"></script>
+    <script type="module" src="services/monitoring.js"></script>
+    <script type="module" src="services/testing.js"></script>
+    <script type="module" src="components/NetworkSelector.js"></script>
+    <script type="module" src="components/QuickActions.js"></script>
+    <script type="module" src="components/LogViewer.js"></script>
+    <script type="module" src="components/MetricsDisplay.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>

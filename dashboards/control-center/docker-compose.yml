@@ -1,0 +1,248 @@
+version: '3.8'
+
+services:
+  # PAW Control Center Dashboard
+  control-center:
+    image: nginx:alpine
+    container_name: paw-control-center
+    ports:
+      - "11200:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./logs:/var/log/nginx
+    networks:
+      - paw-network
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.paw.service=control-center"
+      - "com.paw.version=1.0.0"
+      - "com.paw.environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Authentication Service (Node.js backend)
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: paw-auth-service
+    ports:
+      - "11201:3000"
+    networks:
+      - paw-network
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-paw-dashboard-secret-change-in-production}
+      - JWT_EXPIRY=24h
+      - REFRESH_TOKEN_EXPIRY=7d
+      - PORT=3000
+      - CORS_ORIGIN=http://localhost:11200
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - ./auth/logs:/app/logs
+    labels:
+      - "com.paw.service=auth-service"
+      - "com.paw.version=1.0.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for session management and caching
+  redis:
+    image: redis:7-alpine
+    container_name: paw-redis
+    ports:
+      - "11202:6379"
+    networks:
+      - paw-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-paw-redis-password}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.paw.service=redis"
+      - "com.paw.version=7.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # Optional: Local PAW Node (for development/testing)
+  paw-node:
+    image: paw-blockchain:latest
+    container_name: paw-local-node
+    ports:
+      - "11001:26657"  # RPC
+      - "11002:1317"   # REST API
+      - "11003:9090"   # gRPC
+    volumes:
+      - paw-data:/root/.paw
+    networks:
+      - paw-network
+    restart: unless-stopped
+    environment:
+      - CHAIN_ID=paw-local-1
+      - MONIKER=control-center-node
+      - LOG_LEVEL=info
+    profiles:
+      - with-node
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:26657/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "com.paw.service=blockchain-node"
+      - "com.paw.environment=local"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Optional: Faucet Service
+  faucet:
+    image: paw-faucet:latest
+    container_name: paw-faucet
+    ports:
+      - "11050:8000"
+    networks:
+      - paw-network
+    environment:
+      - NODE_URL=http://paw-node:26657
+      - FAUCET_AMOUNT=1000000000
+      - RATE_LIMIT=10
+      - COOLDOWN_PERIOD=86400
+    depends_on:
+      paw-node:
+        condition: service_healthy
+    profiles:
+      - with-faucet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.paw.service=faucet"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Explorer/Indexer (connects to analytics API)
+  explorer:
+    image: paw-explorer:latest
+    container_name: paw-explorer
+    ports:
+      - "11080:8080"
+    networks:
+      - paw-network
+    environment:
+      - NODE_RPC_URL=http://paw-node:26657
+      - DATABASE_URL=postgresql://paw:paw@postgres:5432/paw_explorer
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-paw-redis-password}@redis:6379
+      - LOG_LEVEL=info
+    depends_on:
+      paw-node:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - with-explorer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "com.paw.service=explorer"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # PostgreSQL for explorer data
+  postgres:
+    image: postgres:16-alpine
+    container_name: paw-postgres
+    ports:
+      - "11203:5432"
+    networks:
+      - paw-network
+    environment:
+      - POSTGRES_USER=paw
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-paw-postgres-password}
+      - POSTGRES_DB=paw_explorer
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    profiles:
+      - with-explorer
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paw -d paw_explorer"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.paw.service=postgres"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+networks:
+  paw-network:
+    driver: bridge
+    name: paw-control-center
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  paw-data:
+    name: paw-control-center-data
+  redis-data:
+    name: paw-control-center-redis
+  postgres-data:
+    name: paw-control-center-postgres

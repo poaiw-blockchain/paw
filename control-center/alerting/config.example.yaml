@@ -1,0 +1,72 @@
+# PAW Alert Manager Configuration Example
+
+# Server configuration
+environment: production
+http_port: 11210
+
+# Database configuration
+database_url: postgres://user:password@localhost:5432/paw_control_center
+redis_url: redis://localhost:6379/0
+
+# Rule engine configuration
+evaluation_interval: 10s        # How often to evaluate rules
+default_for_duration: 1m        # Default duration before triggering
+max_concurrent_evals: 10        # Max concurrent rule evaluations
+enable_deduplication: true      # Prevent duplicate alerts
+deduplication_window: 5m        # Deduplication time window
+enable_grouping: true           # Group similar alerts
+grouping_window: 1m             # Grouping time window
+
+# Notification configuration
+max_retries: 3                  # Max retry attempts for failed notifications
+retry_backoff: 5s               # Initial retry backoff
+notification_timeout: 30s       # Timeout for sending notifications
+batch_notifications: false      # Batch multiple notifications
+batch_size: 10                  # Notifications per batch
+batch_delay: 30s                # Delay before sending batch
+
+# Alert retention
+alert_retention_days: 90        # Days to retain resolved alerts
+
+# Security
+jwt_secret: your-secret-key-change-this-in-production
+admin_whitelist:
+  - 192.168.0.0/16
+  - 10.0.0.0/8
+
+# Integration URLs
+prometheus_url: http://localhost:9090
+explorer_url: http://localhost:11080
+admin_api_url: http://localhost:11201
+
+# Channel configurations
+webhook_config:
+  timeout: 10s
+  insecure_skip_verify: false
+  default_headers:
+    User-Agent: PAW-AlertManager/1.0
+
+email_config:
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  username: alerts@paw.network
+  password: your-smtp-password
+  from_address: alerts@paw.network
+  from_name: PAW Alert Manager
+  use_tls: false
+  use_starttls: true
+
+sms_config:
+  account_sid: your-twilio-account-sid
+  auth_token: your-twilio-auth-token
+  from_number: +1234567890
+  api_endpoint: https://api.twilio.com/2010-04-01
+
+slack_config:
+  default_webhook_url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+  bot_token: xoxb-your-bot-token
+  default_channel: "#alerts"
+
+discord_config:
+  default_webhook_url: https://discord.com/api/webhooks/YOUR/WEBHOOK/URL
+  bot_token: your-discord-bot-token

@@ -1,0 +1,150 @@
+[
+  {
+    "name": "PagerDuty Critical",
+    "type": "webhook",
+    "enabled": true,
+    "config": {
+      "url": "https://events.pagerduty.com/v2/enqueue",
+      "template": "pagerduty",
+      "headers": {
+        "Authorization": "Token token=YOUR_PAGERDUTY_API_KEY",
+        "Content-Type": "application/json"
+      }
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "in",
+        "values": ["critical"]
+      }
+    ]
+  },
+  {
+    "name": "Slack DevOps Channel",
+    "type": "webhook",
+    "enabled": true,
+    "config": {
+      "url": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+      "template": "slack"
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "in",
+        "values": ["critical", "warning"]
+      }
+    ]
+  },
+  {
+    "name": "Slack Security Channel",
+    "type": "webhook",
+    "enabled": true,
+    "config": {
+      "url": "https://hooks.slack.com/services/YOUR/SECURITY/WEBHOOK",
+      "template": "slack"
+    },
+    "filters": [
+      {
+        "field": "source",
+        "operator": "eq",
+        "values": ["security"]
+      }
+    ]
+  },
+  {
+    "name": "Discord Alerts",
+    "type": "webhook",
+    "enabled": true,
+    "config": {
+      "url": "https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK",
+      "template": "discord"
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "in",
+        "values": ["critical", "warning"]
+      }
+    ]
+  },
+  {
+    "name": "Operations Email",
+    "type": "email",
+    "enabled": true,
+    "config": {
+      "to": "ops@paw.network",
+      "format": "html"
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "in",
+        "values": ["critical", "warning"]
+      }
+    ]
+  },
+  {
+    "name": "Security Team Email",
+    "type": "email",
+    "enabled": true,
+    "config": {
+      "to": "security@paw.network,ciso@paw.network",
+      "format": "html"
+    },
+    "filters": [
+      {
+        "field": "source",
+        "operator": "in",
+        "values": ["security"]
+      }
+    ]
+  },
+  {
+    "name": "On-Call SMS",
+    "type": "sms",
+    "enabled": true,
+    "config": {
+      "to": "+1234567890"
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "eq",
+        "values": ["critical"]
+      },
+      {
+        "field": "priority",
+        "operator": "eq",
+        "values": ["p0"]
+      }
+    ]
+  },
+  {
+    "name": "All Team Email (Info)",
+    "type": "email",
+    "enabled": true,
+    "config": {
+      "to": "team@paw.network",
+      "format": "html"
+    },
+    "filters": [
+      {
+        "field": "severity",
+        "operator": "eq",
+        "values": ["info"]
+      }
+    ]
+  },
+  {
+    "name": "Custom Webhook - Internal Monitoring",
+    "type": "webhook",
+    "enabled": true,
+    "config": {
+      "url": "https://internal-monitoring.paw.network/webhook/alerts",
+      "headers": {
+        "X-API-Key": "your-internal-api-key",
+        "Content-Type": "application/json"
+      }
+    }
+  }
+]
