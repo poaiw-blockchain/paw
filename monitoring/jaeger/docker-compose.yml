@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: paw-jaeger
+    restart: unless-stopped
+    environment:
+      # Collector configuration
+      - COLLECTOR_OTLP_ENABLED=true
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+
+      # Storage configuration (in-memory for dev, can be changed to badger/elasticsearch for prod)
+      - SPAN_STORAGE_TYPE=memory
+      - MEMORY_MAX_TRACES=10000
+
+      # Query configuration
+      - QUERY_BASE_PATH=/
+
+      # Sampling configuration
+      - SAMPLING_STRATEGIES_FILE=/etc/jaeger/sampling_strategies.json
+
+      # Metrics backend
+      - METRICS_BACKEND=prometheus
+      - METRICS_HTTP_ROUTE=/metrics
+
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+
+      # OTLP gRPC receiver
+      - "4317:4317"
+
+      # OTLP HTTP receiver
+      - "4318:4318"
+
+      # Jaeger Thrift receiver (for backwards compatibility)
+      - "14268:14268"
+
+      # Jaeger gRPC
+      - "14250:14250"
+
+      # Zipkin receiver (optional)
+      - "9411:9411"
+
+      # Health check endpoint
+      - "14269:14269"
+
+    volumes:
+      - ./sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
+
+    networks:
+      - paw-monitoring
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:14269/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    labels:
+      com.paw.service: "tracing"
+      com.paw.description: "Jaeger distributed tracing backend"
+
+networks:
+  paw-monitoring:
+    name: paw-monitoring
+    driver: bridge

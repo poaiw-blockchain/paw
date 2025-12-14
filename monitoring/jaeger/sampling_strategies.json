@@ -1,0 +1,35 @@
+{
+  "service_strategies": [
+    {
+      "service": "paw-blockchain",
+      "type": "probabilistic",
+      "param": 1.0,
+      "operation_strategies": [
+        {
+          "operation": "transaction.execute",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "module.execute",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "block.process",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "ibc.packet",
+          "type": "probabilistic",
+          "param": 0.8
+        }
+      ]
+    }
+  ],
+  "default_strategy": {
+    "type": "probabilistic",
+    "param": 0.1
+  }
+}

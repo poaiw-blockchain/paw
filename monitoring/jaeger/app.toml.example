@@ -1,0 +1,50 @@
+# OpenTelemetry Tracing Configuration
+# Add this section to your app.toml file
+
+###############################################################################
+###                           Telemetry Configuration                       ###
+###############################################################################
+
+[telemetry]
+# Enable OpenTelemetry distributed tracing
+enabled = true
+
+# Jaeger OTLP HTTP endpoint
+# Default: http://localhost:4318
+# For containerized Jaeger: http://paw-jaeger:4318
+jaeger-endpoint = "http://localhost:4318"
+
+# Sample rate for tracing (0.0 to 1.0)
+# 1.0 = trace every transaction (development/testing)
+# 0.1 = trace 10% of transactions (production)
+# 0.01 = trace 1% of transactions (high-volume production)
+sample-rate = 1.0
+
+# Environment label for traces
+# Options: development, testnet, mainnet, staging
+environment = "testnet"
+
+# Enable Prometheus metrics export alongside tracing
+prometheus-enabled = true
+
+# Prometheus metrics port
+# Must be different from RPC port (26657) and API port (1317)
+metrics-port = "26660"
+
+###############################################################################
+###                        Development Settings                             ###
+###############################################################################
+# For local development:
+# - enabled = true
+# - sample-rate = 1.0
+# - jaeger-endpoint = "http://localhost:4318"
+
+###############################################################################
+###                        Production Settings                              ###
+###############################################################################
+# For production deployment:
+# - enabled = true
+# - sample-rate = 0.05 to 0.2 (5-20%)
+# - jaeger-endpoint = "http://jaeger-collector:4318" (if using k8s)
+# - environment = "mainnet"
+# - Consider using Elasticsearch backend for Jaeger storage
