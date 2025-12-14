@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved Docker Compose files to dedicated directory
 - Consolidated scripts into organized structure
 
+### Security
+- **Oracle Module**: Enhanced statistical outlier detection in `x/oracle/keeper/security.go`
+  - Added comprehensive error logging for sqrt computation failures with diagnostic information
+  - Added Prometheus metrics (`anomalous_patterns_detected_total`) to monitor fallback frequency
+  - Added detailed security risk documentation explaining liveness vs accuracy tradeoff
+  - Modified `calculateStdDev()` to accept context and asset parameters for better observability
+
 ## [2025-11-16] - Compute Module Implementation
 
 ### Added

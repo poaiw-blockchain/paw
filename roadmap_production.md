@@ -149,12 +149,14 @@ This file only tracks the open work items that still require engineering attenti
 
 ## 9. Security Enhancements (Post-Launch)
 
-- [ ] **MEDIUM**: Statistical outlier detection edge cases
-  - Location: `x/oracle/keeper/security.go:1216-1244`
+- [x] **MEDIUM**: Statistical outlier detection edge cases ✅ COMPLETE
+  - Location: `x/oracle/keeper/security.go:1556-1620` (updated function `calculateStdDev`)
   - Risk: Sqrt failure fallback may mask corrupted data
-  - **ACTION**: Add logging for sqrt failures
-  - **ACTION**: Consider failing safe instead of fallback
-  - **ACTION**: Add metrics for fallback trigger frequency
+  - **COMPLETED**: Added comprehensive logging for sqrt failures with diagnostic info (asset, variance, mean, error)
+  - **COMPLETED**: Added detailed comments explaining fail-safe vs liveness tradeoff decision
+  - **COMPLETED**: Added Prometheus metrics (`anomalous_patterns_detected_total` with pattern_type="stddev_sqrt_failure")
+  - **DECISION**: Kept conservative fallback approach (favors liveness over perfect accuracy) with monitoring
+  - **COMPLETION DATE**: 2025-12-14
 
 - [ ] **LOW**: Time-based vulnerability protection (block time manipulation)
 - [ ] **LOW**: Gas exhaustion attack protection (per-operation limits)

@@ -1498,7 +1498,7 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 
 		// Calculate median and standard deviation
 		median := k.calculateMedian(priceSet)
-		stdDev := k.calculateStdDev(priceSet, median)
+		stdDev := k.calculateStdDev(ctx, asset, priceSet, median)
 
 		// Check if price is a statistical outlier (>3 standard deviations)
 		deviation := price.Sub(median).Abs()
@@ -1554,8 +1554,16 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 }
 
 // calculateStdDev calculates standard deviation using sample variance (n-1 denominator).
+//
+// SECURITY RISK: If sqrt computation fails (e.g., negative variance from corrupted data),
+// this function falls back to a conservative estimate (5% of mean). This silent fallback
+// could potentially mask data corruption or Byzantine attacks that produce invalid variance.
+//
+// The fallback ensures outlier detection remains active rather than completely failing,
+// but operators should monitor fallback frequency via metrics to detect anomalies.
+//
 // Returns a conservative fallback (5% of mean) if sqrt fails to prevent security bypass.
-func (k Keeper) calculateStdDev(prices []sdkmath.LegacyDec, mean sdkmath.LegacyDec) sdkmath.LegacyDec {
+func (k Keeper) calculateStdDev(ctx context.Context, asset string, prices []sdkmath.LegacyDec, mean sdkmath.LegacyDec) sdkmath.LegacyDec {
 	if len(prices) <= 1 {
 		return sdkmath.LegacyZeroDec()
 	}
@@ -1572,8 +1580,36 @@ func (k Keeper) calculateStdDev(prices []sdkmath.LegacyDec, mean sdkmath.LegacyD
 	// Compute square root to get standard deviation
 	stdDev, err := variance.ApproxSqrt()
 	if err != nil {
+		// CRITICAL: sqrt failure indicates potential data corruption or negative variance
+		// This should be extremely rare under normal conditions and warrants investigation
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		// Log the failure with full diagnostic information
+		sdkCtx.Logger().Error("standard deviation sqrt computation failed",
+			"asset", asset,
+			"variance", variance.String(),
+			"mean", mean.String(),
+			"num_prices", len(prices),
+			"error", err.Error(),
+			"risk", "potential_data_corruption",
+		)
+
+		// Record metric for monitoring fallback frequency
+		// High fallback rates indicate systematic issues requiring investigation
+		if k.metrics != nil && k.metrics.AnomalousPatterns != nil {
+			k.metrics.AnomalousPatterns.With(map[string]string{
+				"asset":        asset,
+				"pattern_type": "stddev_sqrt_failure",
+			}).Inc()
+		}
+
 		// Security fallback: return conservative estimate (5% of mean) to ensure
-		// outlier detection remains active even on sqrt failure
+		// outlier detection remains active even on sqrt failure.
+		//
+		// ALTERNATIVE CONSIDERATION: Failing safe by returning an error would halt
+		// price aggregation, potentially causing liveness issues. Current approach
+		// favors liveness over perfect accuracy, accepting slightly degraded outlier
+		// detection as preferable to complete oracle failure.
 		if mean.IsPositive() {
 			return mean.Mul(sdkmath.LegacyNewDecWithPrec(5, 2))
 		}
