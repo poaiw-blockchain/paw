@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # PAW blockchain nodes
+  - job_name: 'paw-nodes'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+
+  # Control Center API
+  - job_name: 'control-center-api'
+    static_configs:
+      - targets: ['control-center-backend:8080']
+
+  # Explorer API
+  - job_name: 'explorer-api'
+    static_configs:
+      - targets: ['explorer-api:8080']
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
