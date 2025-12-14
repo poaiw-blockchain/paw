@@ -1,0 +1,100 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'paw-testnet'
+    chain_id: 'paw-testnet'
+    blockchain: 'paw'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - '/etc/prometheus/rules/alert_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Tendermint/CometBFT metrics from all nodes
+  - job_name: 'paw-tendermint'
+    static_configs:
+      - targets:
+          - '172.17.0.1:26657'  # node1
+          - '172.17.0.1:26667'  # node2
+          - '172.17.0.1:26677'  # node3
+          - '172.17.0.1:26687'  # node4
+          - '172.17.0.1:30658'  # sentry1
+          - '172.17.0.1:30668'  # sentry2
+        labels:
+          blockchain: 'paw'
+          component: 'consensus'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Cosmos SDK REST API metrics from node1
+  - job_name: 'paw-api'
+    static_configs:
+      - targets: ['172.17.0.1:1317']
+        labels:
+          blockchain: 'paw'
+          component: 'api'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Application-specific metrics from all nodes
+  - job_name: 'paw-app'
+    static_configs:
+      - targets:
+          - '172.17.0.1:39090'  # node1
+          - '172.17.0.1:39091'  # node2
+          - '172.17.0.1:39092'  # node3
+          - '172.17.0.1:39093'  # node4
+          - '172.17.0.1:39094'  # sentry1
+          - '172.17.0.1:39095'  # sentry2
+        labels:
+          blockchain: 'paw'
+          component: 'app'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # cAdvisor for container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # DEX-specific metrics
+  - job_name: 'paw-dex'
+    static_configs:
+      - targets: ['172.17.0.1:1317']
+        labels:
+          blockchain: 'paw'
+          component: 'dex'
+    metrics_path: '/dex/metrics'
+    scrape_interval: 10s
+
+  # Validator metrics
+  - job_name: 'paw-validators'
+    static_configs:
+      - targets: ['172.17.0.1:1317']
+        labels:
+          blockchain: 'paw'
+          component: 'validator'
+    metrics_path: '/validator/metrics'
+    scrape_interval: 30s
