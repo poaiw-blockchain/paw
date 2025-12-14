@@ -1,0 +1,1325 @@
+/* PAW Governance Portal Styles */
+
+:root {
+    --primary-color: #2196F3;
+    --primary-dark: #1976D2;
+    --secondary-color: #9C27B0;
+    --success-color: #4CAF50;
+    --danger-color: #f44336;
+    --warning-color: #FF9800;
+    --info-color: #00BCD4;
+    --dark-bg: #1a1a2e;
+    --card-bg: #16213e;
+    --sidebar-bg: #0f1419;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #2d3748;
+    --vote-yes: #4CAF50;
+    --vote-no: #f44336;
+    --vote-abstain: #9E9E9E;
+    --vote-veto: #FF5722;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--dark-bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.governance-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.governance-header {
+    background: var(--card-bg);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.logo-section h1 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.logo-section i {
+    margin-right: 0.5rem;
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.status-indicator.connected {
+    color: var(--success-color);
+}
+
+.status-indicator.disconnected {
+    color: var(--danger-color);
+}
+
+.wallet-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.wallet-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.wallet-info.hidden {
+    display: none;
+}
+
+.wallet-address {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.voting-power {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Main Content */
+.governance-main {
+    display: flex;
+    flex: 1;
+}
+
+/* Sidebar */
+.governance-sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    padding: 1.5rem;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.nav-link.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.quick-stats {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.quick-stats h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Content Area */
+.governance-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.content-section {
+    display: none;
+}
+
+.content-section.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.section-header h2 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filter-select {
+    padding: 0.5rem 1rem;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.search-box {
+    position: relative;
+}
+
+.search-box input {
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    min-width: 250px;
+}
+
+.search-box i {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* Proposal Cards */
+.proposals-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.proposal-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.proposal-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 20px rgba(33, 150, 243, 0.2);
+    transform: translateY(-2px);
+}
+
+.proposal-header {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.proposal-id-badge {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.proposal-status,
+.proposal-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.status-voting {
+    background: rgba(33, 150, 243, 0.2);
+    color: var(--primary-color);
+}
+
+.status-deposit {
+    background: rgba(255, 152, 0, 0.2);
+    color: var(--warning-color);
+}
+
+.status-passed {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success-color);
+}
+
+.status-rejected {
+    background: rgba(244, 67, 54, 0.2);
+    color: var(--danger-color);
+}
+
+.status-failed {
+    background: rgba(158, 158, 158, 0.2);
+    color: var(--text-secondary);
+}
+
+.proposal-content {
+    margin-bottom: 1rem;
+}
+
+.proposal-title {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.proposal-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Voting Progress */
+.proposal-voting {
+    margin-bottom: 1rem;
+}
+
+.voting-progress {
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    height: 30px;
+    background: var(--sidebar-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 0.5rem;
+}
+
+.progress-yes {
+    background: var(--vote-yes);
+}
+
+.progress-no {
+    background: var(--vote-no);
+}
+
+.progress-abstain {
+    background: var(--vote-abstain);
+}
+
+.progress-veto {
+    background: var(--vote-veto);
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+}
+
+.label-yes { color: var(--vote-yes); }
+.label-no { color: var(--vote-no); }
+.label-abstain { color: var(--vote-abstain); }
+.label-veto { color: var(--vote-veto); }
+
+.voting-time {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.proposal-deposit {
+    margin-bottom: 1rem;
+}
+
+.deposit-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 6px;
+}
+
+.deposit-time {
+    color: var(--warning-color);
+}
+
+.proposal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.proposal-dates {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Buttons */
+.btn {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: var(--text-secondary);
+    color: white;
+}
+
+.btn-view {
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.btn-vote {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-yes {
+    background: var(--vote-yes);
+    color: white;
+}
+
+.btn-no {
+    background: var(--vote-no);
+    color: white;
+}
+
+.btn-abstain {
+    background: var(--vote-abstain);
+    color: white;
+}
+
+.btn-veto {
+    background: var(--vote-veto);
+    color: white;
+}
+
+.btn-back {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Proposal Detail */
+.proposal-detail-container {
+    max-width: 1200px;
+}
+
+.detail-header {
+    margin-bottom: 2rem;
+}
+
+.detail-meta {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.detail-id {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.detail-status,
+.detail-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 1rem;
+}
+
+.detail-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-timeline {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.timeline {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: var(--border-color);
+}
+
+.timeline-event {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+
+.timeline-event.complete .timeline-icon {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.timeline-event.pending .timeline-icon {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.timeline-content {
+    text-align: center;
+}
+
+.timeline-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.timeline-date {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.detail-description {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.detail-description h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.description-content {
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+
+.detail-voting {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.detail-voting h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.voting-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.tally-chart-container {
+    height: 300px;
+}
+
+.tally-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.tally-stats .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.stat-yes { border-left-color: var(--vote-yes); }
+.stat-no { border-left-color: var(--vote-no); }
+.stat-abstain { border-left-color: var(--vote-abstain); }
+.stat-veto { border-left-color: var(--vote-veto); }
+.stat-total { border-left-color: var(--primary-color); }
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.stat-percent {
+    font-size: 1rem;
+    color: var(--primary-color);
+}
+
+.voting-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.detail-deposits,
+.detail-votes {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.detail-deposits h3,
+.detail-votes h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.deposit-info {
+    margin-bottom: 1rem;
+}
+
+.progress-container {
+    margin-bottom: 1rem;
+}
+
+.progress-bar-deposit {
+    height: 30px;
+    background: var(--sidebar-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.3s;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.deposits-list,
+.votes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.deposit-item,
+.vote-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--sidebar-bg);
+    border-radius: 6px;
+}
+
+.vote-option {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.vote-yes { background: rgba(76, 175, 80, 0.2); color: var(--vote-yes); }
+.vote-no { background: rgba(244, 67, 54, 0.2); color: var(--vote-no); }
+.vote-abstain { background: rgba(158, 158, 158, 0.2); color: var(--vote-abstain); }
+.vote-veto { background: rgba(255, 87, 34, 0.2); color: var(--vote-veto); }
+
+/* Create Proposal Form */
+.create-proposal-container {
+    max-width: 900px;
+}
+
+.warning-message {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 2px dashed var(--border-color);
+}
+
+.warning-message i {
+    font-size: 3rem;
+    color: var(--warning-color);
+    margin-bottom: 1rem;
+}
+
+.proposal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.form-section {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.form-section.hidden {
+    display: none;
+}
+
+.form-section h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.proposal-types {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.type-option input {
+    display: none;
+}
+
+.type-card {
+    padding: 1.5rem;
+    background: var(--sidebar-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.type-option input:checked + .type-card {
+    border-color: var(--primary-color);
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.type-card:hover {
+    border-color: var(--primary-color);
+}
+
+.type-card i {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.type-card h4 {
+    margin-bottom: 0.5rem;
+}
+
+.type-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.required {
+    color: var(--danger-color);
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--sidebar-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.deposit-info-box {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(33, 150, 243, 0.1);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 6px;
+}
+
+.deposit-info-box i {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.deposit-info-box ul {
+    margin-left: 1.5rem;
+}
+
+.proposal-preview {
+    padding: 1.5rem;
+    background: var(--sidebar-bg);
+    border-radius: 8px;
+    min-height: 200px;
+}
+
+.preview-empty {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.preview-type {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.preview-params {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 6px;
+}
+
+.preview-params code {
+    background: var(--sidebar-bg);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.preview-deposit {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+}
+
+/* Parameters Grid */
+.parameters-grid {
+    display: grid;
+    gap: 2rem;
+}
+
+.parameters-section h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.param-card {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.param-label {
+    color: var(--text-secondary);
+}
+
+.param-value {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Analytics */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.analytics-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.analytics-card h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.analytics-card canvas {
+    max-height: 300px;
+}
+
+#topVotersList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.voter-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--sidebar-bg);
+    border-radius: 6px;
+}
+
+.voter-rank {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Voting History */
+.voting-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+}
+
+.history-proposal h4 {
+    margin-bottom: 0.25rem;
+    color: var(--primary-color);
+}
+
+.history-proposal p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.history-vote {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.vote-date {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    background: var(--card-bg);
+    margin: 5% auto;
+    padding: 2rem;
+    border-radius: 10px;
+    max-width: 600px;
+    position: relative;
+    animation: slideDown 0.3s;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close {
+    position: absolute;
+    right: 1.5rem;
+    top: 1.5rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.close:hover {
+    color: var(--text-primary);
+}
+
+.voting-modal h2 {
+    margin-bottom: 1.5rem;
+}
+
+.proposal-summary {
+    background: var(--sidebar-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.summary-id {
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.summary-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.voting-power-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.vote-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.vote-option-card {
+    cursor: pointer;
+}
+
+.vote-option-card input {
+    display: none;
+}
+
+.option-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--sidebar-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.vote-option-card.selected .option-content {
+    border-color: var(--primary-color);
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.option-content:hover {
+    border-color: var(--primary-color);
+}
+
+.option-icon {
+    font-size: 1.5rem;
+}
+
+.vote-yes .option-icon { color: var(--vote-yes); }
+.vote-no .option-icon { color: var(--vote-no); }
+.vote-abstain .option-icon { color: var(--vote-abstain); }
+.vote-veto .option-icon { color: var(--vote-veto); }
+
+.option-text h4 {
+    margin-bottom: 0.25rem;
+}
+
+.option-text p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.vote-memo {
+    margin-bottom: 1rem;
+}
+
+.vote-memo label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.vote-warning {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 4px solid var(--warning-color);
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.vote-warning i {
+    color: var(--warning-color);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--border-color);
+}
+
+/* Notifications */
+.notification {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transform: translateX(400px);
+    transition: transform 0.3s;
+    z-index: 1001;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-success {
+    border-left: 4px solid var(--success-color);
+}
+
+.notification-error {
+    border-left: 4px solid var(--danger-color);
+}
+
+.notification i {
+    font-size: 1.5rem;
+}
+
+.notification-success i {
+    color: var(--success-color);
+}
+
+.notification-error i {
+    color: var(--danger-color);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .voting-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .governance-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .governance-sidebar {
+        display: none;
+    }
+
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .proposal-types {
+        grid-template-columns: 1fr;
+    }
+
+    .voting-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .timeline {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .timeline::before {
+        display: none;
+    }
+}

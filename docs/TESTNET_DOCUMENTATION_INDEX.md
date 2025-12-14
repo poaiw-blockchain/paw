@@ -87,7 +87,24 @@ Automated testing for sentry architecture:
 
 **Use when:** Validating sentry setup, performance testing, chaos engineering, or CI/CD integration.
 
-### 7. Main README
+### 7. Operational Dashboards
+**File:** [DASHBOARDS_GUIDE.md](DASHBOARDS_GUIDE.md)
+
+Production-ready web dashboards for:
+- **Staking Dashboard** (Port 11100) - Validator discovery, delegation management, staking calculator, rewards tracking
+- **Validator Dashboard** (Port 11110) - Real-time validator monitoring, uptime tracking, performance metrics
+- **Governance Portal** (Port 11120) - Proposal voting, creation, analytics
+
+Features:
+- Docker containerized deployment
+- Environment-based configuration
+- Real-time WebSocket updates
+- Comprehensive test coverage (85%+)
+- Health monitoring and logging
+
+**Use when:** Managing staking operations, monitoring validators, or participating in governance.
+
+### 8. Main README
 **File:** [../README.md](../README.md)
 
 Project overview with:
@@ -158,6 +175,24 @@ sleep 60
 ./scripts/devnet/test-sentry-scenarios.sh     # Basic scenarios
 ./scripts/devnet/test-load-distribution.sh    # Load testing
 ./scripts/devnet/test-network-chaos.sh        # Chaos engineering
+```
+
+### "I want to use the operational dashboards"
+
+```bash
+# Deploy all dashboards
+./scripts/deploy-dashboards.sh
+
+# Access dashboards
+# Staking Dashboard:    http://localhost:11100
+# Validator Dashboard:  http://localhost:11110
+# Governance Portal:    http://localhost:11120
+
+# Verify health
+./scripts/verify-dashboards.sh
+
+# Stop dashboards
+./scripts/stop-dashboards.sh
 ```
 
 ## Critical Rules (Memorize These)
@@ -253,6 +288,7 @@ If you encounter issues not covered in the documentation:
 - [Complete Guide](MULTI_VALIDATOR_TESTNET.md) - Full instructions
 - [Sentry Architecture](SENTRY_ARCHITECTURE.md) - Production-like testing with sentries
 - [Sentry Testing Guide](SENTRY_TESTING_GUIDE.md) - Automated sentry tests
+- [Dashboards Guide](DASHBOARDS_GUIDE.md) - Operational dashboards (staking, validator, governance)
 - [Script Docs](../scripts/devnet/README.md) - Technical details
 - [Fix Summary](../CONSENSUS_FIX_SUMMARY.md) - What was fixed and why
 - [Main README](../README.md) - Project overview

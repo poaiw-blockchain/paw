@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Governance Portal</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <div class="governance-container">
+        <!-- Header -->
+        <header class="governance-header">
+            <div class="logo-section">
+                <h1><i class="fas fa-balance-scale"></i> PAW Governance Portal</h1>
+            </div>
+            <div class="connection-status">
+                <span id="connectionStatus" class="status-indicator">
+                    <i class="fas fa-circle"></i> Connecting...
+                </span>
+            </div>
+            <div class="wallet-section">
+                <button id="connectWalletBtn" class="btn btn-primary">
+                    <i class="fas fa-wallet"></i> Connect Wallet
+                </button>
+                <div id="walletInfo" class="wallet-info hidden">
+                    <span class="wallet-address" id="walletAddress"></span>
+                    <span class="voting-power" id="votingPower">0 PAW</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="governance-main">
+            <!-- Sidebar Navigation -->
+            <aside class="governance-sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#proposals" class="nav-link active" data-section="proposals">
+                        <i class="fas fa-list"></i> Proposals
+                    </a>
+                    <a href="#create" class="nav-link" data-section="create">
+                        <i class="fas fa-plus-circle"></i> Create Proposal
+                    </a>
+                    <a href="#parameters" class="nav-link" data-section="parameters">
+                        <i class="fas fa-cog"></i> Parameters
+                    </a>
+                    <a href="#analytics" class="nav-link" data-section="analytics">
+                        <i class="fas fa-chart-bar"></i> Analytics
+                    </a>
+                    <a href="#history" class="nav-link" data-section="history">
+                        <i class="fas fa-history"></i> History
+                    </a>
+                </nav>
+
+                <!-- Quick Stats -->
+                <div class="quick-stats">
+                    <h3>Governance Stats</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Active Proposals</span>
+                        <span class="stat-value" id="activeProposals">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Proposals</span>
+                        <span class="stat-value" id="totalProposals">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Participation Rate</span>
+                        <span class="stat-value" id="participationRate">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Your Votes</span>
+                        <span class="stat-value" id="userVotes">0</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <section class="governance-content">
+                <!-- Proposals Section -->
+                <div id="proposalsSection" class="content-section active">
+                    <div class="section-header">
+                        <h2><i class="fas fa-list"></i> Governance Proposals</h2>
+                        <div class="filter-controls">
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">All Proposals</option>
+                                <option value="voting">Voting Period</option>
+                                <option value="deposit">Deposit Period</option>
+                                <option value="passed">Passed</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                            <select id="typeFilter" class="filter-select">
+                                <option value="all">All Types</option>
+                                <option value="text">Text Proposal</option>
+                                <option value="parameter">Parameter Change</option>
+                                <option value="upgrade">Software Upgrade</option>
+                                <option value="community">Community Pool Spend</option>
+                            </select>
+                            <div class="search-box">
+                                <input type="text" id="searchProposals" placeholder="Search proposals...">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="proposalsList" class="proposals-list">
+                        <!-- Proposals will be loaded here -->
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i> Loading proposals...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proposal Detail Section -->
+                <div id="proposalDetailSection" class="content-section">
+                    <div id="proposalDetail">
+                        <!-- Proposal details will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Create Proposal Section -->
+                <div id="createSection" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-plus-circle"></i> Create New Proposal</h2>
+                    </div>
+                    <div id="createProposalForm">
+                        <!-- Create proposal form will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Parameters Section -->
+                <div id="parametersSection" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> Governance Parameters</h2>
+                    </div>
+                    <div id="parametersList" class="parameters-grid">
+                        <!-- Parameters will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div id="analyticsSection" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-bar"></i> Governance Analytics</h2>
+                    </div>
+                    <div id="analyticsContent" class="analytics-content">
+                        <!-- Analytics will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- History Section -->
+                <div id="historySection" class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> Voting History</h2>
+                    </div>
+                    <div id="votingHistory" class="voting-history">
+                        <!-- Voting history will be loaded here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="voteModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="voteModalContent"></div>
+        </div>
+    </div>
+
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="depositModalContent"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="services/governanceAPI.js"></script>
+    <script src="components/ProposalList.js"></script>
+    <script src="components/ProposalDetail.js"></script>
+    <script src="components/CreateProposal.js"></script>
+    <script src="components/VotingPanel.js"></script>
+    <script src="components/TallyChart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
