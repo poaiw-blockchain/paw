@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
   external_labels:
     cluster: 'paw-testnet'
-    chain_id: 'paw-testnet'
+    chain_id: 'paw-devnet'
     blockchain: 'paw'
 
 # Alertmanager configuration
@@ -19,48 +19,257 @@ rule_files:
 
 # Scrape configurations
 scrape_configs:
-  # Tendermint/CometBFT metrics from all nodes
+  # ============================================================================
+  # BLOCKCHAIN-SPECIFIC TARGETS (15 targets as requested)
+  # ============================================================================
+
+  # 1. Tendermint/CometBFT consensus metrics (node1-4)
   - job_name: 'paw-tendermint'
     static_configs:
       - targets:
-          - '172.17.0.1:26657'  # node1
-          - '172.17.0.1:26667'  # node2
-          - '172.17.0.1:26677'  # node3
-          - '172.17.0.1:26687'  # node4
-          - '172.17.0.1:30658'  # sentry1
-          - '172.17.0.1:30668'  # sentry2
+          - 'paw-node1:26660'  # CometBFT metrics endpoint
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
         labels:
           blockchain: 'paw'
           component: 'consensus'
+          module: 'tendermint'
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
 
-  # Cosmos SDK REST API metrics from node1
-  - job_name: 'paw-api'
-    static_configs:
-      - targets: ['172.17.0.1:1317']
-        labels:
-          blockchain: 'paw'
-          component: 'api'
-    metrics_path: '/metrics'
-    scrape_interval: 15s
-
-  # Application-specific metrics from all nodes
+  # 2. Application-level metrics (Cosmos SDK telemetry)
   - job_name: 'paw-app'
     static_configs:
       - targets:
-          - '172.17.0.1:39090'  # node1
-          - '172.17.0.1:39091'  # node2
-          - '172.17.0.1:39092'  # node3
-          - '172.17.0.1:39093'  # node4
-          - '172.17.0.1:39094'  # sentry1
-          - '172.17.0.1:39095'  # sentry2
+          - 'paw-node1:9090'
+          - 'paw-node2:9091'
+          - 'paw-node3:9092'
+          - 'paw-node4:9093'
         labels:
           blockchain: 'paw'
-          component: 'app'
+          component: 'application'
+          module: 'cosmos-sdk'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # 3. API metrics (Cosmos REST API)
+  - job_name: 'paw-api'
+    static_configs:
+      - targets:
+          - 'paw-node1:1317'
+        labels:
+          blockchain: 'paw'
+          component: 'api'
+          module: 'rest'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # 4. DEX module metrics
+  - job_name: 'paw-dex'
+    static_configs:
+      - targets:
+          - 'paw-node1:9090'
+          - 'paw-node2:9091'
+          - 'paw-node3:9092'
+          - 'paw-node4:9093'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'dex'
     metrics_path: '/metrics'
     scrape_interval: 10s
+    # Filter for DEX-specific metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'paw_dex_.*'
+        action: keep
+
+  # 5. Validators metrics
+  - job_name: 'paw-validators'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'validators'
+          module: 'staking'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    # Filter for validator-specific metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '(cometbft_consensus_validators|cometbft_state_block_processing_time|paw_validator_.*)'
+        action: keep
+
+  # 6. Oracle module metrics
+  - job_name: 'paw-oracle'
+    static_configs:
+      - targets:
+          - 'paw-node1:9090'
+          - 'paw-node2:9091'
+          - 'paw-node3:9092'
+          - 'paw-node4:9093'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'oracle'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    # Filter for Oracle-specific metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'paw_oracle_.*'
+        action: keep
+
+  # 7. Compute module metrics
+  - job_name: 'paw-compute'
+    static_configs:
+      - targets:
+          - 'paw-node1:9090'
+          - 'paw-node2:9091'
+          - 'paw-node3:9092'
+          - 'paw-node4:9093'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'compute'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    # Filter for Compute-specific metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'paw_compute_.*'
+        action: keep
+
+  # 8. IBC metrics (Inter-Blockchain Communication)
+  - job_name: 'paw-ibc'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'ibc'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    # Filter for IBC-specific metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '(ibc_.*|cometbft_p2p_.*)'
+        action: keep
+
+  # 9. Staking module metrics
+  - job_name: 'paw-staking'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'staking'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    # Filter for staking metrics
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: '(cometbft_consensus_.*|cometbft_state_.*)'
+        action: keep
+
+  # 10. Governance module metrics
+  - job_name: 'paw-governance'
+    static_configs:
+      - targets:
+          - 'paw-node1:9090'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'governance'
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  # 11. Bank module metrics
+  - job_name: 'paw-bank'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'bank'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # 12. Distribution module metrics
+  - job_name: 'paw-distribution'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'distribution'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # 13. Slashing module metrics
+  - job_name: 'paw-slashing'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'slashing'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # 14. Evidence module metrics
+  - job_name: 'paw-evidence'
+    static_configs:
+      - targets:
+          - 'paw-node1:26660'
+          - 'paw-node2:26660'
+          - 'paw-node3:26660'
+          - 'paw-node4:26660'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'evidence'
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  # 15. Upgrade module metrics
+  - job_name: 'paw-upgrade'
+    static_configs:
+      - targets:
+          - 'paw-node1:9090'
+        labels:
+          blockchain: 'paw'
+          component: 'module'
+          module: 'upgrade'
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  # ============================================================================
+  # INFRASTRUCTURE MONITORING
+  # ============================================================================
 
   # Node exporter for system metrics
   - job_name: 'node-exporter'
@@ -78,23 +287,3 @@ scrape_configs:
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
-
-  # DEX-specific metrics
-  - job_name: 'paw-dex'
-    static_configs:
-      - targets: ['172.17.0.1:1317']
-        labels:
-          blockchain: 'paw'
-          component: 'dex'
-    metrics_path: '/dex/metrics'
-    scrape_interval: 10s
-
-  # Validator metrics
-  - job_name: 'paw-validators'
-    static_configs:
-      - targets: ['172.17.0.1:1317']
-        labels:
-          blockchain: 'paw'
-          component: 'validator'
-    metrics_path: '/validator/metrics'
-    scrape_interval: 30s
