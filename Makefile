@@ -83,7 +83,11 @@ help:
 	@echo "  test                  ## Run all tests with coverage"
 	@echo "  test-unit             ## Run unit tests only"
 	@echo "  test-integration      ## Run integration tests"
-	@echo "  test-coverage         ## Generate coverage report"
+	@echo "  test-coverage         ## Generate comprehensive coverage report"
+	@echo "  coverage-check        ## Check coverage against 90% threshold"
+	@echo "  coverage-html         ## Generate and open HTML coverage report"
+	@echo "  coverage-diff         ## Compare coverage against baseline"
+	@echo "  coverage-baseline     ## Create new coverage baseline"
 	@echo "  test-keeper           ## Run keeper module tests"
 	@echo "  test-types            ## Run type definition tests"
 	@echo "  test-config           ## Run exhaustive configuration tests (Phase 2.2)"
@@ -236,10 +240,50 @@ test-integration:
 	@go test -v -race ./app/... ./tests/e2e/...
 
 test-coverage:
-	@echo "--> Running tests with coverage report"
-	@go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-	@go tool cover -html=coverage.txt -o coverage.html
-	@echo "Coverage report generated: coverage.html"
+	@echo "--> Running tests with comprehensive coverage report"
+	@go test ./... -coverprofile=coverage.out -covermode=atomic -timeout=30m
+	@go tool cover -html=coverage.out -o=coverage.html
+	@go tool cover -func=coverage.out > coverage_by_package.txt
+	@go tool cover -func=coverage.out | grep total
+	@echo "Coverage reports generated:"
+	@echo "  - coverage.out (raw data)"
+	@echo "  - coverage.html (interactive browser report)"
+	@echo "  - coverage_by_package.txt (detailed statistics)"
+
+coverage-check:
+	@echo "--> Checking coverage thresholds"
+	@chmod +x ./scripts/check-coverage.sh
+	@./scripts/check-coverage.sh
+
+coverage-html: test-coverage
+	@echo "--> Opening coverage report in browser"
+	@if command -v xdg-open > /dev/null; then \
+		xdg-open coverage.html; \
+	elif command -v open > /dev/null; then \
+		open coverage.html; \
+	else \
+		echo "Open coverage.html in your browser"; \
+	fi
+
+coverage-diff:
+	@echo "--> Comparing coverage against baseline"
+	@if [ ! -f coverage.baseline.out ]; then \
+		echo "No baseline found. Creating baseline from current coverage..."; \
+		cp coverage.out coverage.baseline.out 2>/dev/null || make test-coverage && cp coverage.out coverage.baseline.out; \
+		echo "Baseline created at coverage.baseline.out"; \
+	else \
+		BASE_COV=$$(go tool cover -func=coverage.baseline.out | grep total | awk '{print $$3}'); \
+		CURR_COV=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}'); \
+		echo "Baseline coverage: $$BASE_COV"; \
+		echo "Current coverage:  $$CURR_COV"; \
+	fi
+
+coverage-baseline:
+	@echo "--> Creating new coverage baseline"
+	@make test-coverage
+	@cp coverage.out coverage.baseline.out
+	@echo "Baseline saved to coverage.baseline.out"
+	@go tool cover -func=coverage.baseline.out | grep total
 
 test-keeper:
 	@echo "--> Running keeper tests"
@@ -416,7 +460,7 @@ clean:
 	@echo "--> Cleaning build artifacts"
 	@rm -rf $(BUILDDIR)
 	@rm -rf $(HOME)/.paw
-	@rm -f coverage.txt coverage.html *.coverprofile
+	@rm -f coverage.txt coverage.html coverage.out coverage_by_package.txt coverage.baseline.out *.coverprofile
 	@go clean -testcache
 	@go clean -cache
 
@@ -649,7 +693,8 @@ security-report:
 
 .PHONY: help all build build-linux install \
 	go.sum install-tools install-hooks install-hooks-all update-hooks run-hooks \
-	test test-unit test-integration test-coverage test-keeper test-types benchmark \
+	test test-unit test-integration test-coverage coverage-check coverage-html coverage-diff coverage-baseline \
+	test-keeper test-types benchmark \
 	test-invariants test-properties test-simulation test-cometmock test-all-advanced \
 	test-simulation-determinism test-simulation-import-export test-simulation-with-invariants \
 	benchmark-cometmock benchmark-invariants \

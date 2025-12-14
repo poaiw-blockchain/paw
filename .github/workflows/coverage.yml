@@ -1,0 +1,198 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  coverage:
+    name: Test Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full history for coverage diff
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc
+
+      - name: Run tests with coverage
+        run: |
+          go test ./... -coverprofile=coverage.out -covermode=atomic -timeout=30m
+          go tool cover -func=coverage.out > coverage_by_package.txt
+
+      - name: Generate coverage report
+        run: |
+          go tool cover -html=coverage.out -o=coverage.html
+          go tool cover -func=coverage.out
+
+      - name: Display total coverage
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total Coverage: ${COVERAGE}%"
+          echo "COVERAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Check coverage threshold
+        run: |
+          THRESHOLD=90.0
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${COVERAGE}%"
+          echo "Threshold: ${THRESHOLD}%"
+
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below ${THRESHOLD}% threshold"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets ${THRESHOLD}% threshold"
+          fi
+
+      - name: Check critical module coverage
+        run: |
+          ./scripts/check-coverage.sh
+
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main'
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          COLOR="red"
+          if (( $(echo "${COVERAGE%\%} >= 90" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "${COVERAGE%\%} >= 70" | bc -l) )); then
+            COLOR="yellow"
+          elif (( $(echo "${COVERAGE%\%} >= 50" | bc -l) )); then
+            COLOR="orange"
+          fi
+          echo "COVERAGE_BADGE_COLOR=${COLOR}" >> $GITHUB_ENV
+          echo "COVERAGE_PERCENTAGE=${COVERAGE}" >> $GITHUB_ENV
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.html
+            coverage_by_package.txt
+          retention-days: 30
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = '${{ env.COVERAGE }}';
+
+            // Read coverage by package
+            const coverageByPackage = fs.readFileSync('coverage_by_package.txt', 'utf8');
+            const lines = coverageByPackage.split('\n');
+
+            // Extract module coverage
+            const getModuleCoverage = (module) => {
+              const moduleLines = lines.filter(line => line.includes(`github.com/paw-chain/paw/${module}`) && !line.includes('total:'));
+              if (moduleLines.length === 0) return 'N/A';
+
+              const sum = moduleLines.reduce((acc, line) => {
+                const match = line.match(/(\d+\.\d+)%/);
+                return acc + (match ? parseFloat(match[1]) : 0);
+              }, 0);
+
+              return (sum / moduleLines.length).toFixed(1) + '%';
+            };
+
+            const computeCov = getModuleCoverage('x/compute');
+            const dexCov = getModuleCoverage('x/dex');
+            const oracleCov = getModuleCoverage('x/oracle');
+            const p2pCov = getModuleCoverage('p2p');
+
+            // Create comment body
+            const body = `## Coverage Report
+
+            **Total Coverage:** ${coverage}%
+            **Target:** 90%
+
+            ### Module Coverage
+            | Module | Coverage | Status |
+            |--------|----------|--------|
+            | Compute | ${computeCov} | ${parseFloat(computeCov) >= 90 ? '✅' : '❌'} |
+            | DEX | ${dexCov} | ${parseFloat(dexCov) >= 90 ? '✅' : '❌'} |
+            | Oracle | ${oracleCov} | ${parseFloat(oracleCov) >= 90 ? '✅' : '❌'} |
+            | P2P | ${p2pCov} | ${parseFloat(p2pCov) >= 80 ? '✅' : '❌'} |
+
+            [View detailed coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Coverage diff (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Fetching base branch coverage..."
+          git fetch origin ${{ github.base_ref }}
+          git checkout origin/${{ github.base_ref }}
+
+          # Generate baseline coverage
+          if go test ./... -coverprofile=coverage.baseline.out -covermode=atomic -timeout=30m 2>/dev/null; then
+            BASE_COVERAGE=$(go tool cover -func=coverage.baseline.out | grep total | awk '{print $3}' | sed 's/%//')
+          else
+            BASE_COVERAGE="0"
+          fi
+
+          # Switch back
+          git checkout -
+
+          # Compare
+          CURRENT_COVERAGE="${{ env.COVERAGE }}"
+          echo "Base coverage: ${BASE_COVERAGE}%"
+          echo "Current coverage: ${CURRENT_COVERAGE}%"
+
+          DIFF=$(echo "$CURRENT_COVERAGE - $BASE_COVERAGE" | bc)
+          echo "Coverage diff: ${DIFF}%"
+
+          if (( $(echo "$DIFF < 0" | bc -l) )); then
+            echo "⚠️ Warning: Coverage decreased by ${DIFF#-}%"
+            echo "COVERAGE_DECREASED=true" >> $GITHUB_ENV
+          else
+            echo "✅ Coverage improved by ${DIFF}%"
+          fi
+
+      - name: Fail if coverage decreased
+        if: env.COVERAGE_DECREASED == 'true'
+        run: |
+          echo "❌ Coverage decreased. Please add tests for your changes."
+          exit 1
+
+  coverage-report:
+    name: Generate Coverage Badge
+    runs-on: ubuntu-latest
+    needs: coverage
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Create coverage badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: YOUR_GIST_ID_HERE
+          filename: paw-coverage.json
+          label: coverage
+          message: ${{ needs.coverage.outputs.coverage }}%
+          color: ${{ needs.coverage.outputs.badge_color }}
