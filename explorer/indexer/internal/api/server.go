@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/time/rate"
+
 	"github.com/paw-chain/paw/explorer/indexer/config"
 	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
 	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 	"github.com/paw-chain/paw/explorer/indexer/internal/websocket/hub"
 	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"golang.org/x/time/rate"
 )
 
 var (
@@ -179,8 +179,10 @@ func (s *Server) setupMiddleware() {
 
 // setupRoutes configures API routes
 func (s *Server) setupRoutes() {
-	// Health check
+	// Health check endpoints
 	s.router.GET("/health", s.handleHealth)
+	s.router.GET("/health/ready", s.handleHealthReady)
+	s.router.GET("/health/detailed", s.handleHealthDetailed)
 	s.router.GET("/version", s.handleVersion)
 
 	// API v1 routes
@@ -345,29 +347,87 @@ func (s *Server) Stop(ctx context.Context) error {
 // HANDLER IMPLEMENTATIONS
 // ============================================================================
 
-// handleHealth handles health check requests
+// handleHealth handles basic liveness check - always returns 200 if process is alive
 func (s *Server) handleHealth(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "ok",
+		"timestamp": time.Now().Format(time.RFC3339),
+	})
+}
+
+// handleHealthReady handles readiness check - checks if can serve traffic
+func (s *Server) handleHealthReady(c *gin.Context) {
+	checks := make(map[string]interface{})
+	allHealthy := true
+
 	// Check database connection
 	if err := s.db.Ping(); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "unhealthy",
-			"error":  "database connection failed",
-		})
-		return
+		checks["database"] = gin.H{"status": "unhealthy", "message": err.Error()}
+		allHealthy = false
+	} else {
+		checks["database"] = gin.H{"status": "ok"}
 	}
 
 	// Check cache connection
 	if err := s.cache.Ping(c.Request.Context()); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "unhealthy",
-			"error":  "cache connection failed",
+		checks["cache"] = gin.H{"status": "unhealthy", "message": err.Error()}
+		allHealthy = false
+	} else {
+		checks["cache"] = gin.H{"status": "ok"}
+	}
+
+	status := "ready"
+	statusCode := http.StatusOK
+	if !allHealthy {
+		status = "not_ready"
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	c.JSON(statusCode, gin.H{
+		"status": status,
+		"checks": checks,
+	})
+}
+
+// handleHealthDetailed handles detailed health check with metrics
+func (s *Server) handleHealthDetailed(c *gin.Context) {
+	checks := make(map[string]interface{})
+
+	// Check database connection
+	if err := s.db.Ping(); err != nil {
+		checks["database"] = gin.H{"status": "unhealthy", "message": err.Error()}
+	} else {
+		checks["database"] = gin.H{"status": "ok"}
+	}
+
+	// Check cache connection
+	if err := s.cache.Ping(c.Request.Context()); err != nil {
+		checks["cache"] = gin.H{"status": "unhealthy", "message": err.Error()}
+	} else {
+		checks["cache"] = gin.H{"status": "ok"}
+	}
+
+	// WebSocket hub status
+	checks["websocket"] = gin.H{"status": "ok"}
+
+	// Get network stats if available
+	stats, err := s.db.GetNetworkStats()
+	if err == nil && stats != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "healthy",
+			"checks": checks,
+			"metrics": gin.H{
+				"total_blocks":       stats.TotalBlocks,
+				"total_transactions": stats.TotalTransactions,
+				"active_accounts":    stats.ActiveAccounts,
+			},
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "healthy",
-		"timestamp": time.Now().Unix(),
+		"status": "healthy",
+		"checks": checks,
 	})
 }
 
