@@ -4,6 +4,9 @@ import (
 	"context"
 	"time"
 
+	"net/url"
+	"strings"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -13,8 +16,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"net/url"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -247,7 +248,7 @@ func (tm *TelemetryMiddleware) RecordModuleExecution(
 }
 
 // TraceTxExecution creates a traced context for transaction execution
-func TraceTxExecution(ctx context.Context, tx sdk.Tx, height int64) (context.Context, func()) {
+func TraceTxExecution(ctx context.Context, tx sdk.Tx, height int64) (ctxWithSpan context.Context, endSpan func()) {
 	tracer := otel.Tracer(serviceName)
 	ctx, span := tracer.Start(ctx, "transaction.execute")
 
@@ -260,7 +261,7 @@ func TraceTxExecution(ctx context.Context, tx sdk.Tx, height int64) (context.Con
 }
 
 // TraceModuleExecution creates a traced context for module execution
-func TraceModuleExecution(ctx context.Context, moduleName string) (context.Context, func()) {
+func TraceModuleExecution(ctx context.Context, moduleName string) (ctxWithSpan context.Context, endSpan func()) {
 	tracer := otel.Tracer(serviceName)
 	ctx, span := tracer.Start(ctx, "module.execute")
 	span.SetAttributes(attribute.String("module.name", moduleName))

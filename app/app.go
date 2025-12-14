@@ -217,6 +217,9 @@ type PAWApp struct {
 
 	// module configurator
 	configurator module.Configurator
+
+	// telemetry for OpenTelemetry tracing and metrics
+	telemetry *Telemetry
 }
 
 // NewPAWApp returns a reference to an initialized PAW application.
@@ -596,7 +599,7 @@ func NewPAWApp(
 
 	// Setup AnteHandler
 	anteHandler, err := pawante.NewAnteHandler(
-		pawante.HandlerOptions{
+		&pawante.HandlerOptions{
 			AccountKeeper:   app.AccountKeeper,
 			BankKeeper:      app.BankKeeper,
 			FeegrantKeeper:  app.FeeGrantKeeper,
@@ -627,6 +630,34 @@ func NewPAWApp(
 		// Set the query multi-store to enable state queries
 		// This is required for gRPC/REST queries to work properly
 		app.SetQueryMultiStore(app.CommitMultiStore())
+	}
+
+	// Initialize telemetry (tracing and metrics)
+	telemetryEnabled := cast.ToBool(appOpts.Get("telemetry.enabled"))
+	if telemetryEnabled {
+		jaegerEndpoint := cast.ToString(appOpts.Get("telemetry.jaeger-endpoint"))
+		if jaegerEndpoint == "" {
+			jaegerEndpoint = "http://localhost:4318"
+		}
+
+		sampleRate := cast.ToFloat64(appOpts.Get("telemetry.sample-rate"))
+		if sampleRate == 0 {
+			sampleRate = 0.1 // Default 10% sampling
+		}
+
+		telemetry, err := InitTelemetry(TelemetryConfig{
+			Enabled:           true,
+			JaegerEndpoint:    jaegerEndpoint,
+			PrometheusEnabled: cast.ToBool(appOpts.Get("telemetry.prometheus-enabled")),
+			MetricsPort:       cast.ToString(appOpts.Get("telemetry.metrics-port")),
+			SampleRate:        sampleRate,
+		})
+		if err != nil {
+			logger.Error("Failed to initialize telemetry", "error", err)
+		} else {
+			app.telemetry = telemetry
+			logger.Info("Telemetry initialized", "jaeger_endpoint", jaegerEndpoint, "sample_rate", sampleRate)
+		}
 	}
 
 	return app
@@ -706,7 +737,9 @@ func (app *PAWApp) LoadHeight(height int64) error {
 	return app.LoadVersion(height)
 }
 
-// InitChainer application updates at chain initialization
+// InitChainer application updates at chain initialization.
+//
+//nolint:gocritic // sdk.Context passed by value per Cosmos SDK application interface.
 func (app *PAWApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*abci.ResponseInitChain, error) {
 	var genesisState GenesisState
 	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
@@ -715,27 +748,51 @@ func (app *PAWApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*ab
 	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 }
 
-// BeginBlocker application updates every begin block
+// BeginBlocker application updates every begin block.
+//
+//nolint:gocritic // sdk.Context passed by value per Cosmos SDK application interface.
 func (app *PAWApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
+	// Trace block processing
+	if app.telemetry != nil {
+		tracedCtx, endSpan := TraceModuleExecution(ctx.Context(), "block.begin")
+		defer endSpan()
+		ctx = ctx.WithContext(tracedCtx)
+	}
+
 	return app.mm.BeginBlock(ctx)
 }
 
-// EndBlocker application updates every end block
+// EndBlocker application updates every end block.
+//
+//nolint:gocritic // sdk.Context passed by value per Cosmos SDK application interface.
 func (app *PAWApp) EndBlocker(ctx sdk.Context) (sdk.EndBlock, error) {
+	// Trace block processing
+	if app.telemetry != nil {
+		tracedCtx, endSpan := TraceModuleExecution(ctx.Context(), "block.end")
+		defer endSpan()
+		ctx = ctx.WithContext(tracedCtx)
+	}
+
 	return app.mm.EndBlock(ctx)
 }
 
-// RegisterTendermintService registers the Tendermint service on the provided server
+// RegisterTendermintService registers the Tendermint service on the provided server.
+//
+//nolint:gocritic // client.Context passed by value per Cosmos SDK service interface.
 func (app *PAWApp) RegisterTendermintService(clientCtx client.Context) {
 	cmtservice.RegisterServiceServer(app.GRPCQueryRouter(), cmtservice.NewQueryServer(clientCtx, app.interfaceRegistry, app.Query))
 }
 
-// RegisterTxService registers the tx service on the provided server
+// RegisterTxService registers the tx service on the provided server.
+//
+//nolint:gocritic // client.Context passed by value per Cosmos SDK service interface.
 func (app *PAWApp) RegisterTxService(clientCtx client.Context) {
 	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
 }
 
-// RegisterNodeService registers the node gRPC service on the provided server
+// RegisterNodeService registers the node gRPC service on the provided server.
+//
+//nolint:gocritic // client.Context passed by value per Cosmos SDK service interface.
 func (app *PAWApp) RegisterNodeService(clientCtx client.Context, cfg config.Config) {
 	node.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg)
 }
@@ -779,7 +836,9 @@ func (app *PAWApp) ExportAppStateAndValidators(
 	}, nil
 }
 
-// prepForZeroHeightGenesis prepares app state for a zero-height genesis export
+// prepForZeroHeightGenesis prepares app state for a zero-height genesis export.
+//
+//nolint:gocritic // sdk.Context passed by value per Cosmos SDK convention.
 func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
 	// Create map of allowed addresses for unjailing
 	allowedAddrsMap := make(map[string]bool)
@@ -940,6 +999,8 @@ func (app *PAWApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []
 // setupIBCCapabilities initializes IBC capability keeper and creates scoped keepers
 // for IBC modules (transfer, compute, dex, oracle). This must be called before
 // initializing the IBC keeper and sealing capabilities.
+//
+//nolint:gocritic // multiple return values required to wire all scoped keepers.
 func (app *PAWApp) setupIBCCapabilities(
 	appCodec codec.BinaryCodec,
 	keys map[string]*storetypes.KVStoreKey,

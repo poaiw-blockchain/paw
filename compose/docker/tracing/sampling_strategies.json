@@ -1,0 +1,50 @@
+{
+  "service_strategies": [
+    {
+      "service": "paw-blockchain",
+      "type": "probabilistic",
+      "param": 0.1,
+      "operation_strategies": [
+        {
+          "operation": "transaction.execute",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "operation": "block.begin",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "block.end",
+          "type": "probabilistic",
+          "param": 1.0
+        },
+        {
+          "operation": "module.dex.*",
+          "type": "probabilistic",
+          "param": 0.3
+        },
+        {
+          "operation": "module.oracle.*",
+          "type": "probabilistic",
+          "param": 0.3
+        },
+        {
+          "operation": "module.compute.*",
+          "type": "probabilistic",
+          "param": 0.3
+        },
+        {
+          "operation": "ibc.packet.*",
+          "type": "probabilistic",
+          "param": 0.5
+        }
+      ]
+    }
+  ],
+  "default_strategy": {
+    "type": "probabilistic",
+    "param": 0.1
+  }
+}

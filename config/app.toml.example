@@ -1,0 +1,42 @@
+# This is an example app.toml configuration file showing how to enable
+# distributed tracing with Jaeger and OpenTelemetry.
+#
+# To use this configuration:
+# 1. Copy this file to ~/.paw/config/app.toml
+# 2. Adjust values as needed
+# 3. Start Jaeger: docker-compose -f compose/docker-compose.tracing.yml up -d
+# 4. Start the node: pawd start
+
+###############################################################################
+###                           Telemetry Configuration                       ###
+###############################################################################
+
+[telemetry]
+
+# Enable OpenTelemetry tracing and metrics
+enabled = true
+
+# Jaeger OTLP endpoint (HTTP)
+# Default: "http://localhost:4318"
+# For production, point to your Jaeger collector
+jaeger-endpoint = "http://localhost:4318"
+
+# Enable Prometheus metrics export
+prometheus-enabled = true
+
+# Prometheus metrics port
+# Default: "36660" (already set in main.go)
+metrics-port = "36660"
+
+# Trace sampling rate (0.0 to 1.0)
+# 0.1 = sample 10% of traces
+# 1.0 = sample all traces (use for development/testing only)
+# 0.01 = sample 1% of traces (recommended for production)
+sample-rate = 0.1
+
+###############################################################################
+###                     Other Configuration Sections                        ###
+###############################################################################
+
+# Add other sections as needed (gRPC, API, etc.)
+# See Cosmos SDK documentation for full configuration options

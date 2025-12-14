@@ -1,0 +1,114 @@
+version: '3.8'
+
+# ============================================================================
+# PAW Blockchain - Distributed Tracing Stack
+# Jaeger All-in-One for OpenTelemetry tracing
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # Jaeger - Distributed Tracing Platform
+  # --------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: paw-jaeger
+    restart: unless-stopped
+
+    environment:
+      # Enable OTLP collector
+      - COLLECTOR_OTLP_ENABLED=true
+
+      # Storage backend (in-memory for development)
+      - SPAN_STORAGE_TYPE=memory
+
+      # Memory storage settings
+      - MEMORY_MAX_TRACES=10000
+
+      # Query settings
+      - QUERY_BASE_PATH=/
+
+      # Sampling configuration
+      - SAMPLING_STRATEGIES_FILE=/etc/jaeger/sampling_strategies.json
+
+      # Logging
+      - LOG_LEVEL=info
+
+    ports:
+      # Jaeger UI
+      - "${JAEGER_UI_PORT:-16686}:16686"
+
+      # Jaeger collector (legacy)
+      - "${JAEGER_COLLECTOR_PORT:-14268}:14268"
+
+      # OTLP HTTP endpoint (OpenTelemetry) - Primary endpoint for PAW
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"
+
+      # OTLP gRPC endpoint (OpenTelemetry) - Use 11317 to avoid conflicts
+      - "${JAEGER_OTLP_GRPC_PORT:-11317}:4317"
+
+      # Jaeger agent (legacy)
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+
+      # Configuration endpoint
+      - "5778:5778"
+
+      # Zipkin compatible endpoint
+      - "9411:9411"
+
+    volumes:
+      - ./docker/tracing/sampling_strategies.json:/etc/jaeger/sampling_strategies.json:ro
+      - jaeger-badger-data:/badger
+
+    networks:
+      - tracing
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Jaeger Query - Separate Query Service (Optional - for production)
+  # Disabled by default since all-in-one includes query
+  # --------------------------------------------------------------------------
+  # jaeger-query:
+  #   image: jaegertracing/jaeger-query:1.52
+  #   container_name: paw-jaeger-query
+  #   restart: unless-stopped
+  #   environment:
+  #     - SPAN_STORAGE_TYPE=badger
+  #     - BADGER_DIRECTORY_VALUE=/badger/data
+  #     - BADGER_DIRECTORY_KEY=/badger/key
+  #   ports:
+  #     - "16687:16686"
+  #   volumes:
+  #     - jaeger-badger-data:/badger
+  #   networks:
+  #     - tracing
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  tracing:
+    driver: bridge
+    name: paw-tracing
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  jaeger-badger-data:
+    driver: local
