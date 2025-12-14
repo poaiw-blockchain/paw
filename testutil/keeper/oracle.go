@@ -74,7 +74,7 @@ func EnsureBondedValidatorWithKeeper(ctx sdk.Context, sk *stakingkeeper.Keeper, 
 }
 
 // EnsureBondedValidator seeds a bonded validator into the oracle staking keeper for tests.
-// DEPRECATED: Use EnsureBondedValidatorWithKeeper for parallel tests.
+// Deprecated: Use EnsureBondedValidatorWithKeeper for parallel tests.
 func EnsureBondedValidator(ctx sdk.Context, valAddr sdk.ValAddress) error {
 	lastStakingKeeper.mu.Lock()
 	sk := lastStakingKeeper.keeper
@@ -210,12 +210,12 @@ func RegisterTestOracleWithKeeper(t testing.TB, sk *stakingkeeper.Keeper, ctx sd
 	validatorObj.Tokens = math.NewInt(1_000_000)
 	validatorObj.DelegatorShares = math.LegacyNewDecFromInt(validatorObj.Tokens)
 
-	sk.SetValidator(ctx, validatorObj)
-	sk.SetNewValidatorByPowerIndex(ctx, validatorObj)
+	require.NoError(t, sk.SetValidator(ctx, validatorObj))
+	require.NoError(t, sk.SetNewValidatorByPowerIndex(ctx, validatorObj))
 }
 
 // RegisterTestOracle registers a test oracle validator.
-// DEPRECATED: Use RegisterTestOracleWithKeeper for parallel tests.
+// Deprecated: Use RegisterTestOracleWithKeeper for parallel tests.
 func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validator string) {
 	lastStakingKeeper.mu.Lock()
 	sk := lastStakingKeeper.keeper
@@ -225,12 +225,17 @@ func RegisterTestOracle(t testing.TB, k *keeper.Keeper, ctx sdk.Context, validat
 
 // SubmitTestPrice submits a test price feed
 func SubmitTestPrice(t testing.TB, k *keeper.Keeper, ctx sdk.Context, oracle, asset string, price math.LegacyDec) {
+	// Convert validator address to account address for feeder
+	valAddr, err := sdk.ValAddressFromBech32(oracle)
+	require.NoError(t, err)
+	feederAddr := sdk.AccAddress(valAddr)
+
 	msg := &types.MsgSubmitPrice{
 		Validator: oracle,
-		Feeder:    sdk.MustAccAddressFromBech32(oracle).String(),
+		Feeder:    feederAddr.String(),
 		Asset:     asset,
 		Price:     price,
 	}
-	_, err := keeper.NewMsgServerImpl(*k).SubmitPrice(sdk.WrapSDKContext(ctx), msg)
+	_, err = keeper.NewMsgServerImpl(*k).SubmitPrice(ctx, msg)
 	require.NoError(t, err)
 }

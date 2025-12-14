@@ -13,14 +13,19 @@ import (
 
 // BenchmarkSubmitPrice benchmarks submitting oracle prices
 func BenchmarkSubmitPrice(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Register test oracle
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		// Advance block height by 11 to avoid rate limits (max 10 submissions per 100 blocks)
+		// Start from block 1000 to ensure we're not in the initial window
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		ctx = sdkCtx.WithBlockHeight(1000 + int64(i)*11)
+
 		price := math.LegacyNewDec(int64(100 + i%50))
 		keepertest.SubmitTestPrice(b, k, ctx, validator, "PAW/USD", price)
 	}
@@ -28,15 +33,15 @@ func BenchmarkSubmitPrice(b *testing.B) {
 
 // BenchmarkGetPrice benchmarks querying oracle prices
 func BenchmarkGetPrice(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Register oracle and submit price
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 	keepertest.SubmitTestPrice(b, k, ctx, validator, "PAW/USD", math.LegacyNewDec(100))
 
 	// Aggregate price to make it available
-	_ = k.AggregatePrices(sdk.WrapSDKContext(ctx))
+	_ = k.AggregatePrices(ctx)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -49,7 +54,7 @@ func BenchmarkGetPrice(b *testing.B) {
 
 // BenchmarkAggregateMedian benchmarks calculating median price from multiple validators
 func BenchmarkAggregateMedian(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Register multiple validators and submit prices
 	validators := []string{
@@ -61,12 +66,17 @@ func BenchmarkAggregateMedian(b *testing.B) {
 	}
 
 	for _, val := range validators {
-		keepertest.RegisterTestOracle(b, k, ctx, val)
+		keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, val)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
+		// Advance block height by 11 to avoid rate limits (max 10 submissions per 100 blocks)
+		// Start from block 1000 to ensure we're not in the initial window
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		ctx = sdkCtx.WithBlockHeight(1000 + int64(i)*11)
+
 		// Submit prices from all validators
 		for j, val := range validators {
 			price := math.LegacyNewDec(int64(95 + j*2)) // Prices: 95, 97, 99, 101, 103
@@ -75,7 +85,7 @@ func BenchmarkAggregateMedian(b *testing.B) {
 		b.StartTimer()
 
 		// Aggregate prices (calculates median)
-		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
+		err := k.AggregatePrices(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -84,11 +94,11 @@ func BenchmarkAggregateMedian(b *testing.B) {
 
 // BenchmarkTWAPCalculation benchmarks TWAP calculation over price history
 func BenchmarkTWAPCalculation(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -103,7 +113,9 @@ func BenchmarkTWAPCalculation(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -121,19 +133,24 @@ func BenchmarkTWAPCalculation(b *testing.B) {
 
 // BenchmarkPriceUpdate benchmarks updating aggregated oracle prices
 func BenchmarkPriceUpdate(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
+		// Advance block height by 11 to avoid rate limits (max 10 submissions per 100 blocks)
+		// Start from block 1000 to ensure we're not in the initial window
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		ctx = sdkCtx.WithBlockHeight(1000 + int64(i)*11)
+
 		price := math.LegacyNewDec(int64(100 + i%50))
 		keepertest.SubmitTestPrice(b, k, ctx, validator, "PAW/USD", price)
 		b.StartTimer()
 
-		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
+		err := k.AggregatePrices(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -142,14 +159,14 @@ func BenchmarkPriceUpdate(b *testing.B) {
 
 // BenchmarkMultiSourceAggregation benchmarks aggregating prices from multiple sources
 func BenchmarkMultiSourceAggregation(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Register 10 validators
 	validators := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		valAddr := sdk.ValAddress([]byte{byte(i), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 		validators[i] = valAddr.String()
-		keepertest.RegisterTestOracle(b, k, ctx, validators[i])
+		keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validators[i])
 	}
 
 	// Setup: Multiple assets
@@ -158,6 +175,12 @@ func BenchmarkMultiSourceAggregation(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
+		// Advance block height by 60 to avoid rate limits
+		// (10 validators × 5 assets = 50 submissions, need 50 * 11 = 550 blocks spacing)
+		// Start from block 10000 to ensure we're not in the initial window
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		ctx = sdkCtx.WithBlockHeight(10000 + int64(i)*600)
+
 		// Submit prices from all validators for all assets
 		for _, val := range validators {
 			for j, asset := range assets {
@@ -168,7 +191,7 @@ func BenchmarkMultiSourceAggregation(b *testing.B) {
 		b.StartTimer()
 
 		// Aggregate all assets
-		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
+		err := k.AggregatePrices(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -177,11 +200,11 @@ func BenchmarkMultiSourceAggregation(b *testing.B) {
 
 // BenchmarkVolumeWeightedTWAP benchmarks volume-weighted TWAP calculation
 func BenchmarkVolumeWeightedTWAP(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -196,7 +219,9 @@ func BenchmarkVolumeWeightedTWAP(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -214,11 +239,11 @@ func BenchmarkVolumeWeightedTWAP(b *testing.B) {
 
 // BenchmarkExponentialTWAP benchmarks exponentially weighted TWAP calculation
 func BenchmarkExponentialTWAP(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -233,7 +258,9 @@ func BenchmarkExponentialTWAP(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -251,11 +278,11 @@ func BenchmarkExponentialTWAP(b *testing.B) {
 
 // BenchmarkTrimmedTWAP benchmarks outlier-resistant trimmed TWAP calculation
 func BenchmarkTrimmedTWAP(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history with some outliers
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -264,13 +291,11 @@ func BenchmarkTrimmedTWAP(b *testing.B) {
 		newCtx := sdkCtx.WithBlockHeight(i + 1).WithBlockTime(time.Unix(baseTime+i*6, 0))
 
 		// Add some outliers
-		price := math.LegacyNewDec(100)
+		price := math.LegacyNewDec(100 + i%5)
 		if i%20 == 0 {
 			price = math.LegacyNewDec(200) // Outlier
 		} else if i%20 == 10 {
 			price = math.LegacyNewDec(50) // Outlier
-		} else {
-			price = math.LegacyNewDec(100 + i%5)
 		}
 
 		snapshot := types.PriceSnapshot{
@@ -279,7 +304,9 @@ func BenchmarkTrimmedTWAP(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -297,11 +324,11 @@ func BenchmarkTrimmedTWAP(b *testing.B) {
 
 // BenchmarkKalmanFilterTWAP benchmarks Kalman filter-based TWAP calculation
 func BenchmarkKalmanFilterTWAP(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -316,7 +343,9 @@ func BenchmarkKalmanFilterTWAP(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -334,11 +363,11 @@ func BenchmarkKalmanFilterTWAP(b *testing.B) {
 
 // BenchmarkMultiMethodTWAP benchmarks calculating TWAP using all methods
 func BenchmarkMultiMethodTWAP(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Create price history
 	validator := sdk.ValAddress("validator1_____________").String()
-	keepertest.RegisterTestOracle(b, k, ctx, validator)
+	keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validator)
 
 	// Create price snapshots over time
 	baseTime := time.Now().Unix()
@@ -353,7 +382,9 @@ func BenchmarkMultiMethodTWAP(b *testing.B) {
 			BlockHeight: i + 1,
 			BlockTime:   baseTime + i*6,
 		}
-		k.SetPriceSnapshot(newCtx, snapshot)
+		if err := k.SetPriceSnapshot(newCtx, snapshot); err != nil {
+			b.Fatal(err)
+		}
 	}
 
 	// Use context at block 100
@@ -371,7 +402,7 @@ func BenchmarkMultiMethodTWAP(b *testing.B) {
 
 // BenchmarkPriceSnapshotStorage benchmarks storing price snapshots
 func BenchmarkPriceSnapshotStorage(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, _, ctx := keepertest.OracleKeeper(b)
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	baseTime := time.Now().Unix()
@@ -393,35 +424,44 @@ func BenchmarkPriceSnapshotStorage(b *testing.B) {
 
 // BenchmarkOutlierDetection benchmarks outlier detection in price aggregation
 func BenchmarkOutlierDetection(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Register multiple validators
 	validators := make([]string, 10)
 	for i := 0; i < 10; i++ {
 		valAddr := sdk.ValAddress([]byte{byte(i), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 		validators[i] = valAddr.String()
-		keepertest.RegisterTestOracle(b, k, ctx, validators[i])
+		keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validators[i])
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		// Submit prices with some outliers
+		// Advance block height by 110 to avoid rate limits (10 validators submitting)
+		// Start from block 10000 to ensure we're not in the initial window
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		baseHeight := 10000 + int64(i)*110
+
+		// Submit prices with some outliers (but not extreme enough to trigger slashing)
+		// Each validator submits at a different block height to avoid flash loan resistance
 		for j, val := range validators {
 			var price math.LegacyDec
 			if j == 0 {
-				price = math.LegacyNewDec(200) // Outlier
+				price = math.LegacyNewDec(110) // Mild outlier
 			} else if j == 9 {
-				price = math.LegacyNewDec(50) // Outlier
+				price = math.LegacyNewDec(90) // Mild outlier
 			} else {
 				price = math.LegacyNewDec(100 + int64(j))
 			}
-			keepertest.SubmitTestPrice(b, k, ctx, val, "PAW/USD", price)
+			// Each validator gets a unique block height
+			blockCtx := sdkCtx.WithBlockHeight(baseHeight + int64(j))
+			keepertest.SubmitTestPrice(b, k, blockCtx, val, "PAW/USD", price)
 		}
 		b.StartTimer()
 
 		// Aggregation includes outlier detection
-		err := k.AggregatePrices(sdk.WrapSDKContext(ctx))
+		ctx = sdkCtx.WithBlockHeight(baseHeight + 10)
+		err := k.AggregatePrices(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -430,15 +470,20 @@ func BenchmarkOutlierDetection(b *testing.B) {
 
 // BenchmarkValidatorPriceIteration benchmarks iterating over validator prices
 func BenchmarkValidatorPriceIteration(b *testing.B) {
-	k, ctx := keepertest.OracleKeeper(b)
+	k, sk, ctx := keepertest.OracleKeeper(b)
 
 	// Setup: Register multiple validators and submit prices
+	// Advance block height for each submission to avoid flash loan resistance
 	validators := make([]string, 50)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	for i := 0; i < 50; i++ {
 		valAddr := sdk.ValAddress([]byte{byte(i), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 		validators[i] = valAddr.String()
-		keepertest.RegisterTestOracle(b, k, ctx, validators[i])
-		keepertest.SubmitTestPrice(b, k, ctx, validators[i], "PAW/USD", math.LegacyNewDec(100))
+		keepertest.RegisterTestOracleWithKeeper(b, sk, ctx, validators[i])
+
+		// Advance block height by 11 for each submission to avoid rate limits
+		blockCtx := sdkCtx.WithBlockHeight(1000 + int64(i)*11)
+		keepertest.SubmitTestPrice(b, k, blockCtx, validators[i], "PAW/USD", math.LegacyNewDec(100))
 	}
 
 	b.ResetTimer()
