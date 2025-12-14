@@ -22,7 +22,7 @@ This file only tracks the open work items that still require engineering attenti
 
 ## 3. CLI Commands & Integration
 
-- [ ] Add CLI integration tests for all command paths
+- [x] Add CLI integration tests for all command paths (tests/cli/integration_test.go - 1418 lines, comprehensive test suite)
 
 ---
 
