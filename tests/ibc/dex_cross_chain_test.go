@@ -15,8 +15,6 @@ import (
 
 	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
-
-	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // DEXCrossChainTestSuite tests cross-chain DEX operations
@@ -242,7 +240,7 @@ func (suite *DEXCrossChainTestSuite) TestMultiHopSwap() {
 	var ackData dextypes.CrossChainSwapAcknowledgement
 	suite.Require().NoError(json.Unmarshal(ackResult(suite.T(), ackBz), &ackData))
 	suite.Require().True(ackData.Success)
-	suite.Require().GreaterOrEqual(int(ackData.HopsExecuted), 1)
+	suite.Require().GreaterOrEqual(ackData.HopsExecuted, 1)
 }
 
 func (suite *DEXCrossChainTestSuite) TestSwapTimeout() {
