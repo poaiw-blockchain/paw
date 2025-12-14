@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -34,7 +33,7 @@ func TestCalculateDisputeScorePenaltyAndDefaults(t *testing.T) {
 }
 
 func TestCalculateUptimeScoreBoundaries(t *testing.T) {
-	k, _ := setupKeeperForTest(t)
+	k, ctx := setupKeeperForTest(t)
 	now := time.Now()
 
 	prov := types.Provider{
@@ -42,11 +41,11 @@ func TestCalculateUptimeScoreBoundaries(t *testing.T) {
 		RegisteredAt: now.Add(-2 * time.Hour),
 		LastActiveAt: now.Add(-30 * time.Minute),
 	}
-	require.Equal(t, uint32(90), k.calculateUptimeScore(context.TODO(), prov, now))
+	require.Equal(t, uint32(90), k.calculateUptimeScore(ctx, prov, now))
 
 	prov.LastActiveAt = now.Add(-9 * time.Hour)
-	require.Equal(t, uint32(30), k.calculateUptimeScore(context.TODO(), prov, now))
+	require.Equal(t, uint32(30), k.calculateUptimeScore(ctx, prov, now))
 
 	prov.RegisteredAt = now.Add(time.Minute)
-	require.Equal(t, uint32(100), k.calculateUptimeScore(context.TODO(), prov, now))
+	require.Equal(t, uint32(100), k.calculateUptimeScore(ctx, prov, now))
 }

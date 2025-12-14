@@ -66,7 +66,7 @@ func (suite *SecurityIntegrationSuite) advanceBlock(blocks int64) {
 }
 
 func (suite *SecurityIntegrationSuite) flashLoanProtectionBlocks() int64 {
-	params, err := suite.keeper.GetParams(sdk.WrapSDKContext(suite.ctx))
+	params, err := suite.keeper.GetParams(suite.ctx)
 	suite.Require().NoError(err)
 	if params.FlashLoanProtectionBlocks == 0 {
 		return keeper.DefaultFlashLoanProtectionBlocks
@@ -132,6 +132,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_WithdrawDuringSwap()
 	// Attempt to remove liquidity while swap is in progress (should fail if using same guard)
 	// Note: RemoveLiquidity doesn't currently use the guard, but this tests the guard mechanism
 	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.liquidityProvider, poolID, shares)
+	suite.Require().NoError(err)
 	// This will succeed because RemoveLiquidity uses different operation key
 	// But demonstrates the guard prevents same operation type
 
@@ -202,12 +203,13 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_MultiplePools() {
 	suite.Require().NoError(err)
 }
 
-// TestFlashLoanAttack_AddSwapRemove tests the specific attack vector from TODO 014:
-// 1. Add huge liquidity (becomes LP)
-// 2. Execute large swap (moves price)
-// 3. Arbitrage on another pool/chain
-// 4. Remove liquidity (same block!)
-// This test verifies that step 4 is blocked by multi-block lock period.
+// TestFlashLoanAttack_AddSwapRemove tests the flash loan attack vector where an attacker:
+// 1. Adds huge liquidity (becomes dominant LP)
+// 2. Executes large swap to manipulate price
+// 3. Arbitrages the price discrepancy on another pool/chain
+// 4. Attempts to remove liquidity in the same block to eliminate exposure
+// This test verifies that step 4 is blocked by the multi-block LP lock period,
+// forcing attackers to maintain price exposure and eliminating the flash loan advantage.
 func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	// Fund attacker with large balances
 	suite.fundAccount(suite.attacker, "atom", math.NewInt(1000000))
@@ -226,10 +228,11 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	// Step 2: Execute large swap to manipulate price (still same block)
 	// This would normally move the price, creating arbitrage opportunity
 	swapAmount := math.NewInt(50000) // 10% of reserves after addition
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID,
-		"atom", "usdc", swapAmount, math.NewInt(1))
-	// Note: This may or may not succeed depending on MEV protections,
-	// but the key test is that removal is blocked regardless
+	if _, swapErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID,
+		"atom", "usdc", swapAmount, math.NewInt(1)); swapErr != nil {
+		suite.T().Logf("swap prevented by MEV protections: %v", swapErr)
+	}
+	// The key test is that removal is blocked regardless
 
 	// Step 3: Arbitrage would happen on another chain (simulated - not part of test)
 	// In real attack, attacker would profit from price difference between chains
@@ -343,7 +346,9 @@ func (suite *SecurityIntegrationSuite) TestMEVAttack_Sandwiching() {
 	// Step 3: Attacker tries to backrun by selling back
 	// This should be limited by price impact protection (50% max)
 	// Selling large amount back should fail if price impact is too high
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", frontrunOut, math.NewInt(1))
+	if _, backrunErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", frontrunOut, math.NewInt(1)); backrunErr != nil {
+		suite.T().Logf("backrun attempt limited: %v", backrunErr)
+	}
 
 	// Verify price impact protection kicked in or trade succeeded with limited profit
 	poolAfterBackrun, _ := suite.keeper.GetPool(suite.ctx, poolID)
@@ -790,7 +795,9 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	// Attacker backrun attempt - price impact should limit profit
 	pool, _ = suite.keeper.GetPool(suite.ctx, poolID)
 	backrunAmount := pool.ReserveB.QuoRaw(10)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", backrunAmount, math.NewInt(1))
+	if _, swapErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", backrunAmount, math.NewInt(1)); swapErr != nil {
+		suite.T().Logf("backrun thwarted: %v", swapErr)
+	}
 	// May succeed or fail depending on price impact
 
 	// Attacker attempt 2: Flash loan attack
