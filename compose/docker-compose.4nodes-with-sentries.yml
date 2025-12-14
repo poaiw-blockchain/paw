@@ -1,0 +1,215 @@
+version: '3.8'
+
+services:
+  # ===== VALIDATOR NODES =====
+  # 4 validators with private IPs, connecting only to each other and sentries
+
+  node1:
+    image: golang:1.24.4
+    container_name: paw-node1
+    hostname: node1
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node1_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=validator
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node1 26657 9090 1317']
+    ports:
+      - '26657:26657'
+      - '39090:9090'
+      - '1317:1317'
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.10
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "paw.role=validator"
+      - "paw.node=node1"
+
+  node2:
+    image: golang:1.24.4
+    container_name: paw-node2
+    hostname: node2
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node2_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=validator
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node2 26667 9091 1327']
+    ports:
+      - '26667:26657'
+      - '39091:9091'
+      - '1327:1327'
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.11
+    depends_on:
+      - node1
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "paw.role=validator"
+      - "paw.node=node2"
+
+  node3:
+    image: golang:1.24.4
+    container_name: paw-node3
+    hostname: node3
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node3_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=validator
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node3 26677 9092 1337']
+    ports:
+      - '26677:26657'
+      - '39092:9092'
+      - '1337:1337'
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.12
+    depends_on:
+      - node1
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "paw.role=validator"
+      - "paw.node=node3"
+
+  node4:
+    image: golang:1.24.4
+    container_name: paw-node4
+    hostname: node4
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node4_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=validator
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node4 26687 9093 1347']
+    ports:
+      - '26687:26657'
+      - '39093:9093'
+      - '1347:1347'
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.13
+    depends_on:
+      - node1
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    labels:
+      - "paw.role=validator"
+      - "paw.node=node4"
+
+  # ===== SENTRY NODES =====
+  # 2 sentry nodes that protect validators and relay to public network
+
+  sentry1:
+    image: golang:1.24.4
+    container_name: paw-sentry1
+    hostname: sentry1
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - sentry1_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=sentry
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_sentry.sh sentry1 26657 9094 1357']
+    ports:
+      - '30658:26657'  # RPC - Public facing
+      - '30656:26656'  # P2P - Public facing
+      - '39094:9094'   # gRPC
+      - '1357:1357'    # REST API
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.20
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    labels:
+      - "paw.role=sentry"
+      - "paw.node=sentry1"
+
+  sentry2:
+    image: golang:1.24.4
+    container_name: paw-sentry2
+    hostname: sentry2
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - sentry2_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+      - NODE_TYPE=sentry
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_sentry.sh sentry2 26657 9095 1367']
+    ports:
+      - '30668:26657'  # RPC - Public facing
+      - '30666:26656'  # P2P - Public facing
+      - '39095:9095'   # gRPC
+      - '1367:1367'    # REST API
+    networks:
+      pawnet:
+        ipv4_address: 172.22.0.21
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    labels:
+      - "paw.role=sentry"
+      - "paw.node=sentry2"
+
+networks:
+  pawnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+
+volumes:
+  node1_data:
+  node2_data:
+  node3_data:
+  node4_data:
+  sentry1_data:
+  sentry2_data:

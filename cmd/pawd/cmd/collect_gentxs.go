@@ -10,6 +10,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -65,47 +68,64 @@ Example:
 			fmt.Fprintf(cmd.OutOrStdout(), "Found %d gentx files\n", len(gentxFiles))
 
 			// Collect all gentxs
-			var genTxs []sdk.Tx
+			var (
+				genTxs            []sdk.Tx
+				genesisValidators []tmtypes.GenesisValidator
+				seenValidators    = make(map[string]struct{})
+			)
 			for _, gentxFile := range gentxFiles {
-				if !gentxFile.IsDir() && filepath.Ext(gentxFile.Name()) == ".json" {
-					gentxPath := filepath.Join(gentxDir, gentxFile.Name())
-
-					// Read gentx file
-					gentxBz, err := os.ReadFile(gentxPath) // #nosec G304 - gentx files are operator supplied
-					if err != nil {
-						return fmt.Errorf("failed to read gentx file %s: %w", gentxPath, err)
-					}
-
-					// Decode gentx
-					tx, err := clientCtx.TxConfig.TxJSONDecoder()(gentxBz)
-					if err != nil {
-						return fmt.Errorf("failed to decode gentx %s: %w", gentxPath, err)
-					}
-
-					// Validate gentx
-					msgs := tx.GetMsgs()
-					if len(msgs) != 1 {
-						return fmt.Errorf("gentx must contain exactly one message, got %d", len(msgs))
-					}
-
-					// Verify it's a MsgCreateValidator
-					msgCreateVal, ok := msgs[0].(*stakingtypes.MsgCreateValidator)
-					if !ok {
-						return fmt.Errorf("gentx message must be MsgCreateValidator")
-					}
-
-					// ValidateBasic was removed in SDK v0.50 - validation happens in message server
-					// Basic validation: check that required fields are present
-					if msgCreateVal.ValidatorAddress == "" {
-						return fmt.Errorf("invalid gentx: validator address is required")
-					}
-					if msgCreateVal.Pubkey == nil {
-						return fmt.Errorf("invalid gentx: pubkey is required")
-					}
-
-					genTxs = append(genTxs, tx)
-					fmt.Fprintf(cmd.OutOrStdout(), "  ✓ Collected gentx from %s\n", gentxFile.Name())
+				if gentxFile.IsDir() || filepath.Ext(gentxFile.Name()) != ".json" {
+					continue
 				}
+
+				gentxPath := filepath.Join(gentxDir, gentxFile.Name())
+
+				// Read gentx file
+				gentxBz, err := os.ReadFile(gentxPath) // #nosec G304 - gentx files are operator supplied
+				if err != nil {
+					return fmt.Errorf("failed to read gentx file %s: %w", gentxPath, err)
+				}
+
+				// Decode gentx
+				tx, err := clientCtx.TxConfig.TxJSONDecoder()(gentxBz)
+				if err != nil {
+					return fmt.Errorf("failed to decode gentx %s: %w", gentxPath, err)
+				}
+
+				// Validate gentx
+				msgs := tx.GetMsgs()
+				if len(msgs) != 1 {
+					return fmt.Errorf("gentx must contain exactly one message, got %d", len(msgs))
+				}
+
+				// Verify it's a MsgCreateValidator
+				msgCreateVal, ok := msgs[0].(*stakingtypes.MsgCreateValidator)
+				if !ok {
+					return fmt.Errorf("gentx message must be MsgCreateValidator")
+				}
+
+				// ValidateBasic was removed in SDK v0.50 - validation happens in message server
+				// Basic validation: check that required fields are present
+				if msgCreateVal.ValidatorAddress == "" {
+					return fmt.Errorf("invalid gentx: validator address is required")
+				}
+				if msgCreateVal.Pubkey == nil {
+					return fmt.Errorf("invalid gentx: pubkey is required")
+				}
+
+				if _, exists := seenValidators[msgCreateVal.ValidatorAddress]; exists {
+					return fmt.Errorf("duplicate gentx for validator %s", msgCreateVal.ValidatorAddress)
+				}
+				seenValidators[msgCreateVal.ValidatorAddress] = struct{}{}
+
+				validator, err := msgCreateValidatorToGenesisValidator(clientCtx.InterfaceRegistry, msgCreateVal)
+				if err != nil {
+					return err
+				}
+
+				genesisValidators = append(genesisValidators, validator)
+				genTxs = append(genTxs, tx)
+				fmt.Fprintf(cmd.OutOrStdout(), "  ✓ Collected gentx from %s\n", gentxFile.Name())
 			}
 
 			// Update genesis state with collected gentxs
@@ -138,6 +158,7 @@ Example:
 			}
 
 			genDoc.AppState = appStateJSON
+			genDoc.Validators = genesisValidators
 
 			// Validate and complete genesis doc
 			if err = genDoc.ValidateAndComplete(); err != nil {
@@ -165,4 +186,32 @@ Example:
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
+}
+
+func msgCreateValidatorToGenesisValidator(registry codectypes.InterfaceRegistry, msg *stakingtypes.MsgCreateValidator) (tmtypes.GenesisValidator, error) {
+	if msg == nil {
+		return tmtypes.GenesisValidator{}, fmt.Errorf("msg create validator cannot be nil")
+	}
+
+	var pubKey cryptotypes.PubKey
+	if err := registry.UnpackAny(msg.Pubkey, &pubKey); err != nil {
+		return tmtypes.GenesisValidator{}, fmt.Errorf("failed to unpack validator pubkey: %w", err)
+	}
+
+	consensusPubKey, err := cryptocodec.ToCmtPubKeyInterface(pubKey)
+	if err != nil {
+		return tmtypes.GenesisValidator{}, fmt.Errorf("failed to convert validator pubkey: %w", err)
+	}
+
+	power := sdk.TokensToConsensusPower(msg.Value.Amount, sdk.DefaultPowerReduction)
+	if power <= 0 {
+		return tmtypes.GenesisValidator{}, fmt.Errorf("validator %s has zero consensus power", msg.ValidatorAddress)
+	}
+
+	return tmtypes.GenesisValidator{
+		Address: consensusPubKey.Address(),
+		PubKey:  consensusPubKey,
+		Power:   power,
+		Name:    msg.Description.Moniker,
+	}, nil
 }

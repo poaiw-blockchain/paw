@@ -19,6 +19,25 @@ Quick start
   - `./build/pawd start --home ./localnode --minimum-gas-prices 0.001upaw --grpc.address 127.0.0.1:19090 --api.address tcp://127.0.0.1:1318 --rpc.laddr tcp://127.0.0.1:26658`
 - Docker localnet: `docker compose up -d`
 
+Multi-validator testnet
+- For testing consensus with 2, 3, or 4 validators, see **[docs/MULTI_VALIDATOR_TESTNET.md](docs/MULTI_VALIDATOR_TESTNET.md)** (complete guide)
+- For production-like testing with sentry nodes, see **[docs/SENTRY_ARCHITECTURE.md](docs/SENTRY_ARCHITECTURE.md)** (sentry guide)
+- Quick reference: **[docs/TESTNET_QUICK_REFERENCE.md](docs/TESTNET_QUICK_REFERENCE.md)** (one-page cheat sheet)
+- Quick start (4 validators):
+  ```bash
+  docker compose -f compose/docker-compose.4nodes.yml down -v
+  rm -f scripts/devnet/.state/*.json scripts/devnet/.state/*.mnemonic
+  ./scripts/devnet/setup-validators.sh 4
+  docker compose -f compose/docker-compose.4nodes.yml up -d
+  ```
+- Quick start (4 validators + 2 sentries):
+  ```bash
+  docker compose -f compose/docker-compose.4nodes-with-sentries.yml down -v
+  rm -f scripts/devnet/.state/*.json scripts/devnet/.state/*.mnemonic
+  ./scripts/devnet/setup-validators.sh 4
+  docker compose -f compose/docker-compose.4nodes-with-sentries.yml up -d
+  ```
+
 Build from source
 1. Install Go 1.23+, ensure `$GOBIN` is on your PATH.
 2. Install buf and protoc plugins (`make proto-tools` or follow `scripts/protocgen.sh`).
