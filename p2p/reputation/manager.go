@@ -91,11 +91,16 @@ func DefaultManagerConfig() ManagerConfig {
 }
 
 // NewManager creates a new reputation manager
-func NewManager(storage Storage, config ManagerConfig, logger log.Logger) (*Manager, error) {
+func NewManager(storage Storage, config *ManagerConfig, logger log.Logger) (*Manager, error) {
+	if config == nil {
+		return nil, fmt.Errorf("manager config is required")
+	}
+
+	cfg := *config
 	m := &Manager{
 		storage:     storage,
-		scorer:      NewScorer(config.ScoreWeights, config.ScoringConfig),
-		config:      config,
+		scorer:      NewScorer(config.ScoreWeights, &config.ScoringConfig),
+		config:      cfg,
 		logger:      logger,
 		peers:       make(map[PeerID]*PeerReputation),
 		subnetStats: make(map[string]*SubnetStats),
@@ -119,7 +124,10 @@ func NewManager(storage Storage, config ManagerConfig, logger log.Logger) (*Mana
 }
 
 // RecordEvent records a peer event and updates reputation
-func (m *Manager) RecordEvent(event PeerEvent) error {
+func (m *Manager) RecordEvent(event *PeerEvent) error {
+	if event == nil {
+		return fmt.Errorf("event is required")
+	}
 	m.peersMu.Lock()
 	defer m.peersMu.Unlock()
 
@@ -185,7 +193,7 @@ func (m *Manager) GetReputation(peerID PeerID) (*PeerReputation, error) {
 }
 
 // ShouldAcceptPeer determines if a new peer connection should be accepted
-func (m *Manager) ShouldAcceptPeer(peerID PeerID, address string) (bool, string) {
+func (m *Manager) ShouldAcceptPeer(peerID PeerID, address string) (accepted bool, reason string) {
 	m.peersMu.RLock()
 	defer m.peersMu.RUnlock()
 
@@ -227,7 +235,7 @@ func (m *Manager) ShouldAcceptPeer(peerID PeerID, address string) (bool, string)
 	// Extract network info
 	subnet := ParseSubnet(address)
 	if subnet == "" {
-		return false, "invalid peer address"
+		return false, "invalid peer address: cannot parse subnet"
 	}
 
 	// Check subnet limits
@@ -286,7 +294,7 @@ func (m *Manager) GetDiversePeers(n int, minScore float64) []*PeerReputation {
 		if rep.Score >= minScore && !rep.BanStatus.IsBanned {
 			country := rep.NetworkInfo.Country
 			if country == "" {
-				country = "unknown"
+				country = unknownValue
 			}
 			byCountry[country] = append(byCountry[country], rep)
 		}
@@ -389,16 +397,28 @@ func (m *Manager) UnbanPeer(peerID PeerID) error {
 // AddToWhitelist adds a peer to whitelist
 func (m *Manager) AddToWhitelist(peerID PeerID) {
 	m.listsMu.Lock()
-	defer m.listsMu.Unlock()
-
 	m.whitelist[peerID] = true
+	m.listsMu.Unlock()
 
 	m.peersMu.Lock()
-	if rep, exists := m.peers[peerID]; exists {
-		rep.BanStatus.IsWhitelisted = true
-		rep.TrustLevel = TrustLevelWhitelisted
+	defer m.peersMu.Unlock()
+
+	rep, exists := m.peers[peerID]
+	if !exists {
+		// Load from storage if not in memory
+		var err error
+		rep, err = m.storage.Load(peerID)
+		if err != nil || rep == nil {
+			// Create new peer if doesn't exist
+			rep = m.createNewPeer(peerID, "")
+		} else {
+			m.peers[peerID] = rep
+		}
 	}
-	m.peersMu.Unlock()
+
+	rep.BanStatus.IsWhitelisted = true
+	rep.TrustLevel = TrustLevelWhitelisted
+	_ = m.storage.Save(rep)
 }
 
 // RemoveFromWhitelist removes a peer from whitelist

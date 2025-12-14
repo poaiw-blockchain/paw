@@ -62,10 +62,14 @@ func DefaultScoringConfig() ScoringConfig {
 }
 
 // NewScorer creates a new peer scorer
-func NewScorer(weights ScoreWeights, config ScoringConfig) *Scorer {
+func NewScorer(weights ScoreWeights, config *ScoringConfig) *Scorer {
+	var cfg ScoringConfig
+	if config != nil {
+		cfg = *config
+	}
 	return &Scorer{
 		weights: weights,
-		config:  config,
+		config:  cfg,
 	}
 }
 
@@ -249,14 +253,14 @@ func (s *Scorer) calculateViolationPenalty(rep *PeerReputation) float64 {
 	penalty += float64(rep.Metrics.MalformedMessages) * s.config.MalformedMessagePenalty
 
 	// DoS and security violations
-	penalty += float64(rep.Metrics.OversizedMessages) * 15.0       // Severe DoS penalty
-	penalty += float64(rep.Metrics.BandwidthViolations) * 10.0     // Bandwidth abuse
-	penalty += float64(rep.Metrics.SecurityEvents) * 20.0          // Critical security events
+	penalty += float64(rep.Metrics.OversizedMessages) * 15.0   // Severe DoS penalty
+	penalty += float64(rep.Metrics.BandwidthViolations) * 10.0 // Bandwidth abuse
+	penalty += float64(rep.Metrics.SecurityEvents) * 20.0      // Critical security events
 
 	// Streak multiplier - repeated violations within short time are worse
 	if rep.Metrics.ViolationStreak > 3 {
 		streakMultiplier := 1.0 + (float64(rep.Metrics.ViolationStreak-3) * 0.2) // +20% per violation over 3
-		penalty *= math.Min(streakMultiplier, 3.0)                                 // Cap at 3x multiplier
+		penalty *= math.Min(streakMultiplier, 3.0)                               // Cap at 3x multiplier
 	}
 
 	// Total penalty points contribute to overall score reduction
@@ -285,7 +289,10 @@ func (s *Scorer) calculateAgeDecay(rep *PeerReputation) float64 {
 }
 
 // ApplyEvent updates metrics based on an event
-func (s *Scorer) ApplyEvent(rep *PeerReputation, event PeerEvent) {
+func (s *Scorer) ApplyEvent(rep *PeerReputation, event *PeerEvent) {
+	if event == nil {
+		return
+	}
 	now := event.Timestamp
 	if now.IsZero() {
 		now = time.Now()
@@ -441,7 +448,7 @@ func (s *Scorer) updateLatencyStats(rep *PeerReputation, latency time.Duration) 
 }
 
 // ShouldBan determines if a peer should be banned based on score and violations
-func (s *Scorer) ShouldBan(rep *PeerReputation) (bool, BanType, string) {
+func (s *Scorer) ShouldBan(rep *PeerReputation) (shouldBan bool, banType BanType, reason string) {
 	// Check for severe violations - immediate permanent ban
 	if rep.Metrics.DoubleSignAttempts > 0 {
 		return true, BanTypePermanent, "double signing attempt detected"
@@ -454,6 +461,11 @@ func (s *Scorer) ShouldBan(rep *PeerReputation) (bool, BanType, string) {
 	// Check for spam - temporary ban
 	if rep.Metrics.SpamAttempts >= 5 {
 		return true, BanTypeTemporary, "excessive spam attempts"
+	}
+
+	// Check for oversized messages - temporary ban for DoS attempts
+	if rep.Metrics.OversizedMessages >= 3 {
+		return true, BanTypeTemporary, "excessive oversized messages"
 	}
 
 	// Check score-based banning
