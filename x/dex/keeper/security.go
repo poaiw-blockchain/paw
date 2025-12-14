@@ -9,6 +9,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -38,12 +39,16 @@ import (
 //   - Require supermajority (>66%) for security-critical parameter changes
 //
 // 2. SECURITY REQUIREMENTS:
+//
 //   - Parameter bounds must be hard-coded (e.g., MaxPriceDeviation must be [0.1, 0.5])
+//
 //   - Changes must not take effect immediately (circuit breaker risk)
+//
 //   - Emergency governance override to restore safe defaults
+//
 //   - Audit trail of all parameter changes via events
 //
-//  3. IMPLEMENTATION STEPS:
+//     3. IMPLEMENTATION STEPS:
 //     a) Add to params.proto:
 //     message Params {
 //     string max_price_deviation = 1; // constrained to [0.1, 0.5]
@@ -420,28 +425,9 @@ func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state
 	return nil
 }
 
-// CheckFlashLoanProtection prevents same-block liquidity manipulation
-/*
-func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
-	lastActionBlock, err := k.GetLastLiquidityActionBlock(ctx, poolID, provider)
-	if err != nil {
-		return err
-	}
-
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	currentBlock := sdkCtx.BlockHeight()
-
-	// Require minimum blocks between add and remove liquidity
-	if currentBlock-lastActionBlock < MinLPLockBlocks {
-		return types.ErrFlashLoanDetected.Wrapf(
-			"must wait %d blocks between liquidity operations (last: %d, current: %d)",
-			MinLPLockBlocks, lastActionBlock, currentBlock,
-		)
-	}
-
-	return nil
-}
-*/
+// NOTE: CheckFlashLoanProtection is implemented in dex_advanced.go
+// It uses params.FlashLoanProtectionBlocks for configurable block delay
+// See dex_advanced.go:375-406 for the actual implementation
 
 // GetLastLiquidityActionBlock retrieves the last block height when user modified liquidity
 /*
