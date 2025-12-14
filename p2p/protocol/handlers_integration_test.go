@@ -58,7 +58,8 @@ func (s *HandlersIntegrationTestSuite) TestHandshakeWorkflow() {
 		receivedMsg = msg
 		return &HandshakeAckMessage{
 			Accepted: true,
-			Message:  "Welcome",
+			Reason:   "Welcome",
+			NodeID:   "node-1",
 		}, nil
 	})
 
@@ -66,6 +67,8 @@ func (s *HandlersIntegrationTestSuite) TestHandshakeWorkflow() {
 	msg := &HandshakeMessage{
 		ProtocolVersion: 1,
 		ChainID:         "test-chain",
+		NodeID:          "peer-1",
+		GenesisHash:     []byte("genesis"),
 		BestHeight:      100,
 		Timestamp:       time.Now().Unix(),
 	}
@@ -104,8 +107,8 @@ func (s *HandlersIntegrationTestSuite) TestBlockMessageWorkflow() {
 	msg := &BlockMessage{
 		Height:    101,
 		Hash:      []byte("block-hash-101"),
-		PrevHash:  []byte("block-hash-100"),
-		Timestamp: time.Now().Unix(),
+		BlockData: []byte("block data"),
+		Source:    "peer-1",
 	}
 
 	// Handle block
@@ -138,6 +141,7 @@ func (s *HandlersIntegrationTestSuite) TestTransactionMessageWorkflow() {
 	msg := &TxMessage{
 		TxHash: []byte("tx-hash-123"),
 		TxData: []byte("transaction data"),
+		Source: "peer-1",
 	}
 
 	err := s.handlers.HandleMessage(ctx, "peer-1", msg)
@@ -167,7 +171,8 @@ func (s *HandlersIntegrationTestSuite) TestHandlerErrorRecovery() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    "peer-1",
 		}
 
 		err := s.handlers.HandleMessage(ctx, "peer-1", msg)
@@ -222,7 +227,8 @@ func (s *HandlersIntegrationTestSuite) TestConcurrentMessageProcessing() {
 				msg := &BlockMessage{
 					Height:    int64(i + 1),
 					Hash:      []byte(fmt.Sprintf("peer-%d-hash-%d", peerNum, i)),
-					Timestamp: time.Now().Unix(),
+					BlockData: []byte("data"),
+					Source:    peerID,
 				}
 
 				err := s.handlers.HandleMessage(ctx, peerID, msg)
@@ -261,13 +267,14 @@ func (s *HandlersIntegrationTestSuite) TestRateLimitEnforcement() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    peerID,
 		}
 
 		err := s.handlers.HandleMessage(ctx, peerID, msg)
 		if err != nil {
 			if errors.Is(err, errors.New("rate limit exceeded")) ||
-			   (err.Error() != "" && len(err.Error()) > 0) {
+				(err.Error() != "" && len(err.Error()) > 0) {
 				rateLimitCount++
 			}
 		} else {
@@ -304,8 +311,7 @@ func (s *HandlersIntegrationTestSuite) TestMessageTypeRouting() {
 		MsgTypeHandshake,
 		MsgTypeNewBlock,
 		MsgTypeNewTx,
-		MsgTypePing,
-		MsgTypePong,
+		MsgTypeStatus,
 	}
 
 	for _, msgType := range messageTypes {
@@ -314,11 +320,27 @@ func (s *HandlersIntegrationTestSuite) TestMessageTypeRouting() {
 
 	// Send different message types
 	messages := []Message{
-		&HandshakeMessage{ProtocolVersion: 1, ChainID: "test"},
-		&BlockMessage{Height: 1, Hash: []byte("hash")},
-		&TxMessage{TxHash: []byte("tx-hash")},
-		&PingMessage{Timestamp: time.Now().Unix()},
-		&PongMessage{Timestamp: time.Now().Unix()},
+		&HandshakeMessage{
+			ProtocolVersion: 1,
+			ChainID:         "test",
+			NodeID:          "test-node",
+			GenesisHash:     []byte("genesis"),
+		},
+		&BlockMessage{
+			Height:    1,
+			Hash:      []byte("hash"),
+			BlockData: []byte("data"),
+			Source:    "peer-1",
+		},
+		&TxMessage{
+			TxHash: []byte("tx-hash"),
+			TxData: []byte("tx-data"),
+			Source: "peer-1",
+		},
+		&StatusMessage{
+			Height:   100,
+			BestHash: []byte("best-hash"),
+		},
 	}
 
 	for _, msg := range messages {
@@ -345,7 +367,8 @@ func (s *HandlersIntegrationTestSuite) TestHandlerStatistics() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    "peer-1",
 		}
 		_ = s.handlers.HandleMessage(ctx, "peer-1", msg)
 	}
@@ -354,6 +377,7 @@ func (s *HandlersIntegrationTestSuite) TestHandlerStatistics() {
 		msg := &TxMessage{
 			TxHash: []byte(fmt.Sprintf("tx-%d", i)),
 			TxData: []byte("data"),
+			Source: "peer-1",
 		}
 		_ = s.handlers.HandleMessage(ctx, "peer-1", msg)
 	}
@@ -388,7 +412,8 @@ func (s *HandlersIntegrationTestSuite) TestProcessingTimeTracking() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    "peer-1",
 		}
 		err := s.handlers.HandleMessage(ctx, "peer-1", msg)
 		require.NoError(t, err)
@@ -414,7 +439,8 @@ func (s *HandlersIntegrationTestSuite) TestReputationIntegration() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    peerID,
 		}
 		err := s.handlers.HandleMessage(ctx, peerID, msg)
 		require.NoError(t, err)
@@ -435,7 +461,8 @@ func (s *HandlersIntegrationTestSuite) TestReputationIntegration() {
 	msg := &BlockMessage{
 		Height:    11,
 		Hash:      []byte("invalid"),
-		Timestamp: time.Now().Unix(),
+		BlockData: []byte("data"),
+		Source:    peerID,
 	}
 	err = s.handlers.HandleMessage(ctx, peerID, msg)
 	require.Error(t, err)
@@ -463,8 +490,9 @@ func (s *HandlersIntegrationTestSuite) TestCustomHandlerRegistration() {
 
 	// Send status message
 	msg := &StatusMessage{
-		Height:  100,
-		Syncing: false,
+		Height:   100,
+		BestHash: []byte("best-hash"),
+		Syncing:  false,
 	}
 
 	err := s.handlers.HandleMessage(ctx, "peer-1", msg)
@@ -472,30 +500,39 @@ func (s *HandlersIntegrationTestSuite) TestCustomHandlerRegistration() {
 	require.True(t, customHandlerCalled)
 }
 
-// Test ping-pong workflow
-func (s *HandlersIntegrationTestSuite) TestPingPongWorkflow() {
+// Test status message workflow
+func (s *HandlersIntegrationTestSuite) TestStatusMessageWorkflow() {
 	t := s.T()
 	ctx := context.Background()
 
-	// Send ping
-	pingMsg := &PingMessage{
-		Timestamp: time.Now().Unix(),
-		Nonce:     12345,
+	statusReceived := false
+	var receivedStatus *StatusMessage
+
+	// Set up status handler
+	s.handlers.RegisterHandler(MsgTypeStatus, func(ctx context.Context, peerID string, msg Message) error {
+		statusReceived = true
+		receivedStatus = msg.(*StatusMessage)
+		return nil
+	})
+
+	// Send status message
+	msg := &StatusMessage{
+		Height:      100,
+		BestHash:    []byte("best-hash"),
+		Timestamp:   time.Now().Unix(),
+		TxPoolSize:  50,
+		PeerCount:   10,
+		Syncing:     false,
+		NetworkLoad: 0.5,
 	}
 
-	err := s.handlers.HandleMessage(ctx, "peer-1", pingMsg)
+	err := s.handlers.HandleMessage(ctx, "peer-1", msg)
 	require.NoError(t, err)
+	require.True(t, statusReceived)
+	require.NotNil(t, receivedStatus)
+	require.Equal(t, int64(100), receivedStatus.Height)
 
-	// Send pong
-	pongMsg := &PongMessage{
-		Timestamp: time.Now().Unix(),
-		Nonce:     12345,
-	}
-
-	err = s.handlers.HandleMessage(ctx, "peer-1", pongMsg)
-	require.NoError(t, err)
-
-	// Verify latency was recorded
+	// Verify reputation event was recorded
 	rep, err := s.repManager.GetReputation("peer-1")
 	require.NoError(t, err)
 	require.NotNil(t, rep)
@@ -518,7 +555,7 @@ func (s *HandlersIntegrationTestSuite) TestErrorMessageHandling() {
 
 // Test peer cleanup
 func (s *HandlersIntegrationTestSuite) TestPeerCleanup() {
-	t := s.T()
+	_ = s.T()
 	ctx := context.Background()
 
 	peerID := "cleanup-peer"
@@ -528,7 +565,8 @@ func (s *HandlersIntegrationTestSuite) TestPeerCleanup() {
 		msg := &BlockMessage{
 			Height:    int64(i + 1),
 			Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-			Timestamp: time.Now().Unix(),
+			BlockData: []byte("data"),
+			Source:    peerID,
 		}
 		_ = s.handlers.HandleMessage(ctx, peerID, msg)
 	}
@@ -560,7 +598,8 @@ func BenchmarkHandleMessage(b *testing.B) {
 	msg := &BlockMessage{
 		Height:    1,
 		Hash:      []byte("test-hash"),
-		Timestamp: time.Now().Unix(),
+		BlockData: []byte("data"),
+		Source:    "bench-peer",
 	}
 
 	b.ResetTimer()
@@ -584,12 +623,14 @@ func BenchmarkConcurrentHandleMessage(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
+			peerID := fmt.Sprintf("peer-%d", i%10)
 			msg := &BlockMessage{
 				Height:    int64(i + 1),
 				Hash:      []byte(fmt.Sprintf("hash-%d", i)),
-				Timestamp: time.Now().Unix(),
+				BlockData: []byte("data"),
+				Source:    peerID,
 			}
-			_ = handlers.HandleMessage(ctx, fmt.Sprintf("peer-%d", i%10), msg)
+			_ = handlers.HandleMessage(ctx, peerID, msg)
 			i++
 		}
 	})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/time/rate"
 )
 
 // SecurityTestSuite provides comprehensive P2P security testing
@@ -108,8 +109,8 @@ func (s *SecurityTestSuite) TestReplayAttackPrevention() {
 func (s *SecurityTestSuite) TestConnectionRateLimiting() {
 	t := s.T()
 
-	// Create rate limiter
-	limiter := NewRateLimiter(10, 20) // 10/sec, burst of 20
+	// Create rate limiter (using golang.org/x/time/rate)
+	limiter := rate.NewLimiter(rate.Limit(10), 20) // 10/sec, burst of 20
 
 	// Burst should be allowed
 	for i := 0; i < 20; i++ {
@@ -278,7 +279,7 @@ func (s *SecurityTestSuite) TestConcurrentAuthentication() {
 
 	// Exchange keys
 	for i, auth := range authenticators {
-		peerID := string(rune('A' + i))
+		_ = i // Use i to avoid declared and not used error
 		for j, peerAuth := range authenticators {
 			if i != j {
 				otherID := string(rune('A' + j))
@@ -536,7 +537,7 @@ func BenchmarkHMACVerification(b *testing.B) {
 }
 
 func BenchmarkRateLimiter(b *testing.B) {
-	limiter := NewRateLimiter(1000, 2000)
+	limiter := rate.NewLimiter(rate.Limit(1000), 2000)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

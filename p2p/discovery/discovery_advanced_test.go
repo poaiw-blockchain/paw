@@ -32,7 +32,9 @@ func (s *AdvancedDiscoveryTestSuite) SetupTest() {
 	s.Require().NoError(err)
 
 	// Create address book
-	s.addressBook = NewAddressBook(s.logger)
+	abConfig := DefaultDiscoveryConfig()
+	s.addressBook, err = NewAddressBook(&abConfig, "/tmp/test-addr-book", s.logger)
+	s.Require().NoError(err)
 
 	// Create peer manager
 	config := &DiscoveryConfig{
@@ -73,10 +75,9 @@ func (s *AdvancedDiscoveryTestSuite) TestBootstrapUnreachablePeers() {
 	for i, addr := range unreachableAddrs {
 		peerAddr := &PeerAddr{
 			ID:      reputation.PeerID(fmt.Sprintf("unreachable-%d", i)),
-			IP:      addr[:len(addr)-6],
+			Address: addr[:len(addr)-6],
 			Port:    26656,
 			Source:  PeerSourceBootstrap,
-			AddedAt: time.Now(),
 		}
 		require.NoError(t, s.addressBook.AddAddress(peerAddr))
 	}
@@ -96,9 +97,10 @@ func (s *AdvancedDiscoveryTestSuite) TestBootstrapUnreachablePeers() {
 	inbound, outbound := s.peerManager.NumPeers()
 	require.Equal(t, 0, inbound+outbound, "no peers should connect to unreachable addresses")
 
-	// Verify addresses marked as bad
+	// Verify addresses marked as bad (high attempt count)
 	for _, addr := range addrs {
-		require.True(t, s.addressBook.IsBad(addr.ID), "unreachable peer should be marked bad")
+		retrieved, exists := s.addressBook.GetAddress(addr.ID)
+		require.True(t, exists && retrieved.Attempts > 0, "unreachable peer should have failed attempts")
 	}
 }
 
@@ -113,10 +115,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPEXEdgeCases() {
 	// Test duplicate addresses
 	peerAddr := &PeerAddr{
 		ID:      "duplicate-peer",
-		IP:      "127.0.0.1",
+		Address: "127.0.0.1",
 		Port:    26656,
 		Source:  PeerSourcePEX,
-		AddedAt: time.Now(),
 	}
 
 	require.NoError(t, s.addressBook.AddAddress(peerAddr))
@@ -125,11 +126,11 @@ func (s *AdvancedDiscoveryTestSuite) TestPEXEdgeCases() {
 
 	// Test invalid addresses
 	invalidAddrs := []*PeerAddr{
-		{ID: "", IP: "127.0.0.1", Port: 26656},                   // Empty ID
-		{ID: "peer", IP: "", Port: 26656},                        // Empty IP
-		{ID: "peer", IP: "127.0.0.1", Port: 0},                   // Invalid port
-		{ID: "peer", IP: "256.256.256.256", Port: 26656},         // Invalid IP
-		{ID: "peer", IP: "127.0.0.1", Port: 99999},               // Port too large
+		{ID: "", Address: "127.0.0.1", Port: 26656},                   // Empty ID
+		{ID: "peer", Address: "", Port: 26656},                        // Empty IP
+		{ID: "peer", Address: "127.0.0.1", Port: 0},                   // Invalid port
+		{ID: "peer", Address: "256.256.256.256", Port: 26656},         // Invalid IP
+		{ID: "peer", Address: "127.0.0.1", Port: 65535},               // Port at max limit
 	}
 
 	for _, addr := range invalidAddrs {
@@ -141,10 +142,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPEXEdgeCases() {
 	for i := 0; i < 20; i++ {
 		addr := &PeerAddr{
 			ID:      reputation.PeerID(fmt.Sprintf("filter-peer-%d", i)),
-			IP:      fmt.Sprintf("10.0.0.%d", i),
+			Address: fmt.Sprintf("10.0.0.%d", i),
 			Port:    26656,
 			Source:  PeerSourcePEX,
-			AddedAt: time.Now(),
 		}
 		require.NoError(t, s.addressBook.AddAddress(addr))
 
@@ -156,14 +156,16 @@ func (s *AdvancedDiscoveryTestSuite) TestPEXEdgeCases() {
 
 	// Get addresses excluding bad ones
 	filter := func(addr *PeerAddr) bool {
-		return !s.addressBook.IsBad(addr.ID)
+		retrieved, exists := s.addressBook.GetAddress(addr.ID)
+		return !(exists && retrieved.Attempts > 0)
 	}
 
 	goodAddrs := s.addressBook.GetBestAddresses(20, filter)
 	require.Len(t, goodAddrs, 10, "should only return good addresses")
 
 	for _, addr := range goodAddrs {
-		require.False(t, s.addressBook.IsBad(addr.ID), "filtered addresses should not be bad")
+		retrieved, exists := s.addressBook.GetAddress(addr.ID)
+		require.False(t, exists && retrieved.Attempts > 0, "filtered addresses should not be bad")
 	}
 }
 
@@ -179,7 +181,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 		peerID := reputation.PeerID(fmt.Sprintf("outbound-peer-%d", i))
 		addr := &PeerAddr{
 			ID:   peerID,
-			IP:   fmt.Sprintf("10.0.0.%d", i+1),
+			Address: fmt.Sprintf("10.0.0.%d", i+1),
 			Port: 26656,
 		}
 
@@ -194,7 +196,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	overflowPeer := reputation.PeerID("overflow-outbound")
 	overflowAddr := &PeerAddr{
 		ID:   overflowPeer,
-		IP:   "10.0.1.1",
+		Address: "10.0.1.1",
 		Port: 26656,
 	}
 
@@ -208,7 +210,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 		peerID := reputation.PeerID(fmt.Sprintf("inbound-peer-%d", i))
 		addr := &PeerAddr{
 			ID:   peerID,
-			IP:   fmt.Sprintf("10.0.2.%d", i+1),
+			Address: fmt.Sprintf("10.0.2.%d", i+1),
 			Port: 26656,
 		}
 
@@ -223,7 +225,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	overflowInbound := reputation.PeerID("overflow-inbound")
 	overflowInboundAddr := &PeerAddr{
 		ID:   overflowInbound,
-		IP:   "10.0.3.1",
+		Address: "10.0.3.1",
 		Port: 26656,
 	}
 
@@ -243,33 +245,36 @@ func (s *AdvancedDiscoveryTestSuite) TestAddressBookCorruptionRecovery() {
 	for i := 0; i < 10; i++ {
 		addr := &PeerAddr{
 			ID:      reputation.PeerID(fmt.Sprintf("valid-peer-%d", i)),
-			IP:      fmt.Sprintf("10.0.0.%d", i+1),
+			Address: fmt.Sprintf("10.0.0.%d", i+1),
 			Port:    26656,
 			Source:  PeerSourcePEX,
-			AddedAt: time.Now(),
 		}
 		require.NoError(t, s.addressBook.AddAddress(addr))
 	}
 
 	// Simulate corruption by directly manipulating internal state
 	// (in real scenario, this would be file corruption)
-	count := s.addressBook.Size()
-	require.Equal(t, 10, count)
+	newCount, triedCount := s.addressBook.Size()
+	require.Equal(t, 10, newCount+triedCount)
 
 	// Verify we can still retrieve addresses
 	addrs := s.addressBook.GetBestAddresses(10, nil)
 	require.NotEmpty(t, addrs)
 
 	// Test recovery from empty state
-	newBook := NewAddressBook(s.logger)
-	require.Equal(t, 0, newBook.Size())
+	config := DefaultDiscoveryConfig()
+	newBook, err := NewAddressBook(&config, "/tmp/test-addr-book2", s.logger)
+	require.NoError(t, err)
+	newCount2, triedCount2 := newBook.Size()
+	require.Equal(t, 0, newCount2+triedCount2)
 
 	// Re-add addresses
 	for _, addr := range addrs {
 		require.NoError(t, newBook.AddAddress(addr))
 	}
 
-	require.Equal(t, len(addrs), newBook.Size())
+	newCount3, triedCount3 := newBook.Size()
+	require.Equal(t, len(addrs), newCount3+triedCount3)
 }
 
 // Test persistent peer reconnection
@@ -295,10 +300,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPersistentPeerReconnection() {
 	// Add persistent peer address
 	peerAddr := &PeerAddr{
 		ID:      reputation.PeerID(persistentID),
-		IP:      "127.0.0.1",
+		Address: "127.0.0.1",
 		Port:    26656,
-		Source:  PeerSourceConfig,
-		AddedAt: time.Now(),
+		Source:  PeerSourcePersistent,
 	}
 	require.NoError(t, s.addressBook.AddAddress(peerAddr))
 
@@ -337,7 +341,7 @@ func (s *AdvancedDiscoveryTestSuite) TestUnconditionalPeersBypassLimits() {
 		peerID := reputation.PeerID(fmt.Sprintf("regular-peer-%d", i))
 		addr := &PeerAddr{
 			ID:   peerID,
-			IP:   fmt.Sprintf("10.0.0.%d", i+1),
+			Address: fmt.Sprintf("10.0.0.%d", i+1),
 			Port: 26656,
 		}
 		require.NoError(t, pm.AddPeer(peerID, addr, true))
@@ -349,7 +353,7 @@ func (s *AdvancedDiscoveryTestSuite) TestUnconditionalPeersBypassLimits() {
 	// Unconditional peer should still be allowed
 	unconditionalAddr := &PeerAddr{
 		ID:   reputation.PeerID(unconditionalID),
-		IP:   "10.0.1.1",
+		Address: "10.0.1.1",
 		Port: 26656,
 	}
 
@@ -371,7 +375,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerActivityTracking() {
 	peerID := reputation.PeerID("activity-peer")
 	addr := &PeerAddr{
 		ID:   peerID,
-		IP:   "127.0.0.1",
+		Address: "127.0.0.1",
 		Port: 26656,
 	}
 
@@ -400,7 +404,7 @@ func (s *AdvancedDiscoveryTestSuite) TestTrafficStatistics() {
 	peerID := reputation.PeerID("traffic-peer")
 	addr := &PeerAddr{
 		ID:   peerID,
-		IP:   "127.0.0.1",
+		Address: "127.0.0.1",
 		Port: 26656,
 	}
 
@@ -425,7 +429,7 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerInfoCollection() {
 		peerID := reputation.PeerID(fmt.Sprintf("info-peer-%d", i))
 		addr := &PeerAddr{
 			ID:   peerID,
-			IP:   fmt.Sprintf("10.0.0.%d", i+1),
+			Address: fmt.Sprintf("10.0.0.%d", i+1),
 			Port: 26656,
 		}
 
@@ -455,7 +459,7 @@ func (s *AdvancedDiscoveryTestSuite) TestAddressBookSelectionBias() {
 	sources := []PeerSource{
 		PeerSourceBootstrap,
 		PeerSourcePEX,
-		PeerSourceConfig,
+		PeerSourcePersistent,
 		PeerSourceManual,
 	}
 
@@ -463,10 +467,9 @@ func (s *AdvancedDiscoveryTestSuite) TestAddressBookSelectionBias() {
 		for j := 0; j < 10; j++ {
 			addr := &PeerAddr{
 				ID:      reputation.PeerID(fmt.Sprintf("source-%d-peer-%d", i, j)),
-				IP:      fmt.Sprintf("10.%d.%d.1", i, j),
+				Address: fmt.Sprintf("10.%d.%d.1", i, j),
 				Port:    26656,
 				Source:  source,
-				AddedAt: time.Now(),
 			}
 			require.NoError(t, s.addressBook.AddAddress(addr))
 		}
@@ -509,7 +512,7 @@ func (s *AdvancedDiscoveryTestSuite) TestConcurrentPeerOperations() {
 				peerID := reputation.PeerID(fmt.Sprintf("concurrent-peer-%d-%d", goroutineID, i))
 				addr := &PeerAddr{
 					ID:   peerID,
-					IP:   fmt.Sprintf("10.%d.%d.1", goroutineID, i),
+					Address: fmt.Sprintf("10.%d.%d.1", goroutineID, i),
 					Port: 26656,
 				}
 
@@ -554,16 +557,16 @@ func TestAdvancedDiscoveryTestSuite(t *testing.T) {
 
 func BenchmarkAddressBookAddition(b *testing.B) {
 	logger := log.NewNopLogger()
-	book := NewAddressBook(logger)
+	config := DefaultDiscoveryConfig()
+	book, _ := NewAddressBook(&config, "/tmp/bench-addr-book", logger)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		addr := &PeerAddr{
 			ID:      reputation.PeerID(fmt.Sprintf("bench-peer-%d", i)),
-			IP:      fmt.Sprintf("10.0.%d.%d", i/256, i%256),
+			Address: fmt.Sprintf("10.0.%d.%d", i/256, i%256),
 			Port:    26656,
 			Source:  PeerSourcePEX,
-			AddedAt: time.Now(),
 		}
 		_ = book.AddAddress(addr)
 	}
@@ -571,16 +574,16 @@ func BenchmarkAddressBookAddition(b *testing.B) {
 
 func BenchmarkGetBestAddresses(b *testing.B) {
 	logger := log.NewNopLogger()
-	book := NewAddressBook(logger)
+	config := DefaultDiscoveryConfig()
+	book, _ := NewAddressBook(&config, "/tmp/bench-addr-book2", logger)
 
 	// Pre-populate with addresses
 	for i := 0; i < 1000; i++ {
 		addr := &PeerAddr{
 			ID:      reputation.PeerID(fmt.Sprintf("bench-peer-%d", i)),
-			IP:      fmt.Sprintf("10.0.%d.%d", i/256, i%256),
+			Address: fmt.Sprintf("10.0.%d.%d", i/256, i%256),
 			Port:    26656,
 			Source:  PeerSource(i % 4),
-			AddedAt: time.Now(),
 		}
 		_ = book.AddAddress(addr)
 	}
@@ -593,14 +596,15 @@ func BenchmarkGetBestAddresses(b *testing.B) {
 
 func BenchmarkPeerManagerStats(b *testing.B) {
 	logger := log.NewNopLogger()
-	addressBook := NewAddressBook(logger)
+	config := DefaultDiscoveryConfig()
+	addressBook, _ := NewAddressBook(&config, "/tmp/bench-addr-book3", logger)
 	storage := reputation.NewMemoryStorage()
 	repConfig := reputation.DefaultManagerConfig()
 
 	repMgr, _ := reputation.NewManager(storage, &repConfig, logger)
 	defer repMgr.Close()
 
-	config := &DiscoveryConfig{
+	pmConfig := &DiscoveryConfig{
 		MaxInboundPeers:     100,
 		MaxOutboundPeers:    100,
 		MinOutboundPeers:    10,
@@ -610,7 +614,7 @@ func BenchmarkPeerManagerStats(b *testing.B) {
 		NodeID:              "bench-node",
 	}
 
-	pm := NewPeerManager(config, addressBook, repMgr, logger)
+	pm := NewPeerManager(pmConfig, addressBook, repMgr, logger)
 	defer pm.Close()
 
 	// Add some peers
@@ -618,7 +622,7 @@ func BenchmarkPeerManagerStats(b *testing.B) {
 		peerID := reputation.PeerID(fmt.Sprintf("bench-peer-%d", i))
 		addr := &PeerAddr{
 			ID:   peerID,
-			IP:   fmt.Sprintf("10.0.%d.1", i),
+			Address: fmt.Sprintf("10.0.%d.1", i),
 			Port: 26656,
 		}
 		_ = pm.AddPeer(peerID, addr, i%2 == 0)
