@@ -56,6 +56,16 @@ var (
 
 	// Price source validation errors
 	ErrInvalidPriceSource = sdkerrors.Register(ModuleName, 43, "invalid price source")
+
+	// Geographic location verification errors
+	ErrInvalidIPAddress          = sdkerrors.Register(ModuleName, 44, "invalid IP address")
+	ErrIPRegionMismatch          = sdkerrors.Register(ModuleName, 45, "IP address does not match claimed region")
+	ErrPrivateIPNotAllowed       = sdkerrors.Register(ModuleName, 46, "private IP addresses not allowed for validators")
+	ErrLocationProofRequired     = sdkerrors.Register(ModuleName, 47, "location proof required")
+	ErrLocationProofInvalid      = sdkerrors.Register(ModuleName, 48, "location proof invalid or expired")
+	ErrInsufficientGeoDiversity  = sdkerrors.Register(ModuleName, 49, "insufficient geographic diversity")
+	ErrGeoIPDatabaseUnavailable  = sdkerrors.Register(ModuleName, 51, "GeoIP database unavailable")
+	ErrTooManyValidatorsFromSameIP = sdkerrors.Register(ModuleName, 52, "too many validators from same IP address")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions
@@ -108,6 +118,15 @@ var RecoverySuggestions = map[error]string{
 	ErrStateCorruption:       "CRITICAL: Oracle state corruption detected. Automatic recovery initiated using backup. Price feeds may be temporarily unavailable. Contact validators.",
 	ErrOracleDataUnavailable: "No oracle data available for requested asset. Wait for next aggregation interval or ensure feeder connectivity. Confirm asset is registered and active.",
 	ErrInvalidPriceSource:    "Price source failed validation or is unregistered. Verify source registration, reputation, and heartbeat before retrying.",
+
+	ErrInvalidIPAddress:          "IP address format is invalid. Provide a valid IPv4 or IPv6 address. Check network configuration.",
+	ErrIPRegionMismatch:          "SECURITY: IP address geolocation does not match claimed region. Update claimed region to match actual location or fix IP address. This prevents location spoofing.",
+	ErrPrivateIPNotAllowed:       "SECURITY: Validators must use public IP addresses. Private/localhost IPs (10.x, 192.168.x, 127.x) are not allowed. Configure proper public network access.",
+	ErrLocationProofRequired:     "Geographic location proof required for validator registration. Provide verifiable location evidence. This ensures geographic diversity.",
+	ErrLocationProofInvalid:      "Location proof verification failed or expired. Renew location proof with current timestamp. Ensure proof is cryptographically signed and valid.",
+	ErrInsufficientGeoDiversity:  "SECURITY: Insufficient geographic diversity among validators. Need minimum 3 distinct regions. This is critical for decentralization and resilience.",
+	ErrGeoIPDatabaseUnavailable:  "GeoIP database not available for location verification. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable.",
+	ErrTooManyValidatorsFromSameIP: "SECURITY: Too many validators sharing same IP address (max 2). This indicates centralization risk or Sybil attack. Ensure validators are independently operated.",
 }
 
 // WrapWithRecovery wraps an error with recovery suggestion

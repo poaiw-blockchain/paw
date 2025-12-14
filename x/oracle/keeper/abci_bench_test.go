@@ -43,7 +43,7 @@ func BenchmarkEndBlocker(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				// Increment block height for each iteration
 				ctx = ctx.WithBlockHeight(10000 + int64(i))
-				err := k.EndBlocker(sdk.WrapSDKContext(ctx))
+				err := k.EndBlocker(ctx)
 				require.NoError(b, err)
 			}
 
@@ -84,7 +84,7 @@ func BenchmarkCleanupOldOutlierHistoryGlobal(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				blockHeight := currentHeight + int64(i)
 				ctx = ctx.WithBlockHeight(blockHeight)
-				err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+				err := k.CleanupOldOutlierHistoryGlobal(ctx)
 				require.NoError(b, err)
 			}
 
@@ -115,7 +115,7 @@ func BenchmarkCleanupOldOutlierHistory_SinglePair(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		err := k.CleanupOldOutlierHistory(sdk.WrapSDKContext(ctx), validator.String(), asset, minHeight)
+		err := k.CleanupOldOutlierHistory(ctx, validator.String(), asset, minHeight)
 		require.NoError(b, err)
 	}
 }
@@ -170,7 +170,7 @@ func setupBenchmarkData(tb testing.TB, k *keeper.Keeper, ctx sdk.Context, numVal
 			BlockTime:     ctx.BlockTime().Unix(),
 			NumValidators: uint32(numValidators),
 		}
-		require.NoError(tb, k.SetPrice(sdk.WrapSDKContext(ctx), price))
+		require.NoError(tb, k.SetPrice(ctx, price))
 
 		// Create validator price submissions
 		for j := 0; j < numValidators; j++ {
@@ -181,7 +181,7 @@ func setupBenchmarkData(tb testing.TB, k *keeper.Keeper, ctx sdk.Context, numVal
 				BlockHeight:   ctx.BlockHeight(),
 				VotingPower:   1,
 			}
-			require.NoError(tb, k.SetValidatorPrice(sdk.WrapSDKContext(ctx), vp))
+			require.NoError(tb, k.SetValidatorPrice(ctx, vp))
 		}
 	}
 

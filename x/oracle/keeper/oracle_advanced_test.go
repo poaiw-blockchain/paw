@@ -114,13 +114,13 @@ func TestDetectOutliersAdvanced(t *testing.T) {
 	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
-		name           string
-		prices         []math.LegacyDec
-		config         keeper.OutlierDetectionConfig
-		expectErr      bool
-		errMsg         string
-		minOutliers    int
-		maxOutliers    int
+		name        string
+		prices      []math.LegacyDec
+		config      keeper.OutlierDetectionConfig
+		expectErr   bool
+		errMsg      string
+		minOutliers int
+		maxOutliers int
 	}{
 		{
 			name:      "insufficient data points",
@@ -238,7 +238,7 @@ func TestValidateDataFreshness(t *testing.T) {
 		})
 	}
 
-	_ = k  // Acknowledge outer keeper
+	_ = k   // Acknowledge outer keeper
 	_ = ctx // Acknowledge outer context
 }
 

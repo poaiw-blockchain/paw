@@ -123,21 +123,22 @@ func (suite *OracleSecuritySuite) setupValidators() {
 
 		// Seed distribution state to avoid negative reference counts during slashing
 		hist := distrtypes.NewValidatorHistoricalRewards([]sdk.DecCoin{}, 1)
-		suite.app.DistrKeeper.SetValidatorHistoricalRewards(suite.ctx, valAddr, 0, hist)
+		suite.Require().NoError(suite.app.DistrKeeper.SetValidatorHistoricalRewards(suite.ctx, valAddr, 0, hist))
 		curr := distrtypes.NewValidatorCurrentRewards(sdk.NewDecCoins(), 1)
-		suite.app.DistrKeeper.SetValidatorCurrentRewards(suite.ctx, valAddr, curr)
-		suite.app.DistrKeeper.SetValidatorAccumulatedCommission(suite.ctx, valAddr, distrtypes.ValidatorAccumulatedCommission{})
-		suite.app.DistrKeeper.SetValidatorOutstandingRewards(suite.ctx, valAddr, distrtypes.ValidatorOutstandingRewards{Rewards: sdk.DecCoins{}})
+		suite.Require().NoError(suite.app.DistrKeeper.SetValidatorCurrentRewards(suite.ctx, valAddr, curr))
+		suite.Require().NoError(suite.app.DistrKeeper.SetValidatorAccumulatedCommission(suite.ctx, valAddr, distrtypes.ValidatorAccumulatedCommission{}))
+		suite.Require().NoError(suite.app.DistrKeeper.SetValidatorOutstandingRewards(suite.ctx, valAddr, distrtypes.ValidatorOutstandingRewards{Rewards: sdk.DecCoins{}}))
 
-		suite.app.StakingKeeper.SetLastValidatorPower(suite.ctx, valAddr, suite.powers[i])
+		suite.Require().NoError(suite.app.StakingKeeper.SetLastValidatorPower(suite.ctx, valAddr, suite.powers[i]))
 
 		// Self-delegation to back validator tokens
+		delegator := sdk.AccAddress(valAddr)
 		delegation := stakingtypes.Delegation{
-			DelegatorAddress: valAddr.String(),
+			DelegatorAddress: delegator.String(),
 			ValidatorAddress: valAddr.String(),
 			Shares:           sdkmath.LegacyNewDecFromInt(tokens),
 		}
-		suite.app.StakingKeeper.SetDelegation(suite.ctx, delegation)
+		suite.Require().NoError(suite.app.StakingKeeper.SetDelegation(suite.ctx, delegation))
 
 		region := regions[i%len(regions)]
 		suite.Require().NoError(suite.keeper.SetValidatorOracle(suite.ctx, types.ValidatorOracle{

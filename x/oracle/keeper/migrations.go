@@ -10,13 +10,13 @@ import (
 // It encapsulates the keeper and provides methods for migrating between different
 // consensus versions of the module.
 type Migrator struct {
-	keeper Keeper
+	keeper *Keeper
 }
 
 // NewMigrator returns a new Migrator instance for the oracle module.
 // The migrator is used by the module manager to execute store migrations
 // during chain upgrades.
-func NewMigrator(keeper Keeper) Migrator {
+func NewMigrator(keeper *Keeper) Migrator {
 	return Migrator{keeper: keeper}
 }
 

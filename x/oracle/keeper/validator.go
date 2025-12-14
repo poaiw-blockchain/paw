@@ -13,7 +13,7 @@ import (
 )
 
 // SetValidatorOracle sets the oracle information for a validator
-func (k Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.ValidatorOracle) error {
+func (k *Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.ValidatorOracle) error {
 	valAddr, err := sdk.ValAddressFromBech32(validatorOracle.ValidatorAddr)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (k Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.Va
 }
 
 // GetValidatorOracle retrieves the oracle information for a validator
-func (k Keeper) GetValidatorOracle(ctx context.Context, validatorAddr string) (types.ValidatorOracle, error) {
+func (k *Keeper) GetValidatorOracle(ctx context.Context, validatorAddr string) (types.ValidatorOracle, error) {
 	valAddr, err := sdk.ValAddressFromBech32(validatorAddr)
 	if err != nil {
 		return types.ValidatorOracle{}, err
@@ -62,13 +62,13 @@ func (k Keeper) GetValidatorOracle(ctx context.Context, validatorAddr string) (t
 }
 
 // DeleteValidatorOracle removes the oracle information for a validator
-func (k Keeper) DeleteValidatorOracle(ctx context.Context, validatorAddr sdk.ValAddress) {
+func (k *Keeper) DeleteValidatorOracle(ctx context.Context, validatorAddr sdk.ValAddress) {
 	store := k.getStore(ctx)
 	store.Delete(GetValidatorOracleKey(validatorAddr))
 }
 
 // IterateValidatorOracles iterates over all validator oracles
-func (k Keeper) IterateValidatorOracles(ctx context.Context, cb func(validatorOracle types.ValidatorOracle) (stop bool)) error {
+func (k *Keeper) IterateValidatorOracles(ctx context.Context, cb func(validatorOracle types.ValidatorOracle) (stop bool)) error {
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, ValidatorOracleKeyPrefix)
 	defer iterator.Close()
@@ -86,7 +86,7 @@ func (k Keeper) IterateValidatorOracles(ctx context.Context, cb func(validatorOr
 }
 
 // GetAllValidatorOracles returns all validator oracles
-func (k Keeper) GetAllValidatorOracles(ctx context.Context) ([]types.ValidatorOracle, error) {
+func (k *Keeper) GetAllValidatorOracles(ctx context.Context) ([]types.ValidatorOracle, error) {
 	validatorOracles := []types.ValidatorOracle{}
 	err := k.IterateValidatorOracles(ctx, func(vo types.ValidatorOracle) bool {
 		validatorOracles = append(validatorOracles, vo)
@@ -96,7 +96,7 @@ func (k Keeper) GetAllValidatorOracles(ctx context.Context) ([]types.ValidatorOr
 }
 
 // IsActiveValidator checks if a validator is bonded and active
-func (k Keeper) IsActiveValidator(ctx context.Context, validatorAddr sdk.ValAddress) (bool, error) {
+func (k *Keeper) IsActiveValidator(ctx context.Context, validatorAddr sdk.ValAddress) (bool, error) {
 	validator, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if err != nil {
 		return false, err
@@ -107,7 +107,7 @@ func (k Keeper) IsActiveValidator(ctx context.Context, validatorAddr sdk.ValAddr
 }
 
 // GetValidatorVotingPower retrieves a validator's voting power
-func (k Keeper) GetValidatorVotingPower(ctx context.Context, validatorAddr sdk.ValAddress) (int64, error) {
+func (k *Keeper) GetValidatorVotingPower(ctx context.Context, validatorAddr sdk.ValAddress) (int64, error) {
 	validator, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if err != nil {
 		return 0, err
@@ -117,7 +117,7 @@ func (k Keeper) GetValidatorVotingPower(ctx context.Context, validatorAddr sdk.V
 }
 
 // GetBondedValidators returns all bonded validators
-func (k Keeper) GetBondedValidators(ctx context.Context) ([]stakingtypes.Validator, error) {
+func (k *Keeper) GetBondedValidators(ctx context.Context) ([]stakingtypes.Validator, error) {
 	var bondedValidators []stakingtypes.Validator
 
 	err := k.stakingKeeper.IterateBondedValidatorsByPower(ctx, func(index int64, validator stakingtypes.ValidatorI) (stop bool) {
@@ -133,7 +133,7 @@ func (k Keeper) GetBondedValidators(ctx context.Context) ([]stakingtypes.Validat
 }
 
 // IncrementMissCounter increments the miss counter for a validator
-func (k Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string) error {
+func (k *Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
 		return err
@@ -152,7 +152,7 @@ func (k Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string) 
 }
 
 // ResetMissCounter resets the miss counter for a validator
-func (k Keeper) ResetMissCounter(ctx context.Context, validatorAddr string) error {
+func (k *Keeper) ResetMissCounter(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func (k Keeper) ResetMissCounter(ctx context.Context, validatorAddr string) erro
 }
 
 // IncrementSubmissionCount increments the submission count for a validator
-func (k Keeper) IncrementSubmissionCount(ctx context.Context, validatorAddr string) error {
+func (k *Keeper) IncrementSubmissionCount(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
 		return err
@@ -174,7 +174,7 @@ func (k Keeper) IncrementSubmissionCount(ctx context.Context, validatorAddr stri
 }
 
 // ValidateFeeder checks if the feeder is authorized to submit prices for the validator
-func (k Keeper) ValidateFeeder(ctx context.Context, validatorAddr sdk.ValAddress, feederAddr sdk.AccAddress) error {
+func (k *Keeper) ValidateFeeder(ctx context.Context, validatorAddr sdk.ValAddress, feederAddr sdk.AccAddress) error {
 	// Get validator's account address
 	valAccAddr := sdk.AccAddress(validatorAddr)
 
@@ -205,7 +205,7 @@ func (k Keeper) ValidateFeeder(ctx context.Context, validatorAddr sdk.ValAddress
 //   - It equals the validator's own account (self-feeding)
 //   - It matches the existing feeder delegation for the validator
 //   - It is not already delegated to a different validator
-func (k Keeper) IsAuthorizedFeeder(ctx sdk.Context, delegate sdk.AccAddress, validatorAddr sdk.ValAddress) bool {
+func (k *Keeper) IsAuthorizedFeeder(ctx sdk.Context, delegate sdk.AccAddress, validatorAddr sdk.ValAddress) bool {
 	if delegate.Empty() {
 		return false
 	}
@@ -215,7 +215,7 @@ func (k Keeper) IsAuthorizedFeeder(ctx sdk.Context, delegate sdk.AccAddress, val
 	}
 
 	// If the validator already delegated the same address, allow it
-	existing, err := k.GetFeederDelegation(sdk.WrapSDKContext(ctx), validatorAddr)
+	existing, err := k.GetFeederDelegation(ctx, validatorAddr)
 	if err == nil && existing != nil && existing.Equals(delegate) {
 		return true
 	}

@@ -8,19 +8,19 @@ import (
 
 // SlashingInfo tracks validator slashing information
 type SlashingInfo struct {
-	Validator     string `json:"validator"`
-	MissCount     uint64 `json:"miss_count"`
+	Validator     string         `json:"validator"`
+	MissCount     uint64         `json:"miss_count"`
 	SlashedAmount math.LegacyDec `json:"slashed_amount"`
-	SlashedHeight int64  `json:"slashed_height,omitempty"`
-	JailedUntil   int64  `json:"jailed_until,omitempty"`
+	SlashedHeight int64          `json:"slashed_height,omitempty"`
+	JailedUntil   int64          `json:"jailed_until,omitempty"`
 }
 
 // TWAPDataPoint represents a single TWAP data point
 type TWAPDataPoint struct {
-	Price      math.LegacyDec `json:"price"`
-	Timestamp  int64   `json:"timestamp"`
-	Volume     math.LegacyDec `json:"volume,omitempty"`
-	BlockHeight int64  `json:"block_height"`
+	Price       math.LegacyDec `json:"price"`
+	Timestamp   int64          `json:"timestamp"`
+	Volume      math.LegacyDec `json:"volume,omitempty"`
+	BlockHeight int64          `json:"block_height"`
 }
 
 // AggregateExchangeRatePrevote represents the aggregate vote hash submitted by a validator

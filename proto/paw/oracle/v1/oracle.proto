@@ -55,6 +55,14 @@ message Params {
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable) = false
   ];
+
+  // max_validators_per_ip is the maximum number of validators allowed from the same IP address
+  // Default: 3 (prevents single entity from running too many validators from one location)
+  uint64 max_validators_per_ip = 11;
+
+  // max_validators_per_asn is the maximum number of validators allowed from the same ASN
+  // Default: 5 (prevents single ISP/datacenter from dominating the validator set)
+  uint64 max_validators_per_asn = 12;
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination
@@ -131,6 +139,12 @@ message ValidatorOracle {
 
   // geographic_region tracks the validator's region (e.g., "na", "eu", "apac")
   string geographic_region = 5;
+
+  // ip_address is the validator's IP address for diversity enforcement
+  string ip_address = 6;
+
+  // asn is the validator's Autonomous System Number for ISP diversity
+  uint64 asn = 7;
 }
 
 // PriceSnapshot represents a historical price snapshot for TWAP

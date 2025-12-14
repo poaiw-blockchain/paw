@@ -14,13 +14,13 @@ import (
 
 var (
 	// Key prefixes - must match the keeper
-	PriceKeyPrefix             = []byte{0x01}
-	ValidatorOracleKeyPrefix   = []byte{0x02}
-	ValidatorPriceKeyPrefix    = []byte{0x03}
-	ParamsKey                  = []byte{0x04}
-	PriceSnapshotKeyPrefix     = []byte{0x05}
-	MissCounterKeyPrefix       = []byte{0x10}
-	AssetListKey               = []byte{0x11}
+	PriceKeyPrefix           = []byte{0x01}
+	ValidatorOracleKeyPrefix = []byte{0x02}
+	ValidatorPriceKeyPrefix  = []byte{0x03}
+	ParamsKey                = []byte{0x04}
+	PriceSnapshotKeyPrefix   = []byte{0x05}
+	MissCounterKeyPrefix     = []byte{0x10}
+	AssetListKey             = []byte{0x11}
 )
 
 // Migrate implements store migrations from v1 to v2 for the Oracle module.
@@ -152,15 +152,6 @@ func validateValidatorOracles(ctx sdk.Context, store storetypes.KVStore, cdc cod
 
 		needsUpdate := false
 
-		// Ensure miss counter is non-negative
-		if validatorOracle.MissCounter < 0 {
-			ctx.Logger().Warn("fixing negative miss counter",
-				"validator", validatorOracle.ValidatorAddr,
-				"old", validatorOracle.MissCounter)
-			validatorOracle.MissCounter = 0
-			needsUpdate = true
-		}
-
 		// Validate validator address format
 		if _, err := sdk.ValAddressFromBech32(validatorOracle.ValidatorAddr); err != nil {
 			ctx.Logger().Warn("invalid validator address, skipping",
@@ -219,13 +210,13 @@ func rebuildSnapshotIndexes(ctx sdk.Context, store storetypes.KVStore, cdc codec
 	}
 
 	/*
-	if len(assets) > 0 {
-		assetListBz, err := cdc.Marshal(&types.AssetList{Assets: assets})
-		if err != nil {
-			return fmt.Errorf("failed to marshal asset list: %w", err)
+		if len(assets) > 0 {
+			assetListBz, err := cdc.Marshal(&types.AssetList{Assets: assets})
+			if err != nil {
+				return fmt.Errorf("failed to marshal asset list: %w", err)
+			}
+			store.Set(AssetListKey, assetListBz)
 		}
-		store.Set(AssetListKey, assetListBz)
-	}
 	*/
 
 	ctx.Logger().Info("Snapshot indexes rebuilt", "snapshots", count, "assets", len(assets))
@@ -304,8 +295,6 @@ func migrateParams(ctx sdk.Context, store storetypes.KVStore, cdc codec.BinaryCo
 		params.TwapLookbackWindow = 1000 // 1000 blocks
 		updated = true
 	}
-
-
 
 	if updated {
 		newBz, err := cdc.Marshal(&params)

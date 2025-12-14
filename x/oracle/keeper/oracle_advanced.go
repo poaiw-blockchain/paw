@@ -12,6 +12,7 @@ import (
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
@@ -1388,12 +1389,12 @@ func (k Keeper) ApplyGeographicDiversityBonus(ctx context.Context, submissions m
 
 // GetGeographicDiversityMetrics returns comprehensive diversity metrics
 type GeographicDiversityMetrics struct {
-	TotalValidators   int            `json:"total_validators"`
+	TotalValidators    int            `json:"total_validators"`
 	RegionDistribution map[string]int `json:"region_distribution"`
-	DiversityScore    math.LegacyDec `json:"diversity_score"`
-	LargestRegion     string         `json:"largest_region"`
-	SmallestRegion    string         `json:"smallest_region"`
-	RegionBalance     math.LegacyDec `json:"region_balance"` // 0-1, higher is more balanced
+	DiversityScore     math.LegacyDec `json:"diversity_score"`
+	LargestRegion      string         `json:"largest_region"`
+	SmallestRegion     string         `json:"smallest_region"`
+	RegionBalance      math.LegacyDec `json:"region_balance"` // 0-1, higher is more balanced
 }
 
 func (k Keeper) GetGeographicDiversityMetrics(ctx context.Context) (*GeographicDiversityMetrics, error) {

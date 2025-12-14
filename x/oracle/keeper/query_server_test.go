@@ -40,20 +40,20 @@ func TestOracleQueryServer_Prices(t *testing.T) {
 		NumValidators: 2,
 	}
 
-	require.NoError(t, k.SetPrice(sdk.WrapSDKContext(ctx), priceOne))
-	require.NoError(t, k.SetPrice(sdk.WrapSDKContext(ctx), priceTwo))
+	require.NoError(t, k.SetPrice(ctx, priceOne))
+	require.NoError(t, k.SetPrice(ctx, priceTwo))
 
-	resp, err := server.Price(sdk.WrapSDKContext(ctx), &types.QueryPriceRequest{Asset: "PAW/USD"})
+	resp, err := server.Price(ctx, &types.QueryPriceRequest{Asset: "PAW/USD"})
 	require.NoError(t, err)
 	require.Equal(t, priceOne, *resp.Price)
 
-	_, err = server.Price(sdk.WrapSDKContext(ctx), &types.QueryPriceRequest{})
+	_, err = server.Price(ctx, &types.QueryPriceRequest{})
 	require.Error(t, err)
 
-	_, err = server.Price(sdk.WrapSDKContext(ctx), &types.QueryPriceRequest{Asset: "UNKNOWN"})
+	_, err = server.Price(ctx, &types.QueryPriceRequest{Asset: "UNKNOWN"})
 	require.Error(t, err)
 
-	pricesResp, err := server.Prices(sdk.WrapSDKContext(ctx), &types.QueryPricesRequest{
+	pricesResp, err := server.Prices(ctx, &types.QueryPricesRequest{
 		Pagination: &query.PageRequest{Limit: 1},
 	})
 	require.NoError(t, err)
@@ -68,28 +68,28 @@ func TestOracleQueryServer_Validators(t *testing.T) {
 	valOne := makeValAddr(0x01)
 	valTwo := makeValAddr(0x02)
 
-	require.NoError(t, k.SetValidatorOracle(sdk.WrapSDKContext(ctx), types.ValidatorOracle{
+	require.NoError(t, k.SetValidatorOracle(ctx, types.ValidatorOracle{
 		ValidatorAddr:    valOne.String(),
 		MissCounter:      2,
 		TotalSubmissions: 10,
 	}))
-	require.NoError(t, k.SetValidatorOracle(sdk.WrapSDKContext(ctx), types.ValidatorOracle{
+	require.NoError(t, k.SetValidatorOracle(ctx, types.ValidatorOracle{
 		ValidatorAddr:    valTwo.String(),
 		MissCounter:      0,
 		TotalSubmissions: 5,
 	}))
 
-	resp, err := server.Validator(sdk.WrapSDKContext(ctx), &types.QueryValidatorRequest{
+	resp, err := server.Validator(ctx, &types.QueryValidatorRequest{
 		ValidatorAddr: valOne.String(),
 	})
 	require.NoError(t, err)
 	require.Equal(t, valOne.String(), resp.Validator.ValidatorAddr)
 	require.Equal(t, uint64(2), resp.Validator.MissCounter)
 
-	_, err = server.Validator(sdk.WrapSDKContext(ctx), &types.QueryValidatorRequest{ValidatorAddr: "bad"})
+	_, err = server.Validator(ctx, &types.QueryValidatorRequest{ValidatorAddr: "bad"})
 	require.Error(t, err)
 
-	validatorsResp, err := server.Validators(sdk.WrapSDKContext(ctx), &types.QueryValidatorsRequest{
+	validatorsResp, err := server.Validators(ctx, &types.QueryValidatorsRequest{
 		Pagination: &query.PageRequest{Limit: 1},
 	})
 	require.NoError(t, err)

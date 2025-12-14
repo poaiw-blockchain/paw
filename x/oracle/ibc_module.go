@@ -24,12 +24,12 @@ var (
 // IBCModule implements the ICS26 interface for the oracle module.
 // This enables cross-chain price feed aggregation and oracle data sharing.
 type IBCModule struct {
-	keeper            keeper.Keeper
-	cdc               codec.Codec
-	channelValidator  *sharedibc.ChannelOpenValidator
-	packetValidator   *sharedibc.PacketValidator
-	ackHelper         *sharedibc.AcknowledgementHelper
-	eventEmitter      *sharedibc.EventEmitter
+	keeper           keeper.Keeper
+	cdc              codec.Codec
+	channelValidator *sharedibc.ChannelOpenValidator
+	packetValidator  *sharedibc.PacketValidator
+	ackHelper        *sharedibc.AcknowledgementHelper
+	eventEmitter     *sharedibc.EventEmitter
 }
 
 // NewIBCModule creates a new IBCModule given the keeper and codec

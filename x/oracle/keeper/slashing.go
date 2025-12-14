@@ -60,13 +60,15 @@ func (k Keeper) handleOutlierSlashing(ctx context.Context, asset string, outlier
 	}
 
 	// Slash the validator
-	k.stakingKeeper.Slash(
+	if _, err := k.stakingKeeper.Slash(
 		ctx,
 		consAddr,
 		sdkCtx.BlockHeight(),
 		validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx)),
 		slashFraction,
-	)
+	); err != nil {
+		return fmt.Errorf("failed to slash validator %s: %w", outlier.ValidatorAddr, err)
+	}
 
 	// Jail if severity is extreme or repeated offender
 	if shouldJail {
@@ -217,7 +219,10 @@ func (k Keeper) getRecentOutliers(ctx context.Context, validatorAddr, asset stri
 		// Parse the value to extract block height and severity
 		var severity OutlierSeverity
 		var blockHeight int64
-		fmt.Sscanf(string(iterator.Value()), "%d:%d", &severity, &blockHeight)
+		if _, err := fmt.Sscanf(string(iterator.Value()), "%d:%d", &severity, &blockHeight); err != nil {
+			sdkCtx.Logger().Error("failed to parse outlier history entry", "error", err)
+			continue
+		}
 
 		if blockHeight >= minHeight {
 			outliers = append(outliers, OutlierHistory{
@@ -271,7 +276,11 @@ func (k Keeper) CleanupOldOutlierHistory(ctx context.Context, validatorAddr, ass
 	for ; iterator.Valid(); iterator.Next() {
 		var blockHeight int64
 		var severity OutlierSeverity
-		fmt.Sscanf(string(iterator.Value()), "%d:%d", &severity, &blockHeight)
+		if _, err := fmt.Sscanf(string(iterator.Value()), "%d:%d", &severity, &blockHeight); err != nil {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			sdkCtx.Logger().Error("failed to parse outlier history entry", "error", err)
+			continue
+		}
 
 		if blockHeight < minHeight {
 			keysToDelete = append(keysToDelete, iterator.Key())
@@ -309,13 +318,15 @@ func (k Keeper) SlashMissVote(ctx context.Context, validatorAddrStr string) erro
 		return err
 	}
 
-	k.stakingKeeper.Slash(
+	if _, err := k.stakingKeeper.Slash(
 		ctx,
 		consAddr,
 		sdkCtx.BlockHeight(),
 		validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx)),
 		params.SlashFraction,
-	)
+	); err != nil {
+		return fmt.Errorf("failed to slash validator %s for missed vote: %w", validatorAddrStr, err)
+	}
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -361,13 +372,15 @@ func (k Keeper) SlashBadData(ctx context.Context, validatorAddr sdk.ValAddress, 
 		badDataSlashFraction = maxSlashFraction
 	}
 
-	k.stakingKeeper.Slash(
+	if _, err := k.stakingKeeper.Slash(
 		ctx,
 		consAddr,
 		sdkCtx.BlockHeight(),
 		validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx)),
 		badDataSlashFraction,
-	)
+	); err != nil {
+		return fmt.Errorf("failed to slash validator %s for bad data: %w", validatorAddr.String(), err)
+	}
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -403,7 +416,9 @@ func (k Keeper) JailValidator(ctx context.Context, validatorAddr sdk.ValAddress)
 		return err
 	}
 
-	k.slashingKeeper.Jail(ctx, consAddr)
+	if err := k.slashingKeeper.Jail(ctx, consAddr); err != nil {
+		return fmt.Errorf("failed to jail validator %s: %w", validatorAddr.String(), err)
+	}
 
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

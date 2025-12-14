@@ -24,7 +24,7 @@ func TestIsAuthorizedFeeder(t *testing.T) {
 	require.True(t, k.IsAuthorizedFeeder(ctx, delegate, valA))
 
 	// Once assigned to validator B, validator A should be blocked from reusing it
-	require.NoError(t, k.SetFeederDelegation(sdk.WrapSDKContext(ctx), valB, delegate))
+	require.NoError(t, k.SetFeederDelegation(ctx, valB, delegate))
 	require.True(t, k.IsAuthorizedFeeder(ctx, delegate, valB))
 	require.False(t, k.IsAuthorizedFeeder(ctx, delegate, valA))
 }

@@ -511,11 +511,11 @@ func TestCalculateVolatility(t *testing.T) {
 	k, _, ctx := keepertest.OracleKeeper(t)
 
 	tests := []struct {
-		name              string
-		setupSnapshots    bool
-		asset             string
-		expectDefaultVol  bool
-		expectNonZeroVol  bool
+		name             string
+		setupSnapshots   bool
+		asset            string
+		expectDefaultVol bool
+		expectNonZeroVol bool
 	}{
 		{
 			name:             "no snapshots - default volatility",
@@ -688,10 +688,10 @@ func TestCalculateSchellingPoint(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name          string
-		setupHistory  bool
-		asset         string
-		expectErr     bool
+		name         string
+		setupHistory bool
+		asset        string
+		expectErr    bool
 	}{
 		{
 			name:         "no history - error",

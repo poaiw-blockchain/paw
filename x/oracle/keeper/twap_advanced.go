@@ -63,7 +63,7 @@ type KalmanFilterState struct {
 }
 
 // CalculateTWAPMultiMethod calculates TWAP using multiple methods for validation
-func (k Keeper) CalculateTWAPMultiMethod(ctx context.Context, asset string) (map[TWAPMethod]TWAPResult, error) {
+func (k *Keeper) CalculateTWAPMultiMethod(ctx context.Context, asset string) (map[TWAPMethod]TWAPResult, error) {
 	results := make(map[TWAPMethod]TWAPResult)
 
 	// Method 1: Standard TWAP (already implemented)
@@ -109,7 +109,7 @@ func (k Keeper) CalculateTWAPMultiMethod(ctx context.Context, asset string) (map
 
 // CalculateVolumeWeightedTWAP calculates volume-weighted TWAP
 // More resistant to low-liquidity manipulation
-func (k Keeper) CalculateVolumeWeightedTWAP(ctx context.Context, asset string) (TWAPResult, error) {
+func (k *Keeper) CalculateVolumeWeightedTWAP(ctx context.Context, asset string) (TWAPResult, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -203,7 +203,7 @@ func (k Keeper) CalculateVolumeWeightedTWAP(ctx context.Context, asset string) (
 
 // CalculateExponentialTWAP calculates exponentially weighted moving average
 // Gives more weight to recent prices
-func (k Keeper) CalculateExponentialTWAP(ctx context.Context, asset string) (TWAPResult, error) {
+func (k *Keeper) CalculateExponentialTWAP(ctx context.Context, asset string) (TWAPResult, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -255,7 +255,7 @@ func (k Keeper) CalculateExponentialTWAP(ctx context.Context, asset string) (TWA
 
 // CalculateTrimmedTWAP calculates TWAP with outlier removal
 // Removes top and bottom percentiles before averaging
-func (k Keeper) CalculateTrimmedTWAP(ctx context.Context, asset string) (TWAPResult, error) {
+func (k *Keeper) CalculateTrimmedTWAP(ctx context.Context, asset string) (TWAPResult, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -363,7 +363,7 @@ func (k Keeper) CalculateTrimmedTWAP(ctx context.Context, asset string) (TWAPRes
 
 // CalculateKalmanTWAP uses Kalman filter for optimal price estimation
 // Provides best estimate under Gaussian noise assumptions
-func (k Keeper) CalculateKalmanTWAP(ctx context.Context, asset string) (TWAPResult, error) {
+func (k *Keeper) CalculateKalmanTWAP(ctx context.Context, asset string) (TWAPResult, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -432,7 +432,7 @@ func (k Keeper) CalculateKalmanTWAP(ctx context.Context, asset string) (TWAPResu
 }
 
 // GetRobustTWAP returns the most reliable TWAP using consensus across methods
-func (k Keeper) GetRobustTWAP(ctx context.Context, asset string) (TWAPResult, error) {
+func (k *Keeper) GetRobustTWAP(ctx context.Context, asset string) (TWAPResult, error) {
 	// Calculate using multiple methods
 	results, err := k.CalculateTWAPMultiMethod(ctx, asset)
 	if err != nil {
@@ -476,7 +476,7 @@ func (k Keeper) GetRobustTWAP(ctx context.Context, asset string) (TWAPResult, er
 }
 
 // ValidateTWAPConsistency checks if different TWAP methods agree
-func (k Keeper) ValidateTWAPConsistency(ctx context.Context, asset string) (bool, sdkmath.LegacyDec, error) {
+func (k *Keeper) ValidateTWAPConsistency(ctx context.Context, asset string) (bool, sdkmath.LegacyDec, error) {
 	results, err := k.CalculateTWAPMultiMethod(ctx, asset)
 	if err != nil {
 		return false, sdkmath.LegacyZeroDec(), err
@@ -528,7 +528,7 @@ func (k Keeper) ValidateTWAPConsistency(ctx context.Context, asset string) (bool
 }
 
 // CalculateTWAPWithConfidenceInterval returns TWAP with confidence bounds
-func (k Keeper) CalculateTWAPWithConfidenceInterval(ctx context.Context, asset string) (price, lowerBound, upperBound sdkmath.LegacyDec, err error) {
+func (k *Keeper) CalculateTWAPWithConfidenceInterval(ctx context.Context, asset string) (price, lowerBound, upperBound sdkmath.LegacyDec, err error) {
 	// Use Kalman filter for confidence estimation
 	kalmanResult, err := k.CalculateKalmanTWAP(ctx, asset)
 	if err != nil {

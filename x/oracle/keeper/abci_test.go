@@ -37,7 +37,7 @@ func TestBeginBlocker_AggregatePrices(t *testing.T) {
 		submitValidatorPrice(t, k, ctx, entry.addr, asset, entry.price)
 	}
 
-	require.NoError(t, k.BeginBlocker(sdk.WrapSDKContext(ctx)))
+	require.NoError(t, k.BeginBlocker(ctx))
 
 	aggregated, err := k.GetPrice(ctx, asset)
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestEndBlocker_ProcessSlashWindows(t *testing.T) {
 	require.NoError(t, kImpl.SetPrice(ctx, price))
 	submitValidatorPrice(t, kImpl, ctx, activeVal, asset, sdkmath.LegacyNewDec(100))
 
-	require.NoError(t, kImpl.EndBlocker(sdk.WrapSDKContext(ctx)))
+	require.NoError(t, kImpl.EndBlocker(ctx))
 
 	events := ctx.EventManager().Events()
 	require.True(t, eventExists(events, "oracle_slash", "validator", missingVal.String()), "expected slash for missing validator")
@@ -103,7 +103,7 @@ func submitValidatorPrice(t *testing.T, k *keeper.Keeper, ctx sdk.Context, val s
 		BlockHeight:   ctx.BlockHeight(),
 		VotingPower:   1,
 	}
-	require.NoError(t, k.SetValidatorPrice(sdk.WrapSDKContext(ctx), vp))
+	require.NoError(t, k.SetValidatorPrice(ctx, vp))
 }
 
 func eventExists(events sdk.Events, eventType string, attrKey string, attrValue string) bool {
@@ -193,7 +193,7 @@ func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 	for blockOffset := int64(0); blockOffset < 100; blockOffset++ {
 		testCtx := ctx.WithBlockHeight(currentHeight + blockOffset).WithEventManager(sdk.NewEventManager())
 
-		err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(testCtx))
+		err := k.CleanupOldOutlierHistoryGlobal(testCtx)
 		require.NoError(t, err)
 
 		// Check event for this block's cleanup stats
@@ -203,12 +203,14 @@ func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 				for _, attr := range evt.Attributes {
 					if attr.Key == "entries_deleted" {
 						var cleaned int
-						fmt.Sscanf(string(attr.Value), "%d", &cleaned)
+						_, err := fmt.Sscanf(string(attr.Value), "%d", &cleaned)
+						require.NoError(t, err)
 						totalCleaned += cleaned
 					}
 					if attr.Key == "pairs_processed" {
 						var processed int
-						fmt.Sscanf(string(attr.Value), "%d", &processed)
+						_, err := fmt.Sscanf(string(attr.Value), "%d", &processed)
+						require.NoError(t, err)
 						totalProcessed += processed
 					}
 				}
@@ -280,7 +282,7 @@ func TestCleanupOldOutlierHistoryGlobal_NoTimeoutWithLargeData(t *testing.T) {
 
 	// Run cleanup for a single block - should not timeout
 	// With amortization, it processes maxCleanupPerBlock=50 pairs
-	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	err := k.CleanupOldOutlierHistoryGlobal(ctx)
 	require.NoError(t, err, "cleanup should not error even with large dataset")
 
 	// Verify cleanup event was emitted
@@ -304,7 +306,7 @@ func TestCleanupOldOutlierHistoryGlobal_EmptyState(t *testing.T) {
 	ctx = ctx.WithBlockHeight(10000).WithEventManager(sdk.NewEventManager())
 
 	// Run cleanup on empty state - should not error
-	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	err := k.CleanupOldOutlierHistoryGlobal(ctx)
 	require.NoError(t, err)
 
 	// No event should be emitted when nothing processed
@@ -332,7 +334,7 @@ func TestCleanupOldOutlierHistoryGlobal_EarlyBlocks(t *testing.T) {
 	}
 
 	// Run cleanup - should skip because minHeight would be negative
-	err := k.CleanupOldOutlierHistoryGlobal(sdk.WrapSDKContext(ctx))
+	err := k.CleanupOldOutlierHistoryGlobal(ctx)
 	require.NoError(t, err)
 
 	// Verify no entries were deleted

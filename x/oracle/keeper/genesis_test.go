@@ -88,9 +88,9 @@ func TestOracleGenesisRoundTrip(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
+	require.NoError(t, k.InitGenesis(ctx, genesis))
 
-	exported, err := k.ExportGenesis(sdk.WrapSDKContext(ctx))
+	exported, err := k.ExportGenesis(ctx)
 	require.NoError(t, err)
 	require.Equal(t, genesis.Params, exported.Params)
 	require.ElementsMatch(t, genesis.Prices, exported.Prices)

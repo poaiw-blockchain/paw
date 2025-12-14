@@ -95,7 +95,7 @@ func TestAggregation_VotingPowerThreshold_Legitimate(t *testing.T) {
 
 	// Set params
 	params := types.DefaultParams()
-	params.VoteThreshold = math.LegacyMustNewDecFromStr("0.01") // Only need 1% to attempt
+	params.VoteThreshold = math.LegacyMustNewDecFromStr("0.01")              // Only need 1% to attempt
 	params.MinVotingPowerForConsensus = math.LegacyMustNewDecFromStr("0.10") // 10% minimum
 	err := k.SetParams(ctx, params)
 	require.NoError(t, err)

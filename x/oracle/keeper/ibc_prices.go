@@ -158,14 +158,14 @@ type OracleHeartbeatPacketData struct {
 // snapshot density. Volume is a time-weighted proxy based on recent price movement and validator
 // participation, avoiding mocked constants in acknowledgements.
 func (k Keeper) GetPriceMetadata(ctx sdk.Context, asset string) (math.Int, math.LegacyDec) {
-	price, err := k.GetPrice(sdk.WrapSDKContext(ctx), asset)
+	price, err := k.GetPrice(ctx, asset)
 	if err != nil {
 		return math.ZeroInt(), math.LegacyMustNewDecFromStr("0.50")
 	}
 
 	cutoff := ctx.BlockTime().Add(-24 * time.Hour).Unix()
 	var snapshots []types.PriceSnapshot
-	if err := k.IteratePriceSnapshots(sdk.WrapSDKContext(ctx), asset, func(snapshot types.PriceSnapshot) (stop bool) {
+	if err := k.IteratePriceSnapshots(ctx, asset, func(snapshot types.PriceSnapshot) (stop bool) {
 		if snapshot.BlockTime >= cutoff {
 			snapshots = append(snapshots, snapshot)
 		}
@@ -199,7 +199,7 @@ func (k Keeper) GetPriceMetadata(ctx sdk.Context, asset string) (math.Int, math.
 		volume = volume.Mul(math.NewIntFromUint64(uint64(price.NumValidators)))
 	}
 
-	twap, err := k.CalculateTWAP(sdk.WrapSDKContext(ctx), asset)
+	twap, err := k.CalculateTWAP(ctx, asset)
 	anchor := price.Price
 	if err == nil && !twap.IsZero() {
 		anchor = twap
@@ -240,7 +240,7 @@ func (k Keeper) GetPriceMetadata(ctx sdk.Context, asset string) (math.Int, math.
 
 // BuildPriceData assembles a PriceData payload from live keeper state for IBC acknowledgements.
 func (k Keeper) BuildPriceData(ctx sdk.Context, asset string) (types.PriceData, error) {
-	price, err := k.GetPrice(sdk.WrapSDKContext(ctx), asset)
+	price, err := k.GetPrice(ctx, asset)
 	if err != nil {
 		return types.PriceData{}, errors.Wrap(types.ErrOracleDataUnavailable, err.Error())
 	}

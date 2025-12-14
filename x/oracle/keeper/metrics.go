@@ -10,17 +10,17 @@ import (
 // OracleMetrics holds all Prometheus metrics for the Oracle module
 type OracleMetrics struct {
 	// Price submission metrics
-	PriceSubmissions *prometheus.CounterVec
-	AggregatedPrice  *prometheus.GaugeVec
-	PriceDeviation   *prometheus.GaugeVec
-	PriceAge         *prometheus.GaugeVec
+	PriceSubmissions       *prometheus.CounterVec
+	AggregatedPrice        *prometheus.GaugeVec
+	PriceDeviation         *prometheus.GaugeVec
+	PriceAge               *prometheus.GaugeVec
 	PriceSubmissionLatency prometheus.Observer
 
 	// Validator metrics
-	ValidatorSubmissions *prometheus.CounterVec
-	MissedVotes          *prometheus.CounterVec
-	SlashingEvents       *prometheus.CounterVec
-	ValidatorReputation  *prometheus.GaugeVec
+	ValidatorSubmissions   *prometheus.CounterVec
+	MissedVotes            *prometheus.CounterVec
+	SlashingEvents         *prometheus.CounterVec
+	ValidatorReputation    *prometheus.GaugeVec
 	ValidatorParticipation *prometheus.GaugeVec
 
 	// Aggregation metrics
@@ -31,15 +31,15 @@ type OracleMetrics struct {
 	AggregationCount       *prometheus.CounterVec
 
 	// TWAP metrics
-	TWAPValue        *prometheus.GaugeVec
-	TWAPWindowSize   *prometheus.GaugeVec
-	TWAPUpdates      prometheus.Counter
+	TWAPValue            *prometheus.GaugeVec
+	TWAPWindowSize       *prometheus.GaugeVec
+	TWAPUpdates          prometheus.Counter
 	ManipulationDetected *prometheus.CounterVec
 
 	// Security metrics
-	PriceRejections      *prometheus.CounterVec
+	PriceRejections        *prometheus.CounterVec
 	CircuitBreakerTriggers *prometheus.CounterVec
-	AnomalousPatterns    *prometheus.CounterVec
+	AnomalousPatterns      *prometheus.CounterVec
 
 	// IBC price feed metrics
 	IBCPricesSent     *prometheus.CounterVec
@@ -48,7 +48,7 @@ type OracleMetrics struct {
 	IBCLatency        *prometheus.HistogramVec
 
 	// ABCI metrics
-	AssetsTracked prometheus.Gauge
+	AssetsTracked     prometheus.Gauge
 	StaleDataCleanups prometheus.Counter
 }
 

@@ -6,6 +6,7 @@ import (
 
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
@@ -200,7 +201,10 @@ func (k Keeper) CleanupOldOutlierHistoryGlobal(ctx context.Context) error {
 
 		// Parse block height from value (format: "severity:blockHeight")
 		var blockHeight int64
-		fmt.Sscanf(string(iterator.Value()), "%d:%d", new(int), &blockHeight)
+		if _, err := fmt.Sscanf(string(iterator.Value()), "%d:%d", new(int), &blockHeight); err != nil {
+			sdkCtx.Logger().Error("failed to parse outlier history entry", "error", err)
+			continue
+		}
 
 		// Mark old entries for deletion
 		if blockHeight < minHeight {
@@ -433,9 +437,6 @@ func (k Keeper) UpdateValidatorPowers(ctx context.Context) error {
 				ValidatorAddr: valAddr,
 				MissCounter:   0,
 			}
-		} else {
-			// Update existing
-			// validatorOracle.Power = power
 		}
 
 		if err := k.SetValidatorOracle(ctx, validatorOracle); err != nil {

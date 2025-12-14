@@ -44,7 +44,7 @@ func TestGetPriceMetadataFromSnapshots(t *testing.T) {
 		BlockTime:     baseTime.Unix(),
 		NumValidators: 4,
 	}
-	require.NoError(t, k.SetPrice(sdk.WrapSDKContext(ctx), price))
+	require.NoError(t, k.SetPrice(ctx, price))
 
 	snapshots := []types.PriceSnapshot{
 		{Asset: price.Asset, Price: price.Price, BlockHeight: price.BlockHeight, BlockTime: baseTime.Unix()},
@@ -53,7 +53,7 @@ func TestGetPriceMetadataFromSnapshots(t *testing.T) {
 	}
 
 	for _, snapshot := range snapshots {
-		require.NoError(t, k.SetPriceSnapshot(sdk.WrapSDKContext(ctx), snapshot))
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	ctx = ctx.WithBlockTime(baseTime.Add(15 * time.Minute))
@@ -75,7 +75,7 @@ func TestBuildPriceDataUsesLiveState(t *testing.T) {
 		BlockTime:     baseTime.Unix(),
 		NumValidators: 3,
 	}
-	require.NoError(t, k.SetPrice(sdk.WrapSDKContext(ctx), price))
+	require.NoError(t, k.SetPrice(ctx, price))
 
 	snapshots := []types.PriceSnapshot{
 		{Asset: price.Asset, Price: price.Price, BlockHeight: price.BlockHeight, BlockTime: baseTime.Unix()},
@@ -83,7 +83,7 @@ func TestBuildPriceDataUsesLiveState(t *testing.T) {
 	}
 
 	for _, snapshot := range snapshots {
-		require.NoError(t, k.SetPriceSnapshot(sdk.WrapSDKContext(ctx), snapshot))
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	ctx = ctx.WithBlockTime(baseTime.Add(20 * time.Minute))

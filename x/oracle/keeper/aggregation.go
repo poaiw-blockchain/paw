@@ -671,47 +671,20 @@ func (k Keeper) getOutlierReason(severity OutlierSeverity) string {
 	}
 }
 
-// keepClosestToMedian keeps the N closest prices to the median
-func (k Keeper) keepClosestToMedian(prices []types.ValidatorPrice, median sdkmath.LegacyDec, n int) []types.ValidatorPrice {
-	type priceDistance struct {
-		price    types.ValidatorPrice
-		distance sdkmath.LegacyDec
-	}
-
-	distances := make([]priceDistance, len(prices))
-	for i, vp := range prices {
-		distances[i] = priceDistance{
-			price:    vp,
-			distance: vp.Price.Sub(median).Abs(),
-		}
-	}
-
-	sort.Slice(distances, func(i, j int) bool {
-		return distances[i].distance.LT(distances[j].distance)
-	})
-
-	result := make([]types.ValidatorPrice, 0, n)
-	for i := 0; i < n && i < len(distances); i++ {
-		result = append(result, distances[i].price)
-	}
-
-	return result
-}
-
 // calculateVotingPower calculates total voting power and filters valid prices
 func (k Keeper) calculateVotingPower(ctx context.Context, validatorPrices []types.ValidatorPrice) (int64, []types.ValidatorPrice, error) {
 	totalVotingPower := int64(0)
 	validPrices := []types.ValidatorPrice{}
 
-		bondedValidators, err := k.GetBondedValidators(ctx)
-		if err != nil {
-			return 0, nil, err
-		}
+	bondedValidators, err := k.GetBondedValidators(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
 
-		powerReduction := k.stakingKeeper.PowerReduction(ctx)
-		for _, val := range bondedValidators {
-			totalVotingPower += val.GetConsensusPower(powerReduction)
-		}
+	powerReduction := k.stakingKeeper.PowerReduction(ctx)
+	for _, val := range bondedValidators {
+		totalVotingPower += val.GetConsensusPower(powerReduction)
+	}
 
 	// Fallback: if no bonded validators are found (test environments), derive total power from submissions.
 	if totalVotingPower == 0 {

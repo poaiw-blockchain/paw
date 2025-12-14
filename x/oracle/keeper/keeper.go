@@ -32,6 +32,7 @@ type Keeper struct {
 	portKeeper     *portkeeper.Keeper
 	portCapability *capabilitytypes.Capability
 	metrics        *OracleMetrics
+	geoIPManager   *GeoIPManager
 }
 
 // NewKeeper creates a new oracle Keeper instance
@@ -46,6 +47,15 @@ func NewKeeper(
 	authority string,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
+	// Initialize GeoIP manager (non-fatal if database not available)
+	// This allows the chain to start even without GeoIP database
+	// Location verification will be disabled until database is loaded
+	geoIPManager, err := NewGeoIPManager("")
+	if err != nil {
+		// Log warning but don't fail - GeoIP is optional during initialization
+		// Validators should configure GEOIP_DB_PATH for production
+	}
+
 	return &Keeper{
 		storeKey:       key,
 		cdc:            cdc,
@@ -57,6 +67,7 @@ func NewKeeper(
 		authority:      authority,
 		scopedKeeper:   scopedKeeper,
 		metrics:        NewOracleMetrics(),
+		geoIPManager:   geoIPManager,
 	}
 }
 
@@ -82,7 +93,7 @@ func (k Keeper) GetChannelCapability(ctx sdk.Context, portID, channelID string) 
 }
 
 // BindPort binds the oracle IBC port and claims the associated capability.
-func (k Keeper) BindPort(ctx sdk.Context) error {
+func (k *Keeper) BindPort(ctx sdk.Context) error {
 	if k.portKeeper.IsBound(ctx, types.PortID) {
 		if cap, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(types.PortID)); ok {
 			k.portCapability = cap

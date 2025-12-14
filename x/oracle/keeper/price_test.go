@@ -475,7 +475,7 @@ func TestPriceSnapshot_TimeSeriesData(t *testing.T) {
 	basePrice := int64(50000)
 	for i := 0; i < 100; i++ {
 		// Simulate price volatility
-		priceChange := int64((i % 10) - 5) * 100
+		priceChange := int64((i%10)-5) * 100
 		snapshot := types.PriceSnapshot{
 			Asset:       "BTC",
 			Price:       math.LegacyNewDec(basePrice + priceChange),

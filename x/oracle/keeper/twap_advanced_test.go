@@ -8,15 +8,16 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
-	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-3: TWAP Advanced Comprehensive Tests
 
 // Helper function to create price snapshots
-func createPriceSnapshots(ctx sdk.Context, k *keeper.Keeper, asset string, prices []math.LegacyDec, blockInterval int64) {
+func createPriceSnapshots(t *testing.T, ctx sdk.Context, k *keeper.Keeper, asset string, prices []math.LegacyDec, blockInterval int64) {
+	t.Helper()
 	baseHeight := ctx.BlockHeight()
 	baseTime := ctx.BlockTime().Unix()
 
@@ -27,7 +28,7 @@ func createPriceSnapshots(ctx sdk.Context, k *keeper.Keeper, asset string, price
 			BlockHeight: baseHeight + int64(i)*blockInterval,
 			BlockTime:   baseTime + int64(i)*blockInterval*6, // 6 seconds per block
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 }
 
@@ -43,7 +44,7 @@ func TestCalculateVolumeWeightedTWAP_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50400.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -88,8 +89,8 @@ func TestCalculateVolumeWeightedTWAP_OverflowProtection(t *testing.T) {
 		BlockTime:   ctx.BlockTime().Unix() + 2e18, // Overflow condition
 	}
 
-	k.SetPriceSnapshot(ctx, snapshot1)
-	k.SetPriceSnapshot(ctx, snapshot2)
+	require.NoError(t, k.SetPriceSnapshot(ctx, snapshot1))
+	require.NoError(t, k.SetPriceSnapshot(ctx, snapshot2))
 
 	_, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
 	require.Error(t, err)
@@ -108,7 +109,7 @@ func TestCalculateExponentialTWAP_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("54000.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateExponentialTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -147,7 +148,7 @@ func TestCalculateTrimmedTWAP_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("70000.00"), // Outlier (high)
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateTrimmedTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -173,7 +174,7 @@ func TestCalculateTrimmedTWAP_InsufficientData(t *testing.T) {
 		math.LegacyMustNewDecFromStr("3200.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	_, err := k.CalculateTrimmedTWAP(ctx, asset)
 	require.Error(t, err)
@@ -206,7 +207,7 @@ func TestCalculateTrimmedTWAP_OverflowProtection(t *testing.T) {
 			BlockHeight: baseHeight + int64(i),
 			BlockTime:   baseTime + int64(i)*timeDelta,
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	_, err := k.CalculateTrimmedTWAP(ctx, asset)
@@ -228,7 +229,7 @@ func TestCalculateKalmanTWAP_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50200.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateKalmanTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -251,7 +252,7 @@ func TestCalculateKalmanTWAP_InsufficientData(t *testing.T) {
 		math.LegacyMustNewDecFromStr("3000.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	_, err := k.CalculateKalmanTWAP(ctx, asset)
 	require.Error(t, err)
@@ -271,7 +272,7 @@ func TestCalculateTWAPMultiMethod_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50500.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	results, err := k.CalculateTWAPMultiMethod(ctx, asset)
 	require.NoError(t, err)
@@ -306,7 +307,7 @@ func TestGetRobustTWAP_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50500.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.GetRobustTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -339,7 +340,7 @@ func TestValidateTWAPConsistency_Consistent(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50050.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	isConsistent, cv, err := k.ValidateTWAPConsistency(ctx, asset)
 	require.NoError(t, err)
@@ -367,7 +368,7 @@ func TestValidateTWAPConsistency_Inconsistent(t *testing.T) {
 		math.LegacyMustNewDecFromStr("60000.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	isConsistent, cv, err := k.ValidateTWAPConsistency(ctx, asset)
 	require.NoError(t, err)
@@ -392,7 +393,7 @@ func TestCalculateTWAPWithConfidenceInterval_Success(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50400.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	price, lowerBound, upperBound, err := k.CalculateTWAPWithConfidenceInterval(ctx, asset)
 	require.NoError(t, err)
@@ -463,7 +464,7 @@ func TestTWAPAdvanced_EdgeCases(t *testing.T) {
 			k, _, ctx := keepertest.OracleKeeper(t)
 			asset := fmt.Sprintf("TEST/%s/USD", tt.name)
 
-			createPriceSnapshots(ctx, k, asset, tt.prices, 1)
+			createPriceSnapshots(t, ctx, k, asset, tt.prices, 1)
 
 			// Test Kalman TWAP (requires minimum 2 points)
 			_, err := k.CalculateKalmanTWAP(ctx, asset)
@@ -492,7 +493,7 @@ func TestTWAPAdvanced_PrecisionMaintenance(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50300.456789012345678901"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	// Test all methods maintain precision
 	t.Run("VolumeWeighted", func(t *testing.T) {
@@ -549,7 +550,7 @@ func TestTWAPAdvanced_LookbackWindow(t *testing.T) {
 			BlockHeight: baseHeight - int64(len(prices)-1-i), // blocks: 0, 1, 2, 3, 4
 			BlockTime:   ctx.BlockTime().Unix() + int64(i)*6,
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	result, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
@@ -580,7 +581,7 @@ func TestTWAPAdvanced_RapidPriceChanges(t *testing.T) {
 	}
 
 	// Create snapshots with block interval of 1 (rapid updates)
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	// Test all TWAP methods handle rapid changes
 	t.Run("VolumeWeighted_RapidChanges", func(t *testing.T) {
@@ -629,16 +630,16 @@ func TestTWAPAdvanced_NonUniformTimeIntervals(t *testing.T) {
 
 	// Create snapshots with varying time intervals
 	snapshots := []struct {
-		price        string
-		blockOffset  int64
-		timeOffset   int64
+		price       string
+		blockOffset int64
+		timeOffset  int64
 	}{
 		{"50000.00", 0, 0},
-		{"50100.00", 1, 6},     // 6 seconds
-		{"50200.00", 2, 18},    // 12 seconds (gap)
-		{"50300.00", 3, 24},    // 6 seconds
-		{"50400.00", 4, 54},    // 30 seconds (large gap)
-		{"50500.00", 5, 60},    // 6 seconds
+		{"50100.00", 1, 6},  // 6 seconds
+		{"50200.00", 2, 18}, // 12 seconds (gap)
+		{"50300.00", 3, 24}, // 6 seconds
+		{"50400.00", 4, 54}, // 30 seconds (large gap)
+		{"50500.00", 5, 60}, // 6 seconds
 	}
 
 	for _, snap := range snapshots {
@@ -648,7 +649,7 @@ func TestTWAPAdvanced_NonUniformTimeIntervals(t *testing.T) {
 			BlockHeight: baseHeight + snap.blockOffset,
 			BlockTime:   baseTime + snap.timeOffset,
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	t.Run("VolumeWeighted_NonUniform", func(t *testing.T) {
@@ -671,10 +672,10 @@ func TestTWAPAdvanced_VaryingVolatility(t *testing.T) {
 	k, _, ctx := keepertest.OracleKeeper(t)
 
 	testCases := []struct {
-		name           string
-		prices         []string
-		expectedMinCV  string // Minimum coefficient of variation across methods
-		expectedMaxCV  string // Maximum coefficient of variation across methods
+		name          string
+		prices        []string
+		expectedMinCV string // Minimum coefficient of variation across methods
+		expectedMaxCV string // Maximum coefficient of variation across methods
 	}{
 		{
 			name: "low_volatility",
@@ -711,7 +712,7 @@ func TestTWAPAdvanced_VaryingVolatility(t *testing.T) {
 				prices[i] = math.LegacyMustNewDecFromStr(p)
 			}
 
-			createPriceSnapshots(ctx, k, asset, prices, 1)
+			createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 			// Test that all methods produce valid results
 			results, err := k.CalculateTWAPMultiMethod(ctx, asset)
@@ -746,7 +747,7 @@ func TestTWAPAdvanced_IdenticalPrices(t *testing.T) {
 		constantPrice, constantPrice, constantPrice,
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	t.Run("VolumeWeighted_Constant", func(t *testing.T) {
 		result, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
@@ -800,7 +801,7 @@ func TestTWAPAdvanced_ZeroTimeDelta(t *testing.T) {
 			BlockHeight: baseHeight + int64(i),
 			BlockTime:   baseTime, // Same time for all
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	// Volume-weighted TWAP should error with zero total weight when all deltas are zero
@@ -842,7 +843,7 @@ func TestTWAPAdvanced_ConfidenceIntervalBounds(t *testing.T) {
 				prices[i] = math.LegacyMustNewDecFromStr(p)
 			}
 
-			createPriceSnapshots(ctx, k, testAsset, prices, 1)
+			createPriceSnapshots(t, ctx, k, testAsset, prices, 1)
 
 			price, lower, upper, err := k.CalculateTWAPWithConfidenceInterval(ctx, testAsset)
 			require.NoError(t, err)
@@ -877,7 +878,7 @@ func TestTWAPAdvanced_TrimmedMinimalOutliers(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50080.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateTrimmedTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -904,7 +905,7 @@ func TestTWAPAdvanced_ExponentialWeighting(t *testing.T) {
 		math.LegacyMustNewDecFromStr("55000.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateExponentialTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -933,7 +934,7 @@ func TestTWAPAdvanced_KalmanConvergence(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50070.00"), // Stable
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	result, err := k.CalculateKalmanTWAP(ctx, asset)
 	require.NoError(t, err)
@@ -962,7 +963,7 @@ func TestTWAPAdvanced_RobustSingleMethod(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50100.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	// GetRobustTWAP should still work with limited methods
 	result, err := k.GetRobustTWAP(ctx, asset)
@@ -1010,9 +1011,9 @@ func TestTWAPAdvanced_ErrorConditions(t *testing.T) {
 			BlockTime:   baseTime + 50, // Earlier time (negative delta)
 		}
 
-		k.SetPriceSnapshot(ctx, snapshot1)
-		k.SetPriceSnapshot(ctx, snapshot2)
-		k.SetPriceSnapshot(ctx, snapshot3)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot1))
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot2))
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot3))
 
 		// Should handle gracefully (skip zero/negative deltas)
 		result, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
@@ -1038,7 +1039,7 @@ func TestTWAPAdvanced_ErrorConditions(t *testing.T) {
 				BlockHeight: baseHeight + int64(i),
 				BlockTime:   baseTime, // All same time
 			}
-			k.SetPriceSnapshot(ctx, snapshot)
+			require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 		}
 
 		_, err := k.CalculateTrimmedTWAP(ctx, asset)
@@ -1052,7 +1053,7 @@ func TestTWAPAdvanced_ErrorConditions(t *testing.T) {
 		prices := []math.LegacyDec{
 			math.LegacyMustNewDecFromStr("50000.00"),
 		}
-		createPriceSnapshots(ctx, k, asset, prices, 1)
+		createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 		isConsistent, cv, err := k.ValidateTWAPConsistency(ctx, asset)
 		require.NoError(t, err)
@@ -1095,9 +1096,9 @@ func TestTWAPAdvanced_NegativeTimeDelta(t *testing.T) {
 		BlockTime:   baseTime + 150,
 	}
 
-	k.SetPriceSnapshot(ctx, snapshot1)
-	k.SetPriceSnapshot(ctx, snapshot2)
-	k.SetPriceSnapshot(ctx, snapshot3)
+	require.NoError(t, k.SetPriceSnapshot(ctx, snapshot1))
+	require.NoError(t, k.SetPriceSnapshot(ctx, snapshot2))
+	require.NoError(t, k.SetPriceSnapshot(ctx, snapshot3))
 
 	// VolumeWeighted should skip negative deltas
 	result, err := k.CalculateVolumeWeightedTWAP(ctx, asset)
@@ -1107,8 +1108,9 @@ func TestTWAPAdvanced_NegativeTimeDelta(t *testing.T) {
 	}
 
 	// Trimmed should also handle it
-	_, err = k.CalculateTrimmedTWAP(ctx, asset)
-	// May succeed or fail depending on whether enough valid deltas remain
+	if _, trimErr := k.CalculateTrimmedTWAP(ctx, asset); trimErr != nil {
+		t.Logf("trimmed TWAP unavailable due to insufficient data: %v", trimErr)
+	}
 	// Either outcome is acceptable as long as no panic occurs
 }
 
@@ -1130,7 +1132,7 @@ func TestTWAPAdvanced_RobustMedian(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50400.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	// Get robust TWAP (uses median)
 	robustResult, err := k.GetRobustTWAP(ctx, asset)
@@ -1177,7 +1179,7 @@ func TestTWAPAdvanced_ConsistencyZeroMean(t *testing.T) {
 		math.LegacyZeroDec(),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	isConsistent, cv, err := k.ValidateTWAPConsistency(ctx, asset)
 	require.NoError(t, err)
@@ -1201,7 +1203,7 @@ func TestTWAPAdvanced_ConfidenceHighVariance(t *testing.T) {
 		math.LegacyMustNewDecFromStr("45000.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	price, lower, upper, err := k.CalculateTWAPWithConfidenceInterval(ctx, asset)
 	require.NoError(t, err)
@@ -1249,7 +1251,7 @@ func TestTWAPAdvanced_HistoricalQueries(t *testing.T) {
 			BlockHeight: baseHeight - int64(len(prices)-1-i),
 			BlockTime:   ctx.BlockTime().Unix() + int64(i)*6,
 		}
-		k.SetPriceSnapshot(ctx, snapshot)
+		require.NoError(t, k.SetPriceSnapshot(ctx, snapshot))
 	}
 
 	// TWAP should only use recent window (blocks 8, 9, 10)
@@ -1281,7 +1283,7 @@ func TestTWAPAdvanced_SmoothingEffectiveness(t *testing.T) {
 		math.LegacyMustNewDecFromStr("50050.00"),
 	}
 
-	createPriceSnapshots(ctx, k, asset, prices, 1)
+	createPriceSnapshots(t, ctx, k, asset, prices, 1)
 
 	// Standard TWAP should be affected by spike
 	standardResult, err := k.CalculateTWAP(ctx, asset)

@@ -6,6 +6,7 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
@@ -143,15 +144,6 @@ func ValidatorConsistencyInvariant(k Keeper) sdk.Invariant {
 				broken = true
 				issues = append(issues, "found validator oracle with empty address")
 				continue
-			}
-
-			// Check miss counter is non-negative
-			if validatorOracle.MissCounter < 0 {
-				broken = true
-				issues = append(issues, fmt.Sprintf(
-					"validator %s has negative miss counter: %d",
-					validatorOracle.ValidatorAddr, validatorOracle.MissCounter,
-				))
 			}
 
 			// Verify validator exists in staking module

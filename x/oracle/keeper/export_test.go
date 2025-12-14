@@ -7,6 +7,7 @@ import (
 	"context"
 
 	sdkmath "cosmossdk.io/math"
+
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 

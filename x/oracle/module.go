@@ -117,7 +117,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	// Note: RegisterMigration must be called during module initialization.
 	// Failure here indicates a programmer error (e.g., duplicate registration)
 	// and should terminate the application before serving requests.
-	m := keeper.NewMigrator(*am.keeper)
+	m := keeper.NewMigrator(am.keeper)
 	if err := cfg.RegisterMigration(oracletypes.ModuleName, 1, m.Migrate1to2); err != nil {
 		panic(fmt.Sprintf("failed to register migration for x/%s from version 1 to 2: %v", oracletypes.ModuleName, err))
 	}
@@ -140,7 +140,7 @@ func (am AppModule) RegisterStoreDecoder(_ simtypes.StoreDecoderRegistry) {
 // WeightedOperations returns simulation operations for the oracle module
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	return simulation.WeightedOperations(
-		simState.AppParams, simState.Cdc, simState.TxConfig, *am.keeper,
+		simState.AppParams, simState.Cdc, simState.TxConfig, am.keeper,
 		am.accountKeeper, am.bankKeeper, am.stakingKeeper,
 	)
 }

@@ -4,20 +4,20 @@ package types
 // All event types use lowercase with underscore separator (module_action format)
 const (
 	// Price events
-	EventTypeOraclePriceUpdate    = "oracle_price_update"
-	EventTypeOraclePriceSubmitted = "oracle_price_submitted"
+	EventTypeOraclePriceUpdate     = "oracle_price_update"
+	EventTypeOraclePriceSubmitted  = "oracle_price_submitted"
 	EventTypeOraclePriceAggregated = "oracle_price_aggregated"
 
 	// Voting events
-	EventTypeOracleVote          = "oracle_vote"
-	EventTypeOracleVoteAggregated = "oracle_vote_aggregated"
+	EventTypeOracleVote            = "oracle_vote"
+	EventTypeOracleVoteAggregated  = "oracle_vote_aggregated"
 	EventTypeOracleFeederDelegated = "oracle_feeder_delegated"
 
 	// Security events
-	EventTypeOracleSlash         = "oracle_slash"
-	EventTypeOracleSlashOutlier  = "oracle_slash_outlier"
-	EventTypeOracleJail          = "oracle_jail"
-	EventTypeOracleOutlier       = "oracle_outlier"
+	EventTypeOracleSlash        = "oracle_slash"
+	EventTypeOracleSlashOutlier = "oracle_slash_outlier"
+	EventTypeOracleJail         = "oracle_jail"
+	EventTypeOracleOutlier      = "oracle_outlier"
 
 	// Cross-chain events
 	EventTypeOracleCrossChainPrice = "oracle_cross_chain_price"
@@ -31,25 +31,25 @@ const (
 // All attribute keys use lowercase with underscore separator
 const (
 	// Asset attributes
-	AttributeKeyAsset      = "asset"
-	AttributeKeyAssets     = "assets"
-	AttributeKeyDenom      = "denom"
+	AttributeKeyAsset  = "asset"
+	AttributeKeyAssets = "assets"
+	AttributeKeyDenom  = "denom"
 
 	// Price attributes
-	AttributeKeyPrice         = "price"
-	AttributeKeyPrices        = "prices"
-	AttributeKeyMedian        = "median"
-	AttributeKeyMean          = "mean"
-	AttributeKeyStdDev        = "std_dev"
-	AttributeKeyMAD           = "mad"
+	AttributeKeyPrice  = "price"
+	AttributeKeyPrices = "prices"
+	AttributeKeyMedian = "median"
+	AttributeKeyMean   = "mean"
+	AttributeKeyStdDev = "std_dev"
+	AttributeKeyMAD    = "mad"
 
 	// Validator attributes
-	AttributeKeyValidator       = "validator"
-	AttributeKeyValidators      = "validators"
-	AttributeKeyFeeder          = "feeder"
-	AttributeKeyDelegate        = "delegate"
-	AttributeKeyVotingPower     = "voting_power"
-	AttributeKeyNumValidators   = "num_validators"
+	AttributeKeyValidator        = "validator"
+	AttributeKeyValidators       = "validators"
+	AttributeKeyFeeder           = "feeder"
+	AttributeKeyDelegate         = "delegate"
+	AttributeKeyVotingPower      = "voting_power"
+	AttributeKeyNumValidators    = "num_validators"
 	AttributeKeyTotalVotingPower = "total_voting_power"
 
 	// Deviation attributes
