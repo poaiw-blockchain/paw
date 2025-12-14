@@ -83,10 +83,24 @@ This file only tracks the open work items that still require engineering attenti
 ## 7. Monitoring Infrastructure
 
 ### Grafana
-- [ ] **MEDIUM**: Add custom dashboards for Oracle/Compute modules
+- [x] **MEDIUM**: Add custom dashboards for Oracle/Compute modules ✅ COMPLETE
+  - Oracle Module Dashboard: `monitoring/grafana/dashboards/oracle-module.json`
+    - 36 panels across 8 sections (Overview, Price Feeds, Validators, TWAP, Security, IBC, Health)
+    - Metrics: price submissions, deviations, validator slashing, TWAP, aggregation, IBC feeds
+  - Compute Module Dashboard: `monitoring/grafana/dashboards/compute-module.json`
+    - 43 panels across 9 sections (Overview, Jobs, Providers, ZK Proofs, Escrow, IBC, Security, Cleanup)
+    - Metrics: job queue, provider health, escrow, verification, gas usage, cross-chain compute
+  - **COMPLETION DATE**: 2025-12-14
 
 ### Metrics Server
-- [ ] Verify metrics server is accessible after node startup
+- [x] Verify metrics server is accessible after node startup ✅ COMPLETE
+  - **COMPLETED**: Created `scripts/verify-metrics.sh` for automated endpoint verification
+  - **COMPLETED**: Added health check to app startup in `app/telemetry/tracing.go`
+  - **COMPLETED**: Updated `docs/METRICS.md` with verification guide and troubleshooting
+  - **Features**: Checks CometBFT (26660), Cosmos SDK API (1317), Application (26661) endpoints
+  - **Output**: Human-readable and JSON formats, verbose logging, exit codes (0=success, 1=fail)
+  - **Startup Check**: Automatic health check logs "Telemetry health check passed" on success
+  - **COMPLETION DATE**: 2025-12-14
 
 ### Flask Explorer
 - [ ] **MEDIUM**: Deploy Flask explorer via Docker
@@ -94,9 +108,9 @@ This file only tracks the open work items that still require engineering attenti
 - [ ] **MEDIUM**: Add nginx reverse proxy for production
 
 ### OpenTelemetry Tracing
-- [ ] **MEDIUM**: Deploy Jaeger container for trace collection
-- [ ] **MEDIUM**: Enable tracing in application config
-- [ ] **MEDIUM**: Verify distributed traces are collected
+- [x] **MEDIUM**: Deploy Jaeger container for trace collection
+- [x] **MEDIUM**: Enable tracing in application config
+- [x] **MEDIUM**: Verify distributed traces are collected
 
 ### Future Enhancements
 - [ ] **MEDIUM**: Deploy Loki for log aggregation

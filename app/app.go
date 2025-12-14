@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
@@ -126,6 +127,9 @@ import (
 
 	// AnteHandler
 	pawante "github.com/paw-chain/paw/app/ante"
+
+	// Telemetry
+	pawtelemetry "github.com/paw-chain/paw/app/telemetry"
 )
 
 const (
@@ -219,7 +223,7 @@ type PAWApp struct {
 	configurator module.Configurator
 
 	// telemetry for OpenTelemetry tracing and metrics
-	telemetry *Telemetry
+	telemetryProvider *pawtelemetry.Provider
 }
 
 // NewPAWApp returns a reference to an initialized PAW application.
@@ -632,7 +636,7 @@ func NewPAWApp(
 		app.SetQueryMultiStore(app.CommitMultiStore())
 	}
 
-	// Initialize telemetry (tracing and metrics)
+	// Initialize OpenTelemetry tracing and metrics
 	telemetryEnabled := cast.ToBool(appOpts.Get("telemetry.enabled"))
 	if telemetryEnabled {
 		jaegerEndpoint := cast.ToString(appOpts.Get("telemetry.jaeger-endpoint"))
@@ -645,18 +649,44 @@ func NewPAWApp(
 			sampleRate = 0.1 // Default 10% sampling
 		}
 
-		telemetry, err := InitTelemetry(TelemetryConfig{
+		chainID := cast.ToString(appOpts.Get("chain-id"))
+		if chainID == "" {
+			chainID = "paw-testnet-1"
+		}
+
+		environment := cast.ToString(appOpts.Get("telemetry.environment"))
+		if environment == "" {
+			environment = "testnet"
+		}
+
+		telemetryProvider, err := pawtelemetry.NewProvider(pawtelemetry.Config{
 			Enabled:           true,
 			JaegerEndpoint:    jaegerEndpoint,
+			SampleRate:        sampleRate,
+			Environment:       environment,
+			ChainID:           chainID,
 			PrometheusEnabled: cast.ToBool(appOpts.Get("telemetry.prometheus-enabled")),
 			MetricsPort:       cast.ToString(appOpts.Get("telemetry.metrics-port")),
-			SampleRate:        sampleRate,
 		})
 		if err != nil {
-			logger.Error("Failed to initialize telemetry", "error", err)
+			logger.Error("Failed to initialize OpenTelemetry", "error", err)
 		} else {
-			app.telemetry = telemetry
-			logger.Info("Telemetry initialized", "jaeger_endpoint", jaegerEndpoint, "sample_rate", sampleRate)
+			app.telemetryProvider = telemetryProvider
+			logger.Info("OpenTelemetry tracing initialized",
+				"jaeger_endpoint", jaegerEndpoint,
+				"sample_rate", sampleRate,
+				"environment", environment,
+				"chain_id", chainID,
+			)
+
+			// Perform telemetry health check
+			if err := telemetryProvider.HealthCheck(); err != nil {
+				logger.Error("Telemetry health check failed", "error", err)
+			} else {
+				logger.Info("Telemetry health check passed",
+					"prometheus_enabled", cast.ToBool(appOpts.Get("telemetry.prometheus-enabled")),
+				)
+			}
 		}
 	}
 
@@ -752,10 +782,10 @@ func (app *PAWApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (*ab
 //
 //nolint:gocritic // sdk.Context passed by value per Cosmos SDK application interface.
 func (app *PAWApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
-	// Trace block processing
-	if app.telemetry != nil {
-		tracedCtx, endSpan := TraceModuleExecution(ctx.Context(), "block.begin")
-		defer endSpan()
+	// Trace block processing with OpenTelemetry
+	if app.telemetryProvider != nil {
+		tracedCtx, span := pawtelemetry.StartBlockSpan(ctx.Context(), ctx.BlockHeight(), ctx.BlockHeader().ProposerAddress.String())
+		defer span.End()
 		ctx = ctx.WithContext(tracedCtx)
 	}
 
@@ -766,10 +796,10 @@ func (app *PAWApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
 //
 //nolint:gocritic // sdk.Context passed by value per Cosmos SDK application interface.
 func (app *PAWApp) EndBlocker(ctx sdk.Context) (sdk.EndBlock, error) {
-	// Trace block processing
-	if app.telemetry != nil {
-		tracedCtx, endSpan := TraceModuleExecution(ctx.Context(), "block.end")
-		defer endSpan()
+	// Trace block processing with OpenTelemetry
+	if app.telemetryProvider != nil {
+		tracedCtx, span := pawtelemetry.StartModuleSpan(ctx.Context(), "block", "end")
+		defer span.End()
 		ctx = ctx.WithContext(tracedCtx)
 	}
 
@@ -795,6 +825,19 @@ func (app *PAWApp) RegisterTxService(clientCtx client.Context) {
 //nolint:gocritic // client.Context passed by value per Cosmos SDK service interface.
 func (app *PAWApp) RegisterNodeService(clientCtx client.Context, cfg config.Config) {
 	node.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg)
+}
+
+// Close gracefully shuts down the application, including telemetry providers.
+func (app *PAWApp) Close() error {
+	if app.telemetryProvider != nil {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := app.telemetryProvider.Shutdown(shutdownCtx); err != nil {
+			app.Logger().Error("Failed to shutdown telemetry provider", "error", err)
+			return err
+		}
+	}
+	return nil
 }
 
 // ExportAppStateAndValidators exports the state of the application for a genesis

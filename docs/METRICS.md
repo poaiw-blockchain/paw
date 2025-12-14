@@ -66,6 +66,51 @@ PAW uses four metric types:
 
 ## Metrics Endpoints
 
+### Endpoint Health Verification
+
+PAW includes an automated metrics verification script that checks all Prometheus endpoints after node startup:
+
+```bash
+# Basic usage
+./scripts/verify-metrics.sh
+
+# Check specific node
+./scripts/verify-metrics.sh --node-host validator-1.example.com
+
+# Wait 30 seconds after startup before checking
+./scripts/verify-metrics.sh --wait 30
+
+# JSON output for automation
+./scripts/verify-metrics.sh --json
+
+# Verbose output with debugging
+./scripts/verify-metrics.sh --verbose
+
+# Custom ports
+./scripts/verify-metrics.sh \
+  --cometbft-port 26660 \
+  --api-port 1317 \
+  --app-port 26661 \
+  --timeout 10
+```
+
+**Exit Codes:**
+- `0` - All metrics endpoints accessible
+- `1` - One or more endpoints failed
+- `2` - Invalid arguments
+
+**Startup Health Check:**
+The PAW application automatically performs a telemetry health check during startup. Check logs for:
+```
+INFO OpenTelemetry tracing initialized jaeger_endpoint=http://localhost:4318
+INFO Telemetry health check passed prometheus_enabled=true
+```
+
+If health check fails, look for:
+```
+ERROR Telemetry health check failed error="meter provider not initialized"
+```
+
 ### Primary Endpoint: CometBFT Metrics
 
 **URL:** `http://<node-ip>:26660/metrics`
@@ -894,11 +939,73 @@ groups:
 
 ## Troubleshooting
 
+### Using the Verification Script
+
+The quickest way to diagnose metrics issues is to use the built-in verification script:
+
+```bash
+# Run with verbose output to see detailed checks
+./scripts/verify-metrics.sh --verbose
+
+# Check a specific node
+./scripts/verify-metrics.sh --node-host 192.168.1.100 --verbose
+
+# Get machine-readable output
+./scripts/verify-metrics.sh --json | jq .
+```
+
+**Common Script Output:**
+
+Success:
+```
+======================================
+  PAW Metrics Verification
+======================================
+Host: localhost
+Timeout: 5s
+
+[INFO] Checking CometBFT consensus metrics...
+[✓] CometBFT - OK (147 metrics)
+[INFO] Checking Cosmos SDK API metrics...
+[✓] Cosmos SDK API - OK (89 metrics)
+[INFO] Checking custom application metrics...
+[✓] Application - OK (34 metrics)
+
+======================================
+  Summary
+======================================
+Total checks: 3
+Passed: 3
+Failed: 0
+
+✓ All metrics endpoints are accessible
+```
+
+Failure:
+```
+[✗] CometBFT - Connection failed (curl exit code: 7)
+[⚠] Application - Port 26661 not listening or not reachable
+
+✗ Some metrics endpoints failed
+
+Troubleshooting:
+  1. Check if the node is running: systemctl status pawd
+  2. Verify metrics are enabled in config
+  3. Check firewall rules
+  4. Review logs: journalctl -u pawd -n 100
+```
+
 ### Metrics Not Available
 
 **Symptom:** Prometheus cannot scrape metrics endpoint
 
-**Checks:**
+**Automated Check:**
+```bash
+./scripts/verify-metrics.sh
+# Exit code 0 = all OK, 1 = failures detected
+```
+
+**Manual Checks:**
 
 1. Verify metrics are enabled in `config.toml`:
    ```bash
@@ -922,6 +1029,12 @@ groups:
    ```bash
    sudo iptables -L -n | grep 26660
    # Should allow inbound connections from Prometheus
+   ```
+
+5. Check application logs for health check:
+   ```bash
+   journalctl -u pawd -n 100 | grep -i "health check"
+   # Should show: Telemetry health check passed
    ```
 
 ### Missing Custom Metrics
