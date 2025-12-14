@@ -141,10 +141,10 @@ func (pv *PacketValidator) ValidateIncomingPacket(
 
 // ChannelOpenValidator provides common channel opening validation logic.
 type ChannelOpenValidator struct {
-	expectedVersion string
-	expectedPort    string
+	expectedVersion  string
+	expectedPort     string
 	expectedOrdering channeltypes.Order
-	claimer         CapabilityClaimer
+	claimer          CapabilityClaimer
 }
 
 // NewChannelOpenValidator creates a new channel open validator.
