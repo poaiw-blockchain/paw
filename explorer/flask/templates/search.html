@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Search | PAW Blockchain Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-search"></i> Search</h2>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form action="/search" method="get">
+                    <div class="input-group input-group-lg">
+                        <input type="text" class="form-control" name="q"
+                               placeholder="Search by block height, transaction hash, or address"
+                               value="{{ query }}" autofocus>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </form>
+                <small class="text-muted mt-2 d-block">
+                    Examples: Block #12345, Transaction hash: ABC123..., Address: paw1...
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if query %}
+<div class="row">
+    <div class="col-12">
+        {% if results %}
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Search Results for "{{ query }}"</h5>
+            </div>
+            <div class="card-body">
+                <!-- Block Results -->
+                {% if results.blocks %}
+                <h6 class="mb-3"><i class="bi bi-box"></i> Blocks</h6>
+                <div class="list-group mb-4">
+                    {% for block in results.blocks %}
+                    <a href="/block/{{ block.height }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Block #{{ block.height|number }}</h6>
+                            <small class="text-muted">{{ block.time|timeago }}</small>
+                        </div>
+                        <small class="text-muted">
+                            Hash: {{ block.hash|default('N/A')|shorten(16) }} |
+                            Transactions: {{ block.num_txs|default(0) }}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Transaction Results -->
+                {% if results.transactions %}
+                <h6 class="mb-3"><i class="bi bi-arrow-left-right"></i> Transactions</h6>
+                <div class="list-group mb-4">
+                    {% for tx in results.transactions %}
+                    <a href="/tx/{{ tx.hash }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 hash-link">{{ tx.hash|shorten(16) }}</h6>
+                            <small class="text-muted">{{ tx.timestamp|timeago }}</small>
+                        </div>
+                        <small class="text-muted">
+                            Type: {{ tx.type|default('transfer') }} |
+                            Status:
+                            {% if tx.success|default(true) %}
+                            <span class="badge bg-success">Success</span>
+                            {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% endif %}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Account Results -->
+                {% if results.accounts %}
+                <h6 class="mb-3"><i class="bi bi-wallet2"></i> Accounts</h6>
+                <div class="list-group mb-4">
+                    {% for account in results.accounts %}
+                    <a href="/account/{{ account.address }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 hash-link">{{ account.address|shorten(16) }}</h6>
+                            <small class="text-muted">Balance: {{ account.balance|default('0') }}</small>
+                        </div>
+                        <small class="text-muted">
+                            Transactions: {{ account.tx_count|default(0) }}
+                        </small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if not results.blocks and not results.transactions and not results.accounts %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">No results found for "{{ query }}"</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                <p class="text-muted mt-3">No results found for "{{ query }}"</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

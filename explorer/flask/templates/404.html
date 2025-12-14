@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Not Found | PAW Blockchain Explorer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body py-5">
+                <i class="bi bi-exclamation-triangle display-1 text-warning mb-4"></i>
+                <h1 class="display-4 mb-3">404</h1>
+                <h4 class="mb-3">Page Not Found</h4>
+                <p class="text-muted mb-4">
+                    The page, block, transaction, or account you're looking for doesn't exist.
+                </p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="/" class="btn btn-primary">
+                        <i class="bi bi-house"></i> Go Home
+                    </a>
+                    <a href="/search" class="btn btn-outline-secondary">
+                        <i class="bi bi-search"></i> Search
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Blocks | PAW Blockchain Explorer{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="bi bi-box"></i> Latest Blocks</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if blocks %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Height</th>
+                                <th>Hash</th>
+                                <th>Time</th>
+                                <th>Transactions</th>
+                                <th>Proposer</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for block in blocks %}
+                            <tr>
+                                <td>
+                                    <a href="/block/{{ block.height }}" class="block-height">
+                                        #{{ block.height|number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="/block/{{ block.height }}" class="hash-link">
+                                        {{ block.hash|default('N/A')|shorten(12) }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ block.time|timestamp }}</small>
+                                    <br>
+                                    <small class="text-muted">({{ block.time|timeago }})</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ block.num_txs|default(0) }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ block.proposer|default('N/A')|shorten(8) }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ block.size|default('N/A') }} bytes</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination placeholder -->
+                <nav aria-label="Block navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1">Previous</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page + 1 }}">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="text-muted mt-3">No blocks found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
