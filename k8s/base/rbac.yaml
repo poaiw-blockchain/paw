@@ -1,0 +1,170 @@
+---
+# ServiceAccount for validators
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-validator
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+automountServiceAccountToken: false
+---
+# ServiceAccount for full nodes
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-node
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+automountServiceAccountToken: false
+---
+# ServiceAccount for API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-api
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: api
+automountServiceAccountToken: false
+---
+# ServiceAccount for monitoring
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: paw-monitoring
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: monitoring
+---
+# Role for validators - minimal permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paw-validator-role
+  namespace: paw
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["paw-validator-keys", "paw-genesis"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+---
+# Role for nodes
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paw-node-role
+  namespace: paw
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["paw-genesis"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+---
+# Role for monitoring - read-only cluster access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: paw-monitoring-role
+  namespace: paw
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+# RoleBindings
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paw-validator-binding
+  namespace: paw
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: paw-validator-role
+subjects:
+  - kind: ServiceAccount
+    name: paw-validator
+    namespace: paw
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paw-node-binding
+  namespace: paw
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: paw-node-role
+subjects:
+  - kind: ServiceAccount
+    name: paw-node
+    namespace: paw
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: paw-monitoring-binding
+  namespace: paw
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: paw-monitoring-role
+subjects:
+  - kind: ServiceAccount
+    name: paw-monitoring
+    namespace: paw
+---
+# ClusterRole for Prometheus to scrape metrics
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: paw-prometheus-scraper
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "nodes/metrics", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions", "networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: paw-prometheus-scraper-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: paw-prometheus-scraper
+subjects:
+  - kind: ServiceAccount
+    name: paw-monitoring
+    namespace: paw

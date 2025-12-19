@@ -1,0 +1,253 @@
+---
+# Default deny all ingress and egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: paw
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: paw
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Validator P2P communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: validator-p2p
+  namespace: paw
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: validator
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P from other validators
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: validator
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow P2P from sentries/nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: node
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow RPC from nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: node
+      ports:
+        - protocol: TCP
+          port: 26657
+    # Allow metrics scraping
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: monitoring
+      ports:
+        - protocol: TCP
+          port: 26660
+  egress:
+    # Allow P2P to other validators
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: validator
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow P2P to nodes
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: node
+      ports:
+        - protocol: TCP
+          port: 26656
+---
+# Node network policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: node-network
+  namespace: paw
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: node
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow P2P from validators
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: validator
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow P2P from other nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: node
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow RPC from ingress
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 26657
+        - protocol: TCP
+          port: 1317
+        - protocol: TCP
+          port: 9090
+    # Allow metrics scraping
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: monitoring
+      ports:
+        - protocol: TCP
+          port: 26660
+  egress:
+    # Allow P2P to validators
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: validator
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow P2P to other nodes
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: node
+      ports:
+        - protocol: TCP
+          port: 26656
+    # Allow external P2P (public peers)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 26656
+---
+# Monitoring network policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-network
+  namespace: paw
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: monitoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow Grafana access from ingress
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9093
+  egress:
+    # Allow scraping all pods in namespace
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 26660
+        - protocol: TCP
+          port: 36660
+---
+# Allow Linkerd control plane communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-linkerd
+  namespace: paw
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              linkerd.io/is-control-plane: "true"
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              linkerd.io/is-control-plane: "true"
+---
+# Allow Vault communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-vault
+  namespace: paw
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault
+      ports:
+        - protocol: TCP
+          port: 8200

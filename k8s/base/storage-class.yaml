@@ -1,0 +1,59 @@
+---
+# Fast SSD storage for validators
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-fast-ssd
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: storage
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  nodePath: /data/paw-validators
+---
+# Standard storage for nodes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-standard
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: storage
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  nodePath: /data/paw-nodes
+---
+# Monitoring storage
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-monitoring
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: monitoring
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  nodePath: /data/paw-monitoring
+---
+# For Kind clusters - use standard provisioner
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: paw-kind-storage
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: storage
+    environment: local
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
