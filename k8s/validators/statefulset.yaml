@@ -164,50 +164,52 @@ spec:
             - /bin/sh
             - -c
             - |
-              set -e
+              set -ex
               echo "=== PAW Config Initialization ==="
 
               PAW=/app/bin/paw-node
               KEYRING="--keyring-backend test"
               VALIDATOR_INDEX=${POD_NAME##*-}
 
-              # Initialize if not already done
-              if [ ! -f /data/config/config.toml ]; then
-                echo "Initializing PAW node..."
-                $PAW init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
+              # Always reinitialize for local testing
+              echo "Removing existing config for fresh initialization..."
+              rm -rf /data/config /data/data /data/keyring-test 2>/dev/null || true
 
-                # Create validator key if not exists
-                if ! $PAW keys show validator $KEYRING --home /data 2>/dev/null; then
-                  echo "Creating validator key..."
-                  $PAW keys add validator $KEYRING --home /data
-                fi
+              echo "Initializing PAW node..."
+              $PAW init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
 
-                # Get validator address
-                VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data -a)
-                echo "Validator address: $VALIDATOR_ADDR"
+              echo "Creating validator key..."
+              $PAW keys add validator $KEYRING --home /data
 
-                # Add genesis account with tokens
-                echo "Adding genesis account..."
-                $PAW genesis add-genesis-account $VALIDATOR_ADDR 100000000000upaw --home /data
+              # Get validator address
+              VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data -a)
+              echo "Validator address: $VALIDATOR_ADDR"
 
-                # Create gentx (validator genesis transaction)
-                echo "Creating gentx..."
-                $PAW genesis gentx validator 50000000000upaw \
-                  --chain-id "$CHAIN_ID" \
-                  --moniker "$POD_NAME" \
-                  --commission-rate 0.1 \
-                  --commission-max-rate 0.2 \
-                  --commission-max-change-rate 0.01 \
-                  --min-self-delegation 1 \
-                  $KEYRING \
-                  --home /data
+              # Add genesis account with tokens
+              echo "Adding genesis account..."
+              $PAW genesis add-genesis-account "$VALIDATOR_ADDR" 100000000000upaw --home /data
 
-                # Collect gentxs into genesis
-                echo "Collecting gentxs..."
-                $PAW genesis collect-gentxs --home /data
+              # Create gentx (validator genesis transaction)
+              echo "Creating gentx..."
+              $PAW genesis gentx validator 50000000000upaw \
+                --chain-id "$CHAIN_ID" \
+                --moniker "$POD_NAME" \
+                --commission-rate 0.1 \
+                --commission-max-rate 0.2 \
+                --commission-max-change-rate 0.01 \
+                --min-self-delegation 1 \
+                $KEYRING \
+                --home /data
 
-                echo "Validator setup complete"
-              fi
+              # Collect gentxs into genesis
+              echo "Collecting gentxs..."
+              $PAW genesis collect-gentxs --home /data
+
+              echo "Validator setup complete"
+
+              # Verify genesis has validators
+              echo "Verifying genesis..."
+              cat /data/config/genesis.json | jq '.app_state.staking.validators' || echo "No jq available"
 
               # Update config.toml
               sed -i "s/^moniker = .*/moniker = \"$POD_NAME\"/" /data/config/config.toml
