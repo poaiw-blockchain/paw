@@ -28,7 +28,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "26660"
         prometheus.io/path: "/metrics"
-        linkerd.io/inject: enabled
+        # Disabled for local testing - Linkerd interferes with startup probes
+        linkerd.io/inject: disabled
     spec:
       serviceAccountName: paw-validator
       terminationGracePeriodSeconds: 120
