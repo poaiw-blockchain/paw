@@ -224,6 +224,12 @@ spec:
               sed -i 's/^enable = false/enable = true/' /data/config/app.toml
               sed -i 's/^swagger = false/swagger = true/' /data/config/app.toml
 
+              # Fix permissions for non-root main container
+              echo "Setting file permissions..."
+              chmod -R 755 /data/config
+              chmod -R 755 /data/data 2>/dev/null || true
+              chown -R 1000:1000 /data
+
               echo "Successfully initialized chain configuration"
               echo "Chain ID: $CHAIN_ID"
               echo "Moniker: $POD_NAME"
