@@ -30,8 +30,8 @@ spec:
       controlledResources: ["cpu", "memory"]
     - containerName: "metrics-exporter"
       minAllowed:
-        cpu: 50m
-        memory: 64Mi
+        cpu: 100m
+        memory: 128Mi
       maxAllowed:
         cpu: 200m
         memory: 256Mi
