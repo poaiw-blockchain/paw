@@ -168,7 +168,7 @@ spec:
               # Initialize if not already done
               if [ ! -f /data/config/config.toml ]; then
                 echo "Initializing PAW node..."
-                pawd init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
+                /app/bin/paw-node init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
               fi
 
               # Configure based on validator index
@@ -185,7 +185,7 @@ spec:
               PEERS=""
               for i in $(seq 0 2); do
                 if [ "$i" != "$VALIDATOR_INDEX" ]; then
-                  PEER_ID=$(pawd tendermint show-node-id --home /data 2>/dev/null || echo "")
+                  PEER_ID=$(/app/bin/paw-node tendermint show-node-id --home /data 2>/dev/null || echo "")
                   if [ -n "$PEER_ID" ]; then
                     PEER="$PEER_ID@paw-validator-$i.paw-validator-headless.paw.svc.cluster.local:26656"
                     if [ -n "$PEERS" ]; then
@@ -243,7 +243,7 @@ spec:
           image: paw-chain/pawd:latest
           imagePullPolicy: IfNotPresent
           command:
-            - pawd
+            - /app/bin/paw-node
             - start
             - --home=/data
             - --log_level=info
