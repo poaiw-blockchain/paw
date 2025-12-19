@@ -1,0 +1,87 @@
+---
+# ArgoCD Application for PAW Blockchain GitOps Deployment
+# Template - update repoURL with actual repo access or configure SSH/credentials
+#
+# Prerequisites:
+# 1. ArgoCD installed: kubectl create namespace argocd && kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# 2. For private repos: Add SSH key or configure HTTPS with token
+#
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paw-blockchain
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Update this URL to match your repo access method
+    repoURL: git@github.com:poaiw-blockchain/paw.git
+    targetRevision: main
+    path: k8s/overlays/local
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paw
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+# Staging Application
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paw-blockchain-staging
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:poaiw-blockchain/paw.git
+    targetRevision: staging
+    path: k8s/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paw-staging
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+---
+# Production Application (manual sync)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paw-blockchain-production
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:poaiw-blockchain/paw.git
+    targetRevision: production
+    path: k8s/overlays/production
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paw-production
+  syncPolicy:
+    # Manual sync for production - remove 'automated' section for safety
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
