@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/discovery"
 	"github.com/paw-chain/paw/p2p/reputation"
 )
@@ -28,7 +29,7 @@ func toUint32Length(field string, length int) (uint32, error) {
 
 // Node represents a P2P network node
 type Node struct {
-	config  NodeConfig
+	config  *NodeConfig
 	logger  log.Logger
 	dataDir string
 	mu      sync.RWMutex
@@ -176,20 +177,24 @@ func DefaultStateSyncConfig() StateSyncConfig {
 type MessageHandler func(peerID reputation.PeerID, msg []byte) error
 
 // NewNode creates a new P2P node
-func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
-	// Validate configuration
+func NewNode(config *NodeConfig, logger log.Logger) (*Node, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config is required")
+	}
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("data directory not specified")
 	}
 
+	cfg := *config
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	node := &Node{
-		config:          config,
+		config:          &cfg,
 		logger:          logger,
-		dataDir:         config.DataDir,
-		nodeID:          reputation.PeerID(config.NodeID),
-		listenAddr:      config.ListenAddress,
+		dataDir:         cfg.DataDir,
+		nodeID:          reputation.PeerID(cfg.NodeID),
+		listenAddr:      cfg.ListenAddress,
 		ctx:             ctx,
 		cancel:          cancel,
 		messageHandlers: make(map[string]MessageHandler),
@@ -197,9 +202,9 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 
 	// Initialize reputation manager if enabled
 	var repManager *reputation.Manager
-	if config.EnableReputation {
+	if cfg.EnableReputation {
 		storage, err := reputation.NewFileStorage(
-			reputation.DefaultFileStorageConfig(config.DataDir),
+			reputation.DefaultFileStorageConfig(cfg.DataDir),
 			logger,
 		)
 		if err != nil {
@@ -207,7 +212,7 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 			return nil, fmt.Errorf("failed to create reputation storage: %w", err)
 		}
 
-		repManager, err = reputation.NewManager(storage, config.ReputationConfig, logger)
+		repManager, err = reputation.NewManager(storage, &cfg.ReputationConfig, logger)
 		if err != nil {
 			cancel()
 			return nil, fmt.Errorf("failed to create reputation manager: %w", err)
@@ -218,21 +223,21 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 
 	// Initialize discovery service
 	discoveryConfig := discovery.DiscoveryConfig{
-		Seeds:                       config.Seeds,
-		BootstrapNodes:              config.BootstrapNodes,
-		PersistentPeers:             config.PersistentPeers,
-		PrivatePeerIDs:              config.PrivatePeerIDs,
-		UnconditionalPeerIDs:        config.UnconditionalPeerIDs,
-		MaxInboundPeers:             config.MaxInboundPeers,
-		MaxOutboundPeers:            config.MaxOutboundPeers,
-		MaxPeers:                    config.MaxPeers,
-		EnablePEX:                   config.EnablePEX,
-		PEXInterval:                 config.PEXInterval,
-		MinOutboundPeers:            config.MinOutboundPeers,
-		DialTimeout:                 config.DialTimeout,
-		HandshakeTimeout:            config.HandshakeTimeout,
+		Seeds:                       cfg.Seeds,
+		BootstrapNodes:              cfg.BootstrapNodes,
+		PersistentPeers:             cfg.PersistentPeers,
+		PrivatePeerIDs:              cfg.PrivatePeerIDs,
+		UnconditionalPeerIDs:        cfg.UnconditionalPeerIDs,
+		MaxInboundPeers:             cfg.MaxInboundPeers,
+		MaxOutboundPeers:            cfg.MaxOutboundPeers,
+		MaxPeers:                    cfg.MaxPeers,
+		EnablePEX:                   cfg.EnablePEX,
+		PEXInterval:                 cfg.PEXInterval,
+		MinOutboundPeers:            cfg.MinOutboundPeers,
+		DialTimeout:                 cfg.DialTimeout,
+		HandshakeTimeout:            cfg.HandshakeTimeout,
 		PersistentPeerMaxDialPeriod: 0,
-		AddressBookStrict:           config.AddressBookStrict,
+		AddressBookStrict:           cfg.AddressBookStrict,
 		AddressBookSize:             1000,
 		EnableAutoReconnect:         true,
 		ReconnectInterval:           30 * time.Second,
@@ -240,11 +245,11 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 		PingInterval:                60 * time.Second,
 		PingTimeout:                 30 * time.Second,
 		InactivityTimeout:           5 * time.Minute,
-		ListenAddress:               config.ListenAddress,
-		ExternalAddress:             config.ExternalAddress,
+		ListenAddress:               cfg.ListenAddress,
+		ExternalAddress:             cfg.ExternalAddress,
 	}
 
-	discoveryService, err := discovery.NewService(discoveryConfig, config.DataDir, repManager, logger)
+	discoveryService, err := discovery.NewService(&discoveryConfig, cfg.DataDir, repManager, logger)
 	if err != nil {
 		cancel()
 		if repManager != nil {
@@ -270,10 +275,10 @@ func NewNode(config NodeConfig, logger log.Logger) (*Node, error) {
 	node.RegisterMessageHandler(discovery.PEXMessageType, node.handlePEXMessage)
 
 	logger.Info("P2P node created",
-		"node_id", config.NodeID,
-		"listen_address", config.ListenAddress,
-		"max_peers", config.MaxPeers,
-		"reputation_enabled", config.EnableReputation)
+		"node_id", cfg.NodeID,
+		"listen_address", cfg.ListenAddress,
+		"max_peers", cfg.MaxPeers,
+		"reputation_enabled", cfg.EnableReputation)
 
 	return node, nil
 }
@@ -400,7 +405,7 @@ func (n *Node) handlePeerMessage(peerID reputation.PeerID, msgType string, data 
 					Details:       fmt.Sprintf("message size %d exceeds max %d for type %s", len(data), maxSize, msgType),
 				},
 			}
-			if err := n.repManager.RecordEvent(event); err != nil {
+			if err := n.repManager.RecordEvent(&event); err != nil {
 				n.logger.Error("failed to record oversized message event", "peer_id", peerID, "error", err)
 			}
 		}
@@ -565,7 +570,8 @@ func (n *Node) BroadcastMessage(msgType string, data []byte) error {
 		"size", len(data),
 		"peer_count", len(peers))
 
-	for _, peer := range peers {
+	for i := range peers {
+		peer := &peers[i]
 		if err := n.SendMessage(peer.ID, msgType, data); err != nil {
 			n.logger.Error("failed to send broadcast message",
 				"peer_id", peer.ID,

@@ -281,122 +281,794 @@ echo "CRITICAL: Store the encryption password separately and securely"
 
 ## Node Recovery Scenarios
 
-### Scenario 1: Complete Node Failure
+### Scenario Matrix
+
+| Scenario | Trigger | Primary Risk | RTO Target | Playbook |
+| --- | --- | --- | --- | --- |
+| Validator/full node loss | Process panic, OOM, host failure | Slashing from downtime | <1 hour (validators) | [Scenario 1](#scenario-1-complete-node-failure-hardwarevm-loss) |
+| Database corruption | LevelDB errors, bad SSD | Bad state causing crashes | <2 hours | [Scenario 2](#scenario-2-database-corruption) |
+| Network partition | Region routing issues, firewall change | Consensus stalls / forks | <30 minutes | [Scenario 3](#scenario-3-network-partition-split-brain) |
+| Consensus halt | Critical bug or voting failure | Chain stuck | Coordinated | [Scenario 4](#scenario-4-consensus-failure--chain-halt) |
+| Emergency rollback | Governance-mandated rewind | Data loss if mishandled | Coordinated | [Scenario 5](#scenario-5-state-rollback-emergency-recovery) |
+| Validator key compromise/loss | Compromised signer | Double-sign, slash | Immediate | [Scenario 6](#scenario-6-validator-key-compromise-or-loss) |
+| Storage exhaustion | Disk >95% utilized | State corruption | <2 hours | [Scenario 7](#scenario-7-storage-exhaustion) |
+| Regional outage | Cloud zone failure | Multi-node outage | <4 hours | [Scenario 8](#scenario-8-regional-outage--site-failure) |
+| Compromised host / ransomware | Unauthorized access, tampering | Key theft, replay attacks | <1 hour to isolate | [Scenario 9](#scenario-9-compromised-host-or-ransomware) |
+
+### Scenario 1: Complete Node Failure (Hardware/VM Loss)
 
 **Symptoms:**
-- Server hardware failure
-- Complete data loss
-- Node unreachable
+- Server hardware failure (disk, motherboard, power supply)
+- VM instance terminated or corrupted
+- Complete data loss with no local recovery possible
+- Node unreachable and unresponsive
+
+**RTO Target:** < 1 hour for validators, < 4 hours for full nodes
+**RPO Target:** Last backup snapshot (maximum 24 hours data loss acceptable)
+
+**Pre-Recovery Checklist:**
+- [ ] Confirm backup files are accessible
+- [ ] Verify new hardware meets minimum requirements
+- [ ] Ensure network connectivity and firewall rules configured
+- [ ] Have validator keys secured and accessible (if validator)
+
+**Detailed Recovery Steps:**
+
+#### Phase 1: Infrastructure Preparation (15-20 minutes)
+
+1. **Provision replacement hardware/VM**
+   ```bash
+   # Minimum system requirements:
+   # - CPU: 4+ cores (8+ recommended for validators)
+   # - RAM: 16GB minimum, 32GB+ recommended
+   # - Disk: 500GB+ NVMe SSD (1TB+ for archive nodes)
+   # - Network: 100Mbps+ dedicated connection
+   # - OS: Ubuntu 22.04 LTS or later
+   ```
+
+2. **Configure system settings**
+   ```bash
+   # Update system packages
+   sudo apt update && sudo apt upgrade -y
+
+   # Install required dependencies
+   sudo apt install -y build-essential git wget curl jq lz4
+
+   # Configure system limits
+   cat << EOF | sudo tee -a /etc/security/limits.conf
+   * soft nofile 65536
+   * hard nofile 65536
+   * soft nproc 32768
+   * hard nproc 32768
+   EOF
+
+   # Apply sysctl optimizations
+   cat << EOF | sudo tee -a /etc/sysctl.conf
+   net.core.rmem_max = 134217728
+   net.core.wmem_max = 134217728
+   net.ipv4.tcp_rmem = 4096 87380 67108864
+   net.ipv4.tcp_wmem = 4096 65536 67108864
+   fs.file-max = 2097152
+   EOF
+
+   sudo sysctl -p
+   ```
+
+3. **Install Go runtime**
+   ```bash
+   # Install Go 1.21+ (check project requirements)
+   GO_VERSION="1.21.6"
+   wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz
+   sudo rm -rf /usr/local/go
+   sudo tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz
+
+   # Configure Go environment
+   echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+   echo 'export GOPATH=$HOME/go' >> ~/.bashrc
+   echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
+   source ~/.bashrc
+
+   # Verify installation
+   go version
+   ```
+
+#### Phase 2: Binary Installation (10-15 minutes)
+
+4. **Clone and build pawd**
+   ```bash
+   # Clone repository
+   cd ~
+   git clone git@github.com:decristofaroj/paw.git
+   cd paw
+
+   # Checkout specific version (production should use tagged releases)
+   git checkout tags/v1.0.0  # Replace with actual production version
+
+   # Build binary
+   make install
+   # or manually:
+   # go build -o pawd ./cmd/pawd
+   # sudo mv pawd /usr/local/bin/
+
+   # Verify binary
+   pawd version
+   ```
+
+5. **Configure systemd service**
+   ```bash
+   # Create service file
+   sudo tee /etc/systemd/system/pawd.service > /dev/null <<EOF
+   [Unit]
+   Description=PAW Blockchain Node
+   After=network-online.target
+   Wants=network-online.target
+
+   [Service]
+   User=$USER
+   ExecStart=/usr/local/bin/pawd start --home $HOME/.paw
+   Restart=on-failure
+   RestartSec=10
+   LimitNOFILE=65536
+   Environment="DAEMON_HOME=$HOME/.paw"
+   Environment="DAEMON_NAME=pawd"
+
+   [Install]
+   WantedBy=multi-user.target
+   EOF
+
+   # Reload systemd
+   sudo systemctl daemon-reload
+   ```
+
+#### Phase 3: Data Restoration (20-30 minutes)
+
+6. **Restore from backup**
+   See detailed procedures in [Data Restore Procedures](#data-restore-procedures)
+
+   Quick summary:
+   ```bash
+   # Download latest backup from cloud
+   aws s3 cp s3://paw-blockchain-backups/$(aws s3 ls s3://paw-blockchain-backups/ | grep paw-backup | tail -1 | awk '{print $4}') /tmp/restore.tar.gz
+
+   # Verify integrity
+   aws s3 cp s3://paw-blockchain-backups/$(aws s3 ls s3://paw-blockchain-backups/ | grep paw-backup | tail -1 | awk '{print $4}').sha256 /tmp/restore.tar.gz.sha256
+   sha256sum -c /tmp/restore.tar.gz.sha256
+
+   # Extract to home directory
+   mkdir -p ~/.paw
+   tar -xzf /tmp/restore.tar.gz -C ~/.paw
+   ```
+
+7. **Verify critical files**
+   ```bash
+   # Validate all essential files exist
+   for file in \
+       config/app.toml \
+       config/config.toml \
+       config/genesis.json \
+       config/node_key.json \
+       data/priv_validator_state.json; do
+
+       if [[ ! -f "$HOME/.paw/$file" ]]; then
+           echo "ERROR: Missing critical file: $file"
+           echo "Recovery cannot proceed - check backup integrity"
+           exit 1
+       fi
+   done
+
+   # For validators, verify validator key
+   if [[ -f "$HOME/.paw/config/priv_validator_key.json" ]]; then
+       echo "Validator key found - this is a validator node"
+       chmod 600 $HOME/.paw/config/priv_validator_key.json
+   fi
+   ```
+
+8. **Configure network settings**
+   ```bash
+   # Update external IP address in config.toml
+   EXTERNAL_IP=$(curl -s ifconfig.me)
+   sed -i "s/^external_address = .*/external_address = \"$EXTERNAL_IP:26656\"/" ~/.paw/config/config.toml
+
+   # Update persistent peers (use current network peers)
+   PEERS="node1_id@ip1:26656,node2_id@ip2:26656,node3_id@ip3:26656"
+   sed -i "s/^persistent_peers = .*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
+
+   # Enable Prometheus metrics
+   sed -i 's/^prometheus = .*/prometheus = true/' ~/.paw/config/config.toml
+   ```
+
+#### Phase 4: Node Startup and Validation (10-15 minutes)
+
+9. **Start node service**
+   ```bash
+   # Enable service
+   sudo systemctl enable pawd
+
+   # Start node
+   sudo systemctl start pawd
+
+   # Monitor startup logs
+   journalctl -u pawd -f
+
+   # Watch for successful startup messages:
+   # - "started node"
+   # - "This node is a validator"
+   # - "Executed block"
+   ```
+
+10. **Validate node health**
+    ```bash
+    # Wait for node to initialize (30-60 seconds)
+    sleep 60
+
+    # Check node status
+    pawd status 2>&1 | jq '.NodeInfo'
+
+    # Verify sync status
+    SYNC_INFO=$(pawd status 2>&1 | jq '.SyncInfo')
+    echo "$SYNC_INFO"
+
+    # Check peer connections
+    NUM_PEERS=$(curl -s http://localhost:26657/net_info | jq -r '.result.n_peers')
+    echo "Connected to $NUM_PEERS peers"
+
+    if [[ $NUM_PEERS -lt 3 ]]; then
+        echo "WARNING: Low peer count. Check network connectivity and peer configuration"
+    fi
+    ```
+
+11. **Monitor block progression**
+    ```bash
+    # Track block height over 1 minute
+    echo "Monitoring block height progression..."
+    for i in {1..6}; do
+        HEIGHT=$(pawd status 2>&1 | jq -r '.SyncInfo.latest_block_height')
+        echo "Block height: $HEIGHT at $(date +%H:%M:%S)"
+        sleep 10
+    done
+
+    # Verify catching up status
+    CATCHING_UP=$(pawd status 2>&1 | jq -r '.SyncInfo.catching_up')
+    if [[ "$CATCHING_UP" == "true" ]]; then
+        echo "Node is syncing (expected after recovery)"
+    else
+        echo "Node is synced to latest block"
+    fi
+    ```
+
+#### Phase 5: Validator-Specific Recovery (if applicable)
+
+12. **Rejoin validator set**
+    ```bash
+    # Check validator status
+    VAL_ADDR=$(pawd keys show validator --bech val -a)
+    pawd query staking validator $VAL_ADDR
+
+    # Check if jailed
+    JAILED=$(pawd query staking validator $VAL_ADDR | jq -r '.jailed')
+
+    if [[ "$JAILED" == "true" ]]; then
+        echo "Validator is jailed - preparing unjail transaction"
+
+        # Wait until fully synced before unjailing
+        while [[ "$(pawd status 2>&1 | jq -r '.SyncInfo.catching_up')" == "true" ]]; do
+            echo "Waiting for sync to complete before unjailing..."
+            sleep 30
+        done
+
+        # Unjail validator
+        pawd tx slashing unjail \
+            --from validator \
+            --chain-id paw-testnet-1 \
+            --gas auto \
+            --gas-adjustment 1.5 \
+            --fees 5000upaw \
+            -y
+
+        echo "Unjail transaction submitted. Waiting for confirmation..."
+        sleep 10
+
+        # Verify unjailed status
+        pawd query staking validator $VAL_ADDR | jq '{jailed, status}'
+    fi
+    ```
+
+13. **Verify validator signing**
+    ```bash
+    # Check validator signing info
+    CONS_ADDR=$(pawd tendermint show-address)
+    pawd query slashing signing-info $CONS_ADDR
+
+    # Monitor validator participation
+    watch -n 10 "pawd status 2>&1 | jq '.ValidatorInfo'"
+    ```
+
+**Post-Recovery Actions:**
+
+- [ ] Document recovery time and any issues encountered
+- [ ] Update monitoring dashboards with new instance details
+- [ ] Verify backup schedule is running on new instance
+- [ ] Review and update disaster recovery procedures based on learnings
+- [ ] Send incident report to stakeholders (if production validator)
+
+### Scenario 2: Database Corruption
+
+**Symptoms:**
+- Node crashes immediately on startup with panic
+- Log messages: "panic: corrupted database", "leveldb: corruption", "bad block"
+- Data directory shows file system errors
+- Application state queries return inconsistent results
+
+**RTO Target:** < 2 hours (faster with recent backups or state sync)
+**RPO Target:** Depends on recovery method (backup age or state sync point)
+
+**Diagnosis Steps:**
+
+```bash
+# Check logs for specific corruption errors
+journalctl -u pawd -n 200 | grep -i "corrupt\|panic\|fatal"
+
+# Identify corrupted database
+# Common culprits: application.db, state.db, blockstore.db
+ls -lh ~/.paw/data/*.db
+
+# Check disk health
+sudo smartctl -a /dev/sda  # Replace with your disk
+df -h ~/.paw
+```
+
+**Recovery Decision Tree:**
+
+```
+Database Corruption Detected
+├─ Backup < 6 hours old? → Use Option A (Restore from Backup)
+├─ Backup > 6 hours old? → Use Option B (State Sync)
+└─ No backup available?  → Use Option C (Full Resync)
+```
+
+#### Option A: Restore from Backup (Recommended for recent backups)
+
+**Time Estimate:** 20-40 minutes
+**Data Loss:** Up to backup age (max 24 hours)
+
+```bash
+# 1. Stop node immediately
+sudo systemctl stop pawd
+
+# 2. Preserve corrupted data for forensics
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+mkdir -p ~/paw-corrupted-backups
+mv ~/.paw/data ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP
+
+echo "Corrupted data saved to: ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP"
+echo "Preserve for analysis, delete after incident report"
+
+# 3. Download latest backup
+# From S3:
+LATEST_BACKUP=$(aws s3 ls s3://paw-blockchain-backups/ | grep paw-backup | tail -1 | awk '{print $4}')
+aws s3 cp s3://paw-blockchain-backups/$LATEST_BACKUP /tmp/restore.tar.gz
+aws s3 cp s3://paw-blockchain-backups/${LATEST_BACKUP}.sha256 /tmp/restore.tar.gz.sha256
+
+# From GCS:
+# LATEST_BACKUP=$(gsutil ls gs://paw-blockchain-backups/ | grep paw-backup | tail -1)
+# gsutil cp $LATEST_BACKUP /tmp/restore.tar.gz
+# gsutil cp ${LATEST_BACKUP}.sha256 /tmp/restore.tar.gz.sha256
+
+# 4. Verify backup integrity (CRITICAL STEP)
+cd /tmp
+sha256sum -c restore.tar.gz.sha256
+if [[ $? -ne 0 ]]; then
+    echo "ERROR: Backup file corrupted! Try previous backup or use state sync"
+    exit 1
+fi
+
+# 5. Extract backup (data directory only)
+mkdir -p ~/.paw/data
+tar -xzf /tmp/restore.tar.gz -C ~/.paw data/
+
+# 6. Restore priv_validator_state.json separately if validator
+# CRITICAL: Use the LATEST state to prevent double-signing
+if [[ -f ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP/priv_validator_state.json ]]; then
+    echo "Preserving latest priv_validator_state.json to prevent double-sign"
+    cp ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP/priv_validator_state.json \
+       ~/.paw/data/priv_validator_state.json
+fi
+
+# 7. Set correct permissions
+chown -R $(whoami):$(whoami) ~/.paw/data
+chmod 700 ~/.paw/data
+
+# 8. Start node
+sudo systemctl start pawd
+
+# 9. Monitor recovery
+journalctl -u pawd -f &
+sleep 30
+
+# 10. Verify node is syncing
+pawd status 2>&1 | jq '{height: .SyncInfo.latest_block_height, catching_up: .SyncInfo.catching_up, peers: .NodeInfo.other.tx_index}'
+```
+
+#### Option B: State Sync Recovery (Fast for any backup age)
+
+**Time Estimate:** 30-60 minutes (network dependent)
+**Data Loss:** Minimal (syncs to recent consensus state)
+
+```bash
+# 1. Stop node
+sudo systemctl stop pawd
+
+# 2. Backup corrupted data
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+mkdir -p ~/paw-corrupted-backups
+mv ~/.paw/data ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP
+
+# 3. CRITICAL: Backup priv_validator_state.json if validator
+if [[ -f ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP/priv_validator_state.json ]]; then
+    cp ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP/priv_validator_state.json \
+       ~/priv_validator_state.backup.$TIMESTAMP
+fi
+
+# 4. Find state sync RPC endpoints
+RPC1="https://rpc1.paw-network.io:443"
+RPC2="https://rpc2.paw-network.io:443"
+
+# 5. Get trust height and hash
+LATEST_HEIGHT=$(curl -s $RPC1/block | jq -r '.result.block.header.height')
+TRUST_HEIGHT=$((LATEST_HEIGHT - 1000))
+TRUST_HASH=$(curl -s "$RPC1/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
+
+echo "Trust Height: $TRUST_HEIGHT"
+echo "Trust Hash: $TRUST_HASH"
+
+# 6. Configure state sync in config.toml
+sed -i "/^\[statesync\]/,/^\[/ s/^enable = .*/enable = true/" ~/.paw/config/config.toml
+sed -i "/^\[statesync\]/,/^\[/ s|^rpc_servers = .*|rpc_servers = \"$RPC1,$RPC2\"|" ~/.paw/config/config.toml
+sed -i "/^\[statesync\]/,/^\[/ s/^trust_height = .*/trust_height = $TRUST_HEIGHT/" ~/.paw/config/config.toml
+sed -i "/^\[statesync\]/,/^\[/ s/^trust_hash = .*/trust_hash = \"$TRUST_HASH\"/" ~/.paw/config/config.toml
+
+# 7. Reset node data (keeps config and keys)
+pawd tendermint unsafe-reset-all --keep-addr-book
+
+# 8. Restore priv_validator_state.json if validator
+if [[ -f ~/priv_validator_state.backup.$TIMESTAMP ]]; then
+    cp ~/priv_validator_state.backup.$TIMESTAMP ~/.paw/data/priv_validator_state.json
+fi
+
+# 9. Start node (will begin state sync)
+sudo systemctl start pawd
+
+# 10. Monitor state sync progress
+echo "Monitoring state sync (this may take 30-60 minutes)..."
+while true; do
+    SYNC_STATUS=$(pawd status 2>&1 | jq -r '.SyncInfo.catching_up')
+    HEIGHT=$(pawd status 2>&1 | jq -r '.SyncInfo.latest_block_height')
+    echo "[$(date +%H:%M:%S)] Height: $HEIGHT, Catching up: $SYNC_STATUS"
+
+    if [[ "$SYNC_STATUS" == "false" ]]; then
+        echo "State sync complete!"
+        break
+    fi
+    sleep 30
+done
+```
+
+#### Option C: Full Resync from Genesis (Last resort)
+
+**Time Estimate:** Hours to days (depends on chain length)
+**Data Loss:** None (replays all blocks)
+
+```bash
+# 1. Stop node
+sudo systemctl stop pawd
+
+# 2. Backup corrupted data
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+mkdir -p ~/paw-corrupted-backups
+mv ~/.paw/data ~/paw-corrupted-backups/data.corrupted.$TIMESTAMP
+
+# 3. Initialize fresh data directory
+mkdir -p ~/.paw/data
+
+# 4. Ensure genesis file is present
+if [[ ! -f ~/.paw/config/genesis.json ]]; then
+    echo "ERROR: genesis.json missing. Cannot perform full resync."
+    # Download genesis from known source
+    wget -O ~/.paw/config/genesis.json https://genesis.paw-network.io/genesis.json
+fi
+
+# 5. Reset tendermint state
+pawd tendermint unsafe-reset-all --keep-addr-book
+
+# 6. Start node (will sync from block 0)
+sudo systemctl start pawd
+
+# 7. Monitor sync (this will take a long time)
+echo "Full resync started. This may take hours or days."
+echo "Monitor with: journalctl -u pawd -f"
+echo "Check progress with: pawd status | jq '.SyncInfo'"
+```
+
+**Post-Recovery Validation:**
+
+```bash
+# Run after any recovery option
+
+# 1. Check node health
+pawd status 2>&1 | jq '{
+    node_info: .NodeInfo.moniker,
+    latest_height: .SyncInfo.latest_block_height,
+    catching_up: .SyncInfo.catching_up,
+    validator_voting_power: .ValidatorInfo.VotingPower
+}'
+
+# 2. Verify database integrity
+pawd query bank total 2>&1 | jq '.supply'
+
+# 3. Check for consensus participation (validators)
+pawd query tendermint-validator-set | grep $(pawd tendermint show-address)
+
+# 4. Test transaction capability
+pawd query bank balances $(pawd keys show -a validator) 2>&1 | jq
+```
+
+### Scenario 3: Network Partition (Split Brain)
+
+**Symptoms:**
+- Node stuck at old block height while network continues
+- Zero or very few peer connections
+- Log messages: "no peers available", "consensus failure"
+- Validator missing blocks (if validator)
+
+**RTO Target:** < 30 minutes (reconnect to network)
+**RPO Target:** None (no data loss, just sync gap)
 
 **Recovery Steps:**
 
-1. **Provision new hardware/VM**
-   ```bash
-   # Ensure system requirements:
-   # - CPU: 4+ cores
-   # - RAM: 16GB+
-   # - Disk: 500GB+ SSD
-   # - Network: 100Mbps+
-   ```
+#### Step 1: Diagnose Network Partition
 
-2. **Install dependencies**
-   ```bash
-   sudo apt update
-   sudo apt install -y build-essential git
+```bash
+# Check current status
+pawd status 2>&1 | jq '{height: .SyncInfo.latest_block_height, peers: .NodeInfo.network}'
 
-   # Install Go 1.21+
-   wget https://go.dev/dl/go1.21.6.linux-amd64.tar.gz
-   sudo rm -rf /usr/local/go
-   sudo tar -C /usr/local -xzf go1.21.6.linux-amd64.tar.gz
-   export PATH=$PATH:/usr/local/go/bin
-   ```
+# Check peer count
+NUM_PEERS=$(curl -s http://localhost:26657/net_info | jq -r '.result.n_peers')
+echo "Connected to $NUM_PEERS peers"
 
-3. **Build pawd binary**
-   ```bash
-   git clone git@github.com:decristofaroj/paw.git
-   cd paw
-   go build -o pawd ./cmd/...
-   sudo mv pawd /usr/local/bin/
-   ```
+# Check if peers are responding
+curl -s http://localhost:26657/net_info | jq '.result.peers[] | {moniker: .node_info.moniker, remote_ip: .remote_ip}'
 
-4. **Restore from backup** (see [Data Restore Procedures](#data-restore-procedures))
+# Get actual network height from public RPC
+NETWORK_HEIGHT=$(curl -s https://rpc.paw-network.io/status | jq -r '.result.sync_info.latest_block_height')
+LOCAL_HEIGHT=$(pawd status 2>&1 | jq -r '.SyncInfo.latest_block_height')
+echo "Network height: $NETWORK_HEIGHT"
+echo "Local height: $LOCAL_HEIGHT"
+echo "Height difference: $((NETWORK_HEIGHT - LOCAL_HEIGHT))"
+```
 
-5. **Verify configuration**
-   ```bash
-   pawd config chain-id
-   pawd config node tcp://localhost:26657
-   ```
+#### Step 2: Fix Network Configuration
 
-6. **Start node**
-   ```bash
-   pawd start
-   ```
+```bash
+# 1. Stop node
+sudo systemctl stop pawd
 
-### Scenario 2: Corrupted Database
+# 2. Update persistent peers with known good nodes
+# Get current peer list from network
+GOOD_PEERS="node1_id@ip1:26656,node2_id@ip2:26656,node3_id@ip3:26656"
+
+# Update config.toml
+sed -i "s/^persistent_peers = .*/persistent_peers = \"$GOOD_PEERS\"/" ~/.paw/config/config.toml
+
+# 3. Clear address book to force new peer discovery
+rm -f ~/.paw/config/addrbook.json
+
+# 4. Check firewall rules
+sudo ufw status
+# Ensure port 26656 is open:
+sudo ufw allow 26656/tcp
+
+# 5. Verify external IP is correct
+EXTERNAL_IP=$(curl -s ifconfig.me)
+sed -i "s/^external_address = .*/external_address = \"$EXTERNAL_IP:26656\"/" ~/.paw/config/config.toml
+```
+
+#### Step 3: Rollback if Necessary
+
+```bash
+# If node is on wrong fork, rollback to safe height
+# Find common ancestor height with main network
+SAFE_HEIGHT=$((LOCAL_HEIGHT - 1000))  # Go back 1000 blocks
+
+echo "Rolling back to height $SAFE_HEIGHT"
+pawd rollback --hard --unsafe-rollback-height $SAFE_HEIGHT
+
+# CRITICAL for validators: Update priv_validator_state.json
+# to prevent double-signing
+cat > ~/.paw/data/priv_validator_state.json <<EOF
+{
+  "height": "$SAFE_HEIGHT",
+  "round": 0,
+  "step": 0
+}
+EOF
+```
+
+#### Step 4: Restart and Resync
+
+```bash
+# 1. Start node
+sudo systemctl start pawd
+
+# 2. Monitor peer connections
+watch -n 5 'curl -s http://localhost:26657/net_info | jq ".result.n_peers"'
+
+# 3. Monitor sync progress
+watch -n 10 'pawd status 2>&1 | jq ".SyncInfo | {height, catching_up}"'
+
+# 4. Verify joining correct chain
+# Check block hash matches network
+LOCAL_HASH=$(pawd query block | jq -r '.block_id.hash')
+NETWORK_HASH=$(curl -s https://rpc.paw-network.io/block | jq -r '.result.block_id.hash')
+echo "Local hash: $LOCAL_HASH"
+echo "Network hash: $NETWORK_HASH"
+```
+
+### Scenario 4: Consensus Failure / Chain Halt
 
 **Symptoms:**
-- Node crashes on startup
-- Database errors in logs
-- "panic: corrupted database" errors
+- Entire network stopped producing blocks
+- All nodes stuck at same height
+- Validator set cannot achieve 2/3+ consensus
+- Log messages: "consensus failure", "timeout waiting for commit"
 
-**Recovery Options:**
+**RTO Target:** Varies (requires coordination with network operators)
+**RPO Target:** None (network-wide issue)
 
-#### Option A: Restore from Backup (Faster for recent backups)
+**This is a NETWORK-WIDE emergency requiring coordinated response.**
+
+#### Step 1: Confirm Network-Wide Halt
 
 ```bash
+# Check multiple public RPC endpoints
+for rpc in rpc1.paw-network.io rpc2.paw-network.io rpc3.paw-network.io; do
+    echo "Checking $rpc..."
+    LATEST=$(curl -s https://$rpc/status 2>/dev/null | jq -r '.result.sync_info.latest_block_height')
+    echo "  Height: $LATEST"
+    sleep 5
+    LATEST2=$(curl -s https://$rpc/status 2>/dev/null | jq -r '.result.sync_info.latest_block_height')
+    echo "  Height after 5s: $LATEST2"
+    if [[ "$LATEST" == "$LATEST2" ]]; then
+        echo "  STATUS: HALTED"
+    else
+        echo "  STATUS: PRODUCING BLOCKS"
+    fi
+done
+```
+
+#### Step 2: Escalate Immediately
+
+```bash
+# This is a CRITICAL incident
+# Follow escalation procedures immediately:
+
+# 1. Notify all validators via emergency communication channel
+#    (Discord, Telegram, Signal group)
+
+# 2. Join emergency coordination call/chat
+
+# 3. DO NOT restart your node until coordinated restart agreed
+
+# 4. Gather diagnostics for coordination team
+pawd status 2>&1 | jq > /tmp/node-status-$(hostname).json
+journalctl -u pawd -n 500 > /tmp/node-logs-$(hostname).txt
+```
+
+#### Step 3: Coordinated Recovery (with network)
+
+```bash
+# Recovery typically requires coordinated actions:
+
+# Option 1: Coordinated restart at specific block height
+# - All validators agree on rollback height
+# - All validators restart simultaneously
+
+# Option 2: Emergency upgrade/patch
+# - Binary update to fix consensus bug
+# - Coordinated deployment
+
+# Option 3: Manual intervention
+# - Governance proposal to rescue chain
+# - Hard fork if necessary
+
+# Follow instructions from network coordination team
+# Example coordinated restart:
+
 # Stop node
 sudo systemctl stop pawd
 
-# Backup corrupted data (for analysis)
-mv ~/.paw/data ~/.paw/data.corrupted.$(date +%Y%m%d)
+# Rollback to agreed height (e.g., 12345000)
+pawd rollback --hard --unsafe-rollback-height 12345000
 
-# Restore from latest backup (see Data Restore Procedures)
-# ... restoration steps ...
+# Wait for coordinated restart signal
+echo "Waiting for restart signal from coordination team..."
 
-# Start node
+# Restart at agreed time
 sudo systemctl start pawd
+
+# Monitor rejoin
+journalctl -u pawd -f
 ```
 
-#### Option B: State Sync Recovery (Faster for older backups)
+### Scenario 5: State Rollback (Emergency Recovery)
+
+**Symptoms:**
+- Invalid state transition detected
+- Need to recover from governance action
+- Emergency chain repair required
+
+**WARNING:** State rollback is dangerous and should only be performed with network coordination.
+
+#### Safe Rollback Procedure
 
 ```bash
-# Stop node
+# 1. Determine safe rollback height
+CURRENT_HEIGHT=$(pawd status 2>&1 | jq -r '.SyncInfo.latest_block_height')
+echo "Current height: $CURRENT_HEIGHT"
+echo "Enter target rollback height:"
+read ROLLBACK_HEIGHT
+
+# Safety check
+if [[ $ROLLBACK_HEIGHT -ge $CURRENT_HEIGHT ]]; then
+    echo "ERROR: Rollback height must be less than current height"
+    exit 1
+fi
+
+DIFF=$((CURRENT_HEIGHT - ROLLBACK_HEIGHT))
+if [[ $DIFF -gt 10000 ]]; then
+    echo "WARNING: Rolling back $DIFF blocks. Are you sure? (yes/no)"
+    read CONFIRM
+    if [[ "$CONFIRM" != "yes" ]]; then
+        exit 1
+    fi
+fi
+
+# 2. Stop node
 sudo systemctl stop pawd
 
-# Remove corrupted data (keep config)
-rm -rf ~/.paw/data
+# 3. Backup current state
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+mkdir -p ~/paw-rollback-backups
+cp -r ~/.paw/data ~/paw-rollback-backups/data.pre-rollback.$TIMESTAMP
 
-# Initialize fresh data directory
-pawd init $(cat ~/.paw/config/config.toml | grep moniker | cut -d'"' -f2) --recover
+# 4. Perform rollback
+pawd rollback --hard --unsafe-rollback-height $ROLLBACK_HEIGHT
 
-# Configure state sync (see State Sync Recovery section)
-# ... state sync configuration ...
+# 5. CRITICAL: Update priv_validator_state.json (validators only)
+cat > ~/.paw/data/priv_validator_state.json <<EOF
+{
+  "height": "$ROLLBACK_HEIGHT",
+  "round": 0,
+  "step": 0
+}
+EOF
 
-# Start node
-sudo systemctl start pawd
-```
-
-#### Option C: Full Resync (Last resort, slowest)
-
-```bash
-# Stop node
-sudo systemctl stop pawd
-
-# Backup and remove data
-mv ~/.paw/data ~/.paw/data.corrupted.$(date +%Y%m%d)
-mkdir -p ~/.paw/data
-
-# Copy genesis
-cp ~/.paw/config/genesis.json ~/.paw/data/
-
-# Start node (will sync from block 0)
+# 6. Restart node
 sudo systemctl start pawd
 
-# Monitor sync progress
-pawd status | jq '.SyncInfo'
+# 7. Verify rollback success
+sleep 30
+NEW_HEIGHT=$(pawd status 2>&1 | jq -r '.SyncInfo.latest_block_height')
+echo "Node restarted at height: $NEW_HEIGHT"
+echo "Expected height: $ROLLBACK_HEIGHT"
+
+if [[ $NEW_HEIGHT -le $ROLLBACK_HEIGHT ]]; then
+    echo "Rollback successful"
+else
+    echo "WARNING: Height unexpected. Check logs."
+fi
 ```
 
-### Scenario 3: Lost Validator Key (PREVENTION ONLY)
+### Scenario 6: Lost Validator Key (PREVENTION ONLY)
 
 **CRITICAL: Validator private keys CANNOT be recovered once lost.**
 
@@ -417,6 +1089,147 @@ pawd status | jq '.SyncInfo'
 4. May face slashing for downtime
 
 **This is why backup prevention is CRITICAL.**
+
+### Scenario 7: Storage Exhaustion
+
+**Symptoms:**
+- Prometheus/Alertmanager firing on `node_filesystem_avail_bytes`
+- `journalctl` shows `no space left on device`
+- Frequent WAL truncation failures or state-sync snapshot errors
+
+**RTO Target:** < 2 hours (avoid corruption by acting before 95% utilization)
+
+**Immediate Actions (0-10 minutes):**
+```bash
+# Inspect disk usage
+df -h ~/.paw
+sudo du -sh ~/.paw/data/* | sort -h | tail
+
+# Capture evidence for post-incident review
+journalctl -u pawd -n 200 > /tmp/paw-storage-incident.log
+```
+
+**Remediation Steps:**
+1. **Free emergency space**
+   ```bash
+   # Remove old snapshots and WALs first
+   rm -rf ~/.paw/data/snapshots-old/*
+   rm -rf ~/.paw/data/cs.wal/*
+   ```
+2. **Adjust pruning to reduce footprint**
+   ```bash
+   sed -i 's/^pruning = .*/pruning = "custom"/' ~/.paw/config/app.toml
+   sed -i 's/^pruning-keep-recent = .*/pruning-keep-recent = "1000"/' ~/.paw/config/app.toml
+   sed -i 's/^pruning-interval = .*/pruning-interval = "50"/' ~/.paw/config/app.toml
+   ```
+3. **Expand disk or move data**
+   - Attach larger volume and `rsync -a ~/.paw /mnt/newdisk && update DAEMON_HOME`
+   - Or enable LVM/GPT expansion: `sudo growpart /dev/sda 1 && sudo resize2fs /dev/sda1`
+4. **Re-enable monitoring guardrail**
+   ```bash
+   # Add systemd timer to fail safe when disk <10% free
+   sudo tee /etc/systemd/system/paw-disk-guard.service <<'EOF'
+   [Unit]
+   Description=PAW disk guard
+
+   [Service]
+   Type=oneshot
+   ExecStart=/usr/local/bin/paw-disk-guard.sh
+   EOF
+   ```
+
+**Validation:**
+```bash
+df -h ~/.paw | tail -1
+pawd status 2>&1 | jq '.SyncInfo.latest_block_height'
+```
+
+### Scenario 8: Regional Outage / Site Failure
+
+**Symptoms:**
+- Multiple nodes in same cloud region drop simultaneously
+- Load balancer health checks flapping
+- No hardware path to recover quickly in region
+
+**RTO Target:** < 4 hours to restore quorum in alternate region
+
+**Detection Checklist:**
+```bash
+for rpc in rpc-{a,b,c}.paw.region-a.internal; do
+  curl -s http://$rpc:26657/status >/dev/null || echo "$rpc unreachable"
+done
+```
+
+**Failover Procedure:**
+1. **Declare regional incident** and freeze automation that might recycle hosts.
+2. **Spin up standby region** (pre-provisioned `paw-standby-us-east` Terraform workspace):
+   ```bash
+   cd infra/terraform/paw-standby-us-east
+   terraform apply -var "replica_count=4" -auto-approve
+   ```
+3. **Restore artifacts**
+   - Pull latest snapshot bundle: `scripts/devnet/package-testnet-artifacts.sh` (already mirrored).
+   - Sync secrets via SOPS/KMS (validator keys stored in secure bucket).
+4. **Bootstrap network plumbing**
+   - Update DNS or GSLB weights to send traffic to standby RPC set.
+   - Update `networks/paw-testnet-1/peers.txt` with new sentry endpoints.
+5. **Gradual re-introduction**
+   ```bash
+   pawd status 2>&1 | jq '.NodeInfo.moniker'
+   scripts/verify-network-artifacts.sh paw-testnet-1
+   ```
+
+**Communication Template:**
+```
+Status: REGIONAL OUTAGE (us-west2)
+Impact: Validators V1/V2 offline, RPC endpoints unreachable
+Action: Failing over to us-east1 standby (ETA 45 min)
+Next Update: +15 min
+```
+
+### Scenario 9: Compromised Host or Ransomware
+
+**Symptoms:**
+- Unexpected file changes, unknown processes, or IDS alert
+- Validator key access anomalies
+- Ransom notes or encrypted data on host
+
+**Immediate Containment (first 5 minutes):**
+```bash
+# Quarantine host - pull network but keep power for forensics
+sudo systemctl stop pawd
+sudo iptables -P INPUT DROP
+sudo iptables -P OUTPUT DROP
+
+# Capture volatile evidence
+ps auxfw > /tmp/paw-compromise-processes.txt
+sar -u 1 5 > /tmp/paw-compromise-cpu.txt
+```
+
+**Recovery Steps:**
+1. **Invalidate credentials**
+   - Rotate SSH keys, disable IAM tokens.
+   - Revoke validator hot-keys; switch to backup signer if available.
+2. **Forensic snapshot**
+   ```bash
+   sudo tar -czf /tmp/paw-host-forensics.tgz /var/log /home /etc /usr/local/bin/pawd
+   sha256sum /tmp/paw-host-forensics.tgz > /tmp/paw-host-forensics.tgz.sha256
+   ```
+3. **Provision clean host** following Scenario 1, but **do not** reuse compromised disks.
+4. **Restore from known-good backup** dated prior to compromise.
+5. **Force validator key rotation** if compromise suspected:
+   ```bash
+   pawd tx staking create-validator ... --new-key <HSM>
+   # Or submit key-rotation governance proposal if protocol supports it
+   ```
+6. **Audit network peers**
+   - Replace `persistent_peers` with vetted sentries only.
+   - Enable `addr_book_strict = true`.
+
+**Post-Incident Tasks:**
+- File security incident report within 24 hours.
+- Run `scripts/verify-monitoring.sh` to ensure telemetry unaffected.
+- Update ROADMAP lessons learned plus tabletop exercise backlog.
 
 ### Scenario 4: Network Partition / Stale Chain State
 
@@ -867,6 +1680,28 @@ echo "=== Validation Complete ==="
 | State sync recovery | Quarterly | Validate state sync configuration |
 | Validator key restore | Annually | Verify key backup encryption |
 | Full node rebuild | Annually | Test complete disaster recovery |
+
+### Recovery Drill Metrics Matrix
+
+Track drills with quantitative goals so we can prove RTO/RPO compliance.
+
+| Scenario | RTO Target | RPO Target | Success Metrics | Automation Hook |
+|----------|------------|------------|-----------------|-----------------|
+| Scenario 1 (Node loss) | <60 min validator | Last snapshot | Node serving blocks + Prometheus healthy within SLA | `scripts/health-check-all.sh` |
+| Scenario 2 (DB corruption) | <120 min | Backup age or state sync gap | `pawd status` catching_up=false, no LevelDB errors for 30 min | `scripts/verify-node-metrics.sh` |
+| Scenario 7 (Storage) | <120 min to <80% disk | None | `df` shows <80% utilization, pruning tuned | `/usr/local/bin/paw-disk-guard.sh` |
+| Scenario 8 (Regional failover) | <240 min | Latest snapshot | Standby region nodes producing blocks + DNS cutover complete | `scripts/devnet/verify-network-artifacts.sh` |
+| Scenario 9 (Compromise) | <60 min isolation | Most recent clean backup | Quarantined host, new node online, forensic bundle stored | `scripts/security_monitor.go` |
+
+After each drill, append metrics to `logs/recovery-drills/YYYY-MM.md` using:
+
+```bash
+cat <<EOF >> logs/recovery-drills/$(date +%Y-%m).md
+- $(date -Iseconds) Scenario ${SCENARIO}: duration ${DURATION}m, data_loss ${DATA_LOSS} blocks, status ${STATUS}
+EOF
+```
+
+Quarterly review ensures all metrics trend downward; flag regressions via GitHub issue labeled `area:disaster-recovery`.
 
 ### Documentation of Test Results
 

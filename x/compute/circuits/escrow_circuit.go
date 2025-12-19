@@ -25,27 +25,27 @@ type EscrowCircuit struct {
 
 	// Private inputs
 	// Request details
-	RequestNonce         frontend.Variable `gnark:",private"` // Unique request nonce
-	RequesterAddress     [20]frontend.Variable `gnark:",private"` // Requester address bytes
-	ProviderAddress      [20]frontend.Variable `gnark:",private"` // Provider address bytes
+	RequestNonce     frontend.Variable     `gnark:",secret"` // Unique request nonce
+	RequesterAddress [20]frontend.Variable `gnark:",secret"` // Requester address bytes
+	ProviderAddress  [20]frontend.Variable `gnark:",secret"` // Provider address bytes
 
 	// Computation proof
-	ResultHash           frontend.Variable `gnark:",private"` // Hash of computation result
-	ExecutionSuccess     frontend.Variable `gnark:",private"` // 1 if successful, 0 if failed
-	VerificationPassed   frontend.Variable `gnark:",private"` // 1 if verified, 0 otherwise
+	ResultHash         frontend.Variable `gnark:",secret"` // Hash of computation result
+	ExecutionSuccess   frontend.Variable `gnark:",secret"` // 1 if successful, 0 if failed
+	VerificationPassed frontend.Variable `gnark:",secret"` // 1 if verified, 0 otherwise
 
 	// Resource validation
-	EstimatedCost        frontend.Variable `gnark:",private"` // Original cost estimate
-	ActualCost           frontend.Variable `gnark:",private"` // Actual computation cost
+	EstimatedCost frontend.Variable `gnark:",secret"` // Original cost estimate
+	ActualCost    frontend.Variable `gnark:",secret"` // Actual computation cost
 
 	// Slashing conditions
-	ProviderMisbehavior  frontend.Variable `gnark:",private"` // 1 if provider misbehaved
-	RequesterCancelled   frontend.Variable `gnark:",private"` // 1 if requester cancelled
+	ProviderMisbehavior frontend.Variable `gnark:",secret"` // 1 if provider misbehaved
+	RequesterCancelled  frontend.Variable `gnark:",secret"` // 1 if requester cancelled
 
 	// Timing
-	StartTimestamp       frontend.Variable `gnark:",private"` // Computation start time
-	EndTimestamp         frontend.Variable `gnark:",private"` // Computation end time
-	DeadlineTimestamp    frontend.Variable `gnark:",private"` // Required completion deadline
+	StartTimestamp    frontend.Variable `gnark:",secret"` // Computation start time
+	EndTimestamp      frontend.Variable `gnark:",secret"` // Computation end time
+	DeadlineTimestamp frontend.Variable `gnark:",secret"` // Required completion deadline
 }
 
 // Define implements the gnark Circuit interface for escrow release constraints.

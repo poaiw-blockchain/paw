@@ -40,15 +40,6 @@ var insecureRandom = map[string]string{
 	"math/rand": "math/rand is not cryptographically secure, use crypto/rand instead",
 }
 
-// Required crypto packages for blockchain
-var requiredCryptoPackages = []string{
-	"crypto/rand",
-	"crypto/sha256",
-	"crypto/sha512",
-	"crypto/ecdsa",
-	"crypto/ed25519",
-}
-
 func main() {
 	if len(os.Args) < 2 {
 		// Default to current directory
@@ -142,25 +133,22 @@ func checkImports(file *ast.File, filename string) {
 
 func checkHardcodedSecrets(file *ast.File, filename string) {
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.BasicLit:
-			if x.Kind == token.STRING {
-				value := strings.ToLower(x.Value)
+		if x, ok := n.(*ast.BasicLit); ok && x.Kind == token.STRING {
+			value := strings.ToLower(x.Value)
 
-				// Check for potential hardcoded secrets
-				secretKeywords := []string{"password", "secret", "api_key", "apikey", "private_key", "privatekey", "token"}
-				for _, keyword := range secretKeywords {
-					if strings.Contains(value, keyword) && len(x.Value) > len(keyword)+10 {
-						addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
-							"HIGH", "Hardcoded Secret", fmt.Sprintf("Potential hardcoded secret containing '%s'", keyword))
-					}
-				}
-
-				// Check for hex-encoded strings that might be keys (common pattern)
-				if len(x.Value) > 32 && isHexString(strings.Trim(x.Value, `"`)) {
+			// Check for potential hardcoded secrets
+			secretKeywords := []string{"password", "secret", "api_key", "apikey", "private_key", "privatekey", "token"}
+			for _, keyword := range secretKeywords {
+				if strings.Contains(value, keyword) && len(x.Value) > len(keyword)+10 {
 					addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
-						"MEDIUM", "Potential Key", "Long hex string that might be a hardcoded key")
+						"HIGH", "Hardcoded Secret", fmt.Sprintf("Potential hardcoded secret containing '%s'", keyword))
 				}
+			}
+
+			// Check for hex-encoded strings that might be keys (common pattern)
+			if len(x.Value) > 32 && isHexString(strings.Trim(x.Value, `"`)) {
+				addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
+					"MEDIUM", "Potential Key", "Long hex string that might be a hardcoded key")
 			}
 		}
 		return true
@@ -169,8 +157,7 @@ func checkHardcodedSecrets(file *ast.File, filename string) {
 
 func checkRandomUsage(file *ast.File, filename string) {
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.CallExpr:
+		if x, ok := n.(*ast.CallExpr); ok {
 			if sel, ok := x.Fun.(*ast.SelectorExpr); ok {
 				if ident, ok := sel.X.(*ast.Ident); ok {
 					// Check for rand.Read or rand.Int usage
@@ -191,14 +178,11 @@ func checkRandomUsage(file *ast.File, filename string) {
 
 func checkKeySizes(file *ast.File, filename string) {
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.BasicLit:
-			if x.Kind == token.INT {
-				// Check for small key sizes
-				if x.Value == "1024" || x.Value == "512" {
-					addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
-						"MEDIUM", "Key Size", "Potential weak key size (should be at least 2048 for RSA)")
-				}
+		if x, ok := n.(*ast.BasicLit); ok && x.Kind == token.INT {
+			// Check for small key sizes
+			if x.Value == "1024" || x.Value == "512" {
+				addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
+					"MEDIUM", "Key Size", "Potential weak key size (should be at least 2048 for RSA)")
 			}
 		}
 		return true
@@ -207,16 +191,11 @@ func checkKeySizes(file *ast.File, filename string) {
 
 func checkTLSConfig(file *ast.File, filename string) {
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.KeyValueExpr:
-			if ident, ok := x.Key.(*ast.Ident); ok {
-				if ident.Name == "InsecureSkipVerify" {
-					if basicLit, ok := x.Value.(*ast.Ident); ok {
-						if basicLit.Name == "true" {
-							addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
-								"HIGH", "TLS Configuration", "InsecureSkipVerify is set to true - this is insecure")
-						}
-					}
+		if x, ok := n.(*ast.KeyValueExpr); ok {
+			if ident, ok := x.Key.(*ast.Ident); ok && ident.Name == "InsecureSkipVerify" {
+				if basicLit, ok := x.Value.(*ast.Ident); ok && basicLit.Name == "true" {
+					addIssue(filename, fset.Position(x.Pos()).Line, fset.Position(x.Pos()).Column,
+						"HIGH", "TLS Configuration", "InsecureSkipVerify is set to true - this is insecure")
 				}
 			}
 		}
@@ -225,7 +204,7 @@ func checkTLSConfig(file *ast.File, filename string) {
 }
 
 func isHexString(s string) bool {
-	if len(s) == 0 {
+	if s == "" {
 		return false
 	}
 	for _, c := range s {

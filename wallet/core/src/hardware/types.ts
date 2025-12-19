@@ -110,6 +110,22 @@ export interface HardwareWalletConfig {
   /** Address prefix (default: paw) */
   prefix?: string;
 
+  /** Preferred signing mode */
+  signMode?: 'amino' | 'direct' | 'auto';
+
+  /** Enforce chain-id match before signing */
+  enforceChainId?: string;
+
+  /** Allowed fee denominations (default: upaw only) */
+  allowedFeeDenoms?: string[];
+
+  /** Maximum BIP44 account index allowed (default: 4 => paths 0-4) */
+  maxAccountIndex?: number;
+
+  /** Optional product/manufacturer allow list for basic device attestation */
+  allowedManufacturers?: string[];
+  allowedProductNames?: string[];
+
   /** Enable debug logging */
   debug?: boolean;
 }

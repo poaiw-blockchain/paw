@@ -12,18 +12,20 @@ import (
 
 // ComputeDecorator validates compute module-specific transaction requirements
 type ComputeDecorator struct {
-	keeper computekeeper.Keeper
+	keeper *computekeeper.Keeper
 }
 
 // NewComputeDecorator creates a new ComputeDecorator
-func NewComputeDecorator(keeper computekeeper.Keeper) ComputeDecorator {
-	return ComputeDecorator{
+func NewComputeDecorator(keeper *computekeeper.Keeper) *ComputeDecorator {
+	return &ComputeDecorator{
 		keeper: keeper,
 	}
 }
 
-// AnteHandle implements the AnteDecorator interface
-func (cd ComputeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+// AnteHandle implements the AnteDecorator interface.
+//
+//nolint:gocritic // sdk.Context is passed by value per Cosmos SDK AnteHandler contract.
+func (cd *ComputeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// Skip validation during simulation
 	if simulate {
 		return next(ctx, tx, simulate)
@@ -50,8 +52,10 @@ func (cd ComputeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool,
 	return next(ctx, tx, simulate)
 }
 
-// validateSubmitRequest performs additional validation for compute requests
-func (cd ComputeDecorator) validateSubmitRequest(ctx sdk.Context, msg *computetypes.MsgSubmitRequest) error {
+// validateSubmitRequest performs additional validation for compute requests.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (cd *ComputeDecorator) validateSubmitRequest(ctx sdk.Context, msg *computetypes.MsgSubmitRequest) error {
 	// Check if requester has sufficient balance for max payment
 	requester, err := sdk.AccAddressFromBech32(msg.Requester)
 	if err != nil {
@@ -72,8 +76,10 @@ func (cd ComputeDecorator) validateSubmitRequest(ctx sdk.Context, msg *computety
 	return nil
 }
 
-// validateRegisterProvider performs additional validation for provider registration
-func (cd ComputeDecorator) validateRegisterProvider(ctx sdk.Context, msg *computetypes.MsgRegisterProvider) error {
+// validateRegisterProvider performs additional validation for provider registration.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (cd *ComputeDecorator) validateRegisterProvider(ctx sdk.Context, msg *computetypes.MsgRegisterProvider) error {
 	provider, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
@@ -103,8 +109,10 @@ func (cd ComputeDecorator) validateRegisterProvider(ctx sdk.Context, msg *comput
 	return nil
 }
 
-// validateSubmitResult performs additional validation for result submission
-func (cd ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetypes.MsgSubmitResult) error {
+// validateSubmitResult performs additional validation for result submission.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (cd *ComputeDecorator) validateSubmitResult(ctx sdk.Context, msg *computetypes.MsgSubmitResult) error {
 	provider, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)

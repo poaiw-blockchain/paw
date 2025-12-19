@@ -2,11 +2,12 @@ package tests
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
-	"paw/control-center/audit-log/storage"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/storage"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -274,8 +275,10 @@ func TestPostgresStorage_GetTimeline(t *testing.T) {
 // setupTestStorage creates a test storage instance
 // In a real implementation, this would set up a test database
 func setupTestStorage(t *testing.T) (*storage.PostgresStorage, func()) {
-	// Use test database connection string
-	connString := "postgres://testuser:testpass@localhost:5432/audit_test?sslmode=disable"
+	connString := os.Getenv("PAW_AUDITLOG_TEST_DB")
+	if connString == "" {
+		t.Skip("PAW_AUDITLOG_TEST_DB is not set; skipping audit-log integration tests")
+	}
 
 	stor, err := storage.NewPostgresStorage(connString)
 	require.NoError(t, err)

@@ -1,0 +1,15 @@
+<div id="wcModal" style="position:fixed;top:0;left:0;right:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:9999;">
+  <div style="background:#fff;padding:16px;border-radius:8px;width:320px;box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+    <h3 style="margin-top:0;">WalletConnect Request</h3>
+    <pre id="wcSummary" style="white-space:pre-wrap;font-size:12px;background:#f7f7f7;padding:8px;border-radius:6px;max-height:200px;overflow:auto;"></pre>
+    <div style="display:flex;flex-direction:column;gap:4px;font-size:12px;margin-top:8px;">
+      <div id="wcHardwareStatus"></div>
+      <div id="wcAllowlistInfo"></div>
+      <div id="wcStatus" style="color:#555;">Awaiting approval</div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+      <button id="wcReject">Reject</button>
+      <button id="wcApprove" style="background:#0070f3;color:#fff;border:none;padding:6px 10px;border-radius:4px;">Approve</button>
+    </div>
+  </div>
+</div>

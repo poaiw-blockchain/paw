@@ -234,9 +234,6 @@ func (suite *CryptoSecurityTestSuite) TestBIP32_HDKeyDerivation() {
 	// BIP44 path: m/44'/118'/0'/0/0 (Cosmos standard)
 	const coinType = 118 // Cosmos
 	const account = 0
-	const change = 0
-	const addressIndex = 0
-
 	// Test key derivation at different paths
 	testPaths := []struct {
 		name  string
@@ -302,13 +299,13 @@ func (suite *CryptoSecurityTestSuite) TestHashCollision_Resistance() {
 func (suite *CryptoSecurityTestSuite) TestWeakKeys_Detection() {
 	// Test that we cannot create keys from weak entropy
 	weakEntropySources := [][]byte{
-		make([]byte, 32),                                       // All zeros
-		[]byte{0xFF, 0xFF, 0xFF, 0xFF},                         // All ones (partial)
-		[]byte{0x01, 0x02, 0x03, 0x04},                         // Sequential (partial)
-		[]byte{0xAA, 0xAA, 0xAA, 0xAA},                         // Repeated pattern (partial)
-		[]byte("password"),                                     // Dictionary word
-		[]byte("12345678"),                                     // Weak password
-		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, // Nearly all zeros
+		make([]byte, 32),                                 // All zeros
+		{0xFF, 0xFF, 0xFF, 0xFF},                         // All ones (partial)
+		{0x01, 0x02, 0x03, 0x04},                         // Sequential (partial)
+		{0xAA, 0xAA, 0xAA, 0xAA},                         // Repeated pattern (partial)
+		[]byte("password"),                               // Dictionary word
+		[]byte("12345678"),                               // Weak password
+		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}, // Nearly all zeros
 	}
 
 	for i, entropy := range weakEntropySources {
@@ -371,11 +368,7 @@ func (suite *CryptoSecurityTestSuite) detectWeakEntropy(data []byte) bool {
 			break
 		}
 	}
-	if sequential {
-		return true
-	}
-
-	return false
+	return sequential
 }
 
 // TestTimingAttack_Resistance tests resistance to timing attacks

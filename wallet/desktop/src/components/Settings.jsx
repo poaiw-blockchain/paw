@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { makeMultisigThresholdPubkey, pubkeyToAddress } from '@cosmjs/amino';
 import { KeystoreService } from '../services/keystore';
+import LedgerService from '../services/ledger';
 
 const Settings = ({ onWalletReset }) => {
   const [apiEndpoint, setApiEndpoint] = useState('http://localhost:1317');
@@ -11,8 +13,16 @@ const Settings = ({ onWalletReset }) => {
   const [version, setVersion] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cosigners, setCosigners] = useState([
+    { name: 'Signer 1', pubkey: '', transport: 'hardware', path: "m/44'/118'/0'/0/0" },
+    { name: 'Signer 2', pubkey: '', transport: 'hardware', path: "m/44'/118'/1'/0/0" },
+  ]);
+  const [threshold, setThreshold] = useState(2);
+  const [multisigResult, setMultisigResult] = useState(null);
+  const [multisigError, setMultisigError] = useState('');
 
   const keystoreService = new KeystoreService();
+  const ledgerService = new LedgerService();
 
   useEffect(() => {
     loadSettings();
@@ -102,6 +112,7 @@ const Settings = ({ onWalletReset }) => {
       if (result.response === 1) {
         try {
           await keystoreService.clearWallet();
+          await ledgerService.clearSavedWallet();
           if (onWalletReset) {
             onWalletReset();
           }
@@ -109,6 +120,53 @@ const Settings = ({ onWalletReset }) => {
           setError('Failed to reset wallet');
         }
       }
+    }
+  };
+
+  const handleCosignerChange = (index, field, value) => {
+    const next = [...cosigners];
+    next[index] = { ...next[index], [field]: value };
+    setCosigners(next);
+  };
+
+  const addCosigner = () => {
+    setCosigners([
+      ...cosigners,
+      { name: `Signer ${cosigners.length + 1}`, pubkey: '', transport: 'hardware', path: "m/44'/118'/0'/0/0" },
+    ]);
+  };
+
+  const removeCosigner = (index) => {
+    if (cosigners.length <= 2) return;
+    setCosigners(cosigners.filter((_, i) => i !== index));
+  };
+
+  const generateMultisigBundle = () => {
+    try {
+      setMultisigError('');
+      if (threshold < 1 || threshold > cosigners.length) {
+        throw new Error('Threshold must be between 1 and the number of cosigners');
+      }
+      const prefix = 'paw';
+      const pubkeys = cosigners.map((c) => {
+        if (!c.pubkey?.trim()) {
+          throw new Error('All cosigners must include a base64 secp256k1 pubkey');
+        }
+        return { type: 'tendermint/PubKeySecp256k1', value: c.pubkey.trim() };
+      });
+      const multisig = makeMultisigThresholdPubkey(pubkeys, threshold);
+      const address = pubkeyToAddress(multisig, prefix);
+      const bundle = {
+        threshold,
+        prefix,
+        cosigners,
+        address,
+        note: 'Standard PAW multisig bundle; share with cosigners for recovery or signing.',
+      };
+      setMultisigResult(JSON.stringify(bundle, null, 2));
+    } catch (err) {
+      setMultisigError(err.message);
+      setMultisigResult(null);
     }
   };
 
@@ -215,6 +273,84 @@ const Settings = ({ onWalletReset }) => {
               Hide Mnemonic
             </button>
           </>
+        )}
+      </div>
+
+      <div className="card">
+        <h3 className="card-header">Multisig / Recovery</h3>
+        <p className="text-muted mb-10">
+          Build a hardware-first multisig bundle (2-5 signers). Provide secp256k1 pubkeys (base64), optional transport/path hints, and choose a threshold.
+        </p>
+        <div className="form-group">
+          <label className="form-label">Threshold</label>
+          <input
+            type="number"
+            className="form-input"
+            value={threshold}
+            min={1}
+            max={cosigners.length}
+            onChange={(e) => setThreshold(Number(e.target.value))}
+          />
+        </div>
+        {cosigners.map((cosigner, idx) => (
+          <div key={idx} className="form-group" style={{ border: '1px solid var(--border)', padding: '10px', borderRadius: '6px', marginBottom: '10px' }}>
+            <div className="flex-between" style={{ gap: '10px', alignItems: 'center' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Cosigner label"
+                value={cosigner.name}
+                onChange={(e) => handleCosignerChange(idx, 'name', e.target.value)}
+              />
+              {cosigners.length > 2 && (
+                <button className="btn btn-secondary" onClick={() => removeCosigner(idx)} style={{ minWidth: '80px' }}>
+                  Remove
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Pubkey (base64 secp256k1)"
+              value={cosigner.pubkey}
+              onChange={(e) => handleCosignerChange(idx, 'pubkey', e.target.value)}
+              style={{ marginTop: '8px' }}
+            />
+            <div className="flex-between" style={{ gap: '10px', marginTop: '8px' }}>
+              <select
+                className="form-input"
+                value={cosigner.transport}
+                onChange={(e) => handleCosignerChange(idx, 'transport', e.target.value)}
+              >
+                <option value="hardware">Hardware (Ledger/Trezor)</option>
+                <option value="software">Software</option>
+              </select>
+              <input
+                type="text"
+                className="form-input"
+                value={cosigner.path}
+                onChange={(e) => handleCosignerChange(idx, 'path', e.target.value)}
+                placeholder="Derivation path m/44'/118'/0'/0/0"
+              />
+            </div>
+          </div>
+        ))}
+        <div className="flex-between" style={{ marginBottom: '10px' }}>
+          <button className="btn btn-secondary" onClick={addCosigner}>
+            Add Cosigner
+          </button>
+          <button className="btn btn-primary" onClick={generateMultisigBundle}>
+            Generate Bundle
+          </button>
+        </div>
+        {multisigError && <div className="text-error mb-10">{multisigError}</div>}
+        {multisigResult && (
+          <textarea
+            className="form-textarea"
+            style={{ fontFamily: 'monospace', height: '160px' }}
+            readOnly
+            value={multisigResult}
+          />
         )}
       </div>
 

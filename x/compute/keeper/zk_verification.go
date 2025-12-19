@@ -377,34 +377,51 @@ func computeResultHashMiMC(
 
 	h := mimcfr.NewMiMC()
 
-	writeElem := func(e fr.Element) {
+	writeElem := func(e fr.Element) error {
 		b := e.Bytes()
-		h.Write(b[:])
+		if _, err := h.Write(b[:]); err != nil {
+			return fmt.Errorf("failed to hash element: %w", err)
+		}
+		return nil
 	}
 
 	var elem fr.Element
 	elem.SetUint64(requestID)
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	providerHash := sha256.Sum256(providerAddress.Bytes())
 	elem.SetBytes(providerHash[:])
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	computationHash := sha256.Sum256(computationData)
 	elem.SetBytes(computationHash[:])
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	elem.SetUint64(uint64(executionTimestamp))
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	elem.SetUint64(uint64(exitCode))
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	elem.SetUint64(cpuCyclesUsed)
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	elem.SetUint64(memoryBytesUsed)
-	writeElem(elem)
+	if err := writeElem(elem); err != nil {
+		return nil, err
+	}
 
 	sum := h.Sum(nil)
 	if len(sum) != sha256.Size {

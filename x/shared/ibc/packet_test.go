@@ -362,6 +362,15 @@ func TestChannelOpenValidator_ValidateChannelOpenTry(t *testing.T) {
 			errContains:         "expected v1, got v2",
 		},
 		{
+			name:                "invalid port",
+			order:               channeltypes.ORDERED,
+			portID:              "wrong-port",
+			channelID:           "channel-0",
+			counterpartyVersion: "v1",
+			wantErr:             true,
+			errContains:         "expected port test-port, got wrong-port",
+		},
+		{
 			name:                "claim capability fails",
 			order:               channeltypes.ORDERED,
 			portID:              "test-port",

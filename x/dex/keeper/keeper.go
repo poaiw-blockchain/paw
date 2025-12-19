@@ -12,6 +12,7 @@ import (
 	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+
 	"github.com/paw-chain/paw/app/ibcutil"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 )
@@ -78,7 +79,7 @@ func (k Keeper) GetChannelCapability(ctx sdk.Context, portID, channelID string) 
 }
 
 // BindPort binds the IBC port for the dex module and claims the capability.
-func (k Keeper) BindPort(ctx sdk.Context) error {
+func (k *Keeper) BindPort(ctx sdk.Context) error {
 	if k.portKeeper.IsBound(ctx, dextypes.PortID) {
 		if cap, ok := k.scopedKeeper.GetCapability(ctx, host.PortPath(dextypes.PortID)); ok {
 			k.portCapability = cap

@@ -11,10 +11,20 @@ if [ "$NUM_VALIDATORS" -lt 2 ] || [ "$NUM_VALIDATORS" -gt 4 ]; then
   exit 1
 fi
 
-CHAIN_ID="paw-devnet"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck source=./lib.sh
+source "${SCRIPT_DIR}/lib.sh"
+CHAIN_ID="${CHAIN_ID:-paw-devnet}"
 KEYRING_BACKEND="test"
-STATE_DIR="$(dirname "$0")/.state"
+STATE_DIR="${SCRIPT_DIR}/.state"
 GENESIS_DIR="/tmp/paw-multivalidator-genesis"
+PAWD_BIN="${PAWD_BIN:-${PROJECT_ROOT}/pawd}"
+
+if [[ ! -x "${PAWD_BIN}" ]]; then
+  echo "[setup-validators] pawd binary not found at ${PAWD_BIN}" >&2
+  exit 1
+fi
 
 echo "=== Setting up ${NUM_VALIDATORS}-validator genesis ==="
 
@@ -23,7 +33,7 @@ mkdir -p "$GENESIS_DIR" "$STATE_DIR"
 
 # Create base genesis
 BASE_HOME="$GENESIS_DIR/base"
-./pawd init genesis-builder --chain-id "$CHAIN_ID" --default-denom upaw --home "$BASE_HOME" >/dev/null 2>&1
+"${PAWD_BIN}" init genesis-builder --chain-id "$CHAIN_ID" --default-denom upaw --home "$BASE_HOME" >/dev/null 2>&1
 
 echo "✓ Initialized base genesis"
 
@@ -34,12 +44,12 @@ mkdir -p "$BASE_HOME/config/gentx"
 for i in $(seq 1 $NUM_VALIDATORS); do
   echo "Setting up node${i} validator..."
 
-  key_output=$(./pawd keys add "node${i}_validator" --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
+  key_output=$("${PAWD_BIN}" keys add "node${i}_validator" --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
   mnemonic=$(echo "$key_output" | grep -v "^-" | grep -v "address:" | grep -v "pubkey:" | grep -v "type:" | tail -1)
   echo "$mnemonic" > "${STATE_DIR}/node${i}_validator.mnemonic"
   chmod 600 "${STATE_DIR}/node${i}_validator.mnemonic"
 
-  ./pawd add-genesis-account "node${i}_validator" 500000000000upaw \
+  "${PAWD_BIN}" add-genesis-account "node${i}_validator" 500000000000upaw \
     --keyring-backend "$KEYRING_BACKEND" \
     --home "$BASE_HOME" >/dev/null 2>&1
 
@@ -47,25 +57,45 @@ for i in $(seq 1 $NUM_VALIDATORS); do
 done
 
 # Add test accounts
-key_output=$(./pawd keys add smoke-trader --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
+key_output=$("${PAWD_BIN}" keys add smoke-trader --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
 mnemonic=$(echo "$key_output" | grep -v "^-" | grep -v "address:" | grep -v "pubkey:" | grep -v "type:" | tail -1)
 echo "$mnemonic" > "${STATE_DIR}/smoke-trader.mnemonic"
 chmod 600 "${STATE_DIR}/smoke-trader.mnemonic"
 
-./pawd add-genesis-account smoke-trader 150000000000upaw,150000000000ufoo,150000000000ubar \
+"${PAWD_BIN}" add-genesis-account smoke-trader 150000000000upaw,150000000000ufoo,150000000000ubar \
   --keyring-backend "$KEYRING_BACKEND" \
   --home "$BASE_HOME" >/dev/null 2>&1
 
-key_output=$(./pawd keys add smoke-counterparty --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
+key_output=$("${PAWD_BIN}" keys add smoke-counterparty --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
 mnemonic=$(echo "$key_output" | grep -v "^-" | grep -v "address:" | grep -v "pubkey:" | grep -v "type:" | tail -1)
 echo "$mnemonic" > "${STATE_DIR}/smoke-counterparty.mnemonic"
 chmod 600 "${STATE_DIR}/smoke-counterparty.mnemonic"
 
-./pawd add-genesis-account smoke-counterparty 50000000000upaw \
+"${PAWD_BIN}" add-genesis-account smoke-counterparty 50000000000upaw \
   --keyring-backend "$KEYRING_BACKEND" \
   --home "$BASE_HOME" >/dev/null 2>&1
 
-echo "✓ Created test accounts"
+echo "Setting up faucet account..."
+key_output=$("${PAWD_BIN}" keys add faucet --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" 2>&1)
+mnemonic=$(echo "$key_output" | grep -v "^-" | grep -v "address:" | grep -v "pubkey:" | grep -v "type:" | tail -1)
+if [ -n "$mnemonic" ]; then
+  echo "$mnemonic" > "${STATE_DIR}/faucet.mnemonic"
+  chmod 600 "${STATE_DIR}/faucet.mnemonic"
+fi
+printf '%s\n' "$key_output" > "${STATE_DIR}/faucet_key.yaml"
+chmod 600 "${STATE_DIR}/faucet_key.yaml"
+"${PAWD_BIN}" add-genesis-account faucet 5000000000000upaw \
+  --keyring-backend "$KEYRING_BACKEND" \
+  --home "$BASE_HOME" >/dev/null 2>&1
+F_ADDR=$(show_key_address "${PAWD_BIN}" faucet --keyring-backend "$KEYRING_BACKEND" --home "$BASE_HOME" || true)
+if [[ -z "${F_ADDR}" ]]; then
+  echo "[setup-validators] failed to derive faucet address" >&2
+  exit 1
+fi
+printf '%s\n' "${F_ADDR}" > "${STATE_DIR}/faucet.address"
+chmod 600 "${STATE_DIR}/faucet.address"
+
+echo "✓ Created test accounts and faucet"
 
 # Create gentxs - each in own home for unique priv_validator_key
 for i in $(seq 1 $NUM_VALIDATORS); do
@@ -76,11 +106,11 @@ for i in $(seq 1 $NUM_VALIDATORS); do
   cp "$BASE_HOME/config/genesis.json" "$NODE_HOME/config/"
 
   # Init to get unique priv_validator_key
-  ./pawd init "node${i}" --chain-id "$CHAIN_ID" --home "$NODE_HOME" --overwrite >/dev/null 2>&1
+  "${PAWD_BIN}" init "node${i}" --chain-id "$CHAIN_ID" --home "$NODE_HOME" --overwrite >/dev/null 2>&1
   cp "$BASE_HOME/config/genesis.json" "$NODE_HOME/config/genesis.json"
 
   echo "Creating gentx for node${i}..."
-  ./pawd gentx "node${i}_validator" 250000000000upaw \
+  "${PAWD_BIN}" gentx "node${i}_validator" 250000000000upaw \
     --chain-id "$CHAIN_ID" \
     --moniker "node${i}" \
     --commission-rate "0.10" \
@@ -113,7 +143,7 @@ PY
 
 # Collect gentxs
 echo "Collecting gentxs..."
-./pawd collect-gentxs --home "$BASE_HOME" >/dev/null 2>&1
+"${PAWD_BIN}" collect-gentxs --home "$BASE_HOME" >/dev/null 2>&1
 
 # Add ValidatorSigningInfo for each validator to genesis
 # This fixes the "no validator signing info found" error in SDK v0.50.x
@@ -178,7 +208,7 @@ with open(genesis_path, 'w') as f:
 PY
 
 # Validate
-./pawd validate-genesis --home "$BASE_HOME" >/dev/null 2>&1
+"${PAWD_BIN}" validate-genesis --home "$BASE_HOME" >/dev/null 2>&1
 
 # Sanity-check bond denom and validator count
 STAKING_VAL_COUNT=$(jq '.app_state.staking.validators | length' "$BASE_HOME/config/genesis.json")
@@ -202,9 +232,6 @@ fi
 # Save
 cp "$BASE_HOME/config/genesis.json" "${STATE_DIR}/genesis.json"
 chmod 644 "${STATE_DIR}/genesis.json"
-
-# Check validator count
-VAL_COUNT=$(./pawd query staking validators --home "$BASE_HOME" --output json 2>/dev/null | jq '.validators | length' || echo "${NUM_VALIDATORS}")
 
 echo ""
 echo "=== ✓ Multi-validator genesis complete ==="

@@ -10,6 +10,7 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -803,7 +804,7 @@ func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddr
 	for ; countIter.Valid(); countIter.Next() {
 		count++
 	}
-	countIter.Close()
+	defer countIter.Close()
 
 	// Then paginate
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
@@ -889,7 +890,7 @@ func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pag
 	for ; countIter.Valid(); countIter.Next() {
 		count++
 	}
-	countIter.Close()
+	defer countIter.Close()
 
 	// Then paginate
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)

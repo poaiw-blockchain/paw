@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -828,8 +829,13 @@ func (k Keeper) executeRemoteSwap(
 	// Send IBC transfer packet
 	transferSeq, err := k.sendIBCPacket(ctx, connectionID, channelID, transferBytes, DefaultIBCTimeout)
 	if err != nil {
-		// Refund escrowed tokens on failure
-		k.bankKeeper.SendCoins(ctx, escrowAddr, sender, sdk.NewCoins(tokenCoin))
+		refundErr := k.bankKeeper.SendCoins(ctx, escrowAddr, sender, sdk.NewCoins(tokenCoin))
+		if refundErr != nil {
+			return nil, errors.Join(
+				errorsmod.Wrapf(err, "failed to send IBC transfer"),
+				errorsmod.Wrapf(refundErr, "failed to refund escrowed tokens"),
+			)
+		}
 		return nil, errorsmod.Wrapf(err, "failed to send IBC transfer")
 	}
 

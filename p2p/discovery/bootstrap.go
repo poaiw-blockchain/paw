@@ -9,17 +9,18 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
 // Bootstrapper handles initial network bootstrap
 type Bootstrapper struct {
-	config      DiscoveryConfig
-	logger      log.Logger
-	addressBook *AddressBook
-	peerManager *PeerManager
-	mu          sync.RWMutex
-	seedPeers   map[reputation.PeerID]bool
+	config           *DiscoveryConfig
+	logger           log.Logger
+	addressBook      *AddressBook
+	peerManager      *PeerManager
+	mu               sync.RWMutex
+	seedPeers        map[reputation.PeerID]bool
 	requiredPeers    int
 	bootstrapTimeout time.Duration
 	bootstrapped     bool
@@ -29,7 +30,7 @@ type Bootstrapper struct {
 
 // NewBootstrapper creates a new bootstrapper
 func NewBootstrapper(
-	config DiscoveryConfig,
+	config *DiscoveryConfig,
 	addressBook *AddressBook,
 	peerManager *PeerManager,
 	logger log.Logger,
@@ -61,19 +62,13 @@ func (b *Bootstrapper) Bootstrap(ctx context.Context) error {
 	b.logger.Info("starting bootstrap", "attempt", attempt)
 
 	// Step 1: Parse and add seed nodes
-	if err := b.addSeedNodes(); err != nil {
-		return fmt.Errorf("failed to add seed nodes: %w", err)
-	}
+	b.addSeedNodes()
 
 	// Step 2: Parse and add bootstrap nodes
-	if err := b.addBootstrapNodes(); err != nil {
-		return fmt.Errorf("failed to add bootstrap nodes: %w", err)
-	}
+	b.addBootstrapNodes()
 
 	// Step 3: Parse and add persistent peers
-	if err := b.addPersistentPeers(); err != nil {
-		return fmt.Errorf("failed to add persistent peers: %w", err)
-	}
+	b.addPersistentPeers()
 
 	// Step 4: Connect to initial peers
 	if err := b.connectInitialPeers(ctx); err != nil {
@@ -134,10 +129,10 @@ func (b *Bootstrapper) GetBootstrapInfo() map[string]interface{} {
 // Internal methods
 
 // addSeedNodes parses and adds seed nodes to address book
-func (b *Bootstrapper) addSeedNodes() error {
+func (b *Bootstrapper) addSeedNodes() {
 	if len(b.config.Seeds) == 0 {
 		b.logger.Info("no seed nodes configured")
-		return nil
+		return
 	}
 
 	b.logger.Info("adding seed nodes", "count", len(b.config.Seeds))
@@ -158,15 +153,13 @@ func (b *Bootstrapper) addSeedNodes() error {
 		b.seedPeers[addr.ID] = true
 		b.logger.Debug("added seed node", "peer_id", addr.ID, "address", addr.NetAddr())
 	}
-
-	return nil
 }
 
 // addBootstrapNodes parses and adds bootstrap nodes to address book
-func (b *Bootstrapper) addBootstrapNodes() error {
+func (b *Bootstrapper) addBootstrapNodes() {
 	if len(b.config.BootstrapNodes) == 0 {
 		b.logger.Info("no bootstrap nodes configured")
-		return nil
+		return
 	}
 
 	b.logger.Info("adding bootstrap nodes", "count", len(b.config.BootstrapNodes))
@@ -186,15 +179,13 @@ func (b *Bootstrapper) addBootstrapNodes() error {
 
 		b.logger.Debug("added bootstrap node", "peer_id", addr.ID, "address", addr.NetAddr())
 	}
-
-	return nil
 }
 
 // addPersistentPeers parses and adds persistent peers to address book
-func (b *Bootstrapper) addPersistentPeers() error {
+func (b *Bootstrapper) addPersistentPeers() {
 	if len(b.config.PersistentPeers) == 0 {
 		b.logger.Info("no persistent peers configured")
-		return nil
+		return
 	}
 
 	b.logger.Info("adding persistent peers", "count", len(b.config.PersistentPeers))
@@ -214,8 +205,6 @@ func (b *Bootstrapper) addPersistentPeers() error {
 
 		b.logger.Debug("added persistent peer", "peer_id", addr.ID, "address", addr.NetAddr())
 	}
-
-	return nil
 }
 
 // connectInitialPeers connects to initial set of peers
@@ -530,8 +519,8 @@ func NewBootstrapHelper(logger log.Logger) *BootstrapHelper {
 	}
 }
 
-// ValidateBootstrapConfig validates bootstrap configuration
-func (bh *BootstrapHelper) ValidateBootstrapConfig(config DiscoveryConfig) error {
+// ValidateBootstrapConfig validates bootstrap configuration.
+func (bh *BootstrapHelper) ValidateBootstrapConfig(config *DiscoveryConfig) error {
 	// Check if we have any way to discover peers
 	if len(config.Seeds) == 0 &&
 		len(config.BootstrapNodes) == 0 &&

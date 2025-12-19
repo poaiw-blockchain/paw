@@ -470,7 +470,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_ExtremePriceDeviation(
 	suite.Require().Contains(err.Error(), "circuit breaker", "Error should indicate circuit breaker activation")
 
 	// Verify circuit breaker state
-	cbState, err := suite.keeper.GetCircuitBreakerState(suite.ctx, poolID)
+	cbState, err := suite.keeper.GetPoolCircuitBreakerState(suite.ctx, poolID)
 	suite.Require().NoError(err)
 	suite.Require().True(cbState.Enabled, "Circuit breaker should be enabled")
 	suite.Require().False(cbState.PausedUntil.IsZero(), "Pause time should be set")
@@ -504,7 +504,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_AutoRecovery() {
 	suite.Require().NoError(err, "Operations should resume after pause timeout")
 
 	// Verify circuit breaker is no longer blocking
-	cbState, err := suite.keeper.GetCircuitBreakerState(suite.ctx, poolID)
+	cbState, err := suite.keeper.GetPoolCircuitBreakerState(suite.ctx, poolID)
 	suite.Require().NoError(err)
 	// State might still exist but should not be blocking
 	currentTime := suite.ctx.BlockTime()
@@ -718,7 +718,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	suite.Require().NoError(err, "Reasonable price impact should be valid")
 
 	// Test 5: Circuit breaker
-	err = suite.keeper.CheckCircuitBreaker(suite.ctx, pool, "test")
+	err = suite.keeper.CheckPoolCircuitBreaker(suite.ctx, poolID)
 	suite.Require().NoError(err, "Circuit breaker should not be triggered initially")
 
 	// Test 6: Flash loan protection

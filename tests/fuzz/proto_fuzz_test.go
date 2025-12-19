@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/gogoproto/proto"
+
 	computetypes "github.com/paw-chain/paw/x/compute/types"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
@@ -110,17 +111,7 @@ func FuzzOraclePriceProto(f *testing.F) {
 			t.Errorf("VIOLATION: negative price: %s", price.Price.String())
 		}
 
-		// INVARIANT 2: Block height must be non-negative
-		if price.BlockHeight < 0 {
-			t.Errorf("VIOLATION: negative block height: %d", price.BlockHeight)
-		}
-
-		// INVARIANT 3: NumValidators must be non-negative
-		if price.NumValidators < 0 {
-			t.Errorf("VIOLATION: negative num validators: %d", price.NumValidators)
-		}
-
-		// INVARIANT 4: BlockTime should be reasonable (Unix timestamp)
+		// INVARIANT 2: BlockTime should be reasonable (Unix timestamp)
 		if price.BlockTime < 0 {
 			t.Errorf("VIOLATION: negative block time: %d", price.BlockTime)
 		}

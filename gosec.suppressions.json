@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "suppressions": [
+    {
+      "rule_id": "G115",
+      "justification": "Protobuf varint encoding in generated *.pb.go uses uint8 writes; flagged as overflow but code is generated and safe. Suppress across generated protobufs."
+    },
+    {
+      "rule_id": "G101",
+      "path": "x/*/simulation/operations.go",
+      "justification": "Simulation op weight constants are not credentials; false positive."
+    }
+  ]
+}

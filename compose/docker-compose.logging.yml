@@ -16,7 +16,7 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
 
     ports:
-      - "${LOKI_PORT:-11101}:3100"
+      - "${LOKI_PORT:-11025}:3100"
 
     volumes:
       - ./docker/logging/loki-config.yml:/etc/loki/local-config.yaml:ro

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 )
 
 // CSVExporter exports audit logs to CSV format

@@ -1,526 +1,458 @@
-# PAW Blockchain - Test Suite Analysis
+# Remaining Test Failures - PAW Chain
 
-**Test Run Date**: 2025-12-14
-**Total Packages Tested**: 63
-**Pass Rate**: 70.5%
+**Test Date:** 2025-12-14
+**Test Command:** `go test ./... -v` and `go test -race ./app/... ./p2p/... ./x/...`
 
 ## Executive Summary
 
-The PAW blockchain test suite has been comprehensively analyzed. Out of 63 packages, 31 pass completely, 5 have test failures, and 3 have compilation errors. The overall health of the codebase is **GOOD** with critical modules (Compute, Oracle) passing all tests. The primary issues are in:
+- **Total Packages Tested:** 47
+- **Passed:** 24 packages (51%)
+- **Failed (Build):** 20 packages (43%)
+- **Failed (Test):** 3 packages (6%)
+- **Race Conditions Detected:** 3 packages
 
-1. **P2P subsystem** - Compilation errors from API refactoring
-2. **DEX keeper** - Flash loan protection tests failing
-3. **Recovery tests** - Validator genesis setup issues
-4. **IBC tests** - Type assertion errors
-5. **Simulation tests** - Nil pointer dereference
+## Critical Build Failures
 
-## Summary Statistics
+### 1. Control Center Audit Log (8 packages)
 
-- **Total Packages**: 63
-- **Packages with Tests**: ~44
-- **Passed**: 31 (70.5%)
-- **Failed**: 5 (11.4%)
-- **Build Failures**: 3 (6.8%)
-- **No Test Files**: 19 (30.2%)
-- **Skipped**: 0
+**Status:** Complete build failure due to incorrect import paths
 
-### Critical Modules Status
+**Affected Packages:**
+- `control-center/audit-log`
+- `control-center/audit-log/api`
+- `control-center/audit-log/examples`
+- `control-center/audit-log/export`
+- `control-center/audit-log/integrity`
+- `control-center/audit-log/middleware`
+- `control-center/audit-log/storage`
+- `control-center/audit-log/tests`
 
-| Module | Status | Tests | Pass Rate |
-|--------|--------|-------|-----------|
-| x/compute/keeper | ✅ PASS | 77.4s | 100% |
-| x/oracle/keeper | ✅ PASS | 3.4s | 100% |
-| x/dex/keeper | ⚠️ PARTIAL | 7.2s | ~95% |
-| app | ✅ PASS | 0.2s | 100% |
-| app/ante | ✅ PASS | 0.1s | 100% |
-| p2p | ✅ PASS | 0.3s | 100% |
-| p2p/discovery | ❌ BUILD FAIL | - | 0% |
-| p2p/protocol | ❌ BUILD FAIL | - | 0% |
-| p2p/security | ❌ BUILD FAIL | - | 0% |
-| p2p/reputation | ❌ FAIL | 0.2s | ~80% |
-| tests/integration | ✅ PASS | 493.9s | 100% |
-| tests/ibc | ❌ FAIL | 7.0s | ~90% |
-| tests/recovery | ❌ FAIL | 4.5s | 0% |
-| tests/simulation | ❌ FAIL | 0.2s | 0% |
-
-## Passing Packages (31)
-
-All tests passing - production ready:
-
-1. `github.com/paw-chain/paw/app` (0.182s)
-2. `github.com/paw-chain/paw/app/ante` (0.088s)
-3. `github.com/paw-chain/paw/app/ibcutil` (0.024s)
-4. `github.com/paw-chain/paw/cmd/pawd/cmd` (2.014s)
-5. `github.com/paw-chain/paw/p2p` (0.284s)
-6. `github.com/paw-chain/paw/tests/byzantine` (0.005s)
-7. `github.com/paw-chain/paw/tests/chaos` (0.141s)
-8. `github.com/paw-chain/paw/tests/concurrency` (0.649s)
-9. `github.com/paw-chain/paw/tests/differential` (0.007s)
-10. `github.com/paw-chain/paw/tests/fuzz` (0.049s)
-11. `github.com/paw-chain/paw/tests/gas` (0.097s)
-12. `github.com/paw-chain/paw/tests/integration` (493.866s) - **Longest running**
-13. `github.com/paw-chain/paw/tests/invariants` (0.003s)
-14. `github.com/paw-chain/paw/tests/property` (0.428s)
-15. `github.com/paw-chain/paw/tests/security` (1.699s)
-16. `github.com/paw-chain/paw/tests/statemachine` (0.002s)
-17. `github.com/paw-chain/paw/tests/upgrade` (0.002s)
-18. `github.com/paw-chain/paw/tests/verification` (0.008s)
-19. `github.com/paw-chain/paw/x/compute` (0.179s)
-20. `github.com/paw-chain/paw/x/compute/circuits` (69.478s)
-21. `github.com/paw-chain/paw/x/compute/keeper` (77.373s) - **Second longest**
-22. `github.com/paw-chain/paw/x/compute/setup` (0.073s)
-23. `github.com/paw-chain/paw/x/compute/types` (0.058s)
-24. `github.com/paw-chain/paw/x/dex` (0.468s)
-25. `github.com/paw-chain/paw/x/dex/types` (0.068s)
-26. `github.com/paw-chain/paw/x/oracle` (0.276s)
-27. `github.com/paw-chain/paw/x/oracle/keeper` (3.386s)
-28. `github.com/paw-chain/paw/x/oracle/types` (0.111s)
-29. `github.com/paw-chain/paw/x/shared/ibc` (0.147s)
-30. `github.com/paw-chain/paw/x/shared/nonce` (0.657s)
-31. `github.com/paw-chain/paw/tests/benchmarks` (0.095s, no tests)
-
-## Compilation Errors (3 packages)
-
-### 1. p2p/discovery [BLOCKER]
-
-**Error Type**: API signature mismatch, struct field changes
-
-**Errors**:
+**Error Pattern:**
 ```
-p2p/discovery/discovery_advanced_test.go:35:18: assignment mismatch: 1 variable but NewAddressBook returns 2 values
-p2p/discovery/discovery_advanced_test.go:35:33: not enough arguments in call to NewAddressBook
-    have ("cosmossdk.io/log".Logger)
-    want (*DiscoveryConfig, string, "cosmossdk.io/log".Logger)
-p2p/discovery/discovery_advanced_test.go:76:4: unknown field IP in struct literal of type PeerAddr
-p2p/discovery/discovery_advanced_test.go:79:4: unknown field AddedAt in struct literal of type PeerAddr
-p2p/discovery/discovery_advanced_test.go:101:33: s.addressBook.IsBad undefined (type *AddressBook has no field or method IsBad)
+package paw/control-center/audit-log/api is not in std (/usr/local/go/src/paw/control-center/audit-log/api)
 ```
 
-**Root Cause**: The `AddressBook` API was refactored but tests were not updated. The struct `PeerAddr` fields changed (removed `IP`, `AddedAt`) and method `IsBad` was removed.
+**Root Cause:** Import paths are using `paw/control-center/...` instead of `github.com/paw-chain/paw/control-center/...`
 
-**Impact**: HIGH - Discovery subsystem tests cannot run
+**Fix Required:** Update all import statements in control-center packages to use proper module path.
 
-**Fix Estimate**: 2-4 hours - Update test mocks to match new API
-
-### 2. p2p/protocol [BLOCKER]
-
-**Error Type**: Struct field changes, undefined types
-
-**Errors**:
-```
-p2p/protocol/handlers_integration_test.go:108:3: unknown field PrevHash in struct literal of type BlockMessage
-p2p/protocol/handlers_integration_test.go:109:3: unknown field Timestamp in struct literal of type BlockMessage
-p2p/protocol/handlers_integration_test.go:321:4: undefined: PingMessage
-p2p/protocol/handlers_integration_test.go:322:4: undefined: PongMessage
-```
-
-**Root Cause**: `BlockMessage` struct refactored (removed `PrevHash`, `Timestamp`). `PingMessage` and `PongMessage` types removed or moved.
-
-**Impact**: HIGH - Protocol handler tests cannot run
-
-**Fix Estimate**: 2-4 hours - Update test mocks and message structures
-
-### 3. p2p/security [BLOCKER]
-
-**Error Type**: Undefined function, unused variable
-
-**Errors**:
-```
-p2p/security/security_test.go:112:13: undefined: NewRateLimiter
-p2p/security/security_test.go:281:3: declared and not used: peerID
-p2p/security/security_test.go:539:13: undefined: NewRateLimiter
-```
-
-**Root Cause**: `NewRateLimiter` function removed or moved to different package. Unused variable from incomplete refactoring.
-
-**Impact**: HIGH - Security subsystem tests cannot run
-
-**Fix Estimate**: 1-2 hours - Import correct rate limiter, remove unused variable
-
-## Test Failures by Priority
-
-### CRITICAL Failures (Block Production)
-
-**None** - All core consensus, block production, and transaction processing tests pass.
-
-### HIGH Priority Failures
-
-#### 1. tests/recovery - All recovery tests failing (0% pass rate)
-
-**Impact**: Cannot verify crash recovery functionality
-
-**Failing Tests** (29 total):
-- `TestCrashRecoveryTestSuite/TestBasicCrashRecovery`
-- `TestCrashRecoveryTestSuite/TestCrashAtVariousHeights` (5 subtests)
-- `TestCrashRecoveryTestSuite/TestCrashDuringBlockProcessing`
-- `TestCrashRecoveryTestSuite/TestCrashDuringCommit`
-- `TestCrashRecoveryTestSuite/TestCrashDuringConsensus`
-- `TestCrashRecoveryTestSuite/TestCrashDuringStateSync`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryConsistencyAcrossRestarts`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryDataIntegrity`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryMemoryState`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryTimeout`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryWithCorruptedState`
-- `TestCrashRecoveryTestSuite/TestCrashRecoveryWithSnapshots`
-- `TestCrashRecoveryTestSuite/TestCrashWithActiveTransactions`
-- `TestCrashRecoveryTestSuite/TestLongRunningNodeCrashRecovery`
-- `TestCrashRecoveryTestSuite/TestMultipleSequentialCrashes`
-- `TestCrashRecoveryTestSuite/TestQuickSuccessiveCrashes`
-- `TestSnapshotTestSuite/*` (15 tests)
-- `TestWALReplayTestSuite/TestBasicWALReplay`
-- `TestWALReplayTestSuite/TestWALReplayConsistencyCheck`
-
-**Error Message**:
-```
-Error Trace: /home/hudson/blockchain-projects/paw/tests/recovery/helpers.go:199
-Error:      Received unexpected error:
-```
-
-**Root Cause**: Validator genesis setup issue - likely missing validator keys or incorrect initialization
-
-**Fix Estimate**: 4-8 hours - Fix validator initialization in test helpers
-
-**Note**: This is a known issue documented in previous analysis
-
-#### 2. tests/simulation - Nil pointer dereference (0% pass rate)
-
-**Failing Tests**:
-- `TestMultiSeedFullSimulation/seed=2`
-- `TestMultiSeedFullSimulation/seed=3`
-
-**Error**:
-```
-panic: runtime error: invalid memory address or nil pointer dereference
-[signal SIGSEGV: segmentation violation code=0x1 addr=0x18 pc=0x334e8f5]
-```
-
-**Root Cause**: Uninitialized pointer in simulation code
-
-**Impact**: HIGH - Cannot run full blockchain simulations
-
-**Fix Estimate**: 2-4 hours - Add nil checks, initialize properly
-
-#### 3. tests/ibc - Type assertion failure (~90% pass rate)
-
-**Failing Tests**:
-- `TestDEXCrossChainTestSuite/TestMultiHopSwap`
-
-**Error**:
-```
-Error Trace: /home/hudson/blockchain-projects/paw/tests/ibc/dex_cross_chain_test.go:243
-Error:      Elements should be the same type
-```
-
-**Root Cause**: Type mismatch in IBC packet handling, likely between expected and actual packet types
-
-**Impact**: MEDIUM-HIGH - Multi-hop IBC swaps broken
-
-**Fix Estimate**: 2-4 hours - Fix type assertions in IBC handlers
-
-### MEDIUM Priority Failures
-
-#### 1. x/dex/keeper - Flash loan protection edge cases (~95% pass rate)
-
-**Failing Tests** (9 total):
-- `TestFlashLoanProtection_AddAndRemoveNextBlock`
-- `TestFlashLoanProtection_MultipleProviders`
-- `TestFlashLoanProtection_PartialRemoval`
-- `TestFlashLoanProtection_IntegrationWithReentrancy`
-- `TestFlashLoanProtection_AddMultipleThenRemove`
-- `TestFlashLoanProtection_SimulatedAttackScenario`
-- `TestFlashLoanProtection_ErrorMessageQuality`
-- `TestFlashLoanProtection_MultipleAddRemoveCycles`
-- `TestFlashLoanProtection_EdgeCases/different_pools_same_provider`
-
-**Root Cause**: Flash loan protection logic has edge cases with block height tracking, especially when providers add/remove liquidity in quick succession
-
-**Impact**: MEDIUM - Core swap functionality works, but flash loan attack protection has gaps
-
-**Fix Estimate**: 4-6 hours - Review flash loan protection algorithm, fix block height logic
-
-#### 2. p2p/reputation - Reputation scoring edge cases (~80% pass rate)
-
-**Failing Tests** (6 total):
-- `TestReputationTestSuite/TestGetDiversePeers`
-- `TestReputationTestSuite/TestMaliciousPeerDetection/oversized_messages`
-- `TestReputationTestSuite/TestScoreDecay`
-- `TestReputationTestSuite/TestSubnetLimits`
-- `TestReputationTestSuite/TestWhitelist`
-
-**Errors**:
-```
-Error: "1" is not greater than or equal to "3"
-Error: Should be true
-Error: "55" is not less than "55"
-Error: "invalid peer address" does not contain "subnet"
-```
-
-**Root Cause**: Off-by-one errors, incorrect comparison operators, wrong error messages
-
-**Impact**: MEDIUM - Basic reputation works but edge cases fail
-
-**Fix Estimate**: 2-4 hours - Fix comparison operators and error messages
-
-### LOW Priority Failures
-
-**None identified** - All failures are MEDIUM or higher priority
-
-## Known Issues
-
-### 1. Recovery Test Validator Setup (HIGH)
-
-**Status**: Known issue, documented in previous analysis
-**Impact**: All recovery tests fail due to validator genesis setup
-**Blocker**: Validator keys not properly initialized in test environment
-**Workaround**: None - must fix validator initialization
-**Timeline**: Planned fix in Phase 3.2
-
-### 2. IBC Type Assertions (MEDIUM)
-
-**Status**: Intermittent issue
-**Impact**: Multi-hop IBC swaps failing type assertions
-**Root Cause**: Packet type mismatches between chains
-**Workaround**: Use single-hop swaps
-**Timeline**: Fix required before mainnet
-
-### 3. P2P API Refactoring (HIGH)
-
-**Status**: Active refactoring in progress
-**Impact**: 3 packages won't compile
-**Root Cause**: Tests not updated after API changes
-**Blocker**: Must update before Phase 3 testing
-**Timeline**: Fix immediately
-
-## Flaky Tests
-
-**None identified** - All test failures are deterministic and reproducible
-
-## Test Coverage Analysis
-
-### Packages with Excellent Coverage (>90%)
-
-- `x/compute/keeper` - Comprehensive keeper tests (77s runtime)
-- `x/oracle/keeper` - All oracle functionality tested (3.4s)
-- `tests/integration` - Full integration suite (494s)
-- `tests/security` - Security scenarios covered (1.7s)
-- `tests/chaos` - Chaos engineering scenarios (0.14s)
-
-### Packages with No Tests
-
-19 packages have no test files (expected for some):
-
-- `cmd/pawcli` - CLI tool (manual testing)
-- `cmd/pawd` - Daemon binary (integration tests cover)
-- `archive/security` - Archived code
-- `p2p/snapshot` - No test files
-- `pkg/ibc` - Shared IBC utilities
-- `scripts/*` - Utility scripts
-- `testutil/*` - Test helpers (tested via usage)
-- `x/*/client/cli` - CLI commands (manual testing)
-- `x/*/migrations/v2` - Migration code (tested via upgrade tests)
-- `x/*/simulation` - Simulation code (tested via simulation tests)
-
-### Coverage Gaps
-
-1. **P2P subsystem** - Discovery, protocol, security tests broken
-2. **Recovery scenarios** - Cannot test crash recovery
-3. **Simulation** - Full chain simulation broken
-4. **DEX flash loans** - Edge cases not covered
-
-## Test Performance Metrics
-
-### Slowest Tests (Optimization Candidates)
-
-| Package | Duration | Note |
-|---------|----------|------|
-| tests/integration | 493.866s | Expected - full chain integration |
-| x/compute/keeper | 77.373s | ZK proof generation heavy |
-| x/compute/circuits | 69.478s | Circuit compilation heavy |
-| tests/ibc | 7.047s | Multi-chain setup |
-| x/dex/keeper | 7.153s | Multiple swap scenarios |
-| x/oracle/keeper | 3.386s | Price aggregation tests |
-
-**Optimization Potential**:
-- Integration tests could be parallelized (currently sequential)
-- Circuit compilation could use pre-compiled artifacts for tests
-- Consider splitting large test suites into focused packages
-
-### Fastest Critical Tests
-
-| Package | Duration | Note |
-|---------|----------|------|
-| tests/invariants | 0.003s | Quick invariant checks |
-| tests/byzantine | 0.005s | Byzantine fault scenarios |
-| tests/differential | 0.007s | Differential testing |
-| tests/statemachine | 0.002s | State machine verification |
-
-## Race Condition Analysis
-
-**Race Detector Run**: 2025-12-14
-
-### Packages Tested
-- `x/dex/keeper` - ✅ No races detected
-- `x/oracle/keeper` - ✅ No races detected
-- `x/compute/keeper` - ✅ No races detected
-- `p2p/*` - ⚠️ Cannot test (compilation errors)
-
-### Results
-**No race conditions detected** in any testable critical module.
-
-### Recommendations
-1. Run race detector on P2P packages after fixing compilation errors
-2. Add `-race` flag to CI pipeline
-3. Run race detector on long-running integration tests
-
-## Goroutine Leak Analysis
-
-**Status**: Not yet analyzed
-
-**TODO**: Check for goroutine leaks in:
-- Long-running services (oracle price feeds, IBC relayer)
-- Test cleanup (ensure proper teardown)
-- Background workers (DEX order matching, compute task dispatching)
-
-## Test Execution Timeline
-
-**Full Suite Runtime**: ~780 seconds (~13 minutes)
-
-**Breakdown**:
-- Integration tests: 494s (63%)
-- Compute tests: 147s (19%)
-- Other tests: 139s (18%)
-
-**Optimization Potential**: Could reduce to ~5-7 minutes with parallelization
-
-## Recommendations
-
-### Immediate Actions (This Week)
-
-1. **Fix P2P compilation errors** (Priority: CRITICAL)
-   - Update discovery tests for new AddressBook API
-   - Update protocol tests for new BlockMessage structure
-   - Fix security tests rate limiter imports
-   - Estimated: 6-10 hours total
-
-2. **Fix DEX flash loan protection** (Priority: HIGH)
-   - Review block height tracking logic
-   - Add proper edge case handling for rapid add/remove
-   - Ensure reentrancy protection works correctly
-   - Estimated: 4-6 hours
-
-3. **Fix p2p/reputation edge cases** (Priority: MEDIUM)
-   - Fix comparison operators (off-by-one errors)
-   - Correct error messages for subnet validation
-   - Fix score decay calculation
-   - Estimated: 2-4 hours
-
-### Short-term Actions (Next Week)
-
-4. **Fix recovery test validator setup** (Priority: HIGH)
-   - Properly initialize validator keys in test helpers
-   - Ensure genesis configuration includes validators
-   - Add validator setup validation
-   - Estimated: 4-8 hours
-
-5. **Fix simulation nil pointer** (Priority: HIGH)
-   - Add nil checks to simulation code
-   - Properly initialize all pointers
-   - Add validation before dereferencing
-   - Estimated: 2-4 hours
-
-6. **Fix IBC type assertions** (Priority: MEDIUM-HIGH)
-   - Review packet type handling in multi-hop swaps
-   - Ensure consistent type usage across chains
-   - Add type validation in packet handlers
-   - Estimated: 2-4 hours
-
-### Medium-term Actions (This Month)
-
-7. **Add race detector to CI** (Priority: MEDIUM)
-   - Configure CI to run tests with `-race` flag
-   - Set up failure notifications
-   - Add to PR checks
-
-8. **Optimize test runtime** (Priority: LOW)
-   - Parallelize integration tests where safe
-   - Cache compiled circuits for tests
-   - Split large test suites
-
-9. **Increase test coverage** (Priority: MEDIUM)
-   - Add tests for P2P snapshot functionality
-   - Expand flash loan attack scenarios
-   - Add more Byzantine fault tests
-
-### Long-term Actions
-
-10. **Performance benchmarking** (Priority: LOW)
-    - Add benchmark tests for critical paths
-    - Track performance over time
-    - Set performance regression alerts
-
-11. **Fuzz testing expansion** (Priority: MEDIUM)
-    - Expand fuzz tests to cover more modules
-    - Add structure-aware fuzzing
-    - Integrate with CI for continuous fuzzing
-
-## Test Fixing Priority Order
-
-**Phase 1: Unblock Testing** (Total: 12-20 hours)
-1. Fix p2p/discovery compilation (2-4h)
-2. Fix p2p/protocol compilation (2-4h)
-3. Fix p2p/security compilation (1-2h)
-4. Fix p2p/reputation tests (2-4h)
-5. Fix DEX flash loan tests (4-6h)
-
-**Phase 2: Critical Functionality** (Total: 8-16 hours)
-6. Fix recovery validator setup (4-8h)
-7. Fix simulation nil pointer (2-4h)
-8. Fix IBC type assertions (2-4h)
-
-**Phase 3: Optimization** (Total: Ongoing)
-9. Add race detection to CI
-10. Optimize test runtime
-11. Expand coverage
-
-**Total Estimated Time to Green**: 20-36 hours of focused work
-
-## Risk Assessment
-
-### High Risk Areas
-1. **Flash loan protection** - Security vulnerability if edge cases exist
-2. **Recovery mechanism** - Cannot verify crash recovery works
-3. **P2P subsystem** - Cannot test network layer
-
-### Medium Risk Areas
-1. **IBC multi-hop** - Cross-chain complexity
-2. **Simulation** - Cannot verify full chain behavior
-
-### Low Risk Areas
-1. **Core consensus** - All tests passing
-2. **Compute module** - All tests passing
-3. **Oracle module** - All tests passing
-
-## Conclusion
-
-The PAW blockchain test suite is in **GOOD** overall health with a 70.5% pass rate. Critical modules (Compute, Oracle) are fully tested and passing. The primary issues are:
-
-1. **P2P API refactoring fallout** - Needs immediate attention
-2. **DEX flash loan edge cases** - Security concern
-3. **Recovery test infrastructure** - Cannot verify critical functionality
-
-With focused effort (20-36 hours), the test suite can achieve **>95% pass rate** and be ready for Phase 3 testing.
-
-**Next Steps**:
-1. Review and approve TEST_FIXING_PLAN.md
-2. Assign tasks to team members
-3. Execute Phase 1 fixes (compilation errors)
-4. Execute Phase 2 fixes (critical functionality)
-5. Re-run full test suite
-6. Update coverage baseline
+**Impact:** High - Entire control center audit log subsystem is non-functional.
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-12-14
-**Prepared By**: Claude Code Agent
-**Status**: Draft - Pending Review
+### 2. Control Center Admin API Examples
+
+**Status:** Build failure due to linting violations
+
+**Package:** `control-center/admin-api/examples`
+
+**Errors:**
+```
+control-center/admin-api/examples/main.go:24:2: fmt.Println arg list ends with redundant newline
+control-center/admin-api/examples/main.go:43:3: fmt.Println arg list ends with redundant newline
+control-center/admin-api/examples/main.go:72:3: fmt.Println arg list ends with redundant newline
+control-center/admin-api/examples/main.go:97:3: fmt.Println arg list ends with redundant newline
+control-center/admin-api/examples/main.go:110:3: fmt.Println arg list ends with redundant newline
+```
+
+**Root Cause:** Redundant newlines in fmt.Println calls (linting issue).
+
+**Fix Required:** Remove `\n` from fmt.Println arguments in 5 locations.
+
+**Impact:** Low - Examples only, doesn't affect production code.
+
+---
+
+### 3. X/Compute Module (5 packages)
+
+**Status:** Build failure due to type mismatches and incorrect method signatures
+
+**Affected Packages:**
+- `x/compute`
+- `x/compute/keeper`
+- `x/compute/simulation`
+- `app` (depends on x/compute)
+- `app/ante` (depends on x/compute)
+
+**Errors in `x/compute/keeper/circuit_breaker.go`:**
+```
+Line 352:45: cannot use providerAddr (variable of type string) as "github.com/cosmos/cosmos-sdk/types".AccAddress value
+Line 353:6: invalid operation: operator ! not defined on found (variable of interface type error)
+Line 356:13: rep.Score undefined (type *ProviderReputation has no field or method Score)
+```
+
+**Root Cause:** Type mismatch between string and AccAddress, incorrect error handling, and missing field on ProviderReputation struct.
+
+**Fix Required:**
+1. Convert providerAddr string to AccAddress using `sdk.AccAddressFromBech32()`
+2. Fix error check (use `err != nil` instead of `!found`)
+3. Add Score field to ProviderReputation or use correct field name
+
+**Impact:** Critical - Blocks all compute module tests and app-level tests.
+
+---
+
+### 4. X/DEX Module (4 packages)
+
+**Status:** Build failure due to duplicate methods and incorrect function signatures
+
+**Affected Packages:**
+- `x/dex`
+- `x/dex/keeper`
+- `x/dex/simulation`
+- `cmd/pawd` (depends on x/dex)
+
+**Errors in `x/dex/keeper`:**
+
+**Duplicate method:**
+```
+x/dex/keeper/security.go:321:17: method Keeper.CheckCircuitBreaker already declared at x/dex/keeper/circuit_breaker.go:94:17
+x/dex/keeper/security.go:397:17: method Keeper.GetCircuitBreakerState already declared at x/dex/keeper/circuit_breaker.go:78:17
+```
+
+**Signature mismatches:**
+```
+x/dex/keeper/security.go:322:16: assignment mismatch: 2 variables but k.GetCircuitBreakerState returns 3 values
+x/dex/keeper/liquidity_secure.go:95:39: too many arguments in call to k.CheckCircuitBreaker
+    have ("context".Context, *Pool, string)
+    want ("context".Context)
+```
+
+**Root Cause:** Method definitions exist in both `security.go` and `circuit_breaker.go`. Function signatures changed but call sites not updated.
+
+**Fix Required:**
+1. Remove duplicate CheckCircuitBreaker and GetCircuitBreakerState methods from security.go
+2. Update all call sites to match new CheckCircuitBreaker signature (context only)
+3. Update GetCircuitBreakerState calls to handle 3 return values
+
+**Impact:** Critical - Blocks all DEX module tests and pawd binary build.
+
+---
+
+### 5. X/Oracle Module (3 packages)
+
+**Status:** Build failure due to missing imports and type mismatches
+
+**Affected Packages:**
+- `x/oracle`
+- `x/oracle/keeper`
+- `x/oracle/simulation`
+
+**Errors in `x/oracle/keeper/circuit_breaker.go`:**
+```
+Line 118:14: undefined: math
+Line 123:15: undefined: math
+Line 125:15: undefined: math
+```
+
+**Errors in type handling:**
+```
+Line 128:26: cannot use override (*PriceData) as proto.Message (missing method ProtoMessage)
+Line 163:18: cannot use override.Price (LegacyDec) as string
+Line 191:9: cannot use k.GetPrice(ctx, pair) (Price) as *big.Int
+```
+
+**Root Cause:**
+1. Missing `"math/big"` import
+2. PriceData struct doesn't implement proto.Message interface
+3. Type conversions between LegacyDec, string, and *big.Int are incorrect
+
+**Fix Required:**
+1. Add `import "math/big"` to circuit_breaker.go
+2. Regenerate proto files or implement ProtoMessage methods
+3. Fix type conversions with proper SDK decimal methods
+
+**Impact:** Critical - Blocks all oracle module tests.
+
+---
+
+### 6. Command Line Tools (2 packages)
+
+**Status:** Build failure (dependency on broken modules)
+
+**Affected Packages:**
+- `cmd/pawd/cmd`
+- `cmd/pawcli`
+
+**Root Cause:** Dependencies on x/compute, x/dex, and x/oracle modules that fail to build.
+
+**Fix Required:** Fix upstream module build failures.
+
+**Impact:** Critical - Cannot build pawd or pawcli binaries.
+
+---
+
+### 7. Control Center Network Controls
+
+**Status:** Build failure (dependency issue)
+
+**Package:** `control-center/network-controls/integration`
+
+**Root Cause:** Likely depends on audit-log packages that fail to build.
+
+**Fix Required:** Fix audit-log import paths first.
+
+**Impact:** Medium - Integration tests blocked.
+
+---
+
+## Test Failures (Code Compiles, Tests Fail)
+
+### 1. Control Center Admin API Tests
+
+**Package:** `control-center/admin-api/tests`
+**Status:** 1 test failure
+
+**Failed Test:**
+```
+TestRateLimiter_BasicLimiting
+```
+
+**Error Pattern:**
+```
+Expected: 200
+Actual: 429 (Too Many Requests)
+```
+
+**Details:** Test expects requests 1-5 to succeed with HTTP 200, but they're being rate-limited (HTTP 429). This occurs on requests 3, 4, and 5.
+
+**Root Cause:** Rate limiter is more aggressive than test expects, or timing issue in test setup.
+
+**Fix Required:**
+- Adjust rate limiter configuration in test setup, or
+- Adjust test expectations to match actual rate limit behavior
+
+**Impact:** Low - Only affects rate limiter test suite.
+
+---
+
+### 2. Control Center Network Controls Tests
+
+**Package:** `control-center/network-controls/tests`
+**Status:** 1 test failure (panic)
+
+**Failed Test:**
+```
+TestCircuitBreakerManager/Pause_and_resume_operations
+```
+
+**Error:**
+```
+panic: duplicate metrics collector registration attempted
+```
+
+**Root Cause:** Prometheus metrics are being registered multiple times (global registry pollution across tests).
+
+**Fix Required:**
+1. Use separate metric registries per test, or
+2. Unregister metrics in test cleanup, or
+3. Use `promauto.With()` to create isolated registries
+
+**Impact:** Medium - Circuit breaker manager tests are unstable.
+
+---
+
+## Race Condition Failures
+
+### 1. P2P Security - NonceTracker
+
+**Package:** `p2p/security`
+**Test:** `TestSecurityTestSuite/TestNonceCleanup`
+
+**Race Details:**
+```
+Read at 0x00c00009c360 by goroutine 66:
+  NonceTracker.cleanup() at auth.go:92
+
+Previous write at 0x00c00009c360 by goroutine 64:
+  NonceTracker.CheckAndMark() at auth.go:81
+```
+
+**Root Cause:** Concurrent map access without mutex protection. The cleanup goroutine reads/deletes from the nonce map while CheckAndMark writes to it.
+
+**Fix Required:** Add mutex protection around nonce map access in NonceTracker.
+
+**Impact:** High - Security-critical code with race condition.
+
+---
+
+### 2. X/Shared/IBC - EventEmitter
+
+**Package:** `x/shared/ibc`
+**Test:** `TestEventEmitter_Concurrent`
+
+**Race Details:**
+```
+Read at 0x00c000011908 by goroutine 98:
+  EventManager.EmitEvent() at events.go:48
+
+Previous write at 0x00c000011908 by goroutine 96:
+  EventManager.EmitEvent() at events.go:48
+```
+
+**Root Cause:** Multiple goroutines emitting events concurrently without synchronization. The EventManager in Cosmos SDK is not thread-safe for concurrent event emission.
+
+**Fix Required:**
+- Add mutex around event emission, or
+- Use separate EventManager per goroutine, or
+- Queue events and emit from single goroutine
+
+**Impact:** High - IBC event emission is not thread-safe.
+
+---
+
+### 3. X/Shared/Nonce - Manager
+
+**Package:** `x/shared/nonce`
+**Test:** `TestConcurrentNextOutboundNonce`
+
+**Race Details:**
+```
+Read at 0x00c00017c298 by goroutine 158:
+  infiniteGasMeter.ConsumeGas() at gas.go:185
+
+Previous write at 0x00c00017c298 by goroutine 157:
+  infiniteGasMeter.ConsumeGas() at gas.go:185
+```
+
+**Root Cause:** Multiple goroutines accessing the same gas meter concurrently. The infiniteGasMeter is not thread-safe.
+
+**Additional race on IAVL tree:**
+```
+Write at 0x00c00017b9c0 by goroutine 159:
+  MutableTree.set() at mutable_tree.go:258
+
+Previous read at 0x00c00017b9c0 by goroutine 157:
+  MutableTree.Get() at mutable_tree.go:174
+```
+
+**Root Cause:** IAVL tree mutations are not thread-safe when accessed from multiple goroutines with the same context.
+
+**Fix Required:**
+- Each goroutine should have its own context with separate gas meter, or
+- Add synchronization around nonce operations
+
+**Impact:** Critical - Nonce management is not concurrent-safe, could lead to duplicate nonces.
+
+---
+
+## Passing Test Suites
+
+The following test suites passed successfully:
+
+1. **app/ibcutil** - IBC channel authorization (9 tests)
+2. **p2p** - Message size limits and DoS protection (14 tests)
+3. **p2p/discovery** - Peer discovery and PEX (12 tests)
+4. **p2p/protocol** - State sync and handlers (24 tests)
+5. **p2p/reputation** - Reputation scoring and banning (14 tests)
+6. **p2p/security** - Authentication, encryption, HMAC (11 tests, 1 race detected)
+7. **tests/byzantine** - Byzantine fault tolerance (4 tests)
+8. **tests/concurrency** - Concurrent operations (10 tests)
+9. **tests/differential** - DEX vs UniswapV2, Oracle vs Chainlink (15 tests)
+10. **tests/fuzz** - Fuzzing tests (multiple)
+11. **tests/invariants** - Invariant testing (multiple)
+12. **tests/property** - Property-based testing (multiple)
+13. **tests/statemachine** - State machine verification (10 tests)
+14. **tests/upgrade** - Upgrade testing (multiple)
+15. **tests/verification** - Formal verification (multiple)
+16. **x/compute/circuits** - ZK circuit tests (6 tests, ~263 seconds)
+17. **x/compute/setup** - MPC setup tests
+18. **x/compute/types** - Type validation (50+ tests)
+19. **x/dex/types** - Type validation (50+ tests)
+20. **x/oracle/types** - Type validation (40+ tests)
+21. **x/shared/ibc** - IBC packet handling (25 tests, 1 race detected)
+22. **x/shared/nonce** - Nonce management (10 tests, 1 race detected)
+
+---
+
+## Summary by Priority
+
+### P0 - Critical (Must Fix Immediately)
+
+1. **X/Compute circuit_breaker.go type errors** - Blocks app, ante, compute module
+2. **X/DEX duplicate methods and signature mismatches** - Blocks dex module and pawd binary
+3. **X/Oracle missing math import and type errors** - Blocks oracle module
+4. **P2P Security NonceTracker race condition** - Security vulnerability
+5. **X/Shared/Nonce concurrent access race** - Could cause nonce collisions
+
+### P1 - High (Fix Soon)
+
+6. **Control Center Audit Log import paths** - 8 packages non-functional
+7. **X/Shared/IBC EventEmitter race condition** - IBC event safety
+
+### P2 - Medium (Fix When Possible)
+
+8. **Network Controls metrics collision** - Test instability
+9. **Admin API rate limiter test** - Minor test issue
+
+### P3 - Low (Nice to Have)
+
+10. **Admin API examples fmt.Println** - Linting only
+
+---
+
+## Recommended Fix Order
+
+1. Fix X/Compute type errors (unblocks app/* and compute/*)
+2. Fix X/DEX duplicate methods (unblocks dex/* and cmd/pawd)
+3. Fix X/Oracle math import (unblocks oracle/*)
+4. Add mutex to NonceTracker (fix security race)
+5. Fix nonce manager concurrency (use per-goroutine context)
+6. Fix EventEmitter concurrency (add synchronization)
+7. Fix audit-log import paths (unblocks 8 packages)
+8. Fix metrics registration in circuit breaker tests
+9. Adjust rate limiter test expectations
+10. Clean up fmt.Println in examples
+
+---
+
+## Files Requiring Changes
+
+### Build Fixes
+1. `/home/hudson/blockchain-projects/paw/x/compute/keeper/circuit_breaker.go`
+2. `/home/hudson/blockchain-projects/paw/x/dex/keeper/security.go` (remove duplicates)
+3. `/home/hudson/blockchain-projects/paw/x/dex/keeper/liquidity_secure.go` (update calls)
+4. `/home/hudson/blockchain-projects/paw/x/dex/keeper/swap_secure.go` (update calls)
+5. `/home/hudson/blockchain-projects/paw/x/dex/keeper/abci.go` (update calls)
+6. `/home/hudson/blockchain-projects/paw/x/dex/keeper/genesis.go` (update calls)
+7. `/home/hudson/blockchain-projects/paw/x/oracle/keeper/circuit_breaker.go`
+8. `/home/hudson/blockchain-projects/paw/x/oracle/keeper/msg_server.go` (update calls)
+9. All files in `/home/hudson/blockchain-projects/paw/control-center/audit-log/**` (fix imports)
+10. `/home/hudson/blockchain-projects/paw/control-center/admin-api/examples/main.go`
+
+### Race Condition Fixes
+11. `/home/hudson/blockchain-projects/paw/p2p/security/auth.go` (add mutex)
+12. `/home/hudson/blockchain-projects/paw/x/shared/ibc/packet.go` (synchronize events)
+13. `/home/hudson/blockchain-projects/paw/x/shared/nonce/manager.go` (fix concurrency)
+
+### Test Fixes
+14. `/home/hudson/blockchain-projects/paw/control-center/admin-api/tests/ratelimit_test.go`
+15. `/home/hudson/blockchain-projects/paw/control-center/network-controls/circuit/manager.go` (metrics)
+
+---
+
+## Estimated Fix Time
+
+- **P0 Critical Fixes:** 4-6 hours
+- **P1 High Fixes:** 3-4 hours
+- **P2 Medium Fixes:** 1-2 hours
+- **P3 Low Fixes:** 30 minutes
+
+**Total Estimated Time:** 8.5-12.5 hours
+
+---
+
+## Next Steps
+
+1. Review this report with the team
+2. Assign owners for each critical fix
+3. Create tracking issues for P0 and P1 items
+4. Fix issues in priority order
+5. Re-run full test suite after each fix
+6. Update this document with progress
+
+---
+
+**Report Generated:** 2025-12-14 09:15 UTC
+**Test Environment:** Go 1.24.10, Linux 6.14.0-37-generic
+**Project:** PAW Chain (github.com/paw-chain/paw)

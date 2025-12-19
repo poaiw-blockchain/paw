@@ -29,11 +29,11 @@ type CacheInterface interface {
 
 // RateLimitConfig holds rate limiting configuration
 type RateLimitConfig struct {
-	RequestsPerMinute  int
-	Burst              int
-	EnableIPLimit      bool
-	EnableAPIKeyLimit  bool
-	EnableGlobalLimit  bool
+	RequestsPerMinute int
+	Burst             int
+	EnableIPLimit     bool
+	EnableAPIKeyLimit bool
+	EnableGlobalLimit bool
 }
 
 // NewRateLimiter creates a new rate limiter
@@ -92,8 +92,8 @@ func RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 
 		if !clientLimiter.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "rate_limit_exceeded",
-				"message": "Too many requests. Please try again later.",
+				"error":       "rate_limit_exceeded",
+				"message":     "Too many requests. Please try again later.",
 				"retry_after": 60,
 			})
 			c.Abort()
@@ -160,8 +160,8 @@ func DistributedRateLimitMiddleware(limiter *DistributedRateLimiter) gin.Handler
 
 		if !allowed {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "rate_limit_exceeded",
-				"message": "Too many requests. Please try again later.",
+				"error":       "rate_limit_exceeded",
+				"message":     "Too many requests. Please try again later.",
 				"retry_after": 60,
 			})
 			c.Abort()
@@ -174,9 +174,9 @@ func DistributedRateLimitMiddleware(limiter *DistributedRateLimiter) gin.Handler
 
 // TokenBucketLimiter implements token bucket algorithm
 type TokenBucketLimiter struct {
-	capacity  int64
-	tokens    map[string]*tokenBucket
-	mu        sync.RWMutex
+	capacity   int64
+	tokens     map[string]*tokenBucket
+	mu         sync.RWMutex
 	refillRate time.Duration
 }
 

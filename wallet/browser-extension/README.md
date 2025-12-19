@@ -11,12 +11,74 @@ It is intentionally focused on API access (no KYC) and serves as a light WalletC
 - Submit new orders (sell or buy) that are routed through `POST /wallet-trades/orders`.
 - Automatically refresh matches and broadcast events on settlement.
 
-## Installation
+## Local Development & Packaging
 
-1. Build the extension by leaving the `browser_wallet_extension/` folder as-is.
-2. In your Chromium-based or Firefox browser open the extensions page (e.g., `chrome://extensions`).
-3. Enable developer mode (if required) and choose “Load unpacked”/“Load Temporary Add-on”.
-4. Point it at `aixn/browser_wallet_extension`.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Run linting (includes auto-fix) to ensure store-ready JS:
+   ```bash
+   npm run lint
+   ```
+3. Build the extension assets into `dist/`:
+   ```bash
+   npm run build
+   ```
+4. Produce the distributable archive for store uploads:
+   ```bash
+   npm run package
+   ```
+   The zipped artifact is emitted as `wallet/browser-extension/extension.zip` and contains the minified JS/CSS/HTML plus the manifest.
+
+## Installation (Unpacked)
+
+1. In your Chromium-based or Firefox browser open the extensions page (e.g., `chrome://extensions`).
+2. Enable developer mode (if required) and choose “Load unpacked”/“Load Temporary Add-on”.
+3. Browse to the `dist/` folder that was generated via `npm run build` and load it as the unpacked extension.
+
+For production store submissions follow the end-to-end steps in [`SUBMISSION_GUIDE.md`](./SUBMISSION_GUIDE.md), which captures the Chrome Web Store, Firefox Add-ons, and Microsoft Edge Add-ons Center workflows.
+
+## Security Hardening
+
+- Review the full audit + manual validation checklist in [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
+- Run the automated checks (manifest validation + dependency scan) before packaging:
+  ```bash
+  npm run security:audit
+  ```
+
+## WalletConnect UX (Hardware-First)
+
+- Hardware-first signing: Ledger (WebHID/WebUSB) with chain-id/fee/prefix guardrails and approval modal.
+- Allowlist configurable in popup; audit log (last 10) stored in extension storage with origin/mode/chain/address.
+- Session/sign results forwarded via runtime + content script; dApps can listen on `window`:
+  ```js
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'walletconnect-sign-result') {
+      console.log('Signed', e.data.result);
+    }
+    if (e.data?.type === 'walletconnect-session-result') {
+      console.log('Session approved?', e.data.result?.approved);
+    }
+  });
+  ```
+- DApps can actively request signing/session approval via the injected bridge helpers (event-based, id-correlated):
+  ```js
+  import { requestWalletConnectSign, requestWalletConnectSession } from './dapp-bridge';
+
+  // Start a session proposal
+  await requestWalletConnectSession({ chains: ['paw-testnet-1'], origin: window.location.origin });
+
+  // Trigger a sign (Ledger-first, software fallback)
+  const { result } = await requestWalletConnectSign({
+    params: [{
+      signerAddress: 'paw1...',
+      origin: window.location.origin,
+      signDoc: { chain_id: 'paw-testnet-1', fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' }, msgs: [], memo: '' }
+    }]
+  });
+  console.log('signature', result.signature);
+  ```
 
 ## API Notes
 

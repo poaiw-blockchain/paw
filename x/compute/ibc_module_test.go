@@ -10,10 +10,10 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/compute"
 	"github.com/paw-chain/paw/x/compute/keeper"
 	"github.com/paw-chain/paw/x/compute/types"
-	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-1: IBC Channel Lifecycle Tests for Compute Module
@@ -393,4 +393,30 @@ func TestComputeChannelLifecycle_TableDriven(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOnRecvPacket_UnauthorizedEmitsEvent(t *testing.T) {
+	ibcModule, _, ctx := setupComputeIBCModuleWithKeeper(t)
+
+	packet := channeltypes.Packet{
+		Sequence:           1,
+		SourcePort:         "compute",
+		SourceChannel:      "channel-unauthorized",
+		DestinationPort:    "dest",
+		DestinationChannel: "dest-channel",
+		Data:               []byte{0x01},
+	}
+
+	ack := ibcModule.OnRecvPacket(ctx, packet, nil)
+	require.False(t, ack.Success())
+
+	events := ctx.EventManager().Events()
+	found := false
+	for _, ev := range events {
+		if ev.Type == "compute_ibc_packet_validation_failed" {
+			found = true
+			break
+		}
+	}
+	require.True(t, found, "expected validation failed event to be emitted")
 }

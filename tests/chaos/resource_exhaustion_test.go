@@ -60,7 +60,7 @@ func (suite *ResourceExhaustionTestSuite) TestMemoryLeakDetection() {
 	runtime.GC()
 
 	var m runtime.MemStats
-	runtime.ReadMemStats(& m)
+	runtime.ReadMemStats(&m)
 	currentMemMB := m.Alloc / 1024 / 1024
 
 	suite.T().Logf("Memory before: %d MB, after: %d MB", suite.initialMemMB, currentMemMB)
@@ -210,6 +210,7 @@ func (suite *ResourceExhaustionTestSuite) TestDiskSpaceExhaustion() {
 
 	tempData = nil
 	runtime.GC()
+	suite.Zero(len(tempData), "Temporary data should be cleared")
 	suite.True(true, "Memory cleanup successful")
 }
 

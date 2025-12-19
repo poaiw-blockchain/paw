@@ -16,6 +16,12 @@ func TestVerifyComputeProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) 
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	cm := k.GetCircuitManager()
+	cm.mu.Lock()
+	cm.initialized = true
+	cm.computeVerifyingKey = nil
+	cm.mu.Unlock()
+
 	ok, err := k.VerifyComputeProofWithCircuitManager(
 		sdkCtx,
 		[]byte{}, 1, "result", "provider", "resource",
@@ -28,6 +34,12 @@ func TestVerifyEscrowProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	cm := k.GetCircuitManager()
+	cm.mu.Lock()
+	cm.initialized = true
+	cm.escrowVerifyingKey = nil
+	cm.mu.Unlock()
+
 	ok, err := k.VerifyEscrowProofWithCircuitManager(
 		sdkCtx,
 		[]byte{}, 1, 10, "requester", "provider", "completion",
@@ -39,6 +51,12 @@ func TestVerifyEscrowProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) {
 func TestVerifyResultProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	cm := k.GetCircuitManager()
+	cm.mu.Lock()
+	cm.initialized = true
+	cm.resultVerifyingKey = nil
+	cm.mu.Unlock()
 
 	ok, err := k.VerifyResultProofWithCircuitManager(
 		sdkCtx,

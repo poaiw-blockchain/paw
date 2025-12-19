@@ -45,12 +45,12 @@ func TestUpdateReputationAdvanced(t *testing.T) {
 func TestApplyReputationDecay(t *testing.T) {
 	now := time.Now().UTC()
 	rep := &types.ProviderReputation{
-		Provider:          "rep_decay",
-		OverallScore:      90,
-		ReliabilityScore:  0.9,
-		AccuracyScore:     0.8,
-		SpeedScore:        0.85,
-		AvailabilityScore: 0.88,
+		Provider:           "rep_decay",
+		OverallScore:       90,
+		ReliabilityScore:   0.9,
+		AccuracyScore:      0.8,
+		SpeedScore:         0.85,
+		AvailabilityScore:  0.88,
 		LastDecayTimestamp: now.Add(-48 * time.Hour),
 	}
 

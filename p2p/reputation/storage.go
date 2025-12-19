@@ -12,6 +12,8 @@ import (
 	"cosmossdk.io/log"
 )
 
+const reputationFileExt = ".json"
+
 // Storage handles persistence of peer reputation data
 type Storage interface {
 	// Save saves a peer reputation
@@ -164,7 +166,7 @@ func (fs *FileStorage) LoadAll() (map[PeerID]*PeerReputation, error) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != reputationFileExt {
 			continue
 		}
 

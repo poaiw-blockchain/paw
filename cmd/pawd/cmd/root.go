@@ -15,11 +15,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/pruning"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
+
 	// "github.com/cosmos/cosmos-sdk/client/snapshot"
 	"github.com/cosmos/cosmos-sdk/server"
 	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
@@ -32,7 +34,7 @@ import (
 
 // NewRootCmd creates a new root command for pawd. It is called once in the
 // main function.
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(addHomeFlag bool) *cobra.Command {
 	// Ensure SDK bech32 prefixes are configured prior to CLI usage.
 	initSDKConfig()
 
@@ -41,6 +43,7 @@ func NewRootCmd() *cobra.Command {
 	initClientCtx := client.Context{}.
 		WithCodec(encodingConfig.Codec).
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
+		WithAccountRetriever(authtypes.AccountRetriever{}).
 		WithTxConfig(encodingConfig.TxConfig).
 		WithLegacyAmino(encodingConfig.Amino).
 		WithInput(os.Stdin).
@@ -68,6 +71,15 @@ with a built-in DEX, secure API compute aggregation, and multi-device wallet sup
 				return err
 			}
 
+			// Ensure TxConfig is always populated; ReadPersistentCommandFlags/ReadFromClientConfig
+			// can overwrite the client context and nil out the TxConfig, which causes CLI tx
+			// commands to panic when preparing the factory.
+			initClientCtx = initClientCtx.WithTxConfig(encodingConfig.TxConfig)
+			if initClientCtx.TxConfig == nil {
+				reboundCfg := app.MakeEncodingConfig()
+				initClientCtx = initClientCtx.WithTxConfig(reboundCfg.TxConfig)
+			}
+
 			if err := client.SetCmdClientContextHandler(initClientCtx, cmd); err != nil {
 				return err
 			}
@@ -79,12 +91,19 @@ with a built-in DEX, secure API compute aggregation, and multi-device wallet sup
 		},
 	}
 
-	initRootCmd(rootCmd, initClientCtx, encodingConfig)
+	initRootCmd(rootCmd, encodingConfig, addHomeFlag)
 
 	return rootCmd
 }
 
-func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context, encodingConfig app.EncodingConfig) {
+func initRootCmd(rootCmd *cobra.Command, encodingConfig app.EncodingConfig, addHomeFlag bool) {
+	if addHomeFlag && rootCmd.PersistentFlags().Lookup(flags.FlagHome) == nil {
+		rootCmd.PersistentFlags().String(flags.FlagHome, app.DefaultNodeHome, "directory for config and data")
+	}
+	if rootCmd.PersistentFlags().Lookup(flags.FlagChainID) == nil {
+		rootCmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
+	}
+
 	rootCmd.AddCommand(
 		InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
@@ -104,7 +123,7 @@ func initRootCmd(rootCmd *cobra.Command, clientCtx client.Context, encodingConfi
 		server.StatusCommand(),
 		queryCommand(),
 		txCommand(),
-		KeysCmd(), // PAW custom keys command with BIP39 support
+		newKeysCmd(false), // PAW custom keys command with BIP39 support (home flag provided by root)
 	)
 }
 
@@ -227,7 +246,7 @@ func initSDKConfig() {
 }
 
 // initAppConfig helps to override default appConfig template and configs.
-func initAppConfig() (string, interface{}) {
+func initAppConfig() (configTemplate string, cfg interface{}) {
 	type CustomAppConfig struct {
 		serverconfig.Config
 	}

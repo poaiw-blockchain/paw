@@ -3,7 +3,6 @@ package cli_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/go-bip39"
@@ -35,10 +35,10 @@ import (
 // CLIIntegrationTestSuite provides a comprehensive test suite for all CLI commands
 type CLIIntegrationTestSuite struct {
 	suite.Suite
-	homeDir    string
-	chainID    string
-	keyring    keyring.Keyring
-	clientCtx  client.Context
+	homeDir      string
+	chainID      string
+	keyring      keyring.Keyring
+	clientCtx    client.Context
 	testAccounts []testAccount
 }
 
@@ -133,6 +133,54 @@ func setFlag(t *testing.T, flagSet *pflag.FlagSet, name, value string) {
 	require.NoError(t, flagSet.Set(name, value))
 }
 
+func execCmd(cmd *cobra.Command) error {
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return cmd.ExecuteContext(ctx)
+}
+
+func (s *CLIIntegrationTestSuite) attachCmdContexts(cmd *cobra.Command, homeDir string, chainID string) {
+	s.T().Helper()
+
+	clientCtx := s.clientCtx.WithHomeDir(homeDir).WithKeyring(s.keyring)
+	if clientCtx.Codec == nil || clientCtx.InterfaceRegistry == nil || clientCtx.TxConfig == nil {
+		enc := app.MakeEncodingConfig()
+		clientCtx = clientCtx.
+			WithCodec(enc.Codec).
+			WithInterfaceRegistry(enc.InterfaceRegistry).
+			WithTxConfig(enc.TxConfig).
+			WithLegacyAmino(enc.Amino)
+	}
+	if chainID != "" {
+		clientCtx = clientCtx.WithChainID(chainID)
+	}
+
+	require.NoError(s.T(), client.SetCmdClientContext(cmd, clientCtx))
+	serverCtx := server.NewDefaultContext()
+	serverCtx.Config.SetRoot(homeDir)
+	require.NoError(s.T(), server.SetCmdServerContext(cmd, serverCtx))
+}
+
+func (s *CLIIntegrationTestSuite) ensureTestAccounts() {
+	if s.keyring == nil {
+		kr, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, s.homeDir, nil, app.MakeEncodingConfig().Codec)
+		require.NoError(s.T(), err)
+		s.keyring = kr
+	}
+
+	if len(s.testAccounts) > 0 {
+		return
+	}
+
+	s.testAccounts = make([]testAccount, 3)
+	for i := 0; i < 3; i++ {
+		acct := s.createTestAccount(fmt.Sprintf("testkey%d", i+1))
+		s.testAccounts[i] = acct
+	}
+}
+
 // executeCommand executes a command and returns the output
 func (s *CLIIntegrationTestSuite) executeCommand(cmd *cobra.Command, args ...string) (string, error) {
 	outBuf := new(bytes.Buffer)
@@ -142,6 +190,8 @@ func (s *CLIIntegrationTestSuite) executeCommand(cmd *cobra.Command, args ...str
 	cmd.SetErr(errBuf)
 	cmd.SetArgs(args)
 
+	s.attachCmdContexts(cmd, s.homeDir, s.chainID)
+
 	// Add required flags
 	if cmd.Flags().Lookup(flags.FlagHome) != nil {
 		setFlag(s.T(), cmd.Flags(), flags.FlagHome, s.homeDir)
@@ -150,7 +200,11 @@ func (s *CLIIntegrationTestSuite) executeCommand(cmd *cobra.Command, args ...str
 		setFlag(s.T(), cmd.Flags(), flags.FlagChainID, s.chainID)
 	}
 
-	err := cmd.ExecuteContext(context.Background())
+	execCtx := cmd.Context()
+	if execCtx == nil {
+		execCtx = context.Background()
+	}
+	err := cmd.ExecuteContext(execCtx)
 
 	if err != nil {
 		return errBuf.String(), err
@@ -241,7 +295,9 @@ func (s *CLIIntegrationTestSuite) TestInitCmd() {
 			cmdInit.SetOut(outBuf)
 			cmdInit.SetErr(outBuf)
 
-			err := cmdInit.ExecuteContext(context.Background())
+			s.attachCmdContexts(cmdInit, testHomeDir, tt.chainID)
+
+			err := execCmd(cmdInit)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -267,8 +323,7 @@ func (s *CLIIntegrationTestSuite) TestInitCmd() {
 				genesisData, err := os.ReadFile(genesisFile)
 				require.NoError(s.T(), err)
 
-				var genDoc tmtypes.GenesisDoc
-				err = json.Unmarshal(genesisData, &genDoc)
+				genDoc, err := tmtypes.GenesisDocFromJSON(genesisData)
 				require.NoError(s.T(), err)
 
 				if tt.chainID != "" {
@@ -293,7 +348,9 @@ func (s *CLIIntegrationTestSuite) TestCollectGenTxsCmd() {
 	cmdInit.SetOut(outBuf)
 	cmdInit.SetErr(outBuf)
 
-	err := cmdInit.ExecuteContext(context.Background())
+	s.attachCmdContexts(cmdInit, testHomeDir, "paw-test")
+
+	err := execCmd(cmdInit)
 	require.NoError(s.T(), err)
 
 	// Test collect-gentxs command
@@ -305,8 +362,10 @@ func (s *CLIIntegrationTestSuite) TestCollectGenTxsCmd() {
 	cmdCollect.SetOut(outBuf)
 	cmdCollect.SetErr(outBuf)
 
+	s.attachCmdContexts(cmdCollect, testHomeDir, "paw-test")
+
 	// This will succeed even with no gentxs
-	err = cmdCollect.ExecuteContext(context.Background())
+	err = execCmd(cmdCollect)
 	require.NoError(s.T(), err)
 }
 
@@ -368,27 +427,25 @@ func (s *CLIIntegrationTestSuite) TestKeysAddCmd() {
 
 			// Setup client context with keyring
 			clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
-			err = client.SetCmdClientContext(addCmd, clientCtx)
-			require.NoError(s.T(), err)
+			require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
+			require.NoError(s.T(), client.SetCmdClientContext(addCmd, clientCtx))
 
-			args := []string{tt.keyName}
-			setFlag(s.T(), addCmd.Flags(), flags.FlagHome, testHomeDir)
-			setFlag(s.T(), addCmd.Flags(), flags.FlagKeyringBackend, keyring.BackendTest)
+			args := []string{"add", tt.keyName, "--home", testHomeDir, "--keyring-backend", keyring.BackendTest}
 
 			if tt.recover {
-				setFlag(s.T(), addCmd.Flags(), "recover", "true")
+				args = append(args, "--recover")
 				// Simulate stdin for mnemonic input
 				addCmd.SetIn(strings.NewReader(tt.mnemonic + "\n"))
-			} else {
-				setFlag(s.T(), addCmd.Flags(), "keyring-backend", keyring.BackendTest)
 			}
 
-			addCmd.SetArgs(args)
 			outBuf := new(bytes.Buffer)
+			cmdKeys.SetArgs(args)
+			cmdKeys.SetOut(outBuf)
+			cmdKeys.SetErr(outBuf)
 			addCmd.SetOut(outBuf)
 			addCmd.SetErr(outBuf)
 
-			err = addCmd.ExecuteContext(context.Background())
+			err = execCmd(cmdKeys)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -436,17 +493,18 @@ func (s *CLIIntegrationTestSuite) TestKeysListCmd() {
 	require.NotNil(s.T(), listCmd)
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
-	err = client.SetCmdClientContext(listCmd, clientCtx)
-	require.NoError(s.T(), err)
+	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
+	require.NoError(s.T(), client.SetCmdClientContext(listCmd, clientCtx))
 
-	setFlag(s.T(), listCmd.Flags(), flags.FlagHome, testHomeDir)
-	setFlag(s.T(), listCmd.Flags(), flags.FlagKeyringBackend, keyring.BackendTest)
+	cmdKeys.SetArgs([]string{"list", "--home", testHomeDir, "--keyring-backend", keyring.BackendTest})
 
 	outBuf := new(bytes.Buffer)
+	cmdKeys.SetOut(outBuf)
+	cmdKeys.SetErr(outBuf)
 	listCmd.SetOut(outBuf)
 	listCmd.SetErr(outBuf)
 
-	err = listCmd.ExecuteContext(context.Background())
+	err = execCmd(cmdKeys)
 	require.NoError(s.T(), err)
 
 	output := outBuf.String()
@@ -481,18 +539,18 @@ func (s *CLIIntegrationTestSuite) TestKeysShowCmd() {
 	require.NotNil(s.T(), showCmd)
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
-	err = client.SetCmdClientContext(showCmd, clientCtx)
-	require.NoError(s.T(), err)
+	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
+	require.NoError(s.T(), client.SetCmdClientContext(showCmd, clientCtx))
 
-	showCmd.SetArgs([]string{"showkey"})
-	setFlag(s.T(), showCmd.Flags(), flags.FlagHome, testHomeDir)
-	setFlag(s.T(), showCmd.Flags(), flags.FlagKeyringBackend, keyring.BackendTest)
+	cmdKeys.SetArgs([]string{"show", "showkey", "--home", testHomeDir, "--keyring-backend", keyring.BackendTest})
 
 	outBuf := new(bytes.Buffer)
+	cmdKeys.SetOut(outBuf)
+	cmdKeys.SetErr(outBuf)
 	showCmd.SetOut(outBuf)
 	showCmd.SetErr(outBuf)
 
-	err = showCmd.ExecuteContext(context.Background())
+	err = execCmd(cmdKeys)
 	require.NoError(s.T(), err)
 
 	output := outBuf.String()
@@ -531,19 +589,18 @@ func (s *CLIIntegrationTestSuite) TestKeysDeleteCmd() {
 	require.NotNil(s.T(), deleteCmd)
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
-	err = client.SetCmdClientContext(deleteCmd, clientCtx)
-	require.NoError(s.T(), err)
+	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
+	require.NoError(s.T(), client.SetCmdClientContext(deleteCmd, clientCtx))
 
-	deleteCmd.SetArgs([]string{"deletekey"})
-	setFlag(s.T(), deleteCmd.Flags(), flags.FlagHome, testHomeDir)
-	setFlag(s.T(), deleteCmd.Flags(), flags.FlagKeyringBackend, keyring.BackendTest)
-	setFlag(s.T(), deleteCmd.Flags(), "yes", "true") // Skip confirmation
+	cmdKeys.SetArgs([]string{"delete", "deletekey", "--home", testHomeDir, "--keyring-backend", keyring.BackendTest, "--yes"})
 
 	outBuf := new(bytes.Buffer)
+	cmdKeys.SetOut(outBuf)
+	cmdKeys.SetErr(outBuf)
 	deleteCmd.SetOut(outBuf)
 	deleteCmd.SetErr(outBuf)
 
-	err = deleteCmd.ExecuteContext(context.Background())
+	err = execCmd(cmdKeys)
 	require.NoError(s.T(), err)
 
 	// Verify key was deleted
@@ -588,14 +645,14 @@ func (s *CLIIntegrationTestSuite) TestDEXQueryCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
-			rootCmd.SetArgs(tt.args)
+			rootCmd := cmd.NewRootCmd(true)
+			rootCmd.SetArgs(append(tt.args, "--home", s.homeDir))
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -637,14 +694,14 @@ func (s *CLIIntegrationTestSuite) TestComputeQueryCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -681,14 +738,14 @@ func (s *CLIIntegrationTestSuite) TestOracleQueryCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -759,14 +816,14 @@ func (s *CLIIntegrationTestSuite) TestDEXTxCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -828,14 +885,14 @@ func (s *CLIIntegrationTestSuite) TestComputeTxCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -867,14 +924,14 @@ func (s *CLIIntegrationTestSuite) TestOracleTxCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -891,6 +948,8 @@ func (s *CLIIntegrationTestSuite) TestOracleTxCommands() {
 // ============================================================================
 
 func (s *CLIIntegrationTestSuite) TestDEXMessageValidation() {
+	s.ensureTestAccounts()
+
 	tests := []struct {
 		name    string
 		msg     sdk.Msg
@@ -976,6 +1035,8 @@ func (s *CLIIntegrationTestSuite) TestDEXMessageValidation() {
 }
 
 func (s *CLIIntegrationTestSuite) TestComputeMessageValidation() {
+	s.ensureTestAccounts()
+
 	tests := []struct {
 		name    string
 		msg     sdk.Msg
@@ -1066,6 +1127,8 @@ func (s *CLIIntegrationTestSuite) TestComputeMessageValidation() {
 }
 
 func (s *CLIIntegrationTestSuite) TestOracleMessageValidation() {
+	s.ensureTestAccounts()
+
 	tests := []struct {
 		name    string
 		msg     sdk.Msg
@@ -1163,14 +1226,14 @@ func (s *CLIIntegrationTestSuite) TestBankTxCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -1212,14 +1275,14 @@ func (s *CLIIntegrationTestSuite) TestStakingTxCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -1261,14 +1324,14 @@ func (s *CLIIntegrationTestSuite) TestQueryCommands() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 
 			if tt.wantErr {
 				require.Error(s.T(), err)
@@ -1285,7 +1348,7 @@ func (s *CLIIntegrationTestSuite) TestQueryCommands() {
 // ============================================================================
 
 func (s *CLIIntegrationTestSuite) TestRootCommandStructure() {
-	rootCmd := cmd.NewRootCmd()
+	rootCmd := cmd.NewRootCmd(true)
 	require.NotNil(s.T(), rootCmd)
 	require.Equal(s.T(), "pawd", rootCmd.Use)
 
@@ -1302,7 +1365,6 @@ func (s *CLIIntegrationTestSuite) TestRootCommandStructure() {
 	require.True(s.T(), commands["tx"], "tx command should exist")
 	require.True(s.T(), commands["keys"], "keys command should exist")
 	require.True(s.T(), commands["status"], "status command should exist")
-	require.True(s.T(), commands["config"], "config command should exist")
 }
 
 func (s *CLIIntegrationTestSuite) TestHelpCommand() {
@@ -1330,14 +1392,14 @@ func (s *CLIIntegrationTestSuite) TestHelpCommand() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 			require.NoError(s.T(), err)
 
 			output := outBuf.String()
@@ -1348,14 +1410,14 @@ func (s *CLIIntegrationTestSuite) TestHelpCommand() {
 }
 
 func (s *CLIIntegrationTestSuite) TestVersionCommand() {
-	rootCmd := cmd.NewRootCmd()
+	rootCmd := cmd.NewRootCmd(true)
 	rootCmd.SetArgs([]string{"version"})
 
 	outBuf := new(bytes.Buffer)
 	rootCmd.SetOut(outBuf)
 	rootCmd.SetErr(outBuf)
 
-	err := rootCmd.ExecuteContext(context.Background())
+	err := execCmd(rootCmd)
 	require.NoError(s.T(), err)
 
 	output := outBuf.String()
@@ -1397,14 +1459,14 @@ func (s *CLIIntegrationTestSuite) TestCommonFlags() {
 
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			rootCmd := cmd.NewRootCmd()
+			rootCmd := cmd.NewRootCmd(true)
 			rootCmd.SetArgs(tt.args)
 
 			outBuf := new(bytes.Buffer)
 			rootCmd.SetOut(outBuf)
 			rootCmd.SetErr(outBuf)
 
-			err := rootCmd.ExecuteContext(context.Background())
+			err := execCmd(rootCmd)
 			require.NoError(s.T(), err)
 
 			if tt.checkOut != nil {

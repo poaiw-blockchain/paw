@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
-	"github.com/paw-chain/paw/p2p/snapshot"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paw-chain/paw/p2p/snapshot"
 )
 
 // MockPeerManager implements PeerManager interface for testing

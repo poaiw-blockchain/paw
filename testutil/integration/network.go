@@ -157,7 +157,7 @@ func (n *Network) InitChain(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		val.App.Commit()
+		val.App.Commit() // nolint:errcheck // commit does not return an error
 	}
 }
 
@@ -278,21 +278,4 @@ func (n *Network) WaitForHeightWithTimeout(height int64, timeout time.Duration) 
 // LatestHeight returns the latest block height
 func (n *Network) LatestHeight() int64 {
 	return n.Validators[0].Ctx.BlockHeight()
-}
-
-// testWriter wraps testing.T to implement io.Writer
-type testWriter struct {
-	t *testing.T
-}
-
-func (tw *testWriter) Write(p []byte) (n int, err error) {
-	tw.t.Log(string(p))
-	return len(p), nil
-}
-
-// mockAppOptions implements server.AppOptions for testing
-type mockAppOptions struct{}
-
-func (m *mockAppOptions) Get(key string) interface{} {
-	return nil
 }

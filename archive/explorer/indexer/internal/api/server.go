@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"golang.org/x/time/rate"
+
 	"github.com/paw-chain/paw/explorer/indexer/config"
 	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
 	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 	"github.com/paw-chain/paw/explorer/indexer/internal/websocket/hub"
 	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"golang.org/x/time/rate"
 )
 
 var (

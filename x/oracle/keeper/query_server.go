@@ -17,12 +17,34 @@ type queryServer struct {
 	Keeper
 }
 
+const (
+	defaultPaginationLimit = 100
+	maxPaginationLimit     = 1000
+)
+
 // NewQueryServerImpl returns an implementation of the QueryServer interface
 func NewQueryServerImpl(keeper Keeper) types.QueryServer {
 	return &queryServer{Keeper: keeper}
 }
 
 var _ types.QueryServer = queryServer{}
+
+// sanitizePagination enforces sensible defaults and caps for paginated queries.
+func sanitizePagination(p *query.PageRequest) *query.PageRequest {
+	if p == nil {
+		return &query.PageRequest{Limit: defaultPaginationLimit}
+	}
+
+	if p.Limit == 0 {
+		p.Limit = defaultPaginationLimit
+	}
+
+	if p.Limit > maxPaginationLimit {
+		p.Limit = maxPaginationLimit
+	}
+
+	return p
+}
 
 // Price queries the current price for a specific asset
 func (qs queryServer) Price(goCtx context.Context, req *types.QueryPriceRequest) (*types.QueryPriceResponse, error) {
@@ -53,7 +75,7 @@ func (qs queryServer) Prices(goCtx context.Context, req *types.QueryPricesReques
 	priceStore := prefix.NewStore(store, PriceKeyPrefix)
 
 	var prices []types.Price
-	pageRes, err := query.Paginate(priceStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(priceStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var price types.Price
 		if err := qs.cdc.Unmarshal(value, &price); err != nil {
 			return err
@@ -105,7 +127,7 @@ func (qs queryServer) Validators(goCtx context.Context, req *types.QueryValidato
 	validatorStore := prefix.NewStore(store, ValidatorOracleKeyPrefix)
 
 	var validators []types.ValidatorOracle
-	pageRes, err := query.Paginate(validatorStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(validatorStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var validator types.ValidatorOracle
 		if err := qs.cdc.Unmarshal(value, &validator); err != nil {
 			return err

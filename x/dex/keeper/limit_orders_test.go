@@ -576,7 +576,7 @@ func (s *LimitOrderTestSuite) TestGetOrderBook() {
 	// Test with high limit (should be capped)
 	buyOrders, sellOrders, err = s.keeper.GetOrderBook(s.ctx, s.poolID, 200)
 	s.Require().NoError(err)
-	s.Require().Len(buyOrders, 3) // Only 3 orders exist
+	s.Require().Len(buyOrders, 3)  // Only 3 orders exist
 	s.Require().Len(sellOrders, 2) // Only 2 orders exist
 }
 

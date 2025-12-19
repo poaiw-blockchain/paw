@@ -15,10 +15,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/app"
 )
+
+func setFlag(tb testing.TB, flagSet *pflag.FlagSet, name, value string) {
+	tb.Helper()
+	require.NoError(tb, flagSet.Set(name, value))
+}
 
 // TestInitCmd tests the basic initialization command
 func TestInitCmd(t *testing.T) {
@@ -78,14 +84,14 @@ func TestInitCmd(t *testing.T) {
 
 			// Set up command flags
 			cmd.SetArgs([]string{tt.moniker})
-			cmd.Flags().Set(flags.FlagChainID, tt.chainID)
-			cmd.Flags().Set(flags.FlagHome, homeDir)
-			cmd.Flags().Set(flagOverwrite, "false")
+			setFlag(t, cmd.Flags(), flags.FlagChainID, tt.chainID)
+			setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
+			setFlag(t, cmd.Flags(), flagOverwrite, "false")
 			if tt.overwrite {
-				cmd.Flags().Set(flagOverwrite, "true")
+				setFlag(t, cmd.Flags(), flagOverwrite, "true")
 			}
 			if tt.defaultDenom != "" {
-				cmd.Flags().Set(flagDefaultDenom, tt.defaultDenom)
+				setFlag(t, cmd.Flags(), flagDefaultDenom, tt.defaultDenom)
 			}
 
 			// Create output buffer
@@ -102,7 +108,7 @@ func TestInitCmd(t *testing.T) {
 			ctx.Config.SetRoot(homeDir)
 
 			// Execute command
-			err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+			err := executeCommandWithContext(t, cmd, &clientCtx)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -161,9 +167,9 @@ func TestInitCmdGenesisExists(t *testing.T) {
 
 	// First initialization
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet-1")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
-	cmd.Flags().Set(flagOverwrite, "false")
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet-1")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flagOverwrite, "false")
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -177,22 +183,22 @@ func TestInitCmdGenesisExists(t *testing.T) {
 	ctx.Config.SetRoot(homeDir)
 
 	// First execution should succeed
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Create a new command for second execution
 	cmd2 := InitCmd(app.ModuleBasics, homeDir)
 	cmd2.SetArgs([]string{"test-node-2"})
-	cmd2.Flags().Set(flags.FlagChainID, "paw-testnet-2")
-	cmd2.Flags().Set(flags.FlagHome, homeDir)
-	cmd2.Flags().Set(flagOverwrite, "false")
+	setFlag(t, cmd2.Flags(), flags.FlagChainID, "paw-testnet-2")
+	setFlag(t, cmd2.Flags(), flags.FlagHome, homeDir)
+	setFlag(t, cmd2.Flags(), flagOverwrite, "false")
 
 	outBuf2 := new(bytes.Buffer)
 	cmd2.SetOut(outBuf2)
 	cmd2.SetErr(outBuf2)
 
 	// Second execution should fail (genesis exists)
-	err = executeCommandWithContext(t, cmd2, clientCtx, ctx)
+	err = executeCommandWithContext(t, cmd2, &clientCtx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "genesis.json file already exists")
 }
@@ -205,9 +211,9 @@ func TestInitCmdWithOverwrite(t *testing.T) {
 	// First initialization
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet-1")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
-	cmd.Flags().Set(flagOverwrite, "false")
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet-1")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flagOverwrite, "false")
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -219,7 +225,7 @@ func TestInitCmdWithOverwrite(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Read original genesis time
@@ -234,14 +240,14 @@ func TestInitCmdWithOverwrite(t *testing.T) {
 	// Second initialization with overwrite
 	cmd2 := InitCmd(app.ModuleBasics, homeDir)
 	cmd2.SetArgs([]string{"test-node-overwrite"})
-	cmd2.Flags().Set(flags.FlagChainID, "paw-testnet-2")
-	cmd2.Flags().Set(flags.FlagHome, homeDir)
-	cmd2.Flags().Set(flagOverwrite, "true")
+	setFlag(t, cmd2.Flags(), flags.FlagChainID, "paw-testnet-2")
+	setFlag(t, cmd2.Flags(), flags.FlagHome, homeDir)
+	setFlag(t, cmd2.Flags(), flagOverwrite, "true")
 
 	outBuf2 := new(bytes.Buffer)
 	cmd2.SetOut(outBuf2)
 
-	err = executeCommandWithContext(t, cmd2, clientCtx, ctx)
+	err = executeCommandWithContext(t, cmd2, &clientCtx)
 	require.NoError(t, err)
 
 	// Verify genesis was overwritten
@@ -258,8 +264,8 @@ func TestInitCmdGenesisValidation(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"validator-1"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -271,7 +277,7 @@ func TestInitCmdGenesisValidation(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Read genesis file
@@ -303,8 +309,8 @@ func TestInitCmdConsensusParams(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-validator"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -316,7 +322,7 @@ func TestInitCmdConsensusParams(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Read genesis file
@@ -359,10 +365,10 @@ func TestInitCmdDefaultDenom(t *testing.T) {
 
 			cmd := InitCmd(app.ModuleBasics, homeDir)
 			cmd.SetArgs([]string{"test-node"})
-			cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-			cmd.Flags().Set(flags.FlagHome, homeDir)
+			setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+			setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 			if tt.denom != "" {
-				cmd.Flags().Set(flagDefaultDenom, tt.denom)
+				setFlag(t, cmd.Flags(), flagDefaultDenom, tt.denom)
 			}
 
 			outBuf := new(bytes.Buffer)
@@ -375,7 +381,7 @@ func TestInitCmdDefaultDenom(t *testing.T) {
 			ctx := server.NewDefaultContext()
 			ctx.Config.SetRoot(homeDir)
 
-			err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+			err := executeCommandWithContext(t, cmd, &clientCtx)
 			require.NoError(t, err)
 
 			// Verify genesis file was created successfully
@@ -415,8 +421,8 @@ func TestInitCmdOutput(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-validator"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -428,7 +434,7 @@ func TestInitCmdOutput(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	output := outBuf.String()
@@ -444,13 +450,11 @@ func TestInitCmdOutput(t *testing.T) {
 	require.Contains(t, output, "App config:")
 }
 
-// executeCommandWithContext is a helper to execute commands with proper context
-func executeCommandWithContext(t testing.TB, cmd *cobra.Command, clientCtx client.Context, serverCtx *server.Context) error {
+// executeCommandWithContext is a helper to execute commands with proper context.
+func executeCommandWithContext(t testing.TB, cmd *cobra.Command, clientCtx *client.Context) error {
 	t.Helper()
 
-	// Create root directory structure
-	err := os.MkdirAll(filepath.Join(clientCtx.HomeDir, "config"), 0755)
-	if err != nil {
+	if err := os.MkdirAll(filepath.Join(clientCtx.HomeDir, "config"), 0o755); err != nil {
 		return err
 	}
 
@@ -458,7 +462,7 @@ func executeCommandWithContext(t testing.TB, cmd *cobra.Command, clientCtx clien
 	encodingConfig := app.MakeEncodingConfig()
 
 	// Ensure client context has all required fields
-	clientCtx = clientCtx.
+	*clientCtx = clientCtx.
 		WithCodec(encodingConfig.Codec).
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
 		WithTxConfig(encodingConfig.TxConfig).
@@ -471,7 +475,7 @@ func executeCommandWithContext(t testing.TB, cmd *cobra.Command, clientCtx clien
 	}
 
 	// Set client context in command
-	_ = client.SetCmdClientContextHandler(clientCtx, cmd)
+	_ = client.SetCmdClientContextHandler(*clientCtx, cmd)
 
 	return cmd.Execute()
 }
@@ -517,8 +521,8 @@ func TestInitCmdInvalidMoniker(t *testing.T) {
 
 			cmd := InitCmd(app.ModuleBasics, homeDir)
 			cmd.SetArgs([]string{tt.moniker})
-			cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-			cmd.Flags().Set(flags.FlagHome, homeDir)
+			setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+			setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 			outBuf := new(bytes.Buffer)
 			cmd.SetOut(outBuf)
@@ -530,7 +534,7 @@ func TestInitCmdInvalidMoniker(t *testing.T) {
 			ctx := server.NewDefaultContext()
 			ctx.Config.SetRoot(homeDir)
 
-			err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+			err := executeCommandWithContext(t, cmd, &clientCtx)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -572,8 +576,8 @@ func TestInitCmdChainIDValidation(t *testing.T) {
 
 			cmd := InitCmd(app.ModuleBasics, homeDir)
 			cmd.SetArgs([]string{"test-node"})
-			cmd.Flags().Set(flags.FlagChainID, tt.chainID)
-			cmd.Flags().Set(flags.FlagHome, homeDir)
+			setFlag(t, cmd.Flags(), flags.FlagChainID, tt.chainID)
+			setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 			outBuf := new(bytes.Buffer)
 			cmd.SetOut(outBuf)
@@ -585,7 +589,7 @@ func TestInitCmdChainIDValidation(t *testing.T) {
 			ctx := server.NewDefaultContext()
 			ctx.Config.SetRoot(homeDir)
 
-			err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+			err := executeCommandWithContext(t, cmd, &clientCtx)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -603,8 +607,8 @@ func TestInitCmdNodeKeyGeneration(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -616,7 +620,7 @@ func TestInitCmdNodeKeyGeneration(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Verify node_key.json exists and is valid JSON
@@ -639,8 +643,8 @@ func TestInitCmdPrivValidatorKeyGeneration(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -652,7 +656,7 @@ func TestInitCmdPrivValidatorKeyGeneration(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Verify priv_validator_key.json exists and is valid JSON
@@ -681,8 +685,8 @@ func TestInitCmdMultipleChains(t *testing.T) {
 		cmd := InitCmd(app.ModuleBasics, homeDir)
 		moniker := fmt.Sprintf("validator-%d", i)
 		cmd.SetArgs([]string{moniker})
-		cmd.Flags().Set(flags.FlagChainID, chainID)
-		cmd.Flags().Set(flags.FlagHome, homeDir)
+		setFlag(t, cmd.Flags(), flags.FlagChainID, chainID)
+		setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 		outBuf := new(bytes.Buffer)
 		cmd.SetOut(outBuf)
@@ -694,7 +698,7 @@ func TestInitCmdMultipleChains(t *testing.T) {
 		ctx := server.NewDefaultContext()
 		ctx.Config.SetRoot(homeDir)
 
-		err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+		err := executeCommandWithContext(t, cmd, &clientCtx)
 		require.NoError(t, err)
 
 		genFile := filepath.Join(homeDir, "config", "genesis.json")
@@ -711,8 +715,8 @@ func TestInitCmdDirectoryStructure(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -724,7 +728,7 @@ func TestInitCmdDirectoryStructure(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	// Verify all required directories exist
@@ -748,8 +752,8 @@ func TestInitCmdGenesisTimeSet(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -761,7 +765,7 @@ func TestInitCmdGenesisTimeSet(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	afterTime := time.Now()
@@ -782,8 +786,8 @@ func TestInitCmdAppStateNotEmpty(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -795,7 +799,7 @@ func TestInitCmdAppStateNotEmpty(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	genFile := filepath.Join(homeDir, "config", "genesis.json")
@@ -828,8 +832,8 @@ func TestInitCmdEvidenceParams(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -841,7 +845,7 @@ func TestInitCmdEvidenceParams(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	genFile := filepath.Join(homeDir, "config", "genesis.json")
@@ -862,8 +866,8 @@ func TestInitCmdValidatorParams(t *testing.T) {
 
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -875,7 +879,7 @@ func TestInitCmdValidatorParams(t *testing.T) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+	err := executeCommandWithContext(t, cmd, &clientCtx)
 	require.NoError(t, err)
 
 	genFile := filepath.Join(homeDir, "config", "genesis.json")
@@ -896,9 +900,9 @@ func TestInitCmdMultipleDenoms(t *testing.T) {
 
 		cmd := InitCmd(app.ModuleBasics, homeDir)
 		cmd.SetArgs([]string{"test-node"})
-		cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-		cmd.Flags().Set(flags.FlagHome, homeDir)
-		cmd.Flags().Set(flagDefaultDenom, denom)
+		setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+		setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
+		setFlag(t, cmd.Flags(), flagDefaultDenom, denom)
 
 		outBuf := new(bytes.Buffer)
 		cmd.SetOut(outBuf)
@@ -910,7 +914,7 @@ func TestInitCmdMultipleDenoms(t *testing.T) {
 		ctx := server.NewDefaultContext()
 		ctx.Config.SetRoot(homeDir)
 
-		err := executeCommandWithContext(t, cmd, clientCtx, ctx)
+		err := executeCommandWithContext(t, cmd, &clientCtx)
 		require.NoError(t, err)
 
 		genFile := filepath.Join(homeDir, "config", "genesis.json")
@@ -934,9 +938,9 @@ func TestInitCmdFlagDefaults(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, overwrite)
 
-	recover, err := cmd.Flags().GetBool(flagRecover)
+	recoverFlag, err := cmd.Flags().GetBool(flagRecover)
 	require.NoError(t, err)
-	require.False(t, recover)
+	require.False(t, recoverFlag)
 }
 
 // TestInitCmdCommandStructure tests command structure
@@ -979,8 +983,8 @@ func BenchmarkInitCmd(b *testing.B) {
 
 		cmd := InitCmd(app.ModuleBasics, homeDir)
 		cmd.SetArgs([]string{"test-node"})
-		cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-		cmd.Flags().Set(flags.FlagHome, homeDir)
+		setFlag(b, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+		setFlag(b, cmd.Flags(), flags.FlagHome, homeDir)
 
 		outBuf := new(bytes.Buffer)
 		cmd.SetOut(outBuf)
@@ -992,7 +996,7 @@ func BenchmarkInitCmd(b *testing.B) {
 		ctx := server.NewDefaultContext()
 		ctx.Config.SetRoot(homeDir)
 
-		_ = executeCommandWithContext(b, cmd, clientCtx, ctx)
+		_ = executeCommandWithContext(b, cmd, &clientCtx)
 	}
 }
 
@@ -1004,8 +1008,8 @@ func BenchmarkInitCmdWithOverwrite(b *testing.B) {
 	// First init
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	cmd.Flags().Set(flags.FlagChainID, "paw-testnet")
-	cmd.Flags().Set(flags.FlagHome, homeDir)
+	setFlag(b, cmd.Flags(), flags.FlagChainID, "paw-testnet")
+	setFlag(b, cmd.Flags(), flags.FlagHome, homeDir)
 
 	outBuf := new(bytes.Buffer)
 	cmd.SetOut(outBuf)
@@ -1017,19 +1021,19 @@ func BenchmarkInitCmdWithOverwrite(b *testing.B) {
 	ctx := server.NewDefaultContext()
 	ctx.Config.SetRoot(homeDir)
 
-	_ = executeCommandWithContext(b, cmd, clientCtx, ctx)
+	_ = executeCommandWithContext(b, cmd, &clientCtx)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cmd2 := InitCmd(app.ModuleBasics, homeDir)
 		cmd2.SetArgs([]string{"test-node"})
-		cmd2.Flags().Set(flags.FlagChainID, "paw-testnet")
-		cmd2.Flags().Set(flags.FlagHome, homeDir)
-		cmd2.Flags().Set(flagOverwrite, "true")
+		setFlag(b, cmd2.Flags(), flags.FlagChainID, "paw-testnet")
+		setFlag(b, cmd2.Flags(), flags.FlagHome, homeDir)
+		setFlag(b, cmd2.Flags(), flagOverwrite, "true")
 
 		outBuf2 := new(bytes.Buffer)
 		cmd2.SetOut(outBuf2)
 
-		_ = executeCommandWithContext(b, cmd2, clientCtx, ctx)
+		_ = executeCommandWithContext(b, cmd2, &clientCtx)
 	}
 }

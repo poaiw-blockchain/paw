@@ -1,0 +1,59 @@
+database:
+  host: paw-staging-postgres
+  port: 5432
+  user: paw_staging
+  password: staging_password_change_me
+  database: paw_indexer_staging
+  ssl_mode: disable
+  max_open_conns: 20
+  max_idle_conns: 10
+  conn_max_lifetime: 30m
+
+redis:
+  host: paw-staging-redis
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 2
+  cache_ttl: 5m
+
+chain:
+  chain_id: paw-testnet-1
+  rpc_url: https://rpc1.paw-testnet.io
+  grpc_url: grpc.paw-testnet.io:443
+  ws_url: wss://rpc1.paw-testnet.io/websocket
+  timeout: 10s
+  retry_attempts: 5
+  retry_delay: 3s
+
+indexer:
+  start_height: 1
+  batch_size: 100
+  workers: 4
+  block_buffer: 1000
+  index_blocks: true
+  index_transactions: true
+  index_events: true
+  index_accounts: true
+  index_validators: true
+  index_dex: true
+  index_oracle: true
+  index_compute: true
+  sync_interval: 5s
+
+api:
+  host: 0.0.0.0
+  port: 8080
+  enable_graphql: false
+  enable_rest: true
+  enable_websocket: true
+  cors_origins:
+    - "*"
+  rate_limit: 100
+  timeout: 30s
+
+metrics:
+  enabled: true
+  port: 9100
+  path: /metrics

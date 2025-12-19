@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
@@ -407,14 +408,14 @@ func (pm *ProtocolManager) acceptLoop() {
 		}
 
 		// Check if we can accept more inbound peers
-			pm.peersMu.Lock()
-			if pm.inboundCount >= pm.config.MaxInboundPeers {
-				pm.peersMu.Unlock()
-				if err := conn.Close(); err != nil {
-					pm.logger.Error("error closing inbound connection", "error", err)
-				}
-				continue
+		pm.peersMu.Lock()
+		if pm.inboundCount >= pm.config.MaxInboundPeers {
+			pm.peersMu.Unlock()
+			if err := conn.Close(); err != nil {
+				pm.logger.Error("error closing inbound connection", "error", err)
 			}
+			continue
+		}
 		pm.inboundCount++
 		pm.peersMu.Unlock()
 

@@ -8,10 +8,10 @@ cd "${DEVNET_ROOT}"
 
 COMPOSE_FILE="${COMPOSE_FILE:-compose/docker-compose.devnet.yml}"
 COMPOSE_CMD=(docker compose -f "${COMPOSE_FILE}")
-CHAIN_ID="paw-devnet"
-KEYRING="test"
-NODE_CONTAINER="paw-node1"
-PAW_HOME="/root/.paw/node1"
+CHAIN_ID="${CHAIN_ID:-paw-devnet}"
+KEYRING="${KEYRING:-test}"
+NODE_CONTAINER="${NODE_CONTAINER:-paw-node1}"
+PAW_HOME="${PAW_HOME:-/root/.paw/node1}"
 RPC_ENDPOINT="${RPC_ENDPOINT:-http://localhost:26657}"
 API_ENDPOINT="${API_ENDPOINT:-http://localhost:1317}"
 # Building pawd inside the golang container is cold-cache heavy; allow a longer
@@ -48,7 +48,7 @@ log() {
 }
 
 pawd_exec() {
-  docker exec -i "$NODE_CONTAINER" pawd --home "$PAW_HOME" "$@" 2>&1 | grep -v "prometheus server error"
+  docker exec -i "$NODE_CONTAINER" pawd --home "$PAW_HOME" "$@" 2>&1 | grep -Ev "prometheus server error|health check server error"
 }
 
 query_balance() {

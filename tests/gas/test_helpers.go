@@ -147,7 +147,7 @@ func (k *DexGasKeeper) CreatePool(ctx sdk.Context, creatorAddr, tokenA, tokenB s
 	ctx.GasMeter().ConsumeGas(120_000, "create_pool")
 
 	creator := sdk.MustAccAddressFromBech32(creatorAddr)
-	pool, err := k.Keeper.CreatePool(sdk.WrapSDKContext(ctx), creator, tokenA, tokenB, amountA, amountB)
+	pool, err := k.Keeper.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
 	if err != nil {
 		return 0, err
 	}
@@ -158,7 +158,7 @@ func (k *DexGasKeeper) CreatePool(ctx sdk.Context, creatorAddr, tokenA, tokenB s
 func (k *DexGasKeeper) Swap(ctx sdk.Context, traderAddr string, poolID uint64, tokenIn string, amountIn, minAmountOut math.Int) (math.Int, error) {
 	ctx.GasMeter().ConsumeGas(80_000, "swap_base")
 
-	pool, err := k.Keeper.GetPool(sdk.WrapSDKContext(ctx), poolID)
+	pool, err := k.Keeper.GetPool(ctx, poolID)
 	if err != nil {
 		return math.ZeroInt(), fmt.Errorf("pool not found: %w", err)
 	}
@@ -170,7 +170,7 @@ func (k *DexGasKeeper) Swap(ctx sdk.Context, traderAddr string, poolID uint64, t
 
 	trader := sdk.MustAccAddressFromBech32(traderAddr)
 	amountOut, err := k.Keeper.ExecuteSwapSecure(
-		sdk.WrapSDKContext(ctx),
+		ctx,
 		trader,
 		poolID,
 		tokenIn,
@@ -190,7 +190,7 @@ func (k *DexGasKeeper) AddLiquidity(ctx sdk.Context, providerAddr string, poolID
 	ctx.GasMeter().ConsumeGas(70_000, "add_liquidity")
 
 	provider := sdk.MustAccAddressFromBech32(providerAddr)
-	shares, err := k.Keeper.AddLiquiditySecure(sdk.WrapSDKContext(ctx), provider, poolID, amountA, amountB)
+	shares, err := k.Keeper.AddLiquiditySecure(ctx, provider, poolID, amountA, amountB)
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -202,11 +202,11 @@ func (k *DexGasKeeper) AddLiquidity(ctx sdk.Context, providerAddr string, poolID
 	return shares, nil
 }
 
-func (k *DexGasKeeper) RemoveLiquidity(ctx sdk.Context, providerAddr string, poolID uint64, lpTokens, minA, minB math.Int) (math.Int, math.Int, error) {
+func (k *DexGasKeeper) RemoveLiquidity(ctx sdk.Context, providerAddr string, poolID uint64, lpTokens, minA, minB math.Int) (amountA math.Int, amountB math.Int, err error) {
 	ctx.GasMeter().ConsumeGas(70_000, "remove_liquidity")
 
 	provider := sdk.MustAccAddressFromBech32(providerAddr)
-	amountA, amountB, err := k.Keeper.RemoveLiquiditySecure(sdk.WrapSDKContext(ctx), provider, poolID, lpTokens)
+	amountA, amountB, err = k.Keeper.RemoveLiquiditySecure(ctx, provider, poolID, lpTokens)
 	if err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
@@ -239,12 +239,12 @@ func (k *DexGasKeeper) CalculateSwapOutput(ctx sdk.Context, pool dextypes.Pool, 
 
 func (k *DexGasKeeper) GetAllPools(ctx sdk.Context) []dextypes.Pool {
 	ctx.GasMeter().ConsumeGas(5_000, "get_all_pools")
-	pools, _ := k.Keeper.GetAllPools(sdk.WrapSDKContext(ctx))
+	pools, _ := k.Keeper.GetAllPools(ctx)
 	return pools
 }
 
 func (k *DexGasKeeper) GetPool(ctx sdk.Context, poolID uint64) (*dextypes.Pool, error) {
-	return k.Keeper.GetPool(sdk.WrapSDKContext(ctx), poolID)
+	return k.Keeper.GetPool(ctx, poolID)
 }
 
 // ============================================================================//
@@ -267,25 +267,25 @@ func (k *OracleGasKeeper) SubmitPrice(ctx sdk.Context, oracleAddr, asset string,
 	if err != nil {
 		return err
 	}
-	return k.Keeper.SubmitPrice(sdk.WrapSDKContext(ctx), addr, asset, price)
+	return k.Keeper.SubmitPrice(ctx, addr, asset, price)
 }
 
 func (k *OracleGasKeeper) AggregatePrices(ctx sdk.Context) error {
 	ctx.GasMeter().ConsumeGas(150_000, "aggregate_prices")
-	return k.Keeper.AggregatePrices(sdk.WrapSDKContext(ctx))
+	return k.Keeper.AggregatePrices(ctx)
 }
 
 func (k *OracleGasKeeper) GetPrice(ctx sdk.Context, asset string) (oracletypes.Price, error) {
 	ctx.GasMeter().ConsumeGas(20_000, "get_price")
-	return k.Keeper.GetPrice(sdk.WrapSDKContext(ctx), asset)
+	return k.Keeper.GetPrice(ctx, asset)
 }
 
 func (k *OracleGasKeeper) CalculateTWAP(ctx sdk.Context, asset string) (math.LegacyDec, error) {
 	ctx.GasMeter().ConsumeGas(80_000, "calculate_twap")
-	return k.Keeper.CalculateTWAP(sdk.WrapSDKContext(ctx), asset)
+	return k.Keeper.CalculateTWAP(ctx, asset)
 }
 
-func (k *OracleGasKeeper) GetValidatorReputation(ctx sdk.Context, oracleAddr string) (math.LegacyDec, int) {
+func (k *OracleGasKeeper) GetValidatorReputation(ctx sdk.Context, oracleAddr string) (reputation math.LegacyDec, totalOutliers int) {
 	ctx.GasMeter().ConsumeGas(40_000, "oracle_reputation")
-	return k.Keeper.GetValidatorOutlierReputation(sdk.WrapSDKContext(ctx), oracleAddr, "")
+	return k.Keeper.GetValidatorOutlierReputation(ctx, oracleAddr, "")
 }

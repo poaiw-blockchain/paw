@@ -8,3 +8,4 @@
 **Binary:** `go build -o pawd ./cmd/...`
 **Init:** `./pawd init <moniker> --chain-id paw-testnet-1`
 **Proto:** `make proto-gen` or `buf generate` after modifying `.proto` files
+- no summaries longer than 50 lines!!!!

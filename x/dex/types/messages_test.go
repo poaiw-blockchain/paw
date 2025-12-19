@@ -92,6 +92,30 @@ func TestMsgCreatePool_ValidateBasic(t *testing.T) {
 			errMsg:  "tokens must be different",
 		},
 		{
+			name: "invalid token_a denom",
+			msg: MsgCreatePool{
+				Creator: validAddress,
+				TokenA:  "Bad Denom",
+				TokenB:  "uatom",
+				AmountA: math.NewInt(1000000),
+				AmountB: math.NewInt(2000000),
+			},
+			wantErr: true,
+			errMsg:  "invalid denom",
+		},
+		{
+			name: "invalid token_b denom",
+			msg: MsgCreatePool{
+				Creator: validAddress,
+				TokenA:  "upaw",
+				TokenB:  "123bad",
+				AmountA: math.NewInt(1000000),
+				AmountB: math.NewInt(2000000),
+			},
+			wantErr: true,
+			errMsg:  "invalid denom",
+		},
+		{
 			name: "zero amount_a",
 			msg: MsgCreatePool{
 				Creator: validAddress,

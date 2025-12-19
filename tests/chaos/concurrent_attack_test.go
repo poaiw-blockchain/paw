@@ -14,9 +14,8 @@ import (
 
 type ConcurrentAttackTestSuite struct {
 	suite.Suite
-	nodes       []*ByzantineNode
-	network     *NetworkSimulator
-	attackCount uint64
+	nodes   []*ByzantineNode
+	network *NetworkSimulator
 }
 
 func TestConcurrentAttacksSuite(t *testing.T) {
@@ -46,6 +45,7 @@ func (suite *ConcurrentAttackTestSuite) TestRaceConditionAttack() {
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func(id int) {
+			_ = id
 			defer wg.Done()
 			for j := 0; j < 100; j++ {
 				select {
@@ -89,10 +89,10 @@ func (suite *ConcurrentAttackTestSuite) TestDeadlockAttack() {
 			return
 		case <-time.After(1 * time.Second):
 			resourceA.Lock()
+			defer resourceA.Unlock()
 			time.Sleep(100 * time.Millisecond)
 			resourceB.Lock()
-			resourceB.Unlock()
-			resourceA.Unlock()
+			defer resourceB.Unlock()
 		}
 	}()
 
@@ -103,10 +103,10 @@ func (suite *ConcurrentAttackTestSuite) TestDeadlockAttack() {
 			return
 		case <-time.After(1 * time.Second):
 			resourceB.Lock()
+			defer resourceB.Unlock()
 			time.Sleep(100 * time.Millisecond)
 			resourceA.Lock()
-			resourceA.Unlock()
-			resourceB.Unlock()
+			defer resourceA.Unlock()
 		}
 	}()
 
@@ -137,6 +137,7 @@ func (suite *ConcurrentAttackTestSuite) TestConcurrentModificationAttack() {
 	for i := 0; i < writers; i++ {
 		wg.Add(1)
 		go func(id int) {
+			_ = id
 			defer wg.Done()
 			for j := 0; j < 1000; j++ {
 				select {
@@ -152,6 +153,7 @@ func (suite *ConcurrentAttackTestSuite) TestConcurrentModificationAttack() {
 	for i := 0; i < readers; i++ {
 		wg.Add(1)
 		go func(id int) {
+			_ = id
 			defer wg.Done()
 			for j := 0; j < 1000; j++ {
 				select {
@@ -226,6 +228,7 @@ func (suite *ConcurrentAttackTestSuite) TestMemoryCorruptionAttack() {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(id int) {
+			_ = id
 			defer wg.Done()
 			for j := 0; j < 100; j++ {
 				select {

@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -266,7 +267,7 @@ func TestInvariantValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := k.ValidatePoolInvariant(nil, tt.pool, tt.oldK)
+			err := k.ValidatePoolInvariant(context.Background(), tt.pool, tt.oldK)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -367,7 +368,7 @@ func TestCalculateSwapOutputSecurity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := keeper.Keeper{}
-			output, err := k.CalculateSwapOutputSecure(nil, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
+			output, err := k.CalculateSwapOutputSecure(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
 
 			if tt.expectErr {
 				require.Error(t, err)

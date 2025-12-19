@@ -1,0 +1,57 @@
+version: '3.8'
+
+# Toxiproxy configuration for PAW blockchain chaos testing
+#
+# This setup provides a proxy layer between nodes to simulate various network conditions:
+# - Latency injection
+# - Bandwidth throttling
+# - Packet loss
+# - Connection timeouts
+# - Slow close
+#
+# Usage:
+#   1. Start toxiproxy: docker-compose -f docker-compose.toxiproxy.yml up -d
+#   2. Create proxies: toxiproxy-cli create paw-node-1 -l 0.0.0.0:11101 -u node-1:26657
+#   3. Add toxics: toxiproxy-cli toxic add paw-node-1 -t latency -a latency=1000
+#   4. List toxics: toxiproxy-cli inspect paw-node-1
+#   5. Remove toxic: toxiproxy-cli toxic remove paw-node-1 -n latency_downstream
+#
+# See scripts/chaos-scenarios.sh for predefined scenarios
+
+services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.10.0
+    container_name: paw-toxiproxy
+    ports:
+      # Toxiproxy API
+      - "11800:8474"
+      # Proxy ports for node RPC endpoints (11101-11110)
+      - "11101:11101"
+      - "11102:11102"
+      - "11103:11103"
+      - "11104:11104"
+      - "11105:11105"
+      # Proxy ports for node gRPC endpoints (11111-11120)
+      - "11111:11111"
+      - "11112:11112"
+      - "11113:11113"
+      - "11114:11114"
+      - "11115:11115"
+      # Proxy ports for REST endpoints (11121-11130)
+      - "11121:11121"
+      - "11122:11122"
+      - "11123:11123"
+      - "11124:11124"
+      - "11125:11125"
+    networks:
+      - paw-testnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8474/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  paw-testnet:
+    external: true

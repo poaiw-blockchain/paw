@@ -55,6 +55,7 @@ type DEXPool struct {
 	ReserveB      float64 `json:"reserve_b"`
 	LPTokenSupply float64 `json:"lp_token_supply"`
 	SwapFeeRate   float64 `json:"swap_fee_rate"`
+	SwapFee       float64 `json:"swap_fee"`
 	TVL           float64 `json:"tvl"`
 	CreatedHeight int64   `json:"created_height"`
 }
@@ -98,6 +99,11 @@ type Validator struct {
 	DelegatorShares         float64 `json:"delegator_shares"`
 }
 
+// Account represents a chain account (minimal stub).
+type Account struct {
+	Address string `json:"address"`
+}
+
 // ComputeRequest represents a compute module request
 type ComputeRequest struct {
 	RequestID          string    `json:"request_id"`
@@ -137,32 +143,32 @@ type FailedBlock struct {
 
 // IndexingMetric represents an indexing performance metric
 type IndexingMetric struct {
-	Name             string   `json:"name"`
-	Value            float64  `json:"value"`
-	StartHeight      *int64   `json:"start_height"`
-	EndHeight        *int64   `json:"end_height"`
-	BlocksProcessed  *int64   `json:"blocks_processed"`
-	DurationSeconds  *float64 `json:"duration_seconds"`
-	BlocksPerSecond  *float64 `json:"blocks_per_second"`
+	Name            string   `json:"name"`
+	Value           float64  `json:"value"`
+	StartHeight     *int64   `json:"start_height"`
+	EndHeight       *int64   `json:"end_height"`
+	BlocksProcessed *int64   `json:"blocks_processed"`
+	DurationSeconds *float64 `json:"duration_seconds"`
+	BlocksPerSecond *float64 `json:"blocks_per_second"`
 }
 
 // IndexingCheckpoint represents a progress checkpoint
 type IndexingCheckpoint struct {
-	Height                      int64   `json:"height"`
-	BlockHash                   string  `json:"block_hash"`
-	BlocksSinceLastCheckpoint   int     `json:"blocks_since_last_checkpoint"`
-	TimeSinceLastCheckpoint     string  `json:"time_since_last_checkpoint"` // PostgreSQL INTERVAL as string
-	AvgBlocksPerSecond          float64 `json:"avg_blocks_per_second"`
-	Status                      string  `json:"status"`
+	Height                    int64   `json:"height"`
+	BlockHash                 string  `json:"block_hash"`
+	BlocksSinceLastCheckpoint int     `json:"blocks_since_last_checkpoint"`
+	TimeSinceLastCheckpoint   string  `json:"time_since_last_checkpoint"` // PostgreSQL INTERVAL as string
+	AvgBlocksPerSecond        float64 `json:"avg_blocks_per_second"`
+	Status                    string  `json:"status"`
 }
 
 // IndexingStatistics represents comprehensive indexing statistics
 type IndexingStatistics struct {
-	TotalBlocksIndexed       int64      `json:"total_blocks_indexed"`
-	LastIndexedHeight        int64      `json:"last_indexed_height"`
-	CurrentStatus            string     `json:"current_status"`
-	FailedBlocksCount        int64      `json:"failed_blocks_count"`
-	UnresolvedFailedBlocks   int64      `json:"unresolved_failed_blocks"`
-	AvgBlocksPerSecond       *float64   `json:"avg_blocks_per_second"`
-	EstimatedCompletionTime  *time.Time `json:"estimated_completion_time"`
+	TotalBlocksIndexed      int64      `json:"total_blocks_indexed"`
+	LastIndexedHeight       int64      `json:"last_indexed_height"`
+	CurrentStatus           string     `json:"current_status"`
+	FailedBlocksCount       int64      `json:"failed_blocks_count"`
+	UnresolvedFailedBlocks  int64      `json:"unresolved_failed_blocks"`
+	AvgBlocksPerSecond      *float64   `json:"avg_blocks_per_second"`
+	EstimatedCompletionTime *time.Time `json:"estimated_completion_time"`
 }

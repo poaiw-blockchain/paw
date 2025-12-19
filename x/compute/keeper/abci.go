@@ -112,14 +112,13 @@ func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 		// Get all nonces at this height
 		heightPrefix := NonceByHeightPrefixForHeight(height)
 		iterator := storetypes.KVStorePrefixIterator(store, heightPrefix)
+		defer iterator.Close()
 
 		noncesToDelete := [][]byte{}
 		for ; iterator.Valid(); iterator.Next() {
 			noncesToDelete = append(noncesToDelete, iterator.Key())
 			cleanedCount++
 		}
-		iterator.Close()
-
 		// Delete the nonces
 		for _, key := range noncesToDelete {
 			store.Delete(key)

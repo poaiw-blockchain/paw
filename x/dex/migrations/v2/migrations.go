@@ -2,7 +2,9 @@ package v2
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -14,14 +16,25 @@ import (
 
 var (
 	// Key prefixes - must match the keeper
-	PoolKeyPrefix              = []byte{0x01}
-	PoolCounterKey             = []byte{0x02}
-	ParamsKey                  = []byte{0x03}
-	LiquidityKeyPrefix         = []byte{0x04}
-	PoolByTokensKeyPrefix      = []byte{0x05}
-	CircuitBreakerKeyPrefix    = []byte{0x10}
-	LastLiquidityActionPrefix  = []byte{0x11}
+	PoolKeyPrefix             = []byte{0x01}
+	PoolCounterKey            = []byte{0x02}
+	ParamsKey                 = []byte{0x03}
+	LiquidityKeyPrefix        = []byte{0x04}
+	PoolByTokensKeyPrefix     = []byte{0x05}
+	CircuitBreakerKeyPrefix   = []byte{0x10}
+	LastLiquidityActionPrefix = []byte{0x11}
 )
+
+type circuitBreakerState struct {
+	Enabled           bool           `json:"enabled"`
+	PausedUntil       time.Time      `json:"paused_until"`
+	LastPrice         math.LegacyDec `json:"last_price"`
+	TriggeredBy       string         `json:"triggered_by"`
+	TriggerReason     string         `json:"trigger_reason"`
+	NotificationsSent int            `json:"notifications_sent"`
+	LastNotification  time.Time      `json:"last_notification"`
+	PersistenceKey    string         `json:"persistence_key"`
+}
 
 // Migrate implements store migrations from v1 to v2 for the DEX module.
 // This migration performs the following operations:
@@ -259,15 +272,21 @@ func initializeCircuitBreakers(ctx sdk.Context, store storetypes.KVStore, cdc co
 			continue
 		}
 
-		// Initialize circuit breaker state
-		// lastPrice := math.LegacyZeroDec()
-		if !pool.ReserveA.IsZero() && !pool.ReserveB.IsZero() {
-			// lastPrice = math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+		state := circuitBreakerState{
+			Enabled:        false,
+			PausedUntil:    time.Time{},
+			LastPrice:      math.LegacyZeroDec(),
+			TriggeredBy:    "migration_init",
+			TriggerReason:  "",
+			PersistenceKey: fmt.Sprintf("pool_%d", pool.Id),
 		}
-
-		// Store a simple enabled flag (false) and last price
-		// In production, this would use the CircuitBreakerState type
-		cbData := make([]byte, 0)
+		if !pool.ReserveA.IsZero() && !pool.ReserveB.IsZero() {
+			state.LastPrice = math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+		}
+		cbData, err := json.Marshal(state)
+		if err != nil {
+			return fmt.Errorf("failed to marshal circuit breaker state for pool %d: %w", pool.Id, err)
+		}
 		store.Set(cbKey, cbData)
 
 		count++
@@ -311,8 +330,6 @@ func migrateParams(ctx sdk.Context, store storetypes.KVStore, cdc codec.BinaryCo
 		params.MinLiquidity = math.NewInt(1000)
 		updated = true
 	}
-
-
 
 	if updated {
 		newBz, err := cdc.Marshal(&params)

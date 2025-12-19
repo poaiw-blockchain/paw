@@ -8,34 +8,35 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 )
 
 // TraceStep represents a single step in a transaction trace
 type TraceStep struct {
-	Step        int                    `json:"step"`
-	Type        string                 `json:"type"`
-	Module      string                 `json:"module"`
-	Action      string                 `json:"action"`
-	Inputs      map[string]interface{} `json:"inputs"`
-	Outputs     map[string]interface{} `json:"outputs"`
-	GasUsed     int64                  `json:"gas_used"`
-	GasCost     int64                  `json:"gas_cost"`
-	Error       string                 `json:"error,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	SubTraces   []TraceStep            `json:"sub_traces,omitempty"`
+	Step      int                    `json:"step"`
+	Type      string                 `json:"type"`
+	Module    string                 `json:"module"`
+	Action    string                 `json:"action"`
+	Inputs    map[string]interface{} `json:"inputs"`
+	Outputs   map[string]interface{} `json:"outputs"`
+	GasUsed   int64                  `json:"gas_used"`
+	GasCost   int64                  `json:"gas_cost"`
+	Error     string                 `json:"error,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	SubTraces []TraceStep            `json:"sub_traces,omitempty"`
 }
 
 // TransactionTrace represents a complete transaction trace
 type TransactionTrace struct {
-	TxHash        string                 `json:"tx_hash"`
-	BlockHeight   int64                  `json:"block_height"`
-	Success       bool                   `json:"success"`
-	TotalGasUsed  int64                  `json:"total_gas_used"`
-	CallStack     []TraceStep            `json:"call_stack"`
-	Events        []database.Event       `json:"events"`
-	StateChanges  []StateChange          `json:"state_changes"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	TxHash       string                 `json:"tx_hash"`
+	BlockHeight  int64                  `json:"block_height"`
+	Success      bool                   `json:"success"`
+	TotalGasUsed int64                  `json:"total_gas_used"`
+	CallStack    []TraceStep            `json:"call_stack"`
+	Events       []database.Event       `json:"events"`
+	StateChanges []StateChange          `json:"state_changes"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // StateChange represents a state change during transaction execution
@@ -119,13 +120,13 @@ func (s *Server) buildTransactionTrace(ctx context.Context, tx database.Transact
 
 	// Build metadata
 	metadata := map[string]interface{}{
-		"sender":      tx.Sender,
-		"type":        tx.Type,
-		"fee_amount":  tx.FeeAmount,
-		"fee_denom":   tx.FeeDenom,
-		"gas_wanted":  tx.GasWanted,
-		"gas_used":    tx.GasUsed,
-		"memo":        tx.Memo,
+		"sender":     tx.Sender,
+		"type":       tx.Type,
+		"fee_amount": tx.FeeAmount,
+		"fee_denom":  tx.FeeDenom,
+		"gas_wanted": tx.GasWanted,
+		"gas_used":   tx.GasUsed,
+		"memo":       tx.Memo,
 	}
 
 	trace := &TransactionTrace{

@@ -22,8 +22,9 @@ The PAW blockchain follows a structured upgrade process that prioritizes:
 │  1. Identify upgrade requirements      │
 │  2. Implement changes and migrations   │
 │  3. Write comprehensive tests          │
-│  4. Code review and security audit     │
+│  4. Code review + third-party audit*   │
 └─────────────────────────────────────────┘
+*See `docs/guides/security/THIRD_PARTY_AUDIT_PLAN.md`.
 ```
 
 ### 2. Testing Phase

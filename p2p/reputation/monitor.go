@@ -98,7 +98,7 @@ func (at AlertType) String() string {
 	case AlertTypeStorageError:
 		return "storage_error"
 	default:
-		return "unknown"
+		return unknownValue
 	}
 }
 
@@ -123,7 +123,7 @@ func (s Severity) String() string {
 	case SeverityCritical:
 		return "critical"
 	default:
-		return "unknown"
+		return unknownValue
 	}
 }
 
@@ -372,7 +372,7 @@ func (m *Monitor) checkAlerts() {
 		// A proper implementation would track bans in a time window
 		recentBans := banMetrics.TotalBans // This is total, not per hour
 		if float64(recentBans) > m.config.HighBanRateThreshold {
-			m.raiseAlert(Alert{
+			m.raiseAlert(&Alert{
 				Type:      AlertTypeHighBanRate,
 				Severity:  SeverityWarning,
 				Message:   "High ban rate detected",
@@ -389,7 +389,7 @@ func (m *Monitor) checkAlerts() {
 	// Check average score
 	stats := m.manager.GetStatistics()
 	if stats.AvgScore < m.config.LowAvgScoreThreshold && stats.TotalPeers > 10 {
-		m.raiseAlert(Alert{
+		m.raiseAlert(&Alert{
 			Type:      AlertTypeLowAvgScore,
 			Severity:  SeverityWarning,
 			Message:   "Average peer score below threshold",
@@ -409,7 +409,7 @@ func (m *Monitor) checkAlerts() {
 		if totalPeers > 0 {
 			concentration := float64(subnetStats.PeerCount) / float64(totalPeers)
 			if concentration > m.config.HighSubnetConcentration {
-				m.raiseAlert(Alert{
+				m.raiseAlert(&Alert{
 					Type:      AlertTypeSubnetConcentration,
 					Severity:  SeverityWarning,
 					Message:   "High peer concentration in subnet",
@@ -426,7 +426,10 @@ func (m *Monitor) checkAlerts() {
 	m.manager.statsMu.RUnlock()
 }
 
-func (m *Monitor) raiseAlert(alert Alert) {
+func (m *Monitor) raiseAlert(alert *Alert) {
+	if alert == nil {
+		return
+	}
 	// Generate alert ID
 	alert.ID = time.Now().Format("20060102150405") + "-" + alert.Type.String()
 
@@ -443,7 +446,7 @@ func (m *Monitor) raiseAlert(alert Alert) {
 
 	// Add alert
 	m.alertsMu.Lock()
-	m.alerts = append(m.alerts, alert)
+	m.alerts = append(m.alerts, *alert)
 
 	// Keep only max alerts
 	if len(m.alerts) > m.maxAlerts {

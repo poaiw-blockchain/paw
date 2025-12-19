@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
 // PeerManager manages active peer connections
 type PeerManager struct {
-	config      DiscoveryConfig
+	config      *DiscoveryConfig
 	logger      log.Logger
 	addressBook *AddressBook
 	repManager  *reputation.Manager
@@ -62,7 +63,7 @@ type PeerManager struct {
 
 // NewPeerManager creates a new peer manager
 func NewPeerManager(
-	config DiscoveryConfig,
+	config *DiscoveryConfig,
 	addressBook *AddressBook,
 	repManager *reputation.Manager,
 	logger log.Logger,
@@ -185,7 +186,7 @@ func (pm *PeerManager) addPeerWithConn(peerID reputation.PeerID, addr *PeerAddr,
 		pm.onPeerConnected(peerID, outbound)
 	}
 
-	pm.recordReputationEvent(reputation.PeerEvent{
+	pm.recordReputationEvent(&reputation.PeerEvent{
 		PeerID:    peerID,
 		EventType: reputation.EventTypeConnected,
 		Timestamp: time.Now(),
@@ -231,7 +232,7 @@ func (pm *PeerManager) RemovePeer(peerID reputation.PeerID, reason string) {
 		pm.onPeerDisconnected(peerID)
 	}
 
-	pm.recordReputationEvent(reputation.PeerEvent{
+	pm.recordReputationEvent(&reputation.PeerEvent{
 		PeerID:    peerID,
 		EventType: reputation.EventTypeDisconnected,
 		Timestamp: time.Now(),
@@ -631,7 +632,7 @@ func (pm *PeerManager) performHandshake(conn net.Conn, addr *PeerAddr) error {
 			"peer_address", addr.NetAddr())
 
 		// Record security event
-		pm.recordReputationEvent(reputation.PeerEvent{
+		pm.recordReputationEvent(&reputation.PeerEvent{
 			PeerID:    addr.ID,
 			EventType: reputation.EventTypeSecurity,
 			Timestamp: time.Now(),
@@ -722,7 +723,7 @@ func (pm *PeerManager) readPeerMessages(peerID reputation.PeerID, conn net.Conn)
 						Details:       fmt.Sprintf("message size %d exceeds max %d", msgLen, maxMessageSize),
 					},
 				}
-				pm.recordReputationEvent(event, "oversized_message")
+				pm.recordReputationEvent(&event, "oversized_message")
 
 				if pm.repManager != nil {
 					// Check if peer should be banned after repeated violations
@@ -926,21 +927,22 @@ func (pm *PeerManager) checkInactivePeers() {
 	inactiveThreshold := now.Add(-pm.config.InactivityTimeout)
 
 	for peerID, conn := range pm.peers {
-		if conn.LastActivity.Before(inactiveThreshold) {
-			// Skip unconditional peers
-			if pm.unconditionalPeers[peerID] {
-				continue
-			}
+		if !conn.LastActivity.Before(inactiveThreshold) {
+			continue
+		}
 
-			pm.logger.Info("removing inactive peer", "peer_id", peerID)
-			delete(pm.peers, peerID)
-			pm.stats.totalDisconnections++
+		if pm.unconditionalPeers[peerID] {
+			continue
+		}
 
-			if conn.Outbound {
-				pm.outboundCount--
-			} else {
-				pm.inboundCount--
-			}
+		pm.logger.Info("removing inactive peer", "peer_id", peerID)
+		delete(pm.peers, peerID)
+		pm.stats.totalDisconnections++
+
+		if conn.Outbound {
+			pm.outboundCount--
+		} else {
+			pm.inboundCount--
 		}
 	}
 }
@@ -1026,10 +1028,17 @@ func (pm *PeerManager) reconnectPersistent() {
 func (pm *PeerManager) scheduleReconnect(peerID reputation.PeerID, addr *PeerAddr) {
 	// This would typically use a timer, but for simplicity we rely on
 	// the maintenance loop to handle reconnection
-	pm.logger.Debug("scheduled reconnect", "peer_id", peerID)
+	address := ""
+	if addr != nil {
+		address = addr.NetAddr()
+		if err := pm.addressBook.AddAddress(addr); err != nil {
+			pm.logger.Debug("failed to record reconnect address", "peer_id", peerID, "error", err)
+		}
+	}
+	pm.logger.Debug("scheduled reconnect", "peer_id", peerID, "address", address)
 }
 
-func (pm *PeerManager) recordReputationEvent(event reputation.PeerEvent, context string) {
+func (pm *PeerManager) recordReputationEvent(event *reputation.PeerEvent, context string) {
 	if pm.repManager == nil {
 		return
 	}

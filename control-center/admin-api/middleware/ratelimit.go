@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -59,14 +60,14 @@ func NewRateLimiter(config RateLimitConfig) *RateLimiter {
 }
 
 // GetLimiter returns a rate limiter for the given user/IP combination
-func (rl *RateLimiter) GetLimiter(key string, rps int, burst int) *rate.Limiter {
+func (rl *RateLimiter) GetLimiter(key string, limit rate.Limit, burst int) *rate.Limiter {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	limiter, exists := rl.limiters[key]
 	if !exists {
 		limiter = &userLimiter{
-			limiter:    rate.NewLimiter(rate.Limit(rps), burst),
+			limiter:    rate.NewLimiter(limit, burst),
 			lastAccess: time.Now(),
 		}
 		rl.limiters[key] = limiter
@@ -75,6 +76,21 @@ func (rl *RateLimiter) GetLimiter(key string, rps int, burst int) *rate.Limiter 
 	}
 
 	return limiter.limiter
+}
+
+func burstForPerMinute(perMinute int, multiplier int) int {
+	if multiplier <= 0 {
+		multiplier = 1
+	}
+	if perMinute <= 0 {
+		return 1
+	}
+
+	base := int(math.Ceil(float64(perMinute) / 60.0))
+	if base < 1 {
+		base = 1
+	}
+	return base * multiplier
 }
 
 // cleanup removes stale limiters periodically
@@ -106,25 +122,23 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 		}
 
 		// Determine rate limit based on operation type and role
-		var rps int
-		var burst int
+		var perMinute int
 
 		// Check if this is a write operation
 		isWrite := c.Request.Method != "GET" && c.Request.Method != "HEAD" && c.Request.Method != "OPTIONS"
 
 		if isWrite {
 			// Write operations have stricter limits
-			rps = rl.config.WriteOperationsPerMinute / 60
-			burst = rps * rl.config.BurstMultiplier
+			perMinute = rl.config.WriteOperationsPerMinute
 
 			// Adjust based on role
 			if roleValue, exists := c.Get("role"); exists {
 				if role, ok := roleValue.(types.Role); ok {
 					switch role {
 					case types.RoleSuperUser:
-						rps *= 2 // SuperUser gets 2x rate
+						perMinute *= 2 // SuperUser gets 2x rate
 					case types.RoleAdmin:
-						rps = int(float64(rps) * 1.5) // Admin gets 1.5x rate
+						perMinute = int(math.Round(float64(perMinute) * 1.5)) // Admin gets 1.5x rate
 					case types.RoleOperator:
 						// Use default rate
 					case types.RoleReadOnly:
@@ -140,15 +154,17 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 			}
 		} else {
 			// Read operations have more relaxed limits
-			rps = rl.config.ReadOperationsPerMinute / 60
-			burst = rps * rl.config.BurstMultiplier
+			perMinute = rl.config.ReadOperationsPerMinute
 		}
 
+		limit := rate.Limit(float64(perMinute) / 60.0)
+		burst := burstForPerMinute(perMinute, rl.config.BurstMultiplier)
+
 		// Get or create limiter for this identifier
-		limiter := rl.GetLimiter(identifier, rps, burst)
+		limiter := rl.GetLimiter(identifier, limit, burst)
 
 		if !limiter.Allow() {
-			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", rps*60))
+			c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", perMinute))
 			c.Header("X-RateLimit-Remaining", "0")
 			c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(time.Minute).Unix()))
 			c.Header("Retry-After", "60")
@@ -163,7 +179,7 @@ func (rl *RateLimiter) RateLimitMiddleware() gin.HandlerFunc {
 		}
 
 		// Set rate limit headers
-		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", rps*60))
+		c.Header("X-RateLimit-Limit", fmt.Sprintf("%d", perMinute))
 
 		c.Next()
 	}

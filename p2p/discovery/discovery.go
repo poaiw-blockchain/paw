@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
@@ -33,7 +34,7 @@ type pexMessagePeer struct {
 }
 
 type Service struct {
-	config  DiscoveryConfig
+	config  *DiscoveryConfig
 	logger  log.Logger
 	dataDir string
 	mu      sync.RWMutex
@@ -71,7 +72,7 @@ type Service struct {
 
 // NewService creates a new peer discovery service
 func NewService(
-	config DiscoveryConfig,
+	config *DiscoveryConfig,
 	dataDir string,
 	repManager *reputation.Manager,
 	logger log.Logger,

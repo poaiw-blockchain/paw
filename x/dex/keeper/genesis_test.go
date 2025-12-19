@@ -123,9 +123,9 @@ func TestDexGenesisRoundTrip(t *testing.T) {
 		LiquidityPositions:   liquidityPositions,
 	}
 
-	require.NoError(t, k.InitGenesis(sdk.WrapSDKContext(ctx), genesis))
+	require.NoError(t, k.InitGenesis(ctx, genesis))
 
-	exported, err := k.ExportGenesis(sdk.WrapSDKContext(ctx))
+	exported, err := k.ExportGenesis(ctx)
 	require.NoError(t, err)
 
 	require.Equal(t, genesis.Params, exported.Params)
@@ -197,7 +197,7 @@ func TestGenesisSharesValidation(t *testing.T) {
 			LiquidityPositions: liquidityPositions,
 		}
 
-		err := k.InitGenesis(sdk.WrapSDKContext(ctx), genesis)
+		err := k.InitGenesis(ctx, genesis)
 		require.NoError(t, err)
 	})
 
@@ -236,7 +236,7 @@ func TestGenesisSharesValidation(t *testing.T) {
 			LiquidityPositions: liquidityPositions,
 		}
 
-		err := k.InitGenesis(sdk.WrapSDKContext(ctx), genesis)
+		err := k.InitGenesis(ctx, genesis)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "shares mismatch")
 	})
@@ -271,7 +271,7 @@ func TestGenesisSharesValidation(t *testing.T) {
 			LiquidityPositions: liquidityPositions,
 		}
 
-		err := k.InitGenesis(sdk.WrapSDKContext(ctx), genesis)
+		err := k.InitGenesis(ctx, genesis)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "shares mismatch")
 	})
@@ -297,7 +297,7 @@ func TestGenesisSharesValidation(t *testing.T) {
 			NextPoolId: 2,
 		}
 
-		err := k.InitGenesis(sdk.WrapSDKContext(ctx), genesis)
+		err := k.InitGenesis(ctx, genesis)
 		require.NoError(t, err)
 	})
 }

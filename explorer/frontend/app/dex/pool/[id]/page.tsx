@@ -46,7 +46,12 @@ export default function PoolDetailPage({ params }: PageParams) {
   })
 
   // Fetch pool trades
-  const { data: tradesData } = useQuery({
+  const {
+    data: tradesData,
+    isLoading: tradesLoading,
+    isError: tradesError,
+    refetch: refetchTrades,
+  } = useQuery({
     queryKey: ['poolTrades', poolId],
     queryFn: () => api.getPoolTrades(poolId, 1, 10),
     refetchInterval: 15_000,
@@ -239,8 +244,25 @@ export default function PoolDetailPage({ params }: PageParams) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tradesData?.trades && tradesData.trades.length > 0 ? (
-                  tradesData.trades.map((trade: DEXTrade, idx: number) => (
+                {tradesLoading ? (
+                  [...Array(5)].map((_, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell colSpan={6} className="h-12">
+                        <div className="h-4 w-1/3 animate-pulse rounded bg-muted" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : tradesError ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                      Failed to load pool trades.{' '}
+                      <button className="text-primary underline" onClick={() => refetchTrades()}>
+                        Retry
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ) : tradesData && tradesData.data && tradesData.data.length > 0 ? (
+                  tradesData.data.map((trade: DEXTrade, idx: number) => (
                     <TableRow key={`${trade.tx_hash}-${idx}`}>
                       <TableCell>
                         <Badge variant="outline">

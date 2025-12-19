@@ -1,6 +1,11 @@
 import * as Keychain from 'react-native-keychain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {encrypt, decrypt} from '../utils/crypto';
+import {
+  encrypt,
+  decrypt,
+  decryptWithMigration,
+  isLegacyCiphertext,
+} from '../utils/crypto';
 
 const STORAGE_KEYS = {
   METADATA: '@PAW:wallet_metadata',
@@ -41,9 +46,26 @@ class KeyStoreService {
         return null;
       }
       const payload = JSON.parse(credentials.password);
+      const privateKeyResult = decryptWithMigration(payload.privateKey, password);
+      const mnemonicResult = decryptWithMigration(payload.mnemonic, password);
+      if (!privateKeyResult.plaintext || !mnemonicResult.plaintext) {
+        throw new Error('Invalid password or corrupted wallet data');
+      }
+
+      // If either field is legacy, re-encrypt to the hardened format.
+      if (isLegacyCiphertext(payload.privateKey) || isLegacyCiphertext(payload.mnemonic)) {
+        const updatedPayload = {
+          privateKey: privateKeyResult.migratedCiphertext || payload.privateKey,
+          mnemonic: mnemonicResult.migratedCiphertext || payload.mnemonic,
+        };
+        await Keychain.setGenericPassword('paw_wallet', JSON.stringify(updatedPayload), {
+          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
+      }
+
       return {
-        privateKey: decrypt(payload.privateKey, password),
-        mnemonic: decrypt(payload.mnemonic, password),
+        privateKey: privateKeyResult.plaintext,
+        mnemonic: mnemonicResult.plaintext,
       };
     } catch (error) {
       throw new Error('Failed to retrieve wallet credentials');
@@ -118,5 +140,12 @@ class KeyStoreService {
   }
 }
 
+// Hardware signing helper (BLE Ledger) with signer address guard
+export async function signWithLedgerAmino(signDoc, accountIndex = 0) {
+  const { signWithLedger } = require('./LedgerHardwareSigner');
+  return signWithLedger(signDoc, accountIndex);
+}
+
 const KeyStore = new KeyStoreService();
 export default KeyStore;
+export { signWithLedgerAmino };

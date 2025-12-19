@@ -292,6 +292,17 @@ wallet/browser-extension/
 
 ---
 
+### 7. ✅ Multi-Language Provider Guide
+
+- **File**: `docs/implementation/wallet/MULTI_LANGUAGE_PROVIDER_GUIDE.md`
+- **Highlights**:
+  - Go example covering mnemonic derivation, Cosmos SDK signing, and gRPC broadcast
+  - Rust example using `cosmrs` for DEX/oracle messaging with REST broadcast
+  - Operational checklist covering derivation conventions, offline signing, and validation scripts
+  - Serves as canonical reference when partners request non-Python wallet integrations
+
+---
+
 ## 📈 Statistics & Metrics
 
 ### Line Counts

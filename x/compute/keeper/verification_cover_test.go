@@ -17,9 +17,9 @@ func TestVerifyJobResultThresholdFailure(t *testing.T) {
 
 	// Seed three pubkeys but only one signature to trigger threshold error
 	pubKeys := [][]byte{
-		[]byte{0x01},
-		[]byte{0x02},
-		[]byte{0x03},
+		{0x01},
+		{0x02},
+		{0x03},
 	}
 	bz, err := json.Marshal(pubKeys)
 	require.NoError(t, err)

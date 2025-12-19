@@ -29,8 +29,8 @@ func NewDefaultGenesisState(chainID string) GenesisState {
 	return genesis
 }
 
-// NewGenesisStateFromConfig creates genesis state with custom parameters
-func NewGenesisStateFromConfig(config GenesisConfig) GenesisState {
+// NewGenesisStateFromConfig creates genesis state with custom parameters.
+func NewGenesisStateFromConfig(config *GenesisConfig) GenesisState {
 	genesis := NewDefaultGenesisState(config.ChainID)
 
 	// Override staking params

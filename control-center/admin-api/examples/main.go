@@ -21,7 +21,7 @@ func main() {
 	}
 	defer adminClient.Logout()
 
-	fmt.Println("=== Admin API Examples ===\n")
+	fmt.Println("=== Admin API Examples ===")
 
 	// Example 1: Get current DEX parameters
 	fmt.Println("1. Getting current DEX parameters...")
@@ -40,7 +40,8 @@ func main() {
 	if err != nil {
 		log.Printf("Error updating DEX params: %v", err)
 	} else {
-		fmt.Println("DEX parameters updated successfully\n")
+		fmt.Println("DEX parameters updated successfully")
+		fmt.Println()
 	}
 
 	// Example 3: View parameter history
@@ -69,7 +70,8 @@ func main() {
 	if err != nil {
 		log.Printf("Error pausing module: %v", err)
 	} else {
-		fmt.Println("DEX module paused successfully\n")
+		fmt.Println("DEX module paused successfully")
+		fmt.Println()
 	}
 
 	// Example 5: Check circuit breaker status
@@ -94,7 +96,8 @@ func main() {
 	if err != nil {
 		log.Printf("Error resuming module: %v", err)
 	} else {
-		fmt.Println("DEX module resumed successfully\n")
+		fmt.Println("DEX module resumed successfully")
+		fmt.Println()
 	}
 
 	// Example 7: Schedule network upgrade
@@ -107,7 +110,8 @@ func main() {
 	if err != nil {
 		log.Printf("Error scheduling upgrade: %v", err)
 	} else {
-		fmt.Println("Network upgrade scheduled successfully\n")
+		fmt.Println("Network upgrade scheduled successfully")
+		fmt.Println()
 	}
 
 	// Example 8: Check upgrade status

@@ -165,10 +165,6 @@ Example:
 				return fmt.Errorf("failed to create MsgCreateValidator: %w", err)
 			}
 
-			// Ensure delegator address is populated (constructor defaults to validator address only).
-			//lint:ignore SA1019 DelegatorAddress remains for MsgCreateValidator compatibility in upstream SDK.
-			msg.DelegatorAddress = addr.String()
-
 			// ValidateBasic was removed in SDK v0.50 - validation happens in message server
 
 			// Build and sign transaction
@@ -184,7 +180,7 @@ Example:
 				WithKeybase(clientCtx.Keyring).
 				WithTxConfig(clientCtx.TxConfig)
 
-			if err = tx.Sign(context.Background(), txFactory, keyName, txBuilder, true); err != nil {
+			if err := tx.Sign(context.Background(), txFactory, keyName, txBuilder, true); err != nil {
 				return err
 			}
 

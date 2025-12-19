@@ -7,6 +7,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -146,7 +147,7 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	// Export circuit breaker states for all pools
 	var cbStates []types.CircuitBreakerStateExport
 	for _, pool := range pools {
-		cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
+		cbState, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 		if err == nil {
 			cbStates = append(cbStates, types.CircuitBreakerStateExport{
 				PoolId:            pool.Id,

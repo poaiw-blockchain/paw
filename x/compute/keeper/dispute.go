@@ -235,7 +235,7 @@ func (k Keeper) ResolveDispute(ctx context.Context, authority sdk.AccAddress, di
 		return types.DISPUTE_RESOLUTION_UNSPECIFIED, fmt.Errorf("no votes submitted")
 	}
 
-	resolution := types.DISPUTE_RESOLUTION_TECHNICAL_ISSUE
+	var resolution types.DisputeResolution
 	maxOpt := k.maxWeightedVote(weighted)
 	switch maxOpt {
 	case types.DISPUTE_VOTE_PROVIDER_FAULT:

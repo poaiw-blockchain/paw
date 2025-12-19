@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
-	"github.com/paw-chain/paw/p2p/reputation"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paw-chain/paw/p2p/reputation"
 )
 
-func setupPEXService(t *testing.T) (*Service, func()) {
+func setupPEXService(t *testing.T) (srv *Service, cleanup func()) {
 	t.Helper()
 
 	cfg := DefaultDiscoveryConfig()
@@ -21,10 +22,10 @@ func setupPEXService(t *testing.T) (*Service, func()) {
 	cfg.MaxOutboundPeers = 5
 	cfg.MinOutboundPeers = 2
 
-	svc, err := NewService(cfg, t.TempDir(), nil, log.NewNopLogger())
+	svc, err := NewService(&cfg, t.TempDir(), nil, log.NewNopLogger())
 	require.NoError(t, err)
 
-	cleanup := func() {
+	cleanup = func() {
 		require.NoError(t, svc.GetPeerManager().Close())
 		require.NoError(t, svc.GetAddressBook().Close())
 	}

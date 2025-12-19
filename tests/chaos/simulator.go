@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +35,7 @@ func (ns *NetworkSimulator) AddNode(node *Node) {
 
 	ns.nodes[node.ID] = node
 	ns.connections[node.ID] = make(map[string]bool)
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) ConnectAll() {
@@ -47,6 +49,7 @@ func (ns *NetworkSimulator) ConnectAll() {
 			}
 		}
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) ConnectNodes(nodes ...*Node) {
@@ -61,6 +64,7 @@ func (ns *NetworkSimulator) ConnectNodes(nodes ...*Node) {
 			}
 		}
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) DisconnectNodes(n1, n2 *Node) {
@@ -69,6 +73,7 @@ func (ns *NetworkSimulator) DisconnectNodes(n1, n2 *Node) {
 
 	ns.connections[n1.ID][n2.ID] = false
 	ns.connections[n2.ID][n1.ID] = false
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) IsolateNode(node *Node) {
@@ -79,6 +84,7 @@ func (ns *NetworkSimulator) IsolateNode(node *Node) {
 		ns.connections[node.ID][id] = false
 		ns.connections[id][node.ID] = false
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) ReconnectNode(node *Node) {
@@ -91,6 +97,7 @@ func (ns *NetworkSimulator) ReconnectNode(node *Node) {
 			ns.connections[id][node.ID] = true
 		}
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) CreatePartition(partition1, partition2 []*Node) {
@@ -104,6 +111,7 @@ func (ns *NetworkSimulator) CreatePartition(partition1, partition2 []*Node) {
 			ns.connections[n2.ID][n1.ID] = false
 		}
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) CreateThreeWayPartition(p1, p2, p3 []*Node) {
@@ -122,6 +130,7 @@ func (ns *NetworkSimulator) CreateThreeWayPartition(p1, p2, p3 []*Node) {
 			}
 		}
 	}
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) HealPartition() {
@@ -134,6 +143,7 @@ func (ns *NetworkSimulator) CreateAsymmetricLink(from, to *Node) {
 
 	ns.connections[from.ID][to.ID] = true
 	ns.connections[to.ID][from.ID] = false
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) RepairAsymmetricLink(from, to *Node) {
@@ -142,6 +152,7 @@ func (ns *NetworkSimulator) RepairAsymmetricLink(from, to *Node) {
 
 	ns.connections[from.ID][to.ID] = true
 	ns.connections[to.ID][from.ID] = true
+	ns.refreshPeersLocked()
 }
 
 func (ns *NetworkSimulator) CrashNode(node *Node) {
@@ -168,6 +179,25 @@ func (ns *NetworkSimulator) Shutdown() {
 	}
 }
 
+func (ns *NetworkSimulator) SetLatency(latency time.Duration) {
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	ns.latency = latency
+}
+
+func (ns *NetworkSimulator) SetPacketLoss(probability float64) {
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	switch {
+	case probability < 0:
+		ns.packetLoss = 0
+	case probability > 1:
+		ns.packetLoss = 1
+	default:
+		ns.packetLoss = probability
+	}
+}
+
 func (ns *NetworkSimulator) IsConnected(from, to string) bool {
 	ns.mu.RLock()
 	defer ns.mu.RUnlock()
@@ -175,18 +205,35 @@ func (ns *NetworkSimulator) IsConnected(from, to string) bool {
 	return ns.connections[from][to]
 }
 
+func (ns *NetworkSimulator) refreshPeersLocked() {
+	for id, node := range ns.nodes {
+		connections := ns.connections[id]
+		peers := make([]*Node, 0, len(connections))
+		for otherID, connected := range connections {
+			if connected {
+				if peerNode, ok := ns.nodes[otherID]; ok {
+					peers = append(peers, peerNode)
+				}
+			}
+		}
+
+		node.mu.Lock()
+		node.peers = peers
+		node.mu.Unlock()
+	}
+}
+
 // Node represents a blockchain node in the simulation
 type Node struct {
-	ID              string
-	network         *NetworkSimulator
-	blockHeight     uint64
-	transactions    map[string]*Transaction
-	blocks          []*Block
-	state           map[string][]byte
-	peers           []*Node
-	crashed         uint32
-	mu              sync.RWMutex
-	consensusActive uint32
+	ID           string
+	network      *NetworkSimulator
+	blockHeight  uint64
+	transactions map[string]*Transaction
+	blocks       []*Block
+	state        map[string][]byte
+	peers        []*Node
+	crashed      uint32
+	mu           sync.RWMutex
 }
 
 func NewNode(id string, network *NetworkSimulator) *Node {
@@ -239,13 +286,21 @@ func (n *Node) GetStateHash() string {
 }
 
 func (n *Node) broadcastTransaction(ctx context.Context, tx *Transaction) {
+	n.network.mu.RLock()
+	latency := n.network.latency
+	packetLoss := n.network.packetLoss
+	n.network.mu.RUnlock()
+
 	for _, peer := range n.peers {
 		if n.network.IsConnected(n.ID, peer.ID) {
 			go func(p *Node) {
+				if packetLoss > 0 && rand.Float64() < packetLoss {
+					return
+				}
 				select {
 				case <-ctx.Done():
 					return
-				case <-time.After(n.network.latency):
+				case <-time.After(latency):
 					p.receiveTransaction(tx)
 				}
 			}(peer)

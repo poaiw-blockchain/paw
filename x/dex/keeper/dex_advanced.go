@@ -143,15 +143,28 @@ func (k Keeper) getPoolCreationCount(ctx context.Context, creator sdk.AccAddress
 
 	count := 0
 	cutoffHeight := currentHeight - PoolCreationWindow
+	var staleKeys [][]byte
 
 	for ; iterator.Valid(); iterator.Next() {
 		blockHeight := int64(binary.BigEndian.Uint64(iterator.Value()))
-		if blockHeight > cutoffHeight {
-			count++
+		if blockHeight <= cutoffHeight {
+			keyCopy := append([]byte(nil), iterator.Key()...)
+			staleKeys = append(staleKeys, keyCopy)
+			continue
 		}
+		count++
+	}
+
+	for _, key := range staleKeys {
+		store.Delete(key)
 	}
 
 	return count
+}
+
+// GetPoolCreationCountForTesting exposes the pool creation counter for unit tests.
+func (k Keeper) GetPoolCreationCountForTesting(ctx context.Context, creator sdk.AccAddress, currentHeight int64) int {
+	return k.getPoolCreationCount(ctx, creator, currentHeight)
 }
 
 // recordPoolCreation records a pool creation for rate limiting
@@ -163,6 +176,28 @@ func (k Keeper) recordPoolCreation(ctx context.Context, creator sdk.AccAddress, 
 	key = append(key, sdk.Uint64ToBigEndian(uint64(blockHeight))...)
 
 	store.Set(key, sdk.Uint64ToBigEndian(uint64(blockHeight)))
+}
+
+// SetPoolCreationRecordForTesting seeds a pool creation record (testing only).
+func (k Keeper) SetPoolCreationRecordForTesting(ctx context.Context, creator sdk.AccAddress, blockHeight int64) {
+	store := k.getStore(ctx)
+	key := append([]byte("pool_creation_count/"), creator.Bytes()...)
+	key = append(key, sdk.Uint64ToBigEndian(uint64(blockHeight))...)
+	store.Set(key, sdk.Uint64ToBigEndian(uint64(blockHeight)))
+}
+
+// ListPoolCreationRecordsForTesting lists remaining records for assertions (testing only).
+func (k Keeper) ListPoolCreationRecordsForTesting(ctx context.Context, creator sdk.AccAddress) []int64 {
+	store := k.getStore(ctx)
+	prefix := append([]byte("pool_creation_count/"), creator.Bytes()...)
+	iter := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iter.Close()
+
+	var heights []int64
+	for ; iter.Valid(); iter.Next() {
+		heights = append(heights, int64(binary.BigEndian.Uint64(iter.Value())))
+	}
+	return heights
 }
 
 // validateTokenDenom validates that a token denomination exists and is tradeable

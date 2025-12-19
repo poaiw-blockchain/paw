@@ -6,6 +6,8 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // Test addresses for validation tests - using valid bech32 cosmos addresses
@@ -13,6 +15,8 @@ var (
 	validAddress    = "cosmos1zg69v7ys40x77y352eufp27daufrg4ncnjqz7q"
 	validValAddress = "cosmosvaloper1zg69v7ys40x77y352eufp27daufrg4nckx5hjn"
 	invalidAddress  = "invalid"
+	moduleAuthority string
+	moduleAccAddr   sdk.AccAddress
 )
 
 func init() {
@@ -21,6 +25,8 @@ func init() {
 	config.SetBech32PrefixForAccount("cosmos", "cosmospub")
 	config.SetBech32PrefixForValidator("cosmosvaloper", "cosmosvaloperpub")
 	config.SetBech32PrefixForConsensusNode("cosmosvalcons", "cosmosvalconspub")
+	moduleAccAddr = authtypes.NewModuleAddress(govtypes.ModuleName)
+	moduleAuthority = moduleAccAddr.String()
 }
 
 // ============================================================================
@@ -118,6 +124,17 @@ func TestMsgSubmitPrice_ValidateBasic(t *testing.T) {
 				Price:     math.LegacyNewDecWithPrec(1, 8), // 0.00000001
 			},
 			wantErr: false,
+		},
+		{
+			name: "asset too long",
+			msg: MsgSubmitPrice{
+				Validator: validValAddress,
+				Feeder:    validAddress,
+				Asset:     strings.Repeat("A", maxAssetLen+1),
+				Price:     math.LegacyNewDec(50000),
+			},
+			wantErr: true,
+			errMsg:  "asset too long",
 		},
 	}
 
@@ -317,10 +334,19 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "valid message",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params:    validParams,
 			},
 			wantErr: false,
+		},
+		{
+			name: "unauthorized authority",
+			msg: MsgUpdateParams{
+				Authority: validAddress,
+				Params:    validParams,
+			},
+			wantErr: true,
+			errMsg:  "invalid authority",
 		},
 		{
 			name: "invalid authority address",
@@ -334,7 +360,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "zero vote period",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    0,
 					VoteThreshold: math.LegacyNewDecWithPrec(5, 1),
@@ -347,7 +373,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "vote threshold zero",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyZeroDec(),
@@ -360,7 +386,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "vote threshold greater than 1",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyNewDecWithPrec(15, 1), // 1.5
@@ -373,7 +399,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "slash fraction negative",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyNewDecWithPrec(5, 1),
@@ -386,7 +412,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "slash fraction greater than 1",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyNewDecWithPrec(5, 1),
@@ -399,7 +425,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "vote threshold at boundary (exactly 1)",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyOneDec(),
@@ -411,7 +437,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 		{
 			name: "slash fraction at zero boundary",
 			msg: MsgUpdateParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				Params: Params{
 					VotePeriod:    10,
 					VoteThreshold: math.LegacyNewDecWithPrec(5, 1),
@@ -440,7 +466,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 
 func TestMsgUpdateParams_GetSigners(t *testing.T) {
 	msg := MsgUpdateParams{
-		Authority: validAddress,
+		Authority: moduleAuthority,
 		Params:    Params{},
 	}
 
@@ -449,7 +475,7 @@ func TestMsgUpdateParams_GetSigners(t *testing.T) {
 		t.Errorf("Expected 1 signer, got %d", len(signers))
 	}
 
-	expected, _ := sdk.AccAddressFromBech32(validAddress)
+	expected := moduleAccAddr
 	if !signers[0].Equals(expected) {
 		t.Errorf("Expected signer %s, got %s", expected, signers[0])
 	}
@@ -468,10 +494,10 @@ func TestNewMsgUpdateParams(t *testing.T) {
 		VoteThreshold: math.LegacyNewDecWithPrec(5, 1),
 		SlashFraction: math.LegacyNewDecWithPrec(1, 2),
 	}
-	msg := NewMsgUpdateParams(validAddress, params)
+	msg := NewMsgUpdateParams(moduleAuthority, params)
 
-	if msg.Authority != validAddress {
-		t.Errorf("Expected authority %s, got %s", validAddress, msg.Authority)
+	if msg.Authority != moduleAuthority {
+		t.Errorf("Expected authority %s, got %s", moduleAuthority, msg.Authority)
 	}
 	if msg.Params.VotePeriod != params.VotePeriod {
 		t.Errorf("Expected vote period %d, got %d", params.VotePeriod, msg.Params.VotePeriod)

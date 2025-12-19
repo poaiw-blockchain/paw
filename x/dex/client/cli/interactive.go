@@ -115,7 +115,9 @@ func (t *InteractiveTerminal) Run() error {
 		}
 
 		fmt.Println("\nPress Enter to continue...")
-		t.reader.ReadString('\n')
+		if _, err := t.reader.ReadString('\n'); err != nil {
+			return fmt.Errorf("failed to read continuation input: %w", err)
+		}
 	}
 }
 

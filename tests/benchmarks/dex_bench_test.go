@@ -178,7 +178,9 @@ func BenchmarkGetPoolLiquidity(b *testing.B) {
 	provider := types.TestAddr()
 
 	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000), math.NewInt(20000000))
-	k.AddLiquidity(ctx, provider, poolID, math.NewInt(1000000), math.NewInt(2000000))
+	if _, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(1000000), math.NewInt(2000000)); err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -308,7 +310,10 @@ func BenchmarkLPTokenBurning(b *testing.B) {
 	provider := types.TestAddr()
 
 	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000), math.NewInt(20000000))
-	shares, _ := k.AddLiquidity(ctx, provider, poolID, math.NewInt(100000000), math.NewInt(200000000))
+	shares, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(100000000), math.NewInt(200000000))
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	sharePerIteration := shares.Quo(math.NewInt(int64(b.N + 1)))
 

@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client/http"
 )

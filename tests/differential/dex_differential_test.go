@@ -11,11 +11,11 @@ import (
 func TestPAWvsUniswapV2SwapBehavior(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		name         string
-		reserveX     uint64
-		reserveY     uint64
-		swapAmount   uint64
-		expectEqual  bool
+		name          string
+		reserveX      uint64
+		reserveY      uint64
+		swapAmount    uint64
+		expectEqual   bool
 		maxDivergence uint64 // Basis points
 	}{
 		{"Equal reserves", 1000000000, 1000000000, 1000000, true, 10},
@@ -52,12 +52,12 @@ func TestPAWvsUniswapV2SwapBehavior(t *testing.T) {
 func TestPAWvsUniswapV2LiquidityBehavior(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		name          string
-		reserveX      uint64
-		reserveY      uint64
-		totalSupply   uint64
-		liquidityX    uint64
-		liquidityY    uint64
+		name        string
+		reserveX    uint64
+		reserveY    uint64
+		totalSupply uint64
+		liquidityX  uint64
+		liquidityY  uint64
 	}{
 		{"Initial liquidity", 0, 0, 0, 1000000, 1000000},
 		{"Add to balanced pool", 1000000, 1000000, 1000000, 100000, 100000},
@@ -87,9 +87,9 @@ func TestPAWvsUniswapV2LiquidityBehavior(t *testing.T) {
 func TestPAWSuperiorSecurityGuarantees(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		name        string
-		attack      string
-		pawSecure   bool
+		name          string
+		attack        string
+		pawSecure     bool
 		uniswapSecure bool
 	}{
 		{"Flash loan protection", "flash_loan", true, false},
@@ -240,9 +240,9 @@ type FeeStructure struct {
 }
 
 func calculatePAWFees(amount uint64) FeeStructure {
-	total := amount * 30 / 10000        // 0.3%
-	lpFee := amount * 25 / 10000        // 0.25%
-	protocolFee := amount * 5 / 10000   // 0.05%
+	total := amount * 30 / 10000      // 0.3%
+	lpFee := amount * 25 / 10000      // 0.25%
+	protocolFee := amount * 5 / 10000 // 0.05%
 
 	return FeeStructure{total, lpFee, protocolFee}
 }
@@ -270,7 +270,7 @@ func calculatePAWPriceImpact(swapAmount, reserveX, reserveY uint64) uint64 {
 		return 0
 	}
 
-	impact := abs(int64(newPrice) - int64(initialPrice)) * 10000 / int64(initialPrice)
+	impact := abs(int64(newPrice)-int64(initialPrice)) * 10000 / int64(initialPrice)
 	return uint64(impact)
 }
 
@@ -290,7 +290,7 @@ func calculateUniswapV2PriceImpact(swapAmount, reserveX, reserveY uint64) uint64
 		return 0
 	}
 
-	impact := abs(int64(newPrice) - int64(initialPrice)) * 10000 / int64(initialPrice)
+	impact := abs(int64(newPrice)-int64(initialPrice)) * 10000 / int64(initialPrice)
 	return uint64(impact)
 }
 

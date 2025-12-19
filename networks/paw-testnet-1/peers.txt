@@ -1,6 +1,5 @@
-# Placeholder peer metadata generated from local init. Replace node_id/addresses with live sentry nodes before publishing.
-node_id=
-listen_addr=
-persistent_peers=
+node_id=72d84a1a213b2e341d0926dfc8e91332bd06a584
+listen_addr=0.0.0.0:26656
+persistent_peers=72d84a1a213b2e341d0926dfc8e91332bd06a584@rpc1.paw-testnet.io:26656,b39bdfa2a5aee02104d03dafe80d27b5e2a7289a@rpc2.paw-testnet.io:26656,bafcc29ed4607a4d4f5b3c88d2459c3027be6468@rpc3.paw-testnet.io:26656,a0b3a9daa37ec69bef5341638afbed7cad9c16dc@rpc4.paw-testnet.io:26656
 seeds=
-generated_at=
+generated_at=2025-12-15T05:58:09Z

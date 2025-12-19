@@ -10,10 +10,11 @@ import (
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/gin-gonic/gin"
-	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
-	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
+	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 	analyticsQueryDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "explorer_analytics_query_duration_seconds",
-			Help: "Analytics query duration in seconds",
+			Help:    "Analytics query duration in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"query_type"},
@@ -78,53 +79,53 @@ func NewAnalyticsService(db *database.DB, cache *cache.RedisCache, config Analyt
 
 // NetworkHealth represents overall network health metrics
 type NetworkHealth struct {
-	Status              string              `json:"status"`
-	Score               float64             `json:"score"`
-	BlockProduction     BlockProductionMetrics     `json:"block_production"`
-	ValidatorHealth     ValidatorHealthMetrics     `json:"validator_health"`
-	TransactionMetrics  TransactionMetrics         `json:"transaction_metrics"`
-	ConsensusMetrics    ConsensusMetrics           `json:"consensus_metrics"`
-	Timestamp           time.Time           `json:"timestamp"`
+	Status             string                 `json:"status"`
+	Score              float64                `json:"score"`
+	BlockProduction    BlockProductionMetrics `json:"block_production"`
+	ValidatorHealth    ValidatorHealthMetrics `json:"validator_health"`
+	TransactionMetrics TransactionMetrics     `json:"transaction_metrics"`
+	ConsensusMetrics   ConsensusMetrics       `json:"consensus_metrics"`
+	Timestamp          time.Time              `json:"timestamp"`
 }
 
 // BlockProductionMetrics tracks block production health
 type BlockProductionMetrics struct {
-	AverageBlockTime     float64 `json:"average_block_time"`
-	BlockTimeSDeviation  float64 `json:"block_time_std_deviation"`
-	MissedBlocks         int     `json:"missed_blocks"`
-	ConsecutiveBlocks    int     `json:"consecutive_blocks"`
-	EmptyBlockRate       float64 `json:"empty_block_rate"`
-	HealthScore          float64 `json:"health_score"`
+	AverageBlockTime    float64 `json:"average_block_time"`
+	BlockTimeSDeviation float64 `json:"block_time_std_deviation"`
+	MissedBlocks        int     `json:"missed_blocks"`
+	ConsecutiveBlocks   int     `json:"consecutive_blocks"`
+	EmptyBlockRate      float64 `json:"empty_block_rate"`
+	HealthScore         float64 `json:"health_score"`
 }
 
 // ValidatorHealthMetrics tracks validator performance
 type ValidatorHealthMetrics struct {
-	ActiveValidators     int     `json:"active_validators"`
-	JailedValidators     int     `json:"jailed_validators"`
-	AverageUptime        float64 `json:"average_uptime"`
-	TotalVotingPower     int64   `json:"total_voting_power"`
-	NakamotoCoefficient  int     `json:"nakamoto_coefficient"`
-	HealthScore          float64 `json:"health_score"`
+	ActiveValidators    int     `json:"active_validators"`
+	JailedValidators    int     `json:"jailed_validators"`
+	AverageUptime       float64 `json:"average_uptime"`
+	TotalVotingPower    int64   `json:"total_voting_power"`
+	NakamotoCoefficient int     `json:"nakamoto_coefficient"`
+	HealthScore         float64 `json:"health_score"`
 }
 
 // TransactionMetrics tracks transaction health
 type TransactionMetrics struct {
-	CurrentTPS           float64 `json:"current_tps"`
-	AverageTPS           float64 `json:"average_tps"`
-	PeakTPS              float64 `json:"peak_tps"`
-	SuccessRate          float64 `json:"success_rate"`
-	AverageGasPrice      float64 `json:"average_gas_price"`
-	MempoolSize          int     `json:"mempool_size"`
-	HealthScore          float64 `json:"health_score"`
+	CurrentTPS      float64 `json:"current_tps"`
+	AverageTPS      float64 `json:"average_tps"`
+	PeakTPS         float64 `json:"peak_tps"`
+	SuccessRate     float64 `json:"success_rate"`
+	AverageGasPrice float64 `json:"average_gas_price"`
+	MempoolSize     int     `json:"mempool_size"`
+	HealthScore     float64 `json:"health_score"`
 }
 
 // ConsensusMetrics tracks consensus health
 type ConsensusMetrics struct {
-	RoundsPerBlock       float64 `json:"rounds_per_block"`
-	TimeToFinality       float64 `json:"time_to_finality"`
-	PrecommitRate        float64 `json:"precommit_rate"`
-	PrevoteRate          float64 `json:"prevote_rate"`
-	HealthScore          float64 `json:"health_score"`
+	RoundsPerBlock float64 `json:"rounds_per_block"`
+	TimeToFinality float64 `json:"time_to_finality"`
+	PrecommitRate  float64 `json:"precommit_rate"`
+	PrevoteRate    float64 `json:"prevote_rate"`
+	HealthScore    float64 `json:"health_score"`
 }
 
 // GetNetworkHealth computes comprehensive network health metrics
@@ -146,12 +147,12 @@ func (s *AnalyticsService) GetNetworkHealth(ctx context.Context) (*NetworkHealth
 
 	// Compute metrics in parallel
 	var (
-		blockMetrics      BlockProductionMetrics
-		validatorMetrics  ValidatorHealthMetrics
-		txMetrics         TransactionMetrics
-		consensusMetrics  ConsensusMetrics
-		wg                sync.WaitGroup
-		errCh             = make(chan error, 4)
+		blockMetrics     BlockProductionMetrics
+		validatorMetrics ValidatorHealthMetrics
+		txMetrics        TransactionMetrics
+		consensusMetrics ConsensusMetrics
+		wg               sync.WaitGroup
+		errCh            = make(chan error, 4)
 	)
 
 	wg.Add(4)
@@ -258,10 +259,10 @@ func (s *AnalyticsService) computeBlockProductionMetrics(ctx context.Context) (B
 	`
 
 	var (
-		avgBlockTime   float64
-		stdDev         float64
-		emptyBlocks    int
-		totalBlocks    int
+		avgBlockTime float64
+		stdDev       float64
+		emptyBlocks  int
+		totalBlocks  int
 	)
 
 	err := s.db.QueryRowContext(ctx, query).Scan(&avgBlockTime, &stdDev, &emptyBlocks, &totalBlocks)
@@ -303,9 +304,9 @@ func (s *AnalyticsService) computeValidatorHealthMetrics(ctx context.Context) (V
 	`
 
 	var (
-		active      int
-		jailed      int
-		totalPower  int64
+		active     int
+		jailed     int
+		totalPower int64
 	)
 
 	err := s.db.QueryRowContext(ctx, query).Scan(&active, &jailed, &totalPower)
@@ -371,9 +372,9 @@ func (s *AnalyticsService) computeTransactionMetrics(ctx context.Context) (Trans
 	`
 
 	var (
-		currentTPS   float64
-		successRate  float64
-		avgGasPrice  float64
+		currentTPS  float64
+		successRate float64
+		avgGasPrice float64
 	)
 
 	err := s.db.QueryRowContext(ctx, query).Scan(&currentTPS, &successRate, &avgGasPrice)
@@ -425,11 +426,11 @@ func (s *AnalyticsService) computeConsensusMetrics(ctx context.Context) (Consens
 	// Return default values if no RPC client is configured
 	if s.rpcClient == nil {
 		return ConsensusMetrics{
-			RoundsPerBlock:  1.0,
-			TimeToFinality:  6.0,
-			PrecommitRate:   0.95,
-			PrevoteRate:     0.95,
-			HealthScore:     0.90,
+			RoundsPerBlock: 1.0,
+			TimeToFinality: 6.0,
+			PrecommitRate:  0.95,
+			PrevoteRate:    0.95,
+			HealthScore:    0.90,
 		}, nil
 	}
 
@@ -444,11 +445,11 @@ func (s *AnalyticsService) computeConsensusMetrics(ctx context.Context) (Consens
 	// Query last 100 blocks to calculate consensus metrics
 	const blockSampleSize = 100
 	var (
-		totalRounds         int64
-		totalCommitSigs     int64
-		totalPossibleSigs   int64
-		blockTimes          []float64
-		validBlockCount     int64
+		totalRounds       int64
+		totalCommitSigs   int64
+		totalPossibleSigs int64
+		blockTimes        []float64
+		validBlockCount   int64
 	)
 
 	// Get validators for calculating signature rates
@@ -553,11 +554,11 @@ func (s *AnalyticsService) computeConsensusMetrics(ctx context.Context) (Consens
 	}
 
 	return ConsensusMetrics{
-		RoundsPerBlock:  avgRoundsPerBlock,
-		TimeToFinality:  avgTimeToFinality,
-		PrecommitRate:   precommitRate,
-		PrevoteRate:     prevoteRate,
-		HealthScore:     healthScore,
+		RoundsPerBlock: avgRoundsPerBlock,
+		TimeToFinality: avgTimeToFinality,
+		PrecommitRate:  precommitRate,
+		PrevoteRate:    prevoteRate,
+		HealthScore:    healthScore,
 	}, nil
 }
 
@@ -591,19 +592,19 @@ func (s *AnalyticsService) calculateNakamotoCoefficient(ctx context.Context) int
 
 // TransactionVolumeData represents transaction volume over time
 type TransactionVolumeData struct {
-	Period     string                   `json:"period"`
-	Data       []TransactionDataPoint   `json:"data"`
-	Aggregates TransactionAggregates    `json:"aggregates"`
+	Period     string                 `json:"period"`
+	Data       []TransactionDataPoint `json:"data"`
+	Aggregates TransactionAggregates  `json:"aggregates"`
 }
 
 // TransactionDataPoint represents a single data point
 type TransactionDataPoint struct {
-	Timestamp   time.Time `json:"timestamp"`
-	TxCount     int       `json:"tx_count"`
-	SuccessCount int      `json:"success_count"`
-	FailedCount  int      `json:"failed_count"`
-	TotalGas     int64    `json:"total_gas"`
-	TotalFees    string   `json:"total_fees"`
+	Timestamp    time.Time `json:"timestamp"`
+	TxCount      int       `json:"tx_count"`
+	SuccessCount int       `json:"success_count"`
+	FailedCount  int       `json:"failed_count"`
+	TotalGas     int64     `json:"total_gas"`
+	TotalFees    string    `json:"total_fees"`
 }
 
 // TransactionAggregates contains aggregate statistics
@@ -626,8 +627,8 @@ func (s *AnalyticsService) GetTransactionVolumeChart(ctx context.Context, period
 
 	// Determine time range and interval
 	var (
-		interval   string
-		timeRange  string
+		interval  string
+		timeRange string
 	)
 
 	switch period {
@@ -679,13 +680,13 @@ func (s *AnalyticsService) GetTransactionVolumeChart(ctx context.Context, period
 	defer rows.Close()
 
 	var (
-		dataPoints        []TransactionDataPoint
-		totalTxs          int
-		totalSuccess      int
-		totalFailed       int
-		totalGas          int64
-		totalFees         float64
-		maxTPS            float64
+		dataPoints   []TransactionDataPoint
+		totalTxs     int
+		totalSuccess int
+		totalFailed  int
+		totalGas     int64
+		totalFees    float64
+		maxTPS       float64
 	)
 
 	for rows.Next() {
@@ -772,28 +773,29 @@ func intervalSeconds(interval string) float64 {
 
 // DEXAnalytics contains comprehensive DEX analytics
 type DEXAnalytics struct {
-	TotalVolume24h    string                `json:"total_volume_24h"`
-	TotalVolume7d     string                `json:"total_volume_7d"`
-	TotalTVL          string                `json:"total_tvl"`
-	TotalPools        int                   `json:"total_pools"`
-	TotalTrades24h    int                   `json:"total_trades_24h"`
-	TopPools          []PoolAnalytics       `json:"top_pools"`
-	VolumeChart       []VolumeDataPoint     `json:"volume_chart"`
-	LiquidityChart    []LiquidityDataPoint  `json:"liquidity_chart"`
+	TotalVolume24h string               `json:"total_volume_24h"`
+	TotalVolume7d  string               `json:"total_volume_7d"`
+	TotalTVL       string               `json:"total_tvl"`
+	TotalPools     int                  `json:"total_pools"`
+	TotalTrades24h int                  `json:"total_trades_24h"`
+	TopPools       []PoolAnalytics      `json:"top_pools"`
+	VolumeChart    []VolumeDataPoint    `json:"volume_chart"`
+	LiquidityChart []LiquidityDataPoint `json:"liquidity_chart"`
 }
 
 // PoolAnalytics contains analytics for a single pool
 type PoolAnalytics struct {
-	PoolID          string  `json:"pool_id"`
-	TokenA          string  `json:"token_a"`
-	TokenB          string  `json:"token_b"`
-	TVL             string  `json:"tvl"`
-	Volume24h       string  `json:"volume_24h"`
-	Volume7d        string  `json:"volume_7d"`
-	Trades24h       int     `json:"trades_24h"`
-	APR             string  `json:"apr"`
-	FeeRevenue24h   string  `json:"fee_revenue_24h"`
-	PriceChange24h  float64 `json:"price_change_24h"`
+	Id             string  `json:"id"`
+	PoolID         string  `json:"pool_id"`
+	TokenA         string  `json:"token_a"`
+	TokenB         string  `json:"token_b"`
+	TVL            string  `json:"tvl"`
+	Volume24h      string  `json:"volume_24h"`
+	Volume7d       string  `json:"volume_7d"`
+	Trades24h      int     `json:"trades_24h"`
+	APR            string  `json:"apr"`
+	FeeRevenue24h  string  `json:"fee_revenue_24h"`
+	PriceChange24h float64 `json:"price_change_24h"`
 }
 
 // VolumeDataPoint represents a volume data point
@@ -881,14 +883,14 @@ func (s *AnalyticsService) GetDEXAnalytics(ctx context.Context) (*DEXAnalytics, 
 	}
 
 	analytics := &DEXAnalytics{
-		TotalVolume24h:   fmt.Sprintf("%.2f", totalVolume24h),
-		TotalVolume7d:    fmt.Sprintf("%.2f", totalVolume7d),
-		TotalTVL:         fmt.Sprintf("%.2f", totalTVL),
-		TotalPools:       totalPools,
-		TotalTrades24h:   totalTrades24h,
-		TopPools:         topPools,
-		VolumeChart:      volumeChart,
-		LiquidityChart:   liquidityChart,
+		TotalVolume24h: fmt.Sprintf("%.2f", totalVolume24h),
+		TotalVolume7d:  fmt.Sprintf("%.2f", totalVolume7d),
+		TotalTVL:       fmt.Sprintf("%.2f", totalTVL),
+		TotalPools:     totalPools,
+		TotalTrades24h: totalTrades24h,
+		TopPools:       topPools,
+		VolumeChart:    volumeChart,
+		LiquidityChart: liquidityChart,
 	}
 
 	// Cache result
@@ -1143,12 +1145,12 @@ func (s *AnalyticsService) handleGetAddressGrowth(c *gin.Context) {
 
 // AddressGrowthData represents address growth analytics
 type AddressGrowthData struct {
-	TotalAddresses    int64                 `json:"total_addresses"`
-	NewAddresses24h   int64                 `json:"new_addresses_24h"`
+	TotalAddresses     int64                `json:"total_addresses"`
+	NewAddresses24h    int64                `json:"new_addresses_24h"`
 	ActiveAddresses24h int64                `json:"active_addresses_24h"`
-	GrowthRate        float64               `json:"growth_rate"`
-	Timeline          []AddressGrowthPoint  `json:"timeline"`
-	Timestamp         time.Time             `json:"timestamp"`
+	GrowthRate         float64              `json:"growth_rate"`
+	Timeline           []AddressGrowthPoint `json:"timeline"`
+	Timestamp          time.Time            `json:"timestamp"`
 }
 
 // AddressGrowthPoint represents a data point in address growth timeline
@@ -1338,16 +1340,16 @@ func (s *AnalyticsService) handleGetGasAnalytics(c *gin.Context) {
 
 // GasAnalyticsData represents gas usage analytics
 type GasAnalyticsData struct {
-	AverageGasPrice   string            `json:"average_gas_price"`
-	MedianGasPrice    string            `json:"median_gas_price"`
-	MaxGasPrice       string            `json:"max_gas_price"`
-	MinGasPrice       string            `json:"min_gas_price"`
-	TotalGasUsed      int64             `json:"total_gas_used"`
-	TotalGasLimit     int64             `json:"total_gas_limit"`
-	GasUtilization    float64           `json:"gas_utilization"`
-	Timeline          []GasDataPoint    `json:"timeline"`
-	TopGasConsumers   []GasConsumer     `json:"top_gas_consumers"`
-	Timestamp         time.Time         `json:"timestamp"`
+	AverageGasPrice string         `json:"average_gas_price"`
+	MedianGasPrice  string         `json:"median_gas_price"`
+	MaxGasPrice     string         `json:"max_gas_price"`
+	MinGasPrice     string         `json:"min_gas_price"`
+	TotalGasUsed    int64          `json:"total_gas_used"`
+	TotalGasLimit   int64          `json:"total_gas_limit"`
+	GasUtilization  float64        `json:"gas_utilization"`
+	Timeline        []GasDataPoint `json:"timeline"`
+	TopGasConsumers []GasConsumer  `json:"top_gas_consumers"`
+	Timestamp       time.Time      `json:"timestamp"`
 }
 
 // GasDataPoint represents a data point in gas analytics timeline
@@ -1423,16 +1425,16 @@ func (s *AnalyticsService) GetGasAnalytics(ctx context.Context, period string) (
 	}
 
 	return &GasAnalyticsData{
-		AverageGasPrice:  fmt.Sprintf("%.0f", avgGasPrice),
-		MedianGasPrice:   fmt.Sprintf("%.0f", medianGasPrice),
-		MaxGasPrice:      fmt.Sprintf("%.0f", maxGasPrice),
-		MinGasPrice:      fmt.Sprintf("%.0f", minGasPrice),
-		TotalGasUsed:     totalGasUsed,
-		TotalGasLimit:    totalGasLimit,
-		GasUtilization:   gasUtilization,
-		Timeline:         timeline,
-		TopGasConsumers:  topConsumers,
-		Timestamp:        time.Now(),
+		AverageGasPrice: fmt.Sprintf("%.0f", avgGasPrice),
+		MedianGasPrice:  fmt.Sprintf("%.0f", medianGasPrice),
+		MaxGasPrice:     fmt.Sprintf("%.0f", maxGasPrice),
+		MinGasPrice:     fmt.Sprintf("%.0f", minGasPrice),
+		TotalGasUsed:    totalGasUsed,
+		TotalGasLimit:   totalGasLimit,
+		GasUtilization:  gasUtilization,
+		Timeline:        timeline,
+		TopGasConsumers: topConsumers,
+		Timestamp:       time.Now(),
 	}, nil
 }
 
@@ -1536,25 +1538,25 @@ func (s *AnalyticsService) handleGetValidatorPerformance(c *gin.Context) {
 
 // ValidatorPerformanceData represents validator performance analytics
 type ValidatorPerformanceData struct {
-	TotalValidators    int                      `json:"total_validators"`
-	ActiveValidators   int                      `json:"active_validators"`
-	AverageUptime      float64                  `json:"average_uptime"`
-	Validators         []ValidatorPerformance   `json:"validators"`
-	Timeline           []ValidatorTimelinePoint `json:"timeline"`
-	Timestamp          time.Time                `json:"timestamp"`
+	TotalValidators  int                      `json:"total_validators"`
+	ActiveValidators int                      `json:"active_validators"`
+	AverageUptime    float64                  `json:"average_uptime"`
+	Validators       []ValidatorPerformance   `json:"validators"`
+	Timeline         []ValidatorTimelinePoint `json:"timeline"`
+	Timestamp        time.Time                `json:"timestamp"`
 }
 
 // ValidatorPerformance represents individual validator performance
 type ValidatorPerformance struct {
-	Address         string  `json:"address"`
-	Moniker         string  `json:"moniker"`
-	VotingPower     int64   `json:"voting_power"`
-	BlocksSigned    int64   `json:"blocks_signed"`
-	BlocksProposed  int64   `json:"blocks_proposed"`
-	BlocksMissed    int64   `json:"blocks_missed"`
-	Uptime          float64 `json:"uptime"`
-	Commission      string  `json:"commission"`
-	Status          string  `json:"status"`
+	Address        string  `json:"address"`
+	Moniker        string  `json:"moniker"`
+	VotingPower    int64   `json:"voting_power"`
+	BlocksSigned   int64   `json:"blocks_signed"`
+	BlocksProposed int64   `json:"blocks_proposed"`
+	BlocksMissed   int64   `json:"blocks_missed"`
+	Uptime         float64 `json:"uptime"`
+	Commission     string  `json:"commission"`
+	Status         string  `json:"status"`
 }
 
 // ValidatorTimelinePoint represents a data point in validator performance timeline
@@ -1620,7 +1622,7 @@ func (s *AnalyticsService) GetValidatorPerformance(ctx context.Context, period s
 		val.BlocksMissed = totalBlocks - val.BlocksProposed
 		val.BlocksSigned = val.BlocksProposed // Simplified assumption
 		val.Status = "active"
-		val.VotingPower = 0 // Would need to query staking module for real value
+		val.VotingPower = 0       // Would need to query staking module for real value
 		val.Commission = "10.00%" // Would need to query staking module for real value
 		val.Moniker = val.Address // Would need validator registry for real moniker
 

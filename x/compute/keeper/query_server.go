@@ -8,12 +8,18 @@ import (
 	storeprefix "cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
-	"github.com/paw-chain/paw/x/compute/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 var _ types.QueryServer = queryServer{}
+
+const (
+	defaultPaginationLimit = 100
+	maxPaginationLimit     = 1000
+)
 
 type queryServer struct {
 	Keeper
@@ -22,6 +28,23 @@ type queryServer struct {
 // NewQueryServerImpl returns an implementation of the QueryServer interface
 func NewQueryServerImpl(keeper Keeper) types.QueryServer {
 	return &queryServer{Keeper: keeper}
+}
+
+// sanitizePagination enforces default and max limits to prevent unbounded queries.
+func sanitizePagination(p *query.PageRequest) *query.PageRequest {
+	if p == nil {
+		return &query.PageRequest{Limit: defaultPaginationLimit}
+	}
+
+	if p.Limit == 0 {
+		p.Limit = defaultPaginationLimit
+	}
+
+	if p.Limit > maxPaginationLimit {
+		p.Limit = maxPaginationLimit
+	}
+
+	return p
 }
 
 // Params returns the module parameters
@@ -75,7 +98,7 @@ func (qs queryServer) Providers(goCtx context.Context, req *types.QueryProviders
 	providerStore := storeprefix.NewStore(store, ProviderKeyPrefix)
 
 	var providers []types.Provider
-	pageRes, err := query.Paginate(providerStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(providerStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var provider types.Provider
 		if err := qs.Keeper.cdc.Unmarshal(value, &provider); err != nil {
 			return err
@@ -105,7 +128,7 @@ func (qs queryServer) ActiveProviders(goCtx context.Context, req *types.QueryAct
 	activeProviderStore := storeprefix.NewStore(store, ActiveProvidersPrefix)
 
 	var providers []types.Provider
-	pageRes, err := query.Paginate(activeProviderStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(activeProviderStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		// The active provider index stores addresses, need to fetch full provider
 		providerAddr := sdk.AccAddress(key)
 		provider, err := qs.Keeper.GetProvider(ctx, providerAddr)
@@ -153,7 +176,7 @@ func (qs queryServer) Requests(goCtx context.Context, req *types.QueryRequestsRe
 	requestStore := storeprefix.NewStore(store, RequestKeyPrefix)
 
 	var requests []types.Request
-	pageRes, err := query.Paginate(requestStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(requestStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var request types.Request
 		if err := qs.Keeper.cdc.Unmarshal(value, &request); err != nil {
 			return err
@@ -194,7 +217,7 @@ func (qs queryServer) RequestsByRequester(goCtx context.Context, req *types.Quer
 	requesterStore := storeprefix.NewStore(store, requesterPrefix)
 
 	var requests []types.Request
-	pageRes, err := query.Paginate(requesterStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(requesterStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		// Extract request ID from key and fetch full request
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
@@ -237,7 +260,7 @@ func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.Query
 	providerStore := storeprefix.NewStore(store, providerPrefix)
 
 	var requests []types.Request
-	pageRes, err := query.Paginate(providerStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(providerStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		// Extract request ID from key and fetch full request
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
@@ -273,7 +296,7 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 	statusStore := storeprefix.NewStore(store, statusPrefix)
 
 	var requests []types.Request
-	pageRes, err := query.Paginate(statusStore, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(statusStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		// Extract request ID from key and fetch full request
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
@@ -378,7 +401,7 @@ func (qs queryServer) Disputes(goCtx context.Context, req *types.QueryDisputesRe
 	view := storeprefix.NewStore(store, DisputeKeyPrefix)
 
 	var disputes []types.Dispute
-	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(view, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var dispute types.Dispute
 		if err := qs.Keeper.cdc.Unmarshal(value, &dispute); err != nil {
 			return err
@@ -404,7 +427,7 @@ func (qs queryServer) DisputesByRequest(goCtx context.Context, req *types.QueryD
 	view := storeprefix.NewStore(store, prefixKey)
 
 	var disputes []types.Dispute
-	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(view, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		if len(key) < 8 {
 			return nil
 		}
@@ -434,7 +457,7 @@ func (qs queryServer) DisputesByStatus(goCtx context.Context, req *types.QueryDi
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var disputes []types.Dispute
-	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(view, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		if len(key) < 8 {
 			return nil
 		}
@@ -459,7 +482,7 @@ func (qs queryServer) Evidence(goCtx context.Context, req *types.QueryEvidenceRe
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	items, pageRes, err := qs.Keeper.ListEvidence(ctx, req.DisputeId, req.Pagination)
+	items, pageRes, err := qs.Keeper.ListEvidence(ctx, req.DisputeId, sanitizePagination(req.Pagination))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -485,7 +508,7 @@ func (qs queryServer) SlashRecords(goCtx context.Context, req *types.QuerySlashR
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, sdk.AccAddress{}, req.Pagination)
+	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, sdk.AccAddress{}, sanitizePagination(req.Pagination))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -502,7 +525,7 @@ func (qs queryServer) SlashRecordsByProvider(goCtx context.Context, req *types.Q
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid provider address")
 	}
-	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, provider, req.Pagination)
+	records, pageRes, err := qs.Keeper.listSlashRecords(ctx, provider, sanitizePagination(req.Pagination))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -532,7 +555,7 @@ func (qs queryServer) Appeals(goCtx context.Context, req *types.QueryAppealsRequ
 	view := storeprefix.NewStore(store, AppealKeyPrefix)
 
 	var appeals []types.Appeal
-	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(view, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		var appeal types.Appeal
 		if err := qs.Keeper.cdc.Unmarshal(value, &appeal); err != nil {
 			return err
@@ -558,7 +581,7 @@ func (qs queryServer) AppealsByStatus(goCtx context.Context, req *types.QueryApp
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var appeals []types.Appeal
-	pageRes, err := query.Paginate(view, req.Pagination, func(key []byte, value []byte) error {
+	pageRes, err := query.Paginate(view, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
 		if len(key) < 8 {
 			return nil
 		}

@@ -24,7 +24,16 @@ alias logs="cd $LOG_DIR"
 alias proj="cd $PROJECT_ROOT"
 alias dc="docker compose -f $PROJECT_ROOT/docker/docker-compose.yml"
 
-echo "Environment set for paw"
-echo "  Go: $(go version 2>/dev/null || echo not found)"
-echo "  GOCACHE: $GOCACHE"
-echo "  LOG_DIR: $LOG_DIR"
+# Silent environment setup - no output
+
+# Testnet management functions
+testnet-shutdown() {
+    /home/hudson/blockchain-projects/scripts/testnet-shutdown.sh paw
+}
+
+testnet-status() {
+    docker ps --filter "name=paw" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+}
+
+# Kubernetes namespace for this project
+export KUBECONFIG="$PROJECT_ROOT/.kube/config"

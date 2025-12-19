@@ -1,6 +1,0 @@
-
-- name: validator
-  type: secp256k1
-  address: paw1l65jxmd4td9s0cpc7j5cd6w3ydl6f5tm4caqxy
-  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 3 7 208 148 22 128 165 158 128 4 74 153 18 38 157 236 226 122 77 73 91 142 182 82 248 72 34 71 136 147 89 206 228],XXX_unrecognized:[]}
-

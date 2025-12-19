@@ -17,12 +17,12 @@ import (
 
 // AlertManager manages alerting integrations
 type AlertManager struct {
-	config      *config.Config
+	config       *config.Config
 	integrations []Integration
-	alertQueue  chan *Alert
-	mu          sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
+	alertQueue   chan *Alert
+	mu           sync.RWMutex
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 // Integration represents an alerting integration
@@ -49,11 +49,11 @@ func NewAlertManager(cfg *config.Config) *AlertManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	am := &AlertManager{
-		config:      cfg,
+		config:       cfg,
 		integrations: make([]Integration, 0),
-		alertQueue:  make(chan *Alert, 100),
-		ctx:         ctx,
-		cancel:      cancel,
+		alertQueue:   make(chan *Alert, 100),
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 
 	// Initialize integrations
@@ -293,9 +293,9 @@ func (p *PagerDutyIntegration) SendAlert(alert *Alert) error {
 		"routing_key":  p.integrationKey,
 		"event_action": eventAction,
 		"payload": map[string]interface{}{
-			"summary":  alert.Title,
-			"severity": severity,
-			"source":   "PAW Status Page",
+			"summary":   alert.Title,
+			"severity":  severity,
+			"source":    "PAW Status Page",
 			"component": alert.Component,
 			"custom_details": map[string]interface{}{
 				"description": alert.Description,

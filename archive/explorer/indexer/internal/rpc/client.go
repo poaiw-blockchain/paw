@@ -26,9 +26,9 @@ type Client struct {
 
 // Config holds RPC client configuration
 type Config struct {
-	RPCURL        string
-	Timeout       time.Duration
-	MaxRetries    int
+	RPCURL         string
+	Timeout        time.Duration
+	MaxRetries     int
 	RequestsPerSec int
 }
 
@@ -91,12 +91,12 @@ type BlockResultsResponse struct {
 	JSONRPC string `json:"jsonrpc"`
 	ID      int    `json:"id"`
 	Result  struct {
-		Height                string `json:"height"`
-		TxsResults            []TxResult `json:"txs_results"`
-		BeginBlockEvents      []Event    `json:"begin_block_events"`
-		EndBlockEvents        []Event    `json:"end_block_events"`
+		Height                string        `json:"height"`
+		TxsResults            []TxResult    `json:"txs_results"`
+		BeginBlockEvents      []Event       `json:"begin_block_events"`
+		EndBlockEvents        []Event       `json:"end_block_events"`
 		ValidatorUpdates      []interface{} `json:"validator_updates"`
-		ConsensusParamUpdates interface{} `json:"consensus_param_updates"`
+		ConsensusParamUpdates interface{}   `json:"consensus_param_updates"`
 	} `json:"result"`
 }
 

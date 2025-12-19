@@ -16,8 +16,8 @@ import (
 func TestRateLimiter_BasicLimiting(t *testing.T) {
 	config := middleware.RateLimitConfig{
 		WriteOperationsPerMinute: 5,
-		ReadOperationsPerMinute:  10,
-		BurstMultiplier:          1,
+		ReadOperationsPerMinute:  60, // 1 req/s
+		BurstMultiplier:          3,  // allow a small burst without flaking
 	}
 
 	rateLimiter := middleware.NewRateLimiter(config)

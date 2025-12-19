@@ -16,26 +16,26 @@ type DB struct {
 
 // FaucetRequest represents a faucet request record
 type FaucetRequest struct {
-	ID          int64     `json:"id"`
-	Recipient   string    `json:"recipient"`
-	Amount      int64     `json:"amount"`
-	TxHash      string    `json:"tx_hash"`
-	IPAddress   string    `json:"ip_address"`
-	Status      string    `json:"status"` // pending, success, failed
-	Error       string    `json:"error,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          int64      `json:"id"`
+	Recipient   string     `json:"recipient"`
+	Amount      int64      `json:"amount"`
+	TxHash      string     `json:"tx_hash"`
+	IPAddress   string     `json:"ip_address"`
+	Status      string     `json:"status"` // pending, success, failed
+	Error       string     `json:"error,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
 
 // Statistics holds faucet statistics
 type Statistics struct {
-	TotalRequests     int64   `json:"total_requests"`
-	SuccessfulRequests int64   `json:"successful_requests"`
-	FailedRequests    int64   `json:"failed_requests"`
-	TotalDistributed  int64   `json:"total_distributed"`
-	UniqueRecipients  int64   `json:"unique_recipients"`
-	RequestsLast24h   int64   `json:"requests_last_24h"`
-	RequestsLastHour  int64   `json:"requests_last_hour"`
+	TotalRequests      int64 `json:"total_requests"`
+	SuccessfulRequests int64 `json:"successful_requests"`
+	FailedRequests     int64 `json:"failed_requests"`
+	TotalDistributed   int64 `json:"total_distributed"`
+	UniqueRecipients   int64 `json:"unique_recipients"`
+	RequestsLast24h    int64 `json:"requests_last_24h"`
+	RequestsLastHour   int64 `json:"requests_last_hour"`
 }
 
 // NewPostgresDB creates a new PostgreSQL database connection

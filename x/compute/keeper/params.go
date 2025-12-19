@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cosmossdk.io/math"
+
 	"github.com/paw-chain/paw/x/compute/types"
 )
 

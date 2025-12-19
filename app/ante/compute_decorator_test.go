@@ -5,7 +5,6 @@ import (
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
-	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
@@ -13,6 +12,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -26,7 +26,7 @@ type ComputeDecoratorTestSuite struct {
 
 	ctx           sdk.Context
 	computeKeeper *computekeeper.Keeper
-	decorator     ante.ComputeDecorator
+	decorator     *ante.ComputeDecorator
 	encCfg        moduletestutil.TestEncodingConfig
 	addr          sdk.AccAddress
 	providerAddr  sdk.AccAddress
@@ -63,7 +63,7 @@ func (suite *ComputeDecoratorTestSuite) SetupTest() {
 	err := suite.computeKeeper.SetParams(suite.ctx, params)
 	suite.Require().NoError(err)
 
-	suite.decorator = ante.NewComputeDecorator(*suite.computeKeeper)
+	suite.decorator = ante.NewComputeDecorator(suite.computeKeeper)
 	suite.addr = sdk.AccAddress([]byte("requester1"))
 	suite.providerAddr = sdk.AccAddress([]byte("provider1"))
 }

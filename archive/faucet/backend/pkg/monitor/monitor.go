@@ -12,21 +12,21 @@ import (
 
 // BalanceMonitor monitors faucet balance and triggers refills
 type BalanceMonitor struct {
-	config      *config.Config
-	faucetSvc   *faucet.Service
-	threshold   int64
+	config       *config.Config
+	faucetSvc    *faucet.Service
+	threshold    int64
 	refillAmount int64
-	alertFunc   func(string)
+	alertFunc    func(string)
 }
 
 // NewBalanceMonitor creates a new balance monitor
 func NewBalanceMonitor(cfg *config.Config, svc *faucet.Service) *BalanceMonitor {
 	return &BalanceMonitor{
-		config:      cfg,
-		faucetSvc:   svc,
-		threshold:   cfg.LowBalanceThreshold,
+		config:       cfg,
+		faucetSvc:    svc,
+		threshold:    cfg.LowBalanceThreshold,
 		refillAmount: cfg.AutoRefillAmount,
-		alertFunc:   defaultAlertFunc,
+		alertFunc:    defaultAlertFunc,
 	}
 }
 
@@ -134,12 +134,12 @@ func (bm *BalanceMonitor) GetStatus() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"current_balance": balance,
-		"threshold":       bm.threshold,
-		"status":          status,
+		"current_balance":     balance,
+		"threshold":           bm.threshold,
+		"status":              status,
 		"auto_refill_enabled": bm.config.EnableAutoRefill,
-		"refill_amount":   bm.refillAmount,
-		"error":           err,
+		"refill_amount":       bm.refillAmount,
+		"error":               err,
 	}
 }
 

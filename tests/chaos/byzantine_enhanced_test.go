@@ -70,7 +70,9 @@ func (suite *EnhancedByzantineTestSuite) TestCoordinatedAttack() {
 		wg.Add(1)
 		go func(node *ByzantineNode) {
 			defer wg.Done()
-			node.ProposeBlock(ctx, attackBlock)
+			if err := node.ProposeBlock(ctx, attackBlock); err != nil {
+				suite.T().Logf("failed to propose block: %v", err)
+			}
 		}(attacker)
 	}
 
@@ -275,12 +277,12 @@ func (suite *EnhancedByzantineTestSuite) TestRandomizedByzantineBehavior() {
 	defer cancel()
 
 	attackers := suite.nodes[:suite.maliciousCount]
-	rand.Seed(time.Now().UnixNano())
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Run 100 random Byzantine actions
 	for i := 0; i < 100; i++ {
-		attacker := attackers[rand.Intn(len(attackers))]
-		action := rand.Intn(6)
+		attacker := attackers[rng.Intn(len(attackers))]
+		action := rng.Intn(6)
 
 		switch action {
 		case 0:
@@ -327,12 +329,12 @@ func (suite *EnhancedByzantineTestSuite) TestByzantineMajorityPrevention() {
 
 	totalNodes := 15
 	scenarios := []struct {
-		byzantine int
+		byzantine  int
 		shouldHalt bool
 	}{
-		{4, false},  // 26.7% - should work
-		{5, false},  // 33.3% - edge case
-		{6, true},   // 40% - should halt
+		{4, false}, // 26.7% - should work
+		{5, false}, // 33.3% - edge case
+		{6, true},  // 40% - should halt
 	}
 
 	for _, scenario := range scenarios {

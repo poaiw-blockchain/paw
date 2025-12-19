@@ -17,13 +17,6 @@ func createTestTrader(t *testing.T) sdk.AccAddress {
 	return sdk.AccAddress([]byte("test_trader_address"))
 }
 
-func createTestTraderWithIndex(t *testing.T, index int) sdk.AccAddress {
-	addr := make([]byte, 20)
-	copy(addr, []byte("test_trader_"))
-	addr[19] = byte(index)
-	return sdk.AccAddress(addr)
-}
-
 // TestCreatePool_Valid tests successful pool creation
 func TestCreatePool_Valid(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)

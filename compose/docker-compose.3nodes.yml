@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  node1:
+    image: golang:1.24.4
+    container_name: paw-node1
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node1_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node1 26657 9090 1317']
+    ports:
+      - '26657:26657'
+      - '39090:9090'
+      - '1317:1317'
+    networks:
+      - pawnet
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  node2:
+    image: golang:1.24.4
+    container_name: paw-node2
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node2_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node2 26667 9091 1327']
+    ports:
+      - '26667:26657'
+      - '39091:9091'
+      - '1327:1327'
+    networks:
+      - pawnet
+    depends_on:
+      - node1
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  node3:
+    image: golang:1.24.4
+    container_name: paw-node3
+    working_dir: /paw
+    volumes:
+      - ../:/paw
+      - node3_data:/root/.paw
+    environment:
+      - GOFLAGS=-buildvcs=false
+    command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node3 26677 9092 1337']
+    ports:
+      - '26677:26657'
+      - '39092:9092'
+      - '1337:1337'
+    networks:
+      - pawnet
+    depends_on:
+      - node1
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:26657/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  pawnet:
+    driver: bridge
+
+volumes:
+  node1_data:
+  node2_data:
+  node3_data:

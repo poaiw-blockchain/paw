@@ -12,29 +12,29 @@ import (
 
 // BlockEvent represents a new block event from the blockchain
 type BlockEvent struct {
-	Height    int64                  `json:"height"`
-	Hash      string                 `json:"hash"`
-	Time      time.Time              `json:"time"`
-	Proposer  string                 `json:"proposer"`
-	Txs       []TransactionResult    `json:"txs"`
-	RawBlock  map[string]interface{} `json:"raw_block"`
+	Height   int64                  `json:"height"`
+	Hash     string                 `json:"hash"`
+	Time     time.Time              `json:"time"`
+	Proposer string                 `json:"proposer"`
+	Txs      []TransactionResult    `json:"txs"`
+	RawBlock map[string]interface{} `json:"raw_block"`
 }
 
 // TransactionResult represents a transaction result
 type TransactionResult struct {
-	Hash      string                   `json:"hash"`
-	Code      int                      `json:"code"`
-	GasUsed   int64                    `json:"gas_used"`
-	GasWanted int64                    `json:"gas_wanted"`
-	Events    []Event                  `json:"events"`
-	Log       string                   `json:"log"`
-	RawTx     map[string]interface{}   `json:"raw_tx"`
+	Hash      string                 `json:"hash"`
+	Code      int                    `json:"code"`
+	GasUsed   int64                  `json:"gas_used"`
+	GasWanted int64                  `json:"gas_wanted"`
+	Events    []Event                `json:"events"`
+	Log       string                 `json:"log"`
+	RawTx     map[string]interface{} `json:"raw_tx"`
 }
 
 // Event represents a blockchain event
 type Event struct {
-	Type       string                 `json:"type"`
-	Attributes []Attribute            `json:"attributes"`
+	Type       string      `json:"type"`
+	Attributes []Attribute `json:"attributes"`
 }
 
 // Attribute represents an event attribute
@@ -45,12 +45,12 @@ type Attribute struct {
 
 // Subscriber manages WebSocket connection to blockchain node
 type Subscriber struct {
-	wsURL      string
-	conn       *websocket.Conn
-	eventChan  chan BlockEvent
-	reconnect  bool
-	ctx        context.Context
-	cancel     context.CancelFunc
+	wsURL     string
+	conn      *websocket.Conn
+	eventChan chan BlockEvent
+	reconnect bool
+	ctx       context.Context
+	cancel    context.CancelFunc
 }
 
 // NewSubscriber creates a new blockchain subscriber

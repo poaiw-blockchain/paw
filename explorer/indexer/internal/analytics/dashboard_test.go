@@ -59,11 +59,11 @@ func TestAnalyticsConfig(t *testing.T) {
 // TestConsensusMetricsStructure tests the consensus metrics structure
 func TestConsensusMetricsStructure(t *testing.T) {
 	metrics := ConsensusMetrics{
-		RoundsPerBlock:  1.05,
-		TimeToFinality:  6.5,
-		PrecommitRate:   0.99,
-		PrevoteRate:     0.99,
-		HealthScore:     0.98,
+		RoundsPerBlock: 1.05,
+		TimeToFinality: 6.5,
+		PrecommitRate:  0.99,
+		PrevoteRate:    0.99,
+		HealthScore:    0.98,
 	}
 
 	if metrics.RoundsPerBlock <= 0 {

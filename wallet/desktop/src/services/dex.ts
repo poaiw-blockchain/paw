@@ -32,6 +32,20 @@ export interface SwapQuote {
   updatedAt: number;
 }
 
+export interface PoolAnalytics {
+  poolId: number;
+  spotPrice: string;
+  inverseSpotPrice: string;
+  reserves: Array<{
+    token: DenomMetadata;
+    amount: string;
+    usdValue?: number;
+  }>;
+  totalValueLockedUsd?: number;
+  depthRatio: number;
+  updatedAt: number;
+}
+
 export interface ExecuteSwapParams {
   tokenIn: string;
   tokenOut: string;
@@ -180,6 +194,43 @@ export class DexService {
     return cache.get(assetKey);
   }
 
+  async getPoolAnalytics(tokenA: string, tokenB: string): Promise<PoolAnalytics> {
+    const pool = await this.findPool(tokenA, tokenB);
+    const [tokenAInfo, tokenBInfo] = await Promise.all([
+      this.getDenomMetadata(pool.tokenA),
+      this.getDenomMetadata(pool.tokenB),
+    ]);
+
+    const reserveADisplay = this.fromBaseAmount(pool.reserveA, tokenAInfo.decimals);
+    const reserveBDisplay = this.fromBaseAmount(pool.reserveB, tokenBInfo.decimals);
+
+    const [priceA, priceB] = await Promise.all([
+      this.getOraclePrice(pool.tokenA),
+      this.getOraclePrice(pool.tokenB),
+    ]);
+
+    const usdA = this.deriveUsdValue(reserveADisplay, priceA?.price);
+    const usdB = this.deriveUsdValue(reserveBDisplay, priceB?.price);
+    const tvlUsd = usdA !== null || usdB !== null ? (usdA || 0) + (usdB || 0) : undefined;
+
+    const spotPrice = this.calculateExecutionPrice(reserveADisplay, reserveBDisplay);
+    const inverseSpotPrice = this.calculateExecutionPrice(reserveBDisplay, reserveADisplay);
+    const depthRatio = this.calculateDepthRatio(reserveADisplay, reserveBDisplay);
+
+    return {
+      poolId: Number(pool.id),
+      spotPrice,
+      inverseSpotPrice,
+      reserves: [
+        { token: tokenAInfo, amount: this.formatTokenAmount(reserveADisplay), usdValue: usdA ?? undefined },
+        { token: tokenBInfo, amount: this.formatTokenAmount(reserveBDisplay), usdValue: usdB ?? undefined },
+      ],
+      totalValueLockedUsd: tvlUsd,
+      depthRatio,
+      updatedAt: Date.now(),
+    };
+  }
+
   private async findPool(tokenIn: string, tokenOut: string): Promise<Pool> {
     const pools = await this.getPools();
     const pool = pools.find(
@@ -205,6 +256,24 @@ export class DexService {
       return outDec.div(inDec).toSignificantDigits(6).toString();
     } catch {
       return '0';
+    }
+  }
+
+  private calculateDepthRatio(reserveA: string, reserveB: string): number {
+    try {
+      const resA = new Decimal(reserveA || '0');
+      const resB = new Decimal(reserveB || '0');
+      if (resA.isZero() || resB.isZero()) {
+        return 0;
+      }
+      const minReserve = Decimal.min(resA, resB);
+      const maxReserve = Decimal.max(resA, resB);
+      if (maxReserve.isZero()) {
+        return 0;
+      }
+      return minReserve.div(maxReserve).times(100).toNumber();
+    } catch {
+      return 0;
     }
   }
 
@@ -371,5 +440,21 @@ export class DexService {
       return `${denom.slice(1).toUpperCase()}/USD`;
     }
     return `${denom.toUpperCase()}/USD`;
+  }
+
+  private deriveUsdValue(amount: string, price?: string | number): number | null {
+    if (!price) {
+      return null;
+    }
+    try {
+      const value = new Decimal(amount || '0');
+      const usd = value.times(new Decimal(price));
+      if (!usd.isFinite()) {
+        return null;
+      }
+      return usd.toNumber();
+    } catch {
+      return null;
+    }
   }
 }

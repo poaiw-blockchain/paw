@@ -9,17 +9,17 @@ import (
 
 const (
 	// Maximum lengths for string fields
-	MaxMonikerLength       = 128
-	MaxEndpointLength      = 256
+	MaxMonikerLength        = 128
+	MaxEndpointLength       = 256
 	MaxContainerImageLength = 512
-	MaxCommandLength       = 1024
-	MaxEnvVarKeyLength     = 128
-	MaxEnvVarValueLength   = 1024
-	MaxOutputURLLength     = 512
-	MaxOutputHashLength    = 128
+	MaxCommandLength        = 1024
+	MaxEnvVarKeyLength      = 128
+	MaxEnvVarValueLength    = 1024
+	MaxOutputURLLength      = 512
+	MaxOutputHashLength     = 128
 
 	// Maximum array sizes
-	MaxEnvVarsCount    = 100
+	MaxEnvVarsCount     = 100
 	MaxCommandArgsCount = 50
 
 	// Container image validation

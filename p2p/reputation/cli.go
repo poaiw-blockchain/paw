@@ -35,12 +35,15 @@ func NewCLI(homeDir string, logger log.Logger) (*CLI, error) {
 	}
 
 	// Create manager
+	scoringConfig := config.Scoring.ToScoringConfig()
+	scoreWeights := config.Scoring.ToScoreWeights()
+
 	managerConfig := config.Manager.ToManagerConfig(
-		config.Scoring.ToScoringConfig(),
-		config.Scoring.ToScoreWeights(),
+		&scoringConfig,
+		&scoreWeights,
 	)
 
-	manager, err := NewManager(storage, managerConfig, logger)
+	manager, err := NewManager(storage, &managerConfig, logger)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,7 +15,7 @@ import (
 	"github.com/paw-chain/paw/explorer/indexer/internal/indexer"
 	"github.com/paw-chain/paw/explorer/indexer/internal/metrics"
 	"github.com/paw-chain/paw/explorer/indexer/internal/subscriber"
-	"github.com/paw-chain/paw/explorer/indexer/internal/websocket"
+	"github.com/paw-chain/paw/explorer/indexer/internal/websocket/hub"
 	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
 )
 
@@ -50,12 +49,15 @@ func main() {
 	defer cancel()
 
 	// Initialize metrics
-	metricsServer := metrics.NewServer(cfg.Metrics.Port)
-	go func() {
-		if err := metricsServer.Start(); err != nil {
-			log.Error("Metrics server failed", "error", err)
-		}
-	}()
+	var metricsServer *metrics.Server
+	if cfg.Metrics.Enabled {
+		metricsServer = metrics.NewServer(cfg.Metrics.Port)
+		go func() {
+			if err := metricsServer.Start(); err != nil {
+				log.Error("Metrics server failed", "error", err)
+			}
+		}()
+	}
 
 	// Initialize database
 	log.Info("Connecting to database", "host", cfg.Database.Host, "port", cfg.Database.Port)
@@ -95,12 +97,12 @@ func main() {
 	idx := indexer.NewIndexer(db, redisCache, sub, cfg.Indexer, log)
 
 	// Initialize WebSocket hub
-	wsHub := websocket.NewHub(log)
+	wsHub := hub.NewHub(log)
 	go wsHub.Run()
 
 	// Initialize API server
 	log.Info("Initializing API server", "port", cfg.API.Port)
-	apiServer := api.NewServer(cfg.API, db, redisCache, wsHub, log)
+	apiServer := api.NewServer(cfg.API, db, redisCache, wsHub, idx, log)
 
 	// Start indexer
 	log.Info("Starting blockchain indexer")
@@ -154,9 +156,11 @@ func main() {
 	log.Info("Stopping WebSocket hub")
 	wsHub.Stop()
 
-	log.Info("Stopping metrics server")
-	if err := metricsServer.Stop(shutdownCtx); err != nil {
-		log.Error("Failed to stop metrics server gracefully", "error", err)
+	if metricsServer != nil {
+		log.Info("Stopping metrics server")
+		if err := metricsServer.Stop(shutdownCtx); err != nil {
+			log.Error("Failed to stop metrics server gracefully", "error", err)
+		}
 	}
 
 	log.Info("PAW Chain Explorer Indexer stopped successfully")

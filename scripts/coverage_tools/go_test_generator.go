@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -47,7 +46,7 @@ type TestCaseTemplate struct {
 
 // AnalyzeGoFile parses a Go file and extracts function information
 func AnalyzeGoFile(filePath string) ([]FunctionInfo, error) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +60,8 @@ func AnalyzeGoFile(filePath string) ([]FunctionInfo, error) {
 	var functions []FunctionInfo
 
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch x := n.(type) {
-		case *ast.FuncDecl:
-			funcInfo := extractFunctionInfo(x)
+		if funcDecl, ok := n.(*ast.FuncDecl); ok {
+			funcInfo := extractFunctionInfo(funcDecl)
 			functions = append(functions, funcInfo)
 		}
 		return true
@@ -136,7 +134,10 @@ func getTypeString(expr ast.Expr) string {
 }
 
 // GenerateTableDrivenTests generates table-driven test code
-func GenerateTableDrivenTests(funcInfo FunctionInfo) string {
+func GenerateTableDrivenTests(funcInfo *FunctionInfo) string {
+	if funcInfo == nil {
+		return ""
+	}
 	testName := "Test" + strings.ToUpper(string(funcInfo.Name[0])) + funcInfo.Name[1:]
 	tableName := "cases"
 
@@ -232,7 +233,10 @@ func {{ .TestName }}(t *testing.T) {
 }
 
 // GenerateBenchmarkTests generates benchmark tests
-func GenerateBenchmarkTests(funcInfo FunctionInfo) string {
+func GenerateBenchmarkTests(funcInfo *FunctionInfo) string {
+	if funcInfo == nil {
+		return ""
+	}
 	benchName := "Benchmark" + strings.ToUpper(string(funcInfo.Name[0])) + funcInfo.Name[1:]
 
 	return fmt.Sprintf(`
@@ -250,7 +254,10 @@ func %s(b *testing.B) {
 }
 
 // GenerateTestFixtures generates test fixture functions
-func GenerateTestFixtures(funcInfo FunctionInfo) string {
+func GenerateTestFixtures(funcInfo *FunctionInfo) string {
+	if funcInfo == nil {
+		return ""
+	}
 	output := fmt.Sprintf("\n// Test fixtures for %s\n", funcInfo.Name)
 
 	// Generate fixture for setup
@@ -277,7 +284,10 @@ func cleanup%s(data interface{}) {
 }
 
 // GenerateEdgeCasePlaceholders generates placeholders for edge cases
-func GenerateEdgeCasePlaceholders(funcInfo FunctionInfo) string {
+func GenerateEdgeCasePlaceholders(funcInfo *FunctionInfo) string {
+	if funcInfo == nil {
+		return ""
+	}
 	output := "\n// Edge case tests\n"
 
 	edgeCases := []string{
@@ -339,8 +349,9 @@ import (
 `, packageName, sourceFile)
 
 	// Add tests for each function
-	for _, funcInfo := range functions {
-		if len(funcInfo.Name) > 0 && unicode.IsUpper(rune(funcInfo.Name[0])) { // Only public functions
+	for i := range functions {
+		funcInfo := &functions[i]
+		if funcInfo.Name != "" && unicode.IsUpper(rune(funcInfo.Name[0])) { // Only public functions
 			output += GenerateTableDrivenTests(funcInfo)
 			output += GenerateBenchmarkTests(funcInfo)
 			output += GenerateTestFixtures(funcInfo)
@@ -414,8 +425,7 @@ func main() {
 	testContent := GenerateCompleteTestFile(sourceFile, functions)
 
 	// Write output file
-	err = ioutil.WriteFile(outputFile, []byte(testContent), 0644)
-	if err != nil {
+	if err := os.WriteFile(outputFile, []byte(testContent), 0o600); err != nil {
 		log.Fatalf("Error writing test file: %v", err)
 	}
 

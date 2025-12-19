@@ -40,8 +40,8 @@ func TestPropertyByzantineResistance(t *testing.T) {
 	property := func(seed int64) bool {
 		rng := rand.New(rand.NewSource(seed))
 
-		numValidators := rng.Intn(30) + 10 // 10-40 validators
-		numMalicious := numValidators / 3 - 1 // Just under 33%
+		numValidators := rng.Intn(30) + 10  // 10-40 validators
+		numMalicious := numValidators/3 - 1 // Just under 33%
 
 		prices := make([]uint64, numValidators)
 		weights := make([]uint64, numValidators)
@@ -89,7 +89,23 @@ func TestPropertyMADNonNegative(t *testing.T) {
 		median := calculateSimpleMedian(prices)
 		mad := calculateMAD(prices, median)
 
-		return mad >= 0
+		var maxDeviation uint64
+		for _, price := range prices {
+			if price > median {
+				deviation := price - median
+				if deviation > maxDeviation {
+					maxDeviation = deviation
+				}
+				continue
+			}
+
+			deviation := median - price
+			if deviation > maxDeviation {
+				maxDeviation = deviation
+			}
+		}
+
+		return mad <= maxDeviation
 	}
 
 	require.NoError(t, quick.Check(property, &quick.Config{MaxCount: 1000}))

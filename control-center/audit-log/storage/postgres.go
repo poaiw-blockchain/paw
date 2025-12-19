@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"

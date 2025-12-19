@@ -16,20 +16,20 @@ import (
 
 // DEXPriceHistory represents an OHLCV data point
 type DEXPriceHistory struct {
-	ID           int64     `json:"id"`
-	PoolID       string    `json:"pool_id"`
-	Timestamp    time.Time `json:"timestamp"`
-	BlockHeight  int64     `json:"block_height"`
-	Open         string    `json:"open"`
-	High         string    `json:"high"`
-	Low          string    `json:"low"`
-	Close        string    `json:"close"`
-	Volume       string    `json:"volume"`
-	LiquidityA   string    `json:"liquidity_a"`
-	LiquidityB   string    `json:"liquidity_b"`
-	PriceAToB    string    `json:"price_a_to_b"`
-	PriceBToA    string    `json:"price_b_to_a"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID          int64     `json:"id"`
+	PoolID      string    `json:"pool_id"`
+	Timestamp   time.Time `json:"timestamp"`
+	BlockHeight int64     `json:"block_height"`
+	Open        string    `json:"open"`
+	High        string    `json:"high"`
+	Low         string    `json:"low"`
+	Close       string    `json:"close"`
+	Volume      string    `json:"volume"`
+	LiquidityA  string    `json:"liquidity_a"`
+	LiquidityB  string    `json:"liquidity_b"`
+	PriceAToB   string    `json:"price_a_to_b"`
+	PriceBToA   string    `json:"price_b_to_a"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // GetPoolPriceHistory retrieves OHLCV data for charting
@@ -48,7 +48,7 @@ func (db *Database) GetPoolPriceHistory(ctx context.Context, poolID string, star
 		ORDER BY timestamp ASC
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, poolID, start, end)
+	rows, err := db.QueryContext(ctx, query, poolID, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query price history: %w", err)
 	}
@@ -92,7 +92,7 @@ func (db *Database) InsertPriceHistory(ctx context.Context, ph *DEXPriceHistory)
 		RETURNING id
 	`
 
-	return db.db.QueryRowContext(
+	return db.QueryRowContext(
 		ctx, query,
 		ph.PoolID, ph.Timestamp, ph.BlockHeight,
 		ph.Open, ph.High, ph.Low, ph.Close, ph.Volume,
@@ -107,30 +107,30 @@ func (db *Database) InsertPriceHistory(ctx context.Context, ph *DEXPriceHistory)
 
 // DEXPoolStatistics represents aggregated pool metrics
 type DEXPoolStatistics struct {
-	ID                  int64     `json:"id"`
-	PoolID              string    `json:"pool_id"`
-	Period              string    `json:"period"`
-	PeriodStart         time.Time `json:"period_start"`
-	PeriodEnd           time.Time `json:"period_end"`
-	VolumeTokenA        string    `json:"volume_token_a"`
-	VolumeTokenB        string    `json:"volume_token_b"`
-	VolumeUSD           string    `json:"volume_usd"`
-	TradeCount          int       `json:"trade_count"`
-	AvgLiquidityA       string    `json:"avg_liquidity_a"`
-	AvgLiquidityB       string    `json:"avg_liquidity_b"`
-	MinLiquidity        string    `json:"min_liquidity"`
-	MaxLiquidity        string    `json:"max_liquidity"`
-	FeesCollectedA      string    `json:"fees_collected_a"`
-	FeesCollectedB      string    `json:"fees_collected_b"`
-	FeesUSD             string    `json:"fees_usd"`
-	AvgPrice            string    `json:"avg_price"`
-	HighPrice           string    `json:"high_price"`
-	LowPrice            string    `json:"low_price"`
-	PriceChangePercent  string    `json:"price_change_percent"`
-	APR                 string    `json:"apr"`
-	UniqueTraders       int       `json:"unique_traders"`
-	UniqueLPs           int       `json:"unique_liquidity_providers"`
-	CreatedAt           time.Time `json:"created_at"`
+	ID                 int64     `json:"id"`
+	PoolID             string    `json:"pool_id"`
+	Period             string    `json:"period"`
+	PeriodStart        time.Time `json:"period_start"`
+	PeriodEnd          time.Time `json:"period_end"`
+	VolumeTokenA       string    `json:"volume_token_a"`
+	VolumeTokenB       string    `json:"volume_token_b"`
+	VolumeUSD          string    `json:"volume_usd"`
+	TradeCount         int       `json:"trade_count"`
+	AvgLiquidityA      string    `json:"avg_liquidity_a"`
+	AvgLiquidityB      string    `json:"avg_liquidity_b"`
+	MinLiquidity       string    `json:"min_liquidity"`
+	MaxLiquidity       string    `json:"max_liquidity"`
+	FeesCollectedA     string    `json:"fees_collected_a"`
+	FeesCollectedB     string    `json:"fees_collected_b"`
+	FeesUSD            string    `json:"fees_usd"`
+	AvgPrice           string    `json:"avg_price"`
+	HighPrice          string    `json:"high_price"`
+	LowPrice           string    `json:"low_price"`
+	PriceChangePercent string    `json:"price_change_percent"`
+	APR                string    `json:"apr"`
+	UniqueTraders      int       `json:"unique_traders"`
+	UniqueLPs          int       `json:"unique_liquidity_providers"`
+	CreatedAt          time.Time `json:"created_at"`
 }
 
 // GetPoolStatistics retrieves aggregated statistics for a pool
@@ -152,7 +152,7 @@ func (db *Database) GetPoolStatistics(ctx context.Context, poolID, period string
 		ORDER BY period_start DESC
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, poolID, period, start, end)
+	rows, err := db.QueryContext(ctx, query, poolID, period, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pool statistics: %w", err)
 	}
@@ -194,7 +194,7 @@ func (db *Database) GetPoolVolumeHistory(ctx context.Context, poolID string, sta
 		ORDER BY period_start ASC
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, poolID, interval, start, end)
+	rows, err := db.QueryContext(ctx, query, poolID, interval, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query volume history: %w", err)
 	}
@@ -235,7 +235,7 @@ func (db *Database) GetPoolLiquidityHistory(ctx context.Context, poolID string, 
 		ORDER BY timestamp ASC
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, poolID, start, end)
+	rows, err := db.QueryContext(ctx, query, poolID, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query liquidity history: %w", err)
 	}
@@ -277,7 +277,7 @@ func (db *Database) GetPoolFeeBreakdown(ctx context.Context, poolID string, star
 	`
 
 	var totalFeesA, totalFeesB, totalFeesUSD, avgAPR sql.NullString
-	err := db.db.QueryRowContext(ctx, query, poolID, start, end).Scan(
+	err := db.QueryRowContext(ctx, query, poolID, start, end).Scan(
 		&totalFeesA, &totalFeesB, &totalFeesUSD, &avgAPR,
 	)
 	if err != nil {
@@ -308,7 +308,7 @@ func (db *Database) GetPoolAPRHistory(ctx context.Context, poolID string, start,
 		ORDER BY period_start ASC
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, poolID, start, end)
+	rows, err := db.QueryContext(ctx, query, poolID, start, end)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query APR history: %w", err)
 	}
@@ -339,30 +339,30 @@ func (db *Database) GetPoolAPRHistory(ctx context.Context, poolID string, start,
 
 // DEXUserPosition represents a user's LP position
 type DEXUserPosition struct {
-	ID                int64     `json:"id"`
-	Address           string    `json:"address"`
-	PoolID            string    `json:"pool_id"`
-	Shares            string    `json:"shares"`
-	InitialAmountA    string    `json:"initial_amount_a"`
-	InitialAmountB    string    `json:"initial_amount_b"`
-	CurrentAmountA    string    `json:"current_amount_a"`
-	CurrentAmountB    string    `json:"current_amount_b"`
-	EntryPrice        string    `json:"entry_price"`
-	EntryHeight       int64     `json:"entry_height"`
-	EntryTimestamp    time.Time `json:"entry_timestamp"`
-	EntryTxHash       string    `json:"entry_tx_hash"`
-	ExitPrice         *string   `json:"exit_price,omitempty"`
-	ExitHeight        *int64    `json:"exit_height,omitempty"`
-	ExitTimestamp     *time.Time `json:"exit_timestamp,omitempty"`
-	ExitTxHash        *string   `json:"exit_tx_hash,omitempty"`
-	FeesEarnedA       string    `json:"fees_earned_a"`
-	FeesEarnedB       string    `json:"fees_earned_b"`
-	FeesEarnedUSD     string    `json:"fees_earned_usd"`
-	ImpermanentLoss   string    `json:"impermanent_loss"`
-	TotalReturnPercent string   `json:"total_return_percent"`
-	Status            string    `json:"status"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                 int64      `json:"id"`
+	Address            string     `json:"address"`
+	PoolID             string     `json:"pool_id"`
+	Shares             string     `json:"shares"`
+	InitialAmountA     string     `json:"initial_amount_a"`
+	InitialAmountB     string     `json:"initial_amount_b"`
+	CurrentAmountA     string     `json:"current_amount_a"`
+	CurrentAmountB     string     `json:"current_amount_b"`
+	EntryPrice         string     `json:"entry_price"`
+	EntryHeight        int64      `json:"entry_height"`
+	EntryTimestamp     time.Time  `json:"entry_timestamp"`
+	EntryTxHash        string     `json:"entry_tx_hash"`
+	ExitPrice          *string    `json:"exit_price,omitempty"`
+	ExitHeight         *int64     `json:"exit_height,omitempty"`
+	ExitTimestamp      *time.Time `json:"exit_timestamp,omitempty"`
+	ExitTxHash         *string    `json:"exit_tx_hash,omitempty"`
+	FeesEarnedA        string     `json:"fees_earned_a"`
+	FeesEarnedB        string     `json:"fees_earned_b"`
+	FeesEarnedUSD      string     `json:"fees_earned_usd"`
+	ImpermanentLoss    string     `json:"impermanent_loss"`
+	TotalReturnPercent string     `json:"total_return_percent"`
+	Status             string     `json:"status"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
 }
 
 // GetUserPosition retrieves a specific user position
@@ -383,7 +383,7 @@ func (db *Database) GetUserPosition(ctx context.Context, address, poolID string)
 	`
 
 	var pos DEXUserPosition
-	err := db.db.QueryRowContext(ctx, query, address, poolID).Scan(
+	err := db.QueryRowContext(ctx, query, address, poolID).Scan(
 		&pos.ID, &pos.Address, &pos.PoolID, &pos.Shares,
 		&pos.InitialAmountA, &pos.InitialAmountB,
 		&pos.CurrentAmountA, &pos.CurrentAmountB,
@@ -428,7 +428,7 @@ func (db *Database) UpsertUserPosition(ctx context.Context, pos *DEXUserPosition
 		RETURNING id
 	`
 
-	return db.db.QueryRowContext(
+	return db.QueryRowContext(
 		ctx, query,
 		pos.Address, pos.PoolID, pos.Shares,
 		pos.InitialAmountA, pos.InitialAmountB,
@@ -464,7 +464,7 @@ func (db *Database) GetUserDEXPositions(ctx context.Context, address, status str
 
 	query += " ORDER BY entry_timestamp DESC"
 
-	rows, err := db.db.QueryContext(ctx, query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user positions: %w", err)
 	}
@@ -511,7 +511,7 @@ func (db *Database) GetUserDEXHistory(ctx context.Context, address string, offse
 		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := db.db.QueryContext(ctx, query, address, limit, offset)
+	rows, err := db.QueryContext(ctx, query, address, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query user DEX history: %w", err)
 	}
@@ -548,7 +548,7 @@ func (db *Database) GetUserDEXHistory(ctx context.Context, address string, offse
 		) AS combined
 	`
 	var total int
-	err = db.db.QueryRowContext(ctx, countQuery, address).Scan(&total)
+	err = db.QueryRowContext(ctx, countQuery, address).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count user history: %w", err)
 	}
@@ -588,7 +588,7 @@ func (db *Database) GetUserDEXAnalytics(ctx context.Context, address string) (ma
 	var activePositions, totalTrades, uniquePools int
 	var totalFees, avgReturn float64
 
-	err := db.db.QueryRowContext(ctx, query, address).Scan(
+	err := db.QueryRowContext(ctx, query, address).Scan(
 		&activePositions, &totalFees, &avgReturn, &totalTrades, &uniquePools,
 	)
 	if err != nil {
@@ -620,7 +620,7 @@ func (db *Database) GetCachedAnalytics(ctx context.Context, cacheKey string) (ma
 	`
 
 	var dataJSON []byte
-	err := db.db.QueryRowContext(ctx, query, cacheKey).Scan(&dataJSON)
+	err := db.QueryRowContext(ctx, query, cacheKey).Scan(&dataJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -653,7 +653,7 @@ func (db *Database) SetCachedAnalytics(ctx context.Context, cacheKey, cacheType 
 	`
 
 	expiresAt := time.Now().Add(ttl)
-	_, err = db.db.ExecContext(ctx, query, cacheKey, cacheType, dataJSON, expiresAt)
+	_, err = db.ExecContext(ctx, query, cacheKey, cacheType, dataJSON, expiresAt)
 	if err != nil {
 		return fmt.Errorf("failed to insert cache: %w", err)
 	}
@@ -703,7 +703,7 @@ func (db *Database) GetDEXAnalyticsSummary(ctx context.Context) (map[string]inte
 	var totalPools, totalTrades, uniqueTraders, activeLPs int
 	var totalTVL, totalVolume float64
 
-	err := db.db.QueryRowContext(ctx, query).Scan(
+	err := db.QueryRowContext(ctx, query).Scan(
 		&totalPools, &totalTVL, &totalVolume,
 		&totalTrades, &uniqueTraders, &activeLPs,
 	)
@@ -712,12 +712,12 @@ func (db *Database) GetDEXAnalyticsSummary(ctx context.Context) (map[string]inte
 	}
 
 	result := map[string]interface{}{
-		"total_pools":          totalPools,
-		"total_tvl":            fmt.Sprintf("%.2f", totalTVL),
-		"total_volume_24h":     fmt.Sprintf("%.2f", totalVolume),
-		"total_trades_24h":     totalTrades,
-		"unique_traders_24h":   uniqueTraders,
-		"active_lps":           activeLPs,
+		"total_pools":        totalPools,
+		"total_tvl":          fmt.Sprintf("%.2f", totalTVL),
+		"total_volume_24h":   fmt.Sprintf("%.2f", totalVolume),
+		"total_trades_24h":   totalTrades,
+		"unique_traders_24h": uniqueTraders,
+		"active_lps":         activeLPs,
 	}
 
 	return result, nil
@@ -750,7 +750,7 @@ func (db *Database) GetTopTradingPairs(ctx context.Context, period string, limit
 		LIMIT $1
 	`, volumeCol, volumeCol)
 
-	rows, err := db.db.QueryContext(ctx, query, limit)
+	rows, err := db.QueryContext(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query top pairs: %w", err)
 	}

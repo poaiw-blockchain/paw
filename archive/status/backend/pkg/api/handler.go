@@ -18,8 +18,8 @@ import (
 
 // Handler handles HTTP API requests
 type Handler struct {
-	healthMonitor   *health.Monitor
-	incidentManager *incidents.Manager
+	healthMonitor    *health.Monitor
+	incidentManager  *incidents.Manager
 	metricsCollector *metrics.Collector
 }
 
@@ -30,8 +30,8 @@ func NewHandler(
 	metricsCollector *metrics.Collector,
 ) *Handler {
 	return &Handler{
-		healthMonitor:   healthMonitor,
-		incidentManager: incidentManager,
+		healthMonitor:    healthMonitor,
+		incidentManager:  incidentManager,
 		metricsCollector: metricsCollector,
 	}
 }
@@ -101,10 +101,10 @@ func (h *Handler) HandleGetIncident(w http.ResponseWriter, r *http.Request) {
 
 // CreateIncidentRequest represents a request to create an incident
 type CreateIncidentRequest struct {
-	Title       string              `json:"title"`
-	Description string              `json:"description"`
-	Severity    incidents.Severity  `json:"severity"`
-	Components  []string            `json:"components"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Severity    incidents.Severity `json:"severity"`
+	Components  []string           `json:"components"`
 }
 
 // HandleCreateIncident creates a new incident
@@ -144,7 +144,7 @@ func (h *Handler) HandleCreateIncident(w http.ResponseWriter, r *http.Request) {
 
 // UpdateIncidentRequest represents a request to update an incident
 type UpdateIncidentRequest struct {
-	Message string                  `json:"message"`
+	Message string                   `json:"message"`
 	Status  incidents.IncidentStatus `json:"status"`
 }
 
@@ -208,8 +208,8 @@ func (h *Handler) HandleStatusHistory(w http.ResponseWriter, r *http.Request) {
 
 // SubscribeRequest represents a subscription request
 type SubscribeRequest struct {
-	Email       string                 `json:"email"`
-	Preferences map[string]bool        `json:"preferences"`
+	Email       string          `json:"email"`
+	Preferences map[string]bool `json:"preferences"`
 }
 
 // HandleSubscribe handles subscription requests

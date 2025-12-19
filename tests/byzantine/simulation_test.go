@@ -24,27 +24,27 @@ const (
 // TestByzantineFaultTolerance tests BFT consensus with Byzantine validators
 func TestByzantineFaultTolerance(t *testing.T) {
 	testCases := []struct {
-		name              string
-		totalValidators   int
-		byzantineCount    int
+		name                 string
+		totalValidators      int
+		byzantineCount       int
 		shouldReachConsensus bool
 	}{
 		{
-			name:              "2/3+ honest validators reach consensus",
-			totalValidators:   10,
-			byzantineCount:    3, // Less than 1/3
+			name:                 "2/3+ honest validators reach consensus",
+			totalValidators:      10,
+			byzantineCount:       3, // Less than 1/3
 			shouldReachConsensus: true,
 		},
 		{
-			name:              "1/3+ Byzantine validators prevent consensus",
-			totalValidators:   10,
-			byzantineCount:    4, // More than 1/3
+			name:                 "1/3+ Byzantine validators prevent consensus",
+			totalValidators:      10,
+			byzantineCount:       4, // More than 1/3
 			shouldReachConsensus: false,
 		},
 		{
-			name:              "exactly 1/3 Byzantine at boundary",
-			totalValidators:   9,
-			byzantineCount:    3, // Exactly 1/3
+			name:                 "exactly 1/3 Byzantine at boundary",
+			totalValidators:      9,
+			byzantineCount:       3,    // Exactly 1/3
 			shouldReachConsensus: true, // Should still work at boundary
 		},
 	}
@@ -79,17 +79,17 @@ func TestDoubleSigningDetection(t *testing.T) {
 	sig2 := validator.Sign(block2)
 
 	// Detect equivocation
-	isEquivocating := detectEquivocation(validator.ID, sig1, sig2)
+	isEquivocating := detectEquivocation(sig1, sig2)
 	require.True(t, isEquivocating, "should detect double-signing")
 }
 
 // TestOraclePriceManipulation tests Byzantine oracle validators
 func TestOraclePriceManipulation(t *testing.T) {
 	testCases := []struct {
-		name           string
-		honestPrices   []math.LegacyDec
+		name            string
+		honestPrices    []math.LegacyDec
 		byzantinePrices []math.LegacyDec
-		expectedMedian math.LegacyDec
+		expectedMedian  math.LegacyDec
 	}{
 		{
 			name: "Byzantine minority cannot manipulate median",
@@ -110,7 +110,9 @@ func TestOraclePriceManipulation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			allPrices := append(tc.honestPrices, tc.byzantinePrices...)
+			allPrices := make([]math.LegacyDec, 0, len(tc.honestPrices)+len(tc.byzantinePrices))
+			allPrices = append(allPrices, tc.honestPrices...)
+			allPrices = append(allPrices, tc.byzantinePrices...)
 			median := calculateMedian(allPrices)
 
 			deviation := median.Sub(tc.expectedMedian).Abs()
@@ -403,7 +405,7 @@ func (v *Validator) Sign(block *Block) *Signature {
 	}
 }
 
-func detectEquivocation(validatorID int, sig1, sig2 *Signature) bool {
+func detectEquivocation(sig1, sig2 *Signature) bool {
 	return sig1.ValidatorID == sig2.ValidatorID &&
 		sig1.BlockHeight == sig2.BlockHeight &&
 		sig1.BlockHash != sig2.BlockHash
@@ -480,7 +482,6 @@ func (bc *BlockChain) ValidateAgainstCheckpoint(other *BlockChain) bool {
 
 func validateSlashingEvidence(evidence *SlashingEvidence) bool {
 	return detectEquivocation(
-		evidence.ValidatorID,
 		evidence.Signature1,
 		evidence.Signature2,
 	)

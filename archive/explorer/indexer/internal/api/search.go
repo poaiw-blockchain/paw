@@ -147,10 +147,10 @@ func (s *Server) searchBlocks(ctx context.Context, query string, page, limit int
 				Description: fmt.Sprintf("Hash: %s, Transactions: %d", block.Hash, block.TxCount),
 				Score:       1.0,
 				Data: map[string]interface{}{
-					"height":    block.Height,
-					"hash":      block.Hash,
-					"tx_count":  block.TxCount,
-					"gas_used":  block.GasUsed,
+					"height":   block.Height,
+					"hash":     block.Hash,
+					"tx_count": block.TxCount,
+					"gas_used": block.GasUsed,
 				},
 				Timestamp: block.Time,
 			})

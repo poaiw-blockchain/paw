@@ -15,6 +15,10 @@ The PAW Blockchain Bug Bounty Program is designed to encourage security research
 
 This bug bounty program is complementary to our standard security reporting process. All submissions are carefully reviewed and validated by our security team. We reserve the right to modify program terms and reward amounts at any time.
 
+### Operations & Contacts
+
+Looking for the internal workflow, contact matrix, or launch checklist? See [`docs/guides/security/BUG_BOUNTY_RUNBOOK.md`](./guides/security/BUG_BOUNTY_RUNBOOK.md) for the day-to-day runbook that coordinates intake, triage, payouts, and communications.
+
 ## Scope
 
 ### In-Scope Assets

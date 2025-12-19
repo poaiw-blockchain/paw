@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -121,6 +122,45 @@ func TestQueryServer_Providers(t *testing.T) {
 	})
 }
 
+func TestQueryServer_ProvidersPaginationBounds(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+	qs := NewQueryServerImpl(*k)
+
+	for i := 0; i < 150; i++ {
+		addr := sdk.AccAddress(bytes.Repeat([]byte{byte(i)}, 20))
+		provider := types.Provider{
+			Address: addr.String(),
+			Stake:   math.NewInt(10000),
+			AvailableSpecs: types.ComputeSpec{
+				CpuCores:  2,
+				MemoryMb:  1024,
+				StorageGb: 20,
+			},
+			Active:     true,
+			Reputation: uint32(100 + i),
+		}
+		require.NoError(t, k.SetProvider(ctx, provider))
+	}
+
+	t.Run("nil pagination defaults to bounded page", func(t *testing.T) {
+		resp, err := qs.Providers(ctx, &types.QueryProvidersRequest{})
+		require.NoError(t, err)
+		require.Len(t, resp.Providers, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
+
+	t.Run("zero limit defaults to bounded page", func(t *testing.T) {
+		resp, err := qs.Providers(ctx, &types.QueryProvidersRequest{
+			Pagination: &query.PageRequest{Limit: 0},
+		})
+		require.NoError(t, err)
+		require.Len(t, resp.Providers, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
+}
+
 func TestQueryServer_ActiveProviders(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	qs := NewQueryServerImpl(*k)
@@ -217,10 +257,10 @@ func TestQueryServer_EstimateCost(t *testing.T) {
 			StorageGb: 50,
 		},
 		Pricing: types.Pricing{
-			CpuPricePerMcoreHour:     math.LegacyNewDec(1),
-			MemoryPricePerMbHour:     math.LegacyNewDec(1),
-			GpuPricePerHour:          math.LegacyNewDec(1),
-			StoragePricePerGbHour:    math.LegacyNewDec(1),
+			CpuPricePerMcoreHour:  math.LegacyNewDec(1),
+			MemoryPricePerMbHour:  math.LegacyNewDec(1),
+			GpuPricePerHour:       math.LegacyNewDec(1),
+			StoragePricePerGbHour: math.LegacyNewDec(1),
 		},
 		Active: true,
 	}

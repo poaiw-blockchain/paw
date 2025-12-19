@@ -17,22 +17,22 @@ import (
 
 // ReputationStore handles persistent storage of peer reputations
 type ReputationStore struct {
-	filePath   string
+	filePath    string
 	reputations map[string]*PeerReputation
-	mu         sync.RWMutex
+	mu          sync.RWMutex
 }
 
 // PeerReputation represents a peer's reputation data
 type PeerReputation struct {
-	PeerID          string
-	Score           float64
-	LastSeen        time.Time
-	SuccessfulMsgs  uint64
-	FailedMsgs      uint64
-	Uptime          time.Duration
-	Latency         time.Duration
-	BandwidthShared uint64
-	Violations      uint64
+	PeerID           string
+	Score            float64
+	LastSeen         time.Time
+	SuccessfulMsgs   uint64
+	FailedMsgs       uint64
+	Uptime           time.Duration
+	Latency          time.Duration
+	BandwidthShared  uint64
+	Violations       uint64
 	BlacklistedUntil *time.Time
 }
 
@@ -164,22 +164,22 @@ func (rs *ReputationStore) GetTopPeers(n int) []*PeerReputation {
 
 // DDoSProtector provides DDoS protection
 type DDoSProtector struct {
-	peerLimiters map[string]*rate.Limiter
+	peerLimiters  map[string]*rate.Limiter
 	globalLimiter *rate.Limiter
-	mu           sync.RWMutex
+	mu            sync.RWMutex
 	maxPeersPerIP map[string]int
-	ipPeerCount  map[string]int
-	blacklist    map[string]time.Time
+	ipPeerCount   map[string]int
+	blacklist     map[string]time.Time
 }
 
 // NewDDoSProtector creates a new DDoS protector
 func NewDDoSProtector(globalRate, burstRate int) *DDoSProtector {
 	dp := &DDoSProtector{
-		peerLimiters: make(map[string]*rate.Limiter),
+		peerLimiters:  make(map[string]*rate.Limiter),
 		globalLimiter: rate.NewLimiter(rate.Limit(globalRate), burstRate),
 		maxPeersPerIP: make(map[string]int),
-		ipPeerCount:  make(map[string]int),
-		blacklist:    make(map[string]time.Time),
+		ipPeerCount:   make(map[string]int),
+		blacklist:     make(map[string]time.Time),
 	}
 
 	// Start cleanup goroutine
@@ -378,19 +378,19 @@ func (cm *ConnectionManager) GetConnectionCounts() (inbound, outbound, total int
 // SecureDiscovery provides secure peer discovery
 type SecureDiscovery struct {
 	trustedBootstrapPeers []string
-	peerStore            *ReputationStore
-	ddosProtector        *DDoSProtector
-	minReputation        float64
-	mu                   sync.RWMutex
+	peerStore             *ReputationStore
+	ddosProtector         *DDoSProtector
+	minReputation         float64
+	mu                    sync.RWMutex
 }
 
 // NewSecureDiscovery creates a new secure discovery
 func NewSecureDiscovery(bootstrapPeers []string, reputationStore *ReputationStore, ddosProtector *DDoSProtector) *SecureDiscovery {
 	return &SecureDiscovery{
 		trustedBootstrapPeers: bootstrapPeers,
-		peerStore:            reputationStore,
-		ddosProtector:        ddosProtector,
-		minReputation:        30.0, // Minimum score to connect
+		peerStore:             reputationStore,
+		ddosProtector:         ddosProtector,
+		minReputation:         30.0, // Minimum score to connect
 	}
 }
 
@@ -436,10 +436,10 @@ func (sd *SecureDiscovery) AddBootstrapPeer(peer string) {
 
 // NATTraversal handles NAT traversal using various techniques
 type NATTraversal struct {
-	publicIP   string
-	publicPort int
+	publicIP    string
+	publicPort  int
 	stunServers []string
-	mu         sync.RWMutex
+	mu          sync.RWMutex
 }
 
 // NewNATTraversal creates a new NAT traversal handler
@@ -472,7 +472,7 @@ func (nt *NATTraversal) DiscoverPublicAddress(localPort int) error {
 }
 
 // GetPublicAddress returns the discovered public address
-func (nt *NATTraversal) GetPublicAddress() (string, int) {
+func (nt *NATTraversal) GetPublicAddress() (ip string, port int) {
 	nt.mu.RLock()
 	defer nt.mu.RUnlock()
 
@@ -509,18 +509,18 @@ func (nt *NATTraversal) InitiateHolePunch(ctx context.Context, peerAddr string) 
 
 // RelayNode handles relaying messages for peers behind NAT
 type RelayNode struct {
-	isRelay     bool
-	maxClients  int
-	clients     map[string]*RelayClient
-	mu          sync.RWMutex
-	byteLimit   uint64 // Max bytes to relay per client
-	timeLimit   time.Duration // Max relay duration per client
+	isRelay    bool
+	maxClients int
+	clients    map[string]*RelayClient
+	mu         sync.RWMutex
+	byteLimit  uint64        // Max bytes to relay per client
+	timeLimit  time.Duration // Max relay duration per client
 }
 
 // RelayClient represents a client using the relay
 type RelayClient struct {
-	PeerID      string
-	ConnectedAt time.Time
+	PeerID       string
+	ConnectedAt  time.Time
 	BytesRelayed uint64
 }
 

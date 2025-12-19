@@ -34,7 +34,7 @@ type HandlerOptions struct {
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
 // numbers, checks signatures & account numbers, and deducts fees from the first
 // signer. It also includes custom decorators for PAW modules.
-func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
+func NewAnteHandler(options *HandlerOptions) (sdk.AnteHandler, error) {
 	if options.AccountKeeper == nil {
 		return nil, fmt.Errorf("account keeper is required for ante builder")
 	}
@@ -49,10 +49,13 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 
 	anteDecorators := []sdk.AnteDecorator{
 		sdkante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+		NewTimeValidatorDecorator(),        // Validate block time to prevent time manipulation attacks
+		NewGasLimitDecorator(),             // Enforce per-message and per-tx gas limits
 		sdkante.NewExtensionOptionsDecorator(nil),
 		sdkante.NewValidateBasicDecorator(),
 		sdkante.NewTxTimeoutHeightDecorator(),
 		sdkante.NewValidateMemoDecorator(options.AccountKeeper),
+		NewMemoLimitDecorator(256), // hard cap memo to 256 bytes to bound payload size
 		sdkante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
 		sdkante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper, nil),
 		sdkante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators
@@ -65,15 +68,15 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 
 	// Add custom module decorators
 	if options.ComputeKeeper != nil {
-		anteDecorators = append(anteDecorators, NewComputeDecorator(*options.ComputeKeeper))
+		anteDecorators = append(anteDecorators, NewComputeDecorator(options.ComputeKeeper))
 	}
 
 	if options.DEXKeeper != nil {
-		anteDecorators = append(anteDecorators, NewDEXDecorator(*options.DEXKeeper))
+		anteDecorators = append(anteDecorators, NewDEXDecorator(options.DEXKeeper))
 	}
 
 	if options.OracleKeeper != nil {
-		anteDecorators = append(anteDecorators, NewOracleDecorator(*options.OracleKeeper))
+		anteDecorators = append(anteDecorators, NewOracleDecorator(options.OracleKeeper))
 	}
 
 	return sdk.ChainAnteDecorators(anteDecorators...), nil

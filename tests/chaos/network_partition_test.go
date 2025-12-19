@@ -288,6 +288,7 @@ func (suite *NetworkPartitionTestSuite) healPartition(validators []*network.Vali
 }
 
 func (suite *NetworkPartitionTestSuite) getValidatorHeight(val *network.Validator) (int64, error) {
+	_ = val
 	// Query validator's current height
 	// Simplified implementation
 	return suite.network.LatestHeight()

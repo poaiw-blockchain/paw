@@ -13,18 +13,20 @@ import (
 
 // OracleDecorator validates oracle module-specific transaction requirements
 type OracleDecorator struct {
-	keeper oraclekeeper.Keeper
+	keeper *oraclekeeper.Keeper
 }
 
 // NewOracleDecorator creates a new OracleDecorator
-func NewOracleDecorator(keeper oraclekeeper.Keeper) OracleDecorator {
-	return OracleDecorator{
+func NewOracleDecorator(keeper *oraclekeeper.Keeper) *OracleDecorator {
+	return &OracleDecorator{
 		keeper: keeper,
 	}
 }
 
-// AnteHandle implements the AnteDecorator interface
-func (od OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+// AnteHandle implements the AnteDecorator interface.
+//
+//nolint:gocritic // sdk.Context is passed by value per Cosmos SDK AnteHandler contract.
+func (od *OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// Skip validation during simulation
 	if simulate {
 		return next(ctx, tx, simulate)
@@ -47,8 +49,10 @@ func (od OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 	return next(ctx, tx, simulate)
 }
 
-// validateSubmitPrice performs additional validation for price submissions
-func (od OracleDecorator) validateSubmitPrice(ctx sdk.Context, msg *oracletypes.MsgSubmitPrice) error {
+// validateSubmitPrice performs additional validation for price submissions.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (od *OracleDecorator) validateSubmitPrice(ctx sdk.Context, msg *oracletypes.MsgSubmitPrice) error {
 	validator, err := sdk.ValAddressFromBech32(msg.Validator)
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
@@ -75,8 +79,10 @@ func (od OracleDecorator) validateSubmitPrice(ctx sdk.Context, msg *oracletypes.
 	return nil
 }
 
-// validateDelegateFeedConsent performs additional validation for feeder delegation
-func (od OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *oracletypes.MsgDelegateFeedConsent) error {
+// validateDelegateFeedConsent performs additional validation for feeder delegation.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (od *OracleDecorator) validateDelegateFeedConsent(ctx sdk.Context, msg *oracletypes.MsgDelegateFeedConsent) error {
 	validator, err := sdk.ValAddressFromBech32(msg.Validator)
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)

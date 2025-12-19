@@ -7,7 +7,7 @@ const isWatch = process.argv.includes('--watch');
 
 // Build configuration
 const buildOptions = {
-  entryPoints: ['popup.js', 'background.js'],
+  entryPoints: ['src/popup.js', 'src/background.js'],
   bundle: true,
   minify: true,
   sourcemap: false,

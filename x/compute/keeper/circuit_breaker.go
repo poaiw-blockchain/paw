@@ -342,16 +342,21 @@ func (k Keeper) ClearReputationOverride(ctx context.Context, providerAddr string
 }
 
 // GetReputationWithOverride retrieves a provider's reputation, checking for overrides first
-func (k Keeper) GetReputationWithOverride(ctx context.Context, providerAddr string) (int64, bool) {
+func (k Keeper) GetReputationWithOverride(ctx context.Context, providerAddrStr string) (int64, bool) {
 	// Check for override first
-	if overrideScore, hasOverride := k.GetReputationOverride(ctx, providerAddr); hasOverride {
+	if overrideScore, hasOverride := k.GetReputationOverride(ctx, providerAddrStr); hasOverride {
 		return overrideScore, true
 	}
 
 	// Fall back to normal reputation retrieval
-	rep, found := k.GetProviderReputation(ctx, providerAddr)
-	if !found {
+	providerAddr, err := sdk.AccAddressFromBech32(providerAddrStr)
+	if err != nil {
 		return 0, false
 	}
-	return rep.Score, true
+
+	rep, err := k.GetProviderReputation(ctx, providerAddr)
+	if err != nil {
+		return 0, false
+	}
+	return int64(rep.OverallScore), true
 }

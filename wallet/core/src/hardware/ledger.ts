@@ -18,10 +18,14 @@ import {
   HardwareWalletError,
   CosmosTransaction,
 } from './types';
+import { assertBech32Prefix, validateSignDocBasics } from './guards';
 
 const DEFAULT_COIN_TYPE = 118; // Cosmos coin type
 const DEFAULT_PREFIX = 'paw';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
+const DEFAULT_SIGN_MODE: NonNullable<HardwareWalletConfig['signMode']> = 'amino';
+const DEFAULT_ALLOWED_FEE_DENOMS = ['upaw'];
+const DEFAULT_MAX_ACCOUNT_INDEX = 4;
 
 export class LedgerWallet implements IHardwareWallet {
   readonly type = HardwareWalletType.LEDGER;
@@ -35,6 +39,12 @@ export class LedgerWallet implements IHardwareWallet {
       timeout: config.timeout || DEFAULT_TIMEOUT,
       coinType: config.coinType || DEFAULT_COIN_TYPE,
       prefix: config.prefix || DEFAULT_PREFIX,
+      signMode: config.signMode || DEFAULT_SIGN_MODE,
+      enforceChainId: config.enforceChainId,
+      allowedFeeDenoms: config.allowedFeeDenoms || DEFAULT_ALLOWED_FEE_DENOMS,
+      maxAccountIndex: config.maxAccountIndex ?? DEFAULT_MAX_ACCOUNT_INDEX,
+      allowedManufacturers: config.allowedManufacturers || ['Ledger'],
+      allowedProductNames: config.allowedProductNames || ['Nano S', 'Nano X', 'Nano S Plus', 'Ledger Device'],
       debug: config.debug || false,
     };
   }
@@ -80,6 +90,7 @@ export class LedgerWallet implements IHardwareWallet {
 
       // Get device info
       const deviceModel = await this.getDeviceModel();
+      this.basicAttestationCheck(deviceModel);
 
       return {
         type: HardwareWalletType.LEDGER,
@@ -158,6 +169,8 @@ export class LedgerWallet implements IHardwareWallet {
       const hdPath = this.normalizePath(path);
       const response = await this.app!.getAddress(hdPath, this.config.prefix, showOnDevice);
 
+      assertBech32Prefix(response.address, this.config.prefix);
+
       return response.address;
     } catch (error: any) {
       throw this.handleError(error, 'Failed to get address');
@@ -177,6 +190,8 @@ export class LedgerWallet implements IHardwareWallet {
       try {
         const hdPath = this.normalizePath(path);
         const response = await this.app!.getAddress(hdPath, this.config.prefix, false);
+
+        assertBech32Prefix(response.address, this.config.prefix);
 
         accounts.push({
           address: response.address,
@@ -208,6 +223,23 @@ export class LedgerWallet implements IHardwareWallet {
     try {
       // Parse the transaction to Cosmos format
       const tx = this.parseTransaction(txBytes);
+      if (this.config.signMode === 'direct') {
+        throw this.createError(
+          'Direct sign is not available over WebUSB; fallback to amino/legacy JSON payloads',
+          'UNSUPPORTED_SIGN_MODE'
+        );
+      }
+      validateSignDocBasics(
+        {
+          chain_id: tx.chain_id,
+          fee: tx.fee,
+        },
+        {
+          enforceChainId: this.config.enforceChainId,
+          allowedFeeDenoms: this.config.allowedFeeDenoms,
+        }
+      );
+      this.validateMsgAddresses(tx.msgs);
       const hdPath = this.normalizePath(path);
 
       // Sign with Ledger
@@ -268,6 +300,15 @@ export class LedgerWallet implements IHardwareWallet {
       throw this.createError(`Invalid derivation path: ${path}`, 'INVALID_PATH');
     }
 
+    const accountSegment = segments[2];
+    const accountValue = parseInt(accountSegment.endsWith("'") ? accountSegment.slice(0, -1) : accountSegment, 10);
+    if (Number.isNaN(accountValue) || accountValue > this.config.maxAccountIndex) {
+      throw this.createError(
+        `Invalid path: account index exceeds max (${this.config.maxAccountIndex})`,
+        'INVALID_PATH'
+      );
+    }
+
     return segments
       .map((segment, index) => {
         const requiresHardened = index < 3;
@@ -297,10 +338,58 @@ export class LedgerWallet implements IHardwareWallet {
     }
   }
 
+  private validateMsgAddresses(msgs: any[]): void {
+    if (!Array.isArray(msgs)) return;
+
+    for (const msg of msgs) {
+      if (msg?.value && typeof msg.value === 'object') {
+        const value = msg.value;
+        Object.entries(value).forEach(([key, val]) => {
+          if (typeof val === 'string' && key.toLowerCase().includes('address')) {
+            try {
+              assertBech32Prefix(val, this.config.prefix);
+            } catch (err: any) {
+              throw this.createError(`Invalid bech32 prefix for ${key}: ${err.message}`, 'INVALID_DATA');
+            }
+          }
+        });
+      }
+    }
+  }
+
   private async getDeviceModel(): Promise<string> {
     const productName =
       (this.transport && (this.transport as TransportWebUSB).device?.productName) || null;
     return productName || 'Ledger Device';
+  }
+
+  private basicAttestationCheck(deviceModel: string): void {
+    const manufacturer =
+      (this.transport && (this.transport as TransportWebUSB).device?.manufacturerName) || '';
+    const allowedManufacturers = this.config.allowedManufacturers || [];
+    const allowedProductNames = this.config.allowedProductNames || [];
+
+    if (
+      allowedManufacturers.length > 0 &&
+      manufacturer &&
+      !allowedManufacturers.some((m) => manufacturer.toLowerCase().includes(m.toLowerCase()))
+    ) {
+      throw this.createError(
+        `Unexpected manufacturer: ${manufacturer}`,
+        'DEVICE_ATTESTATION_FAILED'
+      );
+    }
+
+    if (
+      allowedProductNames.length > 0 &&
+      deviceModel &&
+      !allowedProductNames.some((m) => deviceModel.toLowerCase().includes(m.toLowerCase()))
+    ) {
+      throw this.createError(
+        `Unexpected device model: ${deviceModel}`,
+        'DEVICE_ATTESTATION_FAILED'
+      );
+    }
   }
 
   private hexToBytes(hex: string): Uint8Array {

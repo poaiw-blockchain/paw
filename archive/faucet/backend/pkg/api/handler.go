@@ -174,7 +174,7 @@ func (h *Handler) GetPowChallenge(c *gin.Context) {
 	challenge := h.powValidator.GenerateChallenge(address)
 
 	c.JSON(http.StatusOK, gin.H{
-		"challenge": challenge,
+		"challenge":              challenge,
 		"estimated_work_time_ms": pow.EstimateWorkTime(challenge.Difficulty).Milliseconds(),
 	})
 }

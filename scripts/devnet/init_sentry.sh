@@ -44,7 +44,7 @@ RPC_PORT=${2:-26657}
 GRPC_PORT=${3:-9090}
 API_PORT=${4:-1317}
 
-CHAIN_ID="paw-devnet"
+CHAIN_ID="${CHAIN_ID:-paw-devnet}"
 KEYRING_BACKEND="test"
 IAVL_DISABLE_FASTNODE="${IAVL_DISABLE_FASTNODE:-false}"
 HOME_DIR="/root/.paw/${SENTRY_NAME}"
@@ -156,6 +156,12 @@ sed -i 's/addr_book_strict = true/addr_book_strict = false/' "$CONFIG_TOML"
 sed -i 's/allow_duplicate_ip = false/allow_duplicate_ip = true/' "$CONFIG_TOML"
 sed -i 's/seeds = ""/seeds = ""/' "$CONFIG_TOML"
 sed -i 's/^log_level = .*/log_level = "info"/' "$CONFIG_TOML"
+sed -i 's/^prometheus = false/prometheus = true/' "$CONFIG_TOML" || true
+if grep -q '^prometheus_listen_addr' "$CONFIG_TOML"; then
+  sed -i 's|^prometheus_listen_addr = .*|prometheus_listen_addr = "0.0.0.0:26660"|' "$CONFIG_TOML"
+else
+  printf 'prometheus_listen_addr = "0.0.0.0:26660"\n' >> "$CONFIG_TOML"
+fi
 
 # Increase consensus timeouts (match validator configuration)
 sed -i 's/^timeout_propose = .*/timeout_propose = "10s"/' "$CONFIG_TOML"

@@ -128,3 +128,6 @@ proto/**/*_grpc.pb.go
 pawd
 __pycache__/
 *.pyc
+
+# Backup state directories
+scripts/devnet/.state.bak*/

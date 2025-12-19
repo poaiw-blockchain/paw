@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"paw/control-center/audit-log/integrity"
-	"paw/control-center/audit-log/storage"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/integrity"
+	"github.com/paw-chain/paw/control-center/audit-log/storage"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 )
 
 // AuditLogger is middleware that automatically logs all admin API requests

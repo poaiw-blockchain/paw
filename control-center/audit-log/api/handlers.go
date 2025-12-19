@@ -1,16 +1,15 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
 
-	"paw/control-center/audit-log/export"
-	"paw/control-center/audit-log/integrity"
-	"paw/control-center/audit-log/storage"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/export"
+	"github.com/paw-chain/paw/control-center/audit-log/integrity"
+	"github.com/paw-chain/paw/control-center/audit-log/storage"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/gorilla/mux"
 )

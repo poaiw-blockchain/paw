@@ -1,7 +1,6 @@
 package fraud
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
@@ -25,7 +24,7 @@ type Detector struct {
 	blacklistMu          sync.RWMutex
 
 	// Fingerprint tracking (browser fingerprints, etc)
-	fingerprints map[string][]time.Time
+	fingerprints  map[string][]time.Time
 	fingerprintMu sync.RWMutex
 
 	// Configuration
@@ -52,8 +51,8 @@ func NewDetector() *Detector {
 		blacklistedIPs:        make(map[string]time.Time),
 		blacklistedAddresses:  make(map[string]time.Time),
 		fingerprints:          make(map[string][]time.Time),
-		maxRequestsPerIP:      5,  // 5 requests
-		maxRequestsPerAddress: 3,  // 3 requests per address
+		maxRequestsPerIP:      5, // 5 requests
+		maxRequestsPerAddress: 3, // 3 requests per address
 		timeWindow:            24 * time.Hour,
 		blacklistDuration:     7 * 24 * time.Hour,
 	}
@@ -321,10 +320,10 @@ func (d *Detector) isCloudProviderIP(ipAddress string) bool {
 
 	// Common cloud provider IP ranges (very simplified)
 	cloudRanges := []string{
-		"3.0.0.0/8",     // AWS partial
-		"13.0.0.0/8",    // AWS partial
-		"35.0.0.0/8",    // GCP partial
-		"104.0.0.0/8",   // Azure partial
+		"3.0.0.0/8",   // AWS partial
+		"13.0.0.0/8",  // AWS partial
+		"35.0.0.0/8",  // GCP partial
+		"104.0.0.0/8", // Azure partial
 	}
 
 	ip := net.ParseIP(ipAddress)
@@ -489,12 +488,12 @@ func (d *Detector) GetStats() map[string]interface{} {
 	d.blacklistMu.RUnlock()
 
 	return map[string]interface{}{
-		"tracked_ips":            ipCount,
-		"tracked_addresses":      addressCount,
-		"blacklisted_ips":        blacklistedIPCount,
-		"blacklisted_addresses":  blacklistedAddressCount,
-		"max_requests_per_ip":    d.maxRequestsPerIP,
+		"tracked_ips":              ipCount,
+		"tracked_addresses":        addressCount,
+		"blacklisted_ips":          blacklistedIPCount,
+		"blacklisted_addresses":    blacklistedAddressCount,
+		"max_requests_per_ip":      d.maxRequestsPerIP,
 		"max_requests_per_address": d.maxRequestsPerAddress,
-		"time_window":            d.timeWindow.String(),
+		"time_window":              d.timeWindow.String(),
 	}
 }

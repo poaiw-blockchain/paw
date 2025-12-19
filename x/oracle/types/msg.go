@@ -28,6 +28,8 @@ func NewMsgSubmitPrice(validator string, feeder string, asset string, price math
 	}
 }
 
+const maxAssetLen = 128
+
 // Route implements sdk.Msg
 func (msg *MsgSubmitPrice) Route() string {
 	return RouterKey
@@ -63,6 +65,9 @@ func (msg *MsgSubmitPrice) ValidateBasic() error {
 
 	if msg.Asset == "" {
 		return ErrInvalidAsset.Wrap("asset cannot be empty")
+	}
+	if len(msg.Asset) > maxAssetLen {
+		return ErrInvalidAsset.Wrapf("asset too long (max %d chars)", maxAssetLen)
 	}
 
 	if msg.Price.IsNil() || msg.Price.LTE(math.LegacyZeroDec()) {
@@ -151,6 +156,9 @@ func (msg *MsgUpdateParams) GetSignBytes() []byte {
 func (msg *MsgUpdateParams) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return ErrInvalidAsset.Wrapf("invalid authority address: %s", err)
+	}
+	if msg.Authority != DefaultAuthority() {
+		return ErrInvalidAsset.Wrapf("invalid authority: expected %s, got %s", DefaultAuthority(), msg.Authority)
 	}
 
 	if msg.Params.VotePeriod == 0 {

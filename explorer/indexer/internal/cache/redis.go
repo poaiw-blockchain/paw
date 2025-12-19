@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +13,9 @@ import (
 )
 
 var (
+	// ErrCacheMiss indicates cache miss.
+	ErrCacheMiss = errors.New("cache miss")
+
 	cacheHits = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "explorer_cache_hits_total",
 		Help: "Total number of cache hits",

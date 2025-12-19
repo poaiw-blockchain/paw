@@ -411,7 +411,7 @@ func (suite *ZKVerificationTestSuite) TestZKMetrics() {
 		suite.ctx,
 		proof,
 		uint64(1),
-		resultHash[:],
+		resultHash,
 		suite.provider,
 	)
 	require.NoError(suite.T(), err)
@@ -460,11 +460,15 @@ func (suite *ZKVerificationTestSuite) TestConstantTimeOperations() {
 
 	for i := 0; i < iterations; i++ {
 		start := time.Now()
-		suite.zkVerifier.VerifyProof(suite.ctx, proof1, 1, hash1, suite.provider)
+		ok1, err := suite.zkVerifier.VerifyProof(suite.ctx, proof1, 1, hash1, suite.provider)
+		require.NoError(suite.T(), err)
+		require.True(suite.T(), ok1)
 		times1[i] = time.Since(start)
 
 		start = time.Now()
-		suite.zkVerifier.VerifyProof(suite.ctx, proof2, 2, hash2, suite.provider)
+		ok2, err := suite.zkVerifier.VerifyProof(suite.ctx, proof2, 2, hash2, suite.provider)
+		require.NoError(suite.T(), err)
+		require.True(suite.T(), ok2)
 		times2[i] = time.Since(start)
 	}
 
@@ -490,7 +494,9 @@ type MockRandomnessBeacon struct{}
 func (m *MockRandomnessBeacon) GetRandomness(round uint64) ([]byte, error) {
 	// Generate deterministic randomness for testing
 	h := sha256.New()
-	binary.Write(h, binary.BigEndian, round)
+	if err := binary.Write(h, binary.BigEndian, round); err != nil {
+		return nil, err
+	}
 	return h.Sum(nil), nil
 }
 
@@ -537,7 +543,9 @@ func (m *MockKeyStorage) List(ctx context.Context) ([]string, error) {
 
 func randomBytes(n int) []byte {
 	b := make([]byte, n)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
 	return b
 }
 

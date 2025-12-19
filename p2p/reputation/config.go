@@ -267,10 +267,20 @@ func (c *ScoringConfigJSON) ToScoreWeights() ScoreWeights {
 }
 
 // ToManagerConfig converts JSON config to internal config
-func (c *ManagerConfigJSON) ToManagerConfig(scoringConfig ScoringConfig, scoreWeights ScoreWeights) ManagerConfig {
+func (c *ManagerConfigJSON) ToManagerConfig(scoringConfig *ScoringConfig, scoreWeights *ScoreWeights) ManagerConfig {
+	var sc ScoringConfig
+	if scoringConfig != nil {
+		sc = *scoringConfig
+	}
+
+	var weights ScoreWeights
+	if scoreWeights != nil {
+		weights = *scoreWeights
+	}
+
 	return ManagerConfig{
-		ScoreWeights:           scoreWeights,
-		ScoringConfig:          scoringConfig,
+		ScoreWeights:           weights,
+		ScoringConfig:          sc,
 		MaxPeersPerSubnet:      c.MaxPeersPerSubnet,
 		MaxPeersPerCountry:     c.MaxPeersPerCountry,
 		MinGeographicDiversity: c.MinGeographicDiversity,

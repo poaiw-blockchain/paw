@@ -19,35 +19,35 @@ import (
 // Constraint count: ~45,000 constraints for max data size
 type ComputeCircuit struct {
 	// Public inputs (visible on-chain)
-	RequestID         frontend.Variable     `gnark:",public"`  // Unique request identifier
-	ResultCommitment  frontend.Variable     `gnark:",public"`  // MiMC hash of result
-	ProviderCommitment frontend.Variable    `gnark:",public"`  // Provider identity commitment
-	ResourceCommitment frontend.Variable    `gnark:",public"`  // Commitment to resources used
+	RequestID          frontend.Variable `gnark:",public"` // Unique request identifier
+	ResultCommitment   frontend.Variable `gnark:",public"` // MiMC hash of result
+	ProviderCommitment frontend.Variable `gnark:",public"` // Provider identity commitment
+	ResourceCommitment frontend.Variable `gnark:",public"` // Commitment to resources used
 
 	// Private inputs (witness data - kept secret)
 	// Computation data (chunked for efficient constraints)
-	ComputationChunks    [64]frontend.Variable `gnark:",private"` // 64 chunks of 32 bytes each
-	ChunkCount           frontend.Variable      `gnark:",private"` // Number of valid chunks
+	ComputationChunks [64]frontend.Variable `gnark:",secret"` // 64 chunks of 32 bytes each
+	ChunkCount        frontend.Variable     `gnark:",secret"` // Number of valid chunks
 
 	// Metadata
-	ExecutionTimestamp   frontend.Variable      `gnark:",private"` // Unix timestamp
-	ExitCode             frontend.Variable      `gnark:",private"` // Process exit code (0-255)
+	ExecutionTimestamp frontend.Variable `gnark:",secret"` // Unix timestamp
+	ExitCode           frontend.Variable `gnark:",secret"` // Process exit code (0-255)
 
 	// Resources
-	CpuCyclesUsed        frontend.Variable      `gnark:",private"` // CPU cycles consumed
-	MemoryBytesUsed      frontend.Variable      `gnark:",private"` // Peak memory usage
-	DiskBytesRead        frontend.Variable      `gnark:",private"` // Disk I/O read
-	DiskBytesWritten     frontend.Variable      `gnark:",private"` // Disk I/O write
-	NetworkBytesReceived frontend.Variable      `gnark:",private"` // Network I/O received
-	NetworkBytesSent     frontend.Variable      `gnark:",private"` // Network I/O sent
+	CpuCyclesUsed        frontend.Variable `gnark:",secret"` // CPU cycles consumed
+	MemoryBytesUsed      frontend.Variable `gnark:",secret"` // Peak memory usage
+	DiskBytesRead        frontend.Variable `gnark:",secret"` // Disk I/O read
+	DiskBytesWritten     frontend.Variable `gnark:",secret"` // Disk I/O write
+	NetworkBytesReceived frontend.Variable `gnark:",secret"` // Network I/O received
+	NetworkBytesSent     frontend.Variable `gnark:",secret"` // Network I/O sent
 
 	// Provider authentication
-	ProviderNonce        frontend.Variable      `gnark:",private"` // Unique nonce for provider
-	ProviderSalt         frontend.Variable      `gnark:",private"` // Salt for provider commitment
+	ProviderNonce frontend.Variable `gnark:",secret"` // Unique nonce for provider
+	ProviderSalt  frontend.Variable `gnark:",secret"` // Salt for provider commitment
 
 	// Result data
-	ResultData           [32]frontend.Variable  `gnark:",private"` // Actual result bytes
-	ResultSize           frontend.Variable      `gnark:",private"` // Size of result
+	ResultData [32]frontend.Variable `gnark:",secret"` // Actual result bytes
+	ResultSize frontend.Variable     `gnark:",secret"` // Size of result
 }
 
 // Define implements the gnark Circuit interface and establishes the constraint system.

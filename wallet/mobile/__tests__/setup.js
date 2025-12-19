@@ -65,6 +65,19 @@ jest.mock('axios', () => ({
   })),
 }));
 
+// Mock react-native-push-notification
+jest.mock('react-native-push-notification', () => ({
+  createChannel: jest.fn((_, cb) => cb(true)),
+  requestPermissions: jest.fn(() =>
+    Promise.resolve({alert: true, authorizationStatus: 2}),
+  ),
+  localNotification: jest.fn(),
+  cancelAllLocalNotifications: jest.fn(),
+  removeAllDeliveredNotifications: jest.fn(),
+  checkPermissions: jest.fn(cb => cb({alert: true, sound: true})),
+  abandonPermissions: jest.fn(() => Promise.resolve()),
+}));
+
 // Silence console warnings in tests
 global.console = {
   ...console,

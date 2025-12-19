@@ -26,7 +26,7 @@ type ChannelValidator struct {
 }
 
 // NewChannelValidator creates a new channel validator with expected parameters
-func NewChannelValidator(order channeltypes.Order, version string, portID string) *ChannelValidator {
+func NewChannelValidator(order channeltypes.Order, version, portID string) *ChannelValidator {
 	return &ChannelValidator{
 		expectedOrder:   order,
 		expectedVersion: version,
@@ -104,6 +104,8 @@ func (v *ChannelValidator) ValidateChannelAck(counterpartyVersion string) error 
 }
 
 // ClaimChannelCapability claims the channel capability and returns error if it fails
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func ClaimChannelCapability(
 	ctx sdk.Context,
 	capManager ChannelCapabilityManager,
@@ -118,6 +120,8 @@ func ClaimChannelCapability(
 }
 
 // EmitChannelOpenEvent emits a standardized channel open event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitChannelOpenEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -137,6 +141,8 @@ func EmitChannelOpenEvent(
 }
 
 // EmitChannelOpenAckEvent emits a standardized channel open acknowledgement event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitChannelOpenAckEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -155,6 +161,8 @@ func EmitChannelOpenAckEvent(
 }
 
 // EmitChannelOpenConfirmEvent emits a standardized channel open confirm event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitChannelOpenConfirmEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -171,6 +179,8 @@ func EmitChannelOpenConfirmEvent(
 }
 
 // EmitChannelCloseEvent emits a standardized channel close event with pending operations count
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitChannelCloseEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -189,6 +199,8 @@ func EmitChannelCloseEvent(
 }
 
 // EmitPacketReceiveEvent emits a standardized packet receive event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitPacketReceiveEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -207,6 +219,8 @@ func EmitPacketReceiveEvent(
 }
 
 // EmitPacketAckEvent emits a standardized packet acknowledgement event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitPacketAckEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -225,6 +239,8 @@ func EmitPacketAckEvent(
 }
 
 // EmitPacketTimeoutEvent emits a standardized packet timeout event
+//
+//nolint:gocritic // sdk.Context is passed by value to align with Cosmos SDK interfaces.
 func EmitPacketTimeoutEvent(
 	ctx sdk.Context,
 	eventType string,
@@ -258,6 +274,8 @@ type PacketDataValidator interface {
 //   - maxPacketSize: Maximum allowed packet size in bytes
 //
 // Returns error if validation fails
+//
+//nolint:gocritic // Packet is validated by value to prevent mutation during checks.
 func ValidateIncomingPacket(
 	packet channeltypes.Packet,
 	maxPacketSize int,

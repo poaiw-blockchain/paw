@@ -52,7 +52,7 @@ import (
     "os/signal"
     "syscall"
 
-    auditlog "paw/control-center/audit-log"
+    auditlog "github.com/paw-chain/paw/control-center/audit-log"
 )
 
 func main() {
@@ -91,7 +91,7 @@ func main() {
 ```go
 // In your admin API
 import (
-    "paw/control-center/audit-log/middleware"
+    "github.com/paw-chain/paw/control-center/audit-log/middleware"
 )
 
 func main() {
@@ -315,7 +315,7 @@ This creates an immutable chain where any modification breaks the chain.
 ### Automatic Integrity Verification
 
 ```go
-import "paw/control-center/audit-log/integrity"
+import "github.com/paw-chain/paw/control-center/audit-log/integrity"
 
 calc := integrity.NewHashCalculator()
 

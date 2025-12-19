@@ -24,7 +24,6 @@ export default function TransactionsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['transactions', page, limit, statusFilter],
     queryFn: () => api.getTransactions(page, limit, statusFilter === 'all' ? undefined : statusFilter),
-    keepPreviousData: true,
     refetchInterval: 5000,
   })
 

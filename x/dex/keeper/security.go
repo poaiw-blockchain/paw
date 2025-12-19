@@ -127,16 +127,6 @@ const (
 	// then remove liquidity in same transaction to extract value
 	MinLPLockBlocks = int64(1)
 
-	// MaxPools = 1000 (maximum pools)
-	// SECURITY RATIONALE:
-	// - Prevents unbounded iteration DoS attacks
-	// - Limits gas costs for operations that iterate all pools
-	// - 1000 pools is orders of magnitude beyond expected mainnet usage
-	// - Typical DEX (Uniswap v2) has ~100-200 meaningful pairs
-	// - Prevents attacker from creating infinite pools to DoS iteration
-	// - Still allows extensive pair coverage (e.g., 50 tokens = 1225 possible pairs)
-	// ATTACK SCENARIO PREVENTED: Attacker cannot create millions of pools to make
-	// pool iteration operations exceed block gas limit
 	MaxPools = uint64(1000)
 
 	// PriceUpdateTolerance = "0.001" (0.1%)
@@ -317,9 +307,9 @@ func (k Keeper) ValidatePoolState(pool *types.Pool) error {
 	return nil
 }
 
-// CheckCircuitBreaker checks if circuit breaker should be triggered
-func (k Keeper) CheckCircuitBreaker(ctx context.Context, pool *types.Pool, operation string) error {
-	state, err := k.GetCircuitBreakerState(ctx, pool.Id)
+// checkPoolPriceDeviation checks if circuit breaker should be triggered for a specific pool due to price deviation
+func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, operation string) error {
+	state, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 	if err != nil {
 		return err
 	}
@@ -393,8 +383,13 @@ func (k Keeper) CheckCircuitBreaker(ctx context.Context, pool *types.Pool, opera
 	return nil
 }
 
-// GetCircuitBreakerState retrieves circuit breaker state for a pool
-func (k Keeper) GetCircuitBreakerState(ctx context.Context, poolID uint64) (CircuitBreakerState, error) {
+// CheckPoolPriceDeviationForTesting exposes price deviation checks to tests without relaxing production visibility.
+func (k Keeper) CheckPoolPriceDeviationForTesting(ctx context.Context, pool *types.Pool, operation string) error {
+	return k.checkPoolPriceDeviation(ctx, pool, operation)
+}
+
+// GetPoolCircuitBreakerState retrieves circuit breaker state for a pool
+func (k Keeper) GetPoolCircuitBreakerState(ctx context.Context, poolID uint64) (CircuitBreakerState, error) {
 	store := k.getStore(ctx)
 	bz := store.Get(CircuitBreakerKey(poolID))
 	if bz == nil {
@@ -486,7 +481,7 @@ func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason st
 
 // UnpausePool removes circuit breaker pause (governance only)
 func (k Keeper) UnpausePool(ctx context.Context, poolID uint64) error {
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
 		return err
 	}
@@ -515,7 +510,7 @@ func (k Keeper) SendCircuitBreakerNotification(ctx context.Context, poolID uint6
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Get current state to update notification tracking
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
 		return err
 	}
@@ -567,7 +562,7 @@ func (k Keeper) getNotificationSeverity(eventType string) string {
 
 // PersistCircuitBreakerState ensures circuit breaker state survives restarts
 func (k Keeper) PersistCircuitBreakerState(ctx context.Context, poolID uint64) error {
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
 		return err
 	}

@@ -1,0 +1,1502 @@
+{
+  "dashboard": {
+    "title": "PAW Compute Module - Production Monitoring",
+    "description": "Comprehensive Compute module monitoring including job execution, ZK proof verification, escrow management, provider performance, cross-chain compute, and gas usage",
+    "tags": ["paw", "compute", "zk-proofs", "providers", "escrow", "ibc", "jobs", "security"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "provider",
+          "type": "query",
+          "label": "Provider",
+          "query": "label_values(paw_compute_provider_reputation_score, provider)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "job_type",
+          "type": "query",
+          "label": "Job Type",
+          "query": "label_values(paw_compute_jobs_submitted_total, job_type)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "chain",
+          "type": "query",
+          "label": "IBC Chain",
+          "query": "label_values(paw_compute_ibc_jobs_distributed_total, target_chain)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "row",
+        "title": "Overview - Key Metrics",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Active Providers",
+        "gridPos": {
+          "x": 0,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_providers_active",
+            "legendFormat": "Providers",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of currently active compute providers",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 3,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Job Queue Size",
+        "gridPos": {
+          "x": 4,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_job_queue_size",
+            "legendFormat": "Queue",
+            "refId": "A"
+          }
+        ],
+        "description": "Current number of jobs waiting in queue",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 200,
+                  "color": "orange"
+                },
+                {
+                  "value": 500,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Jobs Completed (24h)",
+        "gridPos": {
+          "x": 8,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_jobs_completed_total[24h]))",
+            "legendFormat": "Completed",
+            "refId": "A"
+          }
+        ],
+        "description": "Total jobs completed in the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Success Rate (24h)",
+        "gridPos": {
+          "x": 12,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_jobs_completed_total{status=\"success\"}[24h])) / sum(increase(paw_compute_jobs_completed_total[24h])) * 100",
+            "legendFormat": "Success %",
+            "refId": "A"
+          }
+        ],
+        "description": "Job success rate over the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 90,
+                  "color": "yellow"
+                },
+                {
+                  "value": 98,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Total Escrow Locked",
+        "gridPos": {
+          "x": 16,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(paw_compute_escrow_balance)",
+            "legendFormat": "Escrow",
+            "refId": "A"
+          }
+        ],
+        "description": "Total funds currently locked in escrow",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "ZK Proof Success Rate (1h)",
+        "gridPos": {
+          "x": 20,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_proofs_verified_total{status=\"success\"}[1h])) / sum(increase(paw_compute_proofs_verified_total[1h])) * 100",
+            "legendFormat": "Success %",
+            "refId": "A"
+          }
+        ],
+        "description": "ZK proof verification success rate in the last hour",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 95,
+                  "color": "yellow"
+                },
+                {
+                  "value": 99,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 8,
+        "type": "row",
+        "title": "Job Queue & Execution",
+        "gridPos": {
+          "x": 0,
+          "y": 5,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 9,
+        "type": "timeseries",
+        "title": "Job Submission Rate by Type",
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_jobs_submitted_total{job_type=~\"$job_type\"}[5m])) by (job_type)",
+            "legendFormat": "{{job_type}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Rate of job submissions per job type (jobs per second)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Job Completion Rate by Provider",
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_jobs_completed_total{provider=~\"$provider\"}[5m])) by (provider, status)",
+            "legendFormat": "{{provider}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Job completion rate by provider and status",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Job Queue Size Over Time",
+        "gridPos": {
+          "x": 0,
+          "y": 14,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_job_queue_size",
+            "legendFormat": "Queue Size",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of jobs waiting in queue over time",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 200,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "timeseries",
+        "title": "Job Execution Time Distribution",
+        "gridPos": {
+          "x": 12,
+          "y": 14,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_compute_job_execution_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_job_execution_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_compute_job_execution_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "description": "Job execution time latency percentiles",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "timeseries",
+        "title": "Job Failure Rate by Reason",
+        "gridPos": {
+          "x": 0,
+          "y": 22,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_jobs_failed_total{provider=~\"$provider\"}[5m])) by (provider, reason)",
+            "legendFormat": "{{provider}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Job failure rate by provider and failure reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 1,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "type": "row",
+        "title": "Provider Health & Reputation",
+        "gridPos": {
+          "x": 0,
+          "y": 30,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 15,
+        "type": "table",
+        "title": "Provider Performance Dashboard",
+        "gridPos": {
+          "x": 0,
+          "y": 31,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_provider_reputation_score{provider=~\"$provider\"}",
+            "legendFormat": "{{provider}}",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(rate(paw_compute_jobs_accepted_total{provider=~\"$provider\"}[1h])) by (provider)",
+            "legendFormat": "{{provider}}",
+            "refId": "B",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(increase(paw_compute_jobs_completed_total{provider=~\"$provider\",status=\"success\"}[24h])) by (provider)",
+            "legendFormat": "{{provider}}",
+            "refId": "C",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(paw_compute_provider_stake{provider=~\"$provider\"}) by (provider)",
+            "legendFormat": "{{provider}}",
+            "refId": "D",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(increase(paw_compute_provider_slashing_events_total{provider=~\"$provider\"}[24h])) by (provider)",
+            "legendFormat": "{{provider}}",
+            "refId": "E",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "description": "Comprehensive provider performance: reputation, job acceptance rate, completions, stake, and slashing",
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #A"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Reputation"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "red"
+                      },
+                      {
+                        "value": 50,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 80,
+                        "color": "green"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #B"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Jobs/hour"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "decimals",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #C"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Completed (24h)"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #D"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Stake"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #E"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Slashes (24h)"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "green"
+                      },
+                      {
+                        "value": 1,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 5,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 16,
+        "type": "timeseries",
+        "title": "Provider Reputation Over Time",
+        "gridPos": {
+          "x": 0,
+          "y": 39,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_provider_reputation_score{provider=~\"$provider\"}",
+            "legendFormat": "{{provider}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Provider reputation scores tracked over time",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 80,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 17,
+        "type": "timeseries",
+        "title": "Provider Slashing Events",
+        "gridPos": {
+          "x": 12,
+          "y": 39,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_provider_slashing_events_total{provider=~\"$provider\"}[1h])) by (provider, reason)",
+            "legendFormat": "{{provider}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Provider slashing events by reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 18,
+        "type": "timeseries",
+        "title": "Provider Registrations by Capability",
+        "gridPos": {
+          "x": 0,
+          "y": 47,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_providers_registered_total[24h])) by (capability)",
+            "legendFormat": "{{capability}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Provider registration activity by capability (24h)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 19,
+        "type": "row",
+        "title": "ZK Proof Verification",
+        "gridPos": {
+          "x": 0,
+          "y": 55,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 20,
+        "type": "timeseries",
+        "title": "ZK Proof Verification Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 56,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_proofs_verified_total[5m])) by (proof_type, status)",
+            "legendFormat": "{{proof_type}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "description": "ZK proof verification rate by type and status",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 21,
+        "type": "timeseries",
+        "title": "Proof Verification Latency",
+        "gridPos": {
+          "x": 12,
+          "y": 56,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_compute_proof_verification_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_proof_verification_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_compute_proof_verification_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "description": "ZK proof verification time distribution",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 22,
+        "type": "timeseries",
+        "title": "Invalid Proof Submissions",
+        "gridPos": {
+          "x": 0,
+          "y": 64,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_invalid_proofs_total{provider=~\"$provider\"}[1h])) by (provider, reason)",
+            "legendFormat": "{{provider}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Invalid ZK proof submissions by provider and reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 23,
+        "type": "stat",
+        "title": "Circuit Initializations (Total)",
+        "gridPos": {
+          "x": 12,
+          "y": 64,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_circuit_initializations_total",
+            "legendFormat": "Initializations",
+            "refId": "A"
+          }
+        ],
+        "description": "Total ZK circuit initialization events",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 24,
+        "type": "stat",
+        "title": "Circuit Compilations (Total)",
+        "gridPos": {
+          "x": 18,
+          "y": 64,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_circuit_compilations_total",
+            "legendFormat": "Compilations",
+            "refId": "A"
+          }
+        ],
+        "description": "Total ZK circuit compilation events",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 25,
+        "type": "row",
+        "title": "Escrow Management",
+        "gridPos": {
+          "x": 0,
+          "y": 72,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 26,
+        "type": "timeseries",
+        "title": "Escrow Activity (Lock/Release/Refund)",
+        "gridPos": {
+          "x": 0,
+          "y": 73,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_escrow_locked_total[5m])) by (denom)",
+            "legendFormat": "{{denom}} - Locked",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(paw_compute_escrow_released_total[5m])) by (denom)",
+            "legendFormat": "{{denom}} - Released",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(paw_compute_escrow_refunded_total[5m])) by (denom)",
+            "legendFormat": "{{denom}} - Refunded",
+            "refId": "C"
+          }
+        ],
+        "description": "Escrow lock, release, and refund activity by denomination",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 27,
+        "type": "timeseries",
+        "title": "Escrow Balance by Denomination",
+        "gridPos": {
+          "x": 12,
+          "y": 73,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_escrow_balance",
+            "legendFormat": "{{denom}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Current escrow balance tracked by denomination",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 28,
+        "type": "row",
+        "title": "Cross-Chain IBC Compute",
+        "gridPos": {
+          "x": 0,
+          "y": 81,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 29,
+        "type": "timeseries",
+        "title": "IBC Jobs Distributed to Remote Chains",
+        "gridPos": {
+          "x": 0,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_ibc_jobs_distributed_total{target_chain=~\"$chain\"}[5m])) by (target_chain)",
+            "legendFormat": "{{target_chain}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Jobs distributed to remote chains via IBC",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 30,
+        "type": "timeseries",
+        "title": "IBC Results Received from Remote Chains",
+        "gridPos": {
+          "x": 8,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_ibc_results_received_total[5m])) by (source_chain)",
+            "legendFormat": "{{source_chain}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Compute results received from remote chains via IBC",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 31,
+        "type": "timeseries",
+        "title": "Remote Providers Discovered",
+        "gridPos": {
+          "x": 16,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_remote_providers_discovered",
+            "legendFormat": "{{chain}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of remote compute providers discovered per chain",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 32,
+        "type": "timeseries",
+        "title": "Cross-Chain Job Latency",
+        "gridPos": {
+          "x": 0,
+          "y": 90,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_compute_cross_chain_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_compute_cross_chain_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_compute_cross_chain_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "description": "Cross-chain job execution latency distribution",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 33,
+        "type": "timeseries",
+        "title": "IBC Timeout Events",
+        "gridPos": {
+          "x": 12,
+          "y": 90,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_ibc_timeouts_total[1h])) by (chain)",
+            "legendFormat": "{{chain}}",
+            "refId": "A"
+          }
+        ],
+        "description": "IBC compute packet timeout events by chain",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 34,
+        "type": "row",
+        "title": "Security & Circuit Breakers",
+        "gridPos": {
+          "x": 0,
+          "y": 98,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 35,
+        "type": "timeseries",
+        "title": "Security Incidents by Type",
+        "gridPos": {
+          "x": 0,
+          "y": 99,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_security_incidents_total[1h])) by (type, severity)",
+            "legendFormat": "{{type}} - {{severity}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Security incidents detected by type and severity",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 36,
+        "type": "timeseries",
+        "title": "Rate Limit Violations",
+        "gridPos": {
+          "x": 12,
+          "y": 99,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_compute_rate_limits_exceeded_total[5m])) by (operation, user)",
+            "legendFormat": "{{operation}} - {{user}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Rate limit violations by operation and user",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 1,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 37,
+        "type": "timeseries",
+        "title": "Circuit Breaker Triggers",
+        "gridPos": {
+          "x": 0,
+          "y": 107,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_compute_circuit_breaker_triggers_total[1h])) by (reason)",
+            "legendFormat": "{{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Circuit breaker activations by reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 38,
+        "type": "stat",
+        "title": "Panic Recoveries (24h)",
+        "gridPos": {
+          "x": 12,
+          "y": 107,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "increase(paw_compute_panic_recoveries_total[24h])",
+            "legendFormat": "Panics",
+            "refId": "A"
+          }
+        ],
+        "description": "Panic recovery events in the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 39,
+        "type": "row",
+        "title": "System Maintenance & Cleanup",
+        "gridPos": {
+          "x": 0,
+          "y": 115,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 40,
+        "type": "timeseries",
+        "title": "Cleanup Operations Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 116,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_compute_timeout_cleanups_total[5m])",
+            "legendFormat": "Timeout Cleanups",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(paw_compute_stale_job_cleanups_total[5m])",
+            "legendFormat": "Stale Job Cleanups",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(paw_compute_nonce_cleanups_total[5m])",
+            "legendFormat": "Nonce Cleanups",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(paw_compute_state_recoveries_total[5m])",
+            "legendFormat": "State Recoveries",
+            "refId": "D"
+          }
+        ],
+        "description": "Various cleanup and recovery operations rate",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 41,
+        "type": "stat",
+        "title": "Total Nonces Cleaned",
+        "gridPos": {
+          "x": 0,
+          "y": 124,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_nonces_cleaned_total",
+            "legendFormat": "Nonces",
+            "refId": "A"
+          }
+        ],
+        "description": "Total number of nonces cleaned up",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 42,
+        "type": "stat",
+        "title": "State Recoveries (Total)",
+        "gridPos": {
+          "x": 8,
+          "y": 124,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_state_recoveries_total",
+            "legendFormat": "Recoveries",
+            "refId": "A"
+          }
+        ],
+        "description": "Total state recovery operations",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 43,
+        "type": "stat",
+        "title": "Stale Job Cleanups (Total)",
+        "gridPos": {
+          "x": 16,
+          "y": 124,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_compute_stale_job_cleanups_total",
+            "legendFormat": "Cleanups",
+            "refId": "A"
+          }
+        ],
+        "description": "Total stale job cleanup operations",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -24,7 +24,7 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(1_000_000), sdkmath.NewInt(2_000_000))
 
 	runBegin := func() {
-		require.NoError(t, k.BeginBlocker(sdk.WrapSDKContext(ctx)))
+		require.NoError(t, k.BeginBlocker(ctx))
 	}
 
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
@@ -32,17 +32,17 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 
 	// After BeginBlocker, TWAP should NOT be automatically updated anymore
 	// It should only update on swaps
-	_, found, err := k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	_, found, err := k.GetPoolTWAP(ctx, poolID)
 	require.NoError(t, err)
 	// TWAP record should not exist yet since no swaps have occurred
 	require.False(t, found, "TWAP should not be created by BeginBlocker")
 
 	// Manually update TWAP to simulate a swap
 	priceOne := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(2_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
-	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
+	err = k.UpdateCumulativePriceOnSwap(ctx, poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
 	require.NoError(t, err)
 
-	record, found, err := k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	record, found, err := k.GetPoolTWAP(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, int64(1_000), record.LastTimestamp)
@@ -52,17 +52,17 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	runBegin()
 
 	// BeginBlocker should not have updated the TWAP
-	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	record, found, err = k.GetPoolTWAP(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	// Timestamp should still be old since BeginBlocker doesn't update TWAP
 	require.Equal(t, int64(1_000), record.LastTimestamp, "BeginBlocker should not update TWAP")
 
 	// Simulate another swap to update TWAP
-	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
+	err = k.UpdateCumulativePriceOnSwap(ctx, poolID, priceOne, sdkmath.LegacyOneDec().Quo(priceOne))
 	require.NoError(t, err)
 
-	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	record, found, err = k.GetPoolTWAP(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, uint64(10), record.TotalSeconds)
@@ -72,15 +72,15 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(10 * time.Second)).WithEventManager(sdk.NewEventManager())
 
 	// Modify pool price to create a second TWAP interval.
-	pool, err := k.GetPool(sdk.WrapSDKContext(ctx), poolID)
+	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
 	pool.ReserveA = sdkmath.NewInt(1_000_000)
 	pool.ReserveB = sdkmath.NewInt(4_000_000)
-	require.NoError(t, k.SetPool(sdk.WrapSDKContext(ctx), pool))
+	require.NoError(t, k.SetPool(ctx, pool))
 
 	// Simulate a swap with new price (this captures the 10s since last swap)
 	priceTwo := sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(4_000_000)).Quo(sdkmath.LegacyNewDecFromInt(sdkmath.NewInt(1_000_000)))
-	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
+	err = k.UpdateCumulativePriceOnSwap(ctx, poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
 	require.NoError(t, err)
 
 	// Advance another 10 seconds
@@ -88,10 +88,10 @@ func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
 	runBegin()
 
 	// Simulate another swap
-	err = k.UpdateCumulativePriceOnSwap(sdk.WrapSDKContext(ctx), poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
+	err = k.UpdateCumulativePriceOnSwap(ctx, poolID, priceTwo, sdkmath.LegacyOneDec().Quo(priceTwo))
 	require.NoError(t, err)
 
-	record, found, err = k.GetPoolTWAP(sdk.WrapSDKContext(ctx), poolID)
+	record, found, err = k.GetPoolTWAP(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Equal(t, uint64(30), record.TotalSeconds)
@@ -120,13 +120,13 @@ func TestBeginBlocker_DistributeProtocolFees(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(500_000), sdkmath.NewInt(1_000_000))
 
 	amountIn := sdkmath.NewInt(1_000_000)
-	_, _, err := k.CollectSwapFees(sdk.WrapSDKContext(ctx), poolID, "upaw", amountIn)
+	_, _, err := k.CollectSwapFees(ctx, poolID, "upaw", amountIn)
 	require.NoError(t, err)
 
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-	require.NoError(t, k.BeginBlocker(sdk.WrapSDKContext(ctx)))
+	require.NoError(t, k.BeginBlocker(ctx))
 
-	protocolFees, err := k.GetProtocolFees(sdk.WrapSDKContext(ctx), "upaw")
+	protocolFees, err := k.GetProtocolFees(ctx, "upaw")
 	require.NoError(t, err)
 	require.True(t, protocolFees.IsZero(), "protocol fees should be cleared after distribution")
 
@@ -149,12 +149,12 @@ func TestEndBlocker_CircuitBreakerRecovery(t *testing.T) {
 		PausedUntil:   ctx.BlockTime().Add(-1 * time.Minute),
 		TriggerReason: "test-trigger",
 	}
-	require.NoError(t, k.SetCircuitBreakerState(sdk.WrapSDKContext(ctx), poolID, state))
+	require.NoError(t, k.SetCircuitBreakerState(ctx, poolID, state))
 
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-	require.NoError(t, k.EndBlocker(sdk.WrapSDKContext(ctx)))
+	require.NoError(t, k.EndBlocker(ctx))
 
-	recoveredState, err := k.GetCircuitBreakerState(sdk.WrapSDKContext(ctx), poolID)
+	recoveredState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.False(t, recoveredState.Enabled)
 	require.True(t, recoveredState.PausedUntil.IsZero())
@@ -187,7 +187,7 @@ func TestEndBlocker_CleanupRateLimitData(t *testing.T) {
 	keeper.SetRateLimitEntryForTest(k, ctx, newHeight, newUser, window)
 
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
-	require.NoError(t, k.EndBlocker(sdk.WrapSDKContext(ctx)))
+	require.NoError(t, k.EndBlocker(ctx))
 
 	require.False(t, keeper.RateLimitEntryExistsForTest(k, ctx, oldUser, window))
 	require.False(t, keeper.RateLimitIndexExistsForTest(k, ctx, oldHeight, oldUser, window))

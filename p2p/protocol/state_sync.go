@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/snapshot"
 )
 

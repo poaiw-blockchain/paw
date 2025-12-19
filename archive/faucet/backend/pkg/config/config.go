@@ -16,11 +16,11 @@ type Config struct {
 	CORSOrigins []string
 
 	// Blockchain configuration
-	NodeRPC         string
-	ChainID         string
-	FaucetMnemonic  string
-	FaucetAddress   string
-	Denom           string
+	NodeRPC          string
+	ChainID          string
+	FaucetMnemonic   string
+	FaucetAddress    string
+	Denom            string
 	AmountPerRequest int64
 
 	// Database configuration
@@ -38,8 +38,8 @@ type Config struct {
 	HCaptchaSecret string
 
 	// Transaction configuration
-	GasLimit       uint64
-	GasPrice       string
+	GasLimit        uint64
+	GasPrice        string
 	TransactionMemo string
 }
 
@@ -50,11 +50,11 @@ func Load() (*Config, error) {
 		Environment: getEnv("ENVIRONMENT", "development"),
 		CORSOrigins: strings.Split(getEnv("CORS_ORIGINS", "*"), ","),
 
-		NodeRPC:         getEnv("NODE_RPC", "http://localhost:26657"),
-		ChainID:         getEnv("CHAIN_ID", "paw-testnet-1"),
-		FaucetMnemonic:  getEnv("FAUCET_MNEMONIC", ""),
-		FaucetAddress:   getEnv("FAUCET_ADDRESS", ""),
-		Denom:           getEnv("DENOM", "upaw"),
+		NodeRPC:          getEnv("NODE_RPC", "http://localhost:26657"),
+		ChainID:          getEnv("CHAIN_ID", "paw-testnet-1"),
+		FaucetMnemonic:   getEnv("FAUCET_MNEMONIC", ""),
+		FaucetAddress:    getEnv("FAUCET_ADDRESS", ""),
+		Denom:            getEnv("DENOM", "upaw"),
 		AmountPerRequest: getEnvAsInt64("AMOUNT_PER_REQUEST", 100000000), // 100 PAW
 
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://faucet:faucet@localhost:5432/faucet?sslmode=disable"),
@@ -66,8 +66,8 @@ func Load() (*Config, error) {
 
 		HCaptchaSecret: getEnv("HCAPTCHA_SECRET", ""),
 
-		GasLimit:       uint64(getEnvAsInt("GAS_LIMIT", 200000)),
-		GasPrice:       getEnv("GAS_PRICE", "0.025upaw"),
+		GasLimit:        uint64(getEnvAsInt("GAS_LIMIT", 200000)),
+		GasPrice:        getEnv("GAS_PRICE", "0.025upaw"),
 		TransactionMemo: getEnv("TRANSACTION_MEMO", "PAW Testnet Faucet"),
 	}
 

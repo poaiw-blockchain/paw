@@ -65,8 +65,8 @@ type PeerConnection struct {
 	BytesRecv    uint64
 	MessagesRecv uint64
 	MessagesSent uint64
-	Conn         net.Conn      // Network connection
-	WriteMu      sync.Mutex    // Mutex for thread-safe writes
+	Conn         net.Conn   // Network connection
+	WriteMu      sync.Mutex // Mutex for thread-safe writes
 }
 
 // DiscoveryConfig configures the peer discovery service

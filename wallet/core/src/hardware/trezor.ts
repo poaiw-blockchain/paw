@@ -17,10 +17,14 @@ import {
   HardwareWalletError,
   CosmosTransaction,
 } from './types';
+import { assertBech32Prefix, validateSignDocBasics } from './guards';
+import { HardwareWalletUtils } from './index';
 
 const DEFAULT_COIN_TYPE = 118; // Cosmos coin type
 const DEFAULT_PREFIX = 'paw';
 const DEFAULT_TIMEOUT = 60000; // 60 seconds
+const DEFAULT_ALLOWED_FEE_DENOMS = ['upaw'];
+const DEFAULT_MAX_ACCOUNT_INDEX = 4;
 
 export class TrezorWallet implements IHardwareWallet {
   readonly type = HardwareWalletType.TREZOR;
@@ -34,6 +38,12 @@ export class TrezorWallet implements IHardwareWallet {
       timeout: config.timeout || DEFAULT_TIMEOUT,
       coinType: config.coinType || DEFAULT_COIN_TYPE,
       prefix: config.prefix || DEFAULT_PREFIX,
+      signMode: config.signMode || 'amino',
+      enforceChainId: config.enforceChainId,
+      allowedFeeDenoms: config.allowedFeeDenoms || DEFAULT_ALLOWED_FEE_DENOMS,
+      maxAccountIndex: config.maxAccountIndex ?? DEFAULT_MAX_ACCOUNT_INDEX,
+      allowedManufacturers: config.allowedManufacturers || [],
+      allowedProductNames: config.allowedProductNames || [],
       debug: config.debug || false,
     };
   }
@@ -201,7 +211,7 @@ export class TrezorWallet implements IHardwareWallet {
 
     try {
       const result = await TrezorConnect.cosmosGetAddress({
-        path,
+        path: this.normalizePath(path),
         showOnTrezor: showOnDevice,
       });
 
@@ -217,6 +227,7 @@ export class TrezorWallet implements IHardwareWallet {
         throw this.createError('Unexpected address bundle response', 'GET_ADDRESS_FAILED');
       }
 
+      assertBech32Prefix(payload.address, this.config.prefix);
       return payload.address;
     } catch (error: any) {
       throw this.handleError(error, 'Failed to get address');
@@ -232,7 +243,7 @@ export class TrezorWallet implements IHardwareWallet {
     const accounts: HardwareWalletAccount[] = [];
 
     // Get addresses in batch
-    const bundle = paths.map(path => ({ path, showOnTrezor: false }));
+    const bundle = paths.map(path => ({ path: this.normalizePath(path), showOnTrezor: false }));
 
     try {
       const result = await TrezorConnect.cosmosGetAddress({ bundle });
@@ -289,10 +300,27 @@ export class TrezorWallet implements IHardwareWallet {
     try {
       // Parse transaction
       const tx = this.parseTransaction(txBytes);
+      if (this.config.signMode === 'direct') {
+        throw this.createError(
+          'Direct sign is not available via Trezor Connect; use amino payloads',
+          'UNSUPPORTED_SIGN_MODE'
+        );
+      }
+      validateSignDocBasics(
+        {
+          chain_id: tx.chain_id,
+          fee: tx.fee,
+        },
+        {
+          enforceChainId: this.config.enforceChainId,
+          allowedFeeDenoms: this.config.allowedFeeDenoms,
+        }
+      );
+      this.validateMsgAddresses(tx.msgs);
 
       // Sign with Trezor
       const result = await TrezorConnect.cosmosSignTransaction({
-        path,
+        path: this.normalizePath(path),
         transaction: {
           chain_id: tx.chain_id,
           account_number: tx.account_number,
@@ -343,7 +371,7 @@ export class TrezorWallet implements IHardwareWallet {
 
       // Trezor doesn't have native Cosmos message signing, use Ethereum-style
       const result = await TrezorConnect.ethereumSignMessage({
-        path,
+        path: this.normalizePath(path),
         message: messageStr,
         hex: false,
       });
@@ -375,6 +403,53 @@ export class TrezorWallet implements IHardwareWallet {
       return JSON.parse(txString);
     } catch (error) {
       throw this.createError('Failed to parse transaction', 'INVALID_TX');
+    }
+  }
+
+  private normalizePath(path: string): string {
+    const sanitized = path.startsWith('m/') ? path.slice(2) : path;
+    const segments = sanitized.split('/');
+    if (segments.length !== 5) {
+      throw this.createError(`Invalid derivation path: ${path}`, 'INVALID_PATH');
+    }
+    const accountSeg = segments[2];
+    const account = parseInt(accountSeg.replace("'", ''), 10);
+    if (Number.isNaN(account) || account > this.config.maxAccountIndex) {
+      throw this.createError(
+        `Invalid path: account index exceeds max (${this.config.maxAccountIndex})`,
+        'INVALID_PATH'
+      );
+    }
+    return segments
+      .map((seg, idx) => {
+        const hardened = seg.endsWith("'");
+        const val = parseInt(hardened ? seg.slice(0, -1) : seg, 10);
+        if (Number.isNaN(val)) {
+          throw this.createError(`Invalid path segment: ${seg}`, 'INVALID_PATH');
+        }
+        if (idx < 3 && !hardened) {
+          throw this.createError(`Path segment must be hardened: ${seg}`, 'INVALID_PATH');
+        }
+        return hardened || idx < 3 ? `${val}'` : `${val}`;
+      })
+      .join('/');
+  }
+
+  private validateMsgAddresses(msgs: any[]): void {
+    if (!Array.isArray(msgs)) return;
+    for (const msg of msgs) {
+      if (msg?.value && typeof msg.value === 'object') {
+        const value = msg.value;
+        Object.entries(value).forEach(([key, val]) => {
+          if (typeof val === 'string' && key.toLowerCase().includes('address')) {
+            try {
+              assertBech32Prefix(val, this.config.prefix);
+            } catch (err: any) {
+              throw this.createError(`Invalid bech32 prefix for ${key}: ${err.message}`, 'INVALID_DATA');
+            }
+          }
+        });
+      }
     }
   }
 

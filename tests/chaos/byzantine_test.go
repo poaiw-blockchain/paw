@@ -14,10 +14,10 @@ import (
 // ByzantineTestSuite tests system behavior under Byzantine attacks
 type ByzantineTestSuite struct {
 	suite.Suite
-	nodes           []*ByzantineNode
-	network         *NetworkSimulator
-	maliciousCount  int
-	txCounter       uint64
+	nodes          []*ByzantineNode
+	network        *NetworkSimulator
+	maliciousCount int
+	txCounter      uint64
 }
 
 func TestByzantineAttacksSuite(t *testing.T) {
@@ -130,7 +130,9 @@ func (suite *ByzantineTestSuite) TestSelfishMining() {
 				return
 			default:
 				block := suite.createBlock(uint64(i+1), fmt.Sprintf("secret-%d", i), attackers[0].ID)
-				attackers[0].MineSecretly(ctx, block)
+				if err := attackers[0].MineSecretly(ctx, block); err != nil {
+					suite.T().Logf("secret mining failed: %v", err)
+				}
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
@@ -147,7 +149,9 @@ func (suite *ByzantineTestSuite) TestSelfishMining() {
 				return
 			default:
 				block := suite.createBlock(uint64(i+1), fmt.Sprintf("honest-%d", i), honestNodes[0].ID)
-				honestNodes[0].ProposeBlock(ctx, block)
+				if err := honestNodes[0].ProposeBlock(ctx, block); err != nil {
+					suite.T().Logf("honest proposal failed: %v", err)
+				}
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
@@ -207,7 +211,9 @@ func (suite *ByzantineTestSuite) TestSpamAttack() {
 			defer wg.Done()
 			for i := 0; i < spamCount/suite.maliciousCount; i++ {
 				tx := suite.createTransaction(fmt.Sprintf("spam-%s-%d", node.ID, i), 1)
-				node.SubmitTransaction(ctx, tx)
+				if err := node.SubmitTransaction(ctx, tx); err != nil {
+					suite.T().Logf("spam tx submit failed: %v", err)
+				}
 			}
 		}(attacker)
 	}
@@ -222,7 +228,9 @@ func (suite *ByzantineTestSuite) TestSpamAttack() {
 		for i := 0; i < 100; i++ {
 			tx := suite.createTransaction(fmt.Sprintf("legit-%d", i), 100)
 			legitimateTxs[i] = tx
-			honestNodes[0].SubmitTransaction(ctx, tx)
+			if err := honestNodes[0].SubmitTransaction(ctx, tx); err != nil {
+				suite.T().Logf("legitimate tx submit failed: %v", err)
+			}
 			time.Sleep(50 * time.Millisecond)
 		}
 	}()
@@ -258,7 +266,9 @@ func (suite *ByzantineTestSuite) TestLongRangeAttack() {
 	// Honest chain progresses normally
 	for i := 1; i <= 10; i++ {
 		block := suite.createBlock(uint64(i), fmt.Sprintf("honest-%d", i), honestNode.ID)
-		honestNode.ProposeBlock(ctx, block)
+		if err := honestNode.ProposeBlock(ctx, block); err != nil {
+			suite.T().Logf("honest proposal failed: %v", err)
+		}
 		time.Sleep(200 * time.Millisecond)
 	}
 
@@ -266,7 +276,9 @@ func (suite *ByzantineTestSuite) TestLongRangeAttack() {
 	for i := 1; i <= 15; i++ {
 		block := suite.createBlock(uint64(i), fmt.Sprintf("attack-%d", i), attacker.ID)
 		block.Timestamp = time.Now().Add(-24 * time.Hour) // Backdated
-		attacker.ProposeBlock(ctx, block)
+		if err := attacker.ProposeBlock(ctx, block); err != nil {
+			suite.T().Logf("attacker proposal failed: %v", err)
+		}
 	}
 
 	time.Sleep(3 * time.Second)
@@ -332,7 +344,9 @@ func (suite *ByzantineTestSuite) TestCensorshipAttack() {
 		tx := suite.createTransaction(fmt.Sprintf("censored-%d", i), 10)
 		tx.Data = []byte(censoredAddress)
 		censoredTxs[i] = tx
-		suite.nodes[0].SubmitTransaction(ctx, tx)
+		if err := suite.nodes[0].SubmitTransaction(ctx, tx); err != nil {
+			suite.T().Logf("censored tx submit failed: %v", err)
+		}
 		time.Sleep(100 * time.Millisecond)
 	}
 
@@ -366,7 +380,9 @@ func (suite *ByzantineTestSuite) TestTimeManipulation() {
 	futureBlock := suite.createBlock(1, "future-block", attacker.ID)
 	futureBlock.Timestamp = time.Now().Add(1 * time.Hour)
 
-	attacker.ProposeBlock(ctx, futureBlock)
+	if err := attacker.ProposeBlock(ctx, futureBlock); err != nil {
+		suite.T().Logf("future block proposal failed: %v", err)
+	}
 	time.Sleep(2 * time.Second)
 
 	// Honest nodes should reject
@@ -377,7 +393,9 @@ func (suite *ByzantineTestSuite) TestTimeManipulation() {
 	pastBlock := suite.createBlock(1, "past-block", attacker.ID)
 	pastBlock.Timestamp = time.Now().Add(-2 * time.Hour)
 
-	attacker.ProposeBlock(ctx, pastBlock)
+	if err := attacker.ProposeBlock(ctx, pastBlock); err != nil {
+		suite.T().Logf("past block proposal failed: %v", err)
+	}
 	time.Sleep(2 * time.Second)
 
 	// Should also be rejected if outside threshold
@@ -409,18 +427,18 @@ func (suite *ByzantineTestSuite) createTransaction(id string, amount uint64) *Tr
 // ByzantineNode extends Node with malicious capabilities
 type ByzantineNode struct {
 	*Node
-	isMalicious           bool
-	enableDoubleSigning   bool
-	enableEquivocation    bool
-	enableSelfishMining   bool
-	secretChain           []*Block
-	censoredAddresses     map[string]bool
-	flaggedNodes          map[string]bool
-	equivocationDetected  map[string]bool
-	slashedNodes          map[string]bool
-	rateLimited           map[string]bool
-	acceptedBlocks        []*Block
-	mu                    sync.RWMutex
+	isMalicious          bool
+	enableDoubleSigning  bool
+	enableEquivocation   bool
+	enableSelfishMining  bool
+	secretChain          []*Block
+	censoredAddresses    map[string]bool
+	flaggedNodes         map[string]bool
+	equivocationDetected map[string]bool
+	slashedNodes         map[string]bool
+	rateLimited          map[string]bool
+	acceptedBlocks       []*Block
+	mu                   sync.RWMutex
 }
 
 func NewByzantineNode(id string, network *NetworkSimulator, malicious bool) *ByzantineNode {

@@ -375,9 +375,9 @@ func (k Keeper) TriggerCircuitBreaker(ctx context.Context, asset, reason string,
 	return nil
 }
 
-// CheckCircuitBreaker verifies if circuit breaker is active with atomic state transition.
+// CheckCircuitBreakerWithRecovery verifies if circuit breaker is active with atomic state transition.
 // Uses optimistic locking via block height to prevent race conditions during auto-recovery.
-func (k Keeper) CheckCircuitBreaker(ctx context.Context) (bool, error) {
+func (k Keeper) CheckCircuitBreakerWithRecovery(ctx context.Context) (bool, error) {
 	state, err := k.getCircuitBreakerState(ctx)
 	if err != nil {
 		return false, err
@@ -795,7 +795,7 @@ func (k Keeper) PerformSecurityAudit(ctx context.Context, asset string) error {
 	}
 
 	// Check 3: Circuit breaker status
-	if active, _ := k.CheckCircuitBreaker(ctx); active {
+	if active, _ := k.CheckCircuitBreakerWithRecovery(ctx); active {
 		return fmt.Errorf("circuit breaker is active - trading halted")
 	}
 

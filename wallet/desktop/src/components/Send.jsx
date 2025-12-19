@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ApiService } from '../services/api';
 import { KeystoreService } from '../services/keystore';
+import LedgerService from '../services/ledger';
 
 const Send = ({ walletData, onSuccess }) => {
   const [recipient, setRecipient] = useState('');
@@ -14,6 +15,8 @@ const Send = ({ walletData, onSuccess }) => {
 
   const apiService = new ApiService();
   const keystoreService = new KeystoreService();
+  const ledgerService = new LedgerService();
+  const isLedger = walletData?.type === 'ledger';
 
   const validateForm = () => {
     if (!recipient.trim()) {
@@ -28,7 +31,7 @@ const Send = ({ walletData, onSuccess }) => {
       throw new Error('Amount must be greater than 0');
     }
 
-    if (!password) {
+    if (!isLedger && !password) {
       throw new Error('Password is required to sign transaction');
     }
   };
@@ -51,24 +54,38 @@ const Send = ({ walletData, onSuccess }) => {
 
       validateForm();
 
-      // Verify password and get private key
-      const wallet = await keystoreService.unlockWallet(password);
-      if (!wallet) {
-        throw new Error('Invalid password');
-      }
-
       // Convert amount to smallest unit (upaw)
       const amountInUpaw = Math.floor(parseFloat(amount) * 1000000);
 
-      // Send transaction
-      const result = await apiService.sendTokens(
-        walletData.address,
-        recipient,
-        amountInUpaw,
-        'upaw',
-        memo,
-        wallet.privateKey
-      );
+      let result;
+      if (isLedger) {
+        const { client } = await ledgerService.getSigningClient();
+        result = await client.sendTokens(
+          walletData.address,
+          recipient,
+          [{ denom: 'upaw', amount: amountInUpaw.toString() }],
+          {
+            amount: [{ denom: 'upaw', amount: '5000' }],
+            gas: '200000',
+          },
+          memo
+        );
+      } else {
+        // Verify password and get private key
+        const wallet = await keystoreService.unlockWallet(password);
+        if (!wallet) {
+          throw new Error('Invalid password');
+        }
+
+        result = await apiService.sendTokens(
+          walletData.address,
+          recipient,
+          amountInUpaw,
+          'upaw',
+          memo,
+          wallet.privateKey
+        );
+      }
 
       setSuccess(`Transaction successful! Hash: ${result.transactionHash || result.txhash}`);
       setRecipient('');
@@ -205,19 +222,26 @@ const Send = ({ walletData, onSuccess }) => {
           />
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input
-            type="password"
-            className="form-input"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <div className="text-muted" style={{ fontSize: '11px', marginTop: '5px' }}>
-            Required to sign the transaction
+        {!isLedger && (
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div className="text-muted" style={{ fontSize: '11px', marginTop: '5px' }}>
+              Required to sign the transaction
+            </div>
           </div>
-        </div>
+        )}
+        {isLedger && (
+          <div className="text-muted mb-10" style={{ fontSize: '12px' }}>
+            Ledger connected: confirm this transfer on your device. No password required.
+          </div>
+        )}
 
         {error && <div className="text-error mb-20">{error}</div>}
 

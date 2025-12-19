@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"bytes"
+
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 

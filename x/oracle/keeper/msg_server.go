@@ -28,12 +28,8 @@ func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// SECURITY CHECK 1: Circuit Breaker
-	circuitBreakerActive, err := ms.CheckCircuitBreaker(goCtx)
-	if err != nil {
+	if err := ms.CheckCircuitBreaker(goCtx); err != nil {
 		return nil, fmt.Errorf("circuit breaker check failed: %w", err)
-	}
-	if circuitBreakerActive {
-		return nil, fmt.Errorf("circuit breaker is active - price submissions paused")
 	}
 
 	// Validate validator address

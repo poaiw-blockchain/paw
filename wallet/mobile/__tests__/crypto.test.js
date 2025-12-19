@@ -2,6 +2,7 @@
  * Crypto utility tests
  */
 
+import CryptoJS from 'crypto-js';
 import {
   generateMnemonic,
   validateMnemonic,
@@ -15,6 +16,8 @@ import {
   verifySignature,
   encrypt,
   decrypt,
+  decryptWithMigration,
+  isLegacyCiphertext,
 } from '../src/utils/crypto';
 
 describe('Crypto Utils', () => {
@@ -148,6 +151,36 @@ describe('Crypto Utils', () => {
       const encrypted = encrypt(data, password);
       const decrypted = decrypt(encrypted, password);
       expect(decrypted).toBe(data);
+    });
+
+    test('includes metadata for new encryption format', () => {
+      const encrypted = encrypt('payload', 'password');
+      const parsed = JSON.parse(encrypted);
+      expect(parsed.v).toBe(1);
+      expect(parsed.ct).toBeTruthy();
+      expect(parsed.salt).toBeTruthy();
+      expect(parsed.iv).toBeTruthy();
+      expect(parsed.iter).toBeGreaterThan(0);
+    });
+
+    test('can decrypt legacy ciphertext for backward compatibility', () => {
+      const data = 'legacy data';
+      const password = 'legacy';
+      const legacyCipher = CryptoJS.AES.encrypt(data, password).toString();
+      const decrypted = decrypt(legacyCipher, password);
+      expect(decrypted).toBe(data);
+    });
+
+    test('detects legacy payloads and produces migrated ciphertext', () => {
+      const data = 'to migrate';
+      const password = 'legacy';
+      const legacyCipher = CryptoJS.AES.encrypt(data, password).toString();
+      expect(isLegacyCiphertext(legacyCipher)).toBe(true);
+      const result = decryptWithMigration(legacyCipher, password);
+      expect(result.plaintext).toBe(data);
+      expect(result.migratedCiphertext).toBeTruthy();
+      expect(isLegacyCiphertext(result.migratedCiphertext)).toBe(false);
+      expect(decrypt(result.migratedCiphertext, password)).toBe(data);
     });
 
     test('should fail to decrypt with wrong password', () => {

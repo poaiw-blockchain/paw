@@ -17,6 +17,7 @@ import (
 	"github.com/paw-chain/paw/explorer/indexer/config"
 	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
 	"github.com/paw-chain/paw/explorer/indexer/internal/database"
+	"github.com/paw-chain/paw/explorer/indexer/internal/indexer"
 	"github.com/paw-chain/paw/explorer/indexer/internal/websocket/hub"
 	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
 )
@@ -51,6 +52,7 @@ type Server struct {
 	db       *database.Database
 	cache    *cache.RedisCache
 	wsHub    *hub.Hub
+	indexer  *indexer.Indexer
 	log      *logger.Logger
 	router   *gin.Engine
 	server   *http.Server
@@ -64,6 +66,7 @@ func NewServer(
 	db *database.Database,
 	cache *cache.RedisCache,
 	wsHub *hub.Hub,
+	idx *indexer.Indexer,
 	log *logger.Logger,
 ) *Server {
 	if cfg.RateLimit <= 0 {
@@ -79,6 +82,7 @@ func NewServer(
 		db:      db,
 		cache:   cache,
 		wsHub:   wsHub,
+		indexer: idx,
 		log:     log,
 		router:  router,
 		limiter: rate.NewLimiter(rate.Limit(cfg.RateLimit), cfg.RateLimit*2),

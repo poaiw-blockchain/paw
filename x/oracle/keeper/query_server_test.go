@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	sdkmath "cosmossdk.io/math"
@@ -62,6 +63,40 @@ func TestOracleQueryServer_Prices(t *testing.T) {
 	require.NotNil(t, pricesResp.Pagination.NextKey)
 }
 
+func TestOracleQueryServer_PricesPaginationBounds(t *testing.T) {
+	server, k, ctx := setupOracleQueryServer(t)
+	ctx = ctx.WithBlockHeight(10)
+
+	for i := 0; i < 120; i++ {
+		price := types.Price{
+			Asset:         fmt.Sprintf("ASSET%d/USD", i),
+			Price:         sdkmath.LegacyOneDec(),
+			BlockHeight:   ctx.BlockHeight(),
+			BlockTime:     ctx.BlockTime().Unix(),
+			NumValidators: 1,
+		}
+		require.NoError(t, k.SetPrice(ctx, price))
+	}
+
+	t.Run("nil pagination defaults to bounded page", func(t *testing.T) {
+		resp, err := server.Prices(ctx, &types.QueryPricesRequest{})
+		require.NoError(t, err)
+		require.Len(t, resp.Prices, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
+
+	t.Run("zero limit defaults to bounded page", func(t *testing.T) {
+		resp, err := server.Prices(ctx, &types.QueryPricesRequest{
+			Pagination: &query.PageRequest{Limit: 0},
+		})
+		require.NoError(t, err)
+		require.Len(t, resp.Prices, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
+}
+
 func TestOracleQueryServer_Validators(t *testing.T) {
 	server, k, ctx := setupOracleQueryServer(t)
 
@@ -96,6 +131,37 @@ func TestOracleQueryServer_Validators(t *testing.T) {
 	require.Len(t, validatorsResp.Validators, 1)
 	require.NotNil(t, validatorsResp.Pagination)
 	require.NotNil(t, validatorsResp.Pagination.NextKey)
+}
+
+func TestOracleQueryServer_ValidatorsPaginationBounds(t *testing.T) {
+	server, k, ctx := setupOracleQueryServer(t)
+
+	for i := 0; i < 120; i++ {
+		valAddr := makeValAddr(byte(i))
+		require.NoError(t, k.SetValidatorOracle(ctx, types.ValidatorOracle{
+			ValidatorAddr:    valAddr.String(),
+			MissCounter:      0,
+			TotalSubmissions: 1,
+		}))
+	}
+
+	t.Run("nil pagination defaults to bounded page", func(t *testing.T) {
+		resp, err := server.Validators(ctx, &types.QueryValidatorsRequest{})
+		require.NoError(t, err)
+		require.Len(t, resp.Validators, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
+
+	t.Run("zero limit defaults to bounded page", func(t *testing.T) {
+		resp, err := server.Validators(ctx, &types.QueryValidatorsRequest{
+			Pagination: &query.PageRequest{Limit: 0},
+		})
+		require.NoError(t, err)
+		require.Len(t, resp.Validators, 100)
+		require.NotNil(t, resp.Pagination)
+		require.NotNil(t, resp.Pagination.NextKey)
+	})
 }
 
 func makeValAddr(tag byte) sdk.ValAddress {

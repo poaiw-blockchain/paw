@@ -398,6 +398,8 @@ Total Supply: **50,000,000 PAW** (50 trillion upaw)
 
 ### Genesis Validator Process
 
+Always initialize a fresh home with the chain denom to avoid the SDK's default `stake` creeping into staking validation. `pawd init --default-denom upaw` now rewrites staking, mint, gov, and crisis params in the genesis so all modules agree on `upaw`.
+
 1. **Generate Keys**:
    ```bash
    pawd keys add validator

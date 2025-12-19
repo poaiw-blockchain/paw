@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"paw/control-center/audit-log/middleware"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/middleware"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -173,19 +173,21 @@ func TestAuditLogger_DetermineEventType(t *testing.T) {
 		},
 	}
 
-	stor, cleanup := setupTestStorage(t)
-	defer cleanup()
+		stor, cleanup := setupTestStorage(t)
+		defer cleanup()
 
-	logger := middleware.NewAuditLogger(stor)
+		logger := middleware.NewAuditLogger(stor)
+		_ = logger
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, tt.path, nil)
-			// Using reflection to call private method would require making it public
-			// For now, we test through the middleware
-		})
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				req := httptest.NewRequest(tt.method, tt.path, nil)
+				_ = req
+				// Using reflection to call private method would require making it public
+				// For now, we test through the middleware
+			})
+		}
 	}
-}
 
 func TestAuditLogger_HashChain(t *testing.T) {
 	t.Parallel()

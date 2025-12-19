@@ -43,6 +43,7 @@ func (suite *ConcurrencyTestSuite) TestDEXConcurrentSwaps() {
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(goroutineID int) {
+			_ = goroutineID
 			defer wg.Done()
 
 			for j := 0; j < swapsPerGoroutine; j++ {
@@ -89,6 +90,7 @@ func (suite *ConcurrencyTestSuite) TestDEXConcurrentLiquidityOperations() {
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(goroutineID int) {
+			_ = goroutineID
 			defer wg.Done()
 
 			// Alternately add and remove liquidity
@@ -193,21 +195,6 @@ func (suite *ConcurrencyTestSuite) TestRaceConditionDetection() {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	// Test without mutex (would cause race condition)
-	// Uncomment to test race detector: go test -race
-	/*
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for j := 0; j < int(expectedIncrement/int64(numGoroutines)); j++ {
-				sharedCounter++ // RACE CONDITION
-			}
-		}()
-	}
-	wg.Wait()
-	*/
-
 	// Test with proper synchronization
 	sharedCounter = 0
 	for i := 0; i < numGoroutines; i++ {
@@ -238,21 +225,21 @@ func (suite *ConcurrencyTestSuite) TestDeadlockDetection() {
 	// Proper lock ordering to avoid deadlock
 	go func() {
 		mu1.Lock()
+		defer mu1.Unlock()
 		time.Sleep(10 * time.Millisecond)
 		mu2.Lock()
+		defer mu2.Unlock()
 		// Critical section
-		mu2.Unlock()
-		mu1.Unlock()
 		done <- true
 	}()
 
 	go func() {
 		mu1.Lock()
+		defer mu1.Unlock()
 		time.Sleep(10 * time.Millisecond)
 		mu2.Lock()
+		defer mu2.Unlock()
 		// Critical section
-		mu2.Unlock()
-		mu1.Unlock()
 		done <- true
 	}()
 
@@ -286,6 +273,7 @@ func (suite *ConcurrencyTestSuite) TestChannelConcurrency() {
 	for i := 0; i < numProducers; i++ {
 		wg.Add(1)
 		go func(producerID int) {
+			_ = producerID
 			defer wg.Done()
 			for j := 0; j < itemsPerProducer; j++ {
 				ch <- producerID*1000 + j
@@ -306,6 +294,7 @@ func (suite *ConcurrencyTestSuite) TestChannelConcurrency() {
 	for i := 0; i < numConsumers; i++ {
 		consumerWg.Add(1)
 		go func(consumerID int) {
+			_ = consumerID
 			defer consumerWg.Done()
 			for range ch {
 				atomic.AddUint64(&consumedCount, 1)
@@ -452,29 +441,60 @@ func (suite *ConcurrencyTestSuite) TestConcurrentStateModification() {
 // Helper methods
 
 func (suite *ConcurrencyTestSuite) executeSwap(ctx context.Context, poolID uint64, amount int64) error {
-	// Simulate swap operation
-	time.Sleep(5 * time.Millisecond)
-	return nil
+	_ = poolID
+	_ = amount
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Millisecond):
+		return nil
+	}
 }
 
 func (suite *ConcurrencyTestSuite) addLiquidity(ctx context.Context, poolID uint64, amountA, amountB int64) error {
-	time.Sleep(10 * time.Millisecond)
-	return nil
+	_ = poolID
+	_ = amountA
+	_ = amountB
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(10 * time.Millisecond):
+		return nil
+	}
 }
 
 func (suite *ConcurrencyTestSuite) removeLiquidity(ctx context.Context, poolID uint64, sharePercent int) error {
-	time.Sleep(10 * time.Millisecond)
-	return nil
+	_ = poolID
+	_ = sharePercent
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(10 * time.Millisecond):
+		return nil
+	}
 }
 
 func (suite *ConcurrencyTestSuite) submitOraclePrice(ctx context.Context, validatorID int, asset string, price float64) error {
-	time.Sleep(5 * time.Millisecond)
-	return nil
+	_ = validatorID
+	_ = asset
+	_ = price
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Millisecond):
+		return nil
+	}
 }
 
 func (suite *ConcurrencyTestSuite) submitComputeRequest(ctx context.Context, requestID string, escrow int64) error {
-	time.Sleep(5 * time.Millisecond)
-	return nil
+	_ = requestID
+	_ = escrow
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Millisecond):
+		return nil
+	}
 }
 
 func (suite *ConcurrencyTestSuite) verifyPoolInvariants(poolID uint64) {

@@ -8,12 +8,18 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
 type queryServer struct {
 	Keeper
 }
+
+const (
+	defaultPaginationLimit = 100
+	maxPaginationLimit     = 1000
+)
 
 // NewQueryServerImpl returns an implementation of the dex QueryServer interface
 func NewQueryServerImpl(keeper Keeper) types.QueryServer {
@@ -58,6 +64,18 @@ func (qs queryServer) Pool(goCtx context.Context, req *types.QueryPoolRequest) (
 func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest) (*types.QueryPoolsResponse, error) {
 	if req == nil {
 		return nil, sdkerrors.ErrInvalidRequest
+	}
+
+	// Enforce sane pagination defaults and caps to protect against unbounded queries.
+	if req.Pagination == nil {
+		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
+	} else {
+		if req.Pagination.Limit == 0 {
+			req.Pagination.Limit = defaultPaginationLimit
+		}
+		if req.Pagination.Limit > maxPaginationLimit {
+			req.Pagination.Limit = maxPaginationLimit
+		}
 	}
 
 	var pools []types.Pool
@@ -161,6 +179,17 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	if req.Pagination == nil {
+		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
+	} else {
+		if req.Pagination.Limit == 0 {
+			req.Pagination.Limit = defaultPaginationLimit
+		}
+		if req.Pagination.Limit > maxPaginationLimit {
+			req.Pagination.Limit = maxPaginationLimit
+		}
+	}
+
 	var orders []types.LimitOrder
 	store := qs.Keeper.getStore(goCtx)
 	orderStore := prefix.NewStore(store, LimitOrderKeyPrefix)
@@ -190,6 +219,17 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	if req.Pagination == nil {
+		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
+	} else {
+		if req.Pagination.Limit == 0 {
+			req.Pagination.Limit = defaultPaginationLimit
+		}
+		if req.Pagination.Limit > maxPaginationLimit {
+			req.Pagination.Limit = maxPaginationLimit
+		}
+	}
+
 	owner, err := sdk.AccAddressFromBech32(req.Owner)
 	if err != nil {
 		return nil, err
@@ -197,7 +237,7 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 
 	// Extract pagination parameters
 	var pageKey []byte
-	var limit uint64 = 100
+	var limit uint64 = defaultPaginationLimit
 	if req.Pagination != nil {
 		pageKey = req.Pagination.Key
 		if req.Pagination.Limit > 0 {
@@ -230,9 +270,20 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	if req.Pagination == nil {
+		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
+	} else {
+		if req.Pagination.Limit == 0 {
+			req.Pagination.Limit = defaultPaginationLimit
+		}
+		if req.Pagination.Limit > maxPaginationLimit {
+			req.Pagination.Limit = maxPaginationLimit
+		}
+	}
+
 	// Extract pagination parameters
 	var pageKey []byte
-	var limit uint64 = 100
+	var limit uint64 = defaultPaginationLimit
 	if req.Pagination != nil {
 		pageKey = req.Pagination.Key
 		if req.Pagination.Limit > 0 {

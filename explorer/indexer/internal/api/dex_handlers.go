@@ -337,10 +337,10 @@ func (s *Server) handleGetTopTradingPairs(c *gin.Context) {
 // handleSimulateSwap handles POST /dex/simulate-swap
 func (s *Server) handleSimulateSwap(c *gin.Context) {
 	var req struct {
-		PoolID    string `json:"pool_id" binding:"required"`
-		TokenIn   string `json:"token_in" binding:"required"`
-		AmountIn  string `json:"amount_in" binding:"required"`
-		TokenOut  string `json:"token_out" binding:"required"`
+		PoolID   string `json:"pool_id" binding:"required"`
+		TokenIn  string `json:"token_in" binding:"required"`
+		AmountIn string `json:"amount_in" binding:"required"`
+		TokenOut string `json:"token_out" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -370,9 +370,9 @@ func (s *Server) handleSimulateSwap(c *gin.Context) {
 		return
 	}
 
-	reserveA, _ := strconv.ParseFloat(pool.ReserveA, 64)
-	reserveB, _ := strconv.ParseFloat(pool.ReserveB, 64)
-	swapFee, _ := strconv.ParseFloat(pool.SwapFee, 64)
+	reserveA := pool.ReserveA
+	reserveB := pool.ReserveB
+	swapFee := pool.SwapFeeRate
 
 	// Determine direction
 	var amountOut float64

@@ -138,6 +138,15 @@ open http://localhost:11080
 make open
 ```
 
+### Staging Sandbox (local)
+
+A self-contained staging stack (nginx → Flask → stub indexer → Postgres/Redis/Prometheus) is available:
+```bash
+cd /home/hudson/blockchain-projects/paw/explorer/flask
+./deploy-staging.sh
+```
+Ports: explorer `11083`, indexer `11081`, Postgres `11432`, Prometheus `11091`. The staging indexer is a stub returning `/health` and empty datasets to keep the stack green while the full pipeline is wired.
+
 ## Configuration Options
 
 ### Environment Variables

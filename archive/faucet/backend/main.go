@@ -59,8 +59,8 @@ func main() {
 	}
 
 	log.WithFields(log.Fields{
-		"port":              cfg.Port,
-		"chain_id":          cfg.ChainID,
+		"port":               cfg.Port,
+		"chain_id":           cfg.ChainID,
 		"amount_per_request": cfg.AmountPerRequest,
 	}).Info("Configuration loaded")
 

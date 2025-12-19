@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -17,23 +16,23 @@ import (
 
 // AuthManager manages API authentication
 type AuthManager struct {
-	apiKeys      map[string]*APIKey
-	jwtSecret    []byte
-	mu           sync.RWMutex
-	cache        CacheInterface
+	apiKeys   map[string]*APIKey
+	jwtSecret []byte
+	mu        sync.RWMutex
+	cache     CacheInterface
 }
 
 // APIKey represents an API key
 type APIKey struct {
-	Key         string    `json:"key"`
-	Name        string    `json:"name"`
-	Tier        string    `json:"tier"` // "free", "pro", "enterprise"
-	RateLimit   int       `json:"rate_limit"`
-	Active      bool      `json:"active"`
-	CreatedAt   time.Time `json:"created_at"`
+	Key         string     `json:"key"`
+	Name        string     `json:"name"`
+	Tier        string     `json:"tier"` // "free", "pro", "enterprise"
+	RateLimit   int        `json:"rate_limit"`
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"created_at"`
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
-	Owner       string    `json:"owner"`
-	Permissions []string  `json:"permissions"`
+	Owner       string     `json:"owner"`
+	Permissions []string   `json:"permissions"`
 }
 
 // JWTClaims represents JWT claims
@@ -225,7 +224,7 @@ func AuthMiddleware(authManager *AuthManager) gin.HandlerFunc {
 			key, err := authManager.ValidateAPIKey(apiKey)
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "invalid_api_key",
+					"error":   "invalid_api_key",
 					"message": err.Error(),
 				})
 				c.Abort()
@@ -247,7 +246,7 @@ func AuthMiddleware(authManager *AuthManager) gin.HandlerFunc {
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "invalid_auth_header",
+					"error":   "invalid_auth_header",
 					"message": "Authorization header must be in format: Bearer <token>",
 				})
 				c.Abort()
@@ -257,7 +256,7 @@ func AuthMiddleware(authManager *AuthManager) gin.HandlerFunc {
 			claims, err := authManager.ValidateJWT(parts[1])
 			if err != nil {
 				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "invalid_token",
+					"error":   "invalid_token",
 					"message": err.Error(),
 				})
 				c.Abort()
@@ -285,7 +284,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
 		permissions, exists := c.Get("permissions")
 		if !exists {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "permission_denied",
+				"error":   "permission_denied",
 				"message": "No permissions found",
 			})
 			c.Abort()
@@ -295,7 +294,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
 		permList, ok := permissions.([]string)
 		if !ok {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "permission_denied",
+				"error":   "permission_denied",
 				"message": "Invalid permissions format",
 			})
 			c.Abort()
@@ -313,7 +312,7 @@ func RequirePermission(permission string) gin.HandlerFunc {
 
 		if !hasPermission {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "permission_denied",
+				"error":   "permission_denied",
 				"message": fmt.Sprintf("Permission '%s' is required", permission),
 			})
 			c.Abort()
@@ -337,7 +336,7 @@ func RequireTier(minTier string) gin.HandlerFunc {
 		tierValue, exists := c.Get("tier")
 		if !exists {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "tier_required",
+				"error":   "tier_required",
 				"message": "No tier information found",
 			})
 			c.Abort()
@@ -347,7 +346,7 @@ func RequireTier(minTier string) gin.HandlerFunc {
 		tier, ok := tierValue.(string)
 		if !ok {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "tier_required",
+				"error":   "tier_required",
 				"message": "Invalid tier format",
 			})
 			c.Abort()
@@ -359,7 +358,7 @@ func RequireTier(minTier string) gin.HandlerFunc {
 
 		if currentLevel < requiredLevel {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "tier_required",
+				"error":   "tier_required",
 				"message": fmt.Sprintf("Minimum tier '%s' is required", minTier),
 			})
 			c.Abort()

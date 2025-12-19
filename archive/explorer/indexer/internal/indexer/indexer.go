@@ -5,20 +5,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/paw-chain/paw/explorer/indexer/config"
-	"github.com/paw-chain/paw/explorer/indexer/internal/cache"
-	"github.com/paw-chain/paw/explorer/indexer/internal/database"
-	"github.com/paw-chain/paw/explorer/indexer/internal/rpc"
-	"github.com/paw-chain/paw/explorer/indexer/internal/subscriber"
-	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
+
+	"github.com/paw-chain/paw/explorer/indexer/internal/database"
+	"github.com/paw-chain/paw/explorer/indexer/internal/rpc"
+	"github.com/paw-chain/paw/explorer/indexer/internal/subscriber"
 )
 
 var (

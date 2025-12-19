@@ -2,9 +2,11 @@ package keeper
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -113,16 +115,24 @@ func (k Keeper) SetPriceOverride(ctx context.Context, pair string, price *big.In
 
 	expiresAt := sdkCtx.BlockTime().Unix() + durationSecs
 
-	// Store as a simple encoded structure
-	// In production, this would use a proto message
+	// Store price override using a simple structure
+	// Convert big.Int to LegacyDec for PriceData
+	priceDec := math.LegacyNewDecFromBigInt(price)
+
 	override := &types.PriceData{
-		Pair:      pair,
-		Price:     price.String(),
-		Timestamp: expiresAt,
-		Source:    actor,
+		Symbol:     pair,
+		Price:      priceDec,
+		Volume24h:  math.ZeroInt(),
+		Timestamp:  expiresAt,
+		Confidence: math.LegacyOneDec(),
 	}
 
-	bz := k.cdc.MustMarshal(override)
+	// Use JSON encoding since PriceData doesn't have proto marshaling
+	bz, err := json.Marshal(override)
+	if err != nil {
+		return fmt.Errorf("failed to marshal price override: %w", err)
+	}
+
 	key := append(PriceOverridePrefix, []byte(pair)...)
 	store.Set(key, bz)
 
@@ -151,7 +161,11 @@ func (k Keeper) GetPriceOverride(ctx context.Context, pair string) (*big.Int, bo
 	}
 
 	var override types.PriceData
-	k.cdc.MustUnmarshal(bz, &override)
+	if err := json.Unmarshal(bz, &override); err != nil {
+		// Invalid override, delete it
+		store.Delete(key)
+		return nil, false
+	}
 
 	// Check if expired
 	if sdkCtx.BlockTime().Unix() > override.Timestamp {
@@ -159,8 +173,8 @@ func (k Keeper) GetPriceOverride(ctx context.Context, pair string) (*big.Int, bo
 		return nil, false
 	}
 
-	price := new(big.Int)
-	price.SetString(override.Price, 10)
+	// Convert LegacyDec back to big.Int
+	price := override.Price.BigInt()
 	return price, true
 }
 
@@ -188,7 +202,11 @@ func (k Keeper) GetPriceWithOverride(ctx context.Context, pair string) (*big.Int
 	}
 
 	// Fall back to normal price retrieval
-	return k.GetPrice(ctx, pair)
+	price, err := k.GetPrice(ctx, pair)
+	if err != nil {
+		return nil, false
+	}
+	return price.Price.BigInt(), true
 }
 
 // Slashing control

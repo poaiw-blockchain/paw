@@ -144,7 +144,7 @@ func (s *StateMachineTestSuite) TestComputeJobStateTransitions() {
 		{"executing", "completed", true},
 		{"executing", "failed", true},
 		{"pending", "cancelled", true},
-		{"pending", "completed", false}, // invalid - cannot skip states
+		{"pending", "completed", false},   // invalid - cannot skip states
 		{"completed", "executing", false}, // invalid - cannot go back
 		{"failed", "executing", false},    // invalid - terminal state
 	}

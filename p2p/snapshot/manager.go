@@ -104,7 +104,7 @@ func NewManager(config *ManagerConfig, logger log.Logger) (*Manager, error) {
 }
 
 // CreateSnapshot creates a new snapshot at the given height
-func (m *Manager) CreateSnapshot(height int64, stateData []byte, appHash, validatorHash, consensusHash []byte) (*Snapshot, error) {
+func (m *Manager) CreateSnapshot(height int64, stateData, appHash, validatorHash, consensusHash []byte) (*Snapshot, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

@@ -3,3 +3,6 @@ go 1.24.0
 toolchain go1.24.10
 
 use .
+replace github.com/cosmos/cosmos-sdk => /home/hudson/blockchain-projects/paw/.tmp/sdk
+replace cosmossdk.io/store => /home/hudson/blockchain-projects/paw/.tmp/store
+replace github.com/cosmos/iavl => /home/hudson/blockchain-projects/paw/.tmp/iavl

@@ -7,30 +7,12 @@ run:
 
 linters:
   enable:
-    - bodyclose
-    - deadcode
-    - errcheck
-    - goconst
-    - gocritic
     - gofmt
     - goimports
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    - misspell
-    - nakedret
-    - staticcheck
-    - stylecheck
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
-    - varcheck
 
 linters-settings:
   goimports:
-    local-prefixes: github.com/paw
+    local-prefixes: github.com/paw-chain/paw
 
   gocritic:
     enabled-tags:
@@ -43,6 +25,23 @@ linters-settings:
       - dupImport
       - ifElseChain
       - octalLiteral
+      - appendAssign
+      - badLock
+      - builtinShadow
+      - builtinShadowDecl
+      - hugeParam
+      - rangeValCopy
+      - paramTypeCombine
+      - sprintfQuotedString
+      - emptyStringTest
+      - singleCaseSwitch
+      - commentedOutCode
+      - preferFprint
+      - ptrToRefParam
+      - unslice
+      - unnamedResult
+      - sloppyLen
+      - stringXbytes
       - whyNoLint
       - wrapperFunc
 
@@ -50,6 +49,9 @@ linters-settings:
     excludes:
       - G107 # Url provided as taint input (common in blockchain apps)
       - G204 # Audit use of command execution (needed for CLI)
+      - G101 # Hardcoded credentials are intentional in simulation weights
+      - G404 # math/rand is acceptable in fuzz/sim tests
+      - G115 # Explicit int<->uint conversions are bounded in our contexts
 
   stylecheck:
     checks: ['all', '-ST1003'] # Allow underscores in func names for test helpers

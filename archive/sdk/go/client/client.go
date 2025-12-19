@@ -33,11 +33,11 @@ type Config struct {
 
 // Client provides helper methods for interacting with PAW blockchain
 type Client struct {
-	config     Config
-	grpcConn   *grpc.ClientConn
-	clientCtx  client.Context
-	txFactory  tx.Factory
-	keyring    keyring.Keyring
+	config    Config
+	grpcConn  *grpc.ClientConn
+	clientCtx client.Context
+	txFactory tx.Factory
+	keyring   keyring.Keyring
 }
 
 // NewClient creates a new PAW client

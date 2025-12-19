@@ -8,17 +8,25 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
+
+	"github.com/paw-chain/paw/explorer/indexer/config"
 )
 
 //go:embed schema.sql
 var schemaFile embed.FS
 
-// DB wraps the SQL database connection
-type DB struct {
+// Database wraps the SQL database connection
+type Database struct {
 	*sql.DB
 }
 
-// Config holds database configuration
+// DB is kept for backward compatibility with earlier code paths.
+type DB = Database
+
+// Tx aliases sql.Tx for clearer references in the indexer.
+type Tx = sql.Tx
+
+// Config mirrors the legacy DSN-style configuration (used in tests).
 type Config struct {
 	URL            string
 	MaxConnections int
@@ -26,17 +34,53 @@ type Config struct {
 	ConnMaxLife    time.Duration
 }
 
-// New creates a new database connection
-func New(cfg Config) (*DB, error) {
+// New creates a database connection from a DSN string (legacy).
+func New(cfg Config) (*Database, error) {
 	db, err := sql.Open("postgres", cfg.URL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+	if cfg.MaxConnections == 0 {
+		cfg.MaxConnections = 10
+	}
+	if cfg.MaxIdle == 0 {
+		cfg.MaxIdle = 5
+	}
+	if cfg.ConnMaxLife == 0 {
+		cfg.ConnMaxLife = 30 * time.Minute
+	}
+	db.SetMaxOpenConns(cfg.MaxConnections)
+	db.SetMaxIdleConns(cfg.MaxIdle)
+	db.SetConnMaxLifetime(cfg.ConnMaxLife)
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+	return &Database{db}, nil
+}
+
+// NewDatabase creates a new database connection from structured config.
+func NewDatabase(cfg config.DatabaseConfig) (*Database, error) {
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.SSLMode)
+
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	// Configure connection pool
-	db.SetMaxOpenConns(cfg.MaxConnections)
-	db.SetMaxIdleConns(cfg.MaxIdle)
-	db.SetConnMaxLifetime(cfg.ConnMaxLife)
+	if cfg.MaxOpenConns == 0 {
+		cfg.MaxOpenConns = 10
+	}
+	if cfg.MaxIdleConns == 0 {
+		cfg.MaxIdleConns = 5
+	}
+	if cfg.ConnMaxLifetime == 0 {
+		cfg.ConnMaxLifetime = 30 * time.Minute
+	}
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	// Test connection
 	if err := db.Ping(); err != nil {
@@ -45,11 +89,11 @@ func New(cfg Config) (*DB, error) {
 
 	log.Info().Msg("Successfully connected to database")
 
-	return &DB{db}, nil
+	return &Database{db}, nil
 }
 
 // InitSchema initializes the database schema
-func (db *DB) InitSchema() error {
+func (db *Database) InitSchema() error {
 	schema, err := schemaFile.ReadFile("schema.sql")
 	if err != nil {
 		return fmt.Errorf("failed to read schema file: %w", err)
@@ -63,8 +107,13 @@ func (db *DB) InitSchema() error {
 	return nil
 }
 
+// RunMigrations currently initializes the schema; placeholder for future migration framework.
+func (db *Database) RunMigrations() error {
+	return db.InitSchema()
+}
+
 // GetLastIndexedHeight returns the last indexed block height
-func (db *DB) GetLastIndexedHeight() (int64, error) {
+func (db *Database) GetLastIndexedHeight() (int64, error) {
 	var height int64
 	err := db.QueryRow("SELECT value FROM indexer_state WHERE key = 'last_indexed_height'").Scan(&height)
 	if err != nil {
@@ -74,7 +123,7 @@ func (db *DB) GetLastIndexedHeight() (int64, error) {
 }
 
 // UpdateLastIndexedHeight updates the last indexed block height
-func (db *DB) UpdateLastIndexedHeight(height int64) error {
+func (db *Database) UpdateLastIndexedHeight(height int64) error {
 	_, err := db.Exec(
 		"INSERT INTO indexer_state (key, value, updated_at) VALUES ('last_indexed_height', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()",
 		height,
@@ -83,12 +132,12 @@ func (db *DB) UpdateLastIndexedHeight(height int64) error {
 }
 
 // BeginTx starts a new transaction
-func (db *DB) BeginTx() (*sql.Tx, error) {
+func (db *Database) BeginTx() (*sql.Tx, error) {
 	return db.Begin()
 }
 
 // InsertBlock inserts a new block
-func (db *DB) InsertBlock(tx *sql.Tx, block Block) error {
+func (db *Database) InsertBlock(tx *sql.Tx, block Block) error {
 	_, err := tx.Exec(`
 		INSERT INTO blocks (height, hash, proposer_address, time, tx_count, gas_used, gas_wanted, evidence_count)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -105,7 +154,7 @@ func (db *DB) InsertBlock(tx *sql.Tx, block Block) error {
 }
 
 // InsertTransaction inserts a new transaction
-func (db *DB) InsertTransaction(tx *sql.Tx, transaction Transaction) error {
+func (db *Database) InsertTransaction(tx *sql.Tx, transaction Transaction) error {
 	_, err := tx.Exec(`
 		INSERT INTO transactions (hash, block_height, tx_index, type, sender, status, code, gas_used, gas_wanted, fee_amount, fee_denom, memo, raw_log, time, messages, events)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
@@ -132,7 +181,7 @@ func (db *DB) InsertTransaction(tx *sql.Tx, transaction Transaction) error {
 }
 
 // UpsertAccount updates or inserts account information
-func (db *DB) UpsertAccount(tx *sql.Tx, address string, height int64) error {
+func (db *Database) UpsertAccount(tx *sql.Tx, address string, height int64) error {
 	_, err := tx.Exec(`
 		INSERT INTO accounts (address, tx_count, first_seen_height, last_seen_height, updated_at)
 		VALUES ($1, 1, $2, $2, NOW())
@@ -145,7 +194,7 @@ func (db *DB) UpsertAccount(tx *sql.Tx, address string, height int64) error {
 }
 
 // InsertEvent inserts a new event
-func (db *DB) InsertEvent(tx *sql.Tx, event Event) error {
+func (db *Database) InsertEvent(tx *sql.Tx, event Event) error {
 	_, err := tx.Exec(`
 		INSERT INTO events (tx_hash, block_height, event_type, module, attributes)
 		VALUES ($1, $2, $3, $4, $5)
@@ -154,7 +203,7 @@ func (db *DB) InsertEvent(tx *sql.Tx, event Event) error {
 }
 
 // InsertDEXSwap inserts a DEX swap event
-func (db *DB) InsertDEXSwap(tx *sql.Tx, swap DEXSwap) error {
+func (db *Database) InsertDEXSwap(tx *sql.Tx, swap DEXSwap) error {
 	_, err := tx.Exec(`
 		INSERT INTO dex_swaps (tx_hash, pool_id, sender, token_in, token_out, amount_in, amount_out, price, fee, time)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -163,7 +212,7 @@ func (db *DB) InsertDEXSwap(tx *sql.Tx, swap DEXSwap) error {
 }
 
 // UpsertDEXPool updates or inserts a DEX pool
-func (db *DB) UpsertDEXPool(tx *sql.Tx, pool DEXPool) error {
+func (db *Database) UpsertDEXPool(tx *sql.Tx, pool DEXPool) error {
 	_, err := tx.Exec(`
 		INSERT INTO dex_pools (pool_id, token_a, token_b, reserve_a, reserve_b, lp_token_supply, swap_fee_rate, tvl, created_height, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
@@ -178,7 +227,7 @@ func (db *DB) UpsertDEXPool(tx *sql.Tx, pool DEXPool) error {
 }
 
 // InsertOraclePrice inserts an oracle price update
-func (db *DB) InsertOraclePrice(tx *sql.Tx, price OraclePrice) error {
+func (db *Database) InsertOraclePrice(tx *sql.Tx, price OraclePrice) error {
 	_, err := tx.Exec(`
 		INSERT INTO oracle_prices (asset, price, timestamp, block_height, source)
 		VALUES ($1, $2, $3, $4, $5)
@@ -187,7 +236,7 @@ func (db *DB) InsertOraclePrice(tx *sql.Tx, price OraclePrice) error {
 }
 
 // UpsertValidator updates or inserts validator information
-func (db *DB) UpsertValidator(tx *sql.Tx, validator Validator) error {
+func (db *Database) UpsertValidator(tx *sql.Tx, validator Validator) error {
 	_, err := tx.Exec(`
 		INSERT INTO validators (address, operator_address, consensus_pubkey, moniker, commission_rate,
 			commission_max_rate, commission_max_change_rate, voting_power, jailed, status, tokens,
@@ -213,7 +262,7 @@ func (db *DB) UpsertValidator(tx *sql.Tx, validator Validator) error {
 }
 
 // RecordValidatorUptime records validator uptime for a block
-func (db *DB) RecordValidatorUptime(tx *sql.Tx, validatorAddress string, height int64, signed bool, timestamp time.Time) error {
+func (db *Database) RecordValidatorUptime(tx *sql.Tx, validatorAddress string, height int64, signed bool, timestamp time.Time) error {
 	_, err := tx.Exec(`
 		INSERT INTO validator_uptime (validator_address, height, signed, timestamp)
 		VALUES ($1, $2, $3, $4)
@@ -225,7 +274,7 @@ func (db *DB) RecordValidatorUptime(tx *sql.Tx, validatorAddress string, height 
 }
 
 // SaveIndexingProgress saves the indexing progress
-func (db *DB) SaveIndexingProgress(height int64, status string) error {
+func (db *Database) SaveIndexingProgress(height int64, status string) error {
 	_, err := db.Exec(
 		"SELECT update_indexing_progress($1, $2)",
 		height, status,
@@ -234,7 +283,7 @@ func (db *DB) SaveIndexingProgress(height int64, status string) error {
 }
 
 // GetIndexingProgress retrieves the current indexing progress
-func (db *DB) GetIndexingProgress() (*IndexingProgress, error) {
+func (db *Database) GetIndexingProgress() (*IndexingProgress, error) {
 	var progress IndexingProgress
 	err := db.QueryRow(`
 		SELECT
@@ -265,7 +314,7 @@ func (db *DB) GetIndexingProgress() (*IndexingProgress, error) {
 }
 
 // SaveFailedBlock records a failed block
-func (db *DB) SaveFailedBlock(height int64, errorMsg string) error {
+func (db *Database) SaveFailedBlock(height int64, errorMsg string) error {
 	_, err := db.Exec(
 		"SELECT record_failed_block($1, $2, $3)",
 		height, errorMsg, "indexing_error",
@@ -274,7 +323,7 @@ func (db *DB) SaveFailedBlock(height int64, errorMsg string) error {
 }
 
 // GetFailedBlocks retrieves all unresolved failed blocks
-func (db *DB) GetFailedBlocks(maxRetries int) ([]FailedBlock, error) {
+func (db *Database) GetFailedBlocks(maxRetries int) ([]FailedBlock, error) {
 	rows, err := db.Query(`
 		SELECT height, error_message, retry_count, last_retry_at
 		FROM get_unresolved_failed_blocks($1)
@@ -297,13 +346,13 @@ func (db *DB) GetFailedBlocks(maxRetries int) ([]FailedBlock, error) {
 }
 
 // ResolveFailedBlock marks a failed block as resolved
-func (db *DB) ResolveFailedBlock(height int64) error {
+func (db *Database) ResolveFailedBlock(height int64) error {
 	_, err := db.Exec("SELECT resolve_failed_block($1)", height)
 	return err
 }
 
 // RecordIndexingMetric records an indexing performance metric
-func (db *DB) RecordIndexingMetric(metric IndexingMetric) error {
+func (db *Database) RecordIndexingMetric(metric IndexingMetric) error {
 	_, err := db.Exec(`
 		SELECT record_indexing_metric($1, $2, $3, $4, $5, $6, $7)
 	`,
@@ -319,7 +368,7 @@ func (db *DB) RecordIndexingMetric(metric IndexingMetric) error {
 }
 
 // CreateIndexingCheckpoint creates a checkpoint
-func (db *DB) CreateIndexingCheckpoint(checkpoint IndexingCheckpoint) error {
+func (db *Database) CreateIndexingCheckpoint(checkpoint IndexingCheckpoint) error {
 	_, err := db.Exec(`
 		SELECT create_indexing_checkpoint($1, $2, $3, $4, $5, $6)
 	`,
@@ -334,7 +383,7 @@ func (db *DB) CreateIndexingCheckpoint(checkpoint IndexingCheckpoint) error {
 }
 
 // GetIndexingStatistics returns comprehensive indexing statistics
-func (db *DB) GetIndexingStatistics() (*IndexingStatistics, error) {
+func (db *Database) GetIndexingStatistics() (*IndexingStatistics, error) {
 	var stats IndexingStatistics
 	err := db.QueryRow(`
 		SELECT * FROM get_indexing_statistics()
@@ -354,7 +403,7 @@ func (db *DB) GetIndexingStatistics() (*IndexingStatistics, error) {
 }
 
 // Close closes the database connection
-func (db *DB) Close() error {
+func (db *Database) Close() error {
 	log.Info().Msg("Closing database connection")
 	return db.DB.Close()
 }

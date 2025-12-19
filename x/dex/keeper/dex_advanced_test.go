@@ -537,6 +537,29 @@ func TestValidateTokenDenom(t *testing.T) {
 	}
 }
 
+func TestPoolCreationCountCleanup(t *testing.T) {
+	t.Parallel()
+
+	k, ctx := keepertest.DexKeeper(t)
+	creator := types.TestAddr()
+
+	oldHeights := []int64{1, 5}
+	recentHeights := []int64{keeper.PoolCreationWindow - 1, keeper.PoolCreationWindow}
+
+	for _, h := range append(oldHeights, recentHeights...) {
+		k.SetPoolCreationRecordForTesting(ctx, creator, h)
+	}
+
+	currentHeight := int64(keeper.PoolCreationWindow + 100)
+	count := k.GetPoolCreationCountForTesting(ctx, creator, currentHeight)
+	require.Equal(t, len(recentHeights), count)
+
+	remaining := k.ListPoolCreationRecordsForTesting(ctx, creator)
+	for _, height := range remaining {
+		require.Greater(t, height, currentHeight-keeper.PoolCreationWindow)
+	}
+}
+
 // TestPoolCreationCooldown tests that cooldown between pool creations is enforced
 func TestPoolCreationCooldown(t *testing.T) {
 	t.Parallel()

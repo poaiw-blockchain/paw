@@ -290,14 +290,13 @@ func (k Keeper) CleanupOldSubmissions(ctx context.Context) error {
 		// Get all submissions at this height
 		// heightPrefix := GetSubmissionByHeightPrefixForHeight(height)
 		iterator := store.Iterator(types.VoteKeyPrefix, storetypes.PrefixEndBytes(types.VoteKeyPrefix))
+		defer iterator.Close()
 
 		submissionsToDelete := [][]byte{}
 		for ; iterator.Valid(); iterator.Next() {
 			submissionsToDelete = append(submissionsToDelete, iterator.Key())
 			cleanedCount++
 		}
-		iterator.Close()
-
 		// Delete the submission index entries
 		for _, key := range submissionsToDelete {
 			store.Delete(key)

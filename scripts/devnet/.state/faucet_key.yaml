@@ -1,0 +1,10 @@
+
+- name: faucet
+  type: secp256k1
+  address: paw1ckjkhjt6gtvnsct6wmwfgm6zh58ey8y9hu7ytk
+  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 3 180 64 37 105 140 225 107 111 185 79 123 99 21 156 146 44 96 228 31 151 182 234 27 119 114 86 151 42 15 7 243 4],XXX_unrecognized:[]}
+
+**IMPORTANT** Write this mnemonic phrase in a safe place.
+It is the only way to recover your account if you ever forget your password.
+
+express duck stable donor cargo soup dinosaur stand famous phrase tank glow wrist usual topic middle caution divorce diary uncover clever unlock pen still

@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -91,7 +92,7 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 	}
 
 	// 3. Check circuit breaker
-	if err := k.CheckCircuitBreaker(ctx, pool, "add_liquidity"); err != nil {
+	if err := k.checkPoolPriceDeviation(ctx, pool, "add_liquidity"); err != nil {
 		return math.ZeroInt(), err
 	}
 
@@ -284,7 +285,7 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 	}
 
 	// 4. Check circuit breaker
-	if err := k.CheckCircuitBreaker(ctx, pool, "remove_liquidity"); err != nil {
+	if err := k.checkPoolPriceDeviation(ctx, pool, "remove_liquidity"); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 

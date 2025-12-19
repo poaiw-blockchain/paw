@@ -9,8 +9,9 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v8/testing"
-	testutilibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 	"github.com/stretchr/testify/suite"
+
+	testutilibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // IBCTransferTestSuite tests IBC token transfer functionality

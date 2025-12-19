@@ -78,6 +78,13 @@ export function formatPercent(value: number | string, decimals: number = 2): str
   return `${numeral(num).format('0,0.' + '0'.repeat(decimals))}%`
 }
 
+// Format basis points (1 bp = 0.01%)
+export function formatBps(value: number | string, decimals: number = 1): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(num)) return '0 bps'
+  return `${numeral(num).format('0,0.' + '0'.repeat(decimals))} bps`
+}
+
 // Format APR/APY
 export function formatAPR(apr: string | number): string {
   const num = typeof apr === 'string' ? parseFloat(apr) : apr

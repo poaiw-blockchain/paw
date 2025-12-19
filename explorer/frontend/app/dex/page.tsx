@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DexPoolVisualization } from '@/components/dex/pool-visualization'
+import { DexAdvancedAnalytics } from '@/components/dex/advanced-analytics'
 import { api, type DEXTrade } from '@/lib/api'
 import { formatCurrency, formatHash, formatNumber } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
@@ -37,6 +38,7 @@ export default function DexPage() {
       </div>
 
       <DexPoolVisualization />
+      <DexAdvancedAnalytics />
 
       <Card>
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

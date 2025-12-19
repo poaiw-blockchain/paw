@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	auditlog "paw/control-center/audit-log"
-	"paw/control-center/audit-log/middleware"
-	"paw/control-center/audit-log/types"
+	auditlog "github.com/paw-chain/paw/control-center/audit-log"
+	"github.com/paw-chain/paw/control-center/audit-log/middleware"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/gorilla/mux"
 )

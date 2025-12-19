@@ -11,10 +11,10 @@ import (
 
 // RateLimiter manages rate limiting using Redis
 type RateLimiter struct {
-	client      *redis.Client
-	perIP       int
-	perAddress  int
-	window      time.Duration
+	client     *redis.Client
+	perIP      int
+	perAddress int
+	window     time.Duration
 }
 
 // NewRedisClient creates a new Redis client

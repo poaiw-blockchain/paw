@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAW Network Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1222;
+      --panel: #111a2e;
+      --muted: #7c8aa5;
+      --text: #e8eefc;
+      --green: #48d597;
+      --yellow: #f3c14f;
+      --red: #ff6b6b;
+      --blue: #4da3ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: radial-gradient(120% 120% at 30% 20%, #16213a, #0b1222 60%);
+      font-family: 'Manrope', sans-serif; color: var(--text);
+      min-height: 100vh; padding: 32px 18px;
+    }
+    .shell { max-width: 1100px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+    .tag { padding: 6px 12px; border-radius: 12px; font-weight: 700; font-size: 13px; }
+    .tag.ok { background: rgba(72,213,151,0.12); color: var(--green); border: 1px solid rgba(72,213,151,0.4); }
+    .tag.degraded { background: rgba(243,193,79,0.12); color: var(--yellow); border: 1px solid rgba(243,193,79,0.4); }
+    .tag.down { background: rgba(255,107,107,0.12); color: var(--red); border: 1px solid rgba(255,107,107,0.4); }
+    .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 18px; }
+    .panel {
+      background: var(--panel); border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px; padding: 18px; box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+    }
+    .label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+    .value { font-size: 22px; margin: 4px 0 0; font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 8px; text-align: left; font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    tr + tr td { border-top: 1px solid rgba(255,255,255,0.04); }
+    .pill { padding: 6px 10px; border-radius: 10px; font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
+    .pill.ok { background: rgba(72,213,151,0.16); color: var(--green); }
+    .pill.degraded { background: rgba(243,193,79,0.16); color: var(--yellow); }
+    .pill.down { background: rgba(255,107,107,0.16); color: var(--red); }
+    .muted { color: var(--muted); font-size: 13px; }
+    .footer { margin-top: 22px; color: var(--muted); font-size: 13px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot.ok { background: var(--green); }
+    .dot.degraded { background: var(--yellow); }
+    .dot.down { background: var(--red); }
+    @media (max-width: 640px) {
+      h1 { font-size: 22px; }
+      .panels { grid-template-columns: 1fr; }
+      th, td { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>PAW Network Status</h1>
+        <div class="muted">Live health for RPC, REST, gRPC, Explorer, Faucet, and Metrics</div>
+      </div>
+      <div id="overall-tag" class="tag ok">Loading...</div>
+    </header>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="label">Overall Status</div>
+        <div id="overall-message" class="value">Loading...</div>
+        <div class="muted" id="updated-at"></div>
+      </div>
+      <div class="panel">
+        <div class="label">Check Interval</div>
+        <div id="interval" class="value">-</div>
+        <div class="muted">Automatic refresh every interval; force refresh anytime.</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Status</th>
+            <th>Latency</th>
+            <th>Uptime</th>
+            <th>Endpoint</th>
+          </tr>
+        </thead>
+        <tbody id="components"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">Data refreshes automatically. Health is computed using real probes against the configured endpoints.</div>
+  </div>
+
+  <script>
+    const tag = document.getElementById('overall-tag');
+    const message = document.getElementById('overall-message');
+    const updated = document.getElementById('updated-at');
+    const interval = document.getElementById('interval');
+    const tbody = document.getElementById('components');
+
+    function setTag(state) {
+      tag.className = 'tag ' + (state === 'operational' ? 'ok' : state === 'degraded' ? 'degraded' : 'down');
+      tag.textContent = state === 'operational' ? 'Operational' : state === 'degraded' ? 'Degraded' : 'Down';
+    }
+
+    function statusPill(c) {
+      const cls = c.healthy ? 'ok' : (c.status_code >= 500 ? 'down' : 'degraded');
+      const label = c.healthy ? 'Operational' : (c.status_code >= 500 ? 'Down' : 'Degraded');
+      return `<span class="pill ${cls}"><span class="dot ${cls}"></span>${label}</span>`;
+    }
+
+    function formatLatency(ms) {
+      if (!ms) return '—';
+      return `${ms.toFixed(0)} ms`;
+    }
+
+    function render(data) {
+      setTag(data.overall);
+      message.textContent = data.overall === 'operational' ? 'All systems operational' : 'Attention needed';
+      updated.textContent = `Updated: ${new Date(data.updated_at).toLocaleString()}`;
+      interval.textContent = data.interval;
+      tbody.innerHTML = data.components.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${statusPill(c)}</td>
+          <td>${formatLatency(c.latency_ms)}</td>
+          <td>${c.uptime_pct.toFixed(1)}%</td>
+          <td class="muted">${c.endpoint}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function load() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        render(data);
+      } catch (err) {
+        message.textContent = 'Unable to load status';
+        tag.className = 'tag down';
+        tag.textContent = 'Unavailable';
+      }
+    }
+
+    load();
+    setInterval(load, 15000);
+  </script>
+</body>
+</html>

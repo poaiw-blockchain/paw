@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 	"math"
 	"testing"
 	"testing/quick"
@@ -252,7 +253,7 @@ func TestPropertyTamperedSignatureRejection(t *testing.T) {
 // Property: Merkle proof verification must be deterministic
 func TestPropertyMerkleProofDeterminism(t *testing.T) {
 	t.Parallel()
-	property := func(leaf, root []byte, proofSize uint8) bool{
+	property := func(leaf, root []byte, proofSize uint8) bool {
 		if len(leaf) == 0 || len(root) == 0 || proofSize == 0 {
 			return true
 		}
@@ -388,7 +389,9 @@ func generateMerkleProof(size int) [][]byte {
 	proof := make([][]byte, size)
 	for i := 0; i < size; i++ {
 		node := make([]byte, 32)
-		rand.Read(node)
+		if _, err := rand.Read(node); err != nil {
+			panic(fmt.Errorf("failed to populate proof node: %w", err))
+		}
 		proof[i] = node
 	}
 	return proof

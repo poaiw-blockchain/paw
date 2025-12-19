@@ -1,6 +1,7 @@
 package security_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/paw-chain/paw/app"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	dexkeeper "github.com/paw-chain/paw/x/dex/keeper"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -84,6 +86,9 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	)
 
 	// Should either succeed with remaining balance or fail with insufficient funds
+	if err != nil {
+		suite.T().Logf("second swap failed as expected: %v", err)
+	}
 	balanceAfterSecond := suite.app.BankKeeper.GetBalance(suite.ctx, attackerAddr, "upaw")
 
 	// Verify total spent does not exceed original balance
@@ -452,6 +457,9 @@ func (suite *AdversarialTestSuite) TestReplayAttack() {
 	)
 
 	// May succeed or fail depending on balance, but won't be identical replay
+	if err != nil {
+		suite.T().Logf("replay attempt rejected: %v", err)
+	}
 	// Nonce/sequence ensures each transaction is unique
 	suite.T().Log("Replay attack test - sequence numbers provide protection")
 }
@@ -526,4 +534,64 @@ func (suite *AdversarialTestSuite) TestCensorship_Resistance() {
 	// 2. Transaction prioritization by fees
 	// 3. Minimum inclusion guarantees
 	suite.T().Log("Censorship resistance test - decentralization is key")
+}
+
+// TestCircuitBreakerBlocksManipulation ensures a sudden price swing triggers an automatic pause.
+func (suite *AdversarialTestSuite) TestCircuitBreakerBlocksManipulation() {
+	suite.ctx = suite.ctx.WithBlockTime(time.Now())
+
+	attacker := secp256k1.GenPrivKey()
+	attackerAddr := sdk.AccAddress(attacker.PubKey().Address())
+	funds := sdk.NewCoins(
+		sdk.NewCoin("upaw", math.NewInt(20_000_000)),
+		sdk.NewCoin("uusdc", math.NewInt(20_000_000)),
+	)
+	suite.Require().NoError(suite.app.BankKeeper.MintCoins(suite.ctx, dextypes.ModuleName, funds))
+	suite.Require().NoError(suite.app.BankKeeper.SendCoinsFromModuleToAccount(suite.ctx, dextypes.ModuleName, attackerAddr, funds))
+
+	pool, err := suite.app.DEXKeeper.CreatePool(
+		suite.ctx,
+		attackerAddr,
+		"upaw",
+		"uusdc",
+		math.NewInt(10_000_000),
+		math.NewInt(10_000_000),
+	)
+	suite.Require().NoError(err)
+
+	// seed last observed price at 1.0
+	initialPrice := math.LegacyNewDec(1)
+	err = suite.app.DEXKeeper.SetCircuitBreakerState(suite.ctx, pool.Id, dexkeeper.CircuitBreakerState{
+		LastPrice: initialPrice,
+	})
+	suite.Require().NoError(err)
+
+	// inject manipulated reserves (4x price move) to force circuit breaker
+	pool.ReserveA = math.NewInt(2_000_000)
+	pool.ReserveB = math.NewInt(8_000_000)
+	suite.Require().NoError(suite.app.DEXKeeper.SetPool(suite.ctx, pool))
+
+	err = suite.app.DEXKeeper.CheckPoolPriceDeviationForTesting(suite.ctx, pool, "swap")
+	suite.Require().ErrorIs(err, dextypes.ErrCircuitBreakerTriggered)
+
+	cbState, err := suite.app.DEXKeeper.GetPoolCircuitBreakerState(suite.ctx, pool.Id)
+	suite.Require().NoError(err)
+	suite.Require().True(cbState.Enabled, "circuit breaker should be opened after extreme deviation")
+	suite.Require().True(cbState.PausedUntil.After(suite.ctx.BlockTime()), "pause window should be set into the future")
+	suite.Require().Contains(cbState.TriggerReason, "price deviation", "trigger reason should document the anomaly")
+}
+
+// TestReentrancyGuardPreventsNestedSwap proves the per-pool guard rejects nested execution paths.
+func (suite *AdversarialTestSuite) TestReentrancyGuardPreventsNestedSwap() {
+	ctxWithGuard := context.WithValue(suite.ctx, "reentrancy_guard", dexkeeper.NewReentrancyGuard())
+
+	err := suite.app.DEXKeeper.WithReentrancyGuard(ctxWithGuard, 99, "swap", func() error {
+		innerErr := suite.app.DEXKeeper.WithReentrancyGuard(ctxWithGuard, 99, "swap", func() error {
+			return nil
+		})
+		suite.Require().ErrorIs(innerErr, dextypes.ErrReentrancy)
+		return innerErr
+	})
+
+	suite.Require().ErrorIs(err, dextypes.ErrReentrancy, "outer call should surface reentrancy violation")
 }

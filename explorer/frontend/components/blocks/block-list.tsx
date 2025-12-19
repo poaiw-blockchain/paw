@@ -64,7 +64,6 @@ export function BlockList({
     queryKey: ['blocks', page, limit, sortBy, sortOrder],
     queryFn: () => api.getBlocks(page, limit),
     refetchInterval: autoRefresh ? refreshInterval : false,
-    keepPreviousData: true,
   })
 
   // Filter and sort blocks

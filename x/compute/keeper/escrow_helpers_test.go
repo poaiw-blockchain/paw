@@ -195,14 +195,14 @@ func TestSetAndGetEscrowState(t *testing.T) {
 
 	now := time.Now()
 	state := types.EscrowState{
-		RequestId:  1,
-		Requester:  "cosmos1requester",
-		Provider:   "cosmos1provider",
-		Amount:     math.NewInt(1000),
-		Status:     types.ESCROW_STATUS_LOCKED,
-		LockedAt:   now,
-		ExpiresAt:  now.Add(time.Hour),
-		Nonce:      42,
+		RequestId: 1,
+		Requester: "cosmos1requester",
+		Provider:  "cosmos1provider",
+		Amount:    math.NewInt(1000),
+		Status:    types.ESCROW_STATUS_LOCKED,
+		LockedAt:  now,
+		ExpiresAt: now.Add(time.Hour),
+		Nonce:     42,
 	}
 
 	err := k.SetEscrowState(ctx, state)

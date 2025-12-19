@@ -4,17 +4,34 @@
 
 set -euo pipefail
 
-# Configuration
-PROJECT_ID="aixn-node-1"
-ZONE="us-central1-a"
-CHAIN_ID="paw-testnet-gcp"
-KEYRING_BACKEND="test"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-NODES=(
-    "xai-testnode-1:34.29.163.145"
-    "xai-testnode-2:108.59.86.86"
-    "xai-testnode-3:35.184.167.38"
-)
+# Configuration (overridable via env vars)
+PROJECT_ID="${PROJECT_ID:-aixn-node-1}"
+ZONE="${ZONE:-us-central1-a}"
+CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+KEYRING_BACKEND="${KEYRING_BACKEND:-test}"
+NETWORK_DIR="${NETWORK_DIR:-${PROJECT_ROOT}/networks/${CHAIN_ID}}"
+PUBLISH_ARTIFACTS="${PUBLISH_ARTIFACTS:-1}"
+VERIFY_SCRIPT="${PROJECT_ROOT}/scripts/devnet/verify-network-artifacts.sh"
+
+if [[ -n "${NODES_SPEC:-}" ]]; then
+    IFS=',' read -r -a NODES <<< "${NODES_SPEC}"
+else
+    NODES=(
+        "xai-testnode-1:34.29.163.145"
+        "xai-testnode-2:108.59.86.86"
+        "xai-testnode-3:35.184.167.38"
+    )
+fi
+
+declare -A NODE_IDS
+declare -A NODE_IPS
+for node_info in "${NODES[@]}"; do
+    IFS=':' read -r node_name node_ip <<< "$node_info"
+    NODE_IPS["$node_name"]="$node_ip"
+done
 
 # Colors
 GREEN='\033[0;32m'
@@ -28,8 +45,6 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TMP_DIR="/tmp/paw-deploy-$$"
 
 cleanup() {
@@ -108,14 +123,18 @@ init_node1() {
     gcloud compute ssh "$node_name" --zone="$ZONE" --project="$PROJECT_ID" --command="
         set -euo pipefail
         export HOME_DIR=/root/.paw/node1
+        parse_addr() { awk '/^[[:space:]]*address:/{print \$2; exit}' \"\$1\"; }
 
         echo '[INFO] Initializing chain...'
         pawd init node1 --chain-id $CHAIN_ID --home \$HOME_DIR
 
         echo '[INFO] Creating accounts...'
-        pawd keys add validator --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR --output json > /tmp/validator_key.json
-        pawd keys add smoke-trader --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR --output json > /tmp/trader_key.json
-        pawd keys add smoke-counterparty --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR --output json > /tmp/counterparty_key.json
+        pawd keys add validator --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR > /tmp/validator_key.txt
+        pawd keys add smoke-trader --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR > /tmp/trader_key.txt
+        pawd keys add smoke-counterparty --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR > /tmp/counterparty_key.txt
+        VALIDATOR_ADDR=\$(parse_addr /tmp/validator_key.txt)
+        TRADER_ADDR=\$(parse_addr /tmp/trader_key.txt)
+        COUNTERPARTY_ADDR=\$(parse_addr /tmp/counterparty_key.txt)
 
         echo '[INFO] Adding genesis accounts...'
         pawd genesis add-genesis-account validator 200000000000upaw --keyring-backend $KEYRING_BACKEND --home \$HOME_DIR
@@ -156,18 +175,19 @@ init_node1() {
     log_info "Downloading genesis and node ID from node1..."
     gcloud compute scp "$node_name:/root/.paw/node1/config/genesis.json" "$TMP_DIR/genesis.json" --zone="$ZONE" --project="$PROJECT_ID"
     gcloud compute scp "$node_name:/tmp/node1.id" "$TMP_DIR/node1.id" --zone="$ZONE" --project="$PROJECT_ID"
-    gcloud compute scp "$node_name:/tmp/validator_key.json" "$TMP_DIR/validator_key.json" --zone="$ZONE" --project="$PROJECT_ID"
-    gcloud compute scp "$node_name:/tmp/trader_key.json" "$TMP_DIR/trader_key.json" --zone="$ZONE" --project="$PROJECT_ID"
-    gcloud compute scp "$node_name:/tmp/counterparty_key.json" "$TMP_DIR/counterparty_key.json" --zone="$ZONE" --project="$PROJECT_ID"
+    gcloud compute scp "$node_name:/tmp/validator_key.txt" "$TMP_DIR/validator_key.txt" --zone="$ZONE" --project="$PROJECT_ID"
+    gcloud compute scp "$node_name:/tmp/trader_key.txt" "$TMP_DIR/trader_key.txt" --zone="$ZONE" --project="$PROJECT_ID"
+    gcloud compute scp "$node_name:/tmp/counterparty_key.txt" "$TMP_DIR/counterparty_key.txt" --zone="$ZONE" --project="$PROJECT_ID"
 
     log_info "Node1 ID: $(cat $TMP_DIR/node1.id)"
+    NODE_IDS["$node_name"]="$(cat "$TMP_DIR/node1.id")"
 }
 
 # Initialize node2 or node3
 init_follower_node() {
     local node_name=$1
     local node_num=$2
-    local node1_ip="34.29.163.145"
+    local node1_ip="${NODE_IPS["xai-testnode-1"]}"
     local node1_id=$(cat "$TMP_DIR/node1.id")
 
     log_step "Initializing $node_name as follower node..."
@@ -197,6 +217,55 @@ init_follower_node() {
 
         echo '[INFO] Node${node_num} initialization complete'
     "
+    gcloud compute scp "$node_name:/tmp/node${node_num}.id" "$TMP_DIR/${node_name}.id" --zone="$ZONE" --project="$PROJECT_ID"
+    NODE_IDS["$node_name"]="$(cat "$TMP_DIR/${node_name}.id")"
+}
+
+publish_artifacts() {
+    if [[ "${PUBLISH_ARTIFACTS}" != "1" ]]; then
+        log_warn "Skipping local artifact sync (PUBLISH_ARTIFACTS=0)"
+        return
+    fi
+
+    if [[ ! -f "$TMP_DIR/genesis.json" ]]; then
+        log_warn "Genesis file not found in $TMP_DIR (skipping artifact publish)"
+        return
+    fi
+
+    log_step "Syncing artifacts into ${NETWORK_DIR}"
+    mkdir -p "${NETWORK_DIR}"
+    cp "$TMP_DIR/genesis.json" "${NETWORK_DIR}/genesis.json"
+    (cd "${NETWORK_DIR}" && sha256sum genesis.json > genesis.sha256)
+
+    local peers_list=()
+    local seeds_entry=""
+    for node_info in "${NODES[@]}"; do
+        IFS=':' read -r node_name node_ip <<< "$node_info"
+        local node_id="${NODE_IDS["$node_name"]:-}"
+        if [[ -n "$node_id" && -n "$node_ip" ]]; then
+            peers_list+=("${node_id}@${node_ip}:26656")
+            if [[ -z "$seeds_entry" ]]; then
+                seeds_entry="${node_id}@${node_ip}:26656"
+            fi
+        fi
+    done
+    local peers_joined=""
+    if [[ ${#peers_list[@]} -gt 0 ]]; then
+        peers_joined=$(IFS=','; echo "${peers_list[*]}")
+    fi
+
+    cat > "${NETWORK_DIR}/peers.txt" <<EOF
+# Generated by scripts/devnet/gcp-deploy.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ). Update with production endpoints before publishing.
+seeds=${seeds_entry}
+persistent_peers=${peers_joined}
+EOF
+
+    log_info "Artifacts staged under ${NETWORK_DIR}"
+    if [[ -x "${VERIFY_SCRIPT}" ]]; then
+        (cd "${PROJECT_ROOT}" && "${VERIFY_SCRIPT}" "${CHAIN_ID}") || log_warn "Artifact verification reported issues"
+    else
+        log_warn "Verification script not found at ${VERIFY_SCRIPT}"
+    fi
 }
 
 # Create systemd service on node
@@ -324,10 +393,13 @@ main() {
     log_info "Deployment Complete!"
     log_info "========================================="
     echo ""
+    publish_artifacts
+
     log_info "Node Endpoints:"
-    echo "  Node1 RPC: http://34.29.163.145:26657"
-    echo "  Node2 RPC: http://108.59.86.86:26657"
-    echo "  Node3 RPC: http://35.184.167.38:26657"
+    for node_info in "${NODES[@]}"; do
+        IFS=':' read -r node_name node_ip <<< "$node_info"
+        echo "  ${node_name} RPC: http://${node_ip}:26657"
+    done
     echo ""
     log_info "Check status:"
     echo "  curl http://34.29.163.145:26657/status"
@@ -336,9 +408,9 @@ main() {
     echo "  ./scripts/devnet/gcp-manage.sh logs 1"
     echo ""
     log_info "Account keys saved to:"
-    echo "  $TMP_DIR/validator_key.json"
-    echo "  $TMP_DIR/trader_key.json"
-    echo "  $TMP_DIR/counterparty_key.json"
+    echo "  $TMP_DIR/validator_key.txt"
+    echo "  $TMP_DIR/trader_key.txt"
+    echo "  $TMP_DIR/counterparty_key.txt"
     echo ""
     log_warn "Remember to stop nodes when done testing!"
     echo "  ./scripts/devnet/gcp-manage.sh stop"

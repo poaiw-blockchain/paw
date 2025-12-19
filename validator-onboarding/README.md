@@ -25,6 +25,7 @@ Thank you for your interest in becoming a PAW blockchain validator! This bundle 
 | **VALIDATOR_MONITORING.md** | Monitoring setup with Prometheus/Grafana | DevOps engineers |
 | **VALIDATOR_SECURITY.md** | Security best practices and hardening | Security engineers |
 | **SENTRY_ARCHITECTURE.md** | Sentry node setup for DDoS protection | Infrastructure team |
+| **QUICKSTART_PACK.md** | Systemd + Docker Compose bring-up with health checks | Operators |
 
 All documentation is in `/docs/` directory.
 
@@ -44,6 +45,8 @@ Located in `/scripts/`:
 
 - `register-validator.sh` - Interactive validator registration
 - `faucet.sh` - Request testnet tokens
+- `onboarding/node-onboard.sh` - One-line full/light node bootstrap (artifacts + peers + state sync)
+- `onboarding/validator-healthcheck.sh` - Validator RPC/voting-power readiness probe
 
 ### Configuration Templates
 

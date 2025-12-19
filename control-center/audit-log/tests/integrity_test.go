@@ -3,9 +3,10 @@ package tests
 import (
 	"testing"
 	"time"
+	"strings"
 
-	"paw/control-center/audit-log/integrity"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/integrity"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -202,12 +203,14 @@ func TestHashCalculator_DetectTampering(t *testing.T) {
 	// Fix hash but break chain
 	entries[1].Hash = hash1
 	entries[2].PreviousHash = "wrong_previous_hash"
+	hash2Broken, _ := calc.CalculateHash(&entries[2])
+	entries[2].Hash = hash2Broken
 
 	// Should detect chain break
 	alerts, err = calc.DetectTampering(entries)
 	require.NoError(t, err)
 	assert.NotEmpty(t, alerts)
-	assert.Contains(t, alerts[0].Description, "chain")
+	assert.Contains(t, strings.ToLower(alerts[0].Description), "chain")
 }
 
 func TestHashCalculator_CreateGenesisEntry(t *testing.T) {

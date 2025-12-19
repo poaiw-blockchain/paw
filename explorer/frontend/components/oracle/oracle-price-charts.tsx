@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { api, type OraclePrice } from '@/lib/api'
@@ -28,11 +28,6 @@ export function OraclePriceCharts() {
     queryKey: ['oraclePrices'],
     queryFn: () => api.getOraclePrices(),
     refetchInterval: 20_000,
-    onSuccess: (result) => {
-      if (!selectedAsset && result?.prices?.length) {
-        setSelectedAsset(result.prices[0].asset)
-      }
-    },
   })
 
   const { data: chartData, isLoading: isLoadingChart } = useQuery({
@@ -42,7 +37,13 @@ export function OraclePriceCharts() {
     refetchInterval: 20_000,
   })
 
-  const assets = prices?.prices ?? []
+  const assets = useMemo(() => prices?.prices ?? [], [prices?.prices])
+
+  useEffect(() => {
+    if (!selectedAsset && assets.length > 0) {
+      setSelectedAsset(assets[0].asset)
+    }
+  }, [assets, selectedAsset])
 
   const selectedPrice = useMemo<OraclePrice | undefined>(
     () => assets.find((price) => price.asset === selectedAsset),

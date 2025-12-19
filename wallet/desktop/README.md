@@ -92,6 +92,12 @@ Built applications will be in the `dist/` directory.
    - Set a password
    - Your wallet is imported!
 
+3. **Connect Ledger (Nano S Plus / Nano X)**
+   - Ensure Ledger Live is closed and the Cosmos app is open on your device
+   - Click "Connect Ledger" on the setup screen
+   - Approve the address request on-device; only public metadata is stored locally
+   - Use the Ledger for passwordless send/staking/bridge flows (confirm on device). DEX swaps remain software-only until custom signing is added.
+
 ### Sending Tokens
 
 1. Navigate to **Send** tab
@@ -421,7 +427,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) fo
 ## Roadmap
 
 ### Version 1.1 (Q1 2025)
-- [ ] Hardware wallet support (Ledger, Trezor)
+- [x] Hardware wallet support (Ledger Nano S Plus / Nano X)
 - [ ] Multi-account management
 - [ ] Staking interface
 - [ ] Governance voting

@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -124,6 +125,9 @@ import (
 	oraclemodule "github.com/paw-chain/paw/x/oracle"
 	oraclekeeper "github.com/paw-chain/paw/x/oracle/keeper"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
+
+	// Health endpoints
+	"github.com/paw-chain/paw/app/health"
 
 	// AnteHandler
 	pawante "github.com/paw-chain/paw/app/ante"
@@ -759,6 +763,41 @@ func (app *PAWApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APICon
 		if err := server.RegisterSwaggerAPI(clientCtx, apiSvr.Router, apiConfig.Swagger); err != nil {
 			app.Logger().Error("failed to register swagger API routes", "err", err)
 		}
+	}
+
+	// Register health check endpoints so operators have a consistent probe surface
+	healthCfg := health.DefaultConfig()
+	if nodeURI := normalizeRPCURL(clientCtx.NodeURI); nodeURI != "" {
+		healthCfg.RPCURL = nodeURI
+	}
+
+	checker, err := health.NewChecker(app.Logger(), healthCfg, clientCtx)
+	if err != nil {
+		app.Logger().Error("failed to initialize health checker", "err", err)
+		return
+	}
+
+	checker.RegisterRoutes(apiSvr.Router)
+	app.Logger().Info("registered API health endpoints",
+		"rpc_url", healthCfg.RPCURL,
+		"cache_duration", healthCfg.CacheDuration,
+	)
+}
+
+// normalizeRPCURL converts a Cosmos SDK node URI (tcp or http) into a usable RPC URL.
+func normalizeRPCURL(nodeURI string) string {
+	nodeURI = strings.TrimSpace(nodeURI)
+	if nodeURI == "" {
+		return ""
+	}
+
+	switch {
+	case strings.HasPrefix(nodeURI, "tcp://"):
+		return "http://" + strings.TrimPrefix(nodeURI, "tcp://")
+	case strings.HasPrefix(nodeURI, "http://"), strings.HasPrefix(nodeURI, "https://"):
+		return nodeURI
+	default:
+		return nodeURI
 	}
 }
 

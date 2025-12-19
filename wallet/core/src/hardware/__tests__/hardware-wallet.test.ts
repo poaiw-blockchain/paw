@@ -12,16 +12,33 @@ import {
   HardwareWalletType,
   DeviceConnectionStatus,
 } from '../index';
+import { toBech32 } from '@cosmjs/encoding';
+
+const mockLedgerWallet = {
+  type: HardwareWalletType.LEDGER,
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+  isConnected: jest.fn().mockResolvedValue(true),
+  getDeviceInfo: jest.fn(),
+};
+
+const mockTrezorWallet = {
+  type: HardwareWalletType.TREZOR,
+  connect: jest.fn(),
+  disconnect: jest.fn(),
+  isConnected: jest.fn().mockReturnValue(true),
+  getDeviceInfo: jest.fn(),
+};
 
 // Mock the hardware wallet modules
 jest.mock('../ledger', () => ({
-  createLedgerWallet: jest.fn(),
+  createLedgerWallet: jest.fn(() => mockLedgerWallet),
   isLedgerSupported: jest.fn().mockResolvedValue(true),
   requestLedgerDevice: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('../trezor', () => ({
-  createTrezorWallet: jest.fn(),
+  createTrezorWallet: jest.fn(() => mockTrezorWallet),
   isTrezorSupported: jest.fn().mockReturnValue(true),
 }));
 
@@ -40,6 +57,15 @@ describe('HardwareWalletUtils', () => {
 
       expect(paths[0]).toBe("m/44'/60'/0'/0/0");
       expect(paths[2]).toBe("m/44'/60'/0'/0/2");
+    });
+  });
+
+  describe('buildDefaultPathMatrix', () => {
+    it('should build default matrix up to max account index', () => {
+      const paths = HardwareWalletUtils.buildDefaultPathMatrix(118, 4, 0);
+      expect(paths).toHaveLength(5);
+      expect(paths[0]).toBe("m/44'/118'/0'/0/0");
+      expect(paths[4]).toBe("m/44'/118'/0'/0/4");
     });
   });
 
@@ -105,6 +131,48 @@ describe('HardwareWalletUtils', () => {
       error.code = 'UNKNOWN';
 
       expect(HardwareWalletUtils.getErrorMessage(error)).toBe('Custom error');
+    });
+  });
+
+  describe('bech32 and fee validation helpers', () => {
+    it('should validate bech32 prefixes', () => {
+      const good = toBech32('paw', new Uint8Array(20).fill(1));
+      expect(() => HardwareWalletUtils.assertBech32Prefix(good, 'paw')).not.toThrow();
+      expect(() => HardwareWalletUtils.assertBech32Prefix(good, 'cosmos')).toThrow(
+        /Address prefix mismatch/
+      );
+    });
+
+    it('should validate sign doc basics with allowed denom and chain-id', () => {
+      expect(() =>
+        HardwareWalletUtils.validateSignDocBasics(
+          {
+            chain_id: 'paw-testnet-1',
+            fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
+          },
+          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+        )
+      ).not.toThrow();
+
+      expect(() =>
+        HardwareWalletUtils.validateSignDocBasics(
+          {
+            chain_id: 'other-chain',
+            fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
+          },
+          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+        )
+      ).toThrow(/chain-id mismatch/);
+
+      expect(() =>
+        HardwareWalletUtils.validateSignDocBasics(
+          {
+            chain_id: 'paw-testnet-1',
+            fee: { amount: [{ denom: 'uatom', amount: '2500' }], gas: '200000' },
+          },
+          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+        )
+      ).toThrow(/not permitted/);
     });
   });
 });
@@ -198,27 +266,34 @@ describe('HardwareWalletManager', () => {
     });
 
     it('should disconnect all wallets', async () => {
-      const mockConnect = jest.fn().mockResolvedValue({
-        type: HardwareWalletType.LEDGER,
-        model: 'Ledger Nano S',
-        version: '2.0.0',
-        status: DeviceConnectionStatus.CONNECTED,
+      const disconnects: jest.Mock[] = [];
+      let deviceCounter = 0;
+      const mockConnect = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          type: HardwareWalletType.LEDGER,
+          model: 'Ledger Nano S',
+          version: '2.0.0',
+          deviceId: `device-${deviceCounter++}`,
+          status: DeviceConnectionStatus.CONNECTED,
+        })
+      );
+
+      jest.spyOn(HardwareWalletFactory, 'create').mockImplementation(() => {
+        const mockDisconnect = jest.fn();
+        disconnects.push(mockDisconnect);
+        return {
+          type: HardwareWalletType.LEDGER,
+          connect: mockConnect,
+          disconnect: mockDisconnect,
+        } as any;
       });
-
-      const mockDisconnect = jest.fn();
-
-      jest.spyOn(HardwareWalletFactory, 'create').mockReturnValue({
-        type: HardwareWalletType.LEDGER,
-        connect: mockConnect,
-        disconnect: mockDisconnect,
-      } as any);
 
       await manager.addWallet(HardwareWalletType.LEDGER);
       await manager.addWallet(HardwareWalletType.LEDGER);
 
       await manager.disconnectAll();
 
-      expect(mockDisconnect).toHaveBeenCalledTimes(2);
+      expect(disconnects.every((fn) => fn.mock.calls.length === 1)).toBe(true);
       expect(manager.getAllWallets().size).toBe(0);
     });
   });

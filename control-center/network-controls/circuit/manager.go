@@ -11,6 +11,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+var (
+	metricsOnce sync.Once
+
+	sharedCircuitBreakerStatus *prometheus.GaugeVec
+	sharedStateTransitions     *prometheus.CounterVec
+	sharedAutoResumes          prometheus.Counter
+)
+
 // Manager handles circuit breaker operations and auto-resume logic
 type Manager struct {
 	registry       *CircuitBreakerRegistry
@@ -29,30 +37,36 @@ type Manager struct {
 func NewManager() *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &Manager{
-		registry: NewCircuitBreakerRegistry(),
-		ctx:      ctx,
-		cancel:   cancel,
-		circuitBreakerStatus: promauto.NewGaugeVec(
+	metricsOnce.Do(func() {
+		sharedCircuitBreakerStatus = promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "circuit_breaker_status",
 				Help: "Current status of circuit breakers (0=closed, 1=open, 2=half-open)",
 			},
 			[]string{"module", "submodule"},
-		),
-		stateTransitions: promauto.NewCounterVec(
+		)
+		sharedStateTransitions = promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "circuit_breaker_transitions_total",
 				Help: "Total number of circuit breaker state transitions",
 			},
 			[]string{"module", "submodule", "from", "to"},
-		),
-		autoResumes: promauto.NewCounter(
+		)
+		sharedAutoResumes = promauto.NewCounter(
 			prometheus.CounterOpts{
 				Name: "circuit_breaker_auto_resumes_total",
 				Help: "Total number of automatic circuit breaker resumes",
 			},
-		),
+		)
+	})
+
+	return &Manager{
+		registry: NewCircuitBreakerRegistry(),
+		ctx:      ctx,
+		cancel:   cancel,
+		circuitBreakerStatus: sharedCircuitBreakerStatus,
+		stateTransitions:     sharedStateTransitions,
+		autoResumes:          sharedAutoResumes,
 	}
 }
 

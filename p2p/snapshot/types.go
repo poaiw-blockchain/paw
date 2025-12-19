@@ -10,47 +10,47 @@ import (
 // Snapshot represents a state snapshot at a specific height
 type Snapshot struct {
 	// Snapshot metadata
-	Height    int64     `json:"height"`
-	Hash      []byte    `json:"hash"`
-	Timestamp int64     `json:"timestamp"`
-	Format    uint32    `json:"format"`    // Snapshot format version
-	ChainID   string    `json:"chain_id"`  // Chain identifier
+	Height    int64  `json:"height"`
+	Hash      []byte `json:"hash"`
+	Timestamp int64  `json:"timestamp"`
+	Format    uint32 `json:"format"`   // Snapshot format version
+	ChainID   string `json:"chain_id"` // Chain identifier
 
 	// Chunk information
 	NumChunks   uint32   `json:"num_chunks"`
 	ChunkHashes [][]byte `json:"chunk_hashes"`
 
 	// State metadata
-	AppHash        []byte `json:"app_hash"`         // Application state hash
-	ValidatorHash  []byte `json:"validator_hash"`   // Validator set hash
-	ConsensusHash  []byte `json:"consensus_hash"`   // Consensus params hash
+	AppHash       []byte `json:"app_hash"`       // Application state hash
+	ValidatorHash []byte `json:"validator_hash"` // Validator set hash
+	ConsensusHash []byte `json:"consensus_hash"` // Consensus params hash
 
 	// Validation
-	Signature      []byte   `json:"signature"`        // Snapshot signature
-	ValidatorSigs  [][]byte `json:"validator_sigs"`   // Validator signatures (BFT proof)
-	SignedBy       []string `json:"signed_by"`        // List of validator IDs
-	VotingPower    int64    `json:"voting_power"`     // Total voting power of signers
-	TotalPower     int64    `json:"total_power"`      // Total validator voting power
+	Signature     []byte   `json:"signature"`      // Snapshot signature
+	ValidatorSigs [][]byte `json:"validator_sigs"` // Validator signatures (BFT proof)
+	SignedBy      []string `json:"signed_by"`      // List of validator IDs
+	VotingPower   int64    `json:"voting_power"`   // Total voting power of signers
+	TotalPower    int64    `json:"total_power"`    // Total validator voting power
 }
 
 // SnapshotChunk represents a chunk of snapshot data
 type SnapshotChunk struct {
-	Height int64  `json:"height"`  // Snapshot height
-	Index  uint32 `json:"index"`   // Chunk index
-	Data   []byte `json:"data"`    // Chunk data
-	Hash   []byte `json:"hash"`    // Chunk hash
+	Height int64  `json:"height"` // Snapshot height
+	Index  uint32 `json:"index"`  // Chunk index
+	Data   []byte `json:"data"`   // Chunk data
+	Hash   []byte `json:"hash"`   // Chunk hash
 }
 
 // SnapshotMetadata contains snapshot discovery information
 type SnapshotMetadata struct {
-	Height        int64     `json:"height"`
-	Hash          []byte    `json:"hash"`
-	NumChunks     uint32    `json:"num_chunks"`
-	Format        uint32    `json:"format"`
-	ChainID       string    `json:"chain_id"`
-	Timestamp     time.Time `json:"timestamp"`
-	VotingPower   int64     `json:"voting_power"`
-	TotalPower    int64     `json:"total_power"`
+	Height      int64     `json:"height"`
+	Hash        []byte    `json:"hash"`
+	NumChunks   uint32    `json:"num_chunks"`
+	Format      uint32    `json:"format"`
+	ChainID     string    `json:"chain_id"`
+	Timestamp   time.Time `json:"timestamp"`
+	VotingPower int64     `json:"voting_power"`
+	TotalPower  int64     `json:"total_power"`
 }
 
 // SnapshotRequest represents a request for snapshot information
@@ -62,10 +62,10 @@ type SnapshotRequest struct {
 
 // SnapshotOffer represents a peer's snapshot offer
 type SnapshotOffer struct {
-	PeerID        string           `json:"peer_id"`
-	Snapshot      *SnapshotMetadata `json:"snapshot"`
-	ReceivedAt    time.Time        `json:"received_at"`
-	Reliability   float64          `json:"reliability"` // Peer reliability score
+	PeerID      string            `json:"peer_id"`
+	Snapshot    *SnapshotMetadata `json:"snapshot"`
+	ReceivedAt  time.Time         `json:"received_at"`
+	Reliability float64           `json:"reliability"` // Peer reliability score
 }
 
 // ChunkRequest represents a request for a snapshot chunk

@@ -110,6 +110,10 @@ func (im IBCModule) OnChanOpenTry(
 		return "", errorsmod.Wrapf(types.ErrInvalidPacket,
 			"invalid counterparty version: expected %s, got %s", types.IBCVersion, counterpartyVersion)
 	}
+	if portID != types.PortID {
+		return "", errorsmod.Wrapf(porttypes.ErrInvalidPort,
+			"expected port %s, got %s", types.PortID, portID)
+	}
 
 	if err := im.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
 		return "", errorsmod.Wrap(err, "failed to claim channel capability")
@@ -227,6 +231,14 @@ func (im IBCModule) OnRecvPacket(
 	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
 		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
 		ctx.Logger().Error("unauthorized compute packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"compute_ibc_packet_validation_failed",
+				sdk.NewAttribute("port", packet.SourcePort),
+				sdk.NewAttribute("channel", packet.SourceChannel),
+				sdk.NewAttribute("reason", "unauthorized channel"),
+			),
+		)
 		return channeltypes.NewErrorAcknowledgement(err)
 	}
 

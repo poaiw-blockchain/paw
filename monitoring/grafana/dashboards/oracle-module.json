@@ -1,0 +1,1281 @@
+{
+  "dashboard": {
+    "title": "PAW Oracle Module - Production Monitoring",
+    "description": "Comprehensive Oracle module monitoring including price feeds, validator participation, TWAP aggregation, cross-chain oracle feeds, and security metrics",
+    "tags": ["paw", "oracle", "price-feeds", "validators", "twap", "ibc", "security"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "asset",
+          "type": "query",
+          "label": "Asset",
+          "query": "label_values(paw_oracle_price_submissions_total, asset)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "validator",
+          "type": "query",
+          "label": "Validator",
+          "query": "label_values(paw_oracle_validator_submissions_total, validator)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "chain",
+          "type": "query",
+          "label": "IBC Chain",
+          "query": "label_values(paw_oracle_ibc_prices_sent_total, destination_chain)",
+          "datasource": "Prometheus",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "row",
+        "title": "Overview - Key Metrics",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Total Assets Tracked",
+        "gridPos": {
+          "x": 0,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_assets_tracked_total",
+            "legendFormat": "Assets",
+            "refId": "A"
+          }
+        ],
+        "description": "Total number of price feeds being tracked by the oracle system",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "blue"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "Active Validators",
+        "gridPos": {
+          "x": 4,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "count(count by (validator) (paw_oracle_validator_submissions_total))",
+            "legendFormat": "Validators",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of validators actively submitting oracle price data",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 3,
+                  "color": "yellow"
+                },
+                {
+                  "value": 7,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Price Submissions (24h)",
+        "gridPos": {
+          "x": 8,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_price_submissions_total[24h]))",
+            "legendFormat": "Submissions",
+            "refId": "A"
+          }
+        ],
+        "description": "Total price submissions received in the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 5,
+        "type": "stat",
+        "title": "Avg Price Deviation",
+        "gridPos": {
+          "x": 12,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "avg(paw_oracle_price_deviation_percent)",
+            "legendFormat": "Deviation",
+            "refId": "A"
+          }
+        ],
+        "description": "Average validator price deviation from median across all assets",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 2,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "orange"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 6,
+        "type": "stat",
+        "title": "Slash Events (24h)",
+        "gridPos": {
+          "x": 16,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_slashing_events_total[24h]))",
+            "legendFormat": "Slashes",
+            "refId": "A"
+          }
+        ],
+        "description": "Validator slashing events in the last 24 hours",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "orange"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 7,
+        "type": "stat",
+        "title": "Outliers Detected (1h)",
+        "gridPos": {
+          "x": 20,
+          "y": 1,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_outliers_detected_total[1h]))",
+            "legendFormat": "Outliers",
+            "refId": "A"
+          }
+        ],
+        "description": "Price outliers detected in the last hour",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 5,
+                  "color": "yellow"
+                },
+                {
+                  "value": 20,
+                  "color": "orange"
+                },
+                {
+                  "value": 50,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 8,
+        "type": "row",
+        "title": "Price Feed Health",
+        "gridPos": {
+          "x": 0,
+          "y": 5,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 9,
+        "type": "timeseries",
+        "title": "Price Submission Rate by Asset",
+        "gridPos": {
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_price_submissions_total{asset=~\"$asset\"}[5m])) by (asset)",
+            "legendFormat": "{{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Rate of price submissions per asset (submissions per second)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "type": "timeseries",
+        "title": "Aggregated Prices",
+        "gridPos": {
+          "x": 12,
+          "y": 6,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_aggregated_price{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Current aggregated price for each tracked asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 0
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "type": "timeseries",
+        "title": "Price Age by Asset",
+        "gridPos": {
+          "x": 0,
+          "y": 14,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_price_age_seconds{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Time elapsed since last price update for each asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 60,
+                  "color": "yellow"
+                },
+                {
+                  "value": 300,
+                  "color": "red"
+                }
+              ]
+            },
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear"
+            }
+          }
+        }
+      },
+      {
+        "id": 12,
+        "type": "timeseries",
+        "title": "Price Deviation by Asset",
+        "gridPos": {
+          "x": 12,
+          "y": 14,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "avg(paw_oracle_price_deviation_percent{asset=~\"$asset\"}) by (asset)",
+            "legendFormat": "{{asset}} - Avg",
+            "refId": "A"
+          },
+          {
+            "expr": "max(paw_oracle_price_deviation_percent{asset=~\"$asset\"}) by (asset)",
+            "legendFormat": "{{asset}} - Max",
+            "refId": "B"
+          }
+        ],
+        "description": "Average and maximum validator price deviation from median by asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 3,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 13,
+        "type": "row",
+        "title": "Validator Performance",
+        "gridPos": {
+          "x": 0,
+          "y": 22,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 14,
+        "type": "table",
+        "title": "Validator Participation Metrics",
+        "gridPos": {
+          "x": 0,
+          "y": 23,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_validator_submissions_total{validator=~\"$validator\"}[1h])) by (validator)",
+            "legendFormat": "{{validator}}",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "paw_oracle_validator_reputation_score{validator=~\"$validator\"}",
+            "legendFormat": "{{validator}}",
+            "refId": "B",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(increase(paw_oracle_missed_votes_total{validator=~\"$validator\"}[24h])) by (validator)",
+            "legendFormat": "{{validator}}",
+            "refId": "C",
+            "format": "table",
+            "instant": true
+          },
+          {
+            "expr": "sum(increase(paw_oracle_slashing_events_total{validator=~\"$validator\"}[24h])) by (validator)",
+            "legendFormat": "{{validator}}",
+            "refId": "D",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "description": "Comprehensive validator participation: submission rate, reputation, missed votes, and slashing events",
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #A"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Submissions/hour"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "decimals",
+                  "value": 2
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #B"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Reputation"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "red"
+                      },
+                      {
+                        "value": 50,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 80,
+                        "color": "green"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #C"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Missed Votes (24h)"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #D"
+              },
+              "properties": [
+                {
+                  "id": "displayName",
+                  "value": "Slashes (24h)"
+                },
+                {
+                  "id": "unit",
+                  "value": "short"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "green"
+                      },
+                      {
+                        "value": 1,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 5,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 15,
+        "type": "timeseries",
+        "title": "Validator Participation Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 31,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_consensus_participation_rate{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Percentage of validators participating in price consensus per asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 80,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 16,
+        "type": "timeseries",
+        "title": "Slashing Events Timeline",
+        "gridPos": {
+          "x": 12,
+          "y": 31,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "increase(paw_oracle_slashing_events_total{validator=~\"$validator\"}[5m])",
+            "legendFormat": "{{validator}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Slashing events over time by validator and reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars"
+            }
+          }
+        }
+      },
+      {
+        "id": 17,
+        "type": "row",
+        "title": "TWAP & Aggregation",
+        "gridPos": {
+          "x": 0,
+          "y": 39,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 18,
+        "type": "timeseries",
+        "title": "TWAP vs Spot Price",
+        "gridPos": {
+          "x": 0,
+          "y": 40,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_twap_price{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}} - TWAP",
+            "refId": "A"
+          },
+          {
+            "expr": "paw_oracle_aggregated_price{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}} - Spot",
+            "refId": "B"
+          }
+        ],
+        "description": "Time-weighted average price compared to spot price for each asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          }
+        }
+      },
+      {
+        "id": 19,
+        "type": "timeseries",
+        "title": "TWAP Window Size",
+        "gridPos": {
+          "x": 12,
+          "y": 40,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_twap_window_seconds{asset=~\"$asset\"}",
+            "legendFormat": "{{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "TWAP calculation window size for each asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 20,
+        "type": "timeseries",
+        "title": "Price Aggregation Rate",
+        "gridPos": {
+          "x": 0,
+          "y": 48,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_price_aggregations_total{asset=~\"$asset\"}[5m])) by (asset, status)",
+            "legendFormat": "{{asset}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Price aggregation execution rate by status (success/failure)",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 21,
+        "type": "timeseries",
+        "title": "Aggregation Latency Distribution",
+        "gridPos": {
+          "x": 12,
+          "y": 48,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_oracle_aggregation_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "description": "Price aggregation processing latency percentiles",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 22,
+        "type": "row",
+        "title": "Security & Anomaly Detection",
+        "gridPos": {
+          "x": 0,
+          "y": 56,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 23,
+        "type": "timeseries",
+        "title": "Outlier Detection by Severity",
+        "gridPos": {
+          "x": 0,
+          "y": 57,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_outliers_detected_total{asset=~\"$asset\"}[5m])) by (asset, severity)",
+            "legendFormat": "{{asset}} - {{severity}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Outlier detection rate by asset and severity level",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 24,
+        "type": "timeseries",
+        "title": "Price Rejections by Reason",
+        "gridPos": {
+          "x": 12,
+          "y": 57,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_price_rejections_total{asset=~\"$asset\"}[5m])) by (asset, reason)",
+            "legendFormat": "{{asset}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Price submission rejection rate by reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 0.1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 1,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 25,
+        "type": "timeseries",
+        "title": "Manipulation Detection",
+        "gridPos": {
+          "x": 0,
+          "y": 65,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_manipulation_detected_total{asset=~\"$asset\"}[1h])) by (asset, detection_method)",
+            "legendFormat": "{{asset}} - {{detection_method}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Price manipulation attempts detected by method",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 26,
+        "type": "timeseries",
+        "title": "Circuit Breaker Triggers",
+        "gridPos": {
+          "x": 12,
+          "y": 65,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_circuit_breaker_triggers_total[1h])) by (asset, reason)",
+            "legendFormat": "{{asset}} - {{reason}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Circuit breaker activations by asset and reason",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 5,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 27,
+        "type": "timeseries",
+        "title": "Anomalous Patterns Detected",
+        "gridPos": {
+          "x": 0,
+          "y": 73,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_anomalous_patterns_detected_total[5m])) by (asset, pattern_type)",
+            "legendFormat": "{{asset}} - {{pattern_type}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Anomalous price patterns detected by type",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 28,
+        "type": "row",
+        "title": "Cross-Chain IBC Oracle Feeds",
+        "gridPos": {
+          "x": 0,
+          "y": 81,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 29,
+        "type": "timeseries",
+        "title": "IBC Price Feeds - Sent",
+        "gridPos": {
+          "x": 0,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_ibc_prices_sent_total{destination_chain=~\"$chain\"}[5m])) by (destination_chain, asset)",
+            "legendFormat": "{{destination_chain}} - {{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Price updates sent to other chains via IBC",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 30,
+        "type": "timeseries",
+        "title": "IBC Price Feeds - Received",
+        "gridPos": {
+          "x": 8,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(paw_oracle_ibc_prices_received_total[5m])) by (source_chain, asset)",
+            "legendFormat": "{{source_chain}} - {{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "Price updates received from other chains via IBC",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 31,
+        "type": "timeseries",
+        "title": "IBC Timeout Events",
+        "gridPos": {
+          "x": 16,
+          "y": 82,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(paw_oracle_ibc_timeouts_total[1h])) by (chain, asset)",
+            "legendFormat": "{{chain}} - {{asset}}",
+            "refId": "A"
+          }
+        ],
+        "description": "IBC price feed timeout events by chain and asset",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 1,
+                  "color": "yellow"
+                },
+                {
+                  "value": 10,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 32,
+        "type": "timeseries",
+        "title": "IBC Operation Latency",
+        "gridPos": {
+          "x": 0,
+          "y": 90,
+          "w": 24,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(paw_oracle_ibc_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(paw_oracle_ibc_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(paw_oracle_ibc_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "description": "Cross-chain oracle operation latency distribution",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 33,
+        "type": "row",
+        "title": "System Health",
+        "gridPos": {
+          "x": 0,
+          "y": 98,
+          "w": 24,
+          "h": 1
+        },
+        "collapsed": false
+      },
+      {
+        "id": 34,
+        "type": "stat",
+        "title": "Stale Data Cleanups (Total)",
+        "gridPos": {
+          "x": 0,
+          "y": 99,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_stale_data_cleanups_total",
+            "legendFormat": "Cleanups",
+            "refId": "A"
+          }
+        ],
+        "description": "Total stale data cleanup operations performed",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 35,
+        "type": "stat",
+        "title": "TWAP Updates (Total)",
+        "gridPos": {
+          "x": 6,
+          "y": 99,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "paw_oracle_twap_updates_total",
+            "legendFormat": "Updates",
+            "refId": "A"
+          }
+        ],
+        "description": "Total TWAP update operations",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 36,
+        "type": "timeseries",
+        "title": "System Operational Metrics",
+        "gridPos": {
+          "x": 12,
+          "y": 99,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(paw_oracle_stale_data_cleanups_total[5m])",
+            "legendFormat": "Stale Cleanups/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(paw_oracle_twap_updates_total[5m])",
+            "legendFormat": "TWAP Updates/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(paw_oracle_aggregation_count_total[5m])) by (status)",
+            "legendFormat": "Aggregations/sec - {{status}}",
+            "refId": "C"
+          }
+        ],
+        "description": "System operational metrics over time",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@ set -euo pipefail
 # Usage: ./scripts/devnet/smoke.sh
 
 NODE_CONTAINER="paw-node1"
-CHAIN_ID="paw-devnet"
+CHAIN_ID="${CHAIN_ID:-paw-devnet}"
 HOME_DIR="/root/.paw/node1"
 KEYRING_BACKEND="test"
 NODE_RPC="tcp://localhost:26657"

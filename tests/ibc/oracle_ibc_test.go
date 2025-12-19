@@ -14,8 +14,6 @@ import (
 
 	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
-
-	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // OracleIBCTestSuite tests cross-chain oracle operations

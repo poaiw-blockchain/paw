@@ -19,7 +19,7 @@ func main() {
 	nodeChecker := NewSimpleNodeChecker("http://localhost:26657")
 	StartHealthCheckServer(36661, nodeChecker)
 
-	rootCmd := cmd.NewRootCmd()
+	rootCmd := cmd.NewRootCmd(false)
 
 	if err := svrcmd.Execute(rootCmd, "", app.DefaultNodeHome); err != nil {
 		os.Exit(1)

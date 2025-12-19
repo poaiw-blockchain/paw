@@ -31,8 +31,8 @@ const (
 
 // Update represents an update to an incident
 type Update struct {
-	Timestamp time.Time `json:"timestamp"`
-	Message   string    `json:"message"`
+	Timestamp time.Time      `json:"timestamp"`
+	Message   string         `json:"message"`
 	Status    IncidentStatus `json:"status,omitempty"`
 }
 
@@ -51,11 +51,11 @@ type Incident struct {
 
 // Manager handles incident management
 type Manager struct {
-	config        *config.Config
-	incidents     map[int]*Incident
-	nextID        int
-	mutex         sync.RWMutex
-	subscribers   []string
+	config      *config.Config
+	incidents   map[int]*Incident
+	nextID      int
+	mutex       sync.RWMutex
+	subscribers []string
 }
 
 // NewManager creates a new incident manager

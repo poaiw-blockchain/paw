@@ -41,7 +41,7 @@ export interface Transaction {
   created_at: string
 }
 
-export interface Event {
+export interface ExplorerEvent {
   tx_hash: string
   block_height: number
   event_index: number
@@ -158,6 +158,16 @@ export interface OraclePrice {
   created_at: string
 }
 
+export interface OracleSubmission {
+  validator_address: string
+  asset: string
+  price: string
+  deviation?: string
+  confidence?: string
+  timestamp: string
+  tx_hash?: string
+}
+
 export interface ComputeRequest {
   request_id: string
   requester: string
@@ -174,6 +184,19 @@ export interface ComputeRequest {
   block_height: number
   created_at: string
   updated_at: string
+}
+
+export interface ComputeProvider {
+  address: string
+  stake?: string
+  active?: boolean
+  reputation?: number
+  total_jobs?: number
+  completed_jobs?: number
+  failed_jobs?: number
+  uptime_30d?: number
+  avg_completion_time?: number
+  slash_count?: number
 }
 
 export interface NetworkStats {
@@ -325,7 +348,7 @@ class APIClient {
     })
   }
 
-  async getTransactionEvents(hash: string): Promise<{ events: Event[]; count: number }> {
+  async getTransactionEvents(hash: string): Promise<{ events: ExplorerEvent[]; count: number }> {
     return this.request({
       method: 'GET',
       url: `/transactions/${hash}/events`,
@@ -530,7 +553,7 @@ class APIClient {
     })
   }
 
-  async getOracleSubmissions(page = 1, limit = 20, asset?: string): Promise<PaginatedResponse<any>> {
+  async getOracleSubmissions(page = 1, limit = 20, asset?: string): Promise<PaginatedResponse<OracleSubmission>> {
     const response = await this.request<any>({
       method: 'GET',
       url: '/oracle/submissions',
@@ -594,14 +617,14 @@ class APIClient {
     })
   }
 
-  async getComputeProviders(): Promise<{ providers: any[] }> {
+  async getComputeProviders(): Promise<{ providers: ComputeProvider[] }> {
     return this.request({
       method: 'GET',
       url: '/compute/providers',
     })
   }
 
-  async getComputeProvider(address: string): Promise<{ provider: any }> {
+  async getComputeProvider(address: string): Promise<{ provider: ComputeProvider }> {
     return this.request({
       method: 'GET',
       url: `/compute/providers/${address}`,

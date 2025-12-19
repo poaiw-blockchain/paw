@@ -16,10 +16,10 @@ type ProofOfWork struct {
 
 // Challenge represents a PoW challenge
 type Challenge struct {
-	Resource   string    `json:"resource"`   // The resource being requested (e.g., address)
-	Timestamp  int64     `json:"timestamp"`  // Unix timestamp
-	Difficulty int       `json:"difficulty"` // Number of leading zeros required
-	ExpiresAt  int64     `json:"expires_at"` // Challenge expiration time
+	Resource   string `json:"resource"`   // The resource being requested (e.g., address)
+	Timestamp  int64  `json:"timestamp"`  // Unix timestamp
+	Difficulty int    `json:"difficulty"` // Number of leading zeros required
+	ExpiresAt  int64  `json:"expires_at"` // Challenge expiration time
 }
 
 // Solution represents a PoW solution

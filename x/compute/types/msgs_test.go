@@ -1,22 +1,27 @@
 package types
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 // Test addresses for validation tests - using valid bech32 cosmos addresses
 var (
-	validAddress     = "cosmos1zg69v7ys40x77y352eufp27daufrg4ncnjqz7q"
-	validValAddress  = "cosmosvaloper1zg69v7ys40x77y352eufp27daufrg4nckx5hjn"
-	invalidAddress   = "invalid"
-	validEndpoint    = "https://compute.example.com:8080"
-	validContainer   = "docker.io/library/ubuntu:latest"
-	validOutputHash  = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
-	validOutputURL   = "https://storage.example.com/results/123"
+	validAddress    = "cosmos1zg69v7ys40x77y352eufp27daufrg4ncnjqz7q"
+	validValAddress = "cosmosvaloper1zg69v7ys40x77y352eufp27daufrg4nckx5hjn"
+	invalidAddress  = "invalid"
+	moduleAuthority string
+	moduleAccAddr   sdk.AccAddress
+	validEndpoint   = "https://compute.example.com:8080"
+	validContainer  = "docker.io/library/ubuntu:latest"
+	validOutputHash = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
+	validOutputURL  = "https://storage.example.com/results/123"
 )
 
 func init() {
@@ -25,6 +30,8 @@ func init() {
 	config.SetBech32PrefixForAccount("cosmos", "cosmospub")
 	config.SetBech32PrefixForValidator("cosmosvaloper", "cosmosvaloperpub")
 	config.SetBech32PrefixForConsensusNode("cosmosvalcons", "cosmosvalconspub")
+	moduleAccAddr = authtypes.NewModuleAddress(govtypes.ModuleName)
+	moduleAuthority = moduleAccAddr.String()
 }
 
 // ============================================================================
@@ -38,10 +45,10 @@ func TestMsgRegisterProvider_ValidateBasic(t *testing.T) {
 		TimeoutSeconds: 3600,
 	}
 	validPricing := Pricing{
-		CpuPricePerMcoreHour:    math.LegacyNewDec(100),
-		MemoryPricePerMbHour:    math.LegacyNewDec(10),
-		GpuPricePerHour:         math.LegacyNewDec(1000),
-		StoragePricePerGbHour:   math.LegacyNewDec(5),
+		CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+		MemoryPricePerMbHour:  math.LegacyNewDec(10),
+		GpuPricePerHour:       math.LegacyNewDec(1000),
+		StoragePricePerGbHour: math.LegacyNewDec(5),
 	}
 
 	tests := []struct {
@@ -584,6 +591,17 @@ func TestMsgCreateDispute_ValidateBasic(t *testing.T) {
 			errMsg:  "reason is required",
 		},
 		{
+			name: "reason too long",
+			msg: MsgCreateDispute{
+				Requester:     validAddress,
+				RequestId:     1,
+				Reason:        strings.Repeat("a", maxDisputeReasonLength+1),
+				DepositAmount: math.NewInt(100000),
+			},
+			wantErr: true,
+			errMsg:  "reason exceeds max length",
+		},
+		{
 			name: "zero deposit",
 			msg: MsgCreateDispute{
 				Requester:     validAddress,
@@ -681,10 +699,19 @@ func TestMsgResolveDispute_ValidateBasic(t *testing.T) {
 		{
 			name: "valid message",
 			msg: MsgResolveDispute{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				DisputeId: 1,
 			},
 			wantErr: false,
+		},
+		{
+			name: "unauthorized authority",
+			msg: MsgResolveDispute{
+				Authority: validAddress,
+				DisputeId: 1,
+			},
+			wantErr: true,
+			errMsg:  "invalid authority",
 		},
 		{
 			name: "invalid authority address",
@@ -698,7 +725,7 @@ func TestMsgResolveDispute_ValidateBasic(t *testing.T) {
 		{
 			name: "zero dispute ID",
 			msg: MsgResolveDispute{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				DisputeId: 0,
 			},
 			wantErr: true,
@@ -771,6 +798,29 @@ func TestMsgSubmitEvidence_ValidateBasic(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "evidence data cannot be empty",
+		},
+		{
+			name: "evidence too large",
+			msg: MsgSubmitEvidence{
+				Submitter:    validAddress,
+				DisputeId:    1,
+				Data:         bytes.Repeat([]byte{0x01}, int(maxGovernanceEvidenceSizeLimit)+1),
+				EvidenceType: "log",
+			},
+			wantErr: true,
+			errMsg:  "exceeds hard limit",
+		},
+		{
+			name: "description too long",
+			msg: MsgSubmitEvidence{
+				Submitter:    validAddress,
+				DisputeId:    1,
+				Data:         []byte{0x01},
+				EvidenceType: "log",
+				Description:  strings.Repeat("a", maxEvidenceDescriptionLength+1),
+			},
+			wantErr: true,
+			errMsg:  "description exceeds max length",
 		},
 	}
 
@@ -942,10 +992,19 @@ func TestMsgResolveAppeal_ValidateBasic(t *testing.T) {
 		{
 			name: "valid message",
 			msg: MsgResolveAppeal{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				AppealId:  1,
 			},
 			wantErr: false,
+		},
+		{
+			name: "unauthorized authority",
+			msg: MsgResolveAppeal{
+				Authority: validAddress,
+				AppealId:  1,
+			},
+			wantErr: true,
+			errMsg:  "invalid authority",
 		},
 		{
 			name: "invalid authority address",
@@ -959,7 +1018,7 @@ func TestMsgResolveAppeal_ValidateBasic(t *testing.T) {
 		{
 			name: "zero appeal ID",
 			msg: MsgResolveAppeal{
-				Authority: validAddress,
+				Authority: moduleAuthority,
 				AppealId:  0,
 			},
 			wantErr: true,
@@ -997,9 +1056,19 @@ func TestMsgUpdateGovernanceParams_ValidateBasic(t *testing.T) {
 		{
 			name: "valid message",
 			msg: MsgUpdateGovernanceParams{
-				Authority: validAddress,
+				Authority: moduleAuthority,
+				Params:    DefaultGovernanceParams(),
 			},
 			wantErr: false,
+		},
+		{
+			name: "unauthorized authority",
+			msg: MsgUpdateGovernanceParams{
+				Authority: validAddress,
+				Params:    DefaultGovernanceParams(),
+			},
+			wantErr: true,
+			errMsg:  "invalid authority",
 		},
 		{
 			name: "invalid authority address",
@@ -1008,6 +1077,45 @@ func TestMsgUpdateGovernanceParams_ValidateBasic(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "invalid authority address",
+		},
+		{
+			name: "evidence size exceeds hard limit",
+			msg: MsgUpdateGovernanceParams{
+				Authority: moduleAuthority,
+				Params: func() GovernanceParams {
+					p := DefaultGovernanceParams()
+					p.MaxEvidenceSize = maxGovernanceEvidenceSizeLimit + 1
+					return p
+				}(),
+			},
+			wantErr: true,
+			errMsg:  "max_evidence_size exceeds hard limit",
+		},
+		{
+			name: "zero evidence size",
+			msg: MsgUpdateGovernanceParams{
+				Authority: moduleAuthority,
+				Params: func() GovernanceParams {
+					p := DefaultGovernanceParams()
+					p.MaxEvidenceSize = 0
+					return p
+				}(),
+			},
+			wantErr: true,
+			errMsg:  "max_evidence_size must be greater than 0",
+		},
+		{
+			name: "quorum above 1",
+			msg: MsgUpdateGovernanceParams{
+				Authority: moduleAuthority,
+				Params: func() GovernanceParams {
+					p := DefaultGovernanceParams()
+					p.QuorumPercentage = math.LegacyMustNewDecFromStr("1.1")
+					return p
+				}(),
+			},
+			wantErr: true,
+			errMsg:  "quorum_percentage must be between 0 and 1",
 		},
 	}
 
@@ -1082,8 +1190,8 @@ func TestGetSigners(t *testing.T) {
 		},
 		{
 			name:     "MsgResolveDispute",
-			msg:      &MsgResolveDispute{Authority: validAddress},
-			expected: []sdk.AccAddress{addr},
+			msg:      &MsgResolveDispute{Authority: moduleAuthority},
+			expected: []sdk.AccAddress{moduleAccAddr},
 		},
 		{
 			name:     "MsgSubmitEvidence",
@@ -1102,13 +1210,13 @@ func TestGetSigners(t *testing.T) {
 		},
 		{
 			name:     "MsgResolveAppeal",
-			msg:      &MsgResolveAppeal{Authority: validAddress},
-			expected: []sdk.AccAddress{addr},
+			msg:      &MsgResolveAppeal{Authority: moduleAuthority},
+			expected: []sdk.AccAddress{moduleAccAddr},
 		},
 		{
 			name:     "MsgUpdateGovernanceParams",
-			msg:      &MsgUpdateGovernanceParams{Authority: validAddress},
-			expected: []sdk.AccAddress{addr},
+			msg:      &MsgUpdateGovernanceParams{Authority: moduleAuthority},
+			expected: []sdk.AccAddress{moduleAccAddr},
 		},
 	}
 

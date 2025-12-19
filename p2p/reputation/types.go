@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const unknownValue = "unknown"
+
 // PeerID represents a unique identifier for a peer
 type PeerID string
 
@@ -62,12 +64,12 @@ type PeerMetrics struct {
 	SpamAttempts       int64 `json:"spam_attempts"`
 
 	// DoS and security violations
-	OversizedMessages   int64     `json:"oversized_messages"`    // Count of oversized message attempts
-	BandwidthViolations int64     `json:"bandwidth_violations"`  // Excessive bandwidth usage
-	SecurityEvents      int64     `json:"security_events"`       // Chain ID mismatch, identity spoofing, etc.
-	LastViolation       time.Time `json:"last_violation"`        // Timestamp of last violation
-	ViolationStreak     int64     `json:"violation_streak"`      // Consecutive violations without recovery
-	TotalPenaltyPoints  int64     `json:"total_penalty_points"`  // Accumulated penalty points
+	OversizedMessages   int64     `json:"oversized_messages"`   // Count of oversized message attempts
+	BandwidthViolations int64     `json:"bandwidth_violations"` // Excessive bandwidth usage
+	SecurityEvents      int64     `json:"security_events"`      // Chain ID mismatch, identity spoofing, etc.
+	LastViolation       time.Time `json:"last_violation"`       // Timestamp of last violation
+	ViolationStreak     int64     `json:"violation_streak"`     // Consecutive violations without recovery
+	TotalPenaltyPoints  int64     `json:"total_penalty_points"` // Accumulated penalty points
 
 	// Resource usage
 	BytesSent     int64 `json:"bytes_sent"`
@@ -132,7 +134,7 @@ const (
 func (tl TrustLevel) String() string {
 	switch tl {
 	case TrustLevelUnknown:
-		return "unknown"
+		return unknownValue
 	case TrustLevelUntrusted:
 		return "untrusted"
 	case TrustLevelLow:
@@ -144,7 +146,7 @@ func (tl TrustLevel) String() string {
 	case TrustLevelWhitelisted:
 		return "whitelisted"
 	default:
-		return "unknown"
+		return unknownValue
 	}
 }
 

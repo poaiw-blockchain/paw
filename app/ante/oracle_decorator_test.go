@@ -5,13 +5,13 @@ import (
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
-	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -25,7 +25,7 @@ type OracleDecoratorTestSuite struct {
 
 	ctx           sdk.Context
 	oracleKeeper  *oraclekeeper.Keeper
-	decorator     ante.OracleDecorator
+	decorator     *ante.OracleDecorator
 	encCfg        moduletestutil.TestEncodingConfig
 	validatorAddr sdk.ValAddress
 	feederAddr    sdk.AccAddress
@@ -56,7 +56,7 @@ func (suite *OracleDecoratorTestSuite) SetupTest() {
 		capabilitykeeper.ScopedKeeper{},
 	)
 
-	suite.decorator = ante.NewOracleDecorator(*suite.oracleKeeper)
+	suite.decorator = ante.NewOracleDecorator(suite.oracleKeeper)
 
 	// Setup test addresses
 	suite.validatorAddr = sdk.ValAddress([]byte("validator1"))

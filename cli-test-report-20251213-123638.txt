@@ -1,0 +1,307 @@
+
+[0;36m========================================[0m
+[0;36mSetting Up Test Environment[0m
+[0;36m========================================[0m
+[0;36m[INFO][0m Temporary home: /tmp/paw-cli-test-196965/home
+[0;36m[INFO][0m Binary: ./pawd
+[0;36m[INFO][0m Using binary: ./pawd
+[0;36m[INFO][0m Test key: cli-test-key
+[0;36m[INFO][0m Test address: paw1test
+[0;32m[PASS][0m Test environment ready
+
+[0;36m========================================[0m
+[0;36mTesting Core Commands: version, help, config[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m pawd version - help text
+[0;32m[PASS][0m pawd version
+[0;32m[PASS][0m pawd --help
+[0;32m[PASS][0m pawd help
+[0;31m[FAIL][0m pawd config - help text missing or malformed
+[0;31m[FAIL][0m pawd config
+  Output: Error: unknown command "config" for "pawd"
+Run 'pawd --help' for usage.
+
+[0;36m========================================[0m
+[0;36mTesting Keys Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m keys - help text
+[0;32m[PASS][0m keys list - help text
+[0;32m[PASS][0m keys show - help text
+[0;32m[PASS][0m keys add - help text
+[0;32m[PASS][0m keys delete - help text
+[0;32m[PASS][0m keys export - help text
+[0;32m[PASS][0m keys import - help text
+[0;32m[PASS][0m keys list
+[0;31m[FAIL][0m keys show existing
+  Output: Error: key not found: cli-test-key.info: key not found [/home/hudson/blockchain-projects/paw/.tmp/sdk/crypto/keyring/keyring.go:521]
+Usage:
+  pawd keys show [name] [flags]
+
+Flags:
+  -h, --help                     help for show
+      --keyring-backend string   Keyring backend (default "os")
+
+Global Flags:
+      --home string         directory for config and data (default "/tmp/paw-cli-test-196965/home/.paw")
+      --log_format string   The logging format (json|plain) (default "plain")
+      --log
+[0;32m[PASS][0m keys show nonexistent
+[0;32m[PASS][0m keys add without name
+[0;32m[PASS][0m keys delete nonexistent
+
+[0;36m========================================[0m
+[0;36mTesting Init and Gentx Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m init - help text
+[0;32m[PASS][0m gentx - help text
+[0;32m[PASS][0m collect-gentxs - help text
+[0;32m[PASS][0m validate-genesis - help text
+[0;32m[PASS][0m init with moniker
+[0;32m[PASS][0m init without moniker
+[0;31m[FAIL][0m init without chain-id
+  Output: Successfully initialized chain configuration
+Chain ID: test-chain-1765629400
+Moniker: test
+Node ID: b4f3acf09fff87714772894ea6d1afaa2d1de596
+Home directory: /tmp/paw-cli-test-196965/init-fail2
+
+Genesis file: /tmp/paw-cli-test-196965/init-fail2/config/genesis.json
+Config file: /tmp/paw-cli-test-196965/init-fail2/config/config.toml
+App config: /tmp/paw-cli-test-196965/init-fail2/config/app.toml
+
+[0;36m========================================[0m
+[0;36mTesting Query Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query - help text
+[0;32m[PASS][0m query bank - help text
+[0;32m[PASS][0m query staking - help text
+[0;32m[PASS][0m query gov - help text
+[0;32m[PASS][0m query distribution - help text
+[0;32m[PASS][0m query slashing - help text
+
+[0;36m========================================[0m
+[0;36mTesting DEX Query Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query dex - help text
+[0;32m[PASS][0m query dex params - help text
+[0;32m[PASS][0m query dex pool - help text
+[0;32m[PASS][0m query dex pools - help text
+[0;32m[PASS][0m query dex pool-by-tokens - help text
+[0;32m[PASS][0m query dex liquidity - help text
+[0;32m[PASS][0m query dex simulate-swap - help text
+[0;32m[PASS][0m query dex limit-order - help text
+[0;32m[PASS][0m query dex limit-orders - help text
+[0;32m[PASS][0m query dex orders-by-owner - help text
+[0;32m[PASS][0m query dex orders-by-pool - help text
+[0;32m[PASS][0m query dex order-book - help text
+[0;32m[PASS][0m query dex pool without ID
+[0;32m[PASS][0m query dex pool with invalid ID
+[0;32m[PASS][0m query dex pool-by-tokens missing token
+[0;32m[PASS][0m query dex simulate-swap missing args
+[0;32m[PASS][0m query dex liquidity missing args
+
+[0;36m========================================[0m
+[0;36mTesting DEX Transaction Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m tx dex - help text
+[0;32m[PASS][0m tx dex create-pool - help text
+[0;32m[PASS][0m tx dex add-liquidity - help text
+[0;32m[PASS][0m tx dex remove-liquidity - help text
+[0;32m[PASS][0m tx dex swap - help text
+[0;32m[PASS][0m tx dex create-pool missing args
+[0;32m[PASS][0m tx dex create-pool same tokens
+[0;32m[PASS][0m tx dex create-pool negative amount
+[0;32m[PASS][0m tx dex create-pool zero amount
+[0;32m[PASS][0m tx dex create-pool invalid amount
+[0;32m[PASS][0m tx dex add-liquidity missing pool ID
+[0;32m[PASS][0m tx dex add-liquidity invalid pool ID
+[0;32m[PASS][0m tx dex add-liquidity negative amount
+[0;32m[PASS][0m tx dex remove-liquidity missing args
+[0;32m[PASS][0m tx dex remove-liquidity zero shares
+[0;32m[PASS][0m tx dex remove-liquidity negative shares
+[0;32m[PASS][0m tx dex swap missing args
+[0;32m[PASS][0m tx dex swap same tokens
+[0;32m[PASS][0m tx dex swap negative amount
+[0;32m[PASS][0m tx dex swap negative min-out
+
+[0;36m========================================[0m
+[0;36mTesting Oracle Query Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query oracle - help text
+[0;32m[PASS][0m query oracle params - help text
+[0;32m[PASS][0m query oracle price - help text
+[0;32m[PASS][0m query oracle prices - help text
+[0;32m[PASS][0m query oracle validator - help text
+[0;32m[PASS][0m query oracle validators - help text
+[0;32m[PASS][0m query oracle validator-price - help text
+[0;32m[PASS][0m query oracle price missing asset
+[0;32m[PASS][0m query oracle validator missing address
+[0;32m[PASS][0m query oracle validator-price missing args
+
+[0;36m========================================[0m
+[0;36mTesting Oracle Transaction Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m tx oracle - help text
+[0;32m[PASS][0m tx oracle submit-price - help text
+[0;32m[PASS][0m tx oracle delegate-feeder - help text
+[0;32m[PASS][0m tx oracle submit-price missing args
+[0;32m[PASS][0m tx oracle submit-price invalid validator
+[0;32m[PASS][0m tx oracle submit-price invalid price
+[0;32m[PASS][0m tx oracle submit-price negative price
+[0;32m[PASS][0m tx oracle submit-price zero price
+[0;32m[PASS][0m tx oracle delegate-feeder missing args
+[0;32m[PASS][0m tx oracle delegate-feeder invalid address
+
+[0;36m========================================[0m
+[0;36mTesting Compute Query Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query compute - help text
+[0;32m[PASS][0m query compute params - help text
+[0;32m[PASS][0m query compute provider - help text
+[0;32m[PASS][0m query compute providers - help text
+[0;32m[PASS][0m query compute active-providers - help text
+[0;32m[PASS][0m query compute request - help text
+[0;32m[PASS][0m query compute requests - help text
+[0;32m[PASS][0m query compute requests-by-requester - help text
+[0;32m[PASS][0m query compute requests-by-provider - help text
+[0;32m[PASS][0m query compute requests-by-status - help text
+[0;32m[PASS][0m query compute result - help text
+[0;32m[PASS][0m query compute estimate-cost - help text
+[0;32m[PASS][0m query compute dispute - help text
+[0;32m[PASS][0m query compute disputes - help text
+[0;32m[PASS][0m query compute disputes-by-request - help text
+[0;32m[PASS][0m query compute disputes-by-status - help text
+[0;32m[PASS][0m query compute evidence - help text
+[0;32m[PASS][0m query compute slash-record - help text
+[0;32m[PASS][0m query compute slash-records - help text
+[0;32m[PASS][0m query compute slash-records-by-provider - help text
+[0;32m[PASS][0m query compute appeal - help text
+[0;32m[PASS][0m query compute appeals - help text
+[0;32m[PASS][0m query compute appeals-by-status - help text
+[0;32m[PASS][0m query compute governance-params - help text
+[0;32m[PASS][0m query compute provider missing address
+[0;32m[PASS][0m query compute request missing ID
+[0;32m[PASS][0m query compute request invalid ID
+[0;32m[PASS][0m query compute requests-by-status missing status
+[0;32m[PASS][0m query compute requests-by-status invalid status
+[0;32m[PASS][0m query compute disputes-by-status invalid status
+
+[0;36m========================================[0m
+[0;36mTesting Compute Transaction Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m tx compute - help text
+[0;32m[PASS][0m tx compute register-provider - help text
+[0;32m[PASS][0m tx compute update-provider - help text
+[0;32m[PASS][0m tx compute deactivate-provider - help text
+[0;32m[PASS][0m tx compute submit-request - help text
+[0;32m[PASS][0m tx compute cancel-request - help text
+[0;32m[PASS][0m tx compute submit-result - help text
+[0;32m[PASS][0m tx compute create-dispute - help text
+[0;32m[PASS][0m tx compute vote-dispute - help text
+[0;32m[PASS][0m tx compute submit-evidence - help text
+[0;32m[PASS][0m tx compute appeal-slashing - help text
+[0;32m[PASS][0m tx compute vote-appeal - help text
+[0;32m[PASS][0m tx compute resolve-dispute - help text
+[0;32m[PASS][0m tx compute resolve-appeal - help text
+[0;32m[PASS][0m tx compute update-governance-params - help text
+[0;32m[PASS][0m tx compute register-provider missing moniker
+[0;32m[PASS][0m tx compute register-provider missing endpoint
+[0;32m[PASS][0m tx compute submit-request missing container
+[0;32m[PASS][0m tx compute submit-request missing max-payment
+[0;32m[PASS][0m tx compute cancel-request missing ID
+[0;32m[PASS][0m tx compute cancel-request invalid ID
+[0;32m[PASS][0m tx compute submit-result missing ID
+[0;32m[PASS][0m tx compute submit-result missing output-hash
+[0;32m[PASS][0m tx compute submit-result missing output-url
+[0;32m[PASS][0m tx compute create-dispute missing ID
+[0;32m[PASS][0m tx compute create-dispute missing reason
+[0;32m[PASS][0m tx compute create-dispute missing deposit
+[0;32m[PASS][0m tx compute vote-dispute missing ID
+[0;32m[PASS][0m tx compute vote-dispute missing vote
+[0;32m[PASS][0m tx compute vote-dispute invalid vote
+[0;32m[PASS][0m tx compute submit-evidence missing ID
+[0;32m[PASS][0m tx compute submit-evidence missing evidence
+[0;32m[PASS][0m tx compute appeal-slashing missing ID
+[0;32m[PASS][0m tx compute appeal-slashing missing justification
+[0;32m[PASS][0m tx compute appeal-slashing missing deposit
+[0;32m[PASS][0m tx compute vote-appeal missing ID
+[0;32m[PASS][0m tx compute vote-appeal missing vote
+[0;32m[PASS][0m tx compute vote-appeal invalid vote
+
+[0;36m========================================[0m
+[0;36mTesting Bank Module Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query bank - help text
+[0;32m[PASS][0m query bank balances - help text
+[0;32m[PASS][0m query bank total - help text
+[0;32m[PASS][0m tx bank - help text
+[0;32m[PASS][0m tx bank send - help text
+[0;32m[PASS][0m query bank balances missing address
+[0;32m[PASS][0m tx bank send missing args
+[0;32m[PASS][0m tx bank send invalid amount
+
+[0;36m========================================[0m
+[0;36mTesting Staking Module Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query staking - help text
+[0;32m[PASS][0m query staking validators - help text
+[0;32m[PASS][0m query staking validator - help text
+[0;32m[PASS][0m query staking delegation - help text
+[0;32m[PASS][0m tx staking - help text
+[0;32m[PASS][0m tx staking delegate - help text
+[0;32m[PASS][0m tx staking unbond - help text
+[0;32m[PASS][0m tx staking redelegate - help text
+[0;32m[PASS][0m query staking validator missing address
+[0;32m[PASS][0m tx staking delegate missing args
+
+[0;36m========================================[0m
+[0;36mTesting Governance Module Commands[0m
+[0;36m========================================[0m
+[0;32m[PASS][0m query gov - help text
+[0;32m[PASS][0m query gov proposals - help text
+[0;32m[PASS][0m query gov proposal - help text
+[0;32m[PASS][0m tx gov - help text
+[0;32m[PASS][0m tx gov submit-proposal - help text
+[0;32m[PASS][0m tx gov vote - help text
+[0;32m[PASS][0m tx gov deposit - help text
+[0;32m[PASS][0m query gov proposal missing ID
+[0;32m[PASS][0m tx gov vote missing args
+
+[0;36m========================================[0m
+[0;36mTest Summary Report[0m
+[0;36m========================================[0m
+
+Total Tests:  183
+Passed:       179 (97%)
+Failed:       4 (2%)
+Skipped:      0
+
+[0;31mFailed Tests:[0m
+
+  - pawd config
+    Expected: pass, Got: exit=1, Output: Error: unknown command "config" for "pawd"
+Run 'pawd --help' for usage.
+  - init without chain-id
+    Expected: fail, Got: exit=0, Output: Successfully initialized chain configuration
+Chain ID: test-chain-1765629400
+Moniker: test
+Node ID: b4f3acf09fff87714772894ea6d1afaa2d1de596
+Home directory: /tmp/paw-cli-test-196965/init-fail2
+
+Genesi
+  - keys show existing
+    Expected: pass, Got: exit=1, Output: Error: key not found: cli-test-key.info: key not found [/home/hudson/blockchain-projects/paw/.tmp/sdk/crypto/keyring/keyring.go:521]
+Usage:
+  pawd keys show [name] [flags]
+
+Flags:
+  -h, --help        
+
+Full report saved to: cli-test-report-20251213-123638.txt
+[0;31m[FAIL][0m Some tests failed. Review the report for details.
+
+[0;36m========================================[0m
+[0;36mCleaning Up Test Environment[0m
+[0;36m========================================[0m
+[0;36m[INFO][0m Removed temporary directory: /tmp/paw-cli-test-196965
+[0;32m[PASS][0m Cleanup complete

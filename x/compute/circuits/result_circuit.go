@@ -17,33 +17,33 @@ import (
 // Constraint count: ~35,000 constraints
 type ResultCircuit struct {
 	// Public inputs
-	RequestID           frontend.Variable     `gnark:",public"` // Request identifier
-	ResultRootHash      frontend.Variable     `gnark:",public"` // Merkle root of result
-	InputRootHash       frontend.Variable     `gnark:",public"` // Merkle root of inputs
-	ProgramHash         frontend.Variable     `gnark:",public"` // Hash of program/container
+	RequestID      frontend.Variable `gnark:",public"` // Request identifier
+	ResultRootHash frontend.Variable `gnark:",public"` // Merkle root of result
+	InputRootHash  frontend.Variable `gnark:",public"` // Merkle root of inputs
+	ProgramHash    frontend.Variable `gnark:",public"` // Hash of program/container
 
 	// Private inputs
 	// Result data
-	ResultLeaves        [16]frontend.Variable `gnark:",private"` // Result data leaves
-	ResultMerklePath    [4][16]frontend.Variable `gnark:",private"` // Merkle proof for result
-	ResultLeafIndex     frontend.Variable     `gnark:",private"` // Index in merkle tree
+	ResultLeaves     [16]frontend.Variable    `gnark:",secret"` // Result data leaves
+	ResultMerklePath [4][16]frontend.Variable `gnark:",secret"` // Merkle proof for result
+	ResultLeafIndex  frontend.Variable        `gnark:",secret"` // Index in merkle tree
 
 	// Input data
-	InputLeaves         [16]frontend.Variable `gnark:",private"` // Input data leaves
-	InputMerklePath     [4][16]frontend.Variable `gnark:",private"` // Merkle proof for inputs
-	InputLeafIndex      frontend.Variable     `gnark:",private"` // Index in merkle tree
+	InputLeaves     [16]frontend.Variable    `gnark:",secret"` // Input data leaves
+	InputMerklePath [4][16]frontend.Variable `gnark:",secret"` // Merkle proof for inputs
+	InputLeafIndex  frontend.Variable        `gnark:",secret"` // Index in merkle tree
 
 	// Execution trace
-	TraceSteps          [32]frontend.Variable `gnark:",private"` // Execution trace hashes
-	TraceStepCount      frontend.Variable     `gnark:",private"` // Number of trace steps
+	TraceSteps     [32]frontend.Variable `gnark:",secret"` // Execution trace hashes
+	TraceStepCount frontend.Variable     `gnark:",secret"` // Number of trace steps
 
 	// Determinism proof
-	RandomSeed          frontend.Variable     `gnark:",private"` // Seed for deterministic execution
-	StateTransitions    [16]frontend.Variable `gnark:",private"` // State transition hashes
+	RandomSeed       frontend.Variable     `gnark:",secret"` // Seed for deterministic execution
+	StateTransitions [16]frontend.Variable `gnark:",secret"` // State transition hashes
 
 	// EdDSA signature for non-repudiation
-	ProviderPublicKey   eddsa.PublicKey       `gnark:",private"` // Provider's EdDSA public key
-	ResultSignature     eddsa.Signature       `gnark:",private"` // Signature over result
+	ProviderPublicKey eddsa.PublicKey `gnark:",secret"` // Provider's EdDSA public key
+	ResultSignature   eddsa.Signature `gnark:",secret"` // Signature over result
 }
 
 // Define implements the gnark Circuit interface for result correctness constraints.

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 )
 
 // HashCalculator provides cryptographic hash calculations

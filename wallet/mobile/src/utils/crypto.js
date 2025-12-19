@@ -97,11 +97,62 @@ export function verifySignature(message, signature, publicKeyHex) {
   });
 }
 
+export function isLegacyCiphertext(ciphertext) {
+  try {
+    const parsed = JSON.parse(ciphertext);
+    if (parsed?.v === 1 && parsed.ct && parsed.iv && parsed.salt && parsed.iter) {
+      return false;
+    }
+    // If JSON but missing fields, treat as legacy for safety.
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 export function encrypt(data, password) {
-  return CryptoJS.AES.encrypt(data, password).toString();
+  // Encrypt using PBKDF2-derived key with random salt/iv and explicit metadata for interoperability.
+  const salt = CryptoJS.lib.WordArray.random(16);
+  const iv = CryptoJS.lib.WordArray.random(16);
+  const iterations = 100000;
+
+  const key = CryptoJS.PBKDF2(password, salt, {
+    keySize: 256 / 32,
+    iterations,
+  });
+
+  const encrypted = CryptoJS.AES.encrypt(data, key, {iv});
+
+  return JSON.stringify({
+    v: 1,
+    ct: encrypted.toString(),
+    iv: iv.toString(CryptoJS.enc.Hex),
+    salt: salt.toString(CryptoJS.enc.Hex),
+    iter: iterations,
+  });
 }
 
 export function decrypt(ciphertext, password) {
+  try {
+    // New format: JSON with metadata
+    const parsed = JSON.parse(ciphertext);
+    if (parsed?.v === 1 && parsed.ct && parsed.iv && parsed.salt && parsed.iter) {
+      const salt = CryptoJS.enc.Hex.parse(parsed.salt);
+      const iv = CryptoJS.enc.Hex.parse(parsed.iv);
+      const key = CryptoJS.PBKDF2(password, salt, {
+        keySize: 256 / 32,
+        iterations: parsed.iter,
+      });
+      const decrypted = CryptoJS.AES.decrypt(parsed.ct, key, {iv}).toString(
+        CryptoJS.enc.Utf8,
+      );
+      return decrypted || '';
+    }
+  } catch (err) {
+    // Fall through to legacy handling
+  }
+
+  // Legacy format: OpenSSL-style string using password directly
   try {
     const bytes = CryptoJS.AES.decrypt(ciphertext, password);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
@@ -109,4 +160,15 @@ export function decrypt(ciphertext, password) {
   } catch (error) {
     return '';
   }
+}
+
+export function decryptWithMigration(ciphertext, password) {
+  const decrypted = decrypt(ciphertext, password);
+  if (!decrypted) {
+    return {plaintext: '', migratedCiphertext: null};
+  }
+  if (!isLegacyCiphertext(ciphertext)) {
+    return {plaintext: decrypted, migratedCiphertext: null};
+  }
+  return {plaintext: decrypted, migratedCiphertext: encrypt(decrypted, password)};
 }

@@ -1,11 +1,12 @@
 package integration
 
 import (
-	"context"
 	"fmt"
+	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	computekeeper "github.com/paw-chain/paw/x/compute/keeper"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
 )
 
 // ComputeIntegration provides integration with the Compute module
@@ -22,88 +23,86 @@ func NewComputeIntegration(keeper *computekeeper.Keeper) *ComputeIntegration {
 
 // Pause pauses all Compute operations
 func (c *ComputeIntegration) Pause(ctx sdk.Context, actor, reason string) error {
-	return c.keeper.OpenCircuitBreaker(ctx, actor, reason)
+	return c.keeper.OpenCircuitBreaker(sdk.WrapSDKContext(ctx), actor, reason)
 }
 
 // Resume resumes all Compute operations
 func (c *ComputeIntegration) Resume(ctx sdk.Context, actor, reason string) error {
-	return c.keeper.CloseCircuitBreaker(ctx, actor, reason)
+	return c.keeper.CloseCircuitBreaker(sdk.WrapSDKContext(ctx), actor, reason)
 }
 
 // IsBlocked checks if Compute operations are blocked
 func (c *ComputeIntegration) IsBlocked(ctx sdk.Context) bool {
-	return c.keeper.IsCircuitBreakerOpen(ctx)
+	return c.keeper.IsCircuitBreakerOpen(sdk.WrapSDKContext(ctx))
 }
 
 // GetState retrieves the circuit breaker state
 func (c *ComputeIntegration) GetState(ctx sdk.Context) (bool, string, string) {
-	return c.keeper.GetCircuitBreakerState(ctx)
+	return c.keeper.GetCircuitBreakerState(sdk.WrapSDKContext(ctx))
 }
 
 // PauseProvider pauses a specific provider
 func (c *ComputeIntegration) PauseProvider(ctx sdk.Context, providerAddr, actor, reason string) error {
-	return c.keeper.OpenProviderCircuitBreaker(ctx, providerAddr, actor, reason)
+	return c.keeper.OpenProviderCircuitBreaker(sdk.WrapSDKContext(ctx), providerAddr, actor, reason)
 }
 
 // ResumeProvider resumes a specific provider
 func (c *ComputeIntegration) ResumeProvider(ctx sdk.Context, providerAddr, actor, reason string) error {
-	return c.keeper.CloseProviderCircuitBreaker(ctx, providerAddr, actor, reason)
+	return c.keeper.CloseProviderCircuitBreaker(sdk.WrapSDKContext(ctx), providerAddr, actor, reason)
 }
 
 // IsProviderBlocked checks if a provider is blocked
 func (c *ComputeIntegration) IsProviderBlocked(ctx sdk.Context, providerAddr string) bool {
-	return c.keeper.IsProviderCircuitBreakerOpen(ctx, providerAddr)
+	return c.keeper.IsProviderCircuitBreakerOpen(sdk.WrapSDKContext(ctx), providerAddr)
 }
 
 // CancelJob cancels a specific job
 func (c *ComputeIntegration) CancelJob(ctx sdk.Context, jobID, actor, reason string) error {
-	return c.keeper.CancelJob(ctx, jobID, actor, reason)
+	return c.keeper.CancelJob(sdk.WrapSDKContext(ctx), jobID, actor, reason)
 }
 
 // IsJobCancelled checks if a job is cancelled
 func (c *ComputeIntegration) IsJobCancelled(ctx sdk.Context, jobID string) bool {
-	return c.keeper.IsJobCancelled(ctx, jobID)
+	return c.keeper.IsJobCancelled(sdk.WrapSDKContext(ctx), jobID)
 }
 
 // OverrideReputation sets a temporary reputation override
 func (c *ComputeIntegration) OverrideReputation(ctx sdk.Context, providerAddr string, score int64, actor, reason string) error {
-	return c.keeper.SetReputationOverride(ctx, providerAddr, score, actor, reason)
+	return c.keeper.SetReputationOverride(sdk.WrapSDKContext(ctx), providerAddr, score, actor, reason)
 }
 
 // ClearReputationOverride removes a reputation override
 func (c *ComputeIntegration) ClearReputationOverride(ctx sdk.Context, providerAddr string) {
-	c.keeper.ClearReputationOverride(ctx, providerAddr)
+	c.keeper.ClearReputationOverride(sdk.WrapSDKContext(ctx), providerAddr)
 }
 
 // GetReputationWithOverride retrieves reputation with override check
 func (c *ComputeIntegration) GetReputationWithOverride(ctx sdk.Context, providerAddr string) (int64, bool) {
-	return c.keeper.GetReputationWithOverride(ctx, providerAddr)
+	return c.keeper.GetReputationWithOverride(sdk.WrapSDKContext(ctx), providerAddr)
 }
 
 // GetAllProviders retrieves all providers (for status reporting)
 func (c *ComputeIntegration) GetAllProviders(ctx sdk.Context) ([]string, error) {
-	// This would retrieve all provider addresses from the keeper
-	// Implementation depends on how providers are stored in the Compute module
-	providers := c.keeper.GetAllProviders(ctx)
-	addresses := make([]string, len(providers))
-	for i, provider := range providers {
-		addresses[i] = provider.Address
-	}
-	return addresses, nil
+	goCtx := sdk.WrapSDKContext(ctx)
+	addresses := make([]string, 0)
+	err := c.keeper.IterateProviders(goCtx, func(provider computetypes.Provider) (bool, error) {
+		addresses = append(addresses, provider.Address)
+		return false, nil
+	})
+	return addresses, err
 }
 
 // GetActiveJobs retrieves all active jobs
 func (c *ComputeIntegration) GetActiveJobs(ctx sdk.Context) ([]string, error) {
-	// This would retrieve all active job IDs from the keeper
-	// Implementation depends on how jobs are stored in the Compute module
-	requests := c.keeper.GetAllRequests(ctx)
+	goCtx := sdk.WrapSDKContext(ctx)
 	jobIDs := make([]string, 0)
-	for _, req := range requests {
-		if req.Status == "pending" || req.Status == "processing" {
-			jobIDs = append(jobIDs, req.RequestId)
+	err := c.keeper.IterateRequests(goCtx, func(req computetypes.Request) (bool, error) {
+		if req.Status == computetypes.REQUEST_STATUS_PENDING || req.Status == computetypes.REQUEST_STATUS_PROCESSING || req.Status == computetypes.REQUEST_STATUS_ASSIGNED {
+			jobIDs = append(jobIDs, strconv.FormatUint(req.Id, 10))
 		}
-	}
-	return jobIDs, nil
+		return false, nil
+	})
+	return jobIDs, err
 }
 
 // EmergencyJobTermination terminates all jobs for a provider
@@ -114,16 +113,26 @@ func (c *ComputeIntegration) EmergencyJobTermination(ctx sdk.Context, providerAd
 	}
 
 	// Get all active jobs for this provider
-	requests := c.keeper.GetAllRequests(ctx)
-	cancelledCount := 0
-
-	for _, req := range requests {
-		if req.Provider == providerAddr && (req.Status == "pending" || req.Status == "processing") {
-			if err := c.keeper.CancelJob(ctx, req.RequestId, actor, "emergency termination: "+reason); err != nil {
-				return fmt.Errorf("failed to cancel job %s: %w", req.RequestId, err)
-			}
-			cancelledCount++
+	goCtx := sdk.WrapSDKContext(ctx)
+	var cancelErr error
+	err := c.keeper.IterateRequests(goCtx, func(req computetypes.Request) (bool, error) {
+		if cancelErr != nil {
+			return true, cancelErr
 		}
+		if req.Provider == providerAddr && (req.Status == computetypes.REQUEST_STATUS_PENDING || req.Status == computetypes.REQUEST_STATUS_PROCESSING || req.Status == computetypes.REQUEST_STATUS_ASSIGNED) {
+			jobID := strconv.FormatUint(req.Id, 10)
+			if err := c.keeper.CancelJob(goCtx, jobID, actor, "emergency termination: "+reason); err != nil {
+				cancelErr = fmt.Errorf("failed to cancel job %s: %w", jobID, err)
+				return true, cancelErr
+			}
+		}
+		return false, nil
+	})
+	if cancelErr != nil {
+		return cancelErr
+	}
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -132,7 +141,7 @@ func (c *ComputeIntegration) EmergencyJobTermination(ctx sdk.Context, providerAd
 // BulkCancelJobs cancels multiple jobs at once
 func (c *ComputeIntegration) BulkCancelJobs(ctx sdk.Context, jobIDs []string, actor, reason string) error {
 	for _, jobID := range jobIDs {
-		if err := c.keeper.CancelJob(ctx, jobID, actor, reason); err != nil {
+		if err := c.keeper.CancelJob(sdk.WrapSDKContext(ctx), jobID, actor, reason); err != nil {
 			return fmt.Errorf("failed to cancel job %s: %w", jobID, err)
 		}
 	}
@@ -142,7 +151,7 @@ func (c *ComputeIntegration) BulkCancelJobs(ctx sdk.Context, jobIDs []string, ac
 // ValidateProviderHealth checks provider health before operations
 func (c *ComputeIntegration) ValidateProviderHealth(ctx sdk.Context, providerAddr string) error {
 	// Check if provider operations are allowed
-	if err := c.keeper.CheckProviderCircuitBreaker(ctx, providerAddr); err != nil {
+	if err := c.keeper.CheckProviderCircuitBreaker(sdk.WrapSDKContext(ctx), providerAddr); err != nil {
 		return err
 	}
 

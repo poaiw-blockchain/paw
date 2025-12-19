@@ -42,6 +42,14 @@ func (m *MsgCreatePool) ValidateBasic() error {
 		return fmt.Errorf("tokens must be different")
 	}
 
+	if err := sdk.ValidateDenom(m.TokenA); err != nil {
+		return fmt.Errorf("invalid denom for token_a: %w", err)
+	}
+
+	if err := sdk.ValidateDenom(m.TokenB); err != nil {
+		return fmt.Errorf("invalid denom for token_b: %w", err)
+	}
+
 	if m.AmountA.IsZero() || m.AmountA.IsNegative() {
 		return fmt.Errorf("amount_a must be positive")
 	}

@@ -27,7 +27,7 @@ export function DexPoolVisualization() {
     refetchInterval: 30_000,
   })
 
-  const pools = data?.data ?? []
+  const pools = useMemo(() => data?.data ?? [], [data?.data])
   const dominantPool = pools[0]
 
   const chartData = useMemo(() => {

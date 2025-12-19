@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
 // AddressBook manages known peer addresses using a bucket-based approach
 // This is inspired by Bitcoin's addrman and libp2p's address book
 type AddressBook struct {
-	config  DiscoveryConfig
+	config  *DiscoveryConfig
 	logger  log.Logger
 	dataDir string
 	mu      sync.RWMutex
@@ -49,7 +50,7 @@ type AddressBook struct {
 }
 
 // NewAddressBook creates a new address book
-func NewAddressBook(config DiscoveryConfig, dataDir string, logger log.Logger) (*AddressBook, error) {
+func NewAddressBook(config *DiscoveryConfig, dataDir string, logger log.Logger) (*AddressBook, error) {
 	ab := &AddressBook{
 		config:       config,
 		logger:       logger,
@@ -405,7 +406,7 @@ func (ab *AddressBook) GetAddressesForSharing(n int) []*PeerAddr {
 }
 
 // Size returns the total number of addresses
-func (ab *AddressBook) Size() (new, tried int) {
+func (ab *AddressBook) Size() (newCount, triedCount int) {
 	ab.mu.RLock()
 	defer ab.mu.RUnlock()
 
@@ -480,8 +481,8 @@ func (ab *AddressBook) secureIntn(n int) (int, error) {
 		return 0, nil
 	}
 
-	max := big.NewInt(int64(n))
-	r, err := rand.Int(ab.randReader, max)
+	maxPeers := big.NewInt(int64(n))
+	r, err := rand.Int(ab.randReader, maxPeers)
 	if err != nil {
 		return 0, fmt.Errorf("crypto rand failure: %w", err)
 	}

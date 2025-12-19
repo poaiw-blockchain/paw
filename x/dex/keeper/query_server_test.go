@@ -28,11 +28,11 @@ func TestQueryServer_Params(t *testing.T) {
 	params.SwapFee = sdkmath.LegacyMustNewDecFromStr("0.0125")
 	require.NoError(t, k.SetParams(ctx, params))
 
-	resp, err := server.Params(sdk.WrapSDKContext(ctx), &types.QueryParamsRequest{})
+	resp, err := server.Params(ctx, &types.QueryParamsRequest{})
 	require.NoError(t, err)
 	require.Equal(t, params, resp.Params)
 
-	_, err = server.Params(sdk.WrapSDKContext(ctx), nil)
+	_, err = server.Params(ctx, nil)
 	require.Error(t, err)
 }
 
@@ -43,16 +43,16 @@ func TestQueryServer_PoolEndpoints(t *testing.T) {
 	keepertest.CreateTestPool(t, k, ctx, "osmo", "tokenA", sdkmath.NewInt(3_000_000), sdkmath.NewInt(1_500_000))
 
 	t.Run("pool by id", func(t *testing.T) {
-		resp, err := server.Pool(sdk.WrapSDKContext(ctx), &types.QueryPoolRequest{PoolId: poolOne})
+		resp, err := server.Pool(ctx, &types.QueryPoolRequest{PoolId: poolOne})
 		require.NoError(t, err)
 		require.Equal(t, poolOne, resp.Pool.Id)
 
-		_, err = server.Pool(sdk.WrapSDKContext(ctx), &types.QueryPoolRequest{PoolId: 9999})
+		_, err = server.Pool(ctx, &types.QueryPoolRequest{PoolId: 9999})
 		require.Error(t, err)
 	})
 
 	t.Run("pool by tokens", func(t *testing.T) {
-		resp, err := server.PoolByTokens(sdk.WrapSDKContext(ctx), &types.QueryPoolByTokensRequest{
+		resp, err := server.PoolByTokens(ctx, &types.QueryPoolByTokensRequest{
 			TokenA: "upaw",
 			TokenB: "uusdt",
 		})
@@ -61,7 +61,7 @@ func TestQueryServer_PoolEndpoints(t *testing.T) {
 	})
 
 	t.Run("pools pagination", func(t *testing.T) {
-		resp, err := server.Pools(sdk.WrapSDKContext(ctx), &types.QueryPoolsRequest{
+		resp, err := server.Pools(ctx, &types.QueryPoolsRequest{
 			Pagination: &query.PageRequest{Limit: 2},
 		})
 		require.NoError(t, err)
@@ -77,16 +77,16 @@ func TestQueryServer_LiquidityAndSimulation(t *testing.T) {
 
 	provider := types.TestAddr()
 	shares := sdkmath.NewInt(250_000)
-	require.NoError(t, k.SetLiquidity(sdk.WrapSDKContext(ctx), poolID, provider, shares))
+	require.NoError(t, k.SetLiquidity(ctx, poolID, provider, shares))
 
-	liquidityResp, err := server.Liquidity(sdk.WrapSDKContext(ctx), &types.QueryLiquidityRequest{
+	liquidityResp, err := server.Liquidity(ctx, &types.QueryLiquidityRequest{
 		PoolId:   poolID,
 		Provider: provider.String(),
 	})
 	require.NoError(t, err)
 	require.True(t, liquidityResp.Shares.Equal(shares))
 
-	swapResp, err := server.SimulateSwap(sdk.WrapSDKContext(ctx), &types.QuerySimulateSwapRequest{
+	swapResp, err := server.SimulateSwap(ctx, &types.QuerySimulateSwapRequest{
 		PoolId:   poolID,
 		TokenIn:  "upaw",
 		TokenOut: "uusdt",
@@ -116,7 +116,7 @@ func TestQueryServer_LimitOrder(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		resp, err := server.LimitOrder(sdk.WrapSDKContext(ctx), &types.QueryLimitOrderRequest{
+		resp, err := server.LimitOrder(ctx, &types.QueryLimitOrderRequest{
 			OrderId: order.ID,
 		})
 		require.NoError(t, err)
@@ -131,13 +131,13 @@ func TestQueryServer_LimitOrder(t *testing.T) {
 	})
 
 	t.Run("nil request error", func(t *testing.T) {
-		_, err := server.LimitOrder(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.LimitOrder(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("order not found error", func(t *testing.T) {
-		_, err := server.LimitOrder(sdk.WrapSDKContext(ctx), &types.QueryLimitOrderRequest{
+		_, err := server.LimitOrder(ctx, &types.QueryLimitOrderRequest{
 			OrderId: 99999,
 		})
 		require.Error(t, err)
@@ -158,7 +158,7 @@ func TestQueryServer_LimitOrder(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		resp, err := server.LimitOrder(sdk.WrapSDKContext(ctx), &types.QueryLimitOrderRequest{
+		resp, err := server.LimitOrder(ctx, &types.QueryLimitOrderRequest{
 			OrderId: buyOrder.ID,
 		})
 		require.NoError(t, err)
@@ -179,7 +179,7 @@ func TestQueryServer_LimitOrder(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		resp, err := server.LimitOrder(sdk.WrapSDKContext(ctx), &types.QueryLimitOrderRequest{
+		resp, err := server.LimitOrder(ctx, &types.QueryLimitOrderRequest{
 			OrderId: sellOrder.ID,
 		})
 		require.NoError(t, err)
@@ -195,7 +195,7 @@ func TestQueryServer_LimitOrders(t *testing.T) {
 	trader2 := sdk.AccAddress([]byte("trader2____________"))
 
 	t.Run("empty orders list", func(t *testing.T) {
-		resp, err := server.LimitOrders(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersRequest{})
+		resp, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{})
 		require.NoError(t, err)
 		require.Empty(t, resp.Orders)
 		require.NotNil(t, resp.Pagination)
@@ -222,14 +222,14 @@ func TestQueryServer_LimitOrders(t *testing.T) {
 	}
 
 	t.Run("query all orders without pagination", func(t *testing.T) {
-		resp, err := server.LimitOrders(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersRequest{})
+		resp, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{})
 		require.NoError(t, err)
 		require.Len(t, resp.Orders, 5)
 		require.NotNil(t, resp.Pagination)
 	})
 
 	t.Run("query with pagination limit", func(t *testing.T) {
-		resp, err := server.LimitOrders(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersRequest{
+		resp, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{
 			Pagination: &query.PageRequest{Limit: 2},
 		})
 		require.NoError(t, err)
@@ -238,7 +238,7 @@ func TestQueryServer_LimitOrders(t *testing.T) {
 		require.NotNil(t, resp.Pagination.NextKey)
 
 		// Query next page
-		resp2, err := server.LimitOrders(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersRequest{
+		resp2, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{
 			Pagination: &query.PageRequest{
 				Key:   resp.Pagination.NextKey,
 				Limit: 2,
@@ -249,13 +249,13 @@ func TestQueryServer_LimitOrders(t *testing.T) {
 	})
 
 	t.Run("nil request error", func(t *testing.T) {
-		_, err := server.LimitOrders(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.LimitOrders(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("verify order details in list", func(t *testing.T) {
-		resp, err := server.LimitOrders(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersRequest{
+		resp, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{
 			Pagination: &query.PageRequest{Limit: 1},
 		})
 		require.NoError(t, err)
@@ -279,7 +279,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	trader2 := sdk.AccAddress([]byte("trader2____________"))
 
 	t.Run("empty orders for new owner", func(t *testing.T) {
-		resp, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader1.String(),
 		})
 		require.NoError(t, err)
@@ -334,7 +334,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	}
 
 	t.Run("query all orders for owner", func(t *testing.T) {
-		resp, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader1.String(),
 		})
 		require.NoError(t, err)
@@ -348,7 +348,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	})
 
 	t.Run("query different owner", func(t *testing.T) {
-		resp, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader2.String(),
 		})
 		require.NoError(t, err)
@@ -361,7 +361,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	})
 
 	t.Run("pagination with limit", func(t *testing.T) {
-		resp, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader1.String(),
 			Pagination: &query.PageRequest{
 				Limit: 2,
@@ -373,7 +373,7 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 		require.NotNil(t, resp.Pagination.NextKey)
 
 		// Query next page
-		resp2, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp2, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader1.String(),
 			Pagination: &query.PageRequest{
 				Key:   resp.Pagination.NextKey,
@@ -385,20 +385,20 @@ func TestQueryServer_LimitOrdersByOwner(t *testing.T) {
 	})
 
 	t.Run("nil request error", func(t *testing.T) {
-		_, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.LimitOrdersByOwner(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("invalid owner address error", func(t *testing.T) {
-		_, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		_, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: "invalid_address",
 		})
 		require.Error(t, err)
 	})
 
 	t.Run("default pagination limit", func(t *testing.T) {
-		resp, err := server.LimitOrdersByOwner(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByOwnerRequest{
+		resp, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
 			Owner: trader1.String(),
 			Pagination: &query.PageRequest{
 				Limit: 0, // Should use default limit of 100
@@ -419,7 +419,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	trader3 := sdk.AccAddress([]byte("trader3____________"))
 
 	t.Run("empty orders for new pool", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID1,
 		})
 		require.NoError(t, err)
@@ -479,7 +479,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	}
 
 	t.Run("query all orders for pool1", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID1,
 		})
 		require.NoError(t, err)
@@ -493,7 +493,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	})
 
 	t.Run("query all orders for pool2", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID2,
 		})
 		require.NoError(t, err)
@@ -506,7 +506,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	})
 
 	t.Run("pagination with limit", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID1,
 			Pagination: &query.PageRequest{
 				Limit: 3,
@@ -518,7 +518,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 		require.NotNil(t, resp.Pagination.NextKey)
 
 		// Query next page
-		resp2, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp2, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID1,
 			Pagination: &query.PageRequest{
 				Key:   resp.Pagination.NextKey,
@@ -530,13 +530,13 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	})
 
 	t.Run("nil request error", func(t *testing.T) {
-		_, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.LimitOrdersByPool(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("non-existent pool", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: 99999,
 		})
 		// Should return empty list, not error
@@ -545,7 +545,7 @@ func TestQueryServer_LimitOrdersByPool(t *testing.T) {
 	})
 
 	t.Run("default pagination limit", func(t *testing.T) {
-		resp, err := server.LimitOrdersByPool(sdk.WrapSDKContext(ctx), &types.QueryLimitOrdersByPoolRequest{
+		resp, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
 			PoolId: poolID2,
 			Pagination: &query.PageRequest{
 				Limit: 0, // Should use default limit of 100
@@ -565,7 +565,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	trader3 := sdk.AccAddress([]byte("trader3____________"))
 
 	t.Run("empty order book", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 		})
 		require.NoError(t, err)
@@ -609,7 +609,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	}
 
 	t.Run("query order book with orders", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 		})
 		require.NoError(t, err)
@@ -630,7 +630,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	})
 
 	t.Run("query with custom limit", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 			Limit:  2,
 		})
@@ -640,7 +640,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	})
 
 	t.Run("query with zero limit uses default", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 			Limit:  0, // Should use default limit of 50
 		})
@@ -650,7 +650,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	})
 
 	t.Run("query with large limit", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 			Limit:  100,
 		})
@@ -660,13 +660,13 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	})
 
 	t.Run("nil request error", func(t *testing.T) {
-		_, err := server.OrderBook(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.OrderBook(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("non-existent pool returns empty", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: 99999,
 		})
 		// GetOrdersByPool returns empty list for non-existent pool, not an error
@@ -693,7 +693,7 @@ func TestQueryServer_OrderBook(t *testing.T) {
 	}
 
 	t.Run("limit enforcement with many orders", func(t *testing.T) {
-		resp, err := server.OrderBook(sdk.WrapSDKContext(ctx), &types.QueryOrderBookRequest{
+		resp, err := server.OrderBook(ctx, &types.QueryOrderBookRequest{
 			PoolId: poolID,
 			Limit:  10,
 		})
@@ -706,31 +706,31 @@ func TestQueryServer_NilRequestHandling(t *testing.T) {
 	server, _, ctx := setupDexQueryServer(t)
 
 	t.Run("Pool nil request", func(t *testing.T) {
-		_, err := server.Pool(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.Pool(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("Pools nil request", func(t *testing.T) {
-		_, err := server.Pools(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.Pools(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("PoolByTokens nil request", func(t *testing.T) {
-		_, err := server.PoolByTokens(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.PoolByTokens(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("Liquidity nil request", func(t *testing.T) {
-		_, err := server.Liquidity(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.Liquidity(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
 
 	t.Run("SimulateSwap nil request", func(t *testing.T) {
-		_, err := server.SimulateSwap(sdk.WrapSDKContext(ctx), nil)
+		_, err := server.SimulateSwap(ctx, nil)
 		require.Error(t, err)
 		require.Equal(t, sdkerrors.ErrInvalidRequest, err)
 	})
@@ -741,7 +741,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(1_000_000), sdkmath.NewInt(2_000_000))
 
 	t.Run("Liquidity - invalid address", func(t *testing.T) {
-		_, err := server.Liquidity(sdk.WrapSDKContext(ctx), &types.QueryLiquidityRequest{
+		_, err := server.Liquidity(ctx, &types.QueryLiquidityRequest{
 			PoolId:   poolID,
 			Provider: "invalid_bech32_address",
 		})
@@ -750,7 +750,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 
 	t.Run("Liquidity - non-existent pool", func(t *testing.T) {
 		provider := types.TestAddr()
-		resp, err := server.Liquidity(sdk.WrapSDKContext(ctx), &types.QueryLiquidityRequest{
+		resp, err := server.Liquidity(ctx, &types.QueryLiquidityRequest{
 			PoolId:   99999,
 			Provider: provider.String(),
 		})
@@ -760,7 +760,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("SimulateSwap - non-existent pool", func(t *testing.T) {
-		_, err := server.SimulateSwap(sdk.WrapSDKContext(ctx), &types.QuerySimulateSwapRequest{
+		_, err := server.SimulateSwap(ctx, &types.QuerySimulateSwapRequest{
 			PoolId:   99999,
 			TokenIn:  "upaw",
 			TokenOut: "uusdt",
@@ -770,7 +770,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("SimulateSwap - invalid token pair", func(t *testing.T) {
-		_, err := server.SimulateSwap(sdk.WrapSDKContext(ctx), &types.QuerySimulateSwapRequest{
+		_, err := server.SimulateSwap(ctx, &types.QuerySimulateSwapRequest{
 			PoolId:   poolID,
 			TokenIn:  "invalid",
 			TokenOut: "uusdt",
@@ -780,7 +780,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("PoolByTokens - non-existent pair", func(t *testing.T) {
-		_, err := server.PoolByTokens(sdk.WrapSDKContext(ctx), &types.QueryPoolByTokensRequest{
+		_, err := server.PoolByTokens(ctx, &types.QueryPoolByTokensRequest{
 			TokenA: "nonexistent1",
 			TokenB: "nonexistent2",
 		})

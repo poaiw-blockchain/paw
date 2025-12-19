@@ -23,6 +23,23 @@ import (
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
 )
 
+func toUint64(value int) uint64 {
+	if value < 0 {
+		return 0
+	}
+	return uint64(value)
+}
+
+func toUint32(value int) uint32 {
+	if value < 0 {
+		return 0
+	}
+	if value > int(stdmath.MaxUint32) {
+		return stdmath.MaxUint32
+	}
+	return uint32(value)
+}
+
 // AppStateFn returns the initial application state using a genesis or the simulation parameters
 func AppStateFn(
 	cdc codec.JSONCodec,
@@ -253,7 +270,7 @@ func RandomizedDEXGenesisState(r *rand.Rand, accs []simtypes.Account, genesisTim
 			geomMean = 1
 		}
 
-		poolID := uint64(i + 1)
+		poolID := toUint64(i) + 1
 		pools[i] = dextypes.Pool{
 			Id:          poolID,
 			TokenA:      "upaw",
@@ -278,7 +295,7 @@ func RandomizedDEXGenesisState(r *rand.Rand, accs []simtypes.Account, genesisTim
 	return dextypes.GenesisState{
 		Params:          dextypes.DefaultParams(),
 		Pools:           pools,
-		NextPoolId:      uint64(poolCount + 1),
+		NextPoolId:      toUint64(poolCount) + 1,
 		PoolTwapRecords: twaps,
 	}
 }
@@ -328,7 +345,7 @@ func RandomizedOracleGenesisState(r *rand.Rand, accs []simtypes.Account, genesis
 		Price:         basePrice,
 		BlockHeight:   1,
 		BlockTime:     genesisTime.Unix(),
-		NumValidators: uint32(maxValidators),
+		NumValidators: toUint32(maxValidators),
 	}
 
 	snapshot := oracletypes.PriceSnapshot{
@@ -354,10 +371,10 @@ func RandomizedComputeGenesisState(r *rand.Rand, accs []simtypes.Account, genesi
 
 	for i := 0; i < providerCount; i++ {
 		addr := accs[i].Address.String()
-		cpu := uint64(simtypes.RandIntBetween(r, 500, 2000))   // 0.5–2 cores (millicores)
-		mem := uint64(simtypes.RandIntBetween(r, 512, 4096))   // MB
-		storage := uint64(simtypes.RandIntBetween(r, 10, 200)) // GB
-		timeout := uint64(simtypes.RandIntBetween(r, 300, 1800))
+		cpu := toUint64(simtypes.RandIntBetween(r, 500, 2000))   // 0.5–2 cores (millicores)
+		mem := toUint64(simtypes.RandIntBetween(r, 512, 4096))   // MB
+		storage := toUint64(simtypes.RandIntBetween(r, 10, 200)) // GB
+		timeout := toUint64(simtypes.RandIntBetween(r, 300, 1800))
 
 		providers[i] = computetypes.Provider{
 			Address:  addr,
@@ -378,7 +395,7 @@ func RandomizedComputeGenesisState(r *rand.Rand, accs []simtypes.Account, genesi
 				StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.00001"),
 			},
 			Stake:                  math.NewInt(1_000_000_000),
-			Reputation:             uint32(simtypes.RandIntBetween(r, 70, 100)),
+			Reputation:             toUint32(simtypes.RandIntBetween(r, 70, 100)),
 			TotalRequestsCompleted: 0,
 			TotalRequestsFailed:    0,
 			Active:                 true,

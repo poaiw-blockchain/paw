@@ -346,9 +346,9 @@ type HealthCheck struct {
 
 // HealthChecker performs periodic health checks
 type HealthChecker struct {
-	checks      []HealthCheck
-	detector    *AutoDetector
-	mu          sync.RWMutex
+	checks   []HealthCheck
+	detector *AutoDetector
+	mu       sync.RWMutex
 }
 
 // NewHealthChecker creates a new health checker

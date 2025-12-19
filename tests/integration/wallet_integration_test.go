@@ -769,7 +769,9 @@ func (suite *WalletIntegrationTestSuite) createMockBalanceServer(response interf
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write(respBytes)
+		if _, err := w.Write(respBytes); err != nil {
+			suite.T().Logf("failed to write mock response: %v", err)
+		}
 	})
 
 	return httptest.NewServer(handler)

@@ -281,13 +281,17 @@ func (suite *NetworkPartitionTestSuite) TestPartitionWithStateChanges() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		suite.submitTransactions(ctx, partition1, 30)
+		if err := suite.submitTransactions(ctx, partition1, 30); err != nil {
+			suite.T().Logf("partition1 submit failed: %v", err)
+		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		suite.submitTransactions(ctx, partition2, 20)
+		if err := suite.submitTransactions(ctx, partition2, 20); err != nil {
+			suite.T().Logf("partition2 submit failed: %v", err)
+		}
 	}()
 
 	wg.Wait()
@@ -384,24 +388,24 @@ func maxUint64Slice(vals []uint64) uint64 {
 	if len(vals) == 0 {
 		return 0
 	}
-	max := vals[0]
+	maxVal := vals[0]
 	for _, v := range vals[1:] {
-		if v > max {
-			max = v
+		if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 func minUint64Slice(vals []uint64) uint64 {
 	if len(vals) == 0 {
 		return 0
 	}
-	min := vals[0]
+	minVal := vals[0]
 	for _, v := range vals[1:] {
-		if v < min {
-			min = v
+		if v < minVal {
+			minVal = v
 		}
 	}
-	return min
+	return minVal
 }

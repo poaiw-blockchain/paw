@@ -1,5 +1,10 @@
 package types
 
+import (
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+)
+
 var (
 	// ParamsKey is the key for module parameters
 	ParamsKey = []byte{0x01}
@@ -31,6 +36,12 @@ var (
 	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
 	IBCPacketNonceKeyPrefix = []byte{0x0D}
 )
+
+// DefaultAuthority returns the governance module address, which is the only
+// allowed authority for compute parameter and dispute resolution messages.
+func DefaultAuthority() string {
+	return authtypes.NewModuleAddress(govtypes.ModuleName).String()
+}
 
 // GetIBCPacketNonceKey returns the store key for IBC packet nonce tracking
 // Used for replay attack prevention by tracking nonce per channel/sender pair

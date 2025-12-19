@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PriceData } from '@paw-chain/wallet-core';
-import { DexService, SwapQuote, DenomMetadata } from '../../services/dex';
+import { DexService, SwapQuote, DenomMetadata, PoolAnalytics } from '../../services/dex';
 
 const SLIPPAGE_PRESETS = [0.1, 0.5, 1, 2];
 
 interface WalletData {
   address: string;
   publicKey?: string;
+  type?: string;
 }
 
 interface SwapInterfaceProps {
@@ -16,6 +17,7 @@ interface SwapInterfaceProps {
 
 const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) => {
   const dexService = useMemo(() => service ?? new DexService(), [service]);
+  const isLedger = walletData?.type === 'ledger';
   const [availableTokens, setAvailableTokens] = useState<DenomMetadata[]>([]);
   const [tokenIn, setTokenIn] = useState('');
   const [tokenOut, setTokenOut] = useState('');
@@ -32,6 +34,9 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) =>
   const [executionError, setExecutionError] = useState('');
   const [oraclePrices, setOraclePrices] = useState<Record<string, PriceData | undefined>>({});
   const [lastTxHash, setLastTxHash] = useState('');
+  const [poolAnalytics, setPoolAnalytics] = useState<PoolAnalytics | null>(null);
+  const [poolInsightError, setPoolInsightError] = useState('');
+  const [showRouteInsights, setShowRouteInsights] = useState(true);
   const quoteRequestRef = useRef(0);
 
   useEffect(() => {
@@ -50,6 +55,35 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) =>
       hydrateOraclePrice(tokenOut);
     }
   }, [tokenOut, dexService]);
+
+  useEffect(() => {
+    if (!tokenIn || !tokenOut || tokenIn === tokenOut) {
+      setPoolAnalytics(null);
+      setPoolInsightError('');
+      return;
+    }
+
+    let cancelled = false;
+    setPoolInsightError('');
+
+    dexService
+      .getPoolAnalytics(tokenIn, tokenOut)
+      .then((analytics) => {
+        if (!cancelled) {
+          setPoolAnalytics(analytics);
+        }
+      })
+      .catch((error: any) => {
+        if (!cancelled) {
+          setPoolAnalytics(null);
+          setPoolInsightError(error?.message || 'Unable to load route diagnostics');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [tokenIn, tokenOut, dexService]);
 
   useEffect(() => {
     if (!tokenIn || !tokenOut || !amountIn || tokenIn === tokenOut) {
@@ -104,15 +138,43 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) =>
     return ((execution - oracleExecution) / oracleExecution) * 100;
   }, [quote, oraclePrices]);
 
+  const quoteFreshness = useMemo(() => {
+    if (!quote) {
+      return null;
+    }
+    const delta = Date.now() - quote.updatedAt;
+    if (delta < 0) {
+      return '<1s';
+    }
+    if (delta < 60_000) {
+      return `${Math.max(1, Math.round(delta / 1000))}s`;
+    }
+    return `${Math.round(delta / 60_000)}m`;
+  }, [quote]);
+
+  const riskLevel = useMemo(() => {
+    if (!quote) {
+      return 'idle';
+    }
+    if (quote.priceImpactPercent > 5 || (oracleSpread !== null && Math.abs(oracleSpread) > 5)) {
+      return 'high';
+    }
+    if (quote.priceImpactPercent > 2) {
+      return 'medium';
+    }
+    return 'low';
+  }, [quote, oracleSpread]);
+
   const canSwap = Boolean(
     quote &&
-      password.length >= 8 &&
+      (!isLedger ? password.length >= 8 : true) &&
       !isSwapping &&
       !isQuoting &&
       amountIn &&
       tokenIn &&
       tokenOut &&
-      tokenIn !== tokenOut
+      tokenIn !== tokenOut &&
+      !isLedger // disable until ledger swap signing supported
   );
 
   async function loadTokens() {
@@ -183,6 +245,10 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) =>
 
   const handleSwap = async () => {
     if (!quote || !canSwap) {
+      return;
+    }
+    if (isLedger) {
+      setExecutionError('Ledger swaps are disabled until custom DEX signing support is wired. Use software wallet for now.');
       return;
     }
 
@@ -366,18 +432,128 @@ const SwapInterface: React.FC<SwapInterfaceProps> = ({ walletData, service }) =>
           {quoteError && <div className="form-error">{quoteError}</div>}
         </div>
 
+        <div className="dex-toggle-row">
+          <label className="dex-toggle">
+            <input
+              type="checkbox"
+              checked={showRouteInsights}
+              onChange={() => setShowRouteInsights((prev) => !prev)}
+            />
+            <span>Show route diagnostics</span>
+          </label>
+          {quoteFreshness && <span className="dex-freshness">Quote age: {quoteFreshness}</span>}
+        </div>
+
+        {showRouteInsights && (
+          <div className="dex-insights">
+            {poolAnalytics ? (
+              <>
+                <div className="dex-insight-panel">
+                  <div className="dex-insight-header">
+                    <div>
+                      <h4>Pool Route Insights</h4>
+                      <span>Pool #{poolAnalytics.poolId}</span>
+                    </div>
+                    <div className={`dex-risk-badge risk-${riskLevel}`}>
+                      {riskLevel === 'high' ? 'High risk' : riskLevel === 'medium' ? 'Elevated risk' : 'Stable'}
+                    </div>
+                  </div>
+                  <div className="dex-insight-grid">
+                    {poolAnalytics.reserves.map((reserve) => (
+                      <div key={reserve.token.denom}>
+                        <span className="dex-quote-label">Reserve {reserve.token.symbol}</span>
+                        <strong>{reserve.amount}</strong>
+                        {reserve.usdValue !== undefined && (
+                          <small className="dex-quote-subtext">{formatUSD(reserve.usdValue)}</small>
+                        )}
+                      </div>
+                    ))}
+                    <div>
+                      <span className="dex-quote-label">Pool TVL</span>
+                      <strong>
+                        {poolAnalytics.totalValueLockedUsd
+                          ? formatUSD(poolAnalytics.totalValueLockedUsd)
+                          : '—'}
+                      </strong>
+                      <small className="dex-quote-subtext">Oracle derived</small>
+                    </div>
+                    <div>
+                      <span className="dex-quote-label">Depth Balance</span>
+                      <strong>{poolAnalytics.depthRatio.toFixed(2)}%</strong>
+                      <small className="dex-quote-subtext">
+                        100% = perfectly balanced reserves
+                      </small>
+                    </div>
+                  </div>
+                </div>
+                <div className="dex-insight-panel">
+                  <div className="dex-insight-header">
+                    <h4>Route Execution</h4>
+                    <span>{quote ? `1 ${quote.tokenIn.symbol} ≈ ${poolAnalytics.spotPrice} ${quote.tokenOut.symbol}` : 'Awaiting quote'}</span>
+                  </div>
+                  <div className="dex-insight-grid">
+                    <div>
+                      <span className="dex-quote-label">Route</span>
+                      <strong>Direct • Single pool</strong>
+                      <small className="dex-quote-subtext">No intermediate hops</small>
+                    </div>
+                    <div>
+                      <span className="dex-quote-label">Oracle Spread</span>
+                      <strong>
+                        {oracleSpread !== null
+                          ? `${oracleSpread >= 0 ? '+' : ''}${oracleSpread.toFixed(2)}%`
+                          : '—'}
+                      </strong>
+                      <small className="dex-quote-subtext">Execution vs median oracle</small>
+                    </div>
+                    <div>
+                      <span className="dex-quote-label">Price Impact</span>
+                      <strong>{quote ? `${quote.priceImpactPercent.toFixed(2)}%` : '—'}</strong>
+                      <small className="dex-quote-subtext">vs pool spot price</small>
+                    </div>
+                    <div>
+                      <span className="dex-quote-label">Route Health</span>
+                      <strong>
+                        {poolAnalytics.depthRatio > 65 ? 'Deep liquidity' : poolAnalytics.depthRatio > 35 ? 'Moderate depth' : 'Shallow'}
+                      </strong>
+                      <small className="dex-quote-subtext">
+                        Depth ratio {poolAnalytics.depthRatio.toFixed(1)}%
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="dex-insight-panel">
+                <div className="dex-insight-header">
+                  <h4>Pool Route Insights</h4>
+                </div>
+                <p className="text-muted">
+                  {poolInsightError || 'Select a valid pair to view liquidity diagnostics.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="dex-security-tip">
           <h4>Advanced Controls</h4>
           <div className="dex-advanced-grid">
             <div>
-              <label className="form-label">Wallet Password</label>
-              <input
-                type="password"
-                className="form-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Decrypt keystore to sign"
-              />
+              <label className="form-label">Wallet Authentication</label>
+              {!isLedger ? (
+                <input
+                  type="password"
+                  className="form-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Decrypt keystore to sign"
+                />
+              ) : (
+                <div className="text-muted" style={{ fontSize: '12px' }}>
+                  Ledger connected: DEX swaps require custom signing and are temporarily disabled for hardware wallets.
+                </div>
+              )}
             </div>
             <div>
               <label className="form-label">Memo (optional)</label>

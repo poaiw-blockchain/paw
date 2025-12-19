@@ -13,18 +13,20 @@ import (
 
 // DEXDecorator validates DEX module-specific transaction requirements
 type DEXDecorator struct {
-	keeper dexkeeper.Keeper
+	keeper *dexkeeper.Keeper
 }
 
 // NewDEXDecorator creates a new DEXDecorator
-func NewDEXDecorator(keeper dexkeeper.Keeper) DEXDecorator {
-	return DEXDecorator{
+func NewDEXDecorator(keeper *dexkeeper.Keeper) *DEXDecorator {
+	return &DEXDecorator{
 		keeper: keeper,
 	}
 }
 
-// AnteHandle implements the AnteDecorator interface
-func (dd DEXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+// AnteHandle implements the AnteDecorator interface.
+//
+//nolint:gocritic // sdk.Context is passed by value per Cosmos SDK AnteHandler contract.
+func (dd *DEXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	// Skip validation during simulation
 	if simulate {
 		return next(ctx, tx, simulate)
@@ -55,8 +57,10 @@ func (dd DEXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, nex
 	return next(ctx, tx, simulate)
 }
 
-// validateCreatePool performs additional validation for pool creation
-func (dd DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCreatePool) error {
+// validateCreatePool performs additional validation for pool creation.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (dd *DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCreatePool) error {
 	if _, err := sdk.AccAddressFromBech32(msg.Creator); err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid creator address: %s", err)
 	}
@@ -87,8 +91,10 @@ func (dd DEXDecorator) validateCreatePool(ctx sdk.Context, msg *dextypes.MsgCrea
 	return nil
 }
 
-// validateSwap performs additional validation for swap operations
-func (dd DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) error {
+// validateSwap performs additional validation for swap operations.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (dd *DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) error {
 	if _, err := sdk.AccAddressFromBech32(msg.Trader); err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid trader address: %s", err)
 	}
@@ -119,8 +125,10 @@ func (dd DEXDecorator) validateSwap(ctx sdk.Context, msg *dextypes.MsgSwap) erro
 	return nil
 }
 
-// validateAddLiquidity performs additional validation for adding liquidity
-func (dd DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAddLiquidity) error {
+// validateAddLiquidity performs additional validation for adding liquidity.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (dd *DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAddLiquidity) error {
 	if _, err := sdk.AccAddressFromBech32(msg.Provider); err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}
@@ -143,8 +151,10 @@ func (dd DEXDecorator) validateAddLiquidity(ctx sdk.Context, msg *dextypes.MsgAd
 	return nil
 }
 
-// validateRemoveLiquidity performs additional validation for removing liquidity
-func (dd DEXDecorator) validateRemoveLiquidity(ctx sdk.Context, msg *dextypes.MsgRemoveLiquidity) error {
+// validateRemoveLiquidity performs additional validation for removing liquidity.
+//
+//nolint:gocritic // sdk.Context intentionally passed by value to match keeper expectations.
+func (dd *DEXDecorator) validateRemoveLiquidity(ctx sdk.Context, msg *dextypes.MsgRemoveLiquidity) error {
 	if _, err := sdk.AccAddressFromBech32(msg.Provider); err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid provider address: %s", err)
 	}

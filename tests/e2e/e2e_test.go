@@ -165,7 +165,7 @@ func (suite *E2ETestSuite) TestValidatorGovernanceLifecycle() {
 	params.UnbondingTime = time.Hour
 	params.BondDenom = "upaw"
 	govAuthority := suite.app.GovKeeper.GetGovernanceAccount(suite.ctx).GetAddress().String()
-	_, err = stakingServer.UpdateParams(sdk.WrapSDKContext(suite.ctx), &stakingtypes.MsgUpdateParams{
+	_, err = stakingServer.UpdateParams(suite.ctx, &stakingtypes.MsgUpdateParams{
 		Authority: govAuthority,
 		Params:    params,
 	})

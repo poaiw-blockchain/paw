@@ -60,7 +60,6 @@ export default function AccountPage({ params }: PageProps) {
     queryKey: ['accountTransactions', address, txPage],
     queryFn: () => api.getAccountTransactions(address, txPage, txLimit),
     enabled: !!accountData,
-    keepPreviousData: true,
   })
 
   if (isLoading) {

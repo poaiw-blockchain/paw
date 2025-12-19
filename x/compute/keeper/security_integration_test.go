@@ -62,7 +62,8 @@ func (suite *ComputeSecuritySuite) SetupTest() {
 		if acc == nil {
 			acc = testApp.AccountKeeper.NewAccountWithAddress(suite.ctx, addr)
 		}
-		acc.SetPubKey(&sdkPubKey)
+		err = acc.SetPubKey(&sdkPubKey)
+		suite.Require().NoError(err)
 		testApp.AccountKeeper.SetAccount(suite.ctx, acc)
 
 		// Fund provider account for staking
@@ -595,14 +596,17 @@ func (suite *ComputeSecuritySuite) TestVerificationAttack_MerkleProofManipulatio
 	pubKey := privKey.Public().(ed25519.PublicKey)
 
 	merkleRoot := make([]byte, 32)
-	rand.Read(merkleRoot) // Random root
+	_, err = rand.Read(merkleRoot)
+	suite.Require().NoError(err, "failed to generate random merkle root")
 	stateCommitment := make([]byte, 32)
 	executionTrace := make([]byte, 32)
 
 	// ATTACK: Merkle proof that doesn't validate to the root
 	merkleProof := [][]byte{make([]byte, 32), make([]byte, 32)}
-	rand.Read(merkleProof[0])
-	rand.Read(merkleProof[1])
+	_, err = rand.Read(merkleProof[0])
+	suite.Require().NoError(err, "failed to randomize merkle proof element 0")
+	_, err = rand.Read(merkleProof[1])
+	suite.Require().NoError(err, "failed to randomize merkle proof element 1")
 
 	nonce := uint64(time.Now().UnixNano())
 
@@ -706,7 +710,7 @@ func (suite *ComputeSecuritySuite) TestReputationGaming_FakeRequests() {
 		outputHash := "fake" + string(rune('0'+i)) + "fake" + string(rune('0'+i)) + "fake" + string(rune('0'+i)) + "fake" + string(rune('0'+i)) + "fake" + string(rune('0'+i)) + "fake" + string(rune('0'+i)) + "fake"
 		proof := suite.createValidProof(provider, requestID, outputHash)
 
-		suite.keeper.SubmitResult(
+		err = suite.keeper.SubmitResult(
 			suite.ctx,
 			provider,
 			requestID,
@@ -716,6 +720,7 @@ func (suite *ComputeSecuritySuite) TestReputationGaming_FakeRequests() {
 			"http://logs.github.com",
 			proof,
 		)
+		suite.Require().NoError(err)
 	}
 
 	// Check reputation after attack
@@ -941,9 +946,10 @@ func (suite *ComputeSecuritySuite) TestStakeSlashing_InsufficientStake() {
 
 	// Submit invalid proof
 	invalidProof := make([]byte, 300)
-	rand.Read(invalidProof)
+	_, err = rand.Read(invalidProof)
+	suite.Require().NoError(err, "failed to randomize invalid proof")
 
-	suite.keeper.SubmitResult(
+	err = suite.keeper.SubmitResult(
 		suite.ctx,
 		lowStakeProvider,
 		requestID,
@@ -953,6 +959,7 @@ func (suite *ComputeSecuritySuite) TestStakeSlashing_InsufficientStake() {
 		"http://logs.github.com",
 		invalidProof,
 	)
+	suite.Require().NoError(err, "invalid proof submission should be processed for slashing")
 
 	// After slashing, provider should be deactivated due to insufficient stake
 	providerAfter, err := suite.keeper.GetProvider(suite.ctx, lowStakeProvider)

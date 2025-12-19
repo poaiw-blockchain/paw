@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -862,7 +863,7 @@ func TestCalculateSwapOutputSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := k.CalculateSwapOutputSecure(nil, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
+			output, err := k.CalculateSwapOutputSecure(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -1113,7 +1114,7 @@ func TestValidatePoolInvariant(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := k.ValidatePoolInvariant(nil, tt.pool, tt.oldK)
+			err := k.ValidatePoolInvariant(context.Background(), tt.pool, tt.oldK)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -1272,7 +1273,7 @@ func TestCheckCircuitBreaker(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 1: Normal operation (no circuit breaker)
-	err = k.CheckCircuitBreaker(ctx, pool, "test_operation")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "test_operation")
 	require.NoError(t, err)
 
 	// Test 2: Manually trigger circuit breaker
@@ -1280,7 +1281,7 @@ func TestCheckCircuitBreaker(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 3: Verify operations are blocked
-	err = k.CheckCircuitBreaker(ctx, pool, "blocked_operation")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "blocked_operation")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "paused")
 
@@ -1289,7 +1290,7 @@ func TestCheckCircuitBreaker(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 5: Verify operations are allowed again
-	err = k.CheckCircuitBreaker(ctx, pool, "allowed_operation")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "allowed_operation")
 	require.NoError(t, err)
 }
 
@@ -1305,7 +1306,7 @@ func TestCheckCircuitBreaker_PriceDeviation(t *testing.T) {
 	require.NoError(t, err)
 
 	// Initialize circuit breaker with current price
-	err = k.CheckCircuitBreaker(ctx, pool, "initialization")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "initialization")
 	require.NoError(t, err)
 
 	// Fund trader for massive swap
@@ -1316,11 +1317,12 @@ func TestCheckCircuitBreaker_PriceDeviation(t *testing.T) {
 
 	// Attempt large swap that would cause significant price impact
 	// This should trigger circuit breaker due to price deviation
-	_, err = k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(300_000), math.NewInt(1))
+	if _, swapErr := k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(300_000), math.NewInt(1)); swapErr != nil {
+		t.Logf("swap blocked before circuit breaker trigger: %v", swapErr)
+	}
 
-	// The swap itself might fail before circuit breaker due to other protections
-	// But circuit breaker state should be checked
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	// The swap itself might fail before circuit breaker due to other protections, but circuit breaker state should be checked
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.NotNil(t, state)
 }
@@ -1337,7 +1339,7 @@ func TestEmergencyPausePool(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test 2: Verify circuit breaker state
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, state.Enabled)
 	require.Equal(t, "governance", state.TriggeredBy)
@@ -1350,7 +1352,7 @@ func TestEmergencyPausePool(t *testing.T) {
 	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
 
-	err = k.CheckCircuitBreaker(ctx, pool, "should_be_blocked")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "should_be_blocked")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "paused")
 }
@@ -1371,7 +1373,7 @@ func TestUnpausePool(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify state
-	state, err := k.GetCircuitBreakerState(ctx, poolID)
+	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.False(t, state.Enabled)
 	require.Empty(t, state.TriggerReason)
@@ -1380,7 +1382,7 @@ func TestUnpausePool(t *testing.T) {
 	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
 
-	err = k.CheckCircuitBreaker(ctx, pool, "should_be_allowed")
+	err = k.CheckPoolPriceDeviationForTesting(ctx, pool, "should_be_allowed")
 	require.NoError(t, err)
 }
 
@@ -1510,7 +1512,7 @@ func TestCircuitBreakerPersistence(t *testing.T) {
 	require.NoError(t, err)
 
 	// Retrieve and verify
-	retrievedState, err := k.GetCircuitBreakerState(ctx, poolID)
+	retrievedState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.Equal(t, originalState.Enabled, retrievedState.Enabled)
 	require.Equal(t, originalState.TriggeredBy, retrievedState.TriggeredBy)
@@ -1527,7 +1529,7 @@ func TestGetCircuitBreakerState_NonExistent(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	// Non-existent pool should return default state
-	state, err := k.GetCircuitBreakerState(ctx, 9999)
+	state, err := k.GetPoolCircuitBreakerState(ctx, 9999)
 	require.NoError(t, err)
 	require.False(t, state.Enabled)
 	require.True(t, state.LastPrice.IsZero())
@@ -1691,8 +1693,4 @@ func TestExecuteSwapSecure_PoolDrainProtection(t *testing.T) {
 
 	// Should fail due to pool drain protection or swap size validation
 	require.Error(t, err)
-	// Error could be from swap size or drain limit
-	require.True(t,
-		err.Error() == err.Error(), // Just verify we got an error
-	)
 }

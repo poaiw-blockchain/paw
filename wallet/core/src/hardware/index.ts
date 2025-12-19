@@ -14,6 +14,7 @@ import {
   HardwareWalletConfig,
   HardwareWalletError,
 } from './types';
+import { assertBech32Prefix, validateSignDocBasics } from './guards';
 
 // Re-export types
 export * from './types';
@@ -97,6 +98,18 @@ export class HardwareWalletFactory {
  */
 export class HardwareWalletUtils {
   /**
+   * Build a standard path matrix (accounts 0..maxAccountIndex)
+   */
+  static buildDefaultPathMatrix(
+    coinType = 118,
+    maxAccountIndex = 4,
+    account = 0
+  ): string[] {
+    const upperBound = Math.max(0, maxAccountIndex);
+    return this.generatePaths(coinType, upperBound + 1, account);
+  }
+
+  /**
    * Generate standard Cosmos derivation paths
    */
   static generatePaths(
@@ -147,6 +160,29 @@ export class HardwareWalletUtils {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Validate a Bech32 address prefix
+   */
+  static assertBech32Prefix(address: string, expectedPrefix: string): void {
+    assertBech32Prefix(address, expectedPrefix);
+  }
+
+  /**
+   * Validate fee + chain-id constraints before sending to a device
+   */
+  static validateSignDocBasics(
+    doc: {
+      chain_id?: string;
+      fee?: { amount?: Array<{ denom?: string; amount?: string }>; gas?: string };
+    },
+    {
+      enforceChainId,
+      allowedFeeDenoms = ['upaw'],
+    }: Pick<HardwareWalletConfig, 'enforceChainId' | 'allowedFeeDenoms'>
+  ): void {
+    validateSignDocBasics(doc, { enforceChainId, allowedFeeDenoms });
   }
 
   /**

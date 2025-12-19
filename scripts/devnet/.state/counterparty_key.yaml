@@ -1,6 +1,10 @@
 
 - name: smoke-counterparty
   type: secp256k1
-  address: paw1ktrspgxlz9txpz3c3vn7d9qawxyvf68csyx7cj
-  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 3 42 254 143 63 244 96 231 119 22 69 111 25 230 101 156 120 188 2 8 162 237 204 200 218 237 181 54 5 69 60 255 103],XXX_unrecognized:[]}
+  address: paw1fp6el6xwkpaas2nz7uryptrck5f4w2szjem6hs
+  pubkey: &Any{TypeUrl:/cosmos.crypto.secp256k1.PubKey,Value:[10 33 3 164 204 99 74 129 6 205 178 15 183 160 173 243 125 135 105 232 113 76 160 105 44 244 237 120 52 41 40 136 9 84 109],XXX_unrecognized:[]}
 
+**IMPORTANT** Write this mnemonic phrase in a safe place.
+It is the only way to recover your account if you ever forget your password.
+
+razor soda endless endorse rubber thank evil wheat memory crouch suffer deposit drop scare sword endorse point glad guitar popular hundred below odor wear

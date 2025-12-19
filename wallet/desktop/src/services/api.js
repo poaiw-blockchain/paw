@@ -249,4 +249,30 @@ export class ApiService {
       return null;
     }
   }
+
+  async getDelegations(address) {
+    try {
+      const endpoint = await this.getEndpoint();
+      const resp = await axios.get(
+        `${endpoint}/cosmos/staking/v1beta1/delegations/${address}`,
+      );
+      return resp.data?.delegation_responses || resp.data?.delegations || [];
+    } catch (error) {
+      console.error('Failed to get delegations:', error);
+      return [];
+    }
+  }
+
+  async getRewards(address) {
+    try {
+      const endpoint = await this.getEndpoint();
+      const resp = await axios.get(
+        `${endpoint}/cosmos/distribution/v1beta1/delegators/${address}/rewards`,
+      );
+      return resp.data || { total: [] };
+    } catch (error) {
+      console.error('Failed to get rewards:', error);
+      return { total: [] };
+    }
+  }
 }

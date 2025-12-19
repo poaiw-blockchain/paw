@@ -19,23 +19,23 @@ type Aggregator struct {
 
 // TimeSeriesPoint represents a single metric data point
 type TimeSeriesPoint struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Value     float64                `json:"value"`
-	Labels    map[string]string      `json:"labels,omitempty"`
+	Timestamp time.Time         `json:"timestamp"`
+	Value     float64           `json:"value"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 // AggregatedMetrics represents aggregated metric data
 type AggregatedMetrics struct {
-	MetricName string              `json:"metric_name"`
-	StartTime  time.Time           `json:"start_time"`
-	EndTime    time.Time           `json:"end_time"`
-	Min        float64             `json:"min"`
-	Max        float64             `json:"max"`
-	Avg        float64             `json:"avg"`
-	Count      int                 `json:"count"`
-	Sum        float64             `json:"sum"`
-	Percentile map[int]float64     `json:"percentile"` // 50th, 95th, 99th
-	Points     []TimeSeriesPoint   `json:"points,omitempty"`
+	MetricName string            `json:"metric_name"`
+	StartTime  time.Time         `json:"start_time"`
+	EndTime    time.Time         `json:"end_time"`
+	Min        float64           `json:"min"`
+	Max        float64           `json:"max"`
+	Avg        float64           `json:"avg"`
+	Count      int               `json:"count"`
+	Sum        float64           `json:"sum"`
+	Percentile map[int]float64   `json:"percentile"` // 50th, 95th, 99th
+	Points     []TimeSeriesPoint `json:"points,omitempty"`
 }
 
 // NewAggregator creates a new metrics aggregator

@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
+
+	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -16,6 +19,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -42,6 +47,11 @@ Example:
 
 			// Read genesis file
 			genFile := config.GenesisFile()
+			// Normalize numeric fields if they are encoded as strings (common in canonicalized genesis)
+			if err := normalizeGenesisNumbers(genFile); err != nil {
+				return fmt.Errorf("failed to normalize genesis: %w", err)
+			}
+
 			genDoc, err := tmtypes.GenesisDocFromFile(genFile)
 			if err != nil {
 				return fmt.Errorf("failed to read genesis doc from file %s: %w", genFile, err)
@@ -57,11 +67,16 @@ Example:
 			gentxDir := filepath.Join(config.RootDir, "config", "gentx")
 			gentxFiles, err := os.ReadDir(gentxDir)
 			if err != nil {
+				if os.IsNotExist(err) {
+					fmt.Fprintf(cmd.OutOrStdout(), "No gentx directory found at %s; leaving genesis unchanged.\n", gentxDir)
+					return nil
+				}
 				return fmt.Errorf("failed to read gentx directory: %w", err)
 			}
 
 			if len(gentxFiles) == 0 {
-				return fmt.Errorf("no gentx files found in %s", gentxDir)
+				fmt.Fprintf(cmd.OutOrStdout(), "No gentx files found in %s; leaving genesis unchanged.\n", gentxDir)
+				return nil
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Collecting genesis transactions...\n")
@@ -71,6 +86,7 @@ Example:
 			var (
 				genTxs            []sdk.Tx
 				genesisValidators []tmtypes.GenesisValidator
+				msgCreateVals     []*stakingtypes.MsgCreateValidator
 				seenValidators    = make(map[string]struct{})
 			)
 			for _, gentxFile := range gentxFiles {
@@ -125,25 +141,87 @@ Example:
 
 				genesisValidators = append(genesisValidators, validator)
 				genTxs = append(genTxs, tx)
+				msgCreateVals = append(msgCreateVals, msgCreateVal)
 				fmt.Fprintf(cmd.OutOrStdout(), "  ✓ Collected gentx from %s\n", gentxFile.Name())
 			}
 
 			// Update genesis state with collected gentxs
 			genUtilGenesis := genutiltypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
+			bankGenesis := banktypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
+			stakingGenesis := stakingtypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
 
-			// Convert gentxs to JSON
-			genTxsJSON := make([]json.RawMessage, len(genTxs))
-			for i, tx := range genTxs {
-				txBz, err := clientCtx.TxConfig.TxJSONEncoder()(tx)
-				if err != nil {
-					return fmt.Errorf("failed to encode gentx: %w", err)
+			bondedPoolAddress := authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String()
+			bondedPoolBalance := ensureBalance(&bankGenesis.Balances, bondedPoolAddress)
+
+			stakingGenesis.Validators = make([]stakingtypes.Validator, 0, len(msgCreateVals))
+			stakingGenesis.Delegations = make([]stakingtypes.Delegation, 0, len(msgCreateVals))
+			stakingGenesis.LastValidatorPowers = make([]stakingtypes.LastValidatorPower, 0, len(msgCreateVals))
+
+			lastTotalPower := math.NewInt(0)
+			bondDenom := stakingGenesis.Params.BondDenom
+
+			for idx, msg := range msgCreateVals {
+				if msg.Value.Denom != bondDenom {
+					return fmt.Errorf("gentx %d uses %s but bond denom is %s", idx+1, msg.Value.Denom, bondDenom)
 				}
-				genTxsJSON[i] = txBz
+
+				delegatorAddr := msg.DelegatorAddress
+				if delegatorAddr == "" {
+					valAddr, err := sdk.ValAddressFromBech32(msg.ValidatorAddress)
+					if err != nil {
+						return fmt.Errorf("invalid validator address %s: %w", msg.ValidatorAddress, err)
+					}
+					delegatorAddr = sdk.AccAddress(valAddr).String()
+				}
+
+				delegatorBalance := findBalance(bankGenesis.Balances, delegatorAddr)
+				if delegatorBalance == nil {
+					return fmt.Errorf("delegator %s has no balance entry in genesis", delegatorAddr)
+				}
+
+				if delegatorBalance.Coins.AmountOf(msg.Value.Denom).LT(msg.Value.Amount) {
+					return fmt.Errorf("delegator %s insufficient balance for self-delegation", delegatorAddr)
+				}
+
+				delegatorBalance.Coins = delegatorBalance.Coins.Sub(msg.Value)
+				bondedPoolBalance.Coins = bondedPoolBalance.Coins.Add(msg.Value)
+
+				shares := math.LegacyNewDecFromInt(msg.Value.Amount)
+				validator := stakingtypes.Validator{
+					OperatorAddress:         msg.ValidatorAddress,
+					ConsensusPubkey:         msg.Pubkey,
+					Jailed:                  false,
+					Status:                  stakingtypes.Bonded,
+					Tokens:                  msg.Value.Amount,
+					DelegatorShares:         shares,
+					Description:             msg.Description,
+					UnbondingHeight:         0,
+					UnbondingTime:           time.Unix(0, 0).UTC(),
+					Commission:              stakingtypes.Commission{CommissionRates: msg.Commission, UpdateTime: time.Unix(0, 0).UTC()},
+					MinSelfDelegation:       msg.MinSelfDelegation,
+					UnbondingOnHoldRefCount: 0,
+				}
+
+				stakingGenesis.Validators = append(stakingGenesis.Validators, validator)
+				stakingGenesis.Delegations = append(stakingGenesis.Delegations, stakingtypes.Delegation{
+					DelegatorAddress: delegatorAddr,
+					ValidatorAddress: msg.ValidatorAddress,
+					Shares:           shares,
+				})
+
+				power := sdk.TokensToConsensusPower(msg.Value.Amount, sdk.DefaultPowerReduction)
+				stakingGenesis.LastValidatorPowers = append(stakingGenesis.LastValidatorPowers, stakingtypes.LastValidatorPower{
+					Address: msg.ValidatorAddress,
+					Power:   power,
+				})
+				lastTotalPower = lastTotalPower.Add(math.NewInt(power))
 			}
 
-			genUtilGenesis.GenTxs = genTxsJSON
+			stakingGenesis.LastTotalPower = lastTotalPower
+			genUtilGenesis.GenTxs = []json.RawMessage{}
 
-			// Save updated genutil genesis state
+			genesisState[banktypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(bankGenesis)
+			genesisState[stakingtypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(stakingGenesis)
 			genesisState[genutiltypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(genUtilGenesis)
 
 			// Validate genesis state
@@ -214,4 +292,28 @@ func msgCreateValidatorToGenesisValidator(registry codectypes.InterfaceRegistry,
 		Power:   power,
 		Name:    msg.Description.Moniker,
 	}, nil
+}
+
+func findBalance(balances []banktypes.Balance, address string) *banktypes.Balance {
+	for i := range balances {
+		if balances[i].Address == address {
+			return &balances[i]
+		}
+	}
+	return nil
+}
+
+func ensureBalance(balances *[]banktypes.Balance, address string) *banktypes.Balance {
+	for i := range *balances {
+		if (*balances)[i].Address == address {
+			return &(*balances)[i]
+		}
+	}
+
+	*balances = append(*balances, banktypes.Balance{
+		Address: address,
+		Coins:   sdk.NewCoins(),
+	})
+
+	return &(*balances)[len(*balances)-1]
 }

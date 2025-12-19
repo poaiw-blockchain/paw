@@ -9,6 +9,7 @@ import (
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -213,6 +214,20 @@ func TestEventEmitter_EmitPacketTimeoutEvent(t *testing.T) {
 
 	require.Equal(t, "channel-6", attrMap["channel_id"])
 	require.Equal(t, "789", attrMap["sequence"])
+}
+
+// TestPacketValidatorValidationFailedEvent ensures validation failures emit the standard event.
+func TestPacketValidatorValidationFailedEvent(t *testing.T) {
+	ctx := createTestContext()
+	pv := NewPacketValidator(&mockNonceValidator{}, &mockChannelAuthorizer{shouldFail: true})
+	packet := channeltypes.Packet{}
+
+	err := pv.ValidateIncomingPacket(ctx, packet, mockPacketData{}, 1, 1, "sender")
+	require.Error(t, err)
+
+	events := ctx.EventManager().Events()
+	require.Len(t, events, 1)
+	require.Equal(t, "ibc_packet_validation_failed", events[0].Type)
 }
 
 // TestEventEmitter_MultipleEvents tests emitting multiple events in sequence.

@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -41,6 +42,14 @@ var (
 	_ sdk.Msg = &MsgVoteOnAppeal{}
 	_ sdk.Msg = &MsgResolveAppeal{}
 	_ sdk.Msg = &MsgUpdateGovernanceParams{}
+)
+
+const (
+	maxGovernanceEvidenceSizeLimit = 50 * 1024 * 1024 // 50 MB absolute ceiling
+
+	maxDisputeReasonLength       = 1024
+	maxEvidenceDescriptionLength = 2048
+	maxAppealJustificationLength = 2048
 )
 
 // GetSigners implementations - these assume addresses are valid (validated in ValidateBasic)
@@ -268,6 +277,9 @@ func (msg *MsgUpdateParams) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return fmt.Errorf("invalid authority address: %w", err)
 	}
+	if msg.Authority != DefaultAuthority() {
+		return fmt.Errorf("invalid authority: expected %s, got %s", DefaultAuthority(), msg.Authority)
+	}
 
 	return validateParams(msg.Params)
 }
@@ -304,6 +316,9 @@ func (msg *MsgCreateDispute) ValidateBasic() error {
 	if msg.Reason == "" {
 		return fmt.Errorf("reason is required")
 	}
+	if len(msg.Reason) > maxDisputeReasonLength {
+		return fmt.Errorf("reason exceeds max length (%d characters)", maxDisputeReasonLength)
+	}
 	return nil
 }
 
@@ -323,6 +338,9 @@ func (msg *MsgResolveDispute) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return fmt.Errorf("invalid authority address: %w", err)
 	}
+	if msg.Authority != DefaultAuthority() {
+		return fmt.Errorf("invalid authority: expected %s, got %s", DefaultAuthority(), msg.Authority)
+	}
 	if msg.DisputeId == 0 {
 		return fmt.Errorf("dispute ID must be greater than 0")
 	}
@@ -340,6 +358,12 @@ func (msg *MsgSubmitEvidence) ValidateBasic() error {
 	if len(msg.Data) == 0 {
 		return fmt.Errorf("evidence data cannot be empty")
 	}
+	if uint64(len(msg.Data)) > maxGovernanceEvidenceSizeLimit {
+		return fmt.Errorf("evidence data exceeds hard limit (%d bytes)", maxGovernanceEvidenceSizeLimit)
+	}
+	if len(msg.Description) > maxEvidenceDescriptionLength {
+		return fmt.Errorf("evidence description exceeds max length (%d characters)", maxEvidenceDescriptionLength)
+	}
 	return nil
 }
 
@@ -356,6 +380,9 @@ func (msg *MsgAppealSlashing) ValidateBasic() error {
 	}
 	if msg.Justification == "" {
 		return fmt.Errorf("justification is required")
+	}
+	if len(msg.Justification) > maxAppealJustificationLength {
+		return fmt.Errorf("justification exceeds max length (%d characters)", maxAppealJustificationLength)
 	}
 	return nil
 }
@@ -376,6 +403,9 @@ func (msg *MsgResolveAppeal) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return fmt.Errorf("invalid authority address: %w", err)
 	}
+	if msg.Authority != DefaultAuthority() {
+		return fmt.Errorf("invalid authority: expected %s, got %s", DefaultAuthority(), msg.Authority)
+	}
 	if msg.AppealId == 0 {
 		return fmt.Errorf("appeal ID must be greater than 0")
 	}
@@ -387,6 +417,14 @@ func (msg *MsgUpdateGovernanceParams) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
 		return fmt.Errorf("invalid authority address: %w", err)
 	}
+	if msg.Authority != DefaultAuthority() {
+		return fmt.Errorf("invalid authority: expected %s, got %s", DefaultAuthority(), msg.Authority)
+	}
+
+	if err := validateGovernanceParams(msg.Params); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -433,6 +471,46 @@ func validateParams(params Params) error {
 
 	if params.MinReputationScore > 100 {
 		return fmt.Errorf("min_reputation_score cannot exceed 100")
+	}
+
+	return nil
+}
+
+func validateGovernanceParams(params GovernanceParams) error {
+	if params.DisputeDeposit.IsNil() || params.DisputeDeposit.IsNegative() {
+		return fmt.Errorf("dispute_deposit must be non-negative")
+	}
+
+	if params.EvidencePeriodSeconds == 0 {
+		return fmt.Errorf("evidence_period_seconds must be greater than 0")
+	}
+
+	if params.VotingPeriodSeconds == 0 {
+		return fmt.Errorf("voting_period_seconds must be greater than 0")
+	}
+
+	if params.QuorumPercentage.LT(math.LegacyZeroDec()) || params.QuorumPercentage.GT(math.LegacyOneDec()) {
+		return fmt.Errorf("quorum_percentage must be between 0 and 1")
+	}
+
+	if params.ConsensusThreshold.LTE(math.LegacyZeroDec()) || params.ConsensusThreshold.GT(math.LegacyOneDec()) {
+		return fmt.Errorf("consensus_threshold must be between 0 and 1")
+	}
+
+	if params.SlashPercentage.LT(math.LegacyZeroDec()) || params.SlashPercentage.GT(math.LegacyOneDec()) {
+		return fmt.Errorf("slash_percentage must be between 0 and 1")
+	}
+
+	if params.AppealDepositPercentage.LT(math.LegacyZeroDec()) || params.AppealDepositPercentage.GT(math.LegacyOneDec()) {
+		return fmt.Errorf("appeal_deposit_percentage must be between 0 and 1")
+	}
+
+	if params.MaxEvidenceSize == 0 {
+		return fmt.Errorf("max_evidence_size must be greater than 0")
+	}
+
+	if params.MaxEvidenceSize > maxGovernanceEvidenceSizeLimit {
+		return fmt.Errorf("max_evidence_size exceeds hard limit (%d bytes)", maxGovernanceEvidenceSizeLimit)
 	}
 
 	return nil

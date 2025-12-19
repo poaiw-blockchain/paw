@@ -40,11 +40,11 @@ type Resource struct {
 
 // ComputeResult represents the result of a compute job
 type ComputeResult struct {
-	RequestID    uint64 `json:"request_id"`
-	Provider     string `json:"provider"`
-	ResultData   []byte `json:"result_data"`
-	ResultHash   string `json:"result_hash"`
-	Verified     bool   `json:"verified"`
-	SubmittedAt  int64  `json:"submitted_at"`
-	VerifiedAt   int64  `json:"verified_at,omitempty"`
+	RequestID   uint64 `json:"request_id"`
+	Provider    string `json:"provider"`
+	ResultData  []byte `json:"result_data"`
+	ResultHash  string `json:"result_hash"`
+	Verified    bool   `json:"verified"`
+	SubmittedAt int64  `json:"submitted_at"`
+	VerifiedAt  int64  `json:"verified_at,omitempty"`
 }

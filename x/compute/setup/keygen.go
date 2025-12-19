@@ -55,13 +55,13 @@ type KeyMetadata struct {
 	PublicInputs    int
 
 	// Security
-	EncryptionAlg   string // "AES-256-GCM"
-	KDFAlgorithm    string // "Argon2id"
+	EncryptionAlg string // "AES-256-GCM"
+	KDFAlgorithm  string // "Argon2id"
 
 	// Audit
-	GeneratedBy     string
-	CeremonyID      string
-	TranscriptHash  []byte
+	GeneratedBy    string
+	CeremonyID     string
+	TranscriptHash []byte
 }
 
 // KeyStatus represents the lifecycle status of a key.
@@ -76,12 +76,12 @@ const (
 
 // EncryptedKeyPair represents an encrypted proving/verifying key pair.
 type EncryptedKeyPair struct {
-	Metadata        KeyMetadata
-	EncryptedPK     []byte // Encrypted proving key
-	EncryptedVK     []byte // Encrypted verifying key
-	Salt            []byte // For key derivation
-	Nonce           []byte // For AES-GCM
-	AuthTag         []byte // GCM authentication tag
+	Metadata    KeyMetadata
+	EncryptedPK []byte // Encrypted proving key
+	EncryptedVK []byte // Encrypted verifying key
+	Salt        []byte // For key derivation
+	Nonce       []byte // For AES-GCM
+	AuthTag     []byte // GCM authentication tag
 }
 
 // NewKeyGenerator creates a new key generator instance.

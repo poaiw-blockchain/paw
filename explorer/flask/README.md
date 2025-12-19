@@ -70,6 +70,20 @@ A production-ready blockchain explorer built with Flask, featuring real-time blo
    - API: http://localhost:11080/api/v1/stats
    - Metrics: http://localhost:11080/metrics
 
+### Staging Sandbox
+
+For a self-contained staging stack (nginx → Flask → stub indexer → Postgres/Redis/Prometheus) use:
+```bash
+cd /home/hudson/blockchain-projects/paw/explorer/flask
+./deploy-staging.sh
+```
+Ports: explorer `11083`, indexer `11081`, Postgres `11432`, Prometheus `11091`. The staging indexer is a stub that only exposes `/health` and empty datasets, so UI data will be sparse until the full pipeline is wired.
+
+Run a quick smoke against the staging stack:
+```bash
+./staging-smoke.sh
+```
+
 ### Development Mode
 
 For local development without Docker:

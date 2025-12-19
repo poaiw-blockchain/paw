@@ -140,34 +140,38 @@ func (s *SecurityScanner) runGoSec() error {
 	}
 
 	issues, ok := result["Issues"].([]interface{})
-	if ok {
-		for _, issue := range issues {
-			if issueMap, ok := issue.(map[string]interface{}); ok {
-				severity := "MEDIUM"
-				if sev, ok := issueMap["severity"].(string); ok {
-					severity = sev
-				}
+	if !ok {
+		return nil
+	}
 
-				location := ""
-				if file, ok := issueMap["file"].(string); ok {
-					location = file
-					if line, ok := issueMap["line"].(float64); ok {
-						location = fmt.Sprintf("%s:%d", file, int(line))
-					}
-				}
+	for _, issue := range issues {
+		issueMap, ok := issue.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		severity := "MEDIUM"
+		if sev, ok := issueMap["severity"].(string); ok {
+			severity = sev
+		}
 
-				finding := SecurityFinding{
-					Tool:        "gosec",
-					Severity:    severity,
-					Title:       "Security Issue",
-					Description: getString(issueMap, "details"),
-					Location:    location,
-					CWE:         getStringPtr(issueMap, "cwe"),
-					Timestamp:   s.timestamp,
-				}
-				s.findings = append(s.findings, finding)
+		location := ""
+		if file, ok := issueMap["file"].(string); ok {
+			location = file
+			if line, ok := issueMap["line"].(float64); ok {
+				location = fmt.Sprintf("%s:%d", file, int(line))
 			}
 		}
+
+		finding := SecurityFinding{
+			Tool:        "gosec",
+			Severity:    severity,
+			Title:       "Security Issue",
+			Description: getString(issueMap, "details"),
+			Location:    location,
+			CWE:         getStringPtr(issueMap, "cwe"),
+			Timestamp:   s.timestamp,
+		}
+		s.findings = append(s.findings, finding)
 	}
 
 	log.Println("GoSec scan completed")
@@ -198,20 +202,25 @@ func (s *SecurityScanner) runNancy() error {
 	}
 
 	// Parse Nancy results (format varies)
-	if vulns, ok := result["vulnerabilities"].([]interface{}); ok {
-		for _, vuln := range vulns {
-			if vulnMap, ok := vuln.(map[string]interface{}); ok {
-				finding := SecurityFinding{
-					Tool:        "nancy",
-					Severity:    "HIGH",
-					Title:       getString(vulnMap, "package"),
-					Description: getString(vulnMap, "vulnerability"),
-					Location:    "dependencies",
-					Timestamp:   s.timestamp,
-				}
-				s.findings = append(s.findings, finding)
-			}
+	vulns, ok := result["vulnerabilities"].([]interface{})
+	if !ok {
+		return nil
+	}
+
+	for _, vuln := range vulns {
+		vulnMap, ok := vuln.(map[string]interface{})
+		if !ok {
+			continue
 		}
+		finding := SecurityFinding{
+			Tool:        "nancy",
+			Severity:    "HIGH",
+			Title:       getString(vulnMap, "package"),
+			Description: getString(vulnMap, "vulnerability"),
+			Location:    "dependencies",
+			Timestamp:   s.timestamp,
+		}
+		s.findings = append(s.findings, finding)
 	}
 
 	log.Println("Nancy scan completed")
@@ -256,7 +265,7 @@ func (s *SecurityScanner) runGovulncheck() error {
 	}
 
 	log.Println("govulncheck completed")
-	return nil
+	return err
 }
 
 // runGolangciLint executes golangci-lint with security checks
@@ -288,27 +297,31 @@ func (s *SecurityScanner) runGolangciLint() error {
 	}
 
 	issues, ok := result["Issues"].([]interface{})
-	if ok {
-		for _, issue := range issues {
-			if issueMap, ok := issue.(map[string]interface{}); ok {
-				// Only include security-related checks
-				linter := getString(issueMap, "from_linter")
-				if !isSecurityLinter(linter) {
-					continue
-				}
+	if !ok {
+		return nil
+	}
 
-				location := fmt.Sprintf("%s:%v", getString(issueMap, "pos"), "")
-				finding := SecurityFinding{
-					Tool:        "golangci-lint",
-					Severity:    "MEDIUM",
-					Title:       linter,
-					Description: getString(issueMap, "text"),
-					Location:    location,
-					Timestamp:   s.timestamp,
-				}
-				s.findings = append(s.findings, finding)
-			}
+	for _, issue := range issues {
+		issueMap, ok := issue.(map[string]interface{})
+		if !ok {
+			continue
 		}
+		// Only include security-related checks
+		linter := getString(issueMap, "from_linter")
+		if !isSecurityLinter(linter) {
+			continue
+		}
+
+		location := fmt.Sprintf("%s:%v", getString(issueMap, "pos"), "")
+		finding := SecurityFinding{
+			Tool:        "golangci-lint",
+			Severity:    "MEDIUM",
+			Title:       linter,
+			Description: getString(issueMap, "text"),
+			Location:    location,
+			Timestamp:   s.timestamp,
+		}
+		s.findings = append(s.findings, finding)
 	}
 
 	log.Println("golangci-lint scan completed")
@@ -359,7 +372,7 @@ func (s *SecurityScanner) generateReports() error {
 		return fmt.Errorf("failed to generate Markdown report: %w", err)
 	}
 
-	// Generate SARIF report for 
+	// Generate SARIF report for downstream integrations
 	if err := s.generateSARIFReport(report); err != nil {
 		return fmt.Errorf("failed to generate SARIF report: %w", err)
 	}
@@ -374,7 +387,7 @@ func (s *SecurityScanner) generateJSONReport(report ScanReport) error {
 		return err
 	}
 
-	return os.WriteFile("security-report.json", data, 0644)
+	return os.WriteFile("security-report.json", data, 0o600)
 }
 
 // generateMarkdownReport generates a human-readable markdown report
@@ -426,11 +439,16 @@ func (s *SecurityScanner) generateMarkdownReport(report ScanReport) error {
 		}
 	}
 
-	return os.WriteFile("security-report.md", buf.Bytes(), 0644)
+	return os.WriteFile("security-report.md", buf.Bytes(), 0o600)
 }
 
 // generateSARIFReport generates SARIF format for  integration
 func (s *SecurityScanner) generateSARIFReport(report ScanReport) error {
+	properties := map[string]interface{}{
+		"total_findings": report.TotalFindings,
+		"scan_timestamp": report.ScanTimestamp,
+	}
+
 	sarif := map[string]interface{}{
 		"version": "2.1.0",
 		"runs": []map[string]interface{}{
@@ -442,7 +460,8 @@ func (s *SecurityScanner) generateSARIFReport(report ScanReport) error {
 						"informationUri": "https://github.com/paw-org/paw",
 					},
 				},
-				"results": s.buildSARIFResults(),
+				"properties": properties,
+				"results":    s.buildSARIFResults(),
 			},
 		},
 	}
@@ -452,7 +471,7 @@ func (s *SecurityScanner) generateSARIFReport(report ScanReport) error {
 		return err
 	}
 
-	return os.WriteFile("security-report.sarif", data, 0644)
+	return os.WriteFile("security-report.sarif", data, 0o600)
 }
 
 // buildSARIFResults converts findings to SARIF results format
@@ -464,7 +483,9 @@ func (s *SecurityScanner) buildSARIFResults() []map[string]interface{} {
 		file := parts[0]
 		line := 1
 		if len(parts) > 1 {
-			fmt.Sscanf(parts[1], "%d", &line)
+			if _, err := fmt.Sscanf(parts[1], "%d", &line); err != nil {
+				line = 1
+			}
 		}
 
 		result := map[string]interface{}{

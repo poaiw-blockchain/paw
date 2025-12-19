@@ -32,6 +32,7 @@ func TestConcurrentDEXSwaps(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
+			_ = id
 			defer wg.Done()
 
 			for j := 0; j < swapsPerGoroutine; j++ {
@@ -221,12 +222,14 @@ func TestDeadlockDetection(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 100; i++ {
-				mu1.Lock()
-				time.Sleep(time.Microsecond)
-				mu2.Lock()
-				// Critical section
-				mu2.Unlock()
-				mu1.Unlock()
+				func() {
+					mu1.Lock()
+					defer mu1.Unlock()
+					time.Sleep(time.Microsecond)
+					mu2.Lock()
+					defer mu2.Unlock()
+					// Critical section
+				}()
 			}
 		}()
 
@@ -234,12 +237,14 @@ func TestDeadlockDetection(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := 0; i < 100; i++ {
-				mu1.Lock()
-				time.Sleep(time.Microsecond)
-				mu2.Lock()
-				// Critical section
-				mu2.Unlock()
-				mu1.Unlock()
+				func() {
+					mu1.Lock()
+					defer mu1.Unlock()
+					time.Sleep(time.Microsecond)
+					mu2.Lock()
+					defer mu2.Unlock()
+					// Critical section
+				}()
 			}
 		}()
 

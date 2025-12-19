@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paw-chain/paw/app/ibcutil"
 )
 
 // mockChannelStore implements ibcutil.ChannelStore for testing.
@@ -272,15 +273,15 @@ func TestSetAuthorizedChannelsWithValidation(t *testing.T) {
 			expectedErr: true,
 		},
 		{
-			name: "empty list accepted",
-			input: []ibcutil.AuthorizedChannel{},
-			expectedErr: false,
+			name:           "empty list accepted",
+			input:          []ibcutil.AuthorizedChannel{},
+			expectedErr:    false,
 			expectedResult: []ibcutil.AuthorizedChannel{},
 		},
 		{
-			name:        "nil list accepted",
-			input:       nil,
-			expectedErr: false,
+			name:           "nil list accepted",
+			input:          nil,
+			expectedErr:    false,
 			expectedResult: []ibcutil.AuthorizedChannel{},
 		},
 		{

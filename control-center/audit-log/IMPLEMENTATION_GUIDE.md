@@ -66,7 +66,7 @@ Expected tables:
 
 ```go
 import (
-    auditlog "paw/control-center/audit-log"
+    auditlog "github.com/paw-chain/paw/control-center/audit-log"
 )
 
 func main() {
@@ -94,7 +94,7 @@ func main() {
 
 ```go
 import (
-    "paw/control-center/audit-log/middleware"
+    "github.com/paw-chain/paw/control-center/audit-log/middleware"
 )
 
 func setupAdminAPI(auditServer *auditlog.Server) http.Handler {

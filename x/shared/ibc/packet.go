@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
@@ -11,6 +12,7 @@ import (
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	"github.com/hashicorp/go-metrics"
 )
 
 // PacketData defines the interface that all IBC packet data types must implement.
@@ -113,11 +115,13 @@ func (pv *PacketValidator) ValidateIncomingPacket(
 				"channel", packet.SourceChannel,
 				"error", err)
 		}
+		emitValidationFailure(ctx, packet.SourcePort, packet.SourceChannel, err.Error())
 		return errorsmod.Wrapf(err, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
 	}
 
 	// Validate packet data
 	if err := packetData.ValidateBasic(); err != nil {
+		emitValidationFailure(ctx, packet.SourcePort, packet.SourceChannel, err.Error())
 		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, err.Error())
 	}
 
@@ -133,6 +137,7 @@ func (pv *PacketValidator) ValidateIncomingPacket(
 
 	// Validate nonce against replay attacks
 	if err := pv.nonceValidator.ValidateIncomingPacketNonce(ctx, packet.SourceChannel, sender, nonce, timestamp); err != nil {
+		emitValidationFailure(ctx, packet.SourcePort, packet.SourceChannel, err.Error())
 		return err
 	}
 
@@ -220,6 +225,12 @@ func (cov *ChannelOpenValidator) ValidateChannelOpenTry(
 			"invalid counterparty version: expected %s, got %s", cov.expectedVersion, counterpartyVersion)
 	}
 
+	// Validate port
+	if portID != cov.expectedPort {
+		return errorsmod.Wrapf(porttypes.ErrInvalidPort,
+			"expected port %s, got %s", cov.expectedPort, portID)
+	}
+
 	// Claim channel capability
 	if err := cov.claimer.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
 		return errorsmod.Wrap(err, "failed to claim channel capability")
@@ -276,6 +287,26 @@ type AcknowledgementHelper struct{}
 // NewAcknowledgementHelper creates a new acknowledgement helper.
 func NewAcknowledgementHelper() *AcknowledgementHelper {
 	return &AcknowledgementHelper{}
+}
+
+func emitValidationFailure(ctx sdk.Context, port, channel, reason string) {
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"ibc_packet_validation_failed",
+			sdk.NewAttribute("port", port),
+			sdk.NewAttribute("channel", channel),
+			sdk.NewAttribute("reason", reason),
+		),
+	)
+	telemetry.IncrCounterWithLabels(
+		[]string{"ibc", "packet_validation_failed"},
+		1,
+		[]metrics.Label{
+			telemetry.NewLabel("port", port),
+			telemetry.NewLabel("channel", channel),
+			telemetry.NewLabel("reason", reason),
+		},
+	)
 }
 
 // ValidateAndUnmarshalAck validates and unmarshals an acknowledgement.

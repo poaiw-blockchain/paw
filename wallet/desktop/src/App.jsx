@@ -7,7 +7,13 @@ import AddressBook from './components/AddressBook';
 import Settings from './components/Settings';
 import Setup from './components/Setup';
 import { KeystoreService } from './services/keystore';
+import LedgerService from './services/ledger';
 import SwapInterface from './components/DEX/SwapInterface';
+import StakingInterface from './components/Staking/StakingInterface';
+import PortfolioDashboard from './components/Portfolio/PortfolioDashboard';
+import TaxCenter from './components/Tax/TaxCenter';
+import BridgeCenter from './components/Bridge/BridgeCenter';
+import AutoStaking from './components/Strategies/AutoStaking';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('wallet');
@@ -30,8 +36,17 @@ const App = () => {
     try {
       setLoading(true);
       const keystoreService = new KeystoreService();
+      const ledgerService = new LedgerService();
+
       const wallet = await keystoreService.getWallet();
-      setWalletData(wallet);
+      if (wallet) {
+        setWalletData({ ...wallet, type: 'software' });
+      } else {
+        const ledgerWallet = await ledgerService.getSavedWallet();
+        if (ledgerWallet) {
+          setWalletData({ ...ledgerWallet, type: 'ledger' });
+        }
+      }
     } catch (err) {
       console.error('Failed to initialize wallet:', err);
       setError(err.message);
@@ -58,6 +73,9 @@ const App = () => {
         break;
       case 'dex':
         setCurrentView('dex');
+        break;
+      case 'staking':
+        setCurrentView('staking');
         break;
           case 'receive':
             setCurrentView('receive');
@@ -101,6 +119,16 @@ const App = () => {
 
   const handleBackupWallet = async () => {
     try {
+      if (walletData?.type === 'ledger') {
+        if (window.electron?.dialog) {
+          await window.electron.dialog.showMessageBox({
+            type: 'info',
+            title: 'Hardware Wallet',
+            message: 'Ledger wallets manage secrets on-device. No mnemonic is stored in the app.',
+          });
+        }
+        return;
+      }
       const keystoreService = new KeystoreService();
       const mnemonic = await keystoreService.getMnemonic();
 
@@ -164,6 +192,16 @@ const App = () => {
         return <Setup onWalletCreated={handleWalletCreated} />;
       case 'dex':
         return <SwapInterface walletData={walletData} />;
+      case 'staking':
+        return <StakingInterface walletData={walletData} />;
+      case 'portfolio':
+        return <PortfolioDashboard walletData={walletData} />;
+      case 'tax':
+        return <TaxCenter walletData={walletData} />;
+      case 'bridge':
+        return <BridgeCenter walletData={walletData} />;
+      case 'strategies':
+        return <AutoStaking walletData={walletData} />;
       default:
         return <Wallet walletData={walletData} onRefresh={initializeWallet} />;
     }
@@ -234,6 +272,36 @@ const App = () => {
               onClick={() => setCurrentView('dex')}
             >
               DEX
+            </div>
+            <div
+              className={`nav-item ${currentView === 'staking' ? 'active' : ''}`}
+              onClick={() => setCurrentView('staking')}
+            >
+              Staking
+            </div>
+            <div
+              className={`nav-item ${currentView === 'portfolio' ? 'active' : ''}`}
+              onClick={() => setCurrentView('portfolio')}
+            >
+              Portfolio
+            </div>
+            <div
+              className={`nav-item ${currentView === 'tax' ? 'active' : ''}`}
+              onClick={() => setCurrentView('tax')}
+            >
+              Tax
+            </div>
+            <div
+              className={`nav-item ${currentView === 'bridge' ? 'active' : ''}`}
+              onClick={() => setCurrentView('bridge')}
+            >
+              Bridge
+            </div>
+            <div
+              className={`nav-item ${currentView === 'strategies' ? 'active' : ''}`}
+              onClick={() => setCurrentView('strategies')}
+            >
+              Auto Staking
             </div>
           </nav>
         </aside>

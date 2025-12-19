@@ -1,0 +1,22 @@
+# Multisig + Recovery UX (Wallet Stack)
+
+- **Scope**: enable 2-5 signer multisig with mixed hardware/software keys, plus documented recovery/migration steps.
+- **Tooling**:
+  - `node wallet/hardware/run-ledger-physical.js` – hardware smoke before cosigning.
+  - `wallet/browser-extension` WalletConnect flow handles amino/hardware + direct/software with passkey gate.
+  - `wallet/desktop` Ledger transport selector (HID/WebHID) + standard path matrix (0-4).
+- **Multisig builder (desktop UI)**:
+  - In *Settings → Multisig/Recovery* add cosigner addresses (bech32 `paw`), threshold, and optional hardware requirement flags.
+  - Generates a JSON bundle: `{ threshold, cosigners, address, note }` plus QR for portability.
+  - Address derived from sorted pubkeys (cosmjs multisig) and the current bech32 prefix; rejects mixed prefixes.
+- **Signing flow**:
+  - Hardware: amino-only, chain-id/fee/prefix guards, per-origin rate limit; direct sign blocked with guidance to software path.
+  - Software: passkey/FIDO2 gate required before signing; supports direct-sign for WalletConnect and desktop flows.
+  - Mobile: BLE + biometric gate on pairing and signing.
+- **Recovery**:
+  - JSON bundle includes derivation paths and hardware transport hint per cosigner.
+  - Social recovery: record 2-of-3 threshold and distribute bundles; scripts validate quorum and rehydrate addresses.
+  - Migration: software cosigner → hardware by regenerating bundle with Ledger pubkey and retiring the software key.
+- **Runbooks**:
+  - Physical device regression: record runs in `wallet/hardware/TEST_LOG_TEMPLATE.md` (send/stake/gov/IBC/reject cases).
+  - WalletConnect hardware passthrough: see `wallet/hardware/WALLETCONNECT_HW_RUNBOOK.md`.

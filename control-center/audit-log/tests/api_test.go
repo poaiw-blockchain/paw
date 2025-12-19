@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"paw/control-center/audit-log/api"
-	"paw/control-center/audit-log/storage"
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/api"
+	"github.com/paw-chain/paw/control-center/audit-log/storage"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"

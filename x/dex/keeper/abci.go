@@ -9,6 +9,7 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -92,7 +93,7 @@ func (k Keeper) ProcessCircuitBreakerRecovery(ctx context.Context) error {
 
 	// Iterate over all pools to check circuit breaker states
 	err := k.IteratePools(ctx, func(pool types.Pool) bool {
-		cbState, err := k.GetCircuitBreakerState(ctx, pool.Id)
+		cbState, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 		if err != nil {
 			sdkCtx.Logger().Error("failed to get circuit breaker state", "pool_id", pool.Id, "error", err)
 			return false // Continue iteration
@@ -189,14 +190,13 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 		// Get all rate limits at this height
 		heightPrefix := RateLimitByHeightPrefixForHeight(height)
 		iterator := store.Iterator(heightPrefix, storetypes.PrefixEndBytes(heightPrefix))
+		defer iterator.Close()
 
 		rateLimitsToDelete := [][]byte{}
 		for ; iterator.Valid(); iterator.Next() {
 			rateLimitsToDelete = append(rateLimitsToDelete, iterator.Key())
 			cleanedCount++
 		}
-		iterator.Close()
-
 		// Delete the rate limit index entries
 		for _, key := range rateLimitsToDelete {
 			store.Delete(key)

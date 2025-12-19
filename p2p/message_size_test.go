@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
-	"github.com/paw-chain/paw/p2p/reputation"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paw-chain/paw/p2p/reputation"
 )
 
 func TestMessageSizeLimits(t *testing.T) {
@@ -17,9 +18,11 @@ func TestMessageSizeLimits(t *testing.T) {
 	config.EnableReputation = false // Disable reputation for simpler test
 
 	logger := log.NewNopLogger()
-	node, err := NewNode(config, logger)
+	node, err := NewNode(&config, logger)
 	require.NoError(t, err)
-	defer node.Stop()
+	defer func() {
+		require.NoError(t, node.Stop())
+	}()
 
 	// Track handler calls
 	messageReceived := false
@@ -103,9 +106,11 @@ func TestMessageSizeLimitsWithReputation(t *testing.T) {
 	config.EnableReputation = true
 
 	logger := log.NewNopLogger()
-	node, err := NewNode(config, logger)
+	node, err := NewNode(&config, logger)
 	require.NoError(t, err)
-	defer node.Stop()
+	defer func() {
+		require.NoError(t, node.Stop())
+	}()
 
 	err = node.Start()
 	require.NoError(t, err)
@@ -179,9 +184,11 @@ func TestMessageSizeDoSProtection(t *testing.T) {
 	config.EnableReputation = false
 
 	logger := log.NewNopLogger()
-	node, err := NewNode(config, logger)
+	node, err := NewNode(&config, logger)
 	require.NoError(t, err)
-	defer node.Stop()
+	defer func() {
+		require.NoError(t, node.Stop())
+	}()
 
 	// Track memory-intensive handler that should never be called for oversized messages
 	expensiveHandlerCalled := false
@@ -227,9 +234,11 @@ func TestMessageTypeSizeVariation(t *testing.T) {
 	config.EnableReputation = false
 
 	logger := log.NewNopLogger()
-	node, err := NewNode(config, logger)
+	node, err := NewNode(&config, logger)
 	require.NoError(t, err)
-	defer node.Stop()
+	defer func() {
+		require.NoError(t, node.Stop())
+	}()
 
 	messageTypes := []struct {
 		msgType     string

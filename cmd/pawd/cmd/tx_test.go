@@ -12,8 +12,8 @@ import (
 	"github.com/paw-chain/paw/app"
 )
 
-// safeTxCommand safely calls txCommand, returning nil if it panics
-func safeTxCommand(t *testing.T) *cobra.Command {
+// safeTxCommand safely calls txCommand, returning nil if it panics.
+func safeTxCommand() *cobra.Command {
 	var cmd *cobra.Command
 	defer func() {
 		if r := recover(); r != nil {
@@ -28,7 +28,7 @@ func safeTxCommand(t *testing.T) *cobra.Command {
 func TestTxCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -44,7 +44,7 @@ func TestTxCommand(t *testing.T) {
 func TestTxCommandSubcommands(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -79,7 +79,7 @@ func TestTxCommandSubcommands(t *testing.T) {
 func TestTxSignCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -101,7 +101,7 @@ func TestTxSignCommand(t *testing.T) {
 func TestTxBroadcastCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -123,7 +123,7 @@ func TestTxBroadcastCommand(t *testing.T) {
 func TestTxEncodeCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -145,7 +145,7 @@ func TestTxEncodeCommand(t *testing.T) {
 func TestTxDecodeCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -167,7 +167,7 @@ func TestTxDecodeCommand(t *testing.T) {
 func TestTxSimulateCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -189,7 +189,7 @@ func TestTxSimulateCommand(t *testing.T) {
 func TestTxMultiSignCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -211,7 +211,7 @@ func TestTxMultiSignCommand(t *testing.T) {
 func TestTxValidateSignaturesCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -233,7 +233,7 @@ func TestTxValidateSignaturesCommand(t *testing.T) {
 func TestTxCommandWithClientContext(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -260,7 +260,7 @@ func TestTxCommandWithClientContext(t *testing.T) {
 func TestTxCommandHelp(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -286,7 +286,7 @@ func TestTxCommandAliases(t *testing.T) {
 	// Note: txCommand doesn't define aliases, but we test the structure
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -298,7 +298,7 @@ func TestTxCommandAliases(t *testing.T) {
 func TestTxModuleCommands(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -343,7 +343,7 @@ func TestTxCommandValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			initSDKConfig()
 
-			cmd := safeTxCommand(t)
+			cmd := safeTxCommand()
 			if cmd == nil {
 				t.Skip("tx command initialization requires full app context")
 			}
@@ -365,7 +365,7 @@ func TestTxCommandValidation(t *testing.T) {
 func TestTxCommandFlagParsing(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -377,7 +377,7 @@ func TestTxCommandFlagParsing(t *testing.T) {
 func TestTxSignBatchCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -399,7 +399,7 @@ func TestTxSignBatchCommand(t *testing.T) {
 func TestTxMultiSignBatchCommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -421,7 +421,7 @@ func TestTxMultiSignBatchCommand(t *testing.T) {
 func TestTxCommandStructure(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -439,7 +439,7 @@ func TestTxCommandStructure(t *testing.T) {
 func TestTxCommandWithInvalidSubcommand(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -484,7 +484,7 @@ func BenchmarkTxCommand(b *testing.B) {
 func TestTxCommandFlags(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -498,7 +498,7 @@ func TestTxCommandFlags(t *testing.T) {
 func TestTxSignCommandStructure(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -522,7 +522,7 @@ func TestTxSignCommandStructure(t *testing.T) {
 func TestTxBroadcastCommandStructure(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -545,7 +545,7 @@ func TestTxBroadcastCommandStructure(t *testing.T) {
 func TestTxEncodeDecodeCommands(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -569,7 +569,7 @@ func TestTxEncodeDecodeCommands(t *testing.T) {
 func TestTxSimulateCommandExists(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -623,7 +623,7 @@ func TestTxValidateSignaturesCommandStructure(t *testing.T) {
 func TestTxCommandExecute(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}
@@ -880,7 +880,7 @@ func TestTxCommandNoArgs(t *testing.T) {
 func TestTxCommandPersistentFlags(t *testing.T) {
 	initSDKConfig()
 
-	cmd := safeTxCommand(t)
+	cmd := safeTxCommand()
 	if cmd == nil {
 		t.Skip("tx command initialization requires full app context, not available in test")
 	}

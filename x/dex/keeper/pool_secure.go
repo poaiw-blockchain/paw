@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -48,6 +49,14 @@ func (k Keeper) CreatePoolSecure(ctx context.Context, creator sdk.AccAddress, to
 
 	if uint64(len(pools)) >= MaxPools {
 		return nil, types.ErrMaxPoolsReached.Wrapf("maximum number of pools (%d) reached", MaxPools)
+	}
+
+	if uint64(len(pools)) > MaxPools*9/10 {
+		sdk.UnwrapSDKContext(ctx).Logger().Info(
+			"dex pool count approaching limit",
+			"current", len(pools),
+			"max", MaxPools,
+		)
 	}
 
 	// 5. Get and validate parameters

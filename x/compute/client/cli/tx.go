@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -602,7 +603,7 @@ Example:
 				if err != nil {
 					return err
 				}
-				verificationProof, err = os.ReadFile(proofFile)
+				verificationProof, err = os.ReadFile(filepath.Clean(proofFile))
 				if err != nil {
 					return fmt.Errorf("failed to read verification proof file: %w", err)
 				}
@@ -682,7 +683,7 @@ Example:
 				if err != nil {
 					return err
 				}
-				evidence, err = os.ReadFile(evidenceFile)
+				evidence, err = os.ReadFile(filepath.Clean(evidenceFile))
 				if err != nil {
 					return fmt.Errorf("failed to read evidence file: %w", err)
 				}
@@ -832,7 +833,7 @@ Example:
 				return fmt.Errorf("evidence file cannot be empty")
 			}
 
-			evidence, err := os.ReadFile(evidenceFile)
+			evidence, err := os.ReadFile(filepath.Clean(evidenceFile))
 			if err != nil {
 				return fmt.Errorf("failed to read evidence file: %w", err)
 			}

@@ -1,0 +1,25 @@
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.table {
+  width: 100%;
+}
+
+.table-header, .table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  padding: 8px 0;
+  align-items: center;
+}
+
+.table-header {
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-row {
+  border-bottom: 1px solid var(--bg-primary);
+}

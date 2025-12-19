@@ -26,11 +26,11 @@ func FuzzIBCPacketValidation(f *testing.F) {
 	// Seed corpus with valid and edge case packets
 	seeds := [][]byte{
 		encodeIBCPacket(1, "transfer", "channel-0", "transfer", "channel-1", []byte("data"), 1000, 1234567890),
-		encodeIBCPacket(0, "transfer", "channel-0", "transfer", "channel-1", []byte("data"), 1000, 1234567890), // Zero sequence
-		encodeIBCPacket(1, "", "channel-0", "transfer", "channel-1", []byte("data"), 1000, 1234567890),          // Empty port
-		encodeIBCPacket(1, "transfer", "channel-0", "transfer", "channel-1", []byte{}, 1000, 1234567890),       // Empty data
-		encodeIBCPacket(1, "transfer", "channel-0", "transfer", "channel-1", []byte("data"), 0, 0),              // Zero timeout
-		encodeIBCPacket(^uint64(0), "transfer", "channel-0", "transfer", "channel-1", []byte("data"), 1000, 1234567890), // Max sequence
+		encodeIBCPacket(0, "transfer", "channel-2", "oracle", "channel-1", []byte("data"), 1000, 1234567890),            // Zero sequence
+		encodeIBCPacket(1, "", "channel-1", "dex", "channel-2", []byte("data"), 1000, 1234567890),                       // Empty port
+		encodeIBCPacket(1, "transfer", "channel-3", "bridge", "channel-1", []byte{}, 1000, 1234567890),                  // Empty data
+		encodeIBCPacket(1, "transfer", "channel-4", "transfer", "channel-6", []byte("data"), 0, 0),                      // Zero timeout
+		encodeIBCPacket(^uint64(0), "transfer", "channel-0", "transfer", "channel-5", []byte("data"), 1000, 1234567890), // Max sequence
 	}
 
 	for _, seed := range seeds {
@@ -118,7 +118,7 @@ func FuzzIBCSequenceOrdering(f *testing.F) {
 
 		// Test gap detection
 		gaps := tracker.detectGaps(sequences[len(sequences)-1])
-		require.True(t, len(gaps) >= 0, "Gap detection should not panic")
+		require.NotNil(t, gaps, "Gap detection should return a slice even when empty")
 
 		// Invariant: Gap count should be reasonable
 		maxExpectedGaps := sequences[len(sequences)-1] - uint64(len(sequences))
@@ -188,10 +188,10 @@ func FuzzIBCChannelHandshake(f *testing.F) {
 		event := HandshakeEvent(data[1] % 4)      // 4 possible events
 
 		channel := &Channel{
-			State:         initialState,
-			Sequence:      binary.BigEndian.Uint64(data[2:10]) % 1000,
-			Counterparty:  "channel-" + string(data[10:15]),
-			Version:       "ics20-1",
+			State:        initialState,
+			Sequence:     binary.BigEndian.Uint64(data[2:10]) % 1000,
+			Counterparty: "channel-" + string(data[10:15]),
+			Version:      "ics20-1",
 		}
 
 		// Test state transition
@@ -259,6 +259,10 @@ func FuzzIBCPacketRelay(f *testing.F) {
 		ackSuccess := data[0]%2 == 0
 
 		err = relay.acknowledgePacket(packet.Sequence, ackData, ackSuccess)
+		if !ackSuccess {
+			require.Error(t, err, "Failed acknowledgements should surface errors")
+			return
+		}
 		require.NoError(t, err, "Acknowledging valid packet should succeed")
 
 		// Invariant: Acknowledged packet should not be pending
@@ -285,7 +289,7 @@ func FuzzIBCConnectionVerification(f *testing.F) {
 		// Parse connection proof components
 		connectionID := string(data[0:20])
 		clientID := string(data[20:40])
-		consensusState := data[40:72]  // 32 bytes
+		consensusState := data[40:72] // 32 bytes
 		proofHeight := binary.BigEndian.Uint64(data[72:80])
 		proofBytes := data[80:200]
 
@@ -340,10 +344,10 @@ const (
 )
 
 type Channel struct {
-	State         ChannelState
-	Sequence      uint64
-	Counterparty  string
-	Version       string
+	State        ChannelState
+	Sequence     uint64
+	Counterparty string
+	Version      string
 }
 
 type SequenceTracker struct {
@@ -352,9 +356,9 @@ type SequenceTracker struct {
 }
 
 type PacketRelay struct {
-	pendingPackets     map[uint64]*IBCPacket
+	pendingPackets      map[uint64]*IBCPacket
 	acknowledgedPackets map[uint64][]byte
-	timedOutPackets    map[uint64]bool
+	timedOutPackets     map[uint64]bool
 }
 
 func newSequenceTracker() *SequenceTracker {
@@ -427,6 +431,10 @@ func (pr *PacketRelay) acknowledgePacket(sequence uint64, ackData []byte, succes
 		return &IBCError{"packet already acknowledged"}
 	}
 
+	if !success {
+		return &IBCError{"acknowledgement indicates failure"}
+	}
+
 	pr.acknowledgedPackets[sequence] = ackData
 	delete(pr.pendingPackets, sequence)
 	return nil
@@ -473,14 +481,20 @@ func validateIBCPacket(packet *IBCPacket) error {
 func hashIBCPacket(packet *IBCPacket) []byte {
 	hasher := sha256.New()
 
-	binary.Write(hasher, binary.BigEndian, packet.Sequence)
+	if err := binary.Write(hasher, binary.BigEndian, packet.Sequence); err != nil {
+		panic(err)
+	}
 	hasher.Write([]byte(packet.SourcePort))
 	hasher.Write([]byte(packet.SourceChannel))
 	hasher.Write([]byte(packet.DestPort))
 	hasher.Write([]byte(packet.DestChannel))
 	hasher.Write(packet.Data)
-	binary.Write(hasher, binary.BigEndian, packet.TimeoutHeight)
-	binary.Write(hasher, binary.BigEndian, packet.TimeoutStamp)
+	if err := binary.Write(hasher, binary.BigEndian, packet.TimeoutHeight); err != nil {
+		panic(err)
+	}
+	if err := binary.Write(hasher, binary.BigEndian, packet.TimeoutStamp); err != nil {
+		panic(err)
+	}
 
 	return hasher.Sum(nil)
 }
@@ -548,7 +562,9 @@ func verifyConnectionProof(connectionID, clientID string, consensusState []byte,
 	hasher.Write([]byte(connectionID))
 	hasher.Write([]byte(clientID))
 	hasher.Write(consensusState)
-	binary.Write(hasher, binary.BigEndian, proofHeight)
+	if err := binary.Write(hasher, binary.BigEndian, proofHeight); err != nil {
+		panic(err)
+	}
 
 	expectedHash := hasher.Sum(nil)
 
@@ -569,7 +585,9 @@ func (e *IBCError) Error() string {
 func encodeIBCPacket(seq uint64, srcPort, srcChan, dstPort, dstChan string, data []byte, timeoutH, timeoutT uint64) []byte {
 	buf := new(bytes.Buffer)
 
-	binary.Write(buf, binary.BigEndian, seq)
+	if err := binary.Write(buf, binary.BigEndian, seq); err != nil {
+		panic(err)
+	}
 	buf.WriteString(srcPort)
 	buf.WriteByte(0)
 	buf.WriteString(srcChan)
@@ -579,8 +597,12 @@ func encodeIBCPacket(seq uint64, srcPort, srcChan, dstPort, dstChan string, data
 	buf.WriteString(dstChan)
 	buf.WriteByte(0)
 	buf.Write(data)
-	binary.Write(buf, binary.BigEndian, timeoutH)
-	binary.Write(buf, binary.BigEndian, timeoutT)
+	if err := binary.Write(buf, binary.BigEndian, timeoutH); err != nil {
+		panic(err)
+	}
+	if err := binary.Write(buf, binary.BigEndian, timeoutT); err != nil {
+		panic(err)
+	}
 
 	return buf.Bytes()
 }

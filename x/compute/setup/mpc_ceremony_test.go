@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -71,18 +72,25 @@ type deterministicBeacon struct{}
 
 func (deterministicBeacon) GetRandomness(round uint64) ([]byte, error) {
 	h := sha256.New()
-	binary.Write(h, binary.BigEndian, round)
+	if err := binary.Write(h, binary.BigEndian, round); err != nil {
+		return nil, err
+	}
 	return h.Sum(nil), nil
 }
 
 func (deterministicBeacon) VerifyRandomness(round uint64, randomness []byte) bool {
-	expected, _ := deterministicBeacon{}.GetRandomness(round)
+	expected, err := deterministicBeacon{}.GetRandomness(round)
+	if err != nil {
+		return false
+	}
 	return bytes.Equal(expected, randomness)
 }
 
 func randomTestBytes(size int) []byte {
 	buf := make([]byte, size)
-	rand.Read(buf)
+	if _, err := rand.Read(buf); err != nil {
+		panic(fmt.Sprintf("failed to generate random test bytes: %v", err))
+	}
 	return buf
 }
 

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Buffer } from 'buffer';
 import { KeystoreService } from '../services/keystore';
+import LedgerService from '../services/ledger';
 
 const Setup = ({ onWalletCreated }) => {
   const [mode, setMode] = useState('create');
@@ -10,8 +12,21 @@ const Setup = ({ onWalletCreated }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [transport, setTransport] = useState('hid');
 
-  const keystoreService = new KeystoreService();
+  const keystoreService = useMemo(() => new KeystoreService(), []);
+  const ledgerService = useMemo(() => new LedgerService(), []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const pref = await ledgerService.getTransportPreference();
+        setTransport(pref || 'hid');
+      } catch (err) {
+        console.warn('Failed to load Ledger transport preference', err);
+      }
+    })();
+  }, [ledgerService]);
 
   const handleCreateWallet = async () => {
     try {
@@ -75,6 +90,28 @@ const Setup = ({ onWalletCreated }) => {
       onWalletCreated(wallet);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnectLedger = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const accounts = await ledgerService.getAccounts(undefined, undefined, transport);
+      const account = accounts[0];
+      const wallet = {
+        address: account.address,
+        publicKey: Buffer.from(account.pubkey).toString('hex'),
+        createdAt: new Date().toISOString(),
+        type: 'ledger',
+        provider: 'ledger',
+      };
+      await ledgerService.saveWalletMetadata(wallet);
+      onWalletCreated(wallet);
+    } catch (err) {
+      setError(err.message || 'Failed to connect to Ledger. Make sure Ledger Live is closed and the Cosmos app is open.');
     } finally {
       setLoading(false);
     }
@@ -155,6 +192,13 @@ const Setup = ({ onWalletCreated }) => {
           >
             Import Wallet
           </button>
+          <button
+            className={`btn ${mode === 'ledger' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setMode('ledger')}
+            style={{ flex: 1 }}
+          >
+            Connect Ledger
+          </button>
         </div>
 
         {mode === 'create' ? (
@@ -189,7 +233,7 @@ const Setup = ({ onWalletCreated }) => {
               {loading ? 'Creating...' : 'Generate Mnemonic'}
             </button>
           </>
-        ) : (
+        ) : mode === 'import' ? (
           <>
             <div className="form-group">
               <label className="form-label">Mnemonic Phrase</label>
@@ -229,6 +273,42 @@ const Setup = ({ onWalletCreated }) => {
               style={{ width: '100%' }}
             >
               {loading ? 'Importing...' : 'Import Wallet'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="form-group">
+              <label className="form-label">Connect Ledger (Nano S Plus / Nano X)</label>
+              <p className="text-muted" style={{ fontSize: '12px', marginTop: '6px' }}>
+                Open the Cosmos app on your Ledger, ensure Ledger Live is closed, and connect via USB. We only store your public address; private keys never leave the device.
+              </p>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ledger transport</label>
+              <select
+                className="form-input"
+                value={transport}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setTransport(value);
+                  ledgerService.setTransportPreference(value);
+                }}
+              >
+                <option value="hid">HID (default)</option>
+                <option value="webhid">WebHID</option>
+              </select>
+              <p className="text-muted" style={{ fontSize: '12px', marginTop: '6px' }}>
+                Use WebHID if HID is blocked by your OS or browser sandbox; attestation and chain/fee guards stay enabled.
+              </p>
+            </div>
+            {error && <div className="text-error mb-20">{error}</div>}
+            <button
+              className="btn btn-primary"
+              onClick={handleConnectLedger}
+              disabled={loading}
+              style={{ width: '100%' }}
+            >
+              {loading ? 'Connecting...' : 'Connect Ledger'}
             </button>
           </>
         )}

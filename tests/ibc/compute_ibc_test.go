@@ -18,8 +18,6 @@ import (
 	pawibctesting "github.com/paw-chain/paw/testutil/ibctesting"
 	"github.com/paw-chain/paw/x/compute/keeper"
 	computetypes "github.com/paw-chain/paw/x/compute/types"
-
-	_ "github.com/paw-chain/paw/testutil/ibctesting"
 )
 
 // ComputeIBCTestSuite tests cross-chain compute operations
@@ -96,7 +94,7 @@ func seedComputeProvider(chain *ibctesting.TestChain) {
 	}
 
 	_ = app.ComputeKeeper.RegisterProvider(
-		sdk.WrapSDKContext(ctx),
+		ctx,
 		provider,
 		"ibc-provider",
 		"https://provider.local",

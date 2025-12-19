@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
 )
 
 var (

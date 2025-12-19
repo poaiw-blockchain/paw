@@ -1,0 +1,26 @@
+{
+  "chain_id": "paw-testnet-1",
+  "genesis_file": "genesis.json",
+  "genesis_sha256": "0ad9a1be3badff543e777501c74d577249cfc0c13a0759e5b90c544a8688d106",
+  "peers_file": "peers.txt",
+  "bundle_file": "paw-testnet-1-artifacts.tar.gz",
+  "bundle_sha256": "78b27d1c02196531b7907773874520447e0be2bee4b95b781085c9e11b6a90de",
+  "node_id": "72d84a1a213b2e341d0926dfc8e91332bd06a584",
+  "listen_addr": "0.0.0.0:26656",
+  "persistent_peers": "72d84a1a213b2e341d0926dfc8e91332bd06a584@rpc1.paw-testnet.io:26656,b39bdfa2a5aee02104d03dafe80d27b5e2a7289a@rpc2.paw-testnet.io:26656,bafcc29ed4607a4d4f5b3c88d2459c3027be6468@rpc3.paw-testnet.io:26656,a0b3a9daa37ec69bef5341638afbed7cad9c16dc@rpc4.paw-testnet.io:26656",
+  "seeds": "",
+  "rpc_endpoints": [
+    "https://rpc1.paw-testnet.io",
+    "https://rpc2.paw-testnet.io"
+  ],
+  "rest_endpoints": [
+    "https://api.paw-testnet.io"
+  ],
+  "grpc_endpoints": [
+    "https://grpc.paw-testnet.io:443"
+  ],
+  "faucet_url": "https://faucet.paw-testnet.io",
+  "status_page_url": "https://status.paw-testnet.io",
+  "pawd_sha256": "3d301da4fd2f21b52f6f208e11e9e7f3e4626522fe711f08e2c7c2ce9f5cde02",
+  "generated_at": "2025-12-15T06:45:00Z"
+}

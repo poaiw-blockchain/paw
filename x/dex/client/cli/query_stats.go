@@ -361,20 +361,3 @@ Example:
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
-
-// Helper function to format amounts (reuse from query_advanced.go)
-func formatAmountLarge(amount string) string {
-	// Add thousand separators for readability
-	if len(amount) <= 3 {
-		return amount
-	}
-
-	var result []rune
-	for i, digit := range amount {
-		if i > 0 && (len(amount)-i)%3 == 0 {
-			result = append(result, ',')
-		}
-		result = append(result, digit)
-	}
-	return string(result)
-}

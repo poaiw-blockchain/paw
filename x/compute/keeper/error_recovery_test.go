@@ -102,10 +102,10 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	// Submit request successfully
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -166,10 +166,10 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -235,10 +235,10 @@ func TestCompleteRequestFailurePreservesEscrow(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -291,10 +291,10 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	// Attempt request submission (will fail)
 	maxPayment := math.NewInt(1000000)
 	_, err = k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.Error(t, err)
@@ -337,10 +337,10 @@ func TestCancelRequestFailurePreservesStatus(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -392,10 +392,10 @@ func TestDoubleCompletionPrevented(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)
@@ -461,10 +461,10 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	// Submit request
 	maxPayment := math.NewInt(1000000)
 	requestID, err := k.SubmitRequest(ctx, requester, types.ComputeSpec{
-		CpuCores:            2,
-		MemoryMb:         4096,
-		StorageGb:           50,
-		GpuCount:            0,
+		CpuCores:       2,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		GpuCount:       0,
 		TimeoutSeconds: 1800,
 	}, "alpine:latest", []string{"/bin/sh", "-c", "echo hello"}, nil, maxPayment, "")
 	require.NoError(t, err)

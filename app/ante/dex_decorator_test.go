@@ -5,11 +5,11 @@ import (
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
-	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -23,7 +23,7 @@ type DEXDecoratorTestSuite struct {
 
 	ctx       sdk.Context
 	dexKeeper *dexkeeper.Keeper
-	decorator ante.DEXDecorator
+	decorator *ante.DEXDecorator
 	encCfg    moduletestutil.TestEncodingConfig
 	addr      sdk.AccAddress
 }
@@ -56,7 +56,7 @@ func (suite *DEXDecoratorTestSuite) SetupTest() {
 	err := suite.dexKeeper.SetParams(suite.ctx, params)
 	suite.Require().NoError(err)
 
-	suite.decorator = ante.NewDEXDecorator(*suite.dexKeeper)
+	suite.decorator = ante.NewDEXDecorator(suite.dexKeeper)
 	suite.addr = sdk.AccAddress([]byte("creator1"))
 }
 

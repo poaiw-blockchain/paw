@@ -40,7 +40,7 @@ export function ComputeJobTracker() {
     refetchInterval: 15_000,
   })
 
-  const jobs = data?.data ?? []
+  const jobs = useMemo(() => data?.data ?? [], [data?.data])
 
   const summary = useMemo(() => {
     return statusFilters.map((filter) => ({

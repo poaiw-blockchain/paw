@@ -7,7 +7,7 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -63,7 +63,7 @@ func processFile(filename string) error {
 	fset := token.NewFileSet()
 
 	// Read file content
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func processFile(filename string) error {
 			return err
 		}
 
-		if err := ioutil.WriteFile(filename, buf.Bytes(), 0644); err != nil {
+		if err := os.WriteFile(filename, buf.Bytes(), 0o600); err != nil {
 			return err
 		}
 	}

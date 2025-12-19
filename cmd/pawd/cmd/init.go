@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,9 +15,16 @@ import (
 	tmtypes "github.com/cometbft/cometbft/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/cobra"
 
 	"github.com/paw-chain/paw/app"
@@ -48,6 +56,15 @@ Example:
 			config := serverCtx.Config
 			config.SetRoot(clientCtx.HomeDir)
 
+			if strings.TrimSpace(args[0]) == "" {
+				return fmt.Errorf("moniker cannot be empty")
+			}
+
+			// Ensure the config directory exists for downstream file creation.
+			if err := os.MkdirAll(filepath.Join(config.RootDir, "config"), 0o755); err != nil {
+				return fmt.Errorf("failed to create config directory: %w", err)
+			}
+
 			chainID, _ := cmd.Flags().GetString(flags.FlagChainID)
 			if chainID == "" {
 				chainID = fmt.Sprintf("test-chain-%v", time.Now().Unix())
@@ -69,14 +86,18 @@ Example:
 				return fmt.Errorf("genesis.json file already exists: %v", genFile)
 			}
 
-			// Get default denom
 			defaultDenom, _ := cmd.Flags().GetString(flagDefaultDenom)
-			if defaultDenom == "" {
-				defaultDenom = app.BondDenom
+			if err := sdk.ValidateDenom(defaultDenom); err != nil {
+				return fmt.Errorf("invalid default denom %q: %w", defaultDenom, err)
 			}
 
 			// Create default genesis state
-			appState, err := json.MarshalIndent(mbm.DefaultGenesis(cdc), "", " ")
+			genesisState := mbm.DefaultGenesis(cdc)
+			if err := applyDefaultDenom(cdc, genesisState, defaultDenom); err != nil {
+				return fmt.Errorf("failed to apply default denom %q: %w", defaultDenom, err)
+			}
+
+			appState, err := json.MarshalIndent(genesisState, "", " ")
 			if err != nil {
 				return fmt.Errorf("failed to marshal default genesis state: %w", err)
 			}
@@ -108,54 +129,12 @@ Example:
 				return fmt.Errorf("failed to validate genesis doc: %w", err)
 			}
 
-			// Canonicalize and save genesis using CometBFT JSON (ints as strings, no null app_hash)
 			genDoc.AppHash = cmtbytes.HexBytes{} // avoid null
-
-			type canonicalGenesis struct {
-				GenesisTime     time.Time                  `json:"genesis_time"`
-				ChainID         string                     `json:"chain_id"`
-				InitialHeight   string                     `json:"initial_height"`
-				ConsensusParams *tmtypes.ConsensusParams   `json:"consensus_params,omitempty"`
-				Validators      []tmtypes.GenesisValidator `json:"validators,omitempty"`
-				AppHash         string                     `json:"app_hash"`
-				AppState        json.RawMessage            `json:"app_state,omitempty"`
-			}
-
-			canon := canonicalGenesis{
-				GenesisTime:     genDoc.GenesisTime,
-				ChainID:         genDoc.ChainID,
-				InitialHeight:   fmt.Sprintf("%d", genDoc.InitialHeight),
-				ConsensusParams: genDoc.ConsensusParams,
-				Validators:      genDoc.Validators,
-				AppHash:         genDoc.AppHash.String(),
-				AppState:        genDoc.AppState,
-			}
-
-			genDocBytes, err := json.Marshal(canon)
-			if err != nil {
-				return fmt.Errorf("failed to marshal canonical genesis doc: %w", err)
-			}
-			intermediate, err := decodeJSONWithNumbers(genDocBytes)
-			if err != nil {
-				return fmt.Errorf("failed to canonicalize genesis structure: %w", err)
-			}
-			normalized := normalizeNumbersToStrings(intermediate).(map[string]interface{})
-			normalized["initial_height"] = fmt.Sprintf("%d", genDoc.InitialHeight)
-			pretty, err := json.MarshalIndent(normalized, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to marshal canonical genesis doc: %w", err)
-			}
-			if _, err := tmtypes.GenesisDocFromJSON(pretty); err != nil {
-				return fmt.Errorf("canonical genesis marshal validation failed: %w", err)
-			}
-			if err := cmtos.WriteFile(genFile, pretty, 0o644); err != nil {
+			if err := genDoc.SaveAs(genFile); err != nil {
 				return fmt.Errorf("failed to save genesis file: %w", err)
 			}
-			if err := canonicalizeGenesisFile(genFile); err != nil {
-				return fmt.Errorf("failed to canonicalize final genesis: %w", err)
-			}
-			if err := forceInitialHeightString(genFile); err != nil {
-				return fmt.Errorf("failed to enforce initial_height string encoding: %w", err)
+			if err := normalizeGenesisNumbers(genFile); err != nil {
+				return fmt.Errorf("failed to normalize genesis numeric fields: %w", err)
 			}
 
 			// Create config directory structure
@@ -215,6 +194,148 @@ Example:
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "node's home directory")
 
 	return cmd
+}
+
+// normalizeGenesisNumbers ensures numeric fields like initial_height and vote_extensions_enable_height
+// are encoded as numbers (not strings) for strict decoders used in tests.
+func normalizeGenesisNumbers(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+
+	var gen map[string]interface{}
+	if err := dec.Decode(&gen); err != nil {
+		return err
+	}
+
+	if ih, ok := parseInt64Value(gen["initial_height"]); ok {
+		gen["initial_height"] = strconv.FormatInt(ih, 10)
+	}
+
+	if cp, ok := gen["consensus_params"].(map[string]interface{}); ok {
+		if abci, ok := cp["abci"].(map[string]interface{}); ok {
+			setStringIntField(abci, "vote_extensions_enable_height")
+		}
+		if block, ok := cp["block"].(map[string]interface{}); ok {
+			setStringIntField(block, "max_bytes")
+			setStringIntField(block, "max_gas")
+		}
+		if evidence, ok := cp["evidence"].(map[string]interface{}); ok {
+			setStringIntField(evidence, "max_age_num_blocks")
+			setStringIntField(evidence, "max_age_duration")
+			setStringIntField(evidence, "max_bytes")
+		}
+		if versionParams, ok := cp["version"].(map[string]interface{}); ok {
+			setStringIntField(versionParams, "app")
+		}
+	}
+
+	normalized, err := json.MarshalIndent(gen, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, normalized, 0o644)
+}
+
+func setStringIntField(m map[string]interface{}, key string) {
+	if val, ok := parseInt64Value(m[key]); ok {
+		m[key] = strconv.FormatInt(val, 10)
+	}
+}
+
+func parseInt64Value(v interface{}) (int64, bool) {
+	switch val := v.(type) {
+	case json.Number:
+		parsed, err := val.Int64()
+		if err == nil {
+			return parsed, true
+		}
+	case string:
+		parsed, err := strconv.ParseInt(strings.TrimSpace(val), 10, 64)
+		if err == nil {
+			return parsed, true
+		}
+	case float64:
+		return int64(val), true
+	case float32:
+		return int64(val), true
+	case int:
+		return int64(val), true
+	case int64:
+		return val, true
+	case int32:
+		return int64(val), true
+	case uint64:
+		return int64(val), true
+	case uint32:
+		return int64(val), true
+	}
+	return 0, false
+}
+
+func applyDefaultDenom(cdc codec.JSONCodec, genesisState map[string]json.RawMessage, denom string) error {
+	if stakingState, ok := genesisState[stakingtypes.ModuleName]; ok {
+		var stakingGenesis stakingtypes.GenesisState
+		if err := cdc.UnmarshalJSON(stakingState, &stakingGenesis); err != nil {
+			return fmt.Errorf("failed to unmarshal staking genesis state: %w", err)
+		}
+		stakingGenesis.Params.BondDenom = denom
+		bz, err := cdc.MarshalJSON(&stakingGenesis)
+		if err != nil {
+			return fmt.Errorf("failed to marshal staking genesis state: %w", err)
+		}
+		genesisState[stakingtypes.ModuleName] = bz
+	}
+
+	if mintState, ok := genesisState[minttypes.ModuleName]; ok {
+		var mintGenesis minttypes.GenesisState
+		if err := cdc.UnmarshalJSON(mintState, &mintGenesis); err != nil {
+			return fmt.Errorf("failed to unmarshal mint genesis state: %w", err)
+		}
+		mintGenesis.Params.MintDenom = denom
+		bz, err := cdc.MarshalJSON(&mintGenesis)
+		if err != nil {
+			return fmt.Errorf("failed to marshal mint genesis state: %w", err)
+		}
+		genesisState[minttypes.ModuleName] = bz
+	}
+
+	if crisisState, ok := genesisState[crisistypes.ModuleName]; ok {
+		var crisisGenesis crisistypes.GenesisState
+		if err := cdc.UnmarshalJSON(crisisState, &crisisGenesis); err != nil {
+			return fmt.Errorf("failed to unmarshal crisis genesis state: %w", err)
+		}
+		crisisGenesis.ConstantFee.Denom = denom
+		bz, err := cdc.MarshalJSON(&crisisGenesis)
+		if err != nil {
+			return fmt.Errorf("failed to marshal crisis genesis state: %w", err)
+		}
+		genesisState[crisistypes.ModuleName] = bz
+	}
+
+	if govState, ok := genesisState[govtypes.ModuleName]; ok {
+		var govGenesis govv1types.GenesisState
+		if err := cdc.UnmarshalJSON(govState, &govGenesis); err != nil {
+			return fmt.Errorf("failed to unmarshal gov genesis state: %w", err)
+		}
+		for i := range govGenesis.Params.MinDeposit {
+			govGenesis.Params.MinDeposit[i].Denom = denom
+		}
+		for i := range govGenesis.Params.ExpeditedMinDeposit {
+			govGenesis.Params.ExpeditedMinDeposit[i].Denom = denom
+		}
+		bz, err := cdc.MarshalJSON(&govGenesis)
+		if err != nil {
+			return fmt.Errorf("failed to marshal gov genesis state: %w", err)
+		}
+		genesisState[govtypes.ModuleName] = bz
+	}
+
+	return nil
 }
 
 // normalizeNumbersToStrings walks a decoded JSON structure and turns all numeric values into

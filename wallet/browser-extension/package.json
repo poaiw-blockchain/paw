@@ -7,18 +7,27 @@
   "scripts": {
     "build": "node build.js",
     "watch": "node build.js --watch",
-    "lint": "eslint . --ext js --fix",
+    "lint": "eslint src --ext js --fix",
     "format": "prettier --write \"**/*.{js,json,html,css}\"",
     "test": "vitest",
-    "security:audit": "npm audit --audit-level=moderate",
+    "security:audit": "node tools/security-audit.js && npm audit --audit-level=moderate",
     "clean": "rimraf dist",
-    "package": "npm run build && cd dist && zip -r ../extension.zip ."
+    "package": "npm run build && npx bestzip extension.zip dist/*"
   },
   "dependencies": {
+    "@cosmjs/amino": "^0.32.4",
+    "@cosmjs/encoding": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.32.4",
+    "@cosmjs/encoding": "^0.32.4",
+    "@ledgerhq/hw-app-cosmos": "^6.28.5",
+    "@ledgerhq/hw-transport-webhid": "^6.28.5",
+    "@ledgerhq/hw-transport-webusb": "^6.28.5",
+    "bech32": "^2.0.0",
     "dompurify": "^3.0.8"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.258",
+    "bestzip": "^2.2.1",
     "esbuild": "^0.19.11",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",

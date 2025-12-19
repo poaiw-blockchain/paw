@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+
 	"github.com/paw-chain/paw/p2p/reputation"
 )
 
@@ -527,7 +528,7 @@ func (ph *ProtocolHandlers) recordReputationEvent(peerID string, eventType reput
 		Timestamp: time.Now(),
 	}
 
-	if err := ph.reputationMgr.RecordEvent(event); err != nil {
+	if err := ph.reputationMgr.RecordEvent(&event); err != nil {
 		ph.logger.Error("failed to record reputation event",
 			"peer_id", peerID,
 			"event_type", eventType.String(),

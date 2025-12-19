@@ -6,6 +6,7 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -103,8 +104,13 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 		return math.ZeroInt(), err
 	}
 
+	// Respect global and pool-level circuit breakers before any stateful work
+	if err := k.CheckPoolCircuitBreaker(ctx, poolID); err != nil {
+		return math.ZeroInt(), err
+	}
+
 	// 3. Check circuit breaker
-	if err := k.CheckCircuitBreaker(ctx, pool, "swap"); err != nil {
+	if err := k.checkPoolPriceDeviation(ctx, pool, "swap"); err != nil {
 		return math.ZeroInt(), err
 	}
 
@@ -406,7 +412,7 @@ func (k Keeper) SimulateSwapSecure(ctx context.Context, poolID uint64, tokenIn, 
 	}
 
 	// Check circuit breaker
-	if err := k.CheckCircuitBreaker(ctx, pool, "simulate_swap"); err != nil {
+	if err := k.checkPoolPriceDeviation(ctx, pool, "simulate_swap"); err != nil {
 		return math.ZeroInt(), err
 	}
 

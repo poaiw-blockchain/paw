@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"paw/control-center/audit-log/types"
+	"github.com/paw-chain/paw/control-center/audit-log/types"
 )
 
 // JSONExporter exports audit logs to JSON format

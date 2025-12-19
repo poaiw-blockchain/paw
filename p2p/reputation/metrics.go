@@ -225,14 +225,14 @@ func (m *Metrics) ExportPrometheus() string {
 	output += "# HELP paw_p2p_reputation_events_total Total number of reputation events by type\n"
 	output += "# TYPE paw_p2p_reputation_events_total counter\n"
 	for et, count := range m.eventCounts {
-		output += fmt.Sprintf("paw_p2p_reputation_events_total{type=\"%s\"} %d\n", et.String(), count)
+		output += fmt.Sprintf("paw_p2p_reputation_events_total{type=%q} %d\n", et.String(), count)
 	}
 
 	// Event rates
 	output += "# HELP paw_p2p_reputation_event_rate Events per second by type\n"
 	output += "# TYPE paw_p2p_reputation_event_rate gauge\n"
 	for et, rate := range m.eventRates {
-		output += fmt.Sprintf("paw_p2p_reputation_event_rate{type=\"%s\"} %.2f\n", et.String(), rate)
+		output += fmt.Sprintf("paw_p2p_reputation_event_rate{type=%q} %.2f\n", et.String(), rate)
 	}
 
 	// Ban metrics

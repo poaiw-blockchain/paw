@@ -2,30 +2,29 @@
 #
 # PAW Testnet Faucet Script
 # Usage: ./faucet.sh <recipient_address> [amount]
+#        ./faucet.sh --check        # Run preflight without sending
 #
 # Default amount: 100000000 upaw (100 PAW)
 # Rate limit: 1 request per address per hour (simple file-based tracking)
 #
-# KNOWN ISSUE: The faucet currently fails due to an IAVL state query bug in the
-# PAW chain. All state queries return "version does not exist" errors, which
-# prevents the SDK client from querying account info needed to broadcast
-# transactions. This needs to be fixed in the app module service registration
-# before the faucet will work. See: ROADMAP_PRODUCTION.md
-#
+# This version includes full preflight validation so the faucet can be safely
+# exposed for public testnet use (node health, IAVL fast node config, faucet
+# key, and balance checks).
 
-set -e
+set -euo pipefail
 
 # Configuration
 CHAIN_ID="paw-testnet-1"
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
 PAWD="${PAWD:-$(dirname "$0")/../build/pawd}"
-FAUCET_KEY="validator"
+FAUCET_KEY="${FAUCET_KEY:-faucet}"
 DEFAULT_AMOUNT="100000000"
 DENOM="upaw"
 GAS="auto"
 GAS_ADJUSTMENT="1.3"
 GAS_PRICES="0.001upaw"
 KEYRING_BACKEND="test"
+RPC_ADDR="${RPC_ADDR:-tcp://localhost:26657}"
 
 # Rate limiting
 RATE_LIMIT_DIR="${PAW_HOME}/faucet_rate_limit"
@@ -54,6 +53,7 @@ usage() {
     echo "PAW Testnet Faucet"
     echo ""
     echo "Usage: $0 <recipient_address> [amount]"
+    echo "       $0 --check"
     echo ""
     echo "Arguments:"
     echo "  recipient_address  PAW address to send tokens to (paw1...)"
@@ -62,11 +62,24 @@ usage() {
     echo "Environment Variables:"
     echo "  PAW_HOME          Node home directory (default: ~/.paw)"
     echo "  PAWD              Path to pawd binary (default: ./build/pawd)"
+    echo "  RPC_ADDR          Node RPC endpoint (default: $RPC_ADDR)"
     echo ""
     echo "Examples:"
     echo "  $0 paw1abc123def456..."
     echo "  $0 paw1abc123def456... 50000000"
+    echo "  $0 --check"
     exit 1
+}
+
+ensure_dependencies() {
+    if ! command -v jq >/dev/null 2>&1; then
+        log_error "jq is required but not installed."
+        exit 1
+    fi
+    if ! command -v bc >/dev/null 2>&1; then
+        log_error "bc is required but not installed."
+        exit 1
+    fi
 }
 
 validate_address() {
@@ -103,10 +116,64 @@ check_rate_limit() {
     echo "$(date +%s)" > "$rate_file"
 }
 
+ensure_pawd_binary() {
+    if [[ ! -x "$PAWD" ]]; then
+        log_error "pawd binary not found at: $PAWD"
+        log_error "Build it with: go build -o build/pawd ./cmd/..."
+        exit 1
+    fi
+}
+
+ensure_faucet_key() {
+    if ! "$PAWD" keys show "$FAUCET_KEY" --home "$PAW_HOME" --keyring-backend "$KEYRING_BACKEND" >/dev/null 2>&1; then
+        log_error "Faucet key \"$FAUCET_KEY\" not found in keyring (backend: $KEYRING_BACKEND)."
+        log_error "Import or create it first (see scripts/devnet/.state/ for mnemonics)."
+        exit 1
+    fi
+
+    "$PAWD" keys show "$FAUCET_KEY" -a --home "$PAW_HOME" --keyring-backend "$KEYRING_BACKEND"
+}
+
+preflight_node() {
+    local app_toml="${PAW_HOME}/config/app.toml"
+    if [[ -f "$app_toml" ]] && grep -q "iavl-disable-fastnode = true" "$app_toml"; then
+        log_error "iavl-disable-fastnode is set to true. Set it to false to avoid IAVL query failures."
+        log_error "Fix: sed -i 's/iavl-disable-fastnode = true/iavl-disable-fastnode = false/' \"$app_toml\" && restart the node."
+        exit 1
+    fi
+
+    local status_json
+    if ! status_json=$("$PAWD" status --node "$RPC_ADDR" --home "$PAW_HOME" 2>/dev/null); then
+        log_error "Unable to reach node at $RPC_ADDR. Is pawd running?"
+        exit 1
+    fi
+
+    local catching_up
+    catching_up=$(echo "$status_json" | jq -r '.SyncInfo.catching_up // .sync_info.catching_up // empty')
+    local latest_height
+    latest_height=$(echo "$status_json" | jq -r '.SyncInfo.latest_block_height // .sync_info.latest_block_height // "unknown"')
+
+    if [[ "$catching_up" == "true" ]]; then
+        log_error "Node at $RPC_ADDR is still catching up (latest height: $latest_height)."
+        exit 1
+    fi
+
+    log_info "Node healthy at height $latest_height (catching_up=false)."
+}
+
 get_faucet_balance() {
-    # Note: query bank is not registered in this chain version
-    # Skip balance checking - transaction will fail if insufficient funds
-    echo "unknown"
+    local faucet_addr="$1"
+    local balances_json
+
+    if ! balances_json=$("$PAWD" q bank balances "$faucet_addr" --node "$RPC_ADDR" --home "$PAW_HOME" --output json 2>/dev/null); then
+        log_warn "Balance query failed; proceeding without a preflight balance guard."
+        echo "unknown"
+        return
+    fi
+
+    local amount
+    amount=$(echo "$balances_json" | jq -r --arg denom "$DENOM" '.balances[]? | select(.denom==$denom) | .amount' | head -n1)
+    echo "${amount:-0}"
 }
 
 send_tokens() {
@@ -120,9 +187,11 @@ send_tokens() {
         --home "$PAW_HOME" \
         --chain-id "$CHAIN_ID" \
         --keyring-backend "$KEYRING_BACKEND" \
+        --node "$RPC_ADDR" \
         --gas "$GAS" \
         --gas-adjustment "$GAS_ADJUSTMENT" \
         --gas-prices "$GAS_PRICES" \
+        --broadcast-mode block \
         --yes \
         --output json 2>&1)
 
@@ -154,6 +223,20 @@ main() {
         usage
     fi
 
+    if [[ "$1" == "--check" ]]; then
+        ensure_dependencies
+        ensure_pawd_binary
+        local faucet_addr
+        faucet_addr=$(ensure_faucet_key)
+        preflight_node
+        local faucet_balance
+        faucet_balance=$(get_faucet_balance "$faucet_addr")
+        log_info "Faucet address: $faucet_addr"
+        log_info "Preflight balance: ${faucet_balance} ${DENOM}"
+        log_info "All preflight checks passed."
+        exit 0
+    fi
+
     local recipient="$1"
     local amount="${2:-$DEFAULT_AMOUNT}"
 
@@ -165,18 +248,18 @@ main() {
         exit 1
     fi
 
-    # Check pawd binary exists
-    if [[ ! -x "$PAWD" ]]; then
-        log_error "pawd binary not found at: $PAWD"
-        log_error "Build it with: go build -o build/pawd ./cmd/..."
-        exit 1
-    fi
+    ensure_dependencies
+    ensure_pawd_binary
+    local faucet_addr
+    faucet_addr=$(ensure_faucet_key)
+    preflight_node
 
     # Check rate limit
     check_rate_limit "$recipient"
 
     # Check faucet balance (skip if query not available)
-    local faucet_balance=$(get_faucet_balance)
+    local faucet_balance
+    faucet_balance=$(get_faucet_balance "$faucet_addr")
     if [[ "$faucet_balance" != "unknown" ]]; then
         log_info "Faucet balance: $faucet_balance $DENOM"
         if [[ "$faucet_balance" -lt "$amount" ]]; then
@@ -185,8 +268,6 @@ main() {
             log_error "Requested: $amount $DENOM"
             exit 1
         fi
-    else
-        log_warn "Balance check skipped (query not available)"
     fi
 
     # Send tokens

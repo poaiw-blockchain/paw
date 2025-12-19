@@ -132,7 +132,7 @@ func TestSelectProviderWithLoadBalancing(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		providerAddr := sdk.AccAddress([]byte("test_provider_addr" + string(rune('0'+i)) + "_"))
 		provider := types.Provider{
-			Address:    providerAddr.String(),
+			Address: providerAddr.String(),
 			AvailableSpecs: types.ComputeSpec{
 				CpuCores:  4,
 				MemoryMb:  2048,

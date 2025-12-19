@@ -1,0 +1,66 @@
+# PAW Explorer - Prometheus Configuration for Staging
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'staging'
+    cluster: 'paw-staging'
+
+# Alerting (optional for staging)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Load rules (optional for staging)
+# rule_files:
+#   - "alerts.yml"
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Flask explorer metrics
+  - job_name: 'paw-staging-flask'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['paw-staging-flask:5000']
+        labels:
+          service: 'flask-explorer'
+          environment: 'staging'
+
+  # Nginx metrics (if nginx-prometheus-exporter is added)
+  # - job_name: 'paw-staging-nginx'
+  #   static_configs:
+  #     - targets: ['paw-staging-nginx:9113']
+  #       labels:
+  #         service: 'nginx'
+  #         environment: 'staging'
+
+  # Indexer metrics (if exposed)
+  - job_name: 'paw-staging-indexer'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['paw-staging-indexer:8080']
+        labels:
+          service: 'indexer'
+          environment: 'staging'
+
+  # PostgreSQL metrics (if postgres-exporter is added)
+  # - job_name: 'paw-staging-postgres'
+  #   static_configs:
+  #     - targets: ['paw-staging-postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'
+  #         environment: 'staging'
+
+  # Blockchain node metrics (if available)
+  - job_name: 'paw-staging-node'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['paw-staging-node:26660']
+        labels:
+          service: 'blockchain-node'
+          environment: 'staging'

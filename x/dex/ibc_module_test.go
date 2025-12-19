@@ -11,10 +11,10 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex"
 	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
-	keepertest "github.com/paw-chain/paw/testutil/keeper"
 )
 
 // TEST-MED-1: IBC Channel Lifecycle Tests for DEX Module
@@ -27,16 +27,6 @@ func setupDexIBCModule(t *testing.T) (*dex.IBCModule, sdk.Context) {
 	cdc := codec.NewProtoCodec(registry)
 	ibcModule := dex.NewIBCModule(*k, cdc)
 	return &ibcModule, ctx
-}
-
-// setupDexIBCModuleWithKeeper creates a dex keeper, context, and IBC module for testing (with keeper returned)
-func setupDexIBCModuleWithKeeper(t *testing.T) (*dex.IBCModule, *keeper.Keeper, sdk.Context) {
-	k, ctx := keepertest.DexKeeper(t)
-	registry := codectypes.NewInterfaceRegistry()
-	types.RegisterInterfaces(registry)
-	cdc := codec.NewProtoCodec(registry)
-	ibcModule := dex.NewIBCModule(*k, cdc)
-	return &ibcModule, k, ctx
 }
 
 func TestOnChanOpenInit_Success(t *testing.T) {

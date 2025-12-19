@@ -63,7 +63,7 @@ func SetupTestApp(t *testing.T) (*app.PAWApp, sdk.Context) {
 		MinSelfDelegation: math.OneInt(),
 	}
 
-	genesisState := createGenesisStateWithValidator(t, chainID, delAddr, valAddr, valPubKey)
+	genesisState := createGenesisStateWithValidator(chainID, delAddr, valAddr, valPubKey)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	if err != nil {
@@ -93,7 +93,7 @@ func SetupTestApp(t *testing.T) (*app.PAWApp, sdk.Context) {
 }
 
 // createGenesisStateWithValidator creates genesis state with a validator
-func createGenesisStateWithValidator(t *testing.T, chainID string, address sdk.AccAddress, valAddress sdk.ValAddress, pubKey cryptotypes.PubKey) map[string]json.RawMessage {
+func createGenesisStateWithValidator(chainID string, address sdk.AccAddress, valAddress sdk.ValAddress, pubKey cryptotypes.PubKey) map[string]json.RawMessage {
 	encCfg := app.MakeEncodingConfig()
 	genesisState := app.NewDefaultGenesisState(chainID)
 

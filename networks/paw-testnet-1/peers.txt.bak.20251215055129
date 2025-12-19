@@ -1,0 +1,5 @@
+node_id=72d84a1a213b2e341d0926dfc8e91332bd06a584
+listen_addr=0.0.0.0:26657
+persistent_peers=b39bdfa2a5aee02104d03dafe80d27b5e2a7289a@paw-node2:26656,bafcc29ed4607a4d4f5b3c88d2459c3027be6468@paw-node3:26656,a0b3a9daa37ec69bef5341638afbed7cad9c16dc@paw-node4:26656
+seeds=
+generated_at=2025-12-15T05:50:13Z

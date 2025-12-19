@@ -14,6 +14,8 @@ Architecture
 Guides
 - CLI quick reference: `guides/CLI_QUICK_REFERENCE.md`
 - Testing: `testing/QUICK_START.md`, `testing/TESTING_INFRASTRUCTURE.md`
+- Onboarding (nodes/light/wallets): `guides/onboarding/NODE_ONBOARDING.md`, `guides/onboarding/LIGHT_CLIENT_PROFILE.md`, `guides/onboarding/EARLY_ADOPTER_PLAYBOOK.md`, `wallet/mobile/ONBOARDING_GUIDE.md`
+- Validator quickstart pack: `validator-onboarding/QUICKSTART_PACK.md`
 
 Interoperability
 - IBC architecture diagram: `ibc/ARCHITECTURE_DIAGRAM.md`

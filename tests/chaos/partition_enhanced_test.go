@@ -92,14 +92,14 @@ func (suite *EnhancedPartitionTestSuite) TestAsymmetricPartition() {
 
 	// node0 can send to node1
 	tx1 := &Transaction{ID: "tx-forward", Data: []byte("test")}
-	node0.SubmitTransaction(ctx, tx1)
+	suite.submitTransaction(ctx, node0, tx1)
 
 	time.Sleep(1 * time.Second)
 	suite.True(node1.HasTransaction(tx1.ID), "node1 should receive from node0")
 
 	// node1 cannot send to node0
 	tx2 := &Transaction{ID: "tx-backward", Data: []byte("test")}
-	node1.SubmitTransaction(ctx, tx2)
+	suite.submitTransaction(ctx, node1, tx2)
 
 	time.Sleep(1 * time.Second)
 	suite.False(node0.HasTransaction(tx2.ID), "node0 should not receive from node1")
@@ -112,7 +112,7 @@ func (suite *EnhancedPartitionTestSuite) TestAsymmetricPartition() {
 
 	// Now both directions should work
 	tx3 := &Transaction{ID: "tx-bidirectional", Data: []byte("test")}
-	node1.SubmitTransaction(ctx, tx3)
+	suite.submitTransaction(ctx, node1, tx3)
 
 	time.Sleep(1 * time.Second)
 	suite.True(node0.HasTransaction(tx3.ID), "node0 should now receive from node1")
@@ -139,7 +139,7 @@ func (suite *EnhancedPartitionTestSuite) TestCascadingPartitions() {
 
 	// Reconnect all nodes
 	suite.T().Log("Reconnecting all nodes")
-	for i := len(suite.nodes)/2; i < len(suite.nodes); i++ {
+	for i := len(suite.nodes) / 2; i < len(suite.nodes); i++ {
 		suite.network.ReconnectNode(suite.nodes[i])
 		time.Sleep(1 * time.Second)
 	}
@@ -200,7 +200,7 @@ func (suite *EnhancedPartitionTestSuite) TestPartialPartition() {
 
 	// Submit transaction in group 1
 	tx := &Transaction{ID: "cross-partition-tx", Data: []byte("test")}
-	suite.nodes[0].SubmitTransaction(ctx, tx)
+	suite.submitTransaction(ctx, suite.nodes[0], tx)
 
 	time.Sleep(3 * time.Second)
 
@@ -248,9 +248,9 @@ func (suite *EnhancedPartitionTestSuite) TestIslandFormation() {
 	tx2 := &Transaction{ID: "island2-tx", Data: []byte("island2")}
 	tx3 := &Transaction{ID: "island3-tx", Data: []byte("island3")}
 
-	island1[0].SubmitTransaction(ctx, tx1)
-	island2[0].SubmitTransaction(ctx, tx2)
-	island3[0].SubmitTransaction(ctx, tx3)
+	suite.submitTransaction(ctx, island1[0], tx1)
+	suite.submitTransaction(ctx, island2[0], tx2)
+	suite.submitTransaction(ctx, island3[0], tx3)
 
 	time.Sleep(3 * time.Second)
 
@@ -373,12 +373,16 @@ func (suite *EnhancedPartitionTestSuite) checkPartitionConsensus(nodes []*Node) 
 	return true
 }
 
-func (suite *EnhancedPartitionTestSuite) assertTransactionConfinement(island []*Node, presentTx string, absentTx1 string, absentTx2 string) {
+func (suite *EnhancedPartitionTestSuite) assertTransactionConfinement(island []*Node, presentTx, absentTx1, absentTx2 string) {
 	for _, node := range island {
 		suite.True(node.HasTransaction(presentTx), "Island should have own transaction")
 		suite.False(node.HasTransaction(absentTx1), "Island should not have other island's transaction")
 		suite.False(node.HasTransaction(absentTx2), "Island should not have other island's transaction")
 	}
+}
+
+func (suite *EnhancedPartitionTestSuite) submitTransaction(ctx context.Context, node *Node, tx *Transaction) {
+	suite.Require().NoError(node.SubmitTransaction(ctx, tx))
 }
 
 func (suite *EnhancedPartitionTestSuite) generateTransactionLoad(ctx context.Context, stop chan bool) {
@@ -396,7 +400,7 @@ func (suite *EnhancedPartitionTestSuite) generateTransactionLoad(ctx context.Con
 				ID:   fmt.Sprintf("load-tx-%d", counter),
 				Data: []byte(fmt.Sprintf("data-%d", counter)),
 			}
-			node.SubmitTransaction(ctx, tx)
+			suite.submitTransaction(ctx, node, tx)
 			counter++
 			time.Sleep(50 * time.Millisecond)
 		}

@@ -5,19 +5,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/paw-chain/paw/x/compute/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 // RateLimiter implements a token bucket rate limiter for gRPC queries
 type RateLimiter struct {
-	buckets   map[string]*tokenBucket
-	mu        sync.RWMutex
-	rate      int           // tokens per second
-	burst     int           // max bucket size
+	buckets         map[string]*tokenBucket
+	mu              sync.RWMutex
+	rate            int // tokens per second
+	burst           int // max bucket size
 	cleanupInterval time.Duration
 }
 

@@ -15,6 +15,7 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=validator
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node1 26657 9090 1317']
     ports:
       - '26657:26657'
@@ -44,9 +45,10 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=validator
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node2 26667 9091 1327']
     ports:
-      - '26667:26657'
+      - '26667:26667'
       - '39091:9091'
       - '1327:1327'
     networks:
@@ -75,9 +77,10 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=validator
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node3 26677 9092 1337']
     ports:
-      - '26677:26657'
+      - '26677:26677'
       - '39092:9092'
       - '1337:1337'
     networks:
@@ -106,9 +109,10 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=validator
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_node.sh node4 26687 9093 1347']
     ports:
-      - '26687:26657'
+      - '26687:26687'
       - '39093:9093'
       - '1347:1347'
     networks:
@@ -140,6 +144,7 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=sentry
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_sentry.sh sentry1 26657 9094 1357']
     ports:
       - '30658:26657'  # RPC - Public facing
@@ -175,6 +180,7 @@ services:
     environment:
       - GOFLAGS=-buildvcs=false
       - NODE_TYPE=sentry
+      - CHAIN_ID=${CHAIN_ID:-paw-devnet}
     command: ['bash', '-c', 'cd /paw && if [ -x ./pawd ]; then cp ./pawd /usr/local/bin/pawd; else go build -o /usr/local/bin/pawd ./cmd/pawd; fi && ./scripts/devnet/init_sentry.sh sentry2 26657 9095 1367']
     ports:
       - '30668:26657'  # RPC - Public facing
