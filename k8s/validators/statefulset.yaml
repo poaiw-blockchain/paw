@@ -191,13 +191,13 @@ spec:
                 exit 1
               fi
 
-              # Add genesis account with tokens
+              # Add genesis account with tokens (PAW uses root-level commands)
               echo "Adding genesis account..."
-              $PAW genesis add-genesis-account "$VALIDATOR_ADDR" 100000000000upaw --home /data
+              $PAW add-genesis-account "$VALIDATOR_ADDR" 100000000000upaw --home /data
 
               # Create gentx (validator genesis transaction)
               echo "Creating gentx..."
-              $PAW genesis gentx validator 50000000000upaw \
+              $PAW gentx validator 50000000000upaw \
                 --chain-id "$CHAIN_ID" \
                 --moniker "$POD_NAME" \
                 --commission-rate 0.1 \
@@ -209,7 +209,7 @@ spec:
 
               # Collect gentxs into genesis
               echo "Collecting gentxs..."
-              $PAW genesis collect-gentxs --home /data
+              $PAW collect-gentxs --home /data
 
               echo "Validator setup complete"
 
