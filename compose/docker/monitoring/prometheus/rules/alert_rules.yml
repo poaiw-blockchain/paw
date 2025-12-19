@@ -174,3 +174,16 @@ groups:
         annotations:
           summary: 'High API error rate'
           description: 'Error rate: {{ $value | humanizePercentage }}'
+
+  - name: ibc_boundary
+    interval: 30s
+    rules:
+      - alert: IBCValidationFailuresBurst
+        expr: increase(ibc_packet_validation_failed[5m]) > 0
+        labels:
+          severity: critical
+          service: ibc
+        annotations:
+          summary: 'IBC packet validation failures detected'
+          description: 'Port={{ $labels.port }} Channel={{ $labels.channel }} Reason={{ $labels.reason }} had {{ $value }} validation failures in the last 5m.'
+          runbook_url: 'monitoring/runbooks/ibc-boundary-triage.md'

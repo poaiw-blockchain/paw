@@ -16,6 +16,12 @@ route:
       receiver: 'critical-alerts'
       continue: true
 
+    # IBC service alerts
+    - match:
+        service: ibc
+      receiver: 'critical-alerts'
+      continue: true
+
     # Warning alerts
     - match:
         severity: warning
