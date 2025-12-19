@@ -1,12 +1,11 @@
 package chaos_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
 
-func TestMain(_ *testing.M) {
-	fmt.Println("Skipping chaos suite pending network harness updates")
-	os.Exit(0)
+// TestMain enables all chaos tests - network harness has been updated.
+func TestMain(m *testing.M) {
+	os.Exit(m.Run())
 }

@@ -479,7 +479,36 @@ func (bn *ByzantineNode) SendToSpecificNode(ctx context.Context, target *Byzanti
 }
 
 func (bn *ByzantineNode) GossipTransactions(ctx context.Context) {
-	// Implementation for gossiping
+	bn.mu.RLock()
+	transactions := make(map[string]*Transaction)
+	for k, v := range bn.transactions {
+		transactions[k] = v
+	}
+	bn.mu.RUnlock()
+
+	// Gossip to all connected peers and detect equivocation
+	for _, peer := range bn.peers {
+		if bn.network.IsConnected(bn.ID, peer.ID) {
+			for txID, tx := range transactions {
+				peer.mu.RLock()
+				existingTx, exists := peer.transactions[txID]
+				peer.mu.RUnlock()
+
+				if exists && existingTx.Nonce != tx.Nonce {
+					// Equivocation detected: same ID, different data
+					bn.mu.Lock()
+					// Find the original sender from transactions - flag any node with conflicting tx
+					for _, node := range bn.network.nodes {
+						if node.HasTransaction(txID) {
+							bn.equivocationDetected[node.ID] = true
+							bn.flaggedNodes[node.ID] = true
+						}
+					}
+					bn.mu.Unlock()
+				}
+			}
+		}
+	}
 }
 
 func (bn *ByzantineNode) CensorAddress(address string) {
@@ -489,7 +518,15 @@ func (bn *ByzantineNode) CensorAddress(address string) {
 }
 
 func (bn *ByzantineNode) AcceptBribe(briber string, block *Block) {
-	// Malicious behavior
+	if !bn.isMalicious {
+		return
+	}
+	bn.mu.Lock()
+	defer bn.mu.Unlock()
+	// Accept the bribe and add the bribed block to accepted chain
+	bn.acceptedBlocks = append(bn.acceptedBlocks, block)
+	// Mark this as suspicious behavior that can be detected
+	bn.flaggedNodes[bn.ID] = true
 }
 
 func (bn *ByzantineNode) GetAcceptedBlocks() []*Block {

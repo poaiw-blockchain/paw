@@ -430,62 +430,282 @@ func (suite *EnhancedByzantineTestSuite) simulateConsensusRounds(ctx context.Con
 }
 
 func (suite *EnhancedByzantineTestSuite) submitOraclePrice(ctx context.Context, node *ByzantineNode, asset string, price float64) {
-	// Simulate oracle price submission
+	// Simulate oracle price submission by creating a transaction with price data
+	tx := &Transaction{
+		ID:        fmt.Sprintf("oracle-%s-%s", node.ID, asset),
+		Data:      []byte(fmt.Sprintf("%s:%.2f", asset, price)),
+		Timestamp: time.Now(),
+		Nonce:     uint64(price * 100), // Use price as nonce for detection
+	}
+	node.SubmitTransaction(ctx, tx)
 }
 
 func (suite *EnhancedByzantineTestSuite) calculateMedianPrice() float64 {
-	return 50000.0 // Simplified
+	// Calculate median from submitted prices
+	prices := []float64{}
+	for _, node := range suite.nodes {
+		node.mu.RLock()
+		for _, tx := range node.transactions {
+			if len(tx.Data) > 0 && tx.Nonce > 0 {
+				prices = append(prices, float64(tx.Nonce)/100.0)
+			}
+		}
+		node.mu.RUnlock()
+	}
+	if len(prices) == 0 {
+		return 50000.0
+	}
+	// Simple average as approximation
+	sum := 0.0
+	for _, p := range prices {
+		sum += p
+	}
+	return sum / float64(len(prices))
 }
 
 func (suite *EnhancedByzantineTestSuite) checkOracleOutlier(nodeID string) bool {
-	return true // Simplified
-}
+	median := suite.calculateMedianPrice()
+	threshold := median * 0.1 // 10% deviation threshold
 
-func (suite *EnhancedByzantineTestSuite) executeFrontRun(ctx context.Context, node *ByzantineNode, amount int64) {
-}
-
-func (suite *EnhancedByzantineTestSuite) executeBackRun(ctx context.Context, node *ByzantineNode, amount int64) {
-}
-
-func (suite *EnhancedByzantineTestSuite) executeVictimSwap(ctx context.Context, amount int64) {
-}
-
-func (suite *EnhancedByzantineTestSuite) checkMEVProtection() bool {
-	return true
-}
-
-func (suite *EnhancedByzantineTestSuite) calculateVictimSlippage() float64 {
-	return 0.02
-}
-
-func (suite *EnhancedByzantineTestSuite) submitComputeResult(ctx context.Context, node *ByzantineNode, requestID string, result []byte) {
-}
-
-func (suite *EnhancedByzantineTestSuite) verifyComputeResult(ctx context.Context, node *ByzantineNode, requestID string, expectedResult []byte) {
-}
-
-func (suite *EnhancedByzantineTestSuite) checkResultAccepted(requestID string, result []byte) bool {
+	for _, node := range suite.nodes {
+		if node.ID == nodeID {
+			node.mu.RLock()
+			for _, tx := range node.transactions {
+				price := float64(tx.Nonce) / 100.0
+				if price > 0 && (price > median+threshold || price < median-threshold) {
+					node.mu.RUnlock()
+					return true
+				}
+			}
+			node.mu.RUnlock()
+		}
+	}
 	return false
 }
 
+func (suite *EnhancedByzantineTestSuite) executeFrontRun(ctx context.Context, node *ByzantineNode, amount int64) {
+	// Simulate front-running by submitting a transaction before victim
+	tx := &Transaction{
+		ID:        fmt.Sprintf("frontrun-%s-%d", node.ID, time.Now().UnixNano()),
+		Data:      []byte(fmt.Sprintf("frontrun:%d", amount)),
+		Timestamp: time.Now().Add(-100 * time.Millisecond), // Earlier timestamp
+		Nonce:     uint64(amount),
+	}
+	node.SubmitTransaction(ctx, tx)
+}
+
+func (suite *EnhancedByzantineTestSuite) executeBackRun(ctx context.Context, node *ByzantineNode, amount int64) {
+	// Simulate back-running by submitting a transaction after victim
+	tx := &Transaction{
+		ID:        fmt.Sprintf("backrun-%s-%d", node.ID, time.Now().UnixNano()),
+		Data:      []byte(fmt.Sprintf("backrun:%d", amount)),
+		Timestamp: time.Now().Add(100 * time.Millisecond), // Later timestamp
+		Nonce:     uint64(amount),
+	}
+	node.SubmitTransaction(ctx, tx)
+}
+
+func (suite *EnhancedByzantineTestSuite) executeVictimSwap(ctx context.Context, amount int64) {
+	// Execute victim's swap transaction
+	if len(suite.nodes) > suite.maliciousCount {
+		victim := suite.nodes[suite.maliciousCount] // First honest node
+		tx := &Transaction{
+			ID:        fmt.Sprintf("swap-victim-%d", time.Now().UnixNano()),
+			Data:      []byte(fmt.Sprintf("swap:%d", amount)),
+			Timestamp: time.Now(),
+			Nonce:     uint64(amount),
+		}
+		victim.SubmitTransaction(ctx, tx)
+	}
+}
+
+func (suite *EnhancedByzantineTestSuite) checkMEVProtection() bool {
+	// Check if MEV protection is in place by verifying transaction ordering
+	// If front-run transactions are consistently before victim transactions, protection failed
+	frontRunCount := 0
+	victimCount := 0
+
+	for _, node := range suite.nodes {
+		node.mu.RLock()
+		for _, tx := range node.transactions {
+			if len(tx.Data) > 8 && string(tx.Data[:8]) == "frontrun" {
+				frontRunCount++
+			}
+			if len(tx.Data) > 4 && string(tx.Data[:4]) == "swap" {
+				victimCount++
+			}
+		}
+		node.mu.RUnlock()
+	}
+
+	// If front-runs exceed victims, protection is inadequate
+	return frontRunCount <= victimCount
+}
+
+func (suite *EnhancedByzantineTestSuite) calculateVictimSlippage() float64 {
+	// Calculate slippage based on front-run volume
+	frontRunVolume := int64(0)
+	victimVolume := int64(0)
+
+	for _, node := range suite.nodes {
+		node.mu.RLock()
+		for _, tx := range node.transactions {
+			if len(tx.Data) > 8 && string(tx.Data[:8]) == "frontrun" {
+				frontRunVolume += int64(tx.Nonce)
+			}
+			if len(tx.Data) > 4 && string(tx.Data[:4]) == "swap" {
+				victimVolume += int64(tx.Nonce)
+			}
+		}
+		node.mu.RUnlock()
+	}
+
+	if victimVolume == 0 {
+		return 0.0
+	}
+	return float64(frontRunVolume) / float64(victimVolume) * 0.01 // 1% per unit ratio
+}
+
+func (suite *EnhancedByzantineTestSuite) submitComputeResult(ctx context.Context, node *ByzantineNode, requestID string, result []byte) {
+	tx := &Transaction{
+		ID:        fmt.Sprintf("compute-result-%s-%s", node.ID, requestID),
+		Data:      result,
+		Timestamp: time.Now(),
+		Nonce:     uint64(len(result)),
+	}
+	node.SubmitTransaction(ctx, tx)
+}
+
+func (suite *EnhancedByzantineTestSuite) verifyComputeResult(ctx context.Context, node *ByzantineNode, requestID string, expectedResult []byte) {
+	// Verify that the submitted result matches expected
+	node.mu.RLock()
+	defer node.mu.RUnlock()
+
+	txID := fmt.Sprintf("compute-result-%s-%s", node.ID, requestID)
+	if tx, exists := node.transactions[txID]; exists {
+		if string(tx.Data) != string(expectedResult) {
+			// Mark node as flagged for incorrect result
+			node.mu.RUnlock()
+			node.mu.Lock()
+			node.flaggedNodes[node.ID] = true
+			node.mu.Unlock()
+			node.mu.RLock()
+		}
+	}
+}
+
+func (suite *EnhancedByzantineTestSuite) checkResultAccepted(requestID string, result []byte) bool {
+	// Check if majority of honest nodes accepted the result
+	acceptCount := 0
+	for i := suite.maliciousCount; i < len(suite.nodes); i++ {
+		node := suite.nodes[i]
+		node.mu.RLock()
+		for _, tx := range node.transactions {
+			if string(tx.Data) == string(result) {
+				acceptCount++
+				break
+			}
+		}
+		node.mu.RUnlock()
+	}
+	honestCount := len(suite.nodes) - suite.maliciousCount
+	return acceptCount > honestCount/2
+}
+
 func (suite *EnhancedByzantineTestSuite) checkProviderSlashed(providerID string) bool {
-	return true
+	// Check if the provider has been flagged/slashed
+	for _, node := range suite.nodes {
+		if node.ID == providerID {
+			node.mu.RLock()
+			flagged := node.flaggedNodes[providerID]
+			slashed := node.slashedNodes[providerID]
+			node.mu.RUnlock()
+			return flagged || slashed
+		}
+	}
+	return false
 }
 
 func (suite *EnhancedByzantineTestSuite) randomDoubleSigning(ctx context.Context, node *ByzantineNode) {
+	if !node.isMalicious {
+		return
+	}
+	// Create two blocks at same height with different hashes
+	block1 := &Block{
+		Height:       node.GetChainLength() + 1,
+		PreviousHash: "hash1",
+		Proposer:     node.ID,
+		Timestamp:    time.Now(),
+	}
+	block2 := &Block{
+		Height:       node.GetChainLength() + 1,
+		PreviousHash: "hash2",
+		Proposer:     node.ID,
+		Timestamp:    time.Now(),
+	}
+	node.ProposeBlock(ctx, block1)
+	node.ProposeBlock(ctx, block2)
 }
 
 func (suite *EnhancedByzantineTestSuite) randomEquivocation(ctx context.Context, node *ByzantineNode) {
+	if !node.isMalicious {
+		return
+	}
+	// Send conflicting transactions to different peers
+	tx1 := &Transaction{ID: "equivoc-tx", Data: []byte("data1"), Nonce: 1}
+	tx2 := &Transaction{ID: "equivoc-tx", Data: []byte("data2"), Nonce: 2}
+
+	if len(suite.nodes) > suite.maliciousCount+1 {
+		node.SendToSpecificNode(ctx, suite.nodes[suite.maliciousCount], tx1)
+		node.SendToSpecificNode(ctx, suite.nodes[suite.maliciousCount+1], tx2)
+	}
 }
 
 func (suite *EnhancedByzantineTestSuite) randomWithholding(ctx context.Context, node *ByzantineNode) {
+	if !node.isMalicious {
+		return
+	}
+	// Withhold by mining secretly
+	block := &Block{
+		Height:       node.GetChainLength() + 1,
+		PreviousHash: "withheld",
+		Proposer:     node.ID,
+		Timestamp:    time.Now(),
+	}
+	node.MineSecretly(ctx, block)
 }
 
 func (suite *EnhancedByzantineTestSuite) randomSpam(ctx context.Context, node *ByzantineNode) {
+	// Submit many transactions rapidly
+	for i := 0; i < 100; i++ {
+		tx := &Transaction{
+			ID:        fmt.Sprintf("spam-%s-%d", node.ID, i),
+			Data:      make([]byte, 1024), // 1KB spam
+			Timestamp: time.Now(),
+			Nonce:     uint64(i),
+		}
+		node.SubmitTransaction(ctx, tx)
+	}
 }
 
 func (suite *EnhancedByzantineTestSuite) randomInvalidData(ctx context.Context, node *ByzantineNode) {
+	// Submit transaction with invalid/malformed data
+	tx := &Transaction{
+		ID:        fmt.Sprintf("invalid-%s", node.ID),
+		Data:      []byte{0xFF, 0xFE, 0x00, 0x01}, // Invalid encoding
+		Timestamp: time.Now(),
+		Nonce:     0xFFFFFFFFFFFFFFFF, // Max nonce (suspicious)
+	}
+	node.SubmitTransaction(ctx, tx)
 }
 
 func (suite *EnhancedByzantineTestSuite) randomDelayedMessage(ctx context.Context, node *ByzantineNode) {
+	// Submit transaction with old timestamp
+	tx := &Transaction{
+		ID:        fmt.Sprintf("delayed-%s", node.ID),
+		Data:      []byte("delayed message"),
+		Timestamp: time.Now().Add(-1 * time.Hour), // 1 hour old
+		Nonce:     1,
+	}
+	node.SubmitTransaction(ctx, tx)
 }

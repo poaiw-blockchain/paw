@@ -3,48 +3,106 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:* http://127.0.0.1:*" />
     <link rel="stylesheet" href="styles.css" />
-    <title>PAW Wallet Miner</title>
+    <title>PAW Wallet</title>
   </head>
   <body>
     <div class="container">
       <header>
-        <h1>PAW Wallet Miner</h1>
-        <p>Browser-based wallet, miner control, and trade portal.</p>
+        <div class="header-row">
+          <h1>PAW Wallet</h1>
+          <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+        </div>
+        <p>Browser-based wallet, miner control, and trade portal</p>
+        <p id="networkStatus" class="network-status">Connecting...</p>
       </header>
 
+      <!-- Wallet Section -->
+      <section class="card">
+        <h2>Wallet</h2>
+        <div class="wallet-info">
+          <label>
+            Wallet Address
+            <input id="walletAddress" type="text" placeholder="PAW..." readonly />
+          </label>
+          <p id="balanceDisplay" class="balance">Balance: --</p>
+        </div>
+        <div class="button-row">
+          <button id="generateWallet" class="primary">Create Wallet</button>
+          <button id="importWallet" class="secondary">Import</button>
+          <button id="refreshBalance" class="secondary">Refresh</button>
+        </div>
+        <p id="walletMessage" class="status"></p>
+      </section>
+
+      <!-- Address Book Section -->
+      <section class="card collapsed">
+        <h2 class="collapsible" id="addressBookToggle">Address Book <span class="toggle-icon">▼</span></h2>
+        <div id="addressBookContent" class="collapsible-content">
+          <div id="addressBookList" class="list-section">
+            <div class="list-placeholder">No saved contacts yet.</div>
+          </div>
+          <form id="addContactForm">
+            <label>
+              Contact Name
+              <input id="contactName" type="text" placeholder="My Exchange" maxlength="32" required />
+            </label>
+            <label>
+              Address
+              <input id="contactAddress" type="text" placeholder="PAW..." required />
+            </label>
+            <button type="submit" class="secondary">Save Contact</button>
+          </form>
+          <p id="addressBookMessage" class="status"></p>
+        </div>
+      </section>
+
+      <!-- Settings Section -->
       <section class="card">
         <h2>Settings</h2>
         <label>
-          API Host
+          Network
+          <select id="networkSelect">
+            <option value="local">Local (localhost:8545)</option>
+            <option value="testnet">Testnet</option>
+            <option value="mainnet">Mainnet</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+        <label id="customApiHostLabel" class="hidden">
+          Custom API Host
           <input id="apiHost" type="text" placeholder="http://localhost:8545" />
         </label>
-        <label>
-          Wallet Address
-          <input id="walletAddress" type="text" placeholder="PAW..." />
-        </label>
+        <div class="button-row">
+          <button id="saveSettings" class="primary">Save</button>
+          <button id="resetSettings" class="secondary">Reset</button>
+        </div>
+        <p id="settingsMessage" class="status"></p>
       </section>
 
+      <!-- Mining Controls Section -->
       <section class="card">
         <h2>Mining Controls</h2>
         <div class="button-row">
-          <button id="startMining">Start Mining</button>
-          <button id="stopMining">Stop Mining</button>
+          <button id="startMining" class="primary">Start Mining</button>
+          <button id="stopMining" class="danger-outline">Stop Mining</button>
         </div>
         <p id="miningStatus" class="status">Status: idle</p>
         <p id="miningMeta" class="meta"></p>
       </section>
 
+      <!-- Trade Studio Section -->
       <section class="card">
         <h2>Trade Studio</h2>
         <div class="button-row">
-          <button id="refreshOrders">Refresh Orders</button>
-          <button id="refreshMatches">Refresh Matches</button>
+          <button id="refreshOrders" class="secondary">Refresh Orders</button>
+          <button id="refreshMatches" class="secondary">Refresh Matches</button>
         </div>
 
         <div id="ordersList" class="list-section">
           <h3>Orders</h3>
-          <div class="list-placeholder">No data yet.</div>
+          <div class="list-placeholder">No orders yet.</div>
         </div>
 
         <div id="matchesList" class="list-section">
@@ -77,74 +135,126 @@
               <option value="buy">Buy</option>
             </select>
           </label>
-          <button type="submit">Create Order</button>
+          <button type="submit" class="primary">Create Order</button>
         </form>
 
         <p id="tradeMessage" class="status"></p>
       </section>
 
+      <!-- Trade History Section -->
       <section class="card">
         <h2>Trade History</h2>
         <div id="tradeHistory" class="list-section">
           <div class="list-placeholder">No recorded trades yet.</div>
         </div>
+        <button id="exportCsv" class="secondary" style="margin-top: 8px;">Export History (CSV)</button>
       </section>
 
+      <!-- Miner Dashboard Section -->
       <section class="card">
         <h2>Miner Dashboard</h2>
         <div class="button-row">
-          <button id="forceStatus">Refresh Miner Status</button>
+          <button id="forceStatus" class="secondary">Refresh Miner Status</button>
         </div>
         <p id="minerStats" class="meta"></p>
         <p id="minerHistory" class="list-placeholder">Waiting for blocks...</p>
       </section>
 
-      <section class="card">
-        <h2>Personal AI Assistant</h2>
-        <label>
-          Management Mode
-          <select id="aiKeyMode">
-            <option value="temporary">Temporary (deleted after each session)</option>
-            <option value="session">Session cache (cleared when you tap “Clear Key”)</option>
-            <option value="external">External key manager (provide key per call)</option>
-          </select>
-        </label>
-        <label>
-          AI Provider
-          <input id="aiProvider" type="text" placeholder="anthropic" />
-        </label>
-        <label>
-          AI Model
-          <input id="aiModel" type="text" placeholder="claude-opus-4" />
-        </label>
-        <label>
-          API Key
-          <input id="aiApiKey" type="password" placeholder="Your AI API key" />
-        </label>
-        <label>
-          Swap: From Coin
-          <input id="aiFromCoin" type="text" placeholder="PAW" />
-        </label>
-        <label>
-          Swap: To Coin
-          <input id="aiToCoin" type="text" placeholder="ADA" />
-        </label>
-        <label>
-          Amount
-          <input id="aiAmount" type="number" step="0.000001" placeholder="1" />
-        </label>
-        <label>
-          Recipient Address
-          <input id="aiRecipient" type="text" placeholder="PAW..." />
-        </label>
-        <div class="button-row">
-          <button id="runAiSwap">Run Personal AI Swap</button>
-          <button id="clearAiKey" class="secondary">Clear Key</button>
+      <!-- Personal AI Assistant Section -->
+      <section class="card collapsed">
+        <h2 class="collapsible" id="aiToggle">Personal AI Assistant <span class="toggle-icon">▼</span></h2>
+        <div id="aiContent" class="collapsible-content">
+          <label>
+            Management Mode
+            <select id="aiKeyMode">
+              <option value="temporary">Temporary (deleted after each session)</option>
+              <option value="session">Session cache (cleared when you tap "Clear Key")</option>
+              <option value="external">External key manager (provide key per call)</option>
+            </select>
+          </label>
+          <label>
+            AI Provider
+            <input id="aiProvider" type="text" placeholder="anthropic" />
+          </label>
+          <label>
+            AI Model
+            <input id="aiModel" type="text" placeholder="claude-opus-4" />
+          </label>
+          <label>
+            API Key
+            <input id="aiApiKey" type="password" placeholder="Your AI API key" />
+          </label>
+          <label>
+            Swap: From Coin
+            <input id="aiFromCoin" type="text" placeholder="PAW" />
+          </label>
+          <label>
+            Swap: To Coin
+            <input id="aiToCoin" type="text" placeholder="ADA" />
+          </label>
+          <label>
+            Amount
+            <input id="aiAmount" type="number" step="0.000001" placeholder="1" />
+          </label>
+          <label>
+            Recipient Address
+            <input id="aiRecipient" type="text" placeholder="PAW..." />
+          </label>
+          <div class="button-row">
+            <button id="runAiSwap" class="primary">Run AI Swap</button>
+            <button id="clearAiKey" class="danger-outline">Clear Key</button>
+          </div>
+          <p id="aiStatus" class="status"></p>
+          <p id="aiKeyDeleted" class="meta"></p>
         </div>
-        <p id="aiStatus" class="status"></p>
-        <p id="aiKeyDeleted" class="meta"></p>
       </section>
     </div>
+
+    <!-- Transaction Preview Modal -->
+    <div id="txPreviewModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Transaction Preview</h3>
+        <div id="txPreviewBody">
+          <div class="preview-row">
+            <span class="preview-label">Action</span>
+            <span id="previewAction" class="preview-value">--</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">From</span>
+            <span id="previewFrom" class="preview-value">--</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">To</span>
+            <span id="previewTo" class="preview-value">--</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Amount</span>
+            <span id="previewAmount" class="preview-value highlight">--</span>
+          </div>
+          <div class="preview-row">
+            <span class="preview-label">Est. Gas Fee</span>
+            <span id="previewGas" class="preview-value">--</span>
+          </div>
+          <div id="previewWarning" class="preview-warning hidden">
+            ⚠️ <span id="previewWarningText"></span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="txPreviewCancel" class="secondary">Cancel</button>
+          <button id="txPreviewConfirm" class="primary">Confirm & Sign</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact Picker Modal -->
+    <div id="contactPickerModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Select Contact</h3>
+        <div id="contactPickerList" class="list-section"></div>
+        <button id="contactPickerClose" class="secondary">Cancel</button>
+      </div>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>

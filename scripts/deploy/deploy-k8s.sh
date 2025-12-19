@@ -130,17 +130,22 @@ apply_configmaps() {
     log_info "ConfigMaps applied"
 }
 
-apply_storage() {
-    log_step "Configuring storage..."
+ensure_deployment_selector() {
+    local deploy_name="$1"
+    local manifest="$2"
+    local expected_app_label="$3"
 
-    kubectl apply -f "$K8S_DIR/persistent-volumes.yaml"
-    log_info "Storage configured"
+    if kubectl get deployment "$deploy_name" -n "$NAMESPACE" >/dev/null 2>&1; then
+        local current_app_label
+        current_app_label=$(kubectl get deployment "$deploy_name" -n "$NAMESPACE" -o jsonpath='{.spec.selector.matchLabels.app}' 2>/dev/null || echo "")
 
-    # Wait for PVCs to be bound
-    log_info "Waiting for PersistentVolumeClaims to be bound..."
-    kubectl wait --for=jsonpath='{.status.phase}'=Bound \
-        pvc/paw-node-data -n "$NAMESPACE" \
-        --timeout=300s || log_warn "PVC binding timeout - check manually"
+        if [ "$current_app_label" != "$expected_app_label" ]; then
+            log_warn "Deployment $deploy_name selector app=$current_app_label does not match expected app=$expected_app_label. Deleting to recreate with the correct labels."
+            kubectl delete deployment "$deploy_name" -n "$NAMESPACE"
+        fi
+    fi
+
+    kubectl apply -f "$manifest"
 }
 
 deploy_monitoring() {
@@ -189,11 +194,11 @@ deploy_application() {
     log_step "Deploying PAW blockchain..."
 
     # Deploy nodes
-    kubectl apply -f "$K8S_DIR/paw-node-deployment.yaml"
+    ensure_deployment_selector "paw-node-single" "$K8S_DIR/paw-node-deployment.yaml" "paw-node"
     log_info "PAW nodes deployment created"
 
     # Deploy API
-    kubectl apply -f "$K8S_DIR/paw-api-deployment.yaml"
+    ensure_deployment_selector "paw-api-single" "$K8S_DIR/paw-api-deployment.yaml" "paw-api"
     log_info "PAW API deployment created"
 
     # Create services
@@ -335,7 +340,6 @@ main() {
     create_namespace
     create_secrets
     apply_configmaps
-    apply_storage
 
     if [ "$SKIP_MONITORING" = false ]; then
         deploy_monitoring

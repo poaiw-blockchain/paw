@@ -32,11 +32,13 @@ spec:
     spec:
       serviceAccountName: paw-validator
       terminationGracePeriodSeconds: 120
+      # For local testing, run as root to avoid permission issues
+      # In production, use runAsNonRoot: true with proper fsGroup setup
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 0
         seccompProfile:
           type: RuntimeDefault
 
@@ -223,12 +225,6 @@ spec:
               # Enable API
               sed -i 's/^enable = false/enable = true/' /data/config/app.toml
               sed -i 's/^swagger = false/swagger = true/' /data/config/app.toml
-
-              # Fix permissions for non-root main container
-              echo "Setting file permissions..."
-              chmod -R 755 /data/config
-              chmod -R 755 /data/data 2>/dev/null || true
-              chown -R 1000:1000 /data
 
               echo "Successfully initialized chain configuration"
               echo "Chain ID: $CHAIN_ID"

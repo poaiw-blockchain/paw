@@ -40,12 +40,16 @@ RUN /build/bin/pawd version
 # Stage 2: Runtime image
 FROM alpine:3.19.4
 
-# Install runtime dependencies
+# Install runtime dependencies including chaos testing tools
 RUN apk add --no-cache \
     ca-certificates \
     bash \
     curl \
     jq \
+    iproute2 \
+    iproute2-tc \
+    stress-ng \
+    iperf3 \
     && update-ca-certificates
 
 # Create non-root user
