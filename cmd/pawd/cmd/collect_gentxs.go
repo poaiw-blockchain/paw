@@ -22,6 +22,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	tmtypes "github.com/cometbft/cometbft/types"
@@ -150,6 +151,14 @@ Example:
 			bankGenesis := banktypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
 			stakingGenesis := stakingtypes.GetGenesisStateFromAppState(clientCtx.Codec, genesisState)
 
+			// Get slashing genesis to add signing info for each validator
+			var slashingGenesis slashingtypes.GenesisState
+			if genesisState[slashingtypes.ModuleName] != nil {
+				clientCtx.Codec.MustUnmarshalJSON(genesisState[slashingtypes.ModuleName], &slashingGenesis)
+			} else {
+				slashingGenesis = *slashingtypes.DefaultGenesisState()
+			}
+
 			bondedPoolAddress := authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String()
 			bondedPoolBalance := ensureBalance(&bankGenesis.Balances, bondedPoolAddress)
 
@@ -215,6 +224,26 @@ Example:
 					Power:   power,
 				})
 				lastTotalPower = lastTotalPower.Add(math.NewInt(power))
+
+				// Create slashing signing info for this validator
+				// This is required for the slashing module to track validator uptime
+				var pubKey cryptotypes.PubKey
+				if err := clientCtx.InterfaceRegistry.UnpackAny(msg.Pubkey, &pubKey); err != nil {
+					return fmt.Errorf("failed to unpack validator pubkey for slashing info: %w", err)
+				}
+				consAddr := sdk.ConsAddress(pubKey.Address())
+				signingInfo := slashingtypes.NewValidatorSigningInfo(
+					consAddr,
+					0,                       // StartHeight - will be set at first block
+					0,                       // IndexOffset
+					time.Unix(0, 0).UTC(),   // JailedUntil
+					false,                   // Tombstoned
+					0,                       // MissedBlocksCounter
+				)
+				slashingGenesis.SigningInfos = append(slashingGenesis.SigningInfos, slashingtypes.SigningInfo{
+					Address:              consAddr.String(),
+					ValidatorSigningInfo: signingInfo,
+				})
 			}
 
 			stakingGenesis.LastTotalPower = lastTotalPower
@@ -222,6 +251,7 @@ Example:
 
 			genesisState[banktypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(bankGenesis)
 			genesisState[stakingtypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(stakingGenesis)
+			genesisState[slashingtypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(&slashingGenesis)
 			genesisState[genutiltypes.ModuleName] = clientCtx.Codec.MustMarshalJSON(genUtilGenesis)
 
 			// Validate genesis state

@@ -125,7 +125,8 @@ docker-compose.override.yml
 # ============================================================================
 proto/**/*.pb.go
 proto/**/*_grpc.pb.go
-pawd
+# Binary at root level only (not cmd/pawd/)
+/pawd
 __pycache__/
 *.pyc
 
