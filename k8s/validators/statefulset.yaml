@@ -165,14 +165,47 @@ spec:
               set -e
               echo "=== PAW Config Initialization ==="
 
+              PAW=/app/bin/paw-node
+              KEYRING="--keyring-backend test"
+              VALIDATOR_INDEX=${POD_NAME##*-}
+
               # Initialize if not already done
               if [ ! -f /data/config/config.toml ]; then
                 echo "Initializing PAW node..."
-                /app/bin/paw-node init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
-              fi
+                $PAW init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
 
-              # Configure based on validator index
-              VALIDATOR_INDEX=${POD_NAME##*-}
+                # Create validator key if not exists
+                if ! $PAW keys show validator $KEYRING --home /data 2>/dev/null; then
+                  echo "Creating validator key..."
+                  $PAW keys add validator $KEYRING --home /data
+                fi
+
+                # Get validator address
+                VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data -a)
+                echo "Validator address: $VALIDATOR_ADDR"
+
+                # Add genesis account with tokens
+                echo "Adding genesis account..."
+                $PAW genesis add-genesis-account $VALIDATOR_ADDR 100000000000upaw --home /data
+
+                # Create gentx (validator genesis transaction)
+                echo "Creating gentx..."
+                $PAW genesis gentx validator 50000000000upaw \
+                  --chain-id "$CHAIN_ID" \
+                  --moniker "$POD_NAME" \
+                  --commission-rate 0.1 \
+                  --commission-max-rate 0.2 \
+                  --commission-max-change-rate 0.01 \
+                  --min-self-delegation 1 \
+                  $KEYRING \
+                  --home /data
+
+                # Collect gentxs into genesis
+                echo "Collecting gentxs..."
+                $PAW genesis collect-gentxs --home /data
+
+                echo "Validator setup complete"
+              fi
 
               # Update config.toml
               sed -i "s/^moniker = .*/moniker = \"$POD_NAME\"/" /data/config/config.toml
@@ -180,22 +213,6 @@ spec:
               sed -i "s/^allow_duplicate_ip = .*/allow_duplicate_ip = true/" /data/config/config.toml
               sed -i "s/^prometheus = .*/prometheus = true/" /data/config/config.toml
               sed -i "s/^prometheus_listen_addr = .*/prometheus_listen_addr = \":26660\"/" /data/config/config.toml
-
-              # Set persistent peers (other validators)
-              PEERS=""
-              for i in $(seq 0 2); do
-                if [ "$i" != "$VALIDATOR_INDEX" ]; then
-                  PEER_ID=$(/app/bin/paw-node tendermint show-node-id --home /data 2>/dev/null || echo "")
-                  if [ -n "$PEER_ID" ]; then
-                    PEER="$PEER_ID@paw-validator-$i.paw-validator-headless.paw.svc.cluster.local:26656"
-                    if [ -n "$PEERS" ]; then
-                      PEERS="$PEERS,$PEER"
-                    else
-                      PEERS="$PEER"
-                    fi
-                  fi
-                fi
-              done
 
               # Update app.toml
               sed -i "s/^minimum-gas-prices = .*/minimum-gas-prices = \"0.001upaw\"/" /data/config/app.toml
@@ -207,6 +224,15 @@ spec:
               sed -i 's/^enable = false/enable = true/' /data/config/app.toml
               sed -i 's/^swagger = false/swagger = true/' /data/config/app.toml
 
+              echo "Successfully initialized chain configuration"
+              echo "Chain ID: $CHAIN_ID"
+              echo "Moniker: $POD_NAME"
+              echo "Node ID: $($PAW tendermint show-node-id --home /data)"
+              echo "Home directory: /data"
+              echo ""
+              echo "Genesis file: /data/config/genesis.json"
+              echo "Config file: /data/config/config.toml"
+              echo "App config: /data/config/app.toml"
               echo "Configuration complete"
           env:
             - name: POD_NAME
