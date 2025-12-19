@@ -182,7 +182,7 @@ spec:
               $PAW keys add validator $KEYRING --home /data
 
               # Get validator address
-              VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data -a)
+              VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data --address)
               echo "Validator address: $VALIDATOR_ADDR"
 
               # Add genesis account with tokens
