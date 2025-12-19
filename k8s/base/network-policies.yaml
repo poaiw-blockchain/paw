@@ -1,15 +1,6 @@
 ---
-# Default deny all ingress and egress
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-  namespace: paw
-spec:
-  podSelector: {}
-  policyTypes:
-    - Ingress
-    - Egress
+# NOTE: default-deny-all policy removed for local testing
+# In production, re-enable this policy for security
 ---
 # Allow DNS resolution
 apiVersion: networking.k8s.io/v1

@@ -64,6 +64,21 @@ spec:
         - protocol: TCP
           port: 26656  # CometBFT P2P
 
+    # Allow HTTPS for init containers (genesis download, package repos)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443   # HTTPS
+        - protocol: TCP
+          port: 80    # HTTP
+
     # Deny all other egress by default (implicit)
 ---
 # Egress policy for validators (more restrictive)

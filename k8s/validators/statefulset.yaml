@@ -58,16 +58,13 @@ spec:
       initContainers:
         # Genesis verification init container
         - name: genesis-verifier
-          image: alpine:3.19
+          image: nicolaka/netshoot:latest
           command:
             - /bin/sh
             - -c
             - |
               set -e
               echo "=== PAW Genesis Verification ==="
-
-              # Install required tools
-              apk add --no-cache curl jq coreutils gnupg
 
               # Check if genesis already exists and is valid
               if [ -f /data/config/genesis.json ]; then
