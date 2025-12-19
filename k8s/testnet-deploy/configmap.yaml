@@ -1,0 +1,59 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-testnet-config
+  namespace: paw-testnet
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: config
+    environment: testnet
+data:
+  CHAIN_ID: "paw-testnet-1"
+  MIN_GAS_PRICES: "0.001upaw"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+
+  # Pruning (more aggressive for testnet)
+  PRUNING: "custom"
+  PRUNING_KEEP_RECENT: "100000"
+  PRUNING_INTERVAL: "10"
+
+  # State sync (enabled for testnet)
+  STATE_SYNC_ENABLED: "true"
+  STATE_SYNC_RPC_SERVERS: "paw-validator-0.paw-validator-headless:26657,paw-validator-1.paw-validator-headless:26657"
+  STATE_SYNC_TRUST_HEIGHT: "0"
+  STATE_SYNC_TRUST_HASH: ""
+
+  # API configuration
+  API_ENABLED: "true"
+  API_SWAGGER: "true"
+  API_ADDRESS: "tcp://0.0.0.0:1317"
+
+  # gRPC configuration
+  GRPC_ENABLED: "true"
+  GRPC_ADDRESS: "0.0.0.0:9090"
+
+  # Prometheus
+  PROMETHEUS_ENABLED: "true"
+  PROMETHEUS_LISTEN_ADDR: ":26660"
+
+  # Indexer
+  INDEXER: "kv"
+  TX_INDEX_ENABLED: "true"
+
+  # P2P configuration
+  P2P_LADDR: "tcp://0.0.0.0:26656"
+  P2P_EXTERNAL_ADDRESS: ""
+  P2P_SEEDS: ""
+  P2P_PERSISTENT_PEERS: ""
+  P2P_MAX_NUM_INBOUND_PEERS: "40"
+  P2P_MAX_NUM_OUTBOUND_PEERS: "10"
+  P2P_ADDR_BOOK_STRICT: "false"
+  P2P_ALLOW_DUPLICATE_IP: "true"
+
+  # Consensus
+  CONSENSUS_TIMEOUT_PROPOSE: "3s"
+  CONSENSUS_TIMEOUT_PREVOTE: "1s"
+  CONSENSUS_TIMEOUT_PRECOMMIT: "1s"
+  CONSENSUS_TIMEOUT_COMMIT: "5s"

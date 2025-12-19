@@ -1,0 +1,145 @@
+---
+# Vault namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/component: secrets-management
+---
+# Vault server in dev mode (for local testing)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault
+        app.kubernetes.io/component: server
+    spec:
+      serviceAccountName: vault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.15
+          args:
+            - server
+            - -dev
+            - -dev-root-token-id=paw-dev-token
+            - -dev-listen-address=0.0.0.0:8200
+          ports:
+            - name: http
+              containerPort: 8200
+              protocol: TCP
+            - name: cluster
+              containerPort: 8201
+              protocol: TCP
+          env:
+            - name: VAULT_DEV_ROOT_TOKEN_ID
+              value: "paw-dev-token"
+            - name: VAULT_ADDR
+              value: "http://127.0.0.1:8200"
+            - name: VAULT_API_ADDR
+              value: "http://vault.vault.svc.cluster.local:8200"
+            - name: SKIP_CHOWN
+              value: "true"
+            - name: SKIP_SETCAP
+              value: "true"
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true
+              port: 8200
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+              port: 8200
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - IPC_LOCK
+          volumeMounts:
+            - name: vault-data
+              mountPath: /vault/data
+      volumes:
+        - name: vault-data
+          emptyDir: {}
+---
+# Vault ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: vault
+---
+# Vault Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/component: server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: vault
+    app.kubernetes.io/component: server
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+      protocol: TCP
+    - name: cluster
+      port: 8201
+      targetPort: 8201
+      protocol: TCP
+---
+# Vault ClusterRoleBinding for Kubernetes auth
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-server-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: vault
+    namespace: vault

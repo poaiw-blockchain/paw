@@ -1,0 +1,112 @@
+---
+# Advanced egress network policy for PAW namespace
+# Restricts outbound traffic to only necessary destinations
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paw-egress-policy
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution to kube-system
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # Allow traffic to monitoring namespace (Prometheus scraping)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090  # Prometheus
+        - protocol: TCP
+          port: 9093  # Alertmanager
+        - protocol: TCP
+          port: 3100  # Loki
+
+    # Allow intra-namespace communication
+    - to:
+        - podSelector: {}
+
+    # Allow traffic to Vault namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vault
+      ports:
+        - protocol: TCP
+          port: 8200
+
+    # Allow external P2P traffic (for public validators)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 26656  # CometBFT P2P
+
+    # Deny all other egress by default (implicit)
+---
+# Egress policy for validators (more restrictive)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paw-validator-egress
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: validator
+  policyTypes:
+    - Egress
+  egress:
+    # DNS only
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+    # P2P to other validators and sentries only
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: paw
+      ports:
+        - protocol: TCP
+          port: 26656
+
+    # Metrics to monitoring
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9090

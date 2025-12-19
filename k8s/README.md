@@ -360,6 +360,15 @@ kubectl get networkpolicy -n paw-blockchain
 kubectl describe networkpolicy paw-node-network-policy -n paw-blockchain
 ```
 
+### Services Not Routing to New Pods
+
+If deployments were created with different app labels (e.g., `paw-node-single` / `paw-api-single`), services targeting `app=paw-node` or `app=paw-api` will not route traffic. Delete and recreate the deployments so selectors match:
+
+```bash
+kubectl delete deployment/paw-node-single deployment/paw-api-single -n paw-blockchain --ignore-not-found
+./scripts/deploy/deploy-k8s.sh
+```
+
 ### High Resource Usage
 
 ```bash

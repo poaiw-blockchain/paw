@@ -1,0 +1,78 @@
+---
+# Validator Keys Rotation Template
+# Use this template when rotating validator keys
+#
+# Key Rotation Procedure:
+# 1. Generate new keys: pawd keys add <name> --keyring-backend file
+# 2. Export and base64 encode: pawd keys export <name> | base64 -w0
+# 3. Update this secret with new keys
+# 4. Apply: kubectl apply -f validator-keys-rotation.yaml
+# 5. Restart validators: kubectl rollout restart statefulset/paw-validator -n paw
+# 6. Verify: kubectl exec paw-validator-0 -n paw -- pawd status
+#
+# CRITICAL: Keep backup of old keys before rotation!
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: paw-validator-keys-rotated
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    rotation-date: "2024-01-01"  # Update with rotation date
+  annotations:
+    description: "Rotated validator keys - replace paw-validator-keys when ready"
+    rotated-by: "admin"
+    rotation-reason: "scheduled-rotation"
+type: Opaque
+data:
+  # Rotated priv_validator_key.json (base64 encoded)
+  # Generate: cat ~/.paw/config/priv_validator_key.json | base64 -w0
+  priv_validator_key.json: e30=  # Placeholder - replace with actual key
+
+  # Rotated node_key.json (base64 encoded)
+  # Generate: cat ~/.paw/config/node_key.json | base64 -w0
+  node_key.json: e30=  # Placeholder - replace with actual key
+---
+# Rotation tracking ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-key-rotation-history
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: security
+data:
+  rotation-log: |
+    # Key Rotation History
+    # Format: DATE | VALIDATOR | REASON | PERFORMED_BY
+    # ---------------------------------------------------
+    # 2024-01-01 | validator-0 | scheduled | admin
+    # 2024-01-01 | validator-1 | scheduled | admin
+    # 2024-01-01 | validator-2 | scheduled | admin
+
+  rotation-policy: |
+    # PAW Validator Key Rotation Policy
+    #
+    # Mandatory Rotation:
+    # - Every 90 days for validator keys
+    # - Immediately if compromise suspected
+    # - After any security incident
+    #
+    # Procedure:
+    # 1. Announce maintenance window (30 min)
+    # 2. Backup current keys to secure storage
+    # 3. Generate new keys on air-gapped machine
+    # 4. Update Vault with new keys
+    # 5. Apply rotation secret
+    # 6. Rolling restart validators
+    # 7. Verify consensus participation
+    # 8. Archive old keys (encrypted)
+    #
+    # Emergency Rotation:
+    # - Skip announcement
+    # - Immediate key generation
+    # - Force restart all validators
+    # - Investigate compromise

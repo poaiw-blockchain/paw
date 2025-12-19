@@ -1,0 +1,263 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paw-node
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+    app.kubernetes.io/part-of: paw-network
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: node
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: node
+        app.kubernetes.io/part-of: paw-network
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+        prometheus.io/path: "/metrics"
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: paw-node
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: node
+                topologyKey: kubernetes.io/hostname
+
+      initContainers:
+        - name: init-config
+          image: paw-chain/pawd:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              if [ ! -f /data/config/config.toml ]; then
+                echo "Initializing PAW node..."
+                pawd init "paw-node-${HOSTNAME##*-}" --chain-id "$CHAIN_ID" --home /data
+
+                # Configure for full node
+                sed -i "s/^moniker = .*/moniker = \"paw-node-${HOSTNAME##*-}\"/" /data/config/config.toml
+                sed -i "s/^addr_book_strict = .*/addr_book_strict = false/" /data/config/config.toml
+                sed -i "s/^prometheus = .*/prometheus = true/" /data/config/config.toml
+
+                # Point to validators
+                sed -i "s/^persistent_peers = .*/persistent_peers = \"\"/" /data/config/config.toml
+                sed -i "s/^seeds = .*/seeds = \"paw-validator-0.paw-validator-headless.paw.svc.cluster.local:26656,paw-validator-1.paw-validator-headless.paw.svc.cluster.local:26656,paw-validator-2.paw-validator-headless.paw.svc.cluster.local:26656\"/" /data/config/config.toml
+
+                # Enable APIs
+                sed -i "s/^enable = false/enable = true/" /data/config/app.toml
+                sed -i 's/^address = "tcp:\/\/localhost:1317"/address = "tcp:\/\/0.0.0.0:1317"/' /data/config/app.toml
+                sed -i 's/^address = "localhost:9090"/address = "0.0.0.0:9090"/' /data/config/app.toml
+              fi
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+      containers:
+        - name: pawd
+          image: paw-chain/pawd:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - pawd
+            - start
+            - --home=/data
+            - --log_level=info
+            - --log_format=json
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: grpc-web
+              containerPort: 9091
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: paw-data
+          emptyDir:
+            sizeLimit: 50Gi
+---
+# For production with persistent storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-fullnode
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: fullnode
+    app.kubernetes.io/part-of: paw-network
+spec:
+  serviceName: paw-fullnode-headless
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: fullnode
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: fullnode
+        app.kubernetes.io/part-of: paw-network
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+    spec:
+      serviceAccountName: paw-node
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: pawd
+          image: paw-chain/pawd:latest
+          command:
+            - pawd
+            - start
+            - --home=/data
+          ports:
+            - name: p2p
+              containerPort: 26656
+            - name: rpc
+              containerPort: 26657
+            - name: api
+              containerPort: 1317
+            - name: grpc
+              containerPort: 9090
+            - name: metrics
+              containerPort: 26660
+          volumeMounts:
+            - name: paw-fullnode-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+  volumeClaimTemplates:
+    - metadata:
+        name: paw-fullnode-data
+        labels:
+          app.kubernetes.io/name: paw
+          app.kubernetes.io/component: fullnode
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: paw-standard
+        resources:
+          requests:
+            storage: 200Gi

@@ -6,7 +6,7 @@ metadata:
   labels:
     app: paw
 data:
-  CHAIN_ID: 'paw-1'
+  CHAIN_ID: 'paw-testnet-1'
   MINIMUM_GAS_PRICES: '0.025upaw'
   PRUNING: 'default'
   LOG_LEVEL: 'info'
@@ -30,15 +30,3 @@ data:
   PRUNING_INTERVAL: '10'
   MIN_RETAIN_BLOCKS: '0'
   INDEX_EVENTS: 'true'
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: genesis-config
-  namespace: paw-blockchain
-  labels:
-    app: paw
-data:
-  GENESIS_URL: 'https://rawhubusercontent.com/paw-chain/networks/main/mainnet/genesis.json'
-  GENESIS_SHA256: '' # Set this to validate genesis file integrity

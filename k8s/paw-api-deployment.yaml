@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: paw-api
+  name: paw-api-single
   namespace: paw-blockchain
   labels:
     app: paw-api
     component: api
     tier: backend
 spec:
-  replicas: 3
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -30,14 +30,45 @@ spec:
     spec:
       serviceAccountName: paw-api
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+        runAsNonRoot: false
+        runAsUser: 0
+        fsGroup: 0
+      initContainers:
+        - name: prepare-genesis
+          image: alpine:3.20
+          command: ['/bin/sh', '-c']
+          args:
+            - |
+              set -e
+              mkdir -p /data/config
+              if [ ! -f /genesis/genesis.json ]; then
+                echo "❌ Missing genesis secret at /genesis/genesis.json"
+                exit 1
+              fi
+              cp /genesis/genesis.json /data/config/genesis.json
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: paw-genesis
+              mountPath: /genesis
+              readOnly: true
       containers:
         - name: paw-api
-          image: paw-chain/paw:latest
-          imagePullPolicy: Always
-          command: ['api-server']
+          image: paw-local:dev
+          imagePullPolicy: IfNotPresent
+          command: ['/bin/sh', '-c']
+          args:
+            - >
+              /app/bin/paw-node start
+              --home /data
+              --chain-id ${CHAIN_ID}
+              --grpc-only
+              --rpc.laddr tcp://0.0.0.0:26657
+              --grpc.address 0.0.0.0:9090
+              --api.enable true
+              --api.address tcp://0.0.0.0:1317
+              --minimum-gas-prices ${MINIMUM_GAS_PRICES}
+              --p2p.laddr tcp://0.0.0.0:26656
           ports:
             - name: http
               containerPort: 5000
@@ -48,6 +79,8 @@ spec:
                 configMapKeyRef:
                   name: paw-config
                   key: CHAIN_ID
+            - name: HOME
+              value: /data
             - name: NODE_URI
               value: 'tcp://paw-node:26657'
             - name: API_HOST
@@ -77,6 +110,11 @@ spec:
                   key: CORS_ORIGINS
             - name: TLS_ENABLED
               value: 'true'
+            - name: MINIMUM_GAS_PRICES
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: MINIMUM_GAS_PRICES
           resources:
             requests:
               cpu: '500m'
@@ -102,7 +140,7 @@ spec:
             failureThreshold: 3
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
             capabilities:
               drop:
                 - ALL
@@ -111,11 +149,26 @@ spec:
               mountPath: /tmp
             - name: logs
               mountPath: /logs
+            - name: data
+              mountPath: /data
+            - name: paw-genesis
+              mountPath: /genesis
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
         - name: logs
           emptyDir: {}
+        - name: data
+          emptyDir: {}
+        - name: paw-genesis
+          secret:
+            secretName: paw-genesis
+            optional: false
+      tolerations:
+        - key: 'node-role.kubernetes.io/control-plane'
+          operator: 'Exists'
+          effect: 'NoSchedule'
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

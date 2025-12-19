@@ -20,15 +20,15 @@ data:
   # Genesis File URLs
   # IMPORTANT: Use official, trusted sources only
   # Recommended:  releases with tag verification
-  GENESIS_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json"
+  GENESIS_URL: "https://raw.githubusercontent.com/paw-chain/paw/main/scripts/devnet/.state/genesis.json"
 
   # Genesis Checksum URL (contains SHA256 hash)
   # Format: <hash>  genesis.json
-  GENESIS_CHECKSUM_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json.sha256"
+  GENESIS_CHECKSUM_URL: ""
 
   # Genesis GPG Signature URL
   # Used for cryptographic verification of authenticity
-  GENESIS_SIG_URL: "https://github.com/paw-chain/networks/releases/download/mainnet-v1.0.0/genesis.json.sig"
+  GENESIS_SIG_URL: ""
 
   # Genesis SHA256 Checksum (hex format)
   # CRITICAL: This hash must be independently verified by multiple validators
@@ -39,17 +39,17 @@ data:
   #   4. Verify with other validators before updating
   #
   # EXAMPLE (REPLACE WITH ACTUAL HASH):
-  GENESIS_CHECKSUM: "0000000000000000000000000000000000000000000000000000000000000000"
+  GENESIS_CHECKSUM: "0ad9a1be3badff543e777501c74d577249cfc0c13a0759e5b90c544a8688d106"
 
   # Alternative Genesis Sources (backup mirrors)
   # Use only if primary source is unavailable
-  GENESIS_BACKUP_URL_1: "https://snapshots.paw-chain.org/genesis.json"
-  GENESIS_BACKUP_URL_2: "https://genesis.paw-validators.org/mainnet-v1.0.0/genesis.json"
+  GENESIS_BACKUP_URL_1: ""
+  GENESIS_BACKUP_URL_2: ""
 
   # Chain Configuration
   # Used for additional verification
-  EXPECTED_CHAIN_ID: "paw-1"
-  EXPECTED_GENESIS_TIME: "2024-01-01T00:00:00Z"
+  EXPECTED_CHAIN_ID: "paw-testnet-1"
+  EXPECTED_GENESIS_TIME: "2025-12-15T05:45:51.458863576Z"
 
   # Validator Set Information
   # Minimum expected validators in genesis

@@ -1,0 +1,102 @@
+---
+# Headless service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-headless
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+---
+# P2P service (NodePort for external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-p2p
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      nodePort: 31656
+      protocol: TCP
+---
+# RPC service (ClusterIP - internal only for security)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-rpc
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+---
+# Metrics service for Prometheus scraping
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-metrics
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "26660"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+  ports:
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+    - name: node-metrics
+      port: 9100
+      targetPort: 9100
+      protocol: TCP

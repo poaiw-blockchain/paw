@@ -1,0 +1,160 @@
+---
+# Main node service (internal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    - name: api
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+    - name: grpc-web
+      port: 9091
+      targetPort: 9091
+      protocol: TCP
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+      protocol: TCP
+---
+# RPC service (external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-rpc
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: rpc
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      nodePort: 31657
+      protocol: TCP
+---
+# REST API service (external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-api
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  ports:
+    - name: api
+      port: 1317
+      targetPort: 1317
+      nodePort: 31317
+      protocol: TCP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+---
+# gRPC service (external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-grpc
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: grpc
+    app.kubernetes.io/part-of: paw-network
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  ports:
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      nodePort: 31090
+      protocol: TCP
+---
+# Headless service for fullnode StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-fullnode-headless
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: fullnode
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: fullnode
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+    - name: metrics
+      port: 26660
+      targetPort: 26660
+---
+# Metrics service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-node-metrics
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "26660"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: node
+  ports:
+    - name: metrics
+      port: 26660
+      targetPort: 26660

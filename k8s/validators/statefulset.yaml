@@ -1,0 +1,359 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-validator
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  serviceName: paw-validator-headless
+  replicas: 3
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: validator
+        app.kubernetes.io/part-of: paw-network
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+        prometheus.io/path: "/metrics"
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: paw-validator
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: validator
+              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: validator
+                topologyKey: topology.kubernetes.io/zone
+
+      initContainers:
+        # Genesis verification init container
+        - name: genesis-verifier
+          image: alpine:3.19
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== PAW Genesis Verification ==="
+
+              # Install required tools
+              apk add --no-cache curl jq coreutils gnupg
+
+              # Check if genesis already exists and is valid
+              if [ -f /data/config/genesis.json ]; then
+                EXISTING_CHAIN_ID=$(jq -r '.chain_id' /data/config/genesis.json 2>/dev/null || echo "")
+                if [ "$EXISTING_CHAIN_ID" = "$CHAIN_ID" ]; then
+                  echo "Genesis file already exists and is valid for chain $CHAIN_ID"
+                  exit 0
+                fi
+              fi
+
+              # Download genesis
+              echo "Downloading genesis from $GENESIS_URL..."
+              curl -sSL "$GENESIS_URL" -o /tmp/genesis.json
+
+              # Verify SHA256 checksum
+              echo "Verifying SHA256 checksum..."
+              COMPUTED_HASH=$(sha256sum /tmp/genesis.json | cut -d' ' -f1)
+              if [ "$COMPUTED_HASH" != "$GENESIS_SHA256" ]; then
+                echo "ERROR: Genesis checksum mismatch!"
+                echo "Expected: $GENESIS_SHA256"
+                echo "Got: $COMPUTED_HASH"
+                exit 1
+              fi
+              echo "Checksum verified: $COMPUTED_HASH"
+
+              # Verify chain ID
+              GENESIS_CHAIN_ID=$(jq -r '.chain_id' /tmp/genesis.json)
+              if [ "$GENESIS_CHAIN_ID" != "$CHAIN_ID" ]; then
+                echo "ERROR: Chain ID mismatch!"
+                echo "Expected: $CHAIN_ID"
+                echo "Got: $GENESIS_CHAIN_ID"
+                exit 1
+              fi
+              echo "Chain ID verified: $GENESIS_CHAIN_ID"
+
+              # Copy to config directory
+              mkdir -p /data/config
+              cp /tmp/genesis.json /data/config/genesis.json
+              echo "Genesis file installed successfully"
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+            - name: GENESIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-genesis-config
+                  key: GENESIS_URL
+            - name: GENESIS_SHA256
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-genesis-config
+                  key: GENESIS_SHA256
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+        # Config initialization
+        - name: config-init
+          image: paw-chain/pawd:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== PAW Config Initialization ==="
+
+              # Initialize if not already done
+              if [ ! -f /data/config/config.toml ]; then
+                echo "Initializing PAW node..."
+                pawd init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
+              fi
+
+              # Configure based on validator index
+              VALIDATOR_INDEX=${POD_NAME##*-}
+
+              # Update config.toml
+              sed -i "s/^moniker = .*/moniker = \"$POD_NAME\"/" /data/config/config.toml
+              sed -i "s/^addr_book_strict = .*/addr_book_strict = false/" /data/config/config.toml
+              sed -i "s/^allow_duplicate_ip = .*/allow_duplicate_ip = true/" /data/config/config.toml
+              sed -i "s/^prometheus = .*/prometheus = true/" /data/config/config.toml
+              sed -i "s/^prometheus_listen_addr = .*/prometheus_listen_addr = \":26660\"/" /data/config/config.toml
+
+              # Set persistent peers (other validators)
+              PEERS=""
+              for i in $(seq 0 2); do
+                if [ "$i" != "$VALIDATOR_INDEX" ]; then
+                  PEER_ID=$(pawd tendermint show-node-id --home /data 2>/dev/null || echo "")
+                  if [ -n "$PEER_ID" ]; then
+                    PEER="$PEER_ID@paw-validator-$i.paw-validator-headless.paw.svc.cluster.local:26656"
+                    if [ -n "$PEERS" ]; then
+                      PEERS="$PEERS,$PEER"
+                    else
+                      PEERS="$PEER"
+                    fi
+                  fi
+                fi
+              done
+
+              # Update app.toml
+              sed -i "s/^minimum-gas-prices = .*/minimum-gas-prices = \"0.001upaw\"/" /data/config/app.toml
+              sed -i "s/^pruning = .*/pruning = \"custom\"/" /data/config/app.toml
+              sed -i "s/^pruning-keep-recent = .*/pruning-keep-recent = \"500000\"/" /data/config/app.toml
+              sed -i "s/^pruning-interval = .*/pruning-interval = \"10\"/" /data/config/app.toml
+
+              # Enable API
+              sed -i 's/^enable = false/enable = true/' /data/config/app.toml
+              sed -i 's/^swagger = false/swagger = true/' /data/config/app.toml
+
+              echo "Configuration complete"
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+            - name: paw-secrets
+              mountPath: /secrets
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+      containers:
+        - name: pawd
+          image: paw-chain/pawd:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - pawd
+            - start
+            - --home=/data
+            - --log_level=info
+            - --log_format=json
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: grpc-web
+              containerPort: 9091
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-config
+                  key: CHAIN_ID
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+            - name: paw-secrets
+              mountPath: /secrets
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+        # Sidecar for metrics export
+        - name: metrics-exporter
+          image: prom/node-exporter:v1.7.0
+          args:
+            - --path.rootfs=/host
+            - --web.listen-address=:9100
+          ports:
+            - name: node-metrics
+              containerPort: 9100
+              protocol: TCP
+          volumeMounts:
+            - name: paw-data
+              mountPath: /host/data
+              readOnly: true
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: paw-secrets
+          secret:
+            secretName: paw-validator-keys
+            optional: true
+
+  volumeClaimTemplates:
+    - metadata:
+        name: paw-data
+        labels:
+          app.kubernetes.io/name: paw
+          app.kubernetes.io/component: validator
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: paw-fast-ssd
+        resources:
+          requests:
+            storage: 500Gi

@@ -1,0 +1,247 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-validator
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  serviceName: paw-validator-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: validator
+        app.kubernetes.io/part-of: paw-network
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: paw-validator
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      initContainers:
+        - name: config-init
+          image: localhost:5050/pawd:latest
+          imagePullPolicy: Never
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "=== PAW Local Config Initialization ==="
+              PAWD=/app/bin/paw-node
+
+              # Create directories
+              mkdir -p /data/config /data/data
+
+              # Check if node is already properly initialized by looking for validators in genesis
+              if [ -f /data/config/genesis.json ] && [ -f /data/data/priv_validator_state.json ]; then
+                if grep -q '"power":"' /data/config/genesis.json 2>/dev/null; then
+                  echo "Node already properly initialized with validators, skipping..."
+                  grep -A5 '"validators"' /data/config/genesis.json | head -10
+                  exit 0
+                fi
+              fi
+
+              echo "Performing fresh initialization..."
+              # Clean everything including keyring
+              rm -rf /data/config/* /data/data/* /data/keyring-test 2>/dev/null || true
+              mkdir -p /data/config /data/data
+
+              echo "Initializing PAW node..."
+              $PAWD init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
+
+              echo "Creating validator account..."
+              echo "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art" | $PAWD keys add validator --recover --keyring-backend test --home /data
+
+              VALIDATOR_ADDR="paw1r5v5srda7xfth3hn2s26txvrcrntldju42c3a9"
+              echo "Using validator address: $VALIDATOR_ADDR"
+
+              echo "Adding genesis account with tokens..."
+              $PAWD add-genesis-account $VALIDATOR_ADDR 100000000000upaw --keyring-backend test --home /data
+
+              echo "Creating gentx..."
+              $PAWD gentx validator 50000000000upaw --chain-id "$CHAIN_ID" --keyring-backend test --home /data
+
+              echo "Collecting gentxs..."
+              $PAWD collect-gentxs --home /data
+
+              echo "Adding validator signing info to genesis..."
+              # Get the hex consensus address from the validators section in genesis
+              CONS_ADDR_HEX=$(grep -A3 '"validators"' /data/config/genesis.json | grep '"address"' | head -1 | sed 's/.*"address": "\([^"]*\)".*/\1/')
+              echo "Validator consensus address (hex): $CONS_ADDR_HEX"
+
+              # Convert hex to bech32 using the chain binary
+              CONS_ADDR_BECH32=$($PAWD debug addr $CONS_ADDR_HEX --home /data 2>/dev/null | grep "Bech32 Con:" | awk '{print $NF}')
+              echo "Validator consensus address (bech32): $CONS_ADDR_BECH32"
+
+              # Create signing info JSON entry
+              SIGNING_INFO="{\"address\":\"$CONS_ADDR_BECH32\",\"validator_signing_info\":{\"address\":\"$CONS_ADDR_BECH32\",\"start_height\":\"0\",\"index_offset\":\"0\",\"jailed_until\":\"1970-01-01T00:00:00Z\",\"tombstoned\":false,\"missed_blocks_counter\":\"0\"}}"
+
+              # Use sed to replace the empty signing_infos array with our entry
+              sed -i "s/\"signing_infos\": \[\]/\"signing_infos\": [$SIGNING_INFO]/" /data/config/genesis.json
+
+              echo "Signing info added. Verifying..."
+              grep -A5 '"signing_infos"' /data/config/genesis.json | head -10
+
+              echo "Configuring RPC/API/gRPC to listen on all interfaces..."
+              # Update config.toml to bind RPC to all interfaces
+              sed -i 's|laddr = "tcp://127.0.0.1:26657"|laddr = "tcp://0.0.0.0:26657"|' /data/config/config.toml
+              sed -i 's|laddr = "tcp://127.0.0.1:26656"|laddr = "tcp://0.0.0.0:26656"|' /data/config/config.toml
+
+              # Update app.toml to bind API and gRPC to all interfaces
+              sed -i 's|address = "tcp://localhost:1317"|address = "tcp://0.0.0.0:1317"|' /data/config/app.toml
+              sed -i 's|address = "localhost:9090"|address = "0.0.0.0:9090"|' /data/config/app.toml
+              sed -i 's|address = "localhost:9091"|address = "0.0.0.0:9091"|' /data/config/app.toml
+
+              # Enable API and gRPC
+              sed -i 's|enable = false|enable = true|' /data/config/app.toml
+
+              # Enable telemetry/metrics
+              sed -i 's|enabled = false|enabled = true|' /data/config/app.toml
+              sed -i 's|prometheus-retention-time = 0|prometheus-retention-time = 60|' /data/config/app.toml
+
+              # Enable prometheus in config.toml
+              sed -i 's|prometheus = false|prometheus = true|' /data/config/config.toml
+              sed -i 's|prometheus_listen_addr = ":26660"|prometheus_listen_addr = "0.0.0.0:26660"|' /data/config/config.toml
+
+              echo "Network bindings updated"
+              grep "laddr\|address.*:" /data/config/config.toml | head -5
+              grep "address.*:" /data/config/app.toml | head -5
+
+              echo "Validating genesis..."
+              $PAWD validate /data/config/genesis.json
+
+              echo "Configuration complete"
+              ls -la /data/config/
+              echo "Genesis validator power check:"
+              grep '"power"' /data/config/genesis.json | head -3 || echo "No power entries found (error!)"
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CHAIN_ID
+              value: "paw-testnet-1"
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+      containers:
+        - name: pawd
+          image: localhost:5050/pawd:latest
+          imagePullPolicy: Never
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting PAW validator..."
+              ls -la /data/config/
+              echo "Validator power in genesis:"
+              grep '"power"' /data/config/genesis.json | head -3 || echo "No validators!"
+              echo "Starting node..."
+              exec /app/bin/paw-node start --home=/data --log_level=info --minimum-gas-prices=0.001upaw
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: metrics
+              containerPort: 26660
+              protocol: TCP
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: CHAIN_ID
+              value: "paw-testnet-1"
+          volumeMounts:
+            - name: paw-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+  volumeClaimTemplates:
+    - metadata:
+        name: paw-data
+        labels:
+          app.kubernetes.io/name: paw
+          app.kubernetes.io/component: validator
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 10Gi

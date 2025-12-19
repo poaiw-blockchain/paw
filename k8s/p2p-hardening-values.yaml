@@ -1,0 +1,113 @@
+# PAW P2P Network Hardening Configuration
+# Apply these values via ConfigMap for enhanced network security
+#
+# Usage: Mount as config file or use as Helm values
+
+p2p:
+  # Require TLS client certificates for P2P connections
+  requireClientCert: true
+
+  # Nonce TTL for replay protection (seconds)
+  nonceTtlSeconds: 120
+
+  # Maximum messages per second per peer
+  maxMessageRate: 50
+
+  # Security event logging rate limit
+  securityLogRate: 20
+
+  # Bandwidth limits (bytes/second)
+  maxBandwidthIn: 524288   # 512 KB/s
+  maxBandwidthOut: 524288  # 512 KB/s
+
+  # DNS seeds (empty for private networks)
+  dnsSeeds: []
+
+  # Bootstrap nodes (fill with trusted validators)
+  bootstrapNodes:
+    - "paw-validator-0.paw-validator-headless.paw.svc.cluster.local:26656"
+    - "paw-validator-1.paw-validator-headless.paw.svc.cluster.local:26656"
+    - "paw-validator-2.paw-validator-headless.paw.svc.cluster.local:26656"
+
+  # CA bundle for TLS verification
+  caBundle: /etc/ssl/certs/ca-certificates.crt
+
+  # Trusted peer public keys file
+  trustedPeerPubkeysFile: /etc/paw/trust/trusted_peer_pubkeys.txt
+
+  # Trusted peer certificate fingerprints
+  trustedPeerCertFpsFile: /etc/paw/trust/trusted_peer_cert_fps.txt
+
+  # QUIC protocol (experimental)
+  enableQuic: false
+
+  # Maximum peer connections
+  maxPeers: 50
+
+  # Persistent peers (always connected)
+  persistentPeers: []
+
+  # Private peer IDs (never exposed)
+  privatePeerIds: []
+
+  # Unconditional peer IDs (always allowed)
+  unconditionalPeerIds: []
+
+  # Address book strict mode
+  addrBookStrict: true
+
+  # Handshake timeout
+  handshakeTimeout: 20s
+
+  # Dial timeout
+  dialTimeout: 3s
+
+security:
+  # Security webhook URL (for SIEM integration)
+  webhookUrl: ""
+
+  # Security webhook authentication token
+  webhookToken: ""
+
+  # Enable security event logging
+  enableSecurityLogging: true
+
+  # Security log level (debug, info, warn, error)
+  securityLogLevel: "info"
+
+  # Rate limit for failed connection attempts
+  failedConnRateLimit: 10
+
+  # Ban duration for malicious peers (minutes)
+  banDuration: 60
+
+trustStores:
+  # Trusted peer public keys
+  # Add Ed25519 public keys of trusted validators
+  pubkeys: |
+    # Format: <moniker>:<hex-encoded-pubkey>
+    # paw-validator-0:abc123...
+    # paw-validator-1:def456...
+
+  # Trusted certificate fingerprints
+  # SHA-256 fingerprints of trusted TLS certificates
+  certFingerprints: |
+    # Format: <moniker>:<sha256-fingerprint>
+    # paw-validator-0:AA:BB:CC:DD:...
+    # paw-validator-1:11:22:33:44:...
+
+rateLimit:
+  # Global rate limits
+  global:
+    requestsPerSecond: 100
+    burstSize: 200
+
+  # Per-peer rate limits
+  perPeer:
+    requestsPerSecond: 20
+    burstSize: 50
+
+  # Per-IP rate limits
+  perIP:
+    requestsPerSecond: 50
+    burstSize: 100

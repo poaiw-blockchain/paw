@@ -1,0 +1,126 @@
+# Kind cluster configuration for PAW development
+# Optimized for local testing and development
+#
+# Usage:
+#   kind create cluster --config=dev-cluster.yaml
+#   kubectl cluster-info --context kind-paw-dev
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: paw-dev
+networking:
+  disableDefaultCNI: false
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+  # Use default CNI (kindnet) for simplicity
+  # Set to true and install Calico/Cilium for network policy testing
+
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            # Enable audit logging
+            audit-log-path: /var/log/kubernetes/audit.log
+            audit-log-maxage: "7"
+            audit-log-maxbackup: "3"
+            audit-log-maxsize: "100"
+    extraPortMappings:
+      # PAW P2P
+      - containerPort: 31656
+        hostPort: 31656
+        protocol: TCP
+      # PAW RPC
+      - containerPort: 31657
+        hostPort: 31657
+        protocol: TCP
+      # PAW API
+      - containerPort: 31317
+        hostPort: 31317
+        protocol: TCP
+      # PAW gRPC
+      - containerPort: 31090
+        hostPort: 31090
+        protocol: TCP
+      # Prometheus
+      - containerPort: 31009
+        hostPort: 31009
+        protocol: TCP
+      # AlertManager
+      - containerPort: 31093
+        hostPort: 31093
+        protocol: TCP
+      # Grafana
+      - containerPort: 31030
+        hostPort: 31030
+        protocol: TCP
+      # Ingress HTTP
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      # Ingress HTTPS
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP
+    extraMounts:
+      # Mount data directories for persistent storage
+      - hostPath: /tmp/paw-data/validators
+        containerPath: /data/paw-validators
+      - hostPath: /tmp/paw-data/nodes
+        containerPath: /data/paw-nodes
+      - hostPath: /tmp/paw-data/monitoring
+        containerPath: /data/paw-monitoring
+      # Mount audit logs
+      - hostPath: /tmp/paw-data/audit
+        containerPath: /var/log/kubernetes
+
+  - role: worker
+    extraMounts:
+      - hostPath: /tmp/paw-data/validators
+        containerPath: /data/paw-validators
+      - hostPath: /tmp/paw-data/nodes
+        containerPath: /data/paw-nodes
+
+  - role: worker
+    extraMounts:
+      - hostPath: /tmp/paw-data/validators
+        containerPath: /data/paw-validators
+      - hostPath: /tmp/paw-data/nodes
+        containerPath: /data/paw-nodes
+
+# Container registry configuration
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5050"]
+      endpoint = ["http://paw-registry:5000"]
+---
+# Alternative: Single-node cluster for minimal resource usage
+# Uncomment below and comment above for single-node setup
+
+# kind: Cluster
+# apiVersion: kind.x-k8s.io/v1alpha4
+# name: paw-dev-single
+# nodes:
+#   - role: control-plane
+#     extraPortMappings:
+#       - containerPort: 31656
+#         hostPort: 31656
+#       - containerPort: 31657
+#         hostPort: 31657
+#       - containerPort: 31317
+#         hostPort: 31317
+#       - containerPort: 31090
+#         hostPort: 31090
+#       - containerPort: 31030
+#         hostPort: 31030
+#       - containerPort: 80
+#         hostPort: 80
+#       - containerPort: 443
+#         hostPort: 443

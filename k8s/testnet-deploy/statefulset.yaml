@@ -1,0 +1,160 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-testnet-validator
+  namespace: paw-testnet
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    environment: testnet
+spec:
+  serviceName: paw-validator-headless
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator
+      environment: testnet
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: validator
+        environment: testnet
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/component: validator
+                topologyKey: kubernetes.io/hostname
+
+      initContainers:
+        - name: init-config
+          image: paw-chain/pawd:testnet
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              if [ ! -f /data/config/config.toml ]; then
+                echo "Initializing PAW testnet node..."
+                pawd init "${POD_NAME}" --chain-id "${CHAIN_ID}" --home /data
+
+                # Configure for testnet
+                sed -i "s/^moniker = .*/moniker = \"${POD_NAME}\"/" /data/config/config.toml
+                sed -i "s/^addr_book_strict = .*/addr_book_strict = false/" /data/config/config.toml
+                sed -i "s/^allow_duplicate_ip = .*/allow_duplicate_ip = true/" /data/config/config.toml
+                sed -i "s/^prometheus = .*/prometheus = true/" /data/config/config.toml
+
+                # Enable APIs
+                sed -i "s/^enable = false/enable = true/" /data/config/app.toml
+                sed -i 's/^address = "tcp:\/\/localhost:1317"/address = "tcp:\/\/0.0.0.0:1317"/' /data/config/app.toml
+                sed -i 's/^address = "localhost:9090"/address = "0.0.0.0:9090"/' /data/config/app.toml
+              fi
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: paw-testnet-config
+                  key: CHAIN_ID
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+      containers:
+        - name: pawd
+          image: paw-chain/pawd:testnet
+          imagePullPolicy: IfNotPresent
+          command:
+            - pawd
+            - start
+            - --home=/data
+            - --log_level=info
+          ports:
+            - name: p2p
+              containerPort: 26656
+            - name: rpc
+              containerPort: 26657
+            - name: api
+              containerPort: 1317
+            - name: grpc
+              containerPort: 9090
+            - name: metrics
+              containerPort: 26660
+          envFrom:
+            - configMapRef:
+                name: paw-testnet-config
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: paw
+          environment: testnet
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 50Gi

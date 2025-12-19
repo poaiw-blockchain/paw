@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: paw-testnet
+
+namespace: paw-testnet
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - services.yaml
+  - statefulset.yaml
+
+commonLabels:
+  app.kubernetes.io/name: paw
+  app.kubernetes.io/instance: paw-testnet
+  app.kubernetes.io/part-of: paw-network
+  environment: testnet
+
+commonAnnotations:
+  description: "PAW Testnet Deployment"

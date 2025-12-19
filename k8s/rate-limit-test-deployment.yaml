@@ -1,0 +1,181 @@
+---
+# Rate Limit Testing Infrastructure
+# Deploys a test server with rate limiting to validate ingress configuration
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-rate-limit-config
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: rate-limit-test
+data:
+  rate-limit-info: |
+    Rate Limiting Configuration:
+    - RPS Limit: 10 requests per second
+    - Connection Limit: 5 concurrent connections
+    - Burst Multiplier: 1 (no bursting)
+
+    Test commands:
+    # Normal request (should succeed)
+    curl -v http://rpc-test.paw.local/
+
+    # Burst test (some should be rate limited)
+    for i in {1..20}; do curl -s -o /dev/null -w "%{http_code}\n" http://rpc-test.paw.local/; done
+
+    # Load test with hey (install: go install github.com/rakyll/hey@latest)
+    hey -n 100 -c 10 http://rpc-test.paw.local/
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rate-limit-test
+  namespace: paw
+  labels:
+    app: rate-limit-test
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: rate-limit-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rate-limit-test
+  template:
+    metadata:
+      labels:
+        app: rate-limit-test
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: rate-limit-test
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:1.25
+        ports:
+        - containerPort: 8080
+          name: http
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache/nginx
+        - name: run
+          mountPath: /var/run
+        - name: config
+          mountPath: /etc/nginx/conf.d
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: rate-limit-nginx-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limit-nginx-config
+  namespace: paw
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+
+        location / {
+            default_type text/plain;
+            return 200 'PAW Rate Limit Test Server\nTimestamp: $time_iso8601\nRequest: $request_uri\n';
+        }
+
+        location /health {
+            return 200 'OK';
+        }
+
+        location /status {
+            stub_status on;
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+        }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rate-limit-test-service
+  namespace: paw
+  labels:
+    app: rate-limit-test
+spec:
+  selector:
+    app: rate-limit-test
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rate-limit-test-ingress
+  namespace: paw
+  annotations:
+    # Rate limiting annotations for nginx-ingress
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "5"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "1"
+    nginx.ingress.kubernetes.io/limit-whitelist: ""
+    # Return 429 when rate limited
+    nginx.ingress.kubernetes.io/server-snippet: |
+      limit_req_status 429;
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rpc-test.paw.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rate-limit-test-service
+            port:
+              number: 80

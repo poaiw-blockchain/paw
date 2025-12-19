@@ -1,0 +1,17 @@
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: paw-validator-pdb
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  # Ensure at least 2 validators are always available (2/3 for consensus)
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator

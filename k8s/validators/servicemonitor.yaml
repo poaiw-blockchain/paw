@@ -1,0 +1,30 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: paw-validator
+  namespace: paw
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator
+  namespaceSelector:
+    matchNames:
+      - paw
+  endpoints:
+    - port: metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      path: /metrics
+      scheme: http
+    - port: node-metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics
+      scheme: http
