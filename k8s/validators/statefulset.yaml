@@ -179,11 +179,17 @@ spec:
               $PAW init "$POD_NAME" --chain-id "$CHAIN_ID" --home /data
 
               echo "Creating validator key..."
-              $PAW keys add validator $KEYRING --home /data
+              KEY_OUTPUT=$($PAW keys add validator $KEYRING --home /data 2>&1)
+              echo "$KEY_OUTPUT"
 
-              # Get validator address
-              VALIDATOR_ADDR=$($PAW keys show validator $KEYRING --home /data --address)
+              # Parse validator address from output
+              VALIDATOR_ADDR=$(echo "$KEY_OUTPUT" | grep "address:" | head -1 | awk '{print $2}')
               echo "Validator address: $VALIDATOR_ADDR"
+
+              if [ -z "$VALIDATOR_ADDR" ]; then
+                echo "ERROR: Failed to get validator address"
+                exit 1
+              fi
 
               # Add genesis account with tokens
               echo "Adding genesis account..."
