@@ -30,11 +30,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Avoid local go.work replacements in container builds
+ENV GOWORK=off
+
 # Build blockchain binary with optimizations
 RUN CGO_ENABLED=1 GOOS=linux go build \
     -a \
     -installsuffix cgo \
-    -ldflags="-w -s -X example.com/cosmos/cosmos-sdk/version.AppName=paw -X example.com/cosmos/cosmos-sdk/version.Version=$VERSION -X example.com/cosmos/cosmos-sdk/version.Commit=$COMMIT" \
+    -ldflags="-w -s -X github.com/cosmos/cosmos-sdk/version.Name=paw -X github.com/cosmos/cosmos-sdk/version.AppName=paw -X github.com/cosmos/cosmos-sdk/version.Version=$VERSION -X github.com/cosmos/cosmos-sdk/version.Commit=$COMMIT" \
     -o paw-node ./cmd/pawd
 
 # ============================================================================

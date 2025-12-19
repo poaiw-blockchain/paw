@@ -1,6 +1,8 @@
 import * as esbuild from 'esbuild';
+import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
+import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill';
 import { minify } from 'html-minifier-terser';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 const isWatch = process.argv.includes('--watch');
@@ -17,7 +19,15 @@ const buildOptions = {
   platform: 'browser',
   legalComments: 'none',
   treeShaking: true,
+  plugins: [
+    NodeGlobalsPolyfillPlugin({
+      process: true,
+      buffer: true,
+    }),
+    NodeModulesPolyfillPlugin(),
+  ],
   define: {
+    global: 'globalThis',
     'process.env.NODE_ENV': '"production"',
   },
 };
@@ -62,6 +72,18 @@ async function build() {
     // Copy manifest
     copyFileSync('manifest.json', 'dist/manifest.json');
     console.log('✓ Manifest copied');
+
+    // Copy icons
+    if (existsSync('icons')) {
+      if (!existsSync('dist/icons')) {
+        mkdirSync('dist/icons', { recursive: true });
+      }
+      const icons = readdirSync('icons').filter(f => f.endsWith('.png'));
+      for (const icon of icons) {
+        copyFileSync(join('icons', icon), join('dist/icons', icon));
+      }
+      console.log('✓ Icons copied');
+    }
 
     console.log('✓ Build complete!');
   } catch (error) {

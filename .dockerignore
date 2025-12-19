@@ -40,3 +40,17 @@ sonar-project.properties
 coverage.txt
 coverage.html
 *.out
+.git
+logs
+coverage
+coverage.*
+scripts/devnet/.state
+wallet
+explorer
+scripts
+build
+pawd
+discovery.test
+reputation.test
+protocol.test
+security.test

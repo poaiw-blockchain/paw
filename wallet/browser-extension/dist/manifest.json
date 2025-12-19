@@ -5,10 +5,25 @@
   "version": "1.0.0",
   "action": {
     "default_title": "PAW Wallet",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self'"
   },
   "host_permissions": [
     "http://localhost:1317/*",
@@ -16,5 +31,12 @@
     "http://localhost:26657/*",
     "http://127.0.0.1:26657/*"
   ],
-  "permissions": ["storage", "alarms"]
+  "permissions": ["storage", "alarms", "tabs", "notifications"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content-script.js"],
+      "run_at": "document_start"
+    }
+  ]
 }

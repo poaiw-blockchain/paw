@@ -46,6 +46,7 @@ Notes
 - `pawd init --default-denom` now rewrites staking/mint/gov/crisis params so multi-validator genesis defaults to `upaw` instead of the SDK's `stake`.
 
 Latest Updates (Dec 18, 2025)
+- Investigated Kubernetes/local testing readiness: manifests/Helm/scripts exist but require an existing cluster, published paw image, real genesis/hash, and monitoring configs placed under k8s/expected paths.
 - Hardened governance access control: Compute dispute/appeal/param/governance messages and Oracle param updates now require the governance module authority at ValidateBasic (pre-ante), with tests updated to use the module address; prevents non-governance senders from progressing past basic validation.
 - Added telemetry counter for IBC packet validation failures (port/channel/reason labels) alongside existing events to feed dashboards; shared channel-open validator already enforces port parity.
 - Reconciled economic/integrity flows: DEX protocol fees stay in module accounts (no arbitrary mint/burn), compute escrows lock funds with refund/timeout handling, and oracle price feeds gate DEX/compute via circuit-breaker fallbacks on stale/deviating data; noted in roadmap/audit docs.
