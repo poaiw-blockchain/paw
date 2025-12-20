@@ -1,0 +1,270 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout=5m
+
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -s -l .)" ]; then
+            echo "Go code is not formatted:"
+            gofmt -s -d .
+            exit 1
+          fi
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Run tests with race detection
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic -timeout=30m
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.out
+            coverage.html
+          retention-days: 30
+
+      - name: Display coverage summary
+        run: |
+          echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          go tool cover -func=coverage.out >> $GITHUB_STEP_SUMMARY
+
+      - name: Check coverage threshold
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Total coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 50" | bc -l) )); then
+            echo "::warning::Coverage is below 50%"
+          fi
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage_output = await exec.getExecOutput('go', ['tool', 'cover', '-func=coverage.out']);
+            const lines = coverage_output.stdout.split('\n');
+            const total_line = lines.find(line => line.includes('total:'));
+            const total_coverage = total_line ? total_line.match(/(\d+\.\d+)%/)[1] : '0';
+
+            const body = `## Test Coverage Report
+
+            **Total Coverage:** ${total_coverage}%
+
+            <details>
+            <summary>View detailed coverage</summary>
+
+            \`\`\`
+            ${coverage_output.stdout}
+            \`\`\`
+
+            </details>
+
+            [View full coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run integration tests
+        run: |
+          if [ -d "tests/integration" ]; then
+            go test -v -timeout 10m ./tests/integration/...
+          else
+            echo "No integration tests found, skipping"
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go build -ldflags="-s -w" -o pawd-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/...
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pawd-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pawd-${{ matrix.goos }}-${{ matrix.goarch }}
+          retention-days: 7
+
+  reproducible-build:
+    name: Verify Reproducible Build
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Verify reproducible build
+        run: |
+          go build -o /tmp/pawd1 ./cmd/...
+          go build -o /tmp/pawd2 ./cmd/...
+          sha256sum /tmp/pawd1 /tmp/pawd2
+
+          HASH1=$(sha256sum /tmp/pawd1 | awk '{print $1}')
+          HASH2=$(sha256sum /tmp/pawd2 | awk '{print $1}')
+
+          if [ "$HASH1" = "$HASH2" ]; then
+            echo "✅ Build is reproducible"
+          else
+            echo "❌ Build is not reproducible"
+            exit 1
+          fi
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, integration-test, build, reproducible-build]
+    if: always()
+    steps:
+      - name: Check job results
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Test | ${{ needs.integration-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reproducible Build | ${{ needs.reproducible-build.result }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.lint.result }}" != "success" ] || [ "${{ needs.test.result }}" != "success" ] || [ "${{ needs.build.result }}" != "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **CI pipeline failed. Please check the logs above.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All CI checks passed successfully.**" >> $GITHUB_STEP_SUMMARY
+          fi
