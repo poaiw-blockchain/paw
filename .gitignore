@@ -139,5 +139,6 @@ proto/**/*_grpc.pb.go
 __pycache__/
 *.pyc
 
-# Backup state directories
+# Devnet state directories (contains keys and mnemonics)
+scripts/devnet/.state/
 scripts/devnet/.state.bak*/
