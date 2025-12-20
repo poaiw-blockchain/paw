@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report a bug in PAW
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please provide as much detail as possible.
+
+        **Security vulnerabilities**: Do NOT report here. Email security@paw.network instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: PAW Version
+      description: Output of `pawd version`
+      placeholder: "v1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear description of what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Start node with...
+        2. Send transaction...
+        3. Observe error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      render: shell
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - DEX Module
+        - Compute Module
+        - Oracle Module
+        - IBC
+        - Node/Consensus
+        - CLI
+        - Other
+    validations:
+      required: true

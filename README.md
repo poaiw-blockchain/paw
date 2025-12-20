@@ -1,5 +1,7 @@
 # PAW Blockchain
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/dl/) [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289da.svg)](https://discord.gg/paw) [![Twitter](https://img.shields.io/badge/Twitter-@PAWNetwork-1DA1F2.svg)](https://twitter.com/PAWNetwork)
+
 Cosmos SDK–based Layer‑1 for verifiable AI compute with integrated DEX and Oracle.
 
 What’s included

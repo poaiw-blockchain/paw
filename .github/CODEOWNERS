@@ -1,0 +1,25 @@
+# PAW Blockchain CODEOWNERS
+
+# Default owners
+* @poaiw-blockchain/core-team
+
+# Module-specific ownership
+/x/dex/ @poaiw-blockchain/dex-team @poaiw-blockchain/core-team
+/x/compute/ @poaiw-blockchain/core-team
+/x/oracle/ @poaiw-blockchain/oracle-team @poaiw-blockchain/core-team
+
+# Security-critical
+/app/ @poaiw-blockchain/security @poaiw-blockchain/core-team
+
+# Infrastructure
+/.github/ @poaiw-blockchain/devops
+/docker/ @poaiw-blockchain/devops
+/k8s/ @poaiw-blockchain/devops
+
+# Documentation
+/docs/ @poaiw-blockchain/docs-team
+README.md @poaiw-blockchain/core-team
+SECURITY.md @poaiw-blockchain/security
+
+# Protect CODEOWNERS
+/.github/CODEOWNERS @poaiw-blockchain/admin

@@ -8,7 +8,7 @@ The PAW team takes security vulnerabilities seriously. We appreciate your effort
 
 **Please DO NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to: **security@[project-domain].com**
+Instead, please report them via email to: **security@paw.network**
 
 Include the following information:
 - Type of vulnerability (e.g., reentrancy, overflow, access control)
