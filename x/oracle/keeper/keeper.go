@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,12 +48,12 @@ func NewKeeper(
 	authority string,
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
-	// Initialize GeoIP manager (non-fatal if database not available)
-	// This allows the chain to start even without GeoIP database
-	// Location verification will be disabled until database is loaded
+	// Initialize GeoIP manager (non-fatal if database not available during keeper construction)
+	// Final validation happens in InitGenesis based on RequireGeographicDiversity parameter
+	// This allows the chain to start for testing without GeoIP database
 	geoIPManager, err := NewGeoIPManager("")
 	if err != nil {
-		// Log warning but don't fail - GeoIP is optional during initialization
+		// Warning will be logged, but genesis validation will enforce if required
 		// Validators should configure GEOIP_DB_PATH for production
 	}
 
@@ -69,6 +70,22 @@ func NewKeeper(
 		metrics:        NewOracleMetrics(),
 		geoIPManager:   geoIPManager,
 	}
+}
+
+// ValidateGeoIPAvailability checks if GeoIP database is available and functional
+func (k Keeper) ValidateGeoIPAvailability() error {
+	if k.geoIPManager == nil {
+		return fmt.Errorf("GeoIP manager not initialized")
+	}
+
+	// Test with a known public IP to verify database functionality
+	testIP := "8.8.8.8" // Google DNS - should resolve to US
+	_, err := k.geoIPManager.GetRegion(testIP)
+	if err != nil {
+		return fmt.Errorf("GeoIP database validation failed: %w", err)
+	}
+
+	return nil
 }
 
 // getStore returns the KVStore for the oracle module

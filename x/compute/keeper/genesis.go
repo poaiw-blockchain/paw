@@ -174,6 +174,14 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 		return fmt.Errorf("failed to set next escrow nonce: %w", err)
 	}
 
+	// HIGH-9: Initialize ZK circuits during genesis to avoid unpredictable latency on first use
+	// This is an expensive operation but ensures consistent performance from the start
+	sdkCtx.Logger().Info("Initializing ZK circuits during genesis...")
+	if err := k.InitializeCircuits(ctx); err != nil {
+		// Log warning but don't fail genesis - circuits will lazy-init on first use
+		sdkCtx.Logger().Warn("Failed to pre-initialize ZK circuits (will lazy-init on first use)", "error", err)
+	}
+
 	return nil
 }
 

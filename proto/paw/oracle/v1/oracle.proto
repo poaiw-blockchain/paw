@@ -63,6 +63,11 @@ message Params {
   // max_validators_per_asn is the maximum number of validators allowed from the same ASN
   // Default: 5 (prevents single ISP/datacenter from dominating the validator set)
   uint64 max_validators_per_asn = 12;
+
+  // require_geographic_diversity enforces that GeoIP database must be available
+  // When true (mainnet): validators must have valid geographic regions, GeoIP database is mandatory
+  // When false (testnet): GeoIP database is optional, allows testing without geographic constraints
+  bool require_geographic_diversity = 13;
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination

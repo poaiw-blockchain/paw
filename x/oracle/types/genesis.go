@@ -45,5 +45,19 @@ func (gs GenesisState) Validate() error {
 		}
 	}
 
+	// Validate geographic diversity requirements
+	if p.RequireGeographicDiversity {
+		if p.MinGeographicRegions == 0 {
+			return fmt.Errorf("min_geographic_regions must be positive when require_geographic_diversity is true")
+		}
+		if len(p.AllowedRegions) == 0 {
+			return fmt.Errorf("allowed_regions cannot be empty when require_geographic_diversity is true")
+		}
+		if p.MinGeographicRegions > uint64(len(p.AllowedRegions)) {
+			return fmt.Errorf("min_geographic_regions (%d) cannot exceed number of allowed_regions (%d)",
+				p.MinGeographicRegions, len(p.AllowedRegions))
+		}
+	}
+
 	return nil
 }

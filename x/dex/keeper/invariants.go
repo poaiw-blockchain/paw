@@ -144,7 +144,7 @@ func LiquiditySharesInvariant(k Keeper) sdk.Invariant {
 			totalShares := math.ZeroInt()
 
 			store := k.getStore(ctx)
-			iter := storetypes.KVStorePrefixIterator(store, types.LiquidityShareKeyPrefix)
+			iter := storetypes.KVStorePrefixIterator(store, LiquidityKeyPrefix)
 			defer iter.Close()
 
 			for ; iter.Valid(); iter.Next() {
@@ -293,9 +293,12 @@ func ConstantProductInvariant(k Keeper) sdk.Invariant {
 			// Calculate ratio
 			ratio := productDec.Quo(expectedDec)
 
-			// Ratio should be between 0.5 and 2.0 (allowing for fees and rounding)
-			minRatio := math.LegacyNewDecWithPrec(5, 1) // 0.5
-			maxRatio := math.LegacyNewDec(2)            // 2.0
+			// Ratio should be between 0.999 and 1.1
+			// k should NEVER decrease (only increase from fees)
+			// - minRatio: 99.9% prevents fund extraction through precision manipulation
+			// - maxRatio: 110% allows reasonable fee accumulation
+			minRatio := math.LegacyNewDecWithPrec(999, 3) // 0.999 (99.9%)
+			maxRatio := math.LegacyNewDecWithPrec(11, 1)  // 1.1 (110%)
 
 			if ratio.LT(minRatio) || ratio.GT(maxRatio) {
 				broken = true

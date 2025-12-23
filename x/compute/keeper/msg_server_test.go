@@ -892,7 +892,7 @@ func TestMsgServer_ResolveDispute(t *testing.T) {
 				DisputeId: disputeID,
 			},
 			expectErr: true,
-			errMsg:    "unauthorized",
+			errMsg:    "invalid authority",
 		},
 	}
 
@@ -1180,7 +1180,7 @@ func TestMsgServer_ResolveAppeal(t *testing.T) {
 				AppealId:  appealID,
 			},
 			expectErr: true,
-			errMsg:    "unauthorized",
+			errMsg:    "invalid authority",
 		},
 	}
 
@@ -1240,7 +1240,7 @@ func TestMsgServer_UpdateGovernanceParams(t *testing.T) {
 				Params:    newGovParams,
 			},
 			expectErr: true,
-			errMsg:    "unauthorized",
+			errMsg:    "invalid authority",
 		},
 	}
 

@@ -17,6 +17,38 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 		return fmt.Errorf("failed to bind IBC port: %w", err)
 	}
 
+	// Validate GeoIP database availability if required by parameters
+	if data.Params.RequireGeographicDiversity {
+		if err := k.ValidateGeoIPAvailability(); err != nil {
+			return fmt.Errorf("geographic diversity is required but GeoIP database is not available: %w\n"+
+				"Please configure GEOIP_DB_PATH environment variable or place GeoLite2-Country.mmdb in a standard location:\n"+
+				"  - /usr/share/GeoIP/GeoLite2-Country.mmdb\n"+
+				"  - /var/lib/GeoIP/GeoLite2-Country.mmdb\n"+
+				"  - ./GeoLite2-Country.mmdb\n"+
+				"For mainnet deployment, geographic diversity is mandatory to prevent validator collusion", err)
+		}
+
+		// Additional validation: if there are existing validator oracles, verify their regions
+		for _, vo := range data.ValidatorOracles {
+			if vo.GeographicRegion == "" {
+				return fmt.Errorf("validator %s has empty geographic region but require_geographic_diversity is enabled",
+					vo.ValidatorAddr)
+			}
+			// Verify region is in allowed list
+			regionAllowed := false
+			for _, allowedRegion := range data.Params.AllowedRegions {
+				if vo.GeographicRegion == allowedRegion {
+					regionAllowed = true
+					break
+				}
+			}
+			if !regionAllowed {
+				return fmt.Errorf("validator %s has region %s which is not in allowed_regions list",
+					vo.ValidatorAddr, vo.GeographicRegion)
+			}
+		}
+	}
+
 	// Set parameters
 	if err := k.SetParams(ctx, data.Params); err != nil {
 		return fmt.Errorf("failed to set params: %w", err)

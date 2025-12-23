@@ -19,5 +19,14 @@ func DefaultParams() Params {
 		MinVotingPowerForConsensus: math.LegacyMustNewDecFromStr("0.10"), // 10% minimum voting power
 		MaxValidatorsPerIp:         3,                                     // Max 3 validators per IP address
 		MaxValidatorsPerAsn:        5,                                     // Max 5 validators per ASN
+		RequireGeographicDiversity: false,                                 // Default to optional for testnet
 	}
+}
+
+// MainnetParams returns oracle parameters suitable for mainnet deployment
+func MainnetParams() Params {
+	params := DefaultParams()
+	params.RequireGeographicDiversity = true // Mandatory for mainnet
+	params.MinGeographicRegions = 3          // Require at least 3 distinct regions
+	return params
 }
