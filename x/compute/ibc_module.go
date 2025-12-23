@@ -315,7 +315,10 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
-	const maxAcknowledgementSize = 1024 * 1024 // 1MB guard rail
+	// Security: Limit acknowledgement size to prevent DoS attacks via large payloads
+	// Set to 256KB (262144 bytes) - sufficient for legitimate use cases
+	// Note: Consider implementing rate limiting at the relayer level for additional protection
+	const maxAcknowledgementSize = 256 * 1024 // 256KB guard rail
 	if len(acknowledgement) > maxAcknowledgementSize {
 		return errorsmod.Wrapf(types.ErrInvalidAck, "ack too large: %d > %d", len(acknowledgement), maxAcknowledgementSize)
 	}

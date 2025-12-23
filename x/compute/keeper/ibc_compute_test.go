@@ -228,7 +228,8 @@ func TestComputeOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 		0,
 	)
 
-	oversizedAck := bytes.Repeat([]byte{0x1}, 2*1024*1024)
+	// Create ack larger than 256KB limit (512KB)
+	oversizedAck := bytes.Repeat([]byte{0x1}, 512*1024)
 	err := ibcModule.OnAcknowledgementPacket(ctx, packet, oversizedAck, nil)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrInvalidAck)
