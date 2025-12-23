@@ -409,6 +409,8 @@ func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.Ac
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	// Batch-prefetch: collect all request IDs first
+	var requestIDs []uint64
 	count := 0
 	for ; iterator.Valid(); iterator.Next() {
 		if count >= MaxIterationLimit {
@@ -418,7 +420,12 @@ func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.Ac
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
+		requestIDs = append(requestIDs, requestID)
+		count++
+	}
 
+	// Fetch all requests and invoke callback
+	for _, requestID := range requestIDs {
 		request, err := k.GetRequest(ctx, requestID)
 		if err != nil {
 			continue
@@ -431,7 +438,6 @@ func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.Ac
 		if stop {
 			break
 		}
-		count++
 	}
 
 	return nil
@@ -444,6 +450,8 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	// Batch-prefetch: collect all request IDs first
+	var requestIDs []uint64
 	count := 0
 	for ; iterator.Valid(); iterator.Next() {
 		if count >= MaxIterationLimit {
@@ -453,7 +461,12 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
+		requestIDs = append(requestIDs, requestID)
+		count++
+	}
 
+	// Fetch all requests and invoke callback
+	for _, requestID := range requestIDs {
 		request, err := k.GetRequest(ctx, requestID)
 		if err != nil {
 			continue
@@ -466,7 +479,6 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 		if stop {
 			break
 		}
-		count++
 	}
 
 	return nil
@@ -481,6 +493,8 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	// Batch-prefetch: collect all request IDs first
+	var requestIDs []uint64
 	count := 0
 	for ; iterator.Valid(); iterator.Next() {
 		if count >= MaxIterationLimit {
@@ -490,7 +504,12 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
+		requestIDs = append(requestIDs, requestID)
+		count++
+	}
 
+	// Fetch all requests and invoke callback
+	for _, requestID := range requestIDs {
 		request, err := k.GetRequest(ctx, requestID)
 		if err != nil {
 			continue
@@ -503,7 +522,6 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 		if stop {
 			break
 		}
-		count++
 	}
 
 	return nil
