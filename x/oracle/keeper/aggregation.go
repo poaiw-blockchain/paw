@@ -762,9 +762,16 @@ func (k Keeper) CalculateTWAP(ctx context.Context, asset string) (sdkmath.Legacy
 	minHeight := sdkCtx.BlockHeight() - int64(params.TwapLookbackWindow)
 	snapshots := []types.PriceSnapshot{}
 
+	// HIGH-7 Fix: Cap snapshot count to prevent OOM attacks
+	const maxSnapshots = 1000
+
 	err = k.IteratePriceSnapshots(ctx, asset, func(snapshot types.PriceSnapshot) bool {
 		if snapshot.BlockHeight >= minHeight {
 			snapshots = append(snapshots, snapshot)
+			// Stop iteration if we reach the maximum snapshot count
+			if len(snapshots) >= maxSnapshots {
+				return true
+			}
 		}
 		return false
 	})
