@@ -424,33 +424,6 @@ func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state
 // It uses params.FlashLoanProtectionBlocks for configurable block delay
 // See dex_advanced.go:375-406 for the actual implementation
 
-// GetLastLiquidityActionBlock retrieves the last block height when user modified liquidity
-/*
-func (k Keeper) GetLastLiquidityActionBlock(ctx context.Context, poolID uint64, provider sdk.AccAddress) (int64, error) {
-    // ...
-}
-
-func (k Keeper) SetLastLiquidityActionBlock(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
-    // ...
-}
-
-func SafeAdd(a, b math.Int) (math.Int, error) {
-    // ...
-}
-
-func SafeSub(a, b math.Int) (math.Int, error) {
-    // ...
-}
-
-func SafeMul(a, b math.Int) (math.Int, error) {
-    // ...
-}
-
-func SafeQuo(a, b math.Int) (math.Int, error) {
-    // ...
-}
-*/
-
 // EmergencyPausePool pauses all operations on a pool (governance only)
 func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason string, duration time.Duration) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)

@@ -1099,47 +1099,7 @@ func (k Keeper) getVerificationMethod() string {
 	return "manual_claim"
 }
 
-// TODO: Future enhancement - LocationProof and LocationEvidence types need to be added to proto
-// SubmitLocationProof allows validators to submit cryptographic proof of their location
-// This builds evidence over time to detect location spoofing
-/*
-func (k Keeper) SubmitLocationProof(ctx context.Context, proof *types.LocationProof) error {
-	// Commented out until LocationProof and LocationEvidence types are added
-	return nil
-}
-*/
-
-// TODO: Add LocationEvidence type to proto
-/*
-func (k Keeper) GetLocationEvidence(ctx context.Context, validatorAddr string) (*types.LocationEvidence, error) {
-	// Commented out until LocationEvidence type is added
-	return nil, nil
-}
-*/
-
-// TODO: Add LocationEvidence type to proto
-/*
-func (k Keeper) SetLocationEvidence(ctx context.Context, evidence *types.LocationEvidence) error {
-	// Commented out until LocationEvidence type is added
-	return nil
-}
-*/
-
-// TODO: Add LocationEvidence type to proto
-/*
-func (k Keeper) getLocationEvidenceKey(validatorAddr string) []byte {
-	prefix := []byte{0x0C} // Location evidence prefix
-	return append(prefix, []byte(validatorAddr)...)
-}
-*/
-
-// TODO: Add LocationEvidence type to proto
-/*
-func (k Keeper) VerifyLocationConsistency(ctx context.Context, validatorAddr string, maxAge time.Duration) error {
-	// Commented out until LocationEvidence type is added
-	return nil
-}
-*/
+// Future: Cryptographic location proof system - see GitHub issue for LocationProof/LocationEvidence implementation
 
 // TASK 66: ImplementDataSourceAuthenticity validates data source authenticity
 func (k Keeper) ImplementDataSourceAuthenticity(ctx context.Context, validatorAddr string, asset string, price sdkmath.LegacyDec, signature []byte) error {
