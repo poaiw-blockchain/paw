@@ -78,13 +78,24 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 		return nil, types.ErrInvalidLiquidityAmount.Wrapf("initial liquidity too low: %s < %s", initialShares, params.MinLiquidity)
 	}
 
-	// Get next pool ID
+	// Transfer tokens from creator to module FIRST (before any state updates)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	moduleAddr := k.GetModuleAddress()
+
+	coinA := sdk.NewCoin(tokenA, amountA)
+	coinB := sdk.NewCoin(tokenB, amountB)
+
+	if err := k.bankKeeper.SendCoins(sdkCtx, creator, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
+		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
+	}
+
+	// Get next pool ID (only after successful token transfer)
 	poolID, err := k.GetNextPoolID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create pool
+	// Create pool state (only after successful token transfer)
 	pool := &types.Pool{
 		Id:          poolID,
 		TokenA:      tokenA,
@@ -108,17 +119,6 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	// Set initial liquidity position for creator
 	if err := k.SetLiquidity(ctx, poolID, creator, initialShares); err != nil {
 		return nil, err
-	}
-
-	// Transfer tokens from creator to module
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	moduleAddr := k.GetModuleAddress()
-
-	coinA := sdk.NewCoin(tokenA, amountA)
-	coinB := sdk.NewCoin(tokenB, amountB)
-
-	if err := k.bankKeeper.SendCoins(sdkCtx, creator, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
-		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
 	// Emit event
@@ -195,6 +195,10 @@ func (k Keeper) SetPoolByTokens(ctx context.Context, tokenA, tokenB string, pool
 	return nil
 }
 
+// MaxIterationLimit is the maximum number of items to return in unbounded queries
+// This prevents DoS attacks via excessive iteration
+const MaxIterationLimit = 100
+
 // IteratePools iterates over all pools
 func (k Keeper) IteratePools(ctx context.Context, cb func(pool types.Pool) (stop bool)) error {
 	store := k.getStore(ctx)
@@ -213,11 +217,16 @@ func (k Keeper) IteratePools(ctx context.Context, cb func(pool types.Pool) (stop
 	return nil
 }
 
-// GetAllPools returns all pools
+// GetAllPools returns all pools with a maximum limit to prevent DoS
 func (k Keeper) GetAllPools(ctx context.Context) ([]types.Pool, error) {
 	var pools []types.Pool
+	count := 0
 	err := k.IteratePools(ctx, func(pool types.Pool) bool {
+		if count >= MaxIterationLimit {
+			return true // Stop iteration at limit
+		}
 		pools = append(pools, pool)
+		count++
 		return false
 	})
 	return pools, err

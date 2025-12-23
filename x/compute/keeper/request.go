@@ -368,13 +368,22 @@ func (k Keeper) SetRequest(ctx context.Context, request types.Request) error {
 	return nil
 }
 
-// IterateRequests iterates over all requests
+// MaxIterationLimit is the maximum number of items to return in unbounded queries
+// This prevents DoS attacks via excessive iteration
+const MaxIterationLimit = 100
+
+// IterateRequests iterates over all requests with a maximum limit
 func (k Keeper) IterateRequests(ctx context.Context, cb func(request types.Request) (stop bool, err error)) error {
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, RequestKeyPrefix)
 	defer iterator.Close()
 
+	count := 0
 	for ; iterator.Valid(); iterator.Next() {
+		if count >= MaxIterationLimit {
+			break // Stop at limit to prevent DoS
+		}
+
 		var request types.Request
 		if err := k.cdc.Unmarshal(iterator.Value(), &request); err != nil {
 			return err
@@ -387,19 +396,25 @@ func (k Keeper) IterateRequests(ctx context.Context, cb func(request types.Reque
 		if stop {
 			break
 		}
+		count++
 	}
 
 	return nil
 }
 
-// IterateRequestsByRequester iterates over requests by a specific requester
+// IterateRequestsByRequester iterates over requests by a specific requester with a maximum limit
 func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.AccAddress, cb func(request types.Request) (stop bool, err error)) error {
 	store := k.getStore(ctx)
 	prefix := append(RequestsByRequesterPrefix, requester.Bytes()...)
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	count := 0
 	for ; iterator.Valid(); iterator.Next() {
+		if count >= MaxIterationLimit {
+			break // Stop at limit to prevent DoS
+		}
+
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
@@ -416,19 +431,25 @@ func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.Ac
 		if stop {
 			break
 		}
+		count++
 	}
 
 	return nil
 }
 
-// IterateRequestsByProvider iterates over requests assigned to a specific provider
+// IterateRequestsByProvider iterates over requests assigned to a specific provider with a maximum limit
 func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccAddress, cb func(request types.Request) (stop bool, err error)) error {
 	store := k.getStore(ctx)
 	prefix := append(RequestsByProviderPrefix, provider.Bytes()...)
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	count := 0
 	for ; iterator.Valid(); iterator.Next() {
+		if count >= MaxIterationLimit {
+			break // Stop at limit to prevent DoS
+		}
+
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
@@ -445,12 +466,13 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 		if stop {
 			break
 		}
+		count++
 	}
 
 	return nil
 }
 
-// IterateRequestsByStatus iterates over requests with a specific status
+// IterateRequestsByStatus iterates over requests with a specific status with a maximum limit
 func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.RequestStatus, cb func(request types.Request) (stop bool, err error)) error {
 	store := k.getStore(ctx)
 	statusBz := make([]byte, 4)
@@ -459,7 +481,12 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
+	count := 0
 	for ; iterator.Valid(); iterator.Next() {
+		if count >= MaxIterationLimit {
+			break // Stop at limit to prevent DoS
+		}
+
 		// Extract request ID from key
 		keyLen := len(prefix)
 		requestID := GetRequestIDFromBytes(iterator.Key()[keyLen:])
@@ -476,6 +503,7 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 		if stop {
 			break
 		}
+		count++
 	}
 
 	return nil
