@@ -89,7 +89,7 @@ var (
 	RequestFinalizedPrefix = []byte{0x1B}
 
 	// NonceByHeightPrefix is the prefix for indexing nonces by block height for cleanup
-	NonceByHeightPrefix = []byte{0x19}
+	NonceByHeightPrefix = []byte{0x1E}
 
 	// ProviderStatsKeyPrefix is the prefix for provider performance statistics
 	ProviderStatsKeyPrefix = []byte{0x1C}
@@ -98,6 +98,17 @@ var (
 	// Key: prefix + requestID -> timeout timestamp
 	// This enables O(1) lookup when removing timeout indexes.
 	EscrowTimeoutReversePrefix = []byte{0x1D}
+
+	// ProvidersByReputationPrefix is the prefix for reputation-sorted provider index
+	// Key: prefix + reputation (inverted for descending order) + provider address
+	// This enables O(log n) provider selection by reputation score
+	ProvidersByReputationPrefix = []byte{0x1F}
+
+	// CatastrophicFailureKeyPrefix is the prefix for catastrophic failure records
+	CatastrophicFailureKeyPrefix = []byte{0x23}
+
+	// NextCatastrophicFailureIDKey is the key for the next catastrophic failure ID counter
+	NextCatastrophicFailureIDKey = []byte{0x24}
 )
 
 // ProviderKey returns the store key for a provider
@@ -303,4 +314,30 @@ func EscrowTimeoutReverseKey(requestID uint64) []byte {
 	bz := make([]byte, 8)
 	binary.BigEndian.PutUint64(bz, requestID)
 	return append(EscrowTimeoutReversePrefix, bz...)
+}
+
+// ProviderByReputationKey returns the index key for providers sorted by reputation (descending)
+// We invert the reputation score (255 - reputation) to achieve descending order in the iterator
+func ProviderByReputationKey(reputation uint32, address sdk.AccAddress) []byte {
+	// Invert reputation for descending order (higher reputation comes first)
+	invertedRep := uint32(255) - reputation
+	if invertedRep > 255 {
+		invertedRep = 255
+	}
+
+	repBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(repBz, invertedRep)
+	return append(append(ProvidersByReputationPrefix, repBz...), address.Bytes()...)
+}
+
+// CatastrophicFailureKey returns the store key for a catastrophic failure record
+func CatastrophicFailureKey(failureID uint64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, failureID)
+	return append(CatastrophicFailureKeyPrefix, bz...)
+}
+
+// GetCatastrophicFailureIDFromBytes converts bytes to catastrophic failure ID
+func GetCatastrophicFailureIDFromBytes(bz []byte) uint64 {
+	return binary.BigEndian.Uint64(bz)
 }

@@ -76,6 +76,11 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 		return fmt.Errorf("failed to set active provider index: %w", err)
 	}
 
+	// Add to reputation index
+	if err := k.setReputationIndex(ctx, provider, initialRep); err != nil {
+		return fmt.Errorf("failed to set reputation index: %w", err)
+	}
+
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -167,6 +172,11 @@ func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress)
 	// Remove from active providers index
 	if err := k.setActiveProviderIndex(ctx, provider, false); err != nil {
 		return fmt.Errorf("failed to update active provider index: %w", err)
+	}
+
+	// Remove from reputation index
+	if err := k.deleteReputationIndex(ctx, provider, existing.Reputation); err != nil {
+		return fmt.Errorf("failed to delete reputation index: %w", err)
 	}
 
 	// Return stake to provider
@@ -321,6 +331,8 @@ func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAd
 		return err
 	}
 
+	oldReputation := providerRecord.Reputation
+
 	if success {
 		providerRecord.TotalRequestsCompleted++
 		// Gradually improve reputation towards 100
@@ -342,6 +354,18 @@ func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAd
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	providerRecord.LastActiveAt = sdkCtx.BlockTime()
 
+	// Update reputation index if reputation changed and provider is active
+	if oldReputation != providerRecord.Reputation && providerRecord.Active {
+		// Remove old index entry
+		if err := k.deleteReputationIndex(ctx, provider, oldReputation); err != nil {
+			return fmt.Errorf("failed to delete old reputation index: %w", err)
+		}
+		// Add new index entry
+		if err := k.setReputationIndex(ctx, provider, providerRecord.Reputation); err != nil {
+			return fmt.Errorf("failed to set new reputation index: %w", err)
+		}
+	}
+
 	return k.SetProvider(ctx, *providerRecord)
 }
 
@@ -355,6 +379,22 @@ func (k Keeper) setActiveProviderIndex(ctx context.Context, provider sdk.AccAddr
 	} else {
 		store.Delete(key)
 	}
+	return nil
+}
+
+// setReputationIndex adds a provider to the reputation-sorted index
+func (k Keeper) setReputationIndex(ctx context.Context, provider sdk.AccAddress, reputation uint32) error {
+	store := k.getStore(ctx)
+	key := ProviderByReputationKey(reputation, provider)
+	store.Set(key, provider.Bytes())
+	return nil
+}
+
+// deleteReputationIndex removes a provider from the reputation-sorted index
+func (k Keeper) deleteReputationIndex(ctx context.Context, provider sdk.AccAddress, reputation uint32) error {
+	store := k.getStore(ctx)
+	key := ProviderByReputationKey(reputation, provider)
+	store.Delete(key)
 	return nil
 }
 
@@ -422,40 +462,38 @@ func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpe
 		}
 	}
 
-	// Find best provider based on reputation and capability
-	var bestProvider *types.Provider
-	var bestAddr sdk.AccAddress
+	// Use reputation index to find best provider (already sorted by reputation descending)
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, ProvidersByReputationPrefix)
+	defer iterator.Close()
 
-	err = k.IterateActiveProviders(ctx, func(provider types.Provider) (bool, error) {
+	for ; iterator.Valid(); iterator.Next() {
+		// The value is the provider address
+		providerAddr := sdk.AccAddress(iterator.Value())
+		provider, err := k.GetProvider(ctx, providerAddr)
+		if err != nil {
+			continue // Skip if provider not found
+		}
+
+		// Check if provider meets minimum reputation
 		if provider.Reputation < params.MinReputationScore {
-			return false, nil
+			// Since we're iterating in descending reputation order,
+			// all remaining providers will have lower reputation
+			break
 		}
 
-		if !k.canProviderHandleSpecs(provider, specs) {
-			return false, nil
+		// Check if provider is active
+		if !provider.Active {
+			continue
 		}
 
-		if bestProvider == nil || provider.Reputation > bestProvider.Reputation {
-			bestProvider = &provider
-			addr, err := sdk.AccAddressFromBech32(provider.Address)
-			if err != nil {
-				return false, err
-			}
-			bestAddr = addr
+		// Check if provider can handle the requested specs
+		if k.canProviderHandleSpecs(*provider, specs) {
+			return providerAddr, nil
 		}
-
-		return false, nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 
-	if bestProvider == nil {
-		return nil, fmt.Errorf("no suitable provider found for requested specs")
-	}
-
-	return bestAddr, nil
+	return nil, fmt.Errorf("no suitable provider found for requested specs")
 }
 
 // canProviderHandleSpecs checks if a provider can handle the requested specs
