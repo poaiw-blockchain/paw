@@ -125,6 +125,16 @@ service Query {
   rpc GovernanceParams(QueryGovernanceParamsRequest) returns (QueryGovernanceParamsResponse) {
     option (google.api.http).get = "/paw/compute/v1/governance/params";
   }
+
+  // CatastrophicFailures queries all catastrophic failure records
+  rpc CatastrophicFailures(QueryCatastrophicFailuresRequest) returns (QueryCatastrophicFailuresResponse) {
+    option (google.api.http).get = "/paw/compute/v1/catastrophic_failures";
+  }
+
+  // CatastrophicFailure queries a single catastrophic failure by ID
+  rpc CatastrophicFailure(QueryCatastrophicFailureRequest) returns (QueryCatastrophicFailureResponse) {
+    option (google.api.http).get = "/paw/compute/v1/catastrophic_failures/{failure_id}";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -381,4 +391,27 @@ message QueryGovernanceParamsRequest {}
 // QueryGovernanceParamsResponse is the response type for the Query/GovernanceParams RPC method.
 message QueryGovernanceParamsResponse {
   GovernanceParams params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryCatastrophicFailuresRequest is the request type for the Query/CatastrophicFailures RPC method.
+message QueryCatastrophicFailuresRequest {
+  // only_unresolved filters to show only unresolved failures if true
+  bool only_unresolved = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+// QueryCatastrophicFailuresResponse is the response type for the Query/CatastrophicFailures RPC method.
+message QueryCatastrophicFailuresResponse {
+  repeated CatastrophicFailure failures = 1 [(gogoproto.nullable) = false];
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryCatastrophicFailureRequest is the request type for the Query/CatastrophicFailure RPC method.
+message QueryCatastrophicFailureRequest {
+  uint64 failure_id = 1;
+}
+
+// QueryCatastrophicFailureResponse is the response type for the Query/CatastrophicFailure RPC method.
+message QueryCatastrophicFailureResponse {
+  CatastrophicFailure failure = 1;
 }

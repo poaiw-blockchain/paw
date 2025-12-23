@@ -612,3 +612,54 @@ func (qs queryServer) GovernanceParams(goCtx context.Context, req *types.QueryGo
 	}
 	return &types.QueryGovernanceParamsResponse{Params: params}, nil
 }
+
+// CatastrophicFailures queries all catastrophic failure records with optional filtering
+func (qs queryServer) CatastrophicFailures(goCtx context.Context, req *types.QueryCatastrophicFailuresRequest) (*types.QueryCatastrophicFailuresResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	store := qs.Keeper.getStore(ctx)
+	failureStore := storeprefix.NewStore(store, CatastrophicFailureKeyPrefix)
+
+	var failures []types.CatastrophicFailure
+	pageRes, err := query.Paginate(failureStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
+		var failure types.CatastrophicFailure
+		if err := qs.Keeper.cdc.Unmarshal(value, &failure); err != nil {
+			return err
+		}
+
+		// Filter by resolved status if requested
+		if req.OnlyUnresolved && failure.Resolved {
+			return nil // Skip resolved failures if filter is active
+		}
+
+		failures = append(failures, failure)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &types.QueryCatastrophicFailuresResponse{Failures: failures, Pagination: pageRes}, nil
+}
+
+// CatastrophicFailure queries a single catastrophic failure record by ID
+func (qs queryServer) CatastrophicFailure(goCtx context.Context, req *types.QueryCatastrophicFailureRequest) (*types.QueryCatastrophicFailureResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	if req.FailureId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "failure ID must be greater than 0")
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	failure, err := qs.Keeper.GetCatastrophicFailure(ctx, req.FailureId)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, fmt.Sprintf("catastrophic failure not found: %s", err))
+	}
+
+	return &types.QueryCatastrophicFailureResponse{Failure: failure}, nil
+}

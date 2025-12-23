@@ -22177,6 +22177,1907 @@ func (x *fastReflection_QueryGovernanceParamsResponse) ProtoMethods() *protoifac
 	}
 }
 
+var (
+	md_QueryCatastrophicFailuresRequest                 protoreflect.MessageDescriptor
+	fd_QueryCatastrophicFailuresRequest_only_unresolved protoreflect.FieldDescriptor
+	fd_QueryCatastrophicFailuresRequest_pagination      protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QueryCatastrophicFailuresRequest = File_paw_compute_v1_query_proto.Messages().ByName("QueryCatastrophicFailuresRequest")
+	fd_QueryCatastrophicFailuresRequest_only_unresolved = md_QueryCatastrophicFailuresRequest.Fields().ByName("only_unresolved")
+	fd_QueryCatastrophicFailuresRequest_pagination = md_QueryCatastrophicFailuresRequest.Fields().ByName("pagination")
+}
+
+var _ protoreflect.Message = (*fastReflection_QueryCatastrophicFailuresRequest)(nil)
+
+type fastReflection_QueryCatastrophicFailuresRequest QueryCatastrophicFailuresRequest
+
+func (x *QueryCatastrophicFailuresRequest) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailuresRequest)(x)
+}
+
+func (x *QueryCatastrophicFailuresRequest) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[46]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QueryCatastrophicFailuresRequest_messageType fastReflection_QueryCatastrophicFailuresRequest_messageType
+var _ protoreflect.MessageType = fastReflection_QueryCatastrophicFailuresRequest_messageType{}
+
+type fastReflection_QueryCatastrophicFailuresRequest_messageType struct{}
+
+func (x fastReflection_QueryCatastrophicFailuresRequest_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailuresRequest)(nil)
+}
+func (x fastReflection_QueryCatastrophicFailuresRequest_messageType) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailuresRequest)
+}
+func (x fastReflection_QueryCatastrophicFailuresRequest_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailuresRequest
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailuresRequest
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Type() protoreflect.MessageType {
+	return _fastReflection_QueryCatastrophicFailuresRequest_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailuresRequest)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Interface() protoreflect.ProtoMessage {
+	return (*QueryCatastrophicFailuresRequest)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.OnlyUnresolved != false {
+		value := protoreflect.ValueOfBool(x.OnlyUnresolved)
+		if !f(fd_QueryCatastrophicFailuresRequest_only_unresolved, value) {
+			return
+		}
+	}
+	if x.Pagination != nil {
+		value := protoreflect.ValueOfMessage(x.Pagination.ProtoReflect())
+		if !f(fd_QueryCatastrophicFailuresRequest_pagination, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		return x.OnlyUnresolved != false
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		return x.Pagination != nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		x.OnlyUnresolved = false
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		x.Pagination = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		value := x.OnlyUnresolved
+		return protoreflect.ValueOfBool(value)
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		value := x.Pagination
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		x.OnlyUnresolved = value.Bool()
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		x.Pagination = value.Message().Interface().(*query.PageRequest)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		if x.Pagination == nil {
+			x.Pagination = new(query.PageRequest)
+		}
+		return protoreflect.ValueOfMessage(x.Pagination.ProtoReflect())
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		panic(fmt.Errorf("field only_unresolved of message paw.compute.v1.QueryCatastrophicFailuresRequest is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.only_unresolved":
+		return protoreflect.ValueOfBool(false)
+	case "paw.compute.v1.QueryCatastrophicFailuresRequest.pagination":
+		m := new(query.PageRequest)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QueryCatastrophicFailuresRequest", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QueryCatastrophicFailuresRequest) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresRequest)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.OnlyUnresolved {
+			n += 2
+		}
+		if x.Pagination != nil {
+			l = options.Size(x.Pagination)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresRequest)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.Pagination != nil {
+			encoded, err := options.Marshal(x.Pagination)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if x.OnlyUnresolved {
+			i--
+			if x.OnlyUnresolved {
+				dAtA[i] = 1
+			} else {
+				dAtA[i] = 0
+			}
+			i--
+			dAtA[i] = 0x8
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresRequest)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailuresRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailuresRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field OnlyUnresolved", wireType)
+				}
+				var v int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				x.OnlyUnresolved = bool(v != 0)
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.Pagination == nil {
+					x.Pagination = &query.PageRequest{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Pagination); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var _ protoreflect.List = (*_QueryCatastrophicFailuresResponse_1_list)(nil)
+
+type _QueryCatastrophicFailuresResponse_1_list struct {
+	list *[]*CatastrophicFailure
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfMessage((*x.list)[i].ProtoReflect())
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.Message()
+	concreteValue := valueUnwrapped.Interface().(*CatastrophicFailure)
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.Message()
+	concreteValue := valueUnwrapped.Interface().(*CatastrophicFailure)
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) AppendMutable() protoreflect.Value {
+	v := new(CatastrophicFailure)
+	*x.list = append(*x.list, v)
+	return protoreflect.ValueOfMessage(v.ProtoReflect())
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) Truncate(n int) {
+	for i := n; i < len(*x.list); i++ {
+		(*x.list)[i] = nil
+	}
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) NewElement() protoreflect.Value {
+	v := new(CatastrophicFailure)
+	return protoreflect.ValueOfMessage(v.ProtoReflect())
+}
+
+func (x *_QueryCatastrophicFailuresResponse_1_list) IsValid() bool {
+	return x.list != nil
+}
+
+var (
+	md_QueryCatastrophicFailuresResponse            protoreflect.MessageDescriptor
+	fd_QueryCatastrophicFailuresResponse_failures   protoreflect.FieldDescriptor
+	fd_QueryCatastrophicFailuresResponse_pagination protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QueryCatastrophicFailuresResponse = File_paw_compute_v1_query_proto.Messages().ByName("QueryCatastrophicFailuresResponse")
+	fd_QueryCatastrophicFailuresResponse_failures = md_QueryCatastrophicFailuresResponse.Fields().ByName("failures")
+	fd_QueryCatastrophicFailuresResponse_pagination = md_QueryCatastrophicFailuresResponse.Fields().ByName("pagination")
+}
+
+var _ protoreflect.Message = (*fastReflection_QueryCatastrophicFailuresResponse)(nil)
+
+type fastReflection_QueryCatastrophicFailuresResponse QueryCatastrophicFailuresResponse
+
+func (x *QueryCatastrophicFailuresResponse) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailuresResponse)(x)
+}
+
+func (x *QueryCatastrophicFailuresResponse) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[47]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QueryCatastrophicFailuresResponse_messageType fastReflection_QueryCatastrophicFailuresResponse_messageType
+var _ protoreflect.MessageType = fastReflection_QueryCatastrophicFailuresResponse_messageType{}
+
+type fastReflection_QueryCatastrophicFailuresResponse_messageType struct{}
+
+func (x fastReflection_QueryCatastrophicFailuresResponse_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailuresResponse)(nil)
+}
+func (x fastReflection_QueryCatastrophicFailuresResponse_messageType) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailuresResponse)
+}
+func (x fastReflection_QueryCatastrophicFailuresResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailuresResponse
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailuresResponse
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Type() protoreflect.MessageType {
+	return _fastReflection_QueryCatastrophicFailuresResponse_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailuresResponse)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Interface() protoreflect.ProtoMessage {
+	return (*QueryCatastrophicFailuresResponse)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if len(x.Failures) != 0 {
+		value := protoreflect.ValueOfList(&_QueryCatastrophicFailuresResponse_1_list{list: &x.Failures})
+		if !f(fd_QueryCatastrophicFailuresResponse_failures, value) {
+			return
+		}
+	}
+	if x.Pagination != nil {
+		value := protoreflect.ValueOfMessage(x.Pagination.ProtoReflect())
+		if !f(fd_QueryCatastrophicFailuresResponse_pagination, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		return len(x.Failures) != 0
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		return x.Pagination != nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		x.Failures = nil
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		x.Pagination = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		if len(x.Failures) == 0 {
+			return protoreflect.ValueOfList(&_QueryCatastrophicFailuresResponse_1_list{})
+		}
+		listValue := &_QueryCatastrophicFailuresResponse_1_list{list: &x.Failures}
+		return protoreflect.ValueOfList(listValue)
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		value := x.Pagination
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		lv := value.List()
+		clv := lv.(*_QueryCatastrophicFailuresResponse_1_list)
+		x.Failures = *clv.list
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		x.Pagination = value.Message().Interface().(*query.PageResponse)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		if x.Failures == nil {
+			x.Failures = []*CatastrophicFailure{}
+		}
+		value := &_QueryCatastrophicFailuresResponse_1_list{list: &x.Failures}
+		return protoreflect.ValueOfList(value)
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		if x.Pagination == nil {
+			x.Pagination = new(query.PageResponse)
+		}
+		return protoreflect.ValueOfMessage(x.Pagination.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.failures":
+		list := []*CatastrophicFailure{}
+		return protoreflect.ValueOfList(&_QueryCatastrophicFailuresResponse_1_list{list: &list})
+	case "paw.compute.v1.QueryCatastrophicFailuresResponse.pagination":
+		m := new(query.PageResponse)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailuresResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailuresResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QueryCatastrophicFailuresResponse", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QueryCatastrophicFailuresResponse) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresResponse)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if len(x.Failures) > 0 {
+			for _, e := range x.Failures {
+				l = options.Size(e)
+				n += 1 + l + runtime.Sov(uint64(l))
+			}
+		}
+		if x.Pagination != nil {
+			l = options.Size(x.Pagination)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresResponse)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.Pagination != nil {
+			encoded, err := options.Marshal(x.Pagination)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if len(x.Failures) > 0 {
+			for iNdEx := len(x.Failures) - 1; iNdEx >= 0; iNdEx-- {
+				encoded, err := options.Marshal(x.Failures[iNdEx])
+				if err != nil {
+					return protoiface.MarshalOutput{
+						NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+						Buf:               input.Buf,
+					}, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+				i--
+				dAtA[i] = 0xa
+			}
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailuresResponse)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailuresResponse: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailuresResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Failures", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.Failures = append(x.Failures, &CatastrophicFailure{})
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Failures[len(x.Failures)-1]); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Pagination", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.Pagination == nil {
+					x.Pagination = &query.PageResponse{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Pagination); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var (
+	md_QueryCatastrophicFailureRequest            protoreflect.MessageDescriptor
+	fd_QueryCatastrophicFailureRequest_failure_id protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QueryCatastrophicFailureRequest = File_paw_compute_v1_query_proto.Messages().ByName("QueryCatastrophicFailureRequest")
+	fd_QueryCatastrophicFailureRequest_failure_id = md_QueryCatastrophicFailureRequest.Fields().ByName("failure_id")
+}
+
+var _ protoreflect.Message = (*fastReflection_QueryCatastrophicFailureRequest)(nil)
+
+type fastReflection_QueryCatastrophicFailureRequest QueryCatastrophicFailureRequest
+
+func (x *QueryCatastrophicFailureRequest) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailureRequest)(x)
+}
+
+func (x *QueryCatastrophicFailureRequest) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[48]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QueryCatastrophicFailureRequest_messageType fastReflection_QueryCatastrophicFailureRequest_messageType
+var _ protoreflect.MessageType = fastReflection_QueryCatastrophicFailureRequest_messageType{}
+
+type fastReflection_QueryCatastrophicFailureRequest_messageType struct{}
+
+func (x fastReflection_QueryCatastrophicFailureRequest_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailureRequest)(nil)
+}
+func (x fastReflection_QueryCatastrophicFailureRequest_messageType) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailureRequest)
+}
+func (x fastReflection_QueryCatastrophicFailureRequest_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailureRequest
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailureRequest
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Type() protoreflect.MessageType {
+	return _fastReflection_QueryCatastrophicFailureRequest_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QueryCatastrophicFailureRequest) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailureRequest)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Interface() protoreflect.ProtoMessage {
+	return (*QueryCatastrophicFailureRequest)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.FailureId != uint64(0) {
+		value := protoreflect.ValueOfUint64(x.FailureId)
+		if !f(fd_QueryCatastrophicFailureRequest_failure_id, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		return x.FailureId != uint64(0)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		x.FailureId = uint64(0)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		value := x.FailureId
+		return protoreflect.ValueOfUint64(value)
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		x.FailureId = value.Uint()
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureRequest) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		panic(fmt.Errorf("field failure_id of message paw.compute.v1.QueryCatastrophicFailureRequest is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QueryCatastrophicFailureRequest) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureRequest.failure_id":
+		return protoreflect.ValueOfUint64(uint64(0))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QueryCatastrophicFailureRequest) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QueryCatastrophicFailureRequest", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QueryCatastrophicFailureRequest) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureRequest) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QueryCatastrophicFailureRequest) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QueryCatastrophicFailureRequest) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QueryCatastrophicFailureRequest)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.FailureId != 0 {
+			n += 1 + runtime.Sov(uint64(x.FailureId))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailureRequest)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.FailureId != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.FailureId))
+			i--
+			dAtA[i] = 0x8
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailureRequest)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailureRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailureRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field FailureId", wireType)
+				}
+				x.FailureId = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.FailureId |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var (
+	md_QueryCatastrophicFailureResponse         protoreflect.MessageDescriptor
+	fd_QueryCatastrophicFailureResponse_failure protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QueryCatastrophicFailureResponse = File_paw_compute_v1_query_proto.Messages().ByName("QueryCatastrophicFailureResponse")
+	fd_QueryCatastrophicFailureResponse_failure = md_QueryCatastrophicFailureResponse.Fields().ByName("failure")
+}
+
+var _ protoreflect.Message = (*fastReflection_QueryCatastrophicFailureResponse)(nil)
+
+type fastReflection_QueryCatastrophicFailureResponse QueryCatastrophicFailureResponse
+
+func (x *QueryCatastrophicFailureResponse) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailureResponse)(x)
+}
+
+func (x *QueryCatastrophicFailureResponse) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[49]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QueryCatastrophicFailureResponse_messageType fastReflection_QueryCatastrophicFailureResponse_messageType
+var _ protoreflect.MessageType = fastReflection_QueryCatastrophicFailureResponse_messageType{}
+
+type fastReflection_QueryCatastrophicFailureResponse_messageType struct{}
+
+func (x fastReflection_QueryCatastrophicFailureResponse_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QueryCatastrophicFailureResponse)(nil)
+}
+func (x fastReflection_QueryCatastrophicFailureResponse_messageType) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailureResponse)
+}
+func (x fastReflection_QueryCatastrophicFailureResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailureResponse
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Descriptor() protoreflect.MessageDescriptor {
+	return md_QueryCatastrophicFailureResponse
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Type() protoreflect.MessageType {
+	return _fastReflection_QueryCatastrophicFailureResponse_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QueryCatastrophicFailureResponse) New() protoreflect.Message {
+	return new(fastReflection_QueryCatastrophicFailureResponse)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Interface() protoreflect.ProtoMessage {
+	return (*QueryCatastrophicFailureResponse)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.Failure != nil {
+		value := protoreflect.ValueOfMessage(x.Failure.ProtoReflect())
+		if !f(fd_QueryCatastrophicFailureResponse_failure, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		return x.Failure != nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		x.Failure = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		value := x.Failure
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		x.Failure = value.Message().Interface().(*CatastrophicFailure)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		if x.Failure == nil {
+			x.Failure = new(CatastrophicFailure)
+		}
+		return protoreflect.ValueOfMessage(x.Failure.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QueryCatastrophicFailureResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QueryCatastrophicFailureResponse.failure":
+		m := new(CatastrophicFailure)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QueryCatastrophicFailureResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QueryCatastrophicFailureResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QueryCatastrophicFailureResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QueryCatastrophicFailureResponse", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QueryCatastrophicFailureResponse) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QueryCatastrophicFailureResponse) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QueryCatastrophicFailureResponse) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QueryCatastrophicFailureResponse) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QueryCatastrophicFailureResponse)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.Failure != nil {
+			l = options.Size(x.Failure)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailureResponse)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.Failure != nil {
+			encoded, err := options.Marshal(x.Failure)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0xa
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QueryCatastrophicFailureResponse)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailureResponse: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QueryCatastrophicFailureResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Failure", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.Failure == nil {
+					x.Failure = &CatastrophicFailure{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Failure); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
 // Code generated by protoc-gen-go. DO NOT EDIT.
 // versions:
 // 	protoc-gen-go v1.27.0
@@ -24020,6 +25921,167 @@ func (x *QueryGovernanceParamsResponse) GetParams() *GovernanceParams {
 	return nil
 }
 
+// QueryCatastrophicFailuresRequest is the request type for the Query/CatastrophicFailures RPC method.
+type QueryCatastrophicFailuresRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// only_unresolved filters to show only unresolved failures if true
+	OnlyUnresolved bool               `protobuf:"varint,1,opt,name=only_unresolved,json=onlyUnresolved,proto3" json:"only_unresolved,omitempty"`
+	Pagination     *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (x *QueryCatastrophicFailuresRequest) Reset() {
+	*x = QueryCatastrophicFailuresRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[46]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QueryCatastrophicFailuresRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryCatastrophicFailuresRequest) ProtoMessage() {}
+
+// Deprecated: Use QueryCatastrophicFailuresRequest.ProtoReflect.Descriptor instead.
+func (*QueryCatastrophicFailuresRequest) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *QueryCatastrophicFailuresRequest) GetOnlyUnresolved() bool {
+	if x != nil {
+		return x.OnlyUnresolved
+	}
+	return false
+}
+
+func (x *QueryCatastrophicFailuresRequest) GetPagination() *query.PageRequest {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+// QueryCatastrophicFailuresResponse is the response type for the Query/CatastrophicFailures RPC method.
+type QueryCatastrophicFailuresResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Failures   []*CatastrophicFailure `protobuf:"bytes,1,rep,name=failures,proto3" json:"failures,omitempty"`
+	Pagination *query.PageResponse    `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+func (x *QueryCatastrophicFailuresResponse) Reset() {
+	*x = QueryCatastrophicFailuresResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[47]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QueryCatastrophicFailuresResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryCatastrophicFailuresResponse) ProtoMessage() {}
+
+// Deprecated: Use QueryCatastrophicFailuresResponse.ProtoReflect.Descriptor instead.
+func (*QueryCatastrophicFailuresResponse) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *QueryCatastrophicFailuresResponse) GetFailures() []*CatastrophicFailure {
+	if x != nil {
+		return x.Failures
+	}
+	return nil
+}
+
+func (x *QueryCatastrophicFailuresResponse) GetPagination() *query.PageResponse {
+	if x != nil {
+		return x.Pagination
+	}
+	return nil
+}
+
+// QueryCatastrophicFailureRequest is the request type for the Query/CatastrophicFailure RPC method.
+type QueryCatastrophicFailureRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	FailureId uint64 `protobuf:"varint,1,opt,name=failure_id,json=failureId,proto3" json:"failure_id,omitempty"`
+}
+
+func (x *QueryCatastrophicFailureRequest) Reset() {
+	*x = QueryCatastrophicFailureRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[48]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QueryCatastrophicFailureRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryCatastrophicFailureRequest) ProtoMessage() {}
+
+// Deprecated: Use QueryCatastrophicFailureRequest.ProtoReflect.Descriptor instead.
+func (*QueryCatastrophicFailureRequest) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *QueryCatastrophicFailureRequest) GetFailureId() uint64 {
+	if x != nil {
+		return x.FailureId
+	}
+	return 0
+}
+
+// QueryCatastrophicFailureResponse is the response type for the Query/CatastrophicFailure RPC method.
+type QueryCatastrophicFailureResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Failure *CatastrophicFailure `protobuf:"bytes,1,opt,name=failure,proto3" json:"failure,omitempty"`
+}
+
+func (x *QueryCatastrophicFailureResponse) Reset() {
+	*x = QueryCatastrophicFailureResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[49]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QueryCatastrophicFailureResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryCatastrophicFailureResponse) ProtoMessage() {}
+
+// Deprecated: Use QueryCatastrophicFailureResponse.ProtoReflect.Descriptor instead.
+func (*QueryCatastrophicFailureResponse) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *QueryCatastrophicFailureResponse) GetFailure() *CatastrophicFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return nil
+}
+
 var File_paw_compute_v1_query_proto protoreflect.FileDescriptor
 
 var file_paw_compute_v1_query_proto_rawDesc = []byte{
@@ -24367,219 +26429,273 @@ var file_paw_compute_v1_query_proto_rawDesc = []byte{
 	0x3e, 0x0a, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
 	0x20, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31,
 	0x2e, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61, 0x6e, 0x63, 0x65, 0x50, 0x61, 0x72, 0x61, 0x6d,
-	0x73, 0x42, 0x04, 0xc8, 0xde, 0x1f, 0x00, 0x52, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x32,
-	0x88, 0x1a, 0x0a, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x71, 0x0a, 0x06, 0x50, 0x61, 0x72,
-	0x61, 0x6d, 0x73, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
-	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x61,
-	0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1e, 0x82, 0xd3,
-	0xe4, 0x93, 0x02, 0x18, 0x12, 0x16, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x84, 0x01, 0x0a,
-	0x08, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79,
-	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31,
-	0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2b, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x25, 0x12, 0x23,
-	0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f,
-	0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2f, 0x7b, 0x61, 0x64, 0x64, 0x72, 0x65,
-	0x73, 0x73, 0x7d, 0x12, 0x7d, 0x0a, 0x09, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73,
-	0x12, 0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0x21, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1b, 0x12, 0x19, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
-	0x72, 0x73, 0x12, 0x96, 0x01, 0x0a, 0x0f, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x50, 0x72, 0x6f,
-	0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x2b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x63, 0x74,
-	0x69, 0x76, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
-	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65,
-	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x28, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x22, 0x12, 0x20, 0x2f, 0x70, 0x61, 0x77, 0x2f,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x65, 0x12, 0x7b, 0x0a, 0x07, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70, 0x61,
-	0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65,
-	0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x25, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1f, 0x12, 0x1d, 0x2f, 0x70, 0x61, 0x77, 0x2f,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x73, 0x2f, 0x7b, 0x69, 0x64, 0x7d, 0x12, 0x79, 0x0a, 0x08, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x73, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x70, 0x61, 0x77,
+	0x73, 0x42, 0x04, 0xc8, 0xde, 0x1f, 0x00, 0x52, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x22,
+	0x93, 0x01, 0x0a, 0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72,
+	0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x73, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x27, 0x0a, 0x0f, 0x6f, 0x6e, 0x6c, 0x79, 0x5f, 0x75, 0x6e, 0x72,
+	0x65, 0x73, 0x6f, 0x6c, 0x76, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0e, 0x6f,
+	0x6e, 0x6c, 0x79, 0x55, 0x6e, 0x72, 0x65, 0x73, 0x6f, 0x6c, 0x76, 0x65, 0x64, 0x12, 0x46, 0x0a,
+	0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x26, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x62, 0x61, 0x73, 0x65, 0x2e,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x76, 0x31, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x50, 0x61,
+	0x67, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0xb3, 0x01, 0x0a, 0x21, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43,
+	0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75,
+	0x72, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x45, 0x0a, 0x08, 0x66,
+	0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x23, 0x2e,
+	0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x43,
+	0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75,
+	0x72, 0x65, 0x42, 0x04, 0xc8, 0xde, 0x1f, 0x00, 0x52, 0x08, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72,
+	0x65, 0x73, 0x12, 0x47, 0x0a, 0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e,
+	0x62, 0x61, 0x73, 0x65, 0x2e, 0x71, 0x75, 0x65, 0x72, 0x79, 0x2e, 0x76, 0x31, 0x62, 0x65, 0x74,
+	0x61, 0x31, 0x2e, 0x50, 0x61, 0x67, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x52,
+	0x0a, 0x70, 0x61, 0x67, 0x69, 0x6e, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x40, 0x0a, 0x1f, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63,
+	0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d,
+	0x0a, 0x0a, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x09, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x49, 0x64, 0x22, 0x61, 0x0a,
+	0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68,
+	0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x3d, 0x0a, 0x07, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63,
+	0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x07, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65,
+	0x32, 0xec, 0x1c, 0x0a, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x71, 0x0a, 0x06, 0x50, 0x61,
+	0x72, 0x61, 0x6d, 0x73, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
+	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x61, 0x72, 0x61, 0x6d,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50,
+	0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1e, 0x82,
+	0xd3, 0xe4, 0x93, 0x02, 0x18, 0x12, 0x16, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0x84, 0x01,
+	0x0a, 0x08, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77,
 	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72,
-	0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x12, 0x18, 0x2f, 0x70, 0x61, 0x77, 0x2f,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x73, 0x12, 0xb0, 0x01, 0x0a, 0x13, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73,
-	0x42, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x12, 0x2f, 0x2e, 0x70, 0x61,
+	0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
+	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2b, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x25, 0x12,
+	0x23, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31,
+	0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2f, 0x7b, 0x61, 0x64, 0x64, 0x72,
+	0x65, 0x73, 0x73, 0x7d, 0x12, 0x7d, 0x0a, 0x09, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x73, 0x12, 0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x21, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1b, 0x12, 0x19, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x73, 0x12, 0x96, 0x01, 0x0a, 0x0f, 0x41, 0x63, 0x74, 0x69, 0x76, 0x65, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x2b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x63,
+	0x74, 0x69, 0x76, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
+	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x63, 0x74, 0x69, 0x76,
+	0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x28, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x22, 0x12, 0x20, 0x2f, 0x70, 0x61, 0x77,
+	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x73, 0x2f, 0x61, 0x63, 0x74, 0x69, 0x76, 0x65, 0x12, 0x7b, 0x0a, 0x07,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70,
+	0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75,
+	0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x25, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1f, 0x12, 0x1d, 0x2f, 0x70, 0x61, 0x77,
+	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x73, 0x2f, 0x7b, 0x69, 0x64, 0x7d, 0x12, 0x79, 0x0a, 0x08, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x73, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x70, 0x61,
 	0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65,
-	0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x30, 0x2e, 0x70,
+	0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x12, 0x18, 0x2f, 0x70, 0x61, 0x77,
+	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x73, 0x12, 0xb0, 0x01, 0x0a, 0x13, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x12, 0x2f, 0x2e, 0x70,
 	0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75,
 	0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x36,
-	0x82, 0xd3, 0xe4, 0x93, 0x02, 0x30, 0x12, 0x2e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73,
-	0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x2f, 0x7b, 0x72, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x65, 0x72, 0x7d, 0x12, 0xab, 0x01, 0x0a, 0x12, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x73, 0x42, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x2e, 0x2e,
+	0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x30, 0x2e,
 	0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51,
-	0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f, 0x2e,
-	0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51,
-	0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x34,
-	0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2e, 0x12, 0x2c, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73,
-	0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x7b, 0x70, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x7d, 0x12, 0xa1, 0x01, 0x0a, 0x10, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x30, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2a, 0x12, 0x28,
-	0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f,
-	0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x2f,
-	0x7b, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x7f, 0x0a, 0x06, 0x52, 0x65, 0x73, 0x75,
-	0x6c, 0x74, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x73,
-	0x75, 0x6c, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2c, 0x82, 0xd3, 0xe4,
-	0x93, 0x02, 0x26, 0x12, 0x24, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
-	0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x2f, 0x7b, 0x72, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x88, 0x01, 0x0a, 0x0c, 0x45, 0x73,
-	0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x12, 0x28, 0x2e, 0x70, 0x61, 0x77,
+	0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
+	0x36, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x30, 0x12, 0x2e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x73, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x2f, 0x7b, 0x72, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x65, 0x72, 0x7d, 0x12, 0xab, 0x01, 0x0a, 0x12, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x2e,
+	0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2f,
+	0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
+	0x34, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2e, 0x12, 0x2c, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x73, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x7b, 0x70, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x7d, 0x12, 0xa1, 0x01, 0x0a, 0x10, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77,
 	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72,
-	0x79, 0x45, 0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x45, 0x73, 0x74, 0x69, 0x6d,
-	0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0x23, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1d, 0x3a, 0x01, 0x2a, 0x22, 0x18, 0x2f, 0x70, 0x61, 0x77,
-	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x65, 0x73, 0x74, 0x69,
-	0x6d, 0x61, 0x74, 0x65, 0x12, 0x83, 0x01, 0x0a, 0x07, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65,
-	0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
-	0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70,
-	0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2d, 0x82, 0xd3, 0xe4,
-	0x93, 0x02, 0x27, 0x12, 0x25, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
-	0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x7b, 0x64,
-	0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x79, 0x0a, 0x08, 0x44, 0x69,
-	0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
+	0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x30, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2a, 0x12,
+	0x28, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31,
+	0x2f, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x73, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73,
+	0x2f, 0x7b, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x7f, 0x0a, 0x06, 0x52, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x52, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2c, 0x82, 0xd3,
+	0xe4, 0x93, 0x02, 0x26, 0x12, 0x24, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
+	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x73, 0x2f, 0x7b, 0x72,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x88, 0x01, 0x0a, 0x0c, 0x45,
+	0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x12, 0x28, 0x2e, 0x70, 0x61,
+	0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65,
+	0x72, 0x79, 0x45, 0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x45, 0x73, 0x74, 0x69,
+	0x6d, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x23, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1d, 0x3a, 0x01, 0x2a, 0x22, 0x18, 0x2f, 0x70, 0x61,
+	0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x65, 0x73, 0x74,
+	0x69, 0x6d, 0x61, 0x74, 0x65, 0x12, 0x83, 0x01, 0x0a, 0x07, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74,
+	0x65, 0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
 	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73,
-	0x70, 0x75, 0x74, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x70,
+	0x70, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2d, 0x82, 0xd3,
+	0xe4, 0x93, 0x02, 0x27, 0x12, 0x25, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
+	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x7b,
+	0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x79, 0x0a, 0x08, 0x44,
+	0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69,
+	0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e,
+	0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x12, 0x18, 0x2f, 0x70,
+	0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69,
+	0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x12, 0xa9, 0x01, 0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75,
+	0x74, 0x65, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2d, 0x2e, 0x70,
 	0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75,
-	0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x12, 0x18, 0x2f, 0x70, 0x61,
-	0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73,
-	0x70, 0x75, 0x74, 0x65, 0x73, 0x12, 0xa9, 0x01, 0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74,
-	0x65, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x2d, 0x2e, 0x70, 0x61,
+	0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2e, 0x2e, 0x70, 0x61,
 	0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65,
 	0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2e, 0x2e, 0x70, 0x61, 0x77,
-	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72,
-	0x79, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x35, 0x82, 0xd3, 0xe4, 0x93,
-	0x02, 0x2f, 0x12, 0x2d, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x72, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x2f, 0x7b, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x69, 0x64,
-	0x7d, 0x12, 0xa1, 0x01, 0x0a, 0x10, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79,
-	0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73,
-	0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70, 0x75,
-	0x74, 0x65, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x22, 0x30, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2a, 0x12, 0x28, 0x2f, 0x70, 0x61,
-	0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73,
-	0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x2f, 0x7b, 0x73, 0x74,
-	0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x8f, 0x01, 0x0a, 0x08, 0x45, 0x76, 0x69, 0x64, 0x65, 0x6e,
-	0x63, 0x65, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x45, 0x76, 0x69, 0x64, 0x65, 0x6e, 0x63,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
-	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x45,
-	0x76, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0x36, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x30, 0x12, 0x2e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65,
-	0x73, 0x2f, 0x7b, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x2f, 0x65,
-	0x76, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x12, 0x8c, 0x01, 0x0a, 0x0b, 0x53, 0x6c, 0x61, 0x73,
-	0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x27, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c,
-	0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x28, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f,
-	0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2a, 0x82, 0xd3, 0xe4, 0x93,
-	0x02, 0x24, 0x12, 0x22, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73, 0x68, 0x65, 0x73, 0x2f, 0x7b, 0x73, 0x6c, 0x61,
-	0x73, 0x68, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x84, 0x01, 0x0a, 0x0c, 0x53, 0x6c, 0x61, 0x73, 0x68,
-	0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x12, 0x28, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c,
-	0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x29, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63,
-	0x6f, 0x72, 0x64, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1f, 0x82, 0xd3,
-	0xe4, 0x93, 0x02, 0x19, 0x12, 0x17, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0xb6, 0x01,
-	0x0a, 0x16, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42, 0x79,
-	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x32, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
+	0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x35, 0x82, 0xd3, 0xe4,
+	0x93, 0x02, 0x2f, 0x12, 0x2d, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x72, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x2f, 0x7b, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x69,
+	0x64, 0x7d, 0x12, 0xa1, 0x01, 0x0a, 0x10, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42,
+	0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69,
+	0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x44, 0x69, 0x73, 0x70,
+	0x75, 0x74, 0x65, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x30, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2a, 0x12, 0x28, 0x2f, 0x70,
+	0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69,
+	0x73, 0x70, 0x75, 0x74, 0x65, 0x73, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x2f, 0x7b, 0x73,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x8f, 0x01, 0x0a, 0x08, 0x45, 0x76, 0x69, 0x64, 0x65,
+	0x6e, 0x63, 0x65, 0x12, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x45, 0x76, 0x69, 0x64, 0x65, 0x6e,
+	0x63, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x70, 0x61, 0x77, 0x2e,
+	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79,
+	0x45, 0x76, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x36, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x30, 0x12, 0x2e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74,
+	0x65, 0x73, 0x2f, 0x7b, 0x64, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x2f,
+	0x65, 0x76, 0x69, 0x64, 0x65, 0x6e, 0x63, 0x65, 0x12, 0x8c, 0x01, 0x0a, 0x0b, 0x53, 0x6c, 0x61,
+	0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x12, 0x27, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
 	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53,
-	0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42, 0x79, 0x50, 0x72, 0x6f,
-	0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x33, 0x2e, 0x70,
-	0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75,
-	0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42,
-	0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x22, 0x33, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2d, 0x12, 0x2b, 0x2f, 0x70, 0x61, 0x77, 0x2f,
-	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73, 0x68,
-	0x65, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x7b, 0x70, 0x72, 0x6f,
-	0x76, 0x69, 0x64, 0x65, 0x72, 0x7d, 0x12, 0x7e, 0x0a, 0x06, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c,
-	0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61,
-	0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2b, 0x82, 0xd3, 0xe4, 0x93, 0x02,
-	0x25, 0x12, 0x23, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f,
-	0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x2f, 0x7b, 0x61, 0x70, 0x70, 0x65,
-	0x61, 0x6c, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x75, 0x0a, 0x07, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c,
-	0x73, 0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
-	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70,
-	0x65, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1f, 0x82, 0xd3,
-	0xe4, 0x93, 0x02, 0x19, 0x12, 0x17, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x12, 0x9d, 0x01,
-	0x0a, 0x0f, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75,
-	0x73, 0x12, 0x2b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
-	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x42,
-	0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c,
-	0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x42, 0x79, 0x53, 0x74,
-	0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2f, 0x82, 0xd3,
-	0xe4, 0x93, 0x02, 0x29, 0x12, 0x27, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75,
-	0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x2f, 0x73, 0x74,
-	0x61, 0x74, 0x75, 0x73, 0x2f, 0x7b, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x9a, 0x01,
-	0x0a, 0x10, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61, 0x6e, 0x63, 0x65, 0x50, 0x61, 0x72, 0x61,
-	0x6d, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61,
-	0x6e, 0x63, 0x65, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61, 0x6e, 0x63,
-	0x65, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
-	0x29, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x23, 0x12, 0x21, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x67, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61,
-	0x6e, 0x63, 0x65, 0x2f, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69,
-	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x61, 0x77, 0x2d, 0x63, 0x68, 0x61,
-	0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x78, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
-	0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x28, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63,
+	0x6f, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2a, 0x82, 0xd3, 0xe4,
+	0x93, 0x02, 0x24, 0x12, 0x22, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73, 0x68, 0x65, 0x73, 0x2f, 0x7b, 0x73, 0x6c,
+	0x61, 0x73, 0x68, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x84, 0x01, 0x0a, 0x0c, 0x53, 0x6c, 0x61, 0x73,
+	0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x12, 0x28, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53,
+	0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x29, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65,
+	0x63, 0x6f, 0x72, 0x64, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1f, 0x82,
+	0xd3, 0xe4, 0x93, 0x02, 0x19, 0x12, 0x17, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0xb6,
+	0x01, 0x0a, 0x16, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42,
+	0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x32, 0x2e, 0x70, 0x61, 0x77, 0x2e,
+	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79,
+	0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73, 0x42, 0x79, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x33, 0x2e,
+	0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51,
+	0x75, 0x65, 0x72, 0x79, 0x53, 0x6c, 0x61, 0x73, 0x68, 0x52, 0x65, 0x63, 0x6f, 0x72, 0x64, 0x73,
+	0x42, 0x79, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x33, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x2d, 0x12, 0x2b, 0x2f, 0x70, 0x61, 0x77,
+	0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x6c, 0x61, 0x73,
+	0x68, 0x65, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x7b, 0x70, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x7d, 0x12, 0x7e, 0x0a, 0x06, 0x41, 0x70, 0x70, 0x65, 0x61,
+	0x6c, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65,
+	0x61, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2b, 0x82, 0xd3, 0xe4, 0x93,
+	0x02, 0x25, 0x12, 0x23, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2f, 0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x2f, 0x7b, 0x61, 0x70, 0x70,
+	0x65, 0x61, 0x6c, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x75, 0x0a, 0x07, 0x41, 0x70, 0x70, 0x65, 0x61,
+	0x6c, 0x73, 0x12, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70,
+	0x70, 0x65, 0x61, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1f, 0x82,
+	0xd3, 0xe4, 0x93, 0x02, 0x19, 0x12, 0x17, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x12, 0x9d,
+	0x01, 0x0a, 0x0f, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x42, 0x79, 0x53, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x12, 0x2b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73,
+	0x42, 0x79, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31,
+	0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x42, 0x79, 0x53,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2f, 0x82,
+	0xd3, 0xe4, 0x93, 0x02, 0x29, 0x12, 0x27, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70,
+	0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x73, 0x2f, 0x73,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x2f, 0x7b, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x7d, 0x12, 0x9a,
+	0x01, 0x0a, 0x10, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61, 0x6e, 0x63, 0x65, 0x50, 0x61, 0x72,
+	0x61, 0x6d, 0x73, 0x12, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e,
+	0x61, 0x6e, 0x63, 0x65, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x2d, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x47, 0x6f, 0x76, 0x65, 0x72, 0x6e, 0x61, 0x6e,
+	0x63, 0x65, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x29, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x23, 0x12, 0x21, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x67, 0x6f, 0x76, 0x65, 0x72, 0x6e,
+	0x61, 0x6e, 0x63, 0x65, 0x2f, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x12, 0xaa, 0x01, 0x0a, 0x14,
+	0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c,
+	0x75, 0x72, 0x65, 0x73, 0x12, 0x30, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
+	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73,
+	0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x73, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x31, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d,
+	0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74,
+	0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65,
+	0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x2d, 0x82, 0xd3, 0xe4, 0x93, 0x02,
+	0x27, 0x12, 0x25, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f,
+	0x76, 0x31, 0x2f, 0x63, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x5f,
+	0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x73, 0x12, 0xb4, 0x01, 0x0a, 0x13, 0x43, 0x61, 0x74,
+	0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65,
+	0x12, 0x2f, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
+	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70,
+	0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x30, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e,
+	0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f,
+	0x70, 0x68, 0x69, 0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x3a, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x34, 0x12, 0x32, 0x2f, 0x70, 0x61,
+	0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x63, 0x61, 0x74,
+	0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x5f, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72,
+	0x65, 0x73, 0x2f, 0x7b, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x42,
+	0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x61,
+	0x77, 0x2d, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x78, 0x2f, 0x63, 0x6f,
+	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -24594,7 +26710,7 @@ func file_paw_compute_v1_query_proto_rawDescGZIP() []byte {
 	return file_paw_compute_v1_query_proto_rawDescData
 }
 
-var file_paw_compute_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_paw_compute_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_paw_compute_v1_query_proto_goTypes = []interface{}{
 	(*QueryParamsRequest)(nil),                  // 0: paw.compute.v1.QueryParamsRequest
 	(*QueryParamsResponse)(nil),                 // 1: paw.compute.v1.QueryParamsResponse
@@ -24642,128 +26758,141 @@ var file_paw_compute_v1_query_proto_goTypes = []interface{}{
 	(*QueryAppealsByStatusResponse)(nil),        // 43: paw.compute.v1.QueryAppealsByStatusResponse
 	(*QueryGovernanceParamsRequest)(nil),        // 44: paw.compute.v1.QueryGovernanceParamsRequest
 	(*QueryGovernanceParamsResponse)(nil),       // 45: paw.compute.v1.QueryGovernanceParamsResponse
-	(*Params)(nil),                              // 46: paw.compute.v1.Params
-	(*Provider)(nil),                            // 47: paw.compute.v1.Provider
-	(*query.PageRequest)(nil),                   // 48: cosmos.base.query.v1beta1.PageRequest
-	(*query.PageResponse)(nil),                  // 49: cosmos.base.query.v1beta1.PageResponse
-	(*Request)(nil),                             // 50: paw.compute.v1.Request
-	(RequestStatus)(0),                          // 51: paw.compute.v1.RequestStatus
-	(*Result)(nil),                              // 52: paw.compute.v1.Result
-	(*ComputeSpec)(nil),                         // 53: paw.compute.v1.ComputeSpec
-	(*Dispute)(nil),                             // 54: paw.compute.v1.Dispute
-	(DisputeStatus)(0),                          // 55: paw.compute.v1.DisputeStatus
-	(*Evidence)(nil),                            // 56: paw.compute.v1.Evidence
-	(*SlashRecord)(nil),                         // 57: paw.compute.v1.SlashRecord
-	(*Appeal)(nil),                              // 58: paw.compute.v1.Appeal
-	(AppealStatus)(0),                           // 59: paw.compute.v1.AppealStatus
-	(*GovernanceParams)(nil),                    // 60: paw.compute.v1.GovernanceParams
+	(*QueryCatastrophicFailuresRequest)(nil),    // 46: paw.compute.v1.QueryCatastrophicFailuresRequest
+	(*QueryCatastrophicFailuresResponse)(nil),   // 47: paw.compute.v1.QueryCatastrophicFailuresResponse
+	(*QueryCatastrophicFailureRequest)(nil),     // 48: paw.compute.v1.QueryCatastrophicFailureRequest
+	(*QueryCatastrophicFailureResponse)(nil),    // 49: paw.compute.v1.QueryCatastrophicFailureResponse
+	(*Params)(nil),                              // 50: paw.compute.v1.Params
+	(*Provider)(nil),                            // 51: paw.compute.v1.Provider
+	(*query.PageRequest)(nil),                   // 52: cosmos.base.query.v1beta1.PageRequest
+	(*query.PageResponse)(nil),                  // 53: cosmos.base.query.v1beta1.PageResponse
+	(*Request)(nil),                             // 54: paw.compute.v1.Request
+	(RequestStatus)(0),                          // 55: paw.compute.v1.RequestStatus
+	(*Result)(nil),                              // 56: paw.compute.v1.Result
+	(*ComputeSpec)(nil),                         // 57: paw.compute.v1.ComputeSpec
+	(*Dispute)(nil),                             // 58: paw.compute.v1.Dispute
+	(DisputeStatus)(0),                          // 59: paw.compute.v1.DisputeStatus
+	(*Evidence)(nil),                            // 60: paw.compute.v1.Evidence
+	(*SlashRecord)(nil),                         // 61: paw.compute.v1.SlashRecord
+	(*Appeal)(nil),                              // 62: paw.compute.v1.Appeal
+	(AppealStatus)(0),                           // 63: paw.compute.v1.AppealStatus
+	(*GovernanceParams)(nil),                    // 64: paw.compute.v1.GovernanceParams
+	(*CatastrophicFailure)(nil),                 // 65: paw.compute.v1.CatastrophicFailure
 }
 var file_paw_compute_v1_query_proto_depIdxs = []int32{
-	46, // 0: paw.compute.v1.QueryParamsResponse.params:type_name -> paw.compute.v1.Params
-	47, // 1: paw.compute.v1.QueryProviderResponse.provider:type_name -> paw.compute.v1.Provider
-	48, // 2: paw.compute.v1.QueryProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	47, // 3: paw.compute.v1.QueryProvidersResponse.providers:type_name -> paw.compute.v1.Provider
-	49, // 4: paw.compute.v1.QueryProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 5: paw.compute.v1.QueryActiveProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	47, // 6: paw.compute.v1.QueryActiveProvidersResponse.providers:type_name -> paw.compute.v1.Provider
-	49, // 7: paw.compute.v1.QueryActiveProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	50, // 8: paw.compute.v1.QueryRequestResponse.request:type_name -> paw.compute.v1.Request
-	48, // 9: paw.compute.v1.QueryRequestsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	50, // 10: paw.compute.v1.QueryRequestsResponse.requests:type_name -> paw.compute.v1.Request
-	49, // 11: paw.compute.v1.QueryRequestsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 12: paw.compute.v1.QueryRequestsByRequesterRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	50, // 13: paw.compute.v1.QueryRequestsByRequesterResponse.requests:type_name -> paw.compute.v1.Request
-	49, // 14: paw.compute.v1.QueryRequestsByRequesterResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 15: paw.compute.v1.QueryRequestsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	50, // 16: paw.compute.v1.QueryRequestsByProviderResponse.requests:type_name -> paw.compute.v1.Request
-	49, // 17: paw.compute.v1.QueryRequestsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	51, // 18: paw.compute.v1.QueryRequestsByStatusRequest.status:type_name -> paw.compute.v1.RequestStatus
-	48, // 19: paw.compute.v1.QueryRequestsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	50, // 20: paw.compute.v1.QueryRequestsByStatusResponse.requests:type_name -> paw.compute.v1.Request
-	49, // 21: paw.compute.v1.QueryRequestsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 22: paw.compute.v1.QueryResultResponse.result:type_name -> paw.compute.v1.Result
-	53, // 23: paw.compute.v1.QueryEstimateCostRequest.specs:type_name -> paw.compute.v1.ComputeSpec
-	54, // 24: paw.compute.v1.QueryDisputeResponse.dispute:type_name -> paw.compute.v1.Dispute
-	48, // 25: paw.compute.v1.QueryDisputesRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 26: paw.compute.v1.QueryDisputesResponse.disputes:type_name -> paw.compute.v1.Dispute
-	49, // 27: paw.compute.v1.QueryDisputesResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 28: paw.compute.v1.QueryDisputesByRequestRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 29: paw.compute.v1.QueryDisputesByRequestResponse.disputes:type_name -> paw.compute.v1.Dispute
-	49, // 30: paw.compute.v1.QueryDisputesByRequestResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	55, // 31: paw.compute.v1.QueryDisputesByStatusRequest.status:type_name -> paw.compute.v1.DisputeStatus
-	48, // 32: paw.compute.v1.QueryDisputesByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 33: paw.compute.v1.QueryDisputesByStatusResponse.disputes:type_name -> paw.compute.v1.Dispute
-	49, // 34: paw.compute.v1.QueryDisputesByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 35: paw.compute.v1.QueryEvidenceRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	56, // 36: paw.compute.v1.QueryEvidenceResponse.evidence:type_name -> paw.compute.v1.Evidence
-	49, // 37: paw.compute.v1.QueryEvidenceResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	57, // 38: paw.compute.v1.QuerySlashRecordResponse.slash_record:type_name -> paw.compute.v1.SlashRecord
-	48, // 39: paw.compute.v1.QuerySlashRecordsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	57, // 40: paw.compute.v1.QuerySlashRecordsResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
-	49, // 41: paw.compute.v1.QuerySlashRecordsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	48, // 42: paw.compute.v1.QuerySlashRecordsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	57, // 43: paw.compute.v1.QuerySlashRecordsByProviderResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
-	49, // 44: paw.compute.v1.QuerySlashRecordsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	58, // 45: paw.compute.v1.QueryAppealResponse.appeal:type_name -> paw.compute.v1.Appeal
-	48, // 46: paw.compute.v1.QueryAppealsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	58, // 47: paw.compute.v1.QueryAppealsResponse.appeals:type_name -> paw.compute.v1.Appeal
-	49, // 48: paw.compute.v1.QueryAppealsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	59, // 49: paw.compute.v1.QueryAppealsByStatusRequest.status:type_name -> paw.compute.v1.AppealStatus
-	48, // 50: paw.compute.v1.QueryAppealsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	58, // 51: paw.compute.v1.QueryAppealsByStatusResponse.appeals:type_name -> paw.compute.v1.Appeal
-	49, // 52: paw.compute.v1.QueryAppealsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	60, // 53: paw.compute.v1.QueryGovernanceParamsResponse.params:type_name -> paw.compute.v1.GovernanceParams
-	0,  // 54: paw.compute.v1.Query.Params:input_type -> paw.compute.v1.QueryParamsRequest
-	2,  // 55: paw.compute.v1.Query.Provider:input_type -> paw.compute.v1.QueryProviderRequest
-	4,  // 56: paw.compute.v1.Query.Providers:input_type -> paw.compute.v1.QueryProvidersRequest
-	6,  // 57: paw.compute.v1.Query.ActiveProviders:input_type -> paw.compute.v1.QueryActiveProvidersRequest
-	8,  // 58: paw.compute.v1.Query.Request:input_type -> paw.compute.v1.QueryRequestRequest
-	10, // 59: paw.compute.v1.Query.Requests:input_type -> paw.compute.v1.QueryRequestsRequest
-	12, // 60: paw.compute.v1.Query.RequestsByRequester:input_type -> paw.compute.v1.QueryRequestsByRequesterRequest
-	14, // 61: paw.compute.v1.Query.RequestsByProvider:input_type -> paw.compute.v1.QueryRequestsByProviderRequest
-	16, // 62: paw.compute.v1.Query.RequestsByStatus:input_type -> paw.compute.v1.QueryRequestsByStatusRequest
-	18, // 63: paw.compute.v1.Query.Result:input_type -> paw.compute.v1.QueryResultRequest
-	20, // 64: paw.compute.v1.Query.EstimateCost:input_type -> paw.compute.v1.QueryEstimateCostRequest
-	22, // 65: paw.compute.v1.Query.Dispute:input_type -> paw.compute.v1.QueryDisputeRequest
-	24, // 66: paw.compute.v1.Query.Disputes:input_type -> paw.compute.v1.QueryDisputesRequest
-	26, // 67: paw.compute.v1.Query.DisputesByRequest:input_type -> paw.compute.v1.QueryDisputesByRequestRequest
-	28, // 68: paw.compute.v1.Query.DisputesByStatus:input_type -> paw.compute.v1.QueryDisputesByStatusRequest
-	30, // 69: paw.compute.v1.Query.Evidence:input_type -> paw.compute.v1.QueryEvidenceRequest
-	32, // 70: paw.compute.v1.Query.SlashRecord:input_type -> paw.compute.v1.QuerySlashRecordRequest
-	34, // 71: paw.compute.v1.Query.SlashRecords:input_type -> paw.compute.v1.QuerySlashRecordsRequest
-	36, // 72: paw.compute.v1.Query.SlashRecordsByProvider:input_type -> paw.compute.v1.QuerySlashRecordsByProviderRequest
-	38, // 73: paw.compute.v1.Query.Appeal:input_type -> paw.compute.v1.QueryAppealRequest
-	40, // 74: paw.compute.v1.Query.Appeals:input_type -> paw.compute.v1.QueryAppealsRequest
-	42, // 75: paw.compute.v1.Query.AppealsByStatus:input_type -> paw.compute.v1.QueryAppealsByStatusRequest
-	44, // 76: paw.compute.v1.Query.GovernanceParams:input_type -> paw.compute.v1.QueryGovernanceParamsRequest
-	1,  // 77: paw.compute.v1.Query.Params:output_type -> paw.compute.v1.QueryParamsResponse
-	3,  // 78: paw.compute.v1.Query.Provider:output_type -> paw.compute.v1.QueryProviderResponse
-	5,  // 79: paw.compute.v1.Query.Providers:output_type -> paw.compute.v1.QueryProvidersResponse
-	7,  // 80: paw.compute.v1.Query.ActiveProviders:output_type -> paw.compute.v1.QueryActiveProvidersResponse
-	9,  // 81: paw.compute.v1.Query.Request:output_type -> paw.compute.v1.QueryRequestResponse
-	11, // 82: paw.compute.v1.Query.Requests:output_type -> paw.compute.v1.QueryRequestsResponse
-	13, // 83: paw.compute.v1.Query.RequestsByRequester:output_type -> paw.compute.v1.QueryRequestsByRequesterResponse
-	15, // 84: paw.compute.v1.Query.RequestsByProvider:output_type -> paw.compute.v1.QueryRequestsByProviderResponse
-	17, // 85: paw.compute.v1.Query.RequestsByStatus:output_type -> paw.compute.v1.QueryRequestsByStatusResponse
-	19, // 86: paw.compute.v1.Query.Result:output_type -> paw.compute.v1.QueryResultResponse
-	21, // 87: paw.compute.v1.Query.EstimateCost:output_type -> paw.compute.v1.QueryEstimateCostResponse
-	23, // 88: paw.compute.v1.Query.Dispute:output_type -> paw.compute.v1.QueryDisputeResponse
-	25, // 89: paw.compute.v1.Query.Disputes:output_type -> paw.compute.v1.QueryDisputesResponse
-	27, // 90: paw.compute.v1.Query.DisputesByRequest:output_type -> paw.compute.v1.QueryDisputesByRequestResponse
-	29, // 91: paw.compute.v1.Query.DisputesByStatus:output_type -> paw.compute.v1.QueryDisputesByStatusResponse
-	31, // 92: paw.compute.v1.Query.Evidence:output_type -> paw.compute.v1.QueryEvidenceResponse
-	33, // 93: paw.compute.v1.Query.SlashRecord:output_type -> paw.compute.v1.QuerySlashRecordResponse
-	35, // 94: paw.compute.v1.Query.SlashRecords:output_type -> paw.compute.v1.QuerySlashRecordsResponse
-	37, // 95: paw.compute.v1.Query.SlashRecordsByProvider:output_type -> paw.compute.v1.QuerySlashRecordsByProviderResponse
-	39, // 96: paw.compute.v1.Query.Appeal:output_type -> paw.compute.v1.QueryAppealResponse
-	41, // 97: paw.compute.v1.Query.Appeals:output_type -> paw.compute.v1.QueryAppealsResponse
-	43, // 98: paw.compute.v1.Query.AppealsByStatus:output_type -> paw.compute.v1.QueryAppealsByStatusResponse
-	45, // 99: paw.compute.v1.Query.GovernanceParams:output_type -> paw.compute.v1.QueryGovernanceParamsResponse
-	77, // [77:100] is the sub-list for method output_type
-	54, // [54:77] is the sub-list for method input_type
-	54, // [54:54] is the sub-list for extension type_name
-	54, // [54:54] is the sub-list for extension extendee
-	0,  // [0:54] is the sub-list for field type_name
+	50, // 0: paw.compute.v1.QueryParamsResponse.params:type_name -> paw.compute.v1.Params
+	51, // 1: paw.compute.v1.QueryProviderResponse.provider:type_name -> paw.compute.v1.Provider
+	52, // 2: paw.compute.v1.QueryProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	51, // 3: paw.compute.v1.QueryProvidersResponse.providers:type_name -> paw.compute.v1.Provider
+	53, // 4: paw.compute.v1.QueryProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 5: paw.compute.v1.QueryActiveProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	51, // 6: paw.compute.v1.QueryActiveProvidersResponse.providers:type_name -> paw.compute.v1.Provider
+	53, // 7: paw.compute.v1.QueryActiveProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 8: paw.compute.v1.QueryRequestResponse.request:type_name -> paw.compute.v1.Request
+	52, // 9: paw.compute.v1.QueryRequestsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	54, // 10: paw.compute.v1.QueryRequestsResponse.requests:type_name -> paw.compute.v1.Request
+	53, // 11: paw.compute.v1.QueryRequestsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 12: paw.compute.v1.QueryRequestsByRequesterRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	54, // 13: paw.compute.v1.QueryRequestsByRequesterResponse.requests:type_name -> paw.compute.v1.Request
+	53, // 14: paw.compute.v1.QueryRequestsByRequesterResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 15: paw.compute.v1.QueryRequestsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	54, // 16: paw.compute.v1.QueryRequestsByProviderResponse.requests:type_name -> paw.compute.v1.Request
+	53, // 17: paw.compute.v1.QueryRequestsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	55, // 18: paw.compute.v1.QueryRequestsByStatusRequest.status:type_name -> paw.compute.v1.RequestStatus
+	52, // 19: paw.compute.v1.QueryRequestsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	54, // 20: paw.compute.v1.QueryRequestsByStatusResponse.requests:type_name -> paw.compute.v1.Request
+	53, // 21: paw.compute.v1.QueryRequestsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	56, // 22: paw.compute.v1.QueryResultResponse.result:type_name -> paw.compute.v1.Result
+	57, // 23: paw.compute.v1.QueryEstimateCostRequest.specs:type_name -> paw.compute.v1.ComputeSpec
+	58, // 24: paw.compute.v1.QueryDisputeResponse.dispute:type_name -> paw.compute.v1.Dispute
+	52, // 25: paw.compute.v1.QueryDisputesRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	58, // 26: paw.compute.v1.QueryDisputesResponse.disputes:type_name -> paw.compute.v1.Dispute
+	53, // 27: paw.compute.v1.QueryDisputesResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 28: paw.compute.v1.QueryDisputesByRequestRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	58, // 29: paw.compute.v1.QueryDisputesByRequestResponse.disputes:type_name -> paw.compute.v1.Dispute
+	53, // 30: paw.compute.v1.QueryDisputesByRequestResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	59, // 31: paw.compute.v1.QueryDisputesByStatusRequest.status:type_name -> paw.compute.v1.DisputeStatus
+	52, // 32: paw.compute.v1.QueryDisputesByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	58, // 33: paw.compute.v1.QueryDisputesByStatusResponse.disputes:type_name -> paw.compute.v1.Dispute
+	53, // 34: paw.compute.v1.QueryDisputesByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 35: paw.compute.v1.QueryEvidenceRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	60, // 36: paw.compute.v1.QueryEvidenceResponse.evidence:type_name -> paw.compute.v1.Evidence
+	53, // 37: paw.compute.v1.QueryEvidenceResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	61, // 38: paw.compute.v1.QuerySlashRecordResponse.slash_record:type_name -> paw.compute.v1.SlashRecord
+	52, // 39: paw.compute.v1.QuerySlashRecordsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	61, // 40: paw.compute.v1.QuerySlashRecordsResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
+	53, // 41: paw.compute.v1.QuerySlashRecordsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	52, // 42: paw.compute.v1.QuerySlashRecordsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	61, // 43: paw.compute.v1.QuerySlashRecordsByProviderResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
+	53, // 44: paw.compute.v1.QuerySlashRecordsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	62, // 45: paw.compute.v1.QueryAppealResponse.appeal:type_name -> paw.compute.v1.Appeal
+	52, // 46: paw.compute.v1.QueryAppealsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	62, // 47: paw.compute.v1.QueryAppealsResponse.appeals:type_name -> paw.compute.v1.Appeal
+	53, // 48: paw.compute.v1.QueryAppealsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	63, // 49: paw.compute.v1.QueryAppealsByStatusRequest.status:type_name -> paw.compute.v1.AppealStatus
+	52, // 50: paw.compute.v1.QueryAppealsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	62, // 51: paw.compute.v1.QueryAppealsByStatusResponse.appeals:type_name -> paw.compute.v1.Appeal
+	53, // 52: paw.compute.v1.QueryAppealsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	64, // 53: paw.compute.v1.QueryGovernanceParamsResponse.params:type_name -> paw.compute.v1.GovernanceParams
+	52, // 54: paw.compute.v1.QueryCatastrophicFailuresRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	65, // 55: paw.compute.v1.QueryCatastrophicFailuresResponse.failures:type_name -> paw.compute.v1.CatastrophicFailure
+	53, // 56: paw.compute.v1.QueryCatastrophicFailuresResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	65, // 57: paw.compute.v1.QueryCatastrophicFailureResponse.failure:type_name -> paw.compute.v1.CatastrophicFailure
+	0,  // 58: paw.compute.v1.Query.Params:input_type -> paw.compute.v1.QueryParamsRequest
+	2,  // 59: paw.compute.v1.Query.Provider:input_type -> paw.compute.v1.QueryProviderRequest
+	4,  // 60: paw.compute.v1.Query.Providers:input_type -> paw.compute.v1.QueryProvidersRequest
+	6,  // 61: paw.compute.v1.Query.ActiveProviders:input_type -> paw.compute.v1.QueryActiveProvidersRequest
+	8,  // 62: paw.compute.v1.Query.Request:input_type -> paw.compute.v1.QueryRequestRequest
+	10, // 63: paw.compute.v1.Query.Requests:input_type -> paw.compute.v1.QueryRequestsRequest
+	12, // 64: paw.compute.v1.Query.RequestsByRequester:input_type -> paw.compute.v1.QueryRequestsByRequesterRequest
+	14, // 65: paw.compute.v1.Query.RequestsByProvider:input_type -> paw.compute.v1.QueryRequestsByProviderRequest
+	16, // 66: paw.compute.v1.Query.RequestsByStatus:input_type -> paw.compute.v1.QueryRequestsByStatusRequest
+	18, // 67: paw.compute.v1.Query.Result:input_type -> paw.compute.v1.QueryResultRequest
+	20, // 68: paw.compute.v1.Query.EstimateCost:input_type -> paw.compute.v1.QueryEstimateCostRequest
+	22, // 69: paw.compute.v1.Query.Dispute:input_type -> paw.compute.v1.QueryDisputeRequest
+	24, // 70: paw.compute.v1.Query.Disputes:input_type -> paw.compute.v1.QueryDisputesRequest
+	26, // 71: paw.compute.v1.Query.DisputesByRequest:input_type -> paw.compute.v1.QueryDisputesByRequestRequest
+	28, // 72: paw.compute.v1.Query.DisputesByStatus:input_type -> paw.compute.v1.QueryDisputesByStatusRequest
+	30, // 73: paw.compute.v1.Query.Evidence:input_type -> paw.compute.v1.QueryEvidenceRequest
+	32, // 74: paw.compute.v1.Query.SlashRecord:input_type -> paw.compute.v1.QuerySlashRecordRequest
+	34, // 75: paw.compute.v1.Query.SlashRecords:input_type -> paw.compute.v1.QuerySlashRecordsRequest
+	36, // 76: paw.compute.v1.Query.SlashRecordsByProvider:input_type -> paw.compute.v1.QuerySlashRecordsByProviderRequest
+	38, // 77: paw.compute.v1.Query.Appeal:input_type -> paw.compute.v1.QueryAppealRequest
+	40, // 78: paw.compute.v1.Query.Appeals:input_type -> paw.compute.v1.QueryAppealsRequest
+	42, // 79: paw.compute.v1.Query.AppealsByStatus:input_type -> paw.compute.v1.QueryAppealsByStatusRequest
+	44, // 80: paw.compute.v1.Query.GovernanceParams:input_type -> paw.compute.v1.QueryGovernanceParamsRequest
+	46, // 81: paw.compute.v1.Query.CatastrophicFailures:input_type -> paw.compute.v1.QueryCatastrophicFailuresRequest
+	48, // 82: paw.compute.v1.Query.CatastrophicFailure:input_type -> paw.compute.v1.QueryCatastrophicFailureRequest
+	1,  // 83: paw.compute.v1.Query.Params:output_type -> paw.compute.v1.QueryParamsResponse
+	3,  // 84: paw.compute.v1.Query.Provider:output_type -> paw.compute.v1.QueryProviderResponse
+	5,  // 85: paw.compute.v1.Query.Providers:output_type -> paw.compute.v1.QueryProvidersResponse
+	7,  // 86: paw.compute.v1.Query.ActiveProviders:output_type -> paw.compute.v1.QueryActiveProvidersResponse
+	9,  // 87: paw.compute.v1.Query.Request:output_type -> paw.compute.v1.QueryRequestResponse
+	11, // 88: paw.compute.v1.Query.Requests:output_type -> paw.compute.v1.QueryRequestsResponse
+	13, // 89: paw.compute.v1.Query.RequestsByRequester:output_type -> paw.compute.v1.QueryRequestsByRequesterResponse
+	15, // 90: paw.compute.v1.Query.RequestsByProvider:output_type -> paw.compute.v1.QueryRequestsByProviderResponse
+	17, // 91: paw.compute.v1.Query.RequestsByStatus:output_type -> paw.compute.v1.QueryRequestsByStatusResponse
+	19, // 92: paw.compute.v1.Query.Result:output_type -> paw.compute.v1.QueryResultResponse
+	21, // 93: paw.compute.v1.Query.EstimateCost:output_type -> paw.compute.v1.QueryEstimateCostResponse
+	23, // 94: paw.compute.v1.Query.Dispute:output_type -> paw.compute.v1.QueryDisputeResponse
+	25, // 95: paw.compute.v1.Query.Disputes:output_type -> paw.compute.v1.QueryDisputesResponse
+	27, // 96: paw.compute.v1.Query.DisputesByRequest:output_type -> paw.compute.v1.QueryDisputesByRequestResponse
+	29, // 97: paw.compute.v1.Query.DisputesByStatus:output_type -> paw.compute.v1.QueryDisputesByStatusResponse
+	31, // 98: paw.compute.v1.Query.Evidence:output_type -> paw.compute.v1.QueryEvidenceResponse
+	33, // 99: paw.compute.v1.Query.SlashRecord:output_type -> paw.compute.v1.QuerySlashRecordResponse
+	35, // 100: paw.compute.v1.Query.SlashRecords:output_type -> paw.compute.v1.QuerySlashRecordsResponse
+	37, // 101: paw.compute.v1.Query.SlashRecordsByProvider:output_type -> paw.compute.v1.QuerySlashRecordsByProviderResponse
+	39, // 102: paw.compute.v1.Query.Appeal:output_type -> paw.compute.v1.QueryAppealResponse
+	41, // 103: paw.compute.v1.Query.Appeals:output_type -> paw.compute.v1.QueryAppealsResponse
+	43, // 104: paw.compute.v1.Query.AppealsByStatus:output_type -> paw.compute.v1.QueryAppealsByStatusResponse
+	45, // 105: paw.compute.v1.Query.GovernanceParams:output_type -> paw.compute.v1.QueryGovernanceParamsResponse
+	47, // 106: paw.compute.v1.Query.CatastrophicFailures:output_type -> paw.compute.v1.QueryCatastrophicFailuresResponse
+	49, // 107: paw.compute.v1.Query.CatastrophicFailure:output_type -> paw.compute.v1.QueryCatastrophicFailureResponse
+	83, // [83:108] is the sub-list for method output_type
+	58, // [58:83] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_paw_compute_v1_query_proto_init() }
@@ -25325,6 +27454,54 @@ func file_paw_compute_v1_query_proto_init() {
 				return nil
 			}
 		}
+		file_paw_compute_v1_query_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QueryCatastrophicFailuresRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_paw_compute_v1_query_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QueryCatastrophicFailuresResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_paw_compute_v1_query_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QueryCatastrophicFailureRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_paw_compute_v1_query_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QueryCatastrophicFailureResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -25332,7 +27509,7 @@ func file_paw_compute_v1_query_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_paw_compute_v1_query_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   46,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

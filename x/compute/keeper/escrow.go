@@ -37,13 +37,8 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 		return fmt.Errorf("payment %s below minimum threshold %s", amount.String(), minPayment.String())
 	}
 
-	// Check if escrow already exists (prevent double-lock)
-	existingEscrow, err := k.GetEscrowState(ctx, requestID)
-	if err == nil && existingEscrow != nil {
-		return fmt.Errorf("escrow already exists for request %d", requestID)
-	}
-
-	// Generate unique nonce for this escrow
+	// Generate unique nonce for this escrow BEFORE any state changes
+	// This is done early to ensure we have a nonce even if the atomic set fails
 	nonce, err := k.getNextEscrowNonce(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to generate escrow nonce: %w", err)
@@ -75,15 +70,19 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 		Nonce:           nonce,
 	}
 
-	// Store escrow state
-	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
-		// CRITICAL: If we can't store state, we must refund
+	// ATOMIC: Store escrow state only if it doesn't already exist
+	// This prevents the double-lock race condition where two concurrent calls
+	// could both pass an earlier existence check and overwrite each other
+	if err := k.SetEscrowStateIfNotExists(ctx, *escrowState); err != nil {
+		// CRITICAL: Atomic set failed - must refund the transferred funds
+		// This handles both the race condition case (escrow already exists) and
+		// any marshaling errors
 		refundCoins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
 		if refundErr := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, refundCoins); refundErr != nil {
 			// This is catastrophic - funds locked but state not saved
 			k.recordCatastrophicFailure(ctx, requestID, requester, amount, "failed to store escrow state and refund")
 		}
-		return fmt.Errorf("failed to store escrow state: %w", err)
+		return fmt.Errorf("failed to store escrow state atomically: %w", err)
 	}
 
 	// Create timeout index for automatic cleanup
@@ -384,6 +383,29 @@ func (k Keeper) SetEscrowState(ctx context.Context, state EscrowState) error {
 	return nil
 }
 
+// SetEscrowStateIfNotExists atomically creates a new escrow state only if one doesn't already exist.
+// This prevents the double-lock race condition where two concurrent LockEscrow calls could both
+// pass the existence check and overwrite each other's escrow state.
+// Returns an error if the escrow already exists.
+func (k Keeper) SetEscrowStateIfNotExists(ctx context.Context, state EscrowState) error {
+	store := k.getStore(ctx)
+	key := EscrowStateKey(state.RequestId)
+
+	// Atomic check-and-set: if key exists, return error
+	// This is atomic because store operations are serialized within a single block execution
+	if store.Has(key) {
+		return fmt.Errorf("escrow already exists for request %d", state.RequestId)
+	}
+
+	bz, err := k.cdc.Marshal(&state)
+	if err != nil {
+		return err
+	}
+
+	store.Set(key, bz)
+	return nil
+}
+
 // getNextEscrowNonce generates a unique nonce for escrow operations
 func (k Keeper) getNextEscrowNonce(ctx context.Context) (uint64, error) {
 	store := k.getStore(ctx)
@@ -501,10 +523,12 @@ func (k Keeper) IterateEscrowTimeouts(ctx context.Context, beforeTime time.Time,
 	return nil
 }
 
-// recordCatastrophicFailure records a catastrophic escrow failure for manual resolution
+// recordCatastrophicFailure records a catastrophic escrow failure for manual resolution.
+// This function both emits an event and persists the failure to state for permanent record.
 func (k Keeper) recordCatastrophicFailure(ctx context.Context, requestID uint64, account sdk.AccAddress, amount math.Int, reason string) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	// Emit event for real-time monitoring
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			"escrow_catastrophic_failure",
@@ -516,6 +540,23 @@ func (k Keeper) recordCatastrophicFailure(ctx context.Context, requestID uint64,
 			sdk.NewAttribute("severity", "CRITICAL"),
 		),
 	)
+
+	// CRITICAL: Also persist to state so failures are not lost if events are missed
+	if err := k.StoreCatastrophicFailure(ctx, requestID, account, amount, reason); err != nil {
+		// If we can't even store the catastrophic failure, log to chain via extra event
+		// This is the absolute last resort - a catastrophic failure of the catastrophic failure system
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"escrow_catastrophic_failure_storage_failed",
+				sdk.NewAttribute("request_id", fmt.Sprintf("%d", requestID)),
+				sdk.NewAttribute("account", account.String()),
+				sdk.NewAttribute("amount", amount.String()),
+				sdk.NewAttribute("reason", reason),
+				sdk.NewAttribute("storage_error", err.Error()),
+				sdk.NewAttribute("severity", "CRITICAL"),
+			),
+		)
+	}
 }
 
 // recordEscrowWarning records a non-critical escrow warning
@@ -553,4 +594,109 @@ func EscrowTimeoutKey(expiresAt time.Time, requestID uint64) []byte {
 	binary.BigEndian.PutUint64(idBz, requestID)
 
 	return append(append(EscrowTimeoutPrefix, timeBz...), idBz...)
+}
+
+// StoreCatastrophicFailure persists a catastrophic failure record to state.
+// This ensures that critical failures are permanently recorded and can be queried later.
+func (k Keeper) StoreCatastrophicFailure(ctx context.Context, requestID uint64, account sdk.AccAddress, amount math.Int, reason string) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	store := k.getStore(ctx)
+
+	// Get next failure ID
+	failureID, err := k.getNextCatastrophicFailureID(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get next catastrophic failure ID: %w", err)
+	}
+
+	// Create failure record
+	failure := &types.CatastrophicFailure{
+		Id:          failureID,
+		RequestId:   requestID,
+		Account:     account.String(),
+		Amount:      amount,
+		Reason:      reason,
+		OccurredAt:  sdkCtx.BlockTime(),
+		BlockHeight: sdkCtx.BlockHeight(),
+		Resolved:    false,
+		ResolvedAt:  nil,
+	}
+
+	// Marshal and store
+	bz, err := k.cdc.Marshal(failure)
+	if err != nil {
+		return fmt.Errorf("failed to marshal catastrophic failure: %w", err)
+	}
+
+	store.Set(CatastrophicFailureKey(failureID), bz)
+	return nil
+}
+
+// getNextCatastrophicFailureID generates a unique ID for catastrophic failure records
+func (k Keeper) getNextCatastrophicFailureID(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextCatastrophicFailureIDKey)
+
+	var nextID uint64 = 1
+	if bz != nil {
+		nextID = binary.BigEndian.Uint64(bz)
+	}
+
+	// Increment and store
+	nextBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(nextBz, nextID+1)
+	store.Set(NextCatastrophicFailureIDKey, nextBz)
+
+	return nextID, nil
+}
+
+// GetCatastrophicFailure retrieves a catastrophic failure record by ID
+func (k Keeper) GetCatastrophicFailure(ctx context.Context, failureID uint64) (*types.CatastrophicFailure, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(CatastrophicFailureKey(failureID))
+
+	if bz == nil {
+		return nil, fmt.Errorf("catastrophic failure %d not found", failureID)
+	}
+
+	var failure types.CatastrophicFailure
+	if err := k.cdc.Unmarshal(bz, &failure); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal catastrophic failure: %w", err)
+	}
+
+	return &failure, nil
+}
+
+// GetAllCatastrophicFailures retrieves all catastrophic failure records
+func (k Keeper) GetAllCatastrophicFailures(ctx context.Context) ([]*types.CatastrophicFailure, error) {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, CatastrophicFailureKeyPrefix)
+	defer iterator.Close()
+
+	var failures []*types.CatastrophicFailure
+	for ; iterator.Valid(); iterator.Next() {
+		var failure types.CatastrophicFailure
+		if err := k.cdc.Unmarshal(iterator.Value(), &failure); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal catastrophic failure: %w", err)
+		}
+		failures = append(failures, &failure)
+	}
+
+	return failures, nil
+}
+
+// GetUnresolvedCatastrophicFailures retrieves all unresolved catastrophic failure records
+func (k Keeper) GetUnresolvedCatastrophicFailures(ctx context.Context) ([]*types.CatastrophicFailure, error) {
+	allFailures, err := k.GetAllCatastrophicFailures(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var unresolved []*types.CatastrophicFailure
+	for _, failure := range allFailures {
+		if !failure.Resolved {
+			unresolved = append(unresolved, failure)
+		}
+	}
+
+	return unresolved, nil
 }
