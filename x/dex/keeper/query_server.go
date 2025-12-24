@@ -66,6 +66,8 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
 	// Enforce sane pagination defaults and caps to protect against unbounded queries.
 	if req.Pagination == nil {
 		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
@@ -77,6 +79,9 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 			req.Pagination.Limit = maxPaginationLimit
 		}
 	}
+
+	// P3-PERF-2: Charge gas proportional to requested limit to prevent abuse
+	ctx.GasMeter().ConsumeGas(req.Pagination.Limit*100, "paginated pools query")
 
 	// P3-PERF-3: Pre-size with pagination limit capacity
 	limit := uint64(defaultPaginationLimit)
@@ -187,6 +192,8 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
 	if req.Pagination == nil {
 		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
 	} else {
@@ -197,6 +204,9 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 			req.Pagination.Limit = maxPaginationLimit
 		}
 	}
+
+	// P3-PERF-2: Charge gas proportional to requested limit to prevent abuse
+	ctx.GasMeter().ConsumeGas(req.Pagination.Limit*100, "paginated limit orders query")
 
 	// P3-PERF-3: Pre-size with pagination limit capacity
 	limit := uint64(defaultPaginationLimit)
@@ -235,6 +245,8 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
 	if req.Pagination == nil {
 		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
 	} else {
@@ -245,6 +257,9 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 			req.Pagination.Limit = maxPaginationLimit
 		}
 	}
+
+	// P3-PERF-2: Charge gas proportional to requested limit to prevent abuse
+	ctx.GasMeter().ConsumeGas(req.Pagination.Limit*100, "paginated orders by owner query")
 
 	owner, err := sdk.AccAddressFromBech32(req.Owner)
 	if err != nil {
@@ -287,6 +302,8 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 		return nil, sdkerrors.ErrInvalidRequest
 	}
 
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
 	if req.Pagination == nil {
 		req.Pagination = &query.PageRequest{Limit: defaultPaginationLimit}
 	} else {
@@ -297,6 +314,9 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 			req.Pagination.Limit = maxPaginationLimit
 		}
 	}
+
+	// P3-PERF-2: Charge gas proportional to requested limit to prevent abuse
+	ctx.GasMeter().ConsumeGas(req.Pagination.Limit*100, "paginated orders by pool query")
 
 	// Extract pagination parameters
 	var pageKey []byte

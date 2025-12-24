@@ -787,3 +787,198 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// TestQueryServer_PaginatedQueryGasMetering tests P3-PERF-2: gas metering for paginated queries
+func TestQueryServer_PaginatedQueryGasMetering(t *testing.T) {
+	server, k, ctx := setupDexQueryServer(t)
+	poolID1 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(1_000_000), sdkmath.NewInt(2_000_000))
+	poolID2 := keepertest.CreateTestPool(t, k, ctx, "uatom", "usdc", sdkmath.NewInt(500_000), sdkmath.NewInt(1_000_000))
+
+	trader1 := sdk.AccAddress([]byte("trader1____________"))
+	trader2 := sdk.AccAddress([]byte("trader2____________"))
+
+	// Create multiple limit orders for testing
+	for i := 0; i < 10; i++ {
+		trader := trader1
+		if i%2 == 0 {
+			trader = trader2
+		}
+		_, err := k.PlaceLimitOrder(
+			ctx,
+			trader,
+			poolID1,
+			keeper.OrderTypeBuy,
+			"upaw",
+			"uusdt",
+			sdkmath.NewInt(int64(10_000*(i+1))),
+			sdkmath.LegacyMustNewDecFromStr("2.0"),
+			0,
+		)
+		require.NoError(t, err)
+	}
+
+	t.Run("Pools query gas metering", func(t *testing.T) {
+		// Test with limit of 50
+		gasBefore := ctx.GasMeter().GasConsumed()
+		_, err := server.Pools(ctx, &types.QueryPoolsRequest{
+			Pagination: &query.PageRequest{Limit: 50},
+		})
+		require.NoError(t, err)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		gasUsed := gasAfter - gasBefore
+
+		// Should have consumed at least 50 * 100 = 5000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(5000), "Expected at least 5000 gas for limit=50")
+
+		// Test with limit of 100 (default)
+		gasBefore = ctx.GasMeter().GasConsumed()
+		_, err = server.Pools(ctx, &types.QueryPoolsRequest{
+			Pagination: &query.PageRequest{Limit: 100},
+		})
+		require.NoError(t, err)
+		gasAfter = ctx.GasMeter().GasConsumed()
+		gasUsed = gasAfter - gasBefore
+
+		// Should have consumed at least 100 * 100 = 10000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(10000), "Expected at least 10000 gas for limit=100")
+
+		// Test with no pagination (should use default limit)
+		gasBefore = ctx.GasMeter().GasConsumed()
+		_, err = server.Pools(ctx, &types.QueryPoolsRequest{})
+		require.NoError(t, err)
+		gasAfter = ctx.GasMeter().GasConsumed()
+		gasUsed = gasAfter - gasBefore
+
+		// Should use default limit of 100, so at least 10000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(10000), "Expected at least 10000 gas for default limit")
+	})
+
+	t.Run("LimitOrders query gas metering", func(t *testing.T) {
+		// Test with limit of 25
+		gasBefore := ctx.GasMeter().GasConsumed()
+		_, err := server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{
+			Pagination: &query.PageRequest{Limit: 25},
+		})
+		require.NoError(t, err)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		gasUsed := gasAfter - gasBefore
+
+		// Should have consumed at least 25 * 100 = 2500 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(2500), "Expected at least 2500 gas for limit=25")
+
+		// Test with limit of 200
+		gasBefore = ctx.GasMeter().GasConsumed()
+		_, err = server.LimitOrders(ctx, &types.QueryLimitOrdersRequest{
+			Pagination: &query.PageRequest{Limit: 200},
+		})
+		require.NoError(t, err)
+		gasAfter = ctx.GasMeter().GasConsumed()
+		gasUsed = gasAfter - gasBefore
+
+		// Should have consumed at least 200 * 100 = 20000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(20000), "Expected at least 20000 gas for limit=200")
+	})
+
+	t.Run("LimitOrdersByOwner query gas metering", func(t *testing.T) {
+		// Test with limit of 10
+		gasBefore := ctx.GasMeter().GasConsumed()
+		_, err := server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
+			Owner:      trader1.String(),
+			Pagination: &query.PageRequest{Limit: 10},
+		})
+		require.NoError(t, err)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		gasUsed := gasAfter - gasBefore
+
+		// Should have consumed at least 10 * 100 = 1000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(1000), "Expected at least 1000 gas for limit=10")
+
+		// Test with limit of 150
+		gasBefore = ctx.GasMeter().GasConsumed()
+		_, err = server.LimitOrdersByOwner(ctx, &types.QueryLimitOrdersByOwnerRequest{
+			Owner:      trader1.String(),
+			Pagination: &query.PageRequest{Limit: 150},
+		})
+		require.NoError(t, err)
+		gasAfter = ctx.GasMeter().GasConsumed()
+		gasUsed = gasAfter - gasBefore
+
+		// Should have consumed at least 150 * 100 = 15000 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(15000), "Expected at least 15000 gas for limit=150")
+	})
+
+	t.Run("LimitOrdersByPool query gas metering", func(t *testing.T) {
+		// Test with limit of 5
+		gasBefore := ctx.GasMeter().GasConsumed()
+		_, err := server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
+			PoolId:     poolID1,
+			Pagination: &query.PageRequest{Limit: 5},
+		})
+		require.NoError(t, err)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		gasUsed := gasAfter - gasBefore
+
+		// Should have consumed at least 5 * 100 = 500 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(500), "Expected at least 500 gas for limit=5")
+
+		// Test with limit of 75
+		gasBefore = ctx.GasMeter().GasConsumed()
+		_, err = server.LimitOrdersByPool(ctx, &types.QueryLimitOrdersByPoolRequest{
+			PoolId:     poolID1,
+			Pagination: &query.PageRequest{Limit: 75},
+		})
+		require.NoError(t, err)
+		gasAfter = ctx.GasMeter().GasConsumed()
+		gasUsed = gasAfter - gasBefore
+
+		// Should have consumed at least 75 * 100 = 7500 gas
+		require.GreaterOrEqual(t, gasUsed, uint64(7500), "Expected at least 7500 gas for limit=75")
+	})
+
+	t.Run("Gas scales proportionally with limit", func(t *testing.T) {
+		// Test that gas consumption scales linearly with limit
+		limits := []uint64{10, 50, 100, 200}
+		var gasUsages []uint64
+
+		for _, limit := range limits {
+			gasBefore := ctx.GasMeter().GasConsumed()
+			_, err := server.Pools(ctx, &types.QueryPoolsRequest{
+				Pagination: &query.PageRequest{Limit: limit},
+			})
+			require.NoError(t, err)
+			gasAfter := ctx.GasMeter().GasConsumed()
+			gasUsed := gasAfter - gasBefore
+			gasUsages = append(gasUsages, gasUsed)
+
+			// Verify minimum gas consumption
+			expectedMinGas := limit * 100
+			require.GreaterOrEqual(t, gasUsed, expectedMinGas, "Gas used should be at least limit * 100")
+		}
+
+		// Verify that gas usage increases with limit
+		for i := 1; i < len(gasUsages); i++ {
+			require.Greater(t, gasUsages[i], gasUsages[i-1],
+				"Gas usage should increase with higher limits")
+		}
+	})
+
+	t.Run("Max limit cap enforced with gas metering", func(t *testing.T) {
+		// Request beyond max limit (1000)
+		gasBefore := ctx.GasMeter().GasConsumed()
+		_, err := server.Pools(ctx, &types.QueryPoolsRequest{
+			Pagination: &query.PageRequest{Limit: 5000}, // Over max
+		})
+		require.NoError(t, err)
+		gasAfter := ctx.GasMeter().GasConsumed()
+		gasUsed := gasAfter - gasBefore
+
+		// Should be capped at maxPaginationLimit (1000)
+		// So gas should be 1000 * 100 = 100000
+		expectedGas := uint64(1000 * 100)
+		require.GreaterOrEqual(t, gasUsed, expectedGas, "Gas should be capped at max limit")
+
+		// Gas should not be for the full 5000 limit
+		// (checking it's less than what 5000 would cost plus reasonable overhead)
+		require.Less(t, gasUsed, uint64(5000*100+50000), "Gas should not scale beyond max limit")
+	})
+}
