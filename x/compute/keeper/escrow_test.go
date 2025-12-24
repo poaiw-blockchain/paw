@@ -730,12 +730,11 @@ func TestLockEscrow_TimeoutIndexWithReverseIndex(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, foundForward, "forward timeout index must exist")
 
-	// Verify reverse timeout index exists (indirectly via O(1) removal)
-	// We can't directly access the reverse index, but removeEscrowTimeoutIndex uses it
-	// If reverse index exists, removal should be fast; if not, falls back to slow iteration
-	k.removeEscrowTimeoutIndex(ctx, requestID)
+	// Release the escrow which should remove the timeout index via the internal method
+	err = k.ReleaseEscrow(ctx, requestID, true)
+	require.NoError(t, err)
 
-	// Verify timeout index was removed
+	// Verify timeout index was removed after release
 	var foundAfterRemoval bool
 	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
 		if rid == requestID {
@@ -745,7 +744,7 @@ func TestLockEscrow_TimeoutIndexWithReverseIndex(t *testing.T) {
 		return false, nil
 	})
 	require.NoError(t, err)
-	require.False(t, foundAfterRemoval, "timeout index must be removed")
+	require.False(t, foundAfterRemoval, "timeout index must be removed after release")
 }
 
 // TestReleaseEscrow_TimeoutIndexRemoved verifies timeout index is cleaned up on release
