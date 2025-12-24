@@ -20,6 +20,7 @@ func DefaultParams() Params {
 		MaxValidatorsPerIp:         3,                                     // Max 3 validators per IP address
 		MaxValidatorsPerAsn:        5,                                     // Max 5 validators per ASN
 		RequireGeographicDiversity: false,                                 // Default to optional for testnet
+		NonceTtlSeconds:            604800,                                // 7 days (604800 seconds)
 	}
 }
 

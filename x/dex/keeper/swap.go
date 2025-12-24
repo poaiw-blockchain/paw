@@ -107,14 +107,17 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 
 	// Calculate swap output using constant product formula with fees
 	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
-	amountInAfterFee := amountIn.Sub(feeAmount)
+	amountInAfterFee, err := amountIn.SafeSub(feeAmount)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating amount after fee: %s - %s: %v", amountIn.String(), feeAmount.String(), err)
+	}
 	if amountInAfterFee.IsNegative() {
 		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrapf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
 	}
 	if amountInAfterFee.IsZero() {
 		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount too small after fees")
 	}
-	amountOut, err := k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
+	amountOut, err := k.SafeCalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -203,28 +206,45 @@ func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID u
 	// Step 4: ONLY NOW update pool state (after all transfers succeeded)
 	// This ensures pool state is never inconsistent with actual token balances
 	//
-	// PRECISION SAFETY CHECK: Store old k-value before state update to validate invariant
-	oldK := pool.ReserveA.Mul(pool.ReserveB)
+	// PRECISION SAFETY CHECK: Store old reserves before state update to validate invariant
+	oldReserveA := pool.ReserveA
+	oldReserveB := pool.ReserveB
 
+	// Update reserves with overflow protection
+	var newReserveA, newReserveB math.Int
 	if isTokenAIn {
-		pool.ReserveA = pool.ReserveA.Add(amountInAfterFee)
-		pool.ReserveB = pool.ReserveB.Sub(amountOut)
+		newReserveA, err = pool.ReserveA.SafeAdd(amountInAfterFee)
+		if err != nil {
+			return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveA: %s + %s: %v",
+				pool.ReserveA.String(), amountInAfterFee.String(), err)
+		}
+		newReserveB, err = pool.ReserveB.SafeSub(amountOut)
+		if err != nil {
+			return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveB: %s - %s: %v",
+				pool.ReserveB.String(), amountOut.String(), err)
+		}
 	} else {
-		pool.ReserveB = pool.ReserveB.Add(amountInAfterFee)
-		pool.ReserveA = pool.ReserveA.Sub(amountOut)
+		newReserveB, err = pool.ReserveB.SafeAdd(amountInAfterFee)
+		if err != nil {
+			return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveB: %s + %s: %v",
+				pool.ReserveB.String(), amountInAfterFee.String(), err)
+		}
+		newReserveA, err = pool.ReserveA.SafeSub(amountOut)
+		if err != nil {
+			return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveA: %s - %s: %v",
+				pool.ReserveA.String(), amountOut.String(), err)
+		}
 	}
 
 	// INVARIANT VALIDATION: Verify constant product k hasn't decreased due to precision loss
 	// This catches accumulated rounding errors that could harm pool LPs
-	newK := pool.ReserveA.Mul(pool.ReserveB)
-	if newK.LT(oldK) {
-		// Critical invariant violation - precision loss or calculation error
-		// This should NEVER happen in a correct AMM implementation
-		return math.ZeroInt(), types.ErrInvariantViolation.Wrapf(
-			"constant product invariant violated in swap: old_k=%s, new_k=%s (precision loss detected)",
-			oldK.String(), newK.String(),
-		)
+	if err := k.SafeValidateConstantProduct(oldReserveA, oldReserveB, newReserveA, newReserveB); err != nil {
+		return math.ZeroInt(), err
 	}
+
+	// Apply validated reserves
+	pool.ReserveA = newReserveA
+	pool.ReserveB = newReserveB
 
 	// Step 5: Save updated pool
 	if err := k.SetPool(ctx, pool); err != nil {
@@ -351,14 +371,17 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 
 	// Calculate swap output
 	feeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
-	amountInAfterFee := amountIn.Sub(feeAmount)
+	amountInAfterFee, err := amountIn.SafeSub(feeAmount)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating amount after fee: %s - %s: %v", amountIn.String(), feeAmount.String(), err)
+	}
 	if amountInAfterFee.IsNegative() {
 		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrapf("fee amount exceeds swap amount: fee %s, amount %s", feeAmount.String(), amountIn.String())
 	}
 	if amountInAfterFee.IsZero() {
 		return math.ZeroInt(), types.ErrInvalidSwapAmount.Wrap("swap amount too small after fees")
 	}
-	return k.CalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
+	return k.SafeCalculateSwapOutput(ctx, amountInAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
 }
 
 // Swap wraps the secure swap execution path for scenarios that expect a simple swap entrypoint.

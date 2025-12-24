@@ -15,7 +15,8 @@ func DefaultParams() Params {
 		MinReputationScore:         50,
 		EscrowReleaseDelaySeconds:  3600,
 		AuthorizedChannels:         []AuthorizedChannel{},
-		NonceRetentionBlocks:       17280, // ~24 hours at 5 second block time
+		NonceRetentionBlocks:       17280,          // ~24 hours at 5 second block time
+		CircuitParamHashes:         make(map[string][]byte), // Empty initially, populated on circuit initialization
 	}
 }
 

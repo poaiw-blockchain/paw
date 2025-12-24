@@ -783,12 +783,17 @@ func (k Keeper) GetOrdersByOwner(ctx context.Context, owner sdk.AccAddress) ([]*
 }
 
 // GetOrdersByOwnerPaginated returns orders for an owner with pagination support.
-// Returns orders, next page key, and total count.
+// Returns orders, next page key, and estimated total count.
+//
+// Performance Notes:
+//   - Uses single-pass iteration (not double iteration)
+//   - Total count is estimated from page progression, not pre-counted
+//   - For exact counts, client should track across all pages
+//   - O(limit) complexity per query, not O(n) of all orders
 func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddress, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
 	store := k.getStore(ctx)
 	var orders []*LimitOrder
 	var nextKey []byte
-	var count uint64
 
 	if limit == 0 {
 		limit = 100 // Default limit
@@ -799,14 +804,7 @@ func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddr
 
 	prefix := append(LimitOrderByOwnerPrefix, owner.Bytes()...)
 
-	// First count total
-	countIter := storetypes.KVStorePrefixIterator(store, prefix)
-	for ; countIter.Valid(); countIter.Next() {
-		count++
-	}
-	defer countIter.Close()
-
-	// Then paginate
+	// Single-pass iteration with limit
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
@@ -839,7 +837,15 @@ func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddr
 		}
 	}
 
-	return orders, nextKey, count, nil
+	// Estimate total based on page progression
+	// If nextKey exists, total is at least collected+1
+	// Otherwise, total equals collected (this is the last page)
+	estimatedTotal := collected
+	if len(nextKey) > 0 {
+		estimatedTotal = collected + 1 // At least one more page exists
+	}
+
+	return orders, nextKey, estimatedTotal, nil
 }
 
 // GetOrdersByPool returns all orders for a specific pool
@@ -867,12 +873,17 @@ func (k Keeper) GetOrdersByPool(ctx context.Context, poolID uint64) ([]*LimitOrd
 }
 
 // GetOrdersByPoolPaginated returns orders for a pool with pagination support.
-// Returns orders, next page key, and total count.
+// Returns orders, next page key, and estimated total count.
+//
+// Performance Notes:
+//   - Uses single-pass iteration (not double iteration)
+//   - Total count is estimated from page progression, not pre-counted
+//   - For exact counts, client should track across all pages
+//   - O(limit) complexity per query, not O(n) of all orders
 func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
 	store := k.getStore(ctx)
 	var orders []*LimitOrder
 	var nextKey []byte
-	var count uint64
 
 	if limit == 0 {
 		limit = 100 // Default limit
@@ -885,14 +896,7 @@ func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pag
 	binary.BigEndian.PutUint64(poolIDBytes, poolID)
 	prefix := append(LimitOrderByPoolPrefix, poolIDBytes...)
 
-	// First count total
-	countIter := storetypes.KVStorePrefixIterator(store, prefix)
-	for ; countIter.Valid(); countIter.Next() {
-		count++
-	}
-	defer countIter.Close()
-
-	// Then paginate
+	// Single-pass iteration with limit
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
@@ -925,7 +929,15 @@ func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pag
 		}
 	}
 
-	return orders, nextKey, count, nil
+	// Estimate total based on page progression
+	// If nextKey exists, total is at least collected+1
+	// Otherwise, total equals collected (this is the last page)
+	estimatedTotal := collected
+	if len(nextKey) > 0 {
+		estimatedTotal = collected + 1 // At least one more page exists
+	}
+
+	return orders, nextKey, estimatedTotal, nil
 }
 
 // GetOpenOrders returns all open orders

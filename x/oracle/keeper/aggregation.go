@@ -21,6 +21,10 @@ const (
 	SeverityModerate
 	SeverityHigh
 	SeverityExtreme
+
+	// maxSnapshotsForVolatility caps the number of snapshots processed during volatility calculation
+	// to prevent DoS via state bloat. This matches the limit used for TWAP calculations.
+	maxSnapshotsForVolatility = 1000
 )
 
 type OutlierDetectionResult struct {
@@ -464,6 +468,10 @@ func (k Keeper) calculateVolatility(ctx context.Context, asset string, window in
 	err := k.IteratePriceSnapshots(ctx, asset, func(snapshot types.PriceSnapshot) bool {
 		if snapshot.BlockHeight >= minHeight {
 			snapshots = append(snapshots, snapshot)
+			// P1-PERF-2: Cap snapshot count to prevent DoS via unbounded iteration
+			if len(snapshots) >= maxSnapshotsForVolatility {
+				return true // Stop iteration when limit reached
+			}
 		}
 		return false
 	})

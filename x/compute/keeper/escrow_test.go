@@ -663,3 +663,244 @@ func TestRefundEscrow_BankTransferFailure(t *testing.T) {
 	require.Equal(t, types.ESCROW_STATUS_REFUNDED, escrowState.Status)
 	require.NotNil(t, escrowState.RefundedAt)
 }
+
+// TestLockEscrow_TimeoutIndexCreated verifies timeout index is created atomically with escrow
+// This is P1-DATA-2 fix verification - timeout index must exist or escrow creation fails
+func TestLockEscrow_TimeoutIndexCreated(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	requester := createTestRequester(t)
+	provider := createTestProvider(t)
+
+	blockTime := time.Now().UTC()
+	ctx = ctx.WithBlockTime(blockTime)
+
+	amount := math.NewInt(10000000)
+	requestID := uint64(1)
+	timeoutSeconds := uint64(3600)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// Verify timeout index was created
+	expectedExpiry := blockTime.Add(time.Duration(timeoutSeconds) * time.Second)
+	var found bool
+	var foundExpiry time.Time
+
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, expiresAt time.Time) (stop bool, err error) {
+		if rid == requestID {
+			found = true
+			foundExpiry = expiresAt
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.True(t, found, "timeout index must be created when escrow is locked")
+	require.Equal(t, expectedExpiry.Unix(), foundExpiry.Unix(), "timeout index expiry must match escrow expiry")
+}
+
+// TestLockEscrow_TimeoutIndexWithReverseIndex verifies both forward and reverse timeout indexes
+func TestLockEscrow_TimeoutIndexWithReverseIndex(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	requester := createTestRequester(t)
+	provider := createTestProvider(t)
+
+	blockTime := time.Now().UTC()
+	ctx = ctx.WithBlockTime(blockTime)
+
+	amount := math.NewInt(10000000)
+	requestID := uint64(123)
+	timeoutSeconds := uint64(7200)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// Verify forward timeout index exists
+	expectedExpiry := blockTime.Add(time.Duration(timeoutSeconds) * time.Second)
+	var foundForward bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundForward = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.True(t, foundForward, "forward timeout index must exist")
+
+	// Verify reverse timeout index exists (indirectly via O(1) removal)
+	// We can't directly access the reverse index, but removeEscrowTimeoutIndex uses it
+	// If reverse index exists, removal should be fast; if not, falls back to slow iteration
+	k.removeEscrowTimeoutIndex(ctx, requestID)
+
+	// Verify timeout index was removed
+	var foundAfterRemoval bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundAfterRemoval = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.False(t, foundAfterRemoval, "timeout index must be removed")
+}
+
+// TestReleaseEscrow_TimeoutIndexRemoved verifies timeout index is cleaned up on release
+func TestReleaseEscrow_TimeoutIndexRemoved(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	requester := createTestRequester(t)
+	provider := createTestProvider(t)
+
+	blockTime := time.Now().UTC()
+	ctx = ctx.WithBlockTime(blockTime)
+
+	amount := math.NewInt(10000000)
+	requestID := uint64(1)
+	timeoutSeconds := uint64(3600)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// Verify timeout index exists before release
+	expectedExpiry := blockTime.Add(time.Duration(timeoutSeconds) * time.Second)
+	var foundBefore bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundBefore = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.True(t, foundBefore, "timeout index must exist before release")
+
+	// Release escrow
+	err = k.ReleaseEscrow(ctx, requestID, true)
+	require.NoError(t, err)
+
+	// Verify timeout index was removed after release
+	var foundAfter bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundAfter = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.False(t, foundAfter, "timeout index must be removed after release")
+}
+
+// TestRefundEscrow_TimeoutIndexRemoved verifies timeout index is cleaned up on refund
+func TestRefundEscrow_TimeoutIndexRemoved(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	requester := createTestRequester(t)
+	provider := createTestProvider(t)
+
+	blockTime := time.Now().UTC()
+	ctx = ctx.WithBlockTime(blockTime)
+
+	amount := math.NewInt(10000000)
+	requestID := uint64(1)
+	timeoutSeconds := uint64(3600)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// Verify timeout index exists before refund
+	expectedExpiry := blockTime.Add(time.Duration(timeoutSeconds) * time.Second)
+	var foundBefore bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundBefore = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.True(t, foundBefore, "timeout index must exist before refund")
+
+	// Refund escrow
+	err = k.RefundEscrow(ctx, requestID, "test_refund")
+	require.NoError(t, err)
+
+	// Verify timeout index was removed after refund
+	var foundAfter bool
+	err = k.IterateEscrowTimeouts(ctx, expectedExpiry.Add(1*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		if rid == requestID {
+			foundAfter = true
+			return true, nil
+		}
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.False(t, foundAfter, "timeout index must be removed after refund")
+}
+
+// TestProcessExpiredEscrows_UsesTimeoutIndex verifies expired escrow processing uses timeout index
+func TestProcessExpiredEscrows_UsesTimeoutIndex(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+
+	blockTime := time.Now().UTC()
+	ctx = ctx.WithBlockTime(blockTime)
+
+	// Create multiple escrows with staggered expiration times
+	escrowsToExpire := []uint64{1, 2, 3}
+	escrowsToRemain := []uint64{4, 5}
+
+	for _, requestID := range escrowsToExpire {
+		requester := createTestRequester(t)
+		provider := createTestProvider(t)
+		amount := math.NewInt(10000000)
+		// Expire in 100 seconds
+		err := k.LockEscrow(ctx, requester, provider, amount, requestID, 100)
+		require.NoError(t, err)
+	}
+
+	for _, requestID := range escrowsToRemain {
+		requester := createTestRequester(t)
+		provider := createTestProvider(t)
+		amount := math.NewInt(10000000)
+		// Expire in 10000 seconds
+		err := k.LockEscrow(ctx, requester, provider, amount, requestID, 10000)
+		require.NoError(t, err)
+	}
+
+	// Verify all timeout indexes exist
+	var foundCount int
+	err := k.IterateEscrowTimeouts(ctx, blockTime.Add(20000*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		foundCount++
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 5, foundCount, "all 5 timeout indexes must exist")
+
+	// Advance time to expire first 3 escrows
+	newBlockTime := blockTime.Add(200 * time.Second)
+	ctx = ctx.WithBlockTime(newBlockTime)
+
+	// Process expired escrows
+	err = k.ProcessExpiredEscrows(ctx)
+	require.NoError(t, err)
+
+	// Verify expired escrows were refunded and timeout indexes removed
+	for _, requestID := range escrowsToExpire {
+		escrowState, err := k.GetEscrowState(ctx, requestID)
+		require.NoError(t, err)
+		require.Equal(t, types.ESCROW_STATUS_REFUNDED, escrowState.Status)
+	}
+
+	// Verify remaining escrows still have timeout indexes
+	var remainingCount int
+	err = k.IterateEscrowTimeouts(ctx, blockTime.Add(20000*time.Second), func(rid uint64, _ time.Time) (stop bool, err error) {
+		remainingCount++
+		return false, nil
+	})
+	require.NoError(t, err)
+	require.Equal(t, 2, remainingCount, "only 2 non-expired timeout indexes should remain")
+}

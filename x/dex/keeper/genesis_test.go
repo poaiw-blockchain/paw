@@ -310,6 +310,218 @@ func TestGenesisSharesValidation(t *testing.T) {
 	})
 }
 
+// TestGenesisExportImportWithFeeAccumulatedPools tests that pools with accumulated fees
+// can be successfully exported and re-imported. This is the core test for P1-DATA-1.
+//
+// SCENARIO: Pool accumulates fees from swaps, causing reserves to increase while shares
+// remain constant. The k-value (reserveA * reserveB) increases but stays within the 10%
+// tolerance defined in invariants.go.
+//
+// VALIDATION:
+// - Genesis export should succeed with fee-accumulated pools
+// - Genesis import should succeed with the exported state
+// - LP shares sum must equal pool.TotalShares (strict equality)
+// - Constant product invariant must pass (allows up to 10% increase from fees)
+func TestGenesisExportImportWithFeeAccumulatedPools(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	params := types.DefaultParams()
+	params.SwapFee = sdkmath.LegacyNewDecWithPrec(3, 3) // 0.3% fee
+
+	creatorAddr := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20))
+	creator := creatorAddr.String()
+	lpProvider := sdk.AccAddress(bytes.Repeat([]byte{0x3}, 20)).String()
+
+	// Create pool with initial state
+	// Using reserves that when multiplied equal shares^2 (no fee accumulation yet)
+	initialReserveA := sdkmath.NewInt(1_000_000)
+	initialReserveB := sdkmath.NewInt(1_000_000)
+	initialShares := sdkmath.NewInt(1_000_000)
+
+	pool := types.Pool{
+		Id:          1,
+		TokenA:      "atom",
+		TokenB:      "paw",
+		ReserveA:    initialReserveA,
+		ReserveB:    initialReserveB,
+		TotalShares: initialShares,
+		Creator:     creator,
+	}
+
+	// Set pool and liquidity position
+	require.NoError(t, k.SetPool(ctx, &pool))
+	require.NoError(t, k.SetLiquidity(ctx, pool.Id, creatorAddr, initialShares))
+
+	// Verify initial k-value
+	initialK := initialReserveA.Mul(initialReserveB)
+	expectedK := initialShares.Mul(initialShares)
+	require.Equal(t, expectedK, initialK, "Initial k should equal shares^2")
+
+	// Simulate fee accumulation by increasing reserves while keeping shares constant
+	// We'll increase reserves by 5% (well within the 10% tolerance)
+	// This simulates multiple swaps that have accumulated fees in the pool
+	feeAccumulationFactor := sdkmath.LegacyNewDecWithPrec(105, 2) // 1.05 = 105%
+	newReserveA := feeAccumulationFactor.MulInt(initialReserveA).TruncateInt()
+	newReserveB := feeAccumulationFactor.MulInt(initialReserveB).TruncateInt()
+
+	pool.ReserveA = newReserveA
+	pool.ReserveB = newReserveB
+	// TotalShares remains unchanged - this is the key point
+	require.NoError(t, k.SetPool(ctx, &pool))
+
+	// Verify k-value has increased from fee accumulation
+	newK := newReserveA.Mul(newReserveB)
+	kRatio := sdkmath.LegacyNewDecFromInt(newK).Quo(sdkmath.LegacyNewDecFromInt(expectedK))
+	t.Logf("K-value ratio after fee accumulation: %s (should be ~1.05)", kRatio)
+	require.True(t, kRatio.GT(sdkmath.LegacyOneDec()), "K should have increased from fees")
+	require.True(t, kRatio.LTE(sdkmath.LegacyNewDecWithPrec(11, 1)), "K increase should be within 10% tolerance")
+
+	// Run constant product invariant - should pass with fee accumulation
+	invariant := keeper.ConstantProductInvariant(*k)
+	msg, broken := invariant(ctx)
+	require.False(t, broken, "Constant product invariant should pass with 5%% fee accumulation: %s", msg)
+
+	// Run liquidity shares invariant - should pass (shares unchanged)
+	sharesInvariant := keeper.LiquiditySharesInvariant(*k)
+	msg, broken = sharesInvariant(ctx)
+	require.False(t, broken, "Liquidity shares invariant should pass: %s", msg)
+
+	// Export genesis
+	exported, err := k.ExportGenesis(ctx)
+	require.NoError(t, err, "Genesis export should succeed with fee-accumulated pool")
+	require.Len(t, exported.Pools, 1)
+	require.Len(t, exported.LiquidityPositions, 1)
+
+	// Verify exported pool has fee-accumulated reserves
+	exportedPool := exported.Pools[0]
+	require.Equal(t, newReserveA, exportedPool.ReserveA)
+	require.Equal(t, newReserveB, exportedPool.ReserveB)
+	require.Equal(t, initialShares, exportedPool.TotalShares)
+
+	// Verify exported LP shares sum equals TotalShares
+	require.Equal(t, initialShares, exported.LiquidityPositions[0].Shares)
+
+	// Create a fresh keeper to test import
+	k2, ctx2 := keepertest.DexKeeper(t)
+
+	// Import genesis with fee-accumulated pool
+	err = k2.InitGenesis(ctx2, *exported)
+	require.NoError(t, err, "Genesis import should succeed with fee-accumulated pool")
+
+	// Verify imported pool state
+	importedPool, err := k2.GetPool(ctx2, 1)
+	require.NoError(t, err)
+	require.Equal(t, newReserveA, importedPool.ReserveA, "Reserves should match after import")
+	require.Equal(t, newReserveB, importedPool.ReserveB, "Reserves should match after import")
+	require.Equal(t, initialShares, importedPool.TotalShares, "Shares should match after import")
+
+	// Verify LP position was imported correctly
+	lpShares, err := k2.GetLiquidity(ctx2, 1, creatorAddr)
+	require.NoError(t, err)
+	require.Equal(t, initialShares, lpShares, "LP shares should match after import")
+
+	// Run all invariants on imported state - all should pass
+	allInvariant := keeper.AllInvariants(*k2)
+	msg, broken = allInvariant(ctx2)
+	require.False(t, broken, "All invariants should pass after import: %s", msg)
+}
+
+// TestGenesisExportImportMaxFeeAccumulation tests the edge case where fee accumulation
+// is at the maximum 10% tolerance
+func TestGenesisExportImportMaxFeeAccumulation(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	creatorAddr := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20))
+	creator := creatorAddr.String()
+
+	// Create pool with max fee accumulation (10% increase in k)
+	initialShares := sdkmath.NewInt(1_000_000)
+	// For 10% k increase: k_new = 1.1 * shares^2
+	// We need reserveA * reserveB = 1.1 * shares^2
+	// With equal reserves: reserve = sqrt(1.1) * shares ≈ 1.0488 * shares
+	maxFeeReserve := sdkmath.LegacyNewDecWithPrec(10488, 4).MulInt(initialShares).TruncateInt()
+
+	pool := types.Pool{
+		Id:          1,
+		TokenA:      "atom",
+		TokenB:      "paw",
+		ReserveA:    maxFeeReserve,
+		ReserveB:    maxFeeReserve,
+		TotalShares: initialShares,
+		Creator:     creator,
+	}
+
+	require.NoError(t, k.SetPool(ctx, &pool))
+	require.NoError(t, k.SetLiquidity(ctx, pool.Id, creatorAddr, initialShares))
+
+	// Verify we're at max tolerance
+	actualK := maxFeeReserve.Mul(maxFeeReserve)
+	expectedK := initialShares.Mul(initialShares)
+	kRatio := sdkmath.LegacyNewDecFromInt(actualK).Quo(sdkmath.LegacyNewDecFromInt(expectedK))
+	t.Logf("K-value ratio: %s (should be ~1.10)", kRatio)
+	require.True(t, kRatio.LTE(sdkmath.LegacyNewDecWithPrec(11, 1)), "K should be at or below max tolerance")
+
+	// Export and import
+	exported, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+
+	k2, ctx2 := keepertest.DexKeeper(t)
+	err = k2.InitGenesis(ctx2, *exported)
+	require.NoError(t, err, "Should succeed at max fee accumulation tolerance")
+
+	// All invariants should pass
+	allInvariant := keeper.AllInvariants(*k2)
+	_, broken := allInvariant(ctx2)
+	require.False(t, broken, "All invariants should pass at max tolerance")
+}
+
+// TestGenesisImportRejectsInvalidShares verifies that import fails if LP shares
+// don't sum to TotalShares, even with valid fee accumulation
+func TestGenesisImportRejectsInvalidShares(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	params := types.DefaultParams()
+	creator := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20)).String()
+	provider := sdk.AccAddress(bytes.Repeat([]byte{0x2}, 20)).String()
+
+	// Create pool with fee accumulation (valid k-value)
+	shares := sdkmath.NewInt(1_000_000)
+	reserve := sdkmath.LegacyNewDecWithPrec(105, 2).MulInt(shares).TruncateInt() // 5% fee accumulation
+
+	pools := []types.Pool{{
+		Id:          1,
+		TokenA:      "atom",
+		TokenB:      "paw",
+		ReserveA:    reserve,
+		ReserveB:    reserve,
+		TotalShares: shares,
+		Creator:     creator,
+	}}
+
+	// Create liquidity positions that DON'T sum to TotalShares
+	// This represents corrupted genesis data
+	liquidityPositions := []types.LiquidityPositionExport{
+		{
+			PoolId:   1,
+			Provider: provider,
+			Shares:   sdkmath.NewInt(800_000), // Only 80% of shares
+		},
+		// Missing 200,000 shares - this is invalid
+	}
+
+	genesis := types.GenesisState{
+		Params:             params,
+		Pools:              pools,
+		NextPoolId:         2,
+		LiquidityPositions: liquidityPositions,
+	}
+
+	// Import should fail due to shares mismatch
+	err := k.InitGenesis(ctx, genesis)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "shares mismatch")
+}
+
 // TestCircuitBreakerRuntimeStateReset verifies that volatile runtime state
 // is reset during genesis import, even if it's present in the genesis data
 func TestCircuitBreakerRuntimeStateReset(t *testing.T) {

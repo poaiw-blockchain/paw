@@ -13,6 +13,8 @@ import (
 func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 	ir.RegisterRoute(types.ModuleName, "escrow-balance",
 		EscrowBalanceInvariant(k))
+	ir.RegisterRoute(types.ModuleName, "escrow-state-consistency",
+		EscrowStateConsistencyInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "provider-stake",
 		ProviderStakeInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "request-status",
@@ -33,6 +35,10 @@ func RegisterInvariants(ir sdk.InvariantRegistry, k Keeper) {
 func AllInvariants(k Keeper) sdk.Invariant {
 	return func(ctx sdk.Context) (string, bool) {
 		res, stop := EscrowBalanceInvariant(k)(ctx)
+		if stop {
+			return res, stop
+		}
+		res, stop = EscrowStateConsistencyInvariant(k)(ctx)
 		if stop {
 			return res, stop
 		}
@@ -589,5 +595,102 @@ func IBCPacketSequenceInvariant(k Keeper) sdk.Invariant {
 		}
 
 		return sdk.FormatInvariant(types.ModuleName, "ibc-packet-sequence", msg), broken
+	}
+}
+
+// EscrowStateConsistencyInvariant checks that escrow state records are consistent
+// This invariant detects catastrophic failures where bank transfers succeed but state updates fail
+func EscrowStateConsistencyInvariant(k Keeper) sdk.Invariant {
+	return func(ctx sdk.Context) (string, bool) {
+		var (
+			broken bool
+			msg    string
+			issues []string
+		)
+
+		store := k.getStore(ctx)
+		iterator := storetypes.KVStorePrefixIterator(store, EscrowStateKeyPrefix)
+		defer iterator.Close()
+
+		// Iterate all escrow states and check for inconsistencies
+		for ; iterator.Valid(); iterator.Next() {
+			var escrowState types.EscrowState
+			if err := k.cdc.Unmarshal(iterator.Value(), &escrowState); err != nil {
+				broken = true
+				issues = append(issues, fmt.Sprintf("failed to unmarshal escrow state: %v", err))
+				continue
+			}
+
+			// Verify timeout index exists for active escrows
+			if escrowState.Status == types.ESCROW_STATUS_LOCKED ||
+				escrowState.Status == types.ESCROW_STATUS_CHALLENGED {
+				timeoutKey := EscrowTimeoutKey(escrowState.ExpiresAt, escrowState.RequestId)
+				if !store.Has(timeoutKey) {
+					broken = true
+					issues = append(issues, fmt.Sprintf(
+						"escrow %d (status=%s) missing timeout index",
+						escrowState.RequestId, escrowState.Status.String(),
+					))
+				}
+			}
+
+			// Detect inconsistent states
+			if escrowState.Status == types.ESCROW_STATUS_RELEASED && escrowState.ReleasedAt == nil {
+				broken = true
+				issues = append(issues, fmt.Sprintf(
+					"escrow %d has status RELEASED but ReleasedAt is nil",
+					escrowState.RequestId,
+				))
+			}
+
+			if escrowState.Status == types.ESCROW_STATUS_REFUNDED && escrowState.RefundedAt == nil {
+				broken = true
+				issues = append(issues, fmt.Sprintf(
+					"escrow %d has status REFUNDED but RefundedAt is nil",
+					escrowState.RequestId,
+				))
+			}
+
+			// Check for orphaned timeout indexes (released/refunded escrows shouldn't have timeout entries)
+			if escrowState.Status == types.ESCROW_STATUS_RELEASED ||
+				escrowState.Status == types.ESCROW_STATUS_REFUNDED {
+				timeoutKey := EscrowTimeoutKey(escrowState.ExpiresAt, escrowState.RequestId)
+				if store.Has(timeoutKey) {
+					broken = true
+					issues = append(issues, fmt.Sprintf(
+						"escrow %d (status=%s) has orphaned timeout index",
+						escrowState.RequestId, escrowState.Status.String(),
+					))
+				}
+			}
+		}
+
+		// Check for catastrophic failures
+		failures, err := k.GetUnresolvedCatastrophicFailures(ctx)
+		if err == nil && len(failures) > 0 {
+			broken = true
+			issues = append(issues, fmt.Sprintf(
+				"%d unresolved catastrophic failures detected - manual intervention required",
+				len(failures),
+			))
+			for _, failure := range failures {
+				issues = append(issues, fmt.Sprintf(
+					"  - Failure ID %d: Request %d, Account %s, Amount %s, Reason: %s",
+					failure.Id, failure.RequestId, failure.Account, failure.Amount.String(), failure.Reason,
+				))
+			}
+		}
+
+		if len(issues) > 0 {
+			msg = fmt.Sprintf("%d escrow state consistency issues:\n", len(issues))
+			for _, issue := range issues {
+				msg += fmt.Sprintf("  - %s\n", issue)
+			}
+		}
+
+		return sdk.FormatInvariant(
+			types.ModuleName, "escrow-state-consistency",
+			msg,
+		), broken
 	}
 }

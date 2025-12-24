@@ -65,15 +65,13 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 			return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has shares but zero reserves")
 		}
 
-		// First liquidity provider - calculate initial shares
+		// First liquidity provider - calculate initial shares with overflow protection
 		// Use geometric mean: sqrt(amountA * amountB) to prevent initial share manipulation
 		// This follows Uniswap V2 pattern for initial liquidity
-		product := amountA.Mul(amountB)
-		sqrtShares, err := math.LegacyNewDecFromInt(product).ApproxSqrt()
+		newShares, err := k.SafeCalculatePoolShares(amountA, amountB)
 		if err != nil {
-			return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrapf("failed to calculate initial shares: %v", err)
+			return math.ZeroInt(), err
 		}
-		newShares := sqrtShares.TruncateInt()
 
 		if newShares.IsZero() {
 			return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("initial liquidity amounts too small")
@@ -133,10 +131,32 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 	}
 
 	// Now safe to perform division operations - all denominators are guaranteed non-zero
-	// Calculate optimal amounts and shares
+	// Calculate optimal amounts and shares with overflow protection
 	// For proportional liquidity: amountA/reserveA = amountB/reserveB = shares/totalShares
-	optimalAmountB := amountA.Mul(pool.ReserveB).Quo(pool.ReserveA)
-	optimalAmountA := amountB.Mul(pool.ReserveA).Quo(pool.ReserveB)
+
+	// OVERFLOW CHECK: amountA * pool.ReserveB
+	numeratorB, err := amountA.SafeMul(pool.ReserveB)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating optimal amountB: %s * %s: %v",
+			amountA.String(), pool.ReserveB.String(), err)
+	}
+	optimalAmountB, err := numeratorB.SafeQuo(pool.ReserveA)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow in optimal amountB division: %s / %s: %v",
+			numeratorB.String(), pool.ReserveA.String(), err)
+	}
+
+	// OVERFLOW CHECK: amountB * pool.ReserveA
+	numeratorA, err := amountB.SafeMul(pool.ReserveA)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating optimal amountA: %s * %s: %v",
+			amountB.String(), pool.ReserveA.String(), err)
+	}
+	optimalAmountA, err := numeratorA.SafeQuo(pool.ReserveB)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow in optimal amountA division: %s / %s: %v",
+			numeratorA.String(), pool.ReserveB.String(), err)
+	}
 
 	var finalAmountA, finalAmountB math.Int
 
@@ -150,36 +170,52 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 		finalAmountB = amountB
 	}
 
-	// Calculate shares to mint (proportional to contribution)
-	sharesA := finalAmountA.Mul(pool.TotalShares).Quo(pool.ReserveA)
-	sharesB := finalAmountB.Mul(pool.TotalShares).Quo(pool.ReserveB)
-
-	// Use the minimum to maintain proportionality
-	newShares := sharesA
-	if sharesB.LT(sharesA) {
-		newShares = sharesB
+	// Calculate shares to mint with overflow protection
+	newShares, err := k.SafeCalculateAddLiquidityShares(finalAmountA, finalAmountB, pool.ReserveA, pool.ReserveB, pool.TotalShares)
+	if err != nil {
+		return math.ZeroInt(), err
 	}
 
 	if newShares.IsZero() {
 		return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("liquidity contribution too small")
 	}
 
-	// Update pool reserves and total shares
-	pool.ReserveA = pool.ReserveA.Add(finalAmountA)
-	pool.ReserveB = pool.ReserveB.Add(finalAmountB)
-	pool.TotalShares = pool.TotalShares.Add(newShares)
+	// Update pool reserves and total shares with overflow protection
+	newReserveA, err := pool.ReserveA.SafeAdd(finalAmountA)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveA: %s + %s: %v",
+			pool.ReserveA.String(), finalAmountA.String(), err)
+	}
+	newReserveB, err := pool.ReserveB.SafeAdd(finalAmountB)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveB: %s + %s: %v",
+			pool.ReserveB.String(), finalAmountB.String(), err)
+	}
+	newTotalShares, err := pool.TotalShares.SafeAdd(newShares)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to total shares: %s + %s: %v",
+			pool.TotalShares.String(), newShares.String(), err)
+	}
+
+	pool.ReserveA = newReserveA
+	pool.ReserveB = newReserveB
+	pool.TotalShares = newTotalShares
 
 	if err := k.SetPool(ctx, pool); err != nil {
 		return math.ZeroInt(), err
 	}
 
-	// Update user's liquidity position
+	// Update user's liquidity position with overflow protection
 	currentShares, err := k.GetLiquidity(ctx, poolID, provider)
 	if err != nil {
 		return math.ZeroInt(), err
 	}
-	newTotalShares := currentShares.Add(newShares)
-	if err := k.SetLiquidity(ctx, poolID, provider, newTotalShares); err != nil {
+	userTotalShares, err := currentShares.SafeAdd(newShares)
+	if err != nil {
+		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding user shares: %s + %s: %v",
+			currentShares.String(), newShares.String(), err)
+	}
+	if err := k.SetLiquidity(ctx, poolID, provider, userTotalShares); err != nil {
 		return math.ZeroInt(), err
 	}
 
@@ -257,26 +293,47 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf("have %s, need %s", userShares, shares)
 	}
 
-	// Now safe to calculate amounts to return (proportional to shares)
-	// All denominators are guaranteed non-zero by the checks above
-	amountA := shares.Mul(pool.ReserveA).Quo(pool.TotalShares)
-	amountB := shares.Mul(pool.ReserveB).Quo(pool.TotalShares)
+	// Calculate amounts to return with overflow protection
+	amountA, amountB, err := k.SafeCalculateRemoveLiquidityAmounts(shares, pool.ReserveA, pool.ReserveB, pool.TotalShares)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
+	}
 
 	if amountA.IsZero() || amountB.IsZero() {
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("withdrawal amounts too small")
 	}
 
-	// Update pool reserves and total shares
-	pool.ReserveA = pool.ReserveA.Sub(amountA)
-	pool.ReserveB = pool.ReserveB.Sub(amountB)
-	pool.TotalShares = pool.TotalShares.Sub(shares)
+	// Update pool reserves and total shares with overflow protection
+	newReserveA, err := pool.ReserveA.SafeSub(amountA)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveA: %s - %s: %v",
+			pool.ReserveA.String(), amountA.String(), err)
+	}
+	newReserveB, err := pool.ReserveB.SafeSub(amountB)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveB: %s - %s: %v",
+			pool.ReserveB.String(), amountB.String(), err)
+	}
+	newTotalShares, err := pool.TotalShares.SafeSub(shares)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from total shares: %s - %s: %v",
+			pool.TotalShares.String(), shares.String(), err)
+	}
+
+	pool.ReserveA = newReserveA
+	pool.ReserveB = newReserveB
+	pool.TotalShares = newTotalShares
 
 	if err := k.SetPool(ctx, pool); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	// Update user's liquidity position
-	newUserShares := userShares.Sub(shares)
+	// Update user's liquidity position with overflow protection
+	newUserShares, err := userShares.SafeSub(shares)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting user shares: %s - %s: %v",
+			userShares.String(), shares.String(), err)
+	}
 	if err := k.SetLiquidity(ctx, poolID, provider, newUserShares); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}

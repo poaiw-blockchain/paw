@@ -47,13 +47,7 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 	now := sdkCtx.BlockTime()
 	expiresAt := now.Add(types.SecondsToDuration(timeoutSeconds))
 
-	// Transfer funds atomically - CRITICAL: This must succeed or rollback entire operation
-	coins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
-	if err := k.bankKeeper.SendCoinsFromAccountToModule(sdkCtx, requester, types.ModuleName, coins); err != nil {
-		return fmt.Errorf("failed to lock escrow funds: %w", err)
-	}
-
-	// Create escrow state record - AFTER successful transfer
+	// Create escrow state record to prepare for atomic commit
 	escrowState := &EscrowState{
 		RequestId:       requestID,
 		Requester:       requester.String(),
@@ -70,26 +64,38 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 		Nonce:           nonce,
 	}
 
-	// ATOMIC: Store escrow state only if it doesn't already exist
+	// TWO-PHASE COMMIT: Use CacheContext to ensure ALL operations succeed or ALL fail
+	// This prevents catastrophic failures where bank transfer succeeds but state update fails
+	// The CacheContext acts as a transaction boundary - changes are only committed if writeFn is called
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+
+	// Phase 1: Bank transfer - this must happen in the cached context
+	coins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(cacheCtx, requester, types.ModuleName, coins); err != nil {
+		// Transfer failed - cache is automatically discarded, no cleanup needed
+		return fmt.Errorf("failed to lock escrow funds: %w", err)
+	}
+
+	// Phase 2: Store escrow state (atomically - only if it doesn't exist)
 	// This prevents the double-lock race condition where two concurrent calls
 	// could both pass an earlier existence check and overwrite each other
-	if err := k.SetEscrowStateIfNotExists(ctx, *escrowState); err != nil {
-		// CRITICAL: Atomic set failed - must refund the transferred funds
-		// This handles both the race condition case (escrow already exists) and
-		// any marshaling errors
-		refundCoins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
-		if refundErr := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, refundCoins); refundErr != nil {
-			// This is catastrophic - funds locked but state not saved
-			k.recordCatastrophicFailure(ctx, requestID, requester, amount, "failed to store escrow state and refund")
-		}
+	if err := k.SetEscrowStateIfNotExists(cacheCtx, *escrowState); err != nil {
+		// State storage failed - cache is automatically discarded
+		// Bank transfer is rolled back automatically - no catastrophic failure possible
 		return fmt.Errorf("failed to store escrow state atomically: %w", err)
 	}
 
-	// Create timeout index for automatic cleanup
-	if err := k.setEscrowTimeoutIndex(ctx, requestID, expiresAt); err != nil {
-		// Non-critical: escrow is locked, just won't auto-expire
-		k.recordEscrowWarning(ctx, requestID, "failed to create timeout index")
+	// Phase 3: Create timeout index for automatic cleanup
+	// This is CRITICAL - without timeout index, funds can be locked permanently
+	if err := k.setEscrowTimeoutIndex(cacheCtx, requestID, expiresAt); err != nil {
+		// Timeout index creation failed - cache is automatically discarded
+		// Both bank transfer and state update are rolled back - no catastrophic failure possible
+		return fmt.Errorf("failed to create timeout index atomically: %w", err)
 	}
+
+	// COMMIT: All operations succeeded - write the cached context to the parent context
+	// This makes all changes permanent atomically
+	writeFn()
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
@@ -182,8 +188,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		}
 	}
 
-	// ATOMIC RELEASE: Funds-First pattern to prevent permanent lockup
-	// 1. CHECK: Verify all conditions
+	// Validate preconditions
 	if escrowState.Amount.IsZero() {
 		return fmt.Errorf("escrow amount is zero")
 	}
@@ -193,28 +198,33 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 		return fmt.Errorf("invalid provider address: %w", err)
 	}
 
-	// 2. INTERACTIONS: Transfer funds FIRST (critical for safety)
-	// If transfer fails, escrow state remains LOCKED/CHALLENGED and funds are safe
+	// TWO-PHASE COMMIT: Use CacheContext to ensure bank transfer and state update are atomic
+	// This prevents catastrophic failure where payment is sent but state update fails
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+
+	// Phase 1: Transfer funds to provider
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, provider, coins); err != nil {
+		// Transfer failed - cache is automatically discarded, state remains LOCKED/CHALLENGED
 		return fmt.Errorf("failed to release payment: %w", err)
 	}
 
-	// 3. EFFECTS: Update state AFTER successful transfer
-	// This prevents the catastrophic failure scenario where state shows RELEASED but funds are locked
+	// Phase 2: Update escrow state to RELEASED
 	escrowState.Status = types.ESCROW_STATUS_RELEASED
 	escrowState.ReleasedAt = &now
 	escrowState.ReleaseAttempts++
 
-	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
-		// CRITICAL: Payment sent but state update failed - manual resolution required
-		// Funds have been released to provider, but state doesn't reflect it
-		k.recordCatastrophicFailure(ctx, requestID, provider, escrowState.Amount, "payment sent but state update failed")
-		return fmt.Errorf("payment sent but state update failed: %w", err)
+	if err := k.SetEscrowState(cacheCtx, *escrowState); err != nil {
+		// State update failed - cache is automatically discarded
+		// Bank transfer is rolled back - no catastrophic failure possible
+		return fmt.Errorf("failed to update escrow state to released: %w", err)
 	}
 
-	// Remove from timeout index
-	k.removeEscrowTimeoutIndex(ctx, requestID)
+	// Phase 3: Remove from timeout index
+	k.removeEscrowTimeoutIndex(cacheCtx, requestID)
+
+	// COMMIT: All operations succeeded - write the cached context atomically
+	writeFn()
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
@@ -268,28 +278,32 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 		return fmt.Errorf("invalid requester address: %w", err)
 	}
 
-	// ATOMIC REFUND: Funds-First pattern to prevent permanent lockup
-	// 1. INTERACTIONS: Transfer funds FIRST (critical for safety)
-	// If transfer fails, escrow state remains LOCKED and funds are safe
+	// TWO-PHASE COMMIT: Use CacheContext to ensure bank transfer and state update are atomic
+	// This prevents catastrophic failure where refund is sent but state update fails
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+
+	// Phase 1: Transfer funds back to requester
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, requester, coins); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, requester, coins); err != nil {
+		// Transfer failed - cache is automatically discarded, state remains LOCKED
 		return fmt.Errorf("failed to refund payment: %w", err)
 	}
 
-	// 2. EFFECTS: Update state AFTER successful transfer
-	// This prevents the catastrophic failure scenario where state shows REFUNDED but funds are locked
+	// Phase 2: Update escrow state to REFUNDED
 	escrowState.Status = types.ESCROW_STATUS_REFUNDED
 	escrowState.RefundedAt = &now
 
-	if err := k.SetEscrowState(ctx, *escrowState); err != nil {
-		// CRITICAL: Refund sent but state update failed - manual resolution required
-		// Funds have been returned to requester, but state doesn't reflect it
-		k.recordCatastrophicFailure(ctx, requestID, requester, escrowState.Amount, "refund sent but state update failed")
-		return fmt.Errorf("refund sent but state update failed: %w", err)
+	if err := k.SetEscrowState(cacheCtx, *escrowState); err != nil {
+		// State update failed - cache is automatically discarded
+		// Bank transfer is rolled back - no catastrophic failure possible
+		return fmt.Errorf("failed to update escrow state to refunded: %w", err)
 	}
 
-	// Remove from timeout index
-	k.removeEscrowTimeoutIndex(ctx, requestID)
+	// Phase 3: Remove from timeout index
+	k.removeEscrowTimeoutIndex(cacheCtx, requestID)
+
+	// COMMIT: All operations succeeded - write the cached context atomically
+	writeFn()
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(

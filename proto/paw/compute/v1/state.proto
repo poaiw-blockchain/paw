@@ -301,6 +301,11 @@ message Params {
   // After this period, old nonces are cleaned up to prevent unbounded state growth
   // Default: 17280 blocks (approximately 24 hours at 5 second block time)
   int64 nonce_retention_blocks = 9;
+
+  // circuit_param_hashes maps circuit IDs to their expected parameter hashes (governance-controlled)
+  // This prevents accepting invalid or tampered ZK circuit parameters
+  // Key: circuit_id, Value: SHA256 hash of canonical circuit parameters
+  map<string, bytes> circuit_param_hashes = 10;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets

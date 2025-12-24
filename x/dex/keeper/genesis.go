@@ -103,6 +103,17 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 	}
 
 	// Validate that sum of LP shares equals pool.TotalShares for each pool
+	// NOTE: We use strict equality here because LP shares represent ownership fractions
+	// and must always sum exactly to TotalShares. Unlike reserves (which can accumulate
+	// fees), shares are never modified by swaps - only by add/remove liquidity operations.
+	//
+	// Fee accumulation affects reserves, not shares. The relationship:
+	// - Shares: Constant during swaps, only change on liquidity operations
+	// - Reserves: Increase from swap fees, decrease from swaps
+	// - k-value (reserves product): Can increase up to 10% from fees (see invariants.go)
+	//
+	// This validation ensures genesis data integrity - corrupted or manually-edited
+	// genesis files with mismatched shares will be rejected at chain start.
 	for _, pool := range genState.Pools {
 		if !pool.TotalShares.IsZero() {
 			sharesSum, exists := poolSharesSums[pool.Id]

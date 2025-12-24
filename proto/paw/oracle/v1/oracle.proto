@@ -68,6 +68,11 @@ message Params {
   // When true (mainnet): validators must have valid geographic regions, GeoIP database is mandatory
   // When false (testnet): GeoIP database is optional, allows testing without geographic constraints
   bool require_geographic_diversity = 13;
+
+  // nonce_ttl_seconds is the time-to-live for IBC nonces in seconds
+  // Default: 604800 (7 days). After this time, nonces can be pruned to prevent unbounded state growth.
+  // This prevents replay attacks within the TTL window while allowing cleanup of old nonces.
+  uint64 nonce_ttl_seconds = 14;
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination

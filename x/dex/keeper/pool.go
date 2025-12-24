@@ -69,10 +69,11 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 		return nil, err
 	}
 
-	// Calculate initial shares (geometric mean)
-	totalShares := amountA.Mul(amountB)
-	sqrtShares, _ := math.LegacyNewDecFromInt(totalShares).ApproxSqrt()
-	initialShares := sqrtShares.TruncateInt()
+	// Calculate initial shares (geometric mean) with overflow protection
+	initialShares, err := k.SafeCalculatePoolShares(amountA, amountB)
+	if err != nil {
+		return nil, err
+	}
 
 	if initialShares.LT(params.MinLiquidity) {
 		return nil, types.ErrInvalidLiquidityAmount.Wrapf("initial liquidity too low: %s < %s", initialShares, params.MinLiquidity)

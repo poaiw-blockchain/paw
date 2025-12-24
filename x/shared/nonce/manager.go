@@ -15,11 +15,15 @@ const (
 	IncomingNoncePrefix = "nonce"
 	// SendNoncePrefix is the prefix for outgoing packet nonces
 	SendNoncePrefix = "nonce_send"
+	// NonceTimestampPrefix is the prefix for nonce creation timestamps
+	NonceTimestampPrefix = "nonce_ts"
 
 	// MaxTimestampAge is the maximum age of a packet timestamp (24 hours in seconds)
 	MaxTimestampAge = int64(86400)
 	// MaxFutureDrift is the maximum allowed clock drift into the future (5 minutes in seconds)
 	MaxFutureDrift = int64(300)
+	// DefaultNonceTTLSeconds is the default TTL for nonces (7 days)
+	DefaultNonceTTLSeconds = int64(604800)
 )
 
 // ErrorProvider allows modules to provide their own error types while using shared nonce logic.
@@ -77,6 +81,11 @@ func (m *Manager) sendNonceKey(channel, sender string) []byte {
 	return []byte(fmt.Sprintf("%s/%s/%s", SendNoncePrefix, channel, m.normalizeSender(sender)))
 }
 
+// nonceTimestampKey generates the store key for nonce creation timestamps
+func (m *Manager) nonceTimestampKey(channel, sender string) []byte {
+	return []byte(fmt.Sprintf("%s/%s/%s", NonceTimestampPrefix, channel, m.normalizeSender(sender)))
+}
+
 // normalizeSender ensures sender is never empty (uses module name as default)
 func (m *Manager) normalizeSender(sender string) string {
 	if sender == "" {
@@ -97,6 +106,24 @@ func (m *Manager) setIncomingNonce(ctx sdk.Context, channel, sender string, nonc
 	store := ctx.KVStore(m.storeKey)
 	key := m.incomingNonceKey(channel, sender)
 	store.Set(key, encodeNonce(nonce))
+}
+
+// getNonceTimestamp retrieves the stored timestamp for a channel/sender pair
+func (m *Manager) getNonceTimestamp(ctx sdk.Context, channel, sender string) int64 {
+	store := ctx.KVStore(m.storeKey)
+	key := m.nonceTimestampKey(channel, sender)
+	bz := store.Get(key)
+	if len(bz) != 8 {
+		return 0
+	}
+	return int64(decodeNonce(bz))
+}
+
+// setNonceTimestamp stores the timestamp when a nonce was created
+func (m *Manager) setNonceTimestamp(ctx sdk.Context, channel, sender string, timestamp int64) {
+	store := ctx.KVStore(m.storeKey)
+	key := m.nonceTimestampKey(channel, sender)
+	store.Set(key, encodeNonce(uint64(timestamp)))
 }
 
 // ValidateIncomingPacketNonce validates packet nonce and timestamp to prevent replay attacks.
@@ -147,6 +174,8 @@ func (m *Manager) ValidateIncomingPacketNonce(ctx sdk.Context, channel, sender s
 
 	// Store the new nonce after successful validation
 	m.setIncomingNonce(ctx, channel, sender, packetNonce)
+	// Store timestamp for pruning
+	m.setNonceTimestamp(ctx, channel, sender, ctx.BlockTime().Unix())
 	return nil
 }
 
@@ -174,4 +203,99 @@ func (m *Manager) NextOutboundNonce(ctx sdk.Context, channel, sender string) uin
 	next := current + 1
 	m.setSendNonce(ctx, channel, sender, next)
 	return next
+}
+
+// PruneExpiredNonces removes nonces older than the specified TTL.
+// Returns the number of nonces pruned and any error encountered.
+//
+// This implements amortized cleanup to prevent unbounded state growth while
+// avoiding O(n) gas spikes. Uses batch processing with configurable limits.
+//
+// Performance: O(k) where k = maxPrunePerCall, distributed across multiple blocks
+func (m *Manager) PruneExpiredNonces(ctx sdk.Context, ttlSeconds int64, maxPrunePerCall int) (int, error) {
+	if ttlSeconds <= 0 {
+		ttlSeconds = DefaultNonceTTLSeconds
+	}
+	if maxPrunePerCall <= 0 {
+		maxPrunePerCall = 100 // Default batch size
+	}
+
+	store := ctx.KVStore(m.storeKey)
+	currentTime := ctx.BlockTime().Unix()
+	cutoffTime := currentTime - ttlSeconds
+
+	prunedCount := 0
+	keysToDelete := make([][]byte, 0, maxPrunePerCall*3) // 3 keys per nonce (nonce, send, timestamp)
+
+	// Iterate through timestamp entries to find expired nonces
+	// Timestamp keys have format: NonceTimestampPrefix/channel/sender
+	iterator := storetypes.KVStorePrefixIterator(store, []byte(NonceTimestampPrefix))
+	defer iterator.Close()
+
+	for ; iterator.Valid() && prunedCount < maxPrunePerCall; iterator.Next() {
+		timestampKey := iterator.Key()
+		timestamp := int64(decodeNonce(iterator.Value()))
+
+		// Skip nonces that haven't expired yet
+		if timestamp > cutoffTime {
+			continue
+		}
+
+		// Extract channel and sender from the timestamp key
+		// Format: NonceTimestampPrefix/channel/sender
+		channel, sender := extractChannelSenderFromKey(timestampKey, NonceTimestampPrefix)
+		if channel == "" {
+			continue // Invalid key format
+		}
+
+		// Mark all related keys for deletion (atomic cleanup)
+		keysToDelete = append(keysToDelete,
+			m.incomingNonceKey(channel, sender), // Incoming nonce
+			m.sendNonceKey(channel, sender),     // Outgoing nonce
+			timestampKey,                        // Timestamp
+		)
+
+		prunedCount++
+	}
+
+	// Delete all marked keys atomically
+	for _, key := range keysToDelete {
+		store.Delete(key)
+	}
+
+	return prunedCount, nil
+}
+
+// extractChannelSenderFromKey parses channel and sender from a prefixed key.
+// Key format: prefix/channel/sender
+// Returns empty strings if key format is invalid.
+func extractChannelSenderFromKey(key []byte, prefix string) (channel, sender string) {
+	prefixBytes := []byte(prefix)
+	if len(key) <= len(prefixBytes)+2 { // Need at least prefix + "/" + minimal channel/sender
+		return "", ""
+	}
+
+	// Skip prefix and first separator
+	remainder := string(key[len(prefixBytes)+1:]) // +1 to skip the "/"
+
+	// Split by "/"
+	parts := []string{}
+	current := ""
+	for _, ch := range remainder {
+		if ch == '/' {
+			parts = append(parts, current)
+			current = ""
+		} else {
+			current += string(ch)
+		}
+	}
+	if current != "" {
+		parts = append(parts, current)
+	}
+
+	if len(parts) != 2 {
+		return "", ""
+	}
+
+	return parts[0], parts[1]
 }

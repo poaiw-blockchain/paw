@@ -61,6 +61,22 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 		// Don't return error - log and continue
 	}
 
+	// Prune expired IBC nonces to prevent unbounded state growth
+	prunedCount, err := k.PruneExpiredNonces(ctx)
+	if err != nil {
+		sdkCtx.Logger().Error("failed to prune expired nonces", "error", err)
+		// Don't return error - log and continue
+	} else if prunedCount > 0 {
+		sdkCtx.Logger().Info("pruned expired nonces", "count", prunedCount)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"nonces_pruned",
+				sdk.NewAttribute("count", fmt.Sprintf("%d", prunedCount)),
+				sdk.NewAttribute("height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+			),
+		)
+	}
+
 	// Emit end block event for monitoring
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

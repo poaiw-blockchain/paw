@@ -165,6 +165,15 @@ func (cm *CircuitManager) initializeCircuit(ctx context.Context, cfg circuitConf
 	// Check for existing verifying key in state
 	existingParams, err := cm.keeper.GetCircuitParams(ctx, circuitID)
 	if err == nil && len(existingParams.VerifyingKey.VkData) > 0 {
+		// SECURITY: Verify circuit parameter hash before using existing key
+		valid, hashErr := cm.keeper.VerifyCircuitParamsHash(ctx, circuitID, *existingParams)
+		if hashErr != nil {
+			return nil, nil, nil, fmt.Errorf("failed to verify circuit params hash: %w", hashErr)
+		}
+		if !valid {
+			return nil, nil, nil, fmt.Errorf("circuit parameter hash verification failed for %s - parameters may be invalid or tampered", circuitID)
+		}
+
 		// Try to use existing verifying key
 		vk := groth16.NewVerifyingKey(ecc.BN254)
 		if _, readErr := vk.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); readErr == nil {
@@ -223,6 +232,22 @@ func (cm *CircuitManager) generateAndStoreKeys(ctx context.Context, cfg circuitC
 	if err := cm.keeper.SetCircuitParams(ctx, params); err != nil {
 		return nil, nil, err
 	}
+
+	// SECURITY: Compute and store circuit parameter hash for future verification
+	paramHash, err := ComputeCircuitParamsHash(params)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to compute circuit params hash: %w", err)
+	}
+
+	if err := cm.keeper.SetCircuitParamHash(ctx, circuitID, paramHash); err != nil {
+		return nil, nil, fmt.Errorf("failed to set circuit param hash: %w", err)
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.Logger().Info("circuit parameters stored with hash verification",
+		"circuit_id", circuitID,
+		"hash", fmt.Sprintf("%x", paramHash),
+	)
 
 	return pk, vk, nil
 }

@@ -45,3 +45,28 @@ func (k Keeper) NextOutboundNonce(ctx sdk.Context, channel, sender string) uint6
 	manager := nonce.NewManager(k.storeKey, oracleErrorProvider{}, types.ModuleName)
 	return manager.NextOutboundNonce(ctx, channel, sender)
 }
+
+// PruneExpiredNonces removes IBC nonces older than the configured TTL.
+// This prevents unbounded state growth while maintaining replay attack protection
+// within the TTL window.
+//
+// Returns the number of nonces pruned. Errors are logged but don't halt block production.
+func (k Keeper) PruneExpiredNonces(sdkCtx sdk.Context) (int, error) {
+	params, err := k.GetParams(sdkCtx)
+	if err != nil {
+		return 0, errorsmod.Wrap(err, "failed to get params for nonce pruning")
+	}
+
+	manager := nonce.NewManager(k.storeKey, oracleErrorProvider{}, types.ModuleName)
+
+	// Use module parameter for TTL, with safety limits
+	ttlSeconds := int64(params.NonceTtlSeconds)
+	if ttlSeconds <= 0 {
+		ttlSeconds = nonce.DefaultNonceTTLSeconds
+	}
+
+	// Prune up to 100 nonces per block to prevent gas spikes
+	const maxPrunePerBlock = 100
+
+	return manager.PruneExpiredNonces(sdkCtx, ttlSeconds, maxPrunePerBlock)
+}
