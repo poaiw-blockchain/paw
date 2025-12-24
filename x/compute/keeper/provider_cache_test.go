@@ -112,14 +112,12 @@ func TestRefreshProviderCache(t *testing.T) {
 		require.NoError(t, err)
 
 		// Manually set reputation for testing
+		// Note: We set the reputation directly without calling UpdateProviderReputation
+		// to avoid incrementing the score. The reputation index is already set during registration.
 		provider, err := k.GetProvider(ctx, p.addr)
 		require.NoError(t, err)
 		provider.Reputation = p.reputation
 		err = k.SetProvider(ctx, *provider)
-		require.NoError(t, err)
-
-		// Update reputation index
-		err = k.UpdateProviderReputation(ctx, p.addr, true)
 		require.NoError(t, err)
 	}
 
