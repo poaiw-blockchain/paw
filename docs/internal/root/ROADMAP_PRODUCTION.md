@@ -290,10 +290,12 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 #### Code Simplification (~6,500 LOC reduction potential)
 
-- [ ] **P3-SIMP-1**: Remove duplicate swap/pool/liquidity implementations
-  - Delete: `x/dex/keeper/swap.go`, `pool.go`, `liquidity.go`
-  - Keep: `*_secure.go` variants (rename to remove suffix)
-  - Impact: ~800 LOC, eliminates dual-maintenance
+- [x] **P3-SIMP-1**: Remove duplicate swap/pool/liquidity implementations ✅
+  - Deleted: `swap_secure.go`, `pool_secure.go`, `liquidity_secure.go` (~1,221 LOC)
+  - Renamed secure functions to primary names (ExecuteSwapSecure → ExecuteSwap)
+  - Updated all references across msg_server.go, commit_reveal.go, multihop.go
+  - Impact: ~1,221 LOC deleted (exceeded ~800 estimate)
+  - Completed: 2025-12-24
 
 - [ ] **P3-SIMP-2**: Simplify circuit manager abstraction
   - Location: `x/compute/keeper/circuit_manager.go` (648 lines)
@@ -335,16 +337,19 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 #### Performance Optimizations
 
-- [ ] **P3-PERF-1**: Use CacheContext for atomic swap operations
-  - Location: `x/dex/keeper/swap.go:174-183`
-  - Manual reversion pattern uses ~4000 gas
-  - CacheContext provides automatic rollback
-  - Reduces error handling complexity
+- [x] **P3-PERF-1**: Use CacheContext for atomic swap operations ✅
+  - Location: `x/dex/keeper/swap.go`
+  - Replaced manual reversion with CacheContext automatic rollback
+  - Removed 43 lines of error-prone manual revert logic
+  - ~4000 gas savings per failed swap
+  - Completed: 2025-12-24
 
-- [ ] **P3-PERF-2**: Add gas metering to paginated queries
-  - Location: `x/dex/keeper/query_server.go:69-79`
-  - Queries are free regardless of limit
-  - Add proportional gas charge: `limit * 100 gas`
+- [x] **P3-PERF-2**: Add gas metering to paginated queries ✅
+  - Location: `x/dex/keeper/query_server.go`
+  - Added `limit * 100 gas` to: Pools, LimitOrders, OrdersByOwner, OrdersByPool
+  - Prevents abuse of free pagination queries
+  - Comprehensive test coverage added
+  - Completed: 2025-12-24
 
 - [x] **P3-PERF-3**: Pre-size memory allocations with capacity hints ✅
   - 34 optimizations across 8 files in oracle, dex, compute keepers
@@ -356,10 +361,13 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 #### Security Hardening
 
-- [ ] **P3-SEC-1**: Add compute request rate limiting
-  - Location: `x/compute/keeper/msg_server.go:107-140`
-  - DEX has spam prevention, compute does not
-  - Add: 100 requests/address/day, 10-block cooldown
+- [x] **P3-SEC-1**: Add compute request rate limiting ✅
+  - Implementation: `x/compute/keeper/tx_rate_limit.go`
+  - Parameters: max_requests_per_address_per_day (100), request_cooldown_blocks (10)
+  - Dual-layer protection: cooldown + daily limit
+  - EndBlocker cleanup for old rate limit data
+  - Comprehensive tests in `request_rate_limiting_test.go`
+  - Completed: 2025-12-24
 
 - [x] **P3-SEC-2**: Increase oracle slash fraction for mainnet ✅
   - Location: `x/oracle/types/params.go`
