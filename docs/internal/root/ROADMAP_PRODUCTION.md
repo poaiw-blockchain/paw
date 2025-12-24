@@ -166,10 +166,11 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 #### Security
 
-- [ ] **P1-SEC-1**: Implement IBC nonce cleanup/pruning (state growth unbounded)
+- [x] **P1-SEC-1**: Implement IBC nonce cleanup/pruning (state growth unbounded) ✅
   - Location: `x/shared/nonce/manager.go`, `x/oracle/ibc_module.go:219-228`
   - Add time-based nonce expiration (7-day TTL) and pruning in EndBlock
   - Risk: Disk space exhaustion, DoS vector
+  - **Completed**: Time-based nonce expiration with 7-day default TTL, governance-controlled parameter, EndBlock pruning with batch limits, comprehensive tests
 
 - [ ] **P1-SEC-2**: Validate ZK circuit parameters with hash verification
   - Location: `x/compute/keeper/keeper.go:246-288`
