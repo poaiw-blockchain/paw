@@ -320,6 +320,7 @@ func TestRequestRateLimit_MsgServerIntegration(t *testing.T) {
 		types.Pricing{
 			CpuPricePerMcoreHour:  math.LegacyMustNewDecFromStr("0.001"),
 			MemoryPricePerMbHour:  math.LegacyMustNewDecFromStr("0.0001"),
+			GpuPricePerHour:       math.LegacyMustNewDecFromStr("0.1"),
 			StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.00001"),
 		},
 		math.NewInt(1000000),

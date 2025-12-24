@@ -14,13 +14,13 @@ import (
 
 var (
 	// Key prefixes - must match the keeper
-	RequestKeyPrefix        = []byte{0x01}
-	ProviderKeyPrefix       = []byte{0x02}
-	ParamsKey               = []byte{0x03}
-	RequestCounterKey       = []byte{0x04}
-	ActiveProvidersPrefix   = []byte{0x10}
-	RequestByStatusPrefix   = []byte{0x11}
-	RequestByProviderPrefix = []byte{0x12}
+	RequestKeyPrefix        = []byte{0x01, 0x03}
+	ProviderKeyPrefix       = []byte{0x01, 0x02}
+	ParamsKey               = []byte{0x01, 0x00}
+	RequestCounterKey       = []byte{0x01, 0x04}
+	ActiveProvidersPrefix   = []byte{0x01, 0x10}
+	RequestByStatusPrefix   = []byte{0x01, 0x11}
+	RequestByProviderPrefix = []byte{0x01, 0x12}
 )
 
 // Migrate implements store migrations from v1 to v2 for the compute module.
