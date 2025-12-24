@@ -74,18 +74,34 @@ Cannot merge files with different package declarations:
 - **Group 9 (security)**: Mixed packages
 - **Group 10 (verification)**: Mixed packages
 
-## Recommended Fix
+## Root Cause Analysis
 
-To enable further consolidation, the import cycle must be resolved:
+The ibc_test.go consolidation created a problematic dependency:
+1. `ibc_test.go` (package keeper) imports `testutil/keeper` for `ComputeKeeper(t)` helper
+2. `ibc_test.go` (package keeper) imports `x/compute` for `NewIBCModule()` function
+3. Both create import cycles because internal tests (package keeper) cannot import parent packages
 
-### Option 1: Remove testutil/keeper import from ibc_test.go
-Move `ibc_test.go` to external tests (`package keeper_test`) OR stop using testutil/keeper helpers.
+The original 10 separate IBC test files may have been split to avoid these cycles by separating concerns.
 
-### Option 2: Fix testutil/keeper
-Refactor `testutil/keeper` to not import `x/compute/keeper` directly, breaking the cycle.
+## Recommended Fix Options
 
-### Option 3: Split internal tests
-Move all internal tests that require testutil helpers to external test files.
+### Option 1: Convert ibc_test.go to external tests
+Change `package keeper` to `package keeper_test` and update all function calls to use exported functions only. This allows importing both testutil/keeper and x/compute without cycles.
+
+**Pros**: Clean solution, follows Go best practices
+**Cons**: Requires updating all internal function calls to exported versions
+
+### Option 2: Create internal test helpers
+Add `setupKeeperForTest()` (already exists) and a test-only IBC module constructor in the keeper package to avoid importing testutil and parent module.
+
+**Pros**: Minimal changes
+**Cons**: Duplicates test setup logic
+
+### Option 3: Split ibc_test.go back into smaller files
+Separate files by package type - some as internal tests (package keeper), some as external (package keeper_test).
+
+**Pros**: Avoids import cycles
+**Cons**: Reverses the consolidation work
 
 ## Current State
 
