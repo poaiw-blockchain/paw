@@ -78,7 +78,8 @@ func (k Keeper) IteratePrices(ctx context.Context, cb func(price types.Price) (s
 
 // GetAllPrices returns all current prices
 func (k Keeper) GetAllPrices(ctx context.Context) ([]types.Price, error) {
-	prices := []types.Price{}
+	// P3-PERF-3: Pre-size with estimated capacity (typically small number of assets)
+	prices := make([]types.Price, 0, 50)
 	err := k.IteratePrices(ctx, func(price types.Price) bool {
 		prices = append(prices, price)
 		return false
@@ -164,12 +165,12 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 		sdkCtx.Logger().Error("failed to record submission", "validator", validator.String(), "error", err)
 	}
 
-	attrs := []sdk.Attribute{
-		sdk.NewAttribute(types.AttributeKeyValidator, validator.String()),
-		sdk.NewAttribute(types.AttributeKeyAsset, asset),
-		sdk.NewAttribute(types.AttributeKeyPrice, price.String()),
-		sdk.NewAttribute(types.AttributeKeyVotingPower, fmt.Sprintf("%d", votingPower)),
-	}
+	// P3-PERF-3: Pre-size with known capacity (4-5 attributes)
+	attrs := make([]sdk.Attribute, 4, 5)
+	attrs[0] = sdk.NewAttribute(types.AttributeKeyValidator, validator.String())
+	attrs[1] = sdk.NewAttribute(types.AttributeKeyAsset, asset)
+	attrs[2] = sdk.NewAttribute(types.AttributeKeyPrice, price.String())
+	attrs[3] = sdk.NewAttribute(types.AttributeKeyVotingPower, fmt.Sprintf("%d", votingPower))
 
 	if len(feeders) > 0 && feeders[0] != nil {
 		attrs = append(attrs, sdk.NewAttribute(types.AttributeKeyFeeder, feeders[0].String()))
@@ -251,7 +252,8 @@ func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb fun
 
 // GetValidatorPricesByAsset returns all validator price submissions for an asset
 func (k Keeper) GetValidatorPricesByAsset(ctx context.Context, asset string) ([]types.ValidatorPrice, error) {
-	validatorPrices := []types.ValidatorPrice{}
+	// P3-PERF-3: Pre-size with estimated validator count
+	validatorPrices := make([]types.ValidatorPrice, 0, 100)
 	err := k.IterateValidatorPrices(ctx, asset, func(vp types.ValidatorPrice) bool {
 		validatorPrices = append(validatorPrices, vp)
 		return false
@@ -261,7 +263,8 @@ func (k Keeper) GetValidatorPricesByAsset(ctx context.Context, asset string) ([]
 
 // GetAllValidatorPrices returns validator prices, optionally filtered by asset.
 func (k Keeper) GetAllValidatorPrices(ctx context.Context, asset string) ([]types.ValidatorPrice, error) {
-	validatorPrices := []types.ValidatorPrice{}
+	// P3-PERF-3: Pre-size with estimated validator count
+	validatorPrices := make([]types.ValidatorPrice, 0, 100)
 	err := k.IterateValidatorPrices(ctx, asset, func(vp types.ValidatorPrice) bool {
 		validatorPrices = append(validatorPrices, vp)
 		return false
@@ -321,7 +324,8 @@ func (k Keeper) DeleteOldSnapshots(ctx context.Context, asset string, minBlockHe
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
 
-	var keysToDelete [][]byte
+	// P3-PERF-3: Pre-size with estimated number of old snapshots to delete
+	keysToDelete := make([][]byte, 0, 100)
 	for ; iterator.Valid(); iterator.Next() {
 		var snapshot types.PriceSnapshot
 		if err := k.cdc.Unmarshal(iterator.Value(), &snapshot); err != nil {

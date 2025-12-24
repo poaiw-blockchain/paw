@@ -52,6 +52,236 @@ func TestRequestStatusInvariant(t *testing.T) {
 		msg, broken := invariant(sdkCtx)
 		require.False(t, broken, "request status invariant should not be broken: %s", msg)
 	})
+
+	t.Run("detects completed request without finalization flag", func(t *testing.T) {
+		k, ctx := setupKeeperForTest(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		// Create a completed request without setting finalization flag
+		requester := sdk.AccAddress([]byte("test_requester_addr"))
+		provider := sdk.AccAddress([]byte("test_provider_addr_"))
+		now := sdkCtx.BlockTime()
+
+		request := types.Request{
+			Id:              1,
+			Requester:       requester.String(),
+			Provider:        provider.String(),
+			Status:          types.REQUEST_STATUS_COMPLETED,
+			EscrowedAmount:  sdkmath.NewInt(100000),
+			MaxPayment:      sdkmath.NewInt(100000),
+			CreatedAt:       now.Add(-3600 * 1e9),
+			CompletedAt:     &now,
+			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage:  "test/image",
+		}
+
+		err := k.SetRequest(ctx, request)
+		require.NoError(t, err)
+
+		// Create result for the request
+		result := &types.Result{
+			RequestId:    1,
+			Provider:     provider.String(),
+			OutputHash:   "test_hash",
+			SubmittedAt:  now,
+			Verified:     true,
+		}
+		err = k.SetResult(ctx, result)
+		require.NoError(t, err)
+
+		// Verify invariant is broken (no finalization flag set)
+		invariant := RequestStatusInvariant(*k)
+		msg, broken := invariant(sdkCtx)
+		require.True(t, broken, "invariant should be broken when completed request is not finalized")
+		require.Contains(t, msg, "not finalized")
+		require.Contains(t, msg, "missing settlement flag")
+	})
+
+	t.Run("passes with properly finalized completed request", func(t *testing.T) {
+		k, ctx := setupKeeperForTest(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		// Create a completed request WITH finalization flag
+		requester := sdk.AccAddress([]byte("test_requester_addr"))
+		provider := sdk.AccAddress([]byte("test_provider_addr_"))
+		now := sdkCtx.BlockTime()
+
+		request := types.Request{
+			Id:              1,
+			Requester:       requester.String(),
+			Provider:        provider.String(),
+			Status:          types.REQUEST_STATUS_COMPLETED,
+			EscrowedAmount:  sdkmath.NewInt(100000),
+			MaxPayment:      sdkmath.NewInt(100000),
+			CreatedAt:       now.Add(-3600 * 1e9),
+			CompletedAt:     &now,
+			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage:  "test/image",
+		}
+
+		err := k.SetRequest(ctx, request)
+		require.NoError(t, err)
+
+		// Create result
+		result := &types.Result{
+			RequestId:    1,
+			Provider:     provider.String(),
+			OutputHash:   "test_hash",
+			SubmittedAt:  now,
+			Verified:     true,
+		}
+		err = k.SetResult(ctx, result)
+		require.NoError(t, err)
+
+		// Mark request as finalized
+		k.markRequestFinalized(ctx, 1)
+
+		// Verify invariant passes
+		invariant := RequestStatusInvariant(*k)
+		msg, broken := invariant(sdkCtx)
+		require.False(t, broken, "invariant should not be broken when request is properly finalized: %s", msg)
+	})
+
+	t.Run("passes with multiple completed requests all finalized", func(t *testing.T) {
+		k, ctx := setupKeeperForTest(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		requester := sdk.AccAddress([]byte("test_requester_addr"))
+		now := sdkCtx.BlockTime()
+
+		// Create multiple completed requests, all finalized
+		for i := uint64(1); i <= 5; i++ {
+			provider := sdk.AccAddress([]byte("test_provider_" + string(rune(i))))
+
+			request := types.Request{
+				Id:              i,
+				Requester:       requester.String(),
+				Provider:        provider.String(),
+				Status:          types.REQUEST_STATUS_COMPLETED,
+				EscrowedAmount:  sdkmath.NewInt(100000),
+				MaxPayment:      sdkmath.NewInt(100000),
+				CreatedAt:       now.Add(-3600 * 1e9),
+				CompletedAt:     &now,
+				Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+				ContainerImage:  "test/image",
+			}
+
+			err := k.SetRequest(ctx, request)
+			require.NoError(t, err)
+
+			result := &types.Result{
+				RequestId:   i,
+				Provider:    provider.String(),
+				OutputHash:  "test_hash",
+				SubmittedAt: now,
+				Verified:    true,
+			}
+			err = k.SetResult(ctx, result)
+			require.NoError(t, err)
+
+			// Mark as finalized
+			k.markRequestFinalized(ctx, i)
+		}
+
+		// Verify invariant passes
+		invariant := RequestStatusInvariant(*k)
+		msg, broken := invariant(sdkCtx)
+		require.False(t, broken, "invariant should not be broken when all requests are finalized: %s", msg)
+	})
+
+	t.Run("detects one unfinalized among multiple completed requests", func(t *testing.T) {
+		k, ctx := setupKeeperForTest(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		requester := sdk.AccAddress([]byte("test_requester_addr"))
+		now := sdkCtx.BlockTime()
+
+		// Create 5 completed requests, finalize only 4
+		for i := uint64(1); i <= 5; i++ {
+			provider := sdk.AccAddress([]byte("test_provider_" + string(rune(i))))
+
+			request := types.Request{
+				Id:              i,
+				Requester:       requester.String(),
+				Provider:        provider.String(),
+				Status:          types.REQUEST_STATUS_COMPLETED,
+				EscrowedAmount:  sdkmath.NewInt(100000),
+				MaxPayment:      sdkmath.NewInt(100000),
+				CreatedAt:       now.Add(-3600 * 1e9),
+				CompletedAt:     &now,
+				Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+				ContainerImage:  "test/image",
+			}
+
+			err := k.SetRequest(ctx, request)
+			require.NoError(t, err)
+
+			result := &types.Result{
+				RequestId:   i,
+				Provider:    provider.String(),
+				OutputHash:  "test_hash",
+				SubmittedAt: now,
+				Verified:    true,
+			}
+			err = k.SetResult(ctx, result)
+			require.NoError(t, err)
+
+			// Finalize all except request 3
+			if i != 3 {
+				k.markRequestFinalized(ctx, i)
+			}
+		}
+
+		// Verify invariant is broken
+		invariant := RequestStatusInvariant(*k)
+		msg, broken := invariant(sdkCtx)
+		require.True(t, broken, "invariant should be broken when one request is not finalized")
+		require.Contains(t, msg, "request 3")
+		require.Contains(t, msg, "not finalized")
+	})
+
+	t.Run("passes with pending and processing requests (no finalization needed)", func(t *testing.T) {
+		k, ctx := setupKeeperForTest(t)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+		requester := sdk.AccAddress([]byte("test_requester_addr"))
+		provider := sdk.AccAddress([]byte("test_provider_addr_"))
+		now := sdkCtx.BlockTime()
+
+		// Create pending request
+		pendingRequest := types.Request{
+			Id:              1,
+			Requester:       requester.String(),
+			Status:          types.REQUEST_STATUS_PENDING,
+			EscrowedAmount:  sdkmath.NewInt(100000),
+			MaxPayment:      sdkmath.NewInt(100000),
+			CreatedAt:       now,
+			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage:  "test/image",
+		}
+		err := k.SetRequest(ctx, pendingRequest)
+		require.NoError(t, err)
+
+		// Create processing request
+		processingRequest := types.Request{
+			Id:              2,
+			Requester:       requester.String(),
+			Provider:        provider.String(),
+			Status:          types.REQUEST_STATUS_PROCESSING,
+			EscrowedAmount:  sdkmath.NewInt(100000),
+			MaxPayment:      sdkmath.NewInt(100000),
+			CreatedAt:       now,
+			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage:  "test/image",
+		}
+		err = k.SetRequest(ctx, processingRequest)
+		require.NoError(t, err)
+
+		// Verify invariant passes (finalization not needed for non-completed requests)
+		invariant := RequestStatusInvariant(*k)
+		msg, broken := invariant(sdkCtx)
+		require.False(t, broken, "invariant should not be broken for non-completed requests: %s", msg)
+	})
 }
 
 func TestNonceUniquenessInvariant(t *testing.T) {

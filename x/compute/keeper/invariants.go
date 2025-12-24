@@ -235,6 +235,17 @@ func RequestStatusInvariant(k Keeper) sdk.Invariant {
 				}
 			}
 
+			// Check that completed requests have finalization flag set
+			if request.Status == types.REQUEST_STATUS_COMPLETED {
+				if !k.isRequestFinalized(ctx, request.Id) {
+					issues = append(issues, fmt.Sprintf(
+						"request %d is completed but not finalized (missing settlement flag)",
+						request.Id,
+					))
+					broken = true
+				}
+			}
+
 			return false, nil
 		})
 

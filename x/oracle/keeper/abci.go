@@ -341,7 +341,8 @@ func (k Keeper) CleanupOldSubmissions(ctx context.Context) error {
 		iterator := store.Iterator(types.VoteKeyPrefix, storetypes.PrefixEndBytes(types.VoteKeyPrefix))
 		defer iterator.Close()
 
-		submissionsToDelete := [][]byte{}
+		// P3-PERF-3: Pre-size with estimated capacity (validators * assets)
+		submissionsToDelete := make([][]byte, 0, 100)
 		for ; iterator.Valid(); iterator.Next() {
 			submissionsToDelete = append(submissionsToDelete, iterator.Key())
 			cleanedCount++

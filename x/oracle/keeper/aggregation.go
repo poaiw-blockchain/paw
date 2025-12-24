@@ -464,7 +464,8 @@ func (k Keeper) calculateVolatility(ctx context.Context, asset string, window in
 
 	// Get recent snapshots
 	minHeight := sdkCtx.BlockHeight() - int64(window)
-	snapshots := []types.PriceSnapshot{}
+	// P3-PERF-3: Pre-size with maxSnapshotsForVolatility capacity
+	snapshots := make([]types.PriceSnapshot, 0, maxSnapshotsForVolatility)
 
 	err := k.IteratePriceSnapshots(ctx, asset, func(snapshot types.PriceSnapshot) bool {
 		if snapshot.BlockHeight >= minHeight {
@@ -691,7 +692,8 @@ func (k Keeper) getOutlierReason(severity OutlierSeverity) string {
 // calculateVotingPower calculates total voting power and filters valid prices
 func (k Keeper) calculateVotingPower(ctx context.Context, validatorPrices []types.ValidatorPrice) (int64, []types.ValidatorPrice, error) {
 	totalVotingPower := int64(0)
-	validPrices := []types.ValidatorPrice{}
+	// P3-PERF-3: Pre-size with input length capacity
+	validPrices := make([]types.ValidatorPrice, 0, len(validatorPrices))
 
 	bondedValidators, err := k.GetBondedValidators(ctx)
 	if err != nil {
@@ -777,10 +779,10 @@ func (k Keeper) CalculateTWAP(ctx context.Context, asset string) (sdkmath.Legacy
 	}
 
 	minHeight := sdkCtx.BlockHeight() - int64(params.TwapLookbackWindow)
-	snapshots := []types.PriceSnapshot{}
-
 	// HIGH-7 Fix: Cap snapshot count to prevent OOM attacks
 	const maxSnapshots = 1000
+	// P3-PERF-3: Pre-size with maxSnapshots capacity
+	snapshots := make([]types.PriceSnapshot, 0, maxSnapshots)
 
 	err = k.IteratePriceSnapshots(ctx, asset, func(snapshot types.PriceSnapshot) bool {
 		if snapshot.BlockHeight >= minHeight {

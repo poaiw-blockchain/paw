@@ -29,9 +29,6 @@ func (k Keeper) MigrateStoreKeys(ctx sdk.Context) error {
 		{[]byte{0x05}, PriceSnapshotKeyPrefix},
 		{[]byte{0x06}, FeederDelegationKeyPrefix},
 		{[]byte{0x07}, SubmissionByHeightPrefix},
-		{[]byte{0x08}, ValidatorAccuracyKeyPrefix},
-		{[]byte{0x09}, AccuracyBonusPoolKey},
-		{[]byte{0x0A}, GeographicInfoKeyPrefix},
 		{[]byte{0x0C}, OutlierHistoryKeyPrefix},
 	}
 

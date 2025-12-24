@@ -220,7 +220,8 @@ func (k Keeper) IteratePools(ctx context.Context, cb func(pool types.Pool) (stop
 
 // GetAllPools returns all pools with a maximum limit to prevent DoS
 func (k Keeper) GetAllPools(ctx context.Context) ([]types.Pool, error) {
-	var pools []types.Pool
+	// P3-PERF-3: Pre-size with MaxIterationLimit capacity
+	pools := make([]types.Pool, 0, MaxIterationLimit)
 	count := 0
 	err := k.IteratePools(ctx, func(pool types.Pool) bool {
 		if count >= MaxIterationLimit {

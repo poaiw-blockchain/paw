@@ -702,7 +702,8 @@ func (k Keeper) ProcessExpiredOrders(ctx context.Context) error {
 	iterator := storetypes.KVStorePrefixIterator(store, LimitOrderOpenPrefix)
 	defer iterator.Close()
 
-	expiredOrders := []uint64{}
+	// P3-PERF-3: Pre-size with estimated expired orders capacity
+	expiredOrders := make([]uint64, 0, 50)
 	for ; iterator.Valid(); iterator.Next() {
 		orderID := binary.BigEndian.Uint64(iterator.Key()[len(LimitOrderOpenPrefix):])
 

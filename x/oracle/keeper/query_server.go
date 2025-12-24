@@ -74,8 +74,10 @@ func (qs queryServer) Prices(goCtx context.Context, req *types.QueryPricesReques
 	store := ctx.KVStore(qs.storeKey)
 	priceStore := prefix.NewStore(store, PriceKeyPrefix)
 
-	var prices []types.Price
-	pageRes, err := query.Paginate(priceStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	sanitized := sanitizePagination(req.Pagination)
+	prices := make([]types.Price, 0, sanitized.Limit)
+	pageRes, err := query.Paginate(priceStore, sanitized, func(key []byte, value []byte) error {
 		var price types.Price
 		if err := qs.cdc.Unmarshal(value, &price); err != nil {
 			return err
@@ -126,8 +128,10 @@ func (qs queryServer) Validators(goCtx context.Context, req *types.QueryValidato
 	store := ctx.KVStore(qs.storeKey)
 	validatorStore := prefix.NewStore(store, ValidatorOracleKeyPrefix)
 
-	var validators []types.ValidatorOracle
-	pageRes, err := query.Paginate(validatorStore, sanitizePagination(req.Pagination), func(key []byte, value []byte) error {
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	sanitized := sanitizePagination(req.Pagination)
+	validators := make([]types.ValidatorOracle, 0, sanitized.Limit)
+	pageRes, err := query.Paginate(validatorStore, sanitized, func(key []byte, value []byte) error {
 		var validator types.ValidatorOracle
 		if err := qs.cdc.Unmarshal(value, &validator); err != nil {
 			return err

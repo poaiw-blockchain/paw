@@ -55,6 +55,7 @@ func TestRegisterInvariantsRegistersAllRoutes(t *testing.T) {
 
 	require.ElementsMatch(t, []string{
 		"compute:escrow-balance",
+		"compute:escrow-state-consistency",
 		"compute:provider-stake",
 		"compute:request-status",
 		"compute:nonce-uniqueness",

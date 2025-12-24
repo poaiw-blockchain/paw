@@ -78,7 +78,15 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 		}
 	}
 
-	var pools []types.Pool
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	limit := defaultPaginationLimit
+	if req.Pagination != nil && req.Pagination.Limit > 0 {
+		limit = req.Pagination.Limit
+		if limit > maxPaginationLimit {
+			limit = maxPaginationLimit
+		}
+	}
+	pools := make([]types.Pool, 0, limit)
 	store := qs.Keeper.getStore(goCtx)
 	poolStore := prefix.NewStore(store, PoolKeyPrefix)
 
@@ -190,7 +198,15 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 		}
 	}
 
-	var orders []types.LimitOrder
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	limit := defaultPaginationLimit
+	if req.Pagination != nil && req.Pagination.Limit > 0 {
+		limit = req.Pagination.Limit
+		if limit > maxPaginationLimit {
+			limit = maxPaginationLimit
+		}
+	}
+	orders := make([]types.LimitOrder, 0, limit)
 	store := qs.Keeper.getStore(goCtx)
 	orderStore := prefix.NewStore(store, LimitOrderKeyPrefix)
 
@@ -250,7 +266,8 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 		return nil, err
 	}
 
-	var orders []types.LimitOrder
+	// P3-PERF-3: Pre-size with known capacity from internal orders
+	orders := make([]types.LimitOrder, 0, len(internalOrders))
 	for _, order := range internalOrders {
 		orders = append(orders, convertToProtoLimitOrder(order))
 	}
@@ -296,7 +313,8 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 		return nil, err
 	}
 
-	var orders []types.LimitOrder
+	// P3-PERF-3: Pre-size with known capacity from internal orders
+	orders := make([]types.LimitOrder, 0, len(internalOrders))
 	for _, order := range internalOrders {
 		orders = append(orders, convertToProtoLimitOrder(order))
 	}
