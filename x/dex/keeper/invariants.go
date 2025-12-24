@@ -150,11 +150,11 @@ func LiquiditySharesInvariant(k Keeper) sdk.Invariant {
 			for ; iter.Valid(); iter.Next() {
 				// Check if this share belongs to the current pool
 				key := iter.Key()
-				if len(key) < 9 { // prefix(1) + poolID(8)
+				if len(key) < 10 { // prefix(2) + poolID(8) - keys are namespaced with 2-byte prefix
 					continue
 				}
 
-				poolID := sdk.BigEndianToUint64(key[1:9])
+				poolID := sdk.BigEndianToUint64(key[2:10])
 				if poolID != pool.Id {
 					continue
 				}

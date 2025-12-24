@@ -215,11 +215,12 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 
 			// Also delete the actual rate limit entry
 			// Extract user and window from the index key
-			// Format: RateLimitByHeightPrefix(1) + height(8) + user(20) + window(8)
-			if len(key) >= 37 { // 1 + 8 + 20 + 8
-				userStart := 9 // After prefix(1) + height(8)
-				userEnd := 29  // userStart + 20
-				windowStart := 29
+			// Format: RateLimitByHeightPrefix(2) + height(8) + user(20) + window(8) = 38 bytes
+			// Keys are namespaced with 2-byte prefix
+			if len(key) >= 38 { // 2 + 8 + 20 + 8
+				userStart := 10 // After prefix(2) + height(8)
+				userEnd := 30   // userStart + 20
+				windowStart := 30
 
 				if len(key) >= windowStart+8 {
 					user := sdk.AccAddress(key[userStart:userEnd])

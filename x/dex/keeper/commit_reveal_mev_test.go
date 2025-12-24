@@ -181,7 +181,7 @@ func TestCommitRevealHashMismatch(t *testing.T) {
 		AmountIn:     math.NewInt(10_000_000),
 		MinAmountOut: math.NewInt(9_500_000),
 		Deadline:     ctx.BlockTime().Unix() + 300,
-		Nonce:        "wrong_nonce",
+		Nonce:        "wrong_nonce_that_is_16_chars_or_more",
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -366,7 +366,7 @@ func TestMsgCommitSwapValidation(t *testing.T) {
 			name: "invalid hex characters",
 			msg: &types.MsgCommitSwap{
 				Trader:   trader.String(),
-				SwapHash: "xyz123456789abcdef0123456789abcdef0123456789abcdef0123456789abc",
+				SwapHash: "ghij01234567890abcdef0123456789abcdef0123456789abcdef01234567890", // exactly 64 chars with ghij
 			},
 			wantErr: true,
 			errMsg:  "must be valid hexadecimal",

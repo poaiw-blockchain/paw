@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"testing"
+	"time"
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
@@ -100,7 +101,11 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 	var ibcKeeper *ibckeeper.Keeper
 
 	k := keeper.NewKeeper(cdc, storeKey, bankKeeper, ibcKeeper, &portKeeper, authtypes.NewModuleAddress(govtypes.ModuleName).String(), scopedDexKeeper)
-	ctx := sdk.NewContext(stateStore, cmtproto.Header{}, false, log.NewNopLogger())
+	header := cmtproto.Header{
+		Height: 1,
+		Time:   time.Now(),
+	}
+	ctx := sdk.NewContext(stateStore, header, false, log.NewNopLogger())
 
 	// Setup module account for mint/burn
 	moduleAccount := accountKeeper.NewAccount(ctx, authtypes.NewEmptyModuleAccount(types.ModuleName, authtypes.Minter, authtypes.Burner)).(*authtypes.ModuleAccount)
@@ -113,6 +118,7 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 		sdk.NewInt64Coin("uatom", 5_000_000_000),
 		sdk.NewInt64Coin("atom", 5_000_000_000),
 		sdk.NewInt64Coin("usdc", 5_000_000_000),
+		sdk.NewInt64Coin("uusdc", 5_000_000_000),
 		sdk.NewInt64Coin("osmo", 5_000_000_000),
 		sdk.NewInt64Coin("uosmo", 5_000_000_000),
 		sdk.NewInt64Coin("tokenA", 5_000_000_000),

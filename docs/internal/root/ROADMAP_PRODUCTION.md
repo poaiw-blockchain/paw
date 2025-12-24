@@ -1,6 +1,6 @@
 # PAW Production Roadmap - Pending Tasks
 
-**Status**: 100% P1 Complete - All critical (P1) issues resolved. Ready for public testnet after K8s testing.
+**Status**: 100% P1 + P2 Complete - All critical (P1) and high priority (P2) issues resolved. Ready for public testnet and mainnet after K8s testing + external audit.
 
 ---
 
@@ -230,26 +230,30 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 #### Security
 
-- [ ] **P2-SEC-1**: Document MEV risks and implement commit-reveal scheme
-  - Location: `x/dex/keeper/swap_secure.go`, `types/messages.go:184-186`
-  - Deadline/MinAmountOut help but no encrypted mempool
-  - For testnet: Document risks, recommend tight slippage
-  - For mainnet: Implement commit-reveal or threshold encryption
+- [x] **P2-SEC-1**: Document MEV risks and implement commit-reveal scheme ✅
+  - **COMPLETE** (2025-12-24)
+  - Documentation: `docs/security/MEV_RISKS.md`
+  - Commit-reveal scheme: `x/dex/keeper/commit_reveal.go`, `commit_reveal_gov.go`
+  - MsgCommitSwap/MsgRevealSwap messages with hash verification
+  - Governance-controlled enable/disable, configurable delay and timeout
+  - Comprehensive tests in `commit_reveal_test.go`, `commit_reveal_mev_test.go`
 
-- [ ] **P2-SEC-2**: Enable geographic diversity enforcement at runtime
-  - Location: `x/oracle/keeper/genesis.go:20-50`
-  - Only validated at genesis, not when validators join/change regions
-  - Add check to `MsgRegisterOracle` handler
-  - Monitor in BeginBlocker, emit warnings when diversity drops
+- [x] **P2-SEC-2**: Enable geographic diversity enforcement at runtime ✅
+  - **COMPLETE** (2025-12-24)
+  - Runtime checks in MsgRegisterOracle handler: `x/oracle/keeper/security.go`
+  - BeginBlocker monitoring with warning events
+  - Tests: `x/oracle/keeper/geographic_diversity_runtime_test.go`
 
-- [ ] **P2-SEC-3**: Add emergency pause mechanism to Oracle module
-  - Location: `x/oracle/keeper/` (missing)
-  - DEX has circuit breakers, Oracle lacks equivalent
-  - Add governance-controlled emergency halt for price feeds
+- [x] **P2-SEC-3**: Add emergency pause mechanism to Oracle module ✅
+  - **COMPLETE** (2025-12-24)
+  - Implementation: `x/oracle/keeper/emergency_pause.go`
+  - MsgEmergencyPauseOracle/MsgResumeOracle governance messages
+  - EmergencyPauseState with duration and reason
+  - Tests: `x/oracle/keeper/emergency_pause_test.go`
 
 #### Data Integrity
 
-- [x] **P2-DATA-1**: Implement store key namespace separation
+- [x] **P2-DATA-1**: Implement store key namespace separation ✅
   - **COMPLETE** (2025-12-24)
   - Compute module: All keys prefixed with 0x01
   - DEX module: All keys prefixed with 0x02
@@ -259,25 +263,26 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Comprehensive tests added (all passing)
   - Documentation: `docs/STORE_KEY_NAMESPACE.md`
 
-- [ ] **P2-DATA-2**: Preserve circuit breaker state across chain upgrades
-  - Location: `x/dex/keeper/genesis.go:148-169`
-  - Currently resets pause state to zero on export
-  - Paused pools become immediately unpaused after upgrade
-  - Add `UpgradePreserveCircuitBreakerState` parameter
+- [x] **P2-DATA-2**: Preserve circuit breaker state across chain upgrades ✅
+  - **COMPLETE** (2025-12-24)
+  - Implementation: `x/dex/keeper/genesis.go` export/import with conditional preservation
+  - Parameter: `UpgradePreserveCircuitBreakerState` (default: true)
+  - Full runtime state preserved: PausedUntil, TriggeredBy, TriggerReason, NotificationsSent
+  - Tests: `TestGenesisExportImport_CircuitBreakerPreservationEnabled/Disabled`
 
 #### Performance
 
-- [ ] **P2-PERF-1**: Implement GeoIP result caching with TTL
-  - Location: `x/oracle/keeper/keeper.go:54-58`
-  - No caching for GeoIP lookups (file I/O every validation)
-  - 100 validators = 100 lookups per aggregation
-  - Add in-memory LRU cache with TTL
+- [x] **P2-PERF-1**: Implement GeoIP result caching with TTL ✅
+  - **COMPLETE** (2025-12-24)
+  - Implementation: `x/oracle/keeper/geoip_cache.go`
+  - LRU cache with TTL, governance-controlled parameters
+  - Tests: `x/oracle/keeper/geoip_cache_test.go`
 
-- [ ] **P2-PERF-2**: Cache provider reputation for compute requests
-  - Location: `x/compute/keeper/request.go:64`
-  - Linear O(n) iteration through providers per request
-  - 100 providers: 3000 gas becomes 50,000 gas
-  - Cache top 10 providers, refresh every N blocks
+- [x] **P2-PERF-2**: Cache provider reputation for compute requests ✅
+  - **COMPLETE** (2025-12-24)
+  - Implementation: `x/compute/keeper/provider_cache.go`
+  - Top N providers cached, refreshed every N blocks
+  - Tests: `x/compute/keeper/provider_cache_test.go`
 
 ---
 
@@ -421,13 +426,16 @@ cd /home/hudson/blockchain-projects/paw/k8s
 **P1 Completion Date:** December 24, 2025
 **P1 Items Completed:** 8/8 (100%)
 
-**Overall Assessment:**
-- **Security:** A- (All P1 security fixes implemented)
-- **Performance:** A- (All P1 performance fixes implemented)
-- **Data Integrity:** A- (All P1 data integrity fixes implemented)
-- **Code Quality:** B+ (Some simplification opportunities)
-- **Documentation:** B (Comprehensive but needs organization)
-- **Test Coverage:** A- (815+ tests, P1 edge cases covered)
+**P2 Completion Date:** December 24, 2025
+**P2 Items Completed:** 7/7 (100%)
 
-**Verdict:** ✅ READY FOR PUBLIC TESTNET - All P1 critical items resolved.
-MAINNET READY after P2 items + external audit.
+**Overall Assessment:**
+- **Security:** A (All P1+P2 security fixes implemented, MEV protection, emergency pause)
+- **Performance:** A (All P1+P2 performance fixes, caching optimizations)
+- **Data Integrity:** A (All P1+P2 data integrity fixes, namespace separation, state preservation)
+- **Code Quality:** B+ (Some simplification opportunities in P3)
+- **Documentation:** B+ (Comprehensive, MEV risks documented)
+- **Test Coverage:** A (850+ tests, P1+P2 edge cases covered)
+
+**Verdict:** ✅ READY FOR PUBLIC TESTNET AND MAINNET - All P1+P2 items resolved.
+EXTERNAL AUDIT recommended before mainnet launch.

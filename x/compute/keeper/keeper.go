@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"errors"
-	"sync"
 
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -40,13 +39,6 @@ type Keeper struct {
 	circuitManager *CircuitManager
 
 	metrics *ComputeMetrics
-
-	// authorizedChannelsCache caches the authorized IBC channels to avoid
-	// repeated GetParams() calls on every IBC packet. The cache is invalidated
-	// when params are updated via SetParams or SetAuthorizedChannels.
-	channelCacheMu          sync.RWMutex
-	authorizedChannelsCache map[string]struct{}
-	channelCacheValid       bool
 }
 
 type kvStoreProvider interface {
@@ -67,18 +59,17 @@ func NewKeeper(
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
 	return &Keeper{
-		storeKey:                key,
-		cdc:                     cdc,
-		bankKeeper:              bankKeeper,
-		accountKeeper:           accountKeeper,
-		stakingKeeper:           stakingKeeper,
-		slashingKeeper:          slashingKeeper,
-		ibcKeeper:               ibcKeeper,
-		portKeeper:              portKeeper,
-		authority:               authority,
-		scopedKeeper:            scopedKeeper,
-		metrics:                 NewComputeMetrics(),
-		authorizedChannelsCache: make(map[string]struct{}),
+		storeKey:       key,
+		cdc:            cdc,
+		bankKeeper:     bankKeeper,
+		accountKeeper:  accountKeeper,
+		stakingKeeper:  stakingKeeper,
+		slashingKeeper: slashingKeeper,
+		ibcKeeper:      ibcKeeper,
+		portKeeper:     portKeeper,
+		authority:      authority,
+		scopedKeeper:   scopedKeeper,
+		metrics:        NewComputeMetrics(),
 	}
 }
 
@@ -137,14 +128,6 @@ func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.Authorized
 	return channels, nil
 }
 
-// InvalidateChannelCache invalidates the authorized channels cache.
-// This must be called whenever params.AuthorizedChannels is modified.
-func (k *Keeper) InvalidateChannelCache() {
-	k.channelCacheMu.Lock()
-	k.channelCacheValid = false
-	k.channelCacheMu.Unlock()
-}
-
 // SetAuthorizedChannels implements ibcutil.ChannelStore.
 // It persists the updated list of authorized IBC channels to module params.
 func (k *Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.AuthorizedChannel) error {
@@ -163,65 +146,18 @@ func (k *Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.A
 	}
 
 	params.AuthorizedChannels = moduleChannels
-	if err := k.SetParams(ctx, params); err != nil {
-		return err
-	}
-
-	// Invalidate cache after successful param update
-	k.InvalidateChannelCache()
-	return nil
+	return k.SetParams(ctx, params)
 }
 
 // IsAuthorizedChannel checks whether incoming packets from the given port/channel are allowed.
-// Uses an in-memory cache to avoid repeated GetParams() calls on every IBC packet.
+// This delegates to ibcutil.IsAuthorizedChannel which performs a direct GetParams() call.
 func (k *Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
-	cacheKey := portID + "/" + channelID
-
-	// Fast path: check cache with read lock
-	k.channelCacheMu.RLock()
-	if k.channelCacheValid {
-		_, authorized := k.authorizedChannelsCache[cacheKey]
-		k.channelCacheMu.RUnlock()
-		return authorized
-	}
-	k.channelCacheMu.RUnlock()
-
-	// Cache miss: populate cache with write lock
-	k.channelCacheMu.Lock()
-	defer k.channelCacheMu.Unlock()
-
-	// Double-check after acquiring write lock (another goroutine may have populated it)
-	if k.channelCacheValid {
-		_, authorized := k.authorizedChannelsCache[cacheKey]
-		return authorized
-	}
-
-	// Load channels from params and populate cache
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		ctx.Logger().Error("failed to load params for channel authorization", "error", err)
-		return false
-	}
-
-	// Clear and rebuild cache
-	k.authorizedChannelsCache = make(map[string]struct{}, len(params.AuthorizedChannels))
-	for _, ch := range params.AuthorizedChannels {
-		k.authorizedChannelsCache[ch.PortId+"/"+ch.ChannelId] = struct{}{}
-	}
-	k.channelCacheValid = true
-
-	_, authorized := k.authorizedChannelsCache[cacheKey]
-	return authorized
+	return ibcutil.IsAuthorizedChannel(ctx, k, portID, channelID)
 }
 
 // AuthorizeChannel appends a port/channel pair to the allowlist when governance approves it.
 func (k *Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
-	if err := ibcutil.AuthorizeChannel(ctx, k, portID, channelID); err != nil {
-		return err
-	}
-	// Invalidate cache after successful update
-	k.InvalidateChannelCache()
-	return nil
+	return ibcutil.AuthorizeChannel(ctx, k, portID, channelID)
 }
 
 // SetAuthorizedChannelsWithValidation replaces the allowlist with the provided slice, with validation.
@@ -235,12 +171,7 @@ func (k *Keeper) SetAuthorizedChannelsWithValidation(ctx sdk.Context, channels [
 		}
 	}
 
-	if err := ibcutil.SetAuthorizedChannelsWithValidation(ctx, k, ibcChannels); err != nil {
-		return err
-	}
-	// Invalidate cache after successful update
-	k.InvalidateChannelCache()
-	return nil
+	return ibcutil.SetAuthorizedChannelsWithValidation(ctx, k, ibcChannels)
 }
 
 // GetCircuitManager returns the circuit manager, lazily initializing it if needed.

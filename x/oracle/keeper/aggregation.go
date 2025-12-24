@@ -289,8 +289,9 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 	// Adjust thresholds based on volatility
 	madThreshold := k.getMADThreshold(asset, volatility)
 
-	outliers := []OutlierDetectionResult{}
-	validPrices := []types.ValidatorPrice{}
+	// P3-PERF-3: Pre-size slices with expected capacity
+	outliers := make([]OutlierDetectionResult, 0, len(prices)/10) // Estimate ~10% outliers
+	validPrices := make([]types.ValidatorPrice, 0, len(prices))
 
 	for _, vp := range prices {
 		// Stage 2: Modified Z-Score using MAD (Median Absolute Deviation)

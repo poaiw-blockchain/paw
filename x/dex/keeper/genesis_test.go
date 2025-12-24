@@ -21,6 +21,8 @@ func TestDexGenesisRoundTrip(t *testing.T) {
 	params.AuthorizedChannels = []types.AuthorizedChannel{
 		{PortId: types.PortID, ChannelId: "channel-0"},
 	}
+	// Set to false to test the reset-on-export behavior (non-preservation)
+	params.UpgradePreserveCircuitBreakerState = false
 
 	creatorOne := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20)).String()
 	creatorTwo := sdk.AccAddress(bytes.Repeat([]byte{0x2}, 20)).String()
@@ -545,7 +547,10 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	params := types.DefaultParams()
+	// Disable preservation to test reset behavior
+	params.UpgradePreserveCircuitBreakerState = false
 	creatorOne := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20)).String()
+	providerOne := sdk.AccAddress(bytes.Repeat([]byte{0x3}, 20)).String()
 
 	pools := []types.Pool{
 		{
@@ -559,6 +564,15 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 		},
 	}
 
+	// Liquidity positions must match TotalShares
+	liquidityPositions := []types.LiquidityPositionExport{
+		{
+			PoolId:   1,
+			Provider: providerOne,
+			Shares:   sdkmath.NewInt(900_000),
+		},
+	}
+
 	// Create genesis data with runtime state populated
 	// (simulating an export from a paused chain)
 	circuitBreakerStates := []types.CircuitBreakerStateExport{
@@ -568,12 +582,12 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 			LastPrice:      sdkmath.LegacyMustNewDecFromStr("2.0"),
 			PersistenceKey: "pool_1_cb",
 
-			// Runtime state that should be ignored during import
-			PausedUntil:       1_700_000_200, // Should be reset to 0
-			TriggeredBy:       "admin",       // Should be reset to ""
+			// Runtime state that should be ignored during import when preservation is disabled
+			PausedUntil:       1_700_000_200,  // Should be reset to 0
+			TriggeredBy:       "admin",        // Should be reset to ""
 			TriggerReason:     "manual pause", // Should be reset to ""
 			NotificationsSent: 5,              // Should be reset to 0
-			LastNotification:  1_700_000_150, // Should be reset to 0
+			LastNotification:  1_700_000_150,  // Should be reset to 0
 		},
 	}
 
@@ -582,6 +596,7 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 		Pools:                pools,
 		NextPoolId:           2,
 		CircuitBreakerStates: circuitBreakerStates,
+		LiquidityPositions:   liquidityPositions,
 	}
 
 	// Import genesis

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -333,6 +334,12 @@ func TestOverflowProtection_Integration(t *testing.T) {
 	amountA := math.NewInt(1_000_000_000_000_000) // 1 quadrillion
 	amountB := math.NewInt(2_000_000_000_000_000) // 2 quadrillion
 
+	// Fund creator with sufficient tokens
+	keepertest.FundAccount(t, k, ctx, creator, sdk.NewCoins(
+		sdk.NewCoin(tokenA, amountA.Add(math.NewInt(100_000_000_000_000))),
+		sdk.NewCoin(tokenB, amountB.Add(math.NewInt(100_000_000_000_000))),
+	))
+
 	pool, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
 	require.NoError(t, err)
 	require.NotNil(t, pool)
@@ -369,6 +376,12 @@ func TestOverflowProtection_SequentialSwaps(t *testing.T) {
 	tokenB := "uusdt"
 	amountA := math.NewInt(10_000_000_000) // 10 billion
 	amountB := math.NewInt(20_000_000_000) // 20 billion
+
+	// Fund creator with sufficient tokens
+	keepertest.FundAccount(t, k, ctx, creator, sdk.NewCoins(
+		sdk.NewCoin(tokenA, amountA.MulRaw(2)),
+		sdk.NewCoin(tokenB, amountB.MulRaw(2)),
+	))
 
 	pool, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
 	require.NoError(t, err)
