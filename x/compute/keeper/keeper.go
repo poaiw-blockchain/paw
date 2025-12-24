@@ -149,30 +149,6 @@ func (k *Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.A
 	return k.SetParams(ctx, params)
 }
 
-// IsAuthorizedChannel checks whether incoming packets from the given port/channel are allowed.
-// This delegates to ibcutil.IsAuthorizedChannel which performs a direct GetParams() call.
-func (k *Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) bool {
-	return ibcutil.IsAuthorizedChannel(ctx, k, portID, channelID)
-}
-
-// AuthorizeChannel appends a port/channel pair to the allowlist when governance approves it.
-func (k *Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
-	return ibcutil.AuthorizeChannel(ctx, k, portID, channelID)
-}
-
-// SetAuthorizedChannelsWithValidation replaces the allowlist with the provided slice, with validation.
-func (k *Keeper) SetAuthorizedChannelsWithValidation(ctx sdk.Context, channels []computetypes.AuthorizedChannel) error {
-	// Convert module-specific type to shared type
-	ibcChannels := make([]ibcutil.AuthorizedChannel, len(channels))
-	for i, ch := range channels {
-		ibcChannels[i] = ibcutil.AuthorizedChannel{
-			PortId:    ch.PortId,
-			ChannelId: ch.ChannelId,
-		}
-	}
-
-	return ibcutil.SetAuthorizedChannelsWithValidation(ctx, k, ibcChannels)
-}
 
 // GetCircuitManager returns the circuit manager, lazily initializing it if needed.
 // The circuit manager handles ZK-SNARK proof verification for compute results.

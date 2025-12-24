@@ -29,7 +29,7 @@ func TestInitializeComputeCircuitRegeneratesOnCorruption(t *testing.T) {
 
 	// Seed circuit params with invalid verifying key bytes to force regeneration
 	params := &types.CircuitParams{
-		CircuitId: string(CircuitTypeCompute),
+		CircuitId: "compute-verification-v2",
 		Enabled:   true,
 		VerifyingKey: types.VerifyingKey{
 			VkData: []byte{0x00, 0x01},
@@ -42,12 +42,26 @@ func TestInitializeComputeCircuitRegeneratesOnCorruption(t *testing.T) {
 	groth16Setup = func(ccs constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
 		return groth16.NewProvingKey(ecc.BN254), groth16.NewVerifyingKey(ecc.BN254), nil
 	}
-	t.Cleanup(func() { groth16Setup = originalSetup })
+	t.Cleanup(func() {
+		groth16Setup = originalSetup
+		// Reset circuit state for other tests
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	})
 
-	err := cm.initializeComputeCircuit(ctx)
+	err := cm.Initialize(ctx)
 	require.NoError(t, err)
-	require.NotNil(t, cm.computeProvingKey)
-	require.NotNil(t, cm.computeVerifyingKey)
+
+	// Verify circuit was initialized
+	circuitMu.RLock()
+	keys := circuitState[computeCircuitDef.id]
+	circuitMu.RUnlock()
+
+	require.NotNil(t, keys)
+	require.NotNil(t, keys.pk)
+	require.NotNil(t, keys.vk)
 }
 
 func TestInitializeComputeCircuitSetupFailure(t *testing.T) {
@@ -58,9 +72,16 @@ func TestInitializeComputeCircuitSetupFailure(t *testing.T) {
 	groth16Setup = func(ccs constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
 		return nil, nil, errors.New("setup failed")
 	}
-	t.Cleanup(func() { groth16Setup = originalSetup })
+	t.Cleanup(func() {
+		groth16Setup = originalSetup
+		// Reset circuit state for other tests
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	})
 
-	err := cm.initializeComputeCircuit(ctx)
+	err := cm.Initialize(ctx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "setup failed")
 }

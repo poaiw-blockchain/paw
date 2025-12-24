@@ -52,8 +52,20 @@ func TestVerifyGroth16PairingFailsWithoutVerifyingKey(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Inject a circuit manager marked initialized but without verifying key to avoid heavy setup.
-	k.circuitManager = &CircuitManager{initialized: true}
+	// Mark circuits initialized but don't add result circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = make(map[string]*circuitKeys) // Empty state - no keys
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
+
+	k.circuitManager = NewCircuitManager(k)
 
 	proof := &Groth16ProofBN254{}
 	err := k.verifyGroth16Pairing(sdkCtx, []byte{0x1, 0x2}, proof, bn254.G1Affine{})
@@ -65,11 +77,24 @@ func TestVerifyGroth16PairingDeserializationError(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Provide an initialized circuit manager with a stub verifying key
-	k.circuitManager = &CircuitManager{
-		initialized:        true,
-		resultVerifyingKey: groth16.NewVerifyingKey(ecc.BN254),
+	// Setup circuit state with a stub verifying key for result circuit
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = map[string]*circuitKeys{
+		resultCircuitDef.id: {
+			vk: groth16.NewVerifyingKey(ecc.BN254),
+		},
 	}
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
+
+	k.circuitManager = NewCircuitManager(k)
 
 	proof := &Groth16ProofBN254{}
 	err := k.verifyGroth16Pairing(sdkCtx, []byte{0x01}, proof, bn254.G1Affine{})

@@ -15,6 +15,7 @@ import (
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/paw-chain/paw/x/compute/keeper"
 	"github.com/paw-chain/paw/x/compute/types"
 )
@@ -229,7 +230,7 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
-	if !im.keeper.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel) {
+	if !ibcutil.IsAuthorizedChannel(ctx, im.keeper, packet.SourcePort, packet.SourceChannel) {
 		err := errorsmod.Wrapf(types.ErrUnauthorizedChannel, "port %s channel %s not authorized", packet.SourcePort, packet.SourceChannel)
 		ctx.Logger().Error("unauthorized compute packet source", "port", packet.SourcePort, "channel", packet.SourceChannel)
 		ctx.EventManager().EmitEvent(

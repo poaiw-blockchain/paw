@@ -16,6 +16,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex"
 	"github.com/paw-chain/paw/x/dex/keeper"
@@ -40,7 +41,7 @@ func setupDexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
 
 func authorizeDexChannel(t testing.TB, k *keeper.Keeper, ctx sdk.Context, channelID string) {
 	t.Helper()
-	require.NoError(t, k.AuthorizeChannel(ctx, types.PortID, channelID))
+	require.NoError(t, ibcutil.AuthorizeChannel(ctx, k, types.PortID, channelID))
 }
 
 func TestHandleQueryPoolsReturnsLivePoolState(t *testing.T) {

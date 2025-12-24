@@ -9,6 +9,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -26,7 +27,7 @@ func TestKeeper_IsAuthorizedChannel(t *testing.T) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	t.Run("unknown channel is not authorized", func(t *testing.T) {
-		authorized := k.IsAuthorizedChannel(sdkCtx, "compute", "unknown-channel")
+		authorized := ibcutil.IsAuthorizedChannel(sdkCtx, k, "compute", "unknown-channel")
 		require.False(t, authorized)
 	})
 }
@@ -36,9 +37,9 @@ func TestKeeper_AuthorizeChannel(t *testing.T) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	t.Run("authorize channel", func(t *testing.T) {
-		err := k.AuthorizeChannel(sdkCtx, "compute", "channel-0")
+		err := ibcutil.AuthorizeChannel(sdkCtx, k, "compute", "channel-0")
 		require.NoError(t, err)
-		authorized := k.IsAuthorizedChannel(sdkCtx, "compute", "channel-0")
+		authorized := ibcutil.IsAuthorizedChannel(sdkCtx, k, "compute", "channel-0")
 		require.True(t, authorized)
 	})
 }
@@ -48,15 +49,15 @@ func TestKeeper_SetAuthorizedChannelsWithValidation(t *testing.T) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	t.Run("set authorized channels", func(t *testing.T) {
-		channels := []types.AuthorizedChannel{
+		channels := []ibcutil.AuthorizedChannel{
 			{PortId: "compute", ChannelId: "channel-0"},
 			{PortId: "compute", ChannelId: "channel-1"},
 		}
-		err := k.SetAuthorizedChannelsWithValidation(sdkCtx, channels)
+		err := ibcutil.SetAuthorizedChannelsWithValidation(sdkCtx, k, channels)
 		require.NoError(t, err)
 
-		require.True(t, k.IsAuthorizedChannel(sdkCtx, "compute", "channel-0"))
-		require.True(t, k.IsAuthorizedChannel(sdkCtx, "compute", "channel-1"))
+		require.True(t, ibcutil.IsAuthorizedChannel(sdkCtx, k, "compute", "channel-0"))
+		require.True(t, ibcutil.IsAuthorizedChannel(sdkCtx, k, "compute", "channel-1"))
 	})
 }
 

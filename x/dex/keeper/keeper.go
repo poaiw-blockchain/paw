@@ -140,30 +140,3 @@ func (k Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.Au
 	return k.SetParams(ctx, params)
 }
 
-// IsAuthorizedChannel returns nil error if the provided port/channel pair is allowed to relay packets.
-// Returns an error if the channel is not authorized or if params cannot be loaded.
-func (k Keeper) IsAuthorizedChannel(ctx sdk.Context, portID, channelID string) error {
-	if ibcutil.IsAuthorizedChannel(ctx, k, portID, channelID) {
-		return nil
-	}
-	return dextypes.ErrUnauthorizedChannel
-}
-
-// AuthorizeChannel adds a port/channel pair to the allowlist, deduplicating entries.
-func (k Keeper) AuthorizeChannel(ctx sdk.Context, portID, channelID string) error {
-	return ibcutil.AuthorizeChannel(ctx, k, portID, channelID)
-}
-
-// SetAuthorizedChannelsWithValidation replaces the entire allowlist with validated port/channel pairs.
-func (k Keeper) SetAuthorizedChannelsWithValidation(ctx sdk.Context, channels []dextypes.AuthorizedChannel) error {
-	// Convert module-specific type to shared type
-	ibcChannels := make([]ibcutil.AuthorizedChannel, len(channels))
-	for i, ch := range channels {
-		ibcChannels[i] = ibcutil.AuthorizedChannel{
-			PortId:    ch.PortId,
-			ChannelId: ch.ChannelId,
-		}
-	}
-
-	return ibcutil.SetAuthorizedChannelsWithValidation(ctx, k, ibcChannels)
-}

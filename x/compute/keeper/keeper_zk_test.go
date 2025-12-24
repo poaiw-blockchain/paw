@@ -16,11 +16,18 @@ func TestVerifyComputeProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) 
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	cm := k.GetCircuitManager()
-	cm.mu.Lock()
-	cm.initialized = true
-	cm.computeVerifyingKey = nil
-	cm.mu.Unlock()
+	// Setup circuits initialized but without compute circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = make(map[string]*circuitKeys) // No compute circuit
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyComputeProofWithCircuitManager(
 		sdkCtx,
@@ -34,11 +41,18 @@ func TestVerifyEscrowProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	cm := k.GetCircuitManager()
-	cm.mu.Lock()
-	cm.initialized = true
-	cm.escrowVerifyingKey = nil
-	cm.mu.Unlock()
+	// Setup circuits initialized but without escrow circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = make(map[string]*circuitKeys) // No escrow circuit
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyEscrowProofWithCircuitManager(
 		sdkCtx,
@@ -52,11 +66,18 @@ func TestVerifyResultProofWithCircuitManager_FailsWithoutCircuit(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	cm := k.GetCircuitManager()
-	cm.mu.Lock()
-	cm.initialized = true
-	cm.resultVerifyingKey = nil
-	cm.mu.Unlock()
+	// Setup circuits initialized but without result circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = make(map[string]*circuitKeys) // No result circuit
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyResultProofWithCircuitManager(
 		sdkCtx,
@@ -73,12 +94,22 @@ func TestVerifyComputeProofWithCircuitManager_SucceedsWithInjectedVerifier(t *te
 	proofBytes := newEmptyProofBytes(t)
 	stubGroth16Verifier(t)
 
-	cm := &CircuitManager{
-		keeper:              k,
-		computeVerifyingKey: groth16.NewVerifyingKey(ecc.BN254),
-		initialized:         true,
+	// Setup circuit state with compute circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = map[string]*circuitKeys{
+		computeCircuitDef.id: {
+			vk: groth16.NewVerifyingKey(ecc.BN254),
+		},
 	}
-	k.circuitManager = cm
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyComputeProofWithCircuitManager(
 		sdkCtx,
@@ -99,12 +130,22 @@ func TestVerifyEscrowProofWithCircuitManager_SucceedsWithInjectedVerifier(t *tes
 	proofBytes := newEmptyProofBytes(t)
 	stubGroth16Verifier(t)
 
-	cm := &CircuitManager{
-		keeper:             k,
-		escrowVerifyingKey: groth16.NewVerifyingKey(ecc.BN254),
-		initialized:        true,
+	// Setup circuit state with escrow circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = map[string]*circuitKeys{
+		escrowCircuitDef.id: {
+			vk: groth16.NewVerifyingKey(ecc.BN254),
+		},
 	}
-	k.circuitManager = cm
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyEscrowProofWithCircuitManager(
 		sdkCtx,
@@ -126,12 +167,22 @@ func TestVerifyResultProofWithCircuitManager_SucceedsWithInjectedVerifier(t *tes
 	proofBytes := newEmptyProofBytes(t)
 	stubGroth16Verifier(t)
 
-	cm := &CircuitManager{
-		keeper:             k,
-		resultVerifyingKey: groth16.NewVerifyingKey(ecc.BN254),
-		initialized:        true,
+	// Setup circuit state with result circuit keys
+	circuitMu.Lock()
+	circuitsInitialized = true
+	circuitState = map[string]*circuitKeys{
+		resultCircuitDef.id: {
+			vk: groth16.NewVerifyingKey(ecc.BN254),
+		},
 	}
-	k.circuitManager = cm
+	circuitMu.Unlock()
+
+	defer func() {
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	ok, err := k.VerifyResultProofWithCircuitManager(
 		sdkCtx,

@@ -15,6 +15,7 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	"github.com/stretchr/testify/require"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	computemodule "github.com/paw-chain/paw/x/compute"
 	"github.com/paw-chain/paw/x/compute/keeper"
@@ -90,7 +91,7 @@ func TestHandleJobResultReturnsAcknowledgement(t *testing.T) {
 
 func authorizeComputeChannel(t testing.TB, k *keeper.Keeper, ctx sdk.Context, channelID string) {
 	t.Helper()
-	require.NoError(t, k.AuthorizeChannel(ctx, types.PortID, channelID))
+	require.NoError(t, ibcutil.AuthorizeChannel(ctx, k, types.PortID, channelID))
 }
 
 func TestHandleSubmitJobPersistsStateAndAck(t *testing.T) {

@@ -4,7 +4,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 // keeperAdapter adapts the keeper to implement shared IBC interfaces.
@@ -19,9 +21,12 @@ func newKeeperAdapter(k *keeper.Keeper) *keeperAdapter {
 }
 
 // IsAuthorizedChannel implements the ChannelAuthorizer interface.
-// This is a direct pass-through to the keeper method.
+// Converts ibcutil's bool result to an error for the interface.
 func (ka *keeperAdapter) IsAuthorizedChannel(ctx sdk.Context, sourcePort, sourceChannel string) error {
-	return ka.keeper.IsAuthorizedChannel(ctx, sourcePort, sourceChannel)
+	if ibcutil.IsAuthorizedChannel(ctx, ka.keeper, sourcePort, sourceChannel) {
+		return nil
+	}
+	return types.ErrUnauthorizedChannel
 }
 
 // ValidateIncomingPacketNonce implements the NonceValidator interface.

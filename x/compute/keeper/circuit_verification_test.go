@@ -393,18 +393,25 @@ func TestCircuitHashIntegrationWithCircuitManager(t *testing.T) {
 
 	// Mock groth16 setup to avoid expensive crypto operations
 	originalSetup := groth16Setup
-	defer func() { groth16Setup = originalSetup }()
+	defer func() {
+		groth16Setup = originalSetup
+		// Reset circuit state
+		circuitMu.Lock()
+		circuitsInitialized = false
+		circuitState = make(map[string]*circuitKeys)
+		circuitMu.Unlock()
+	}()
 
 	groth16Setup = func(ccs constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
 		// Return mock keys
 		return groth16.NewProvingKey(ecc.BN254), groth16.NewVerifyingKey(ecc.BN254), nil
 	}
 
-	// Initialize circuit - should automatically set hash
-	err := cm.initializeComputeCircuit(ctx)
+	// Initialize all circuits - should automatically set hashes
+	err := cm.Initialize(ctx)
 	require.NoError(t, err)
 
-	// Verify hash was set
+	// Verify hash was set for compute circuit
 	circuitID := (&circuits.ComputeCircuit{}).GetCircuitName()
 	_, err = k.GetCircuitParamHash(ctx, circuitID)
 	require.NoError(t, err, "circuit param hash should be set after initialization")

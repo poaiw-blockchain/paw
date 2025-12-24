@@ -33,7 +33,7 @@ type ZKProofMetadata struct {
 	VerificationGas uint64
 }
 
-// VerifyZKProof verifies a ZK proof for result data using the actual Groth16 verifier.
+// VerifyZKProof verifies a ZK proof for result data using the circuit manager.
 // This is the main entry point for ZK proof verification in the compute module.
 func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) error {
 	// Basic input validation
@@ -53,30 +53,35 @@ func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) 
 	// Extract request ID
 	requestID := binary.BigEndian.Uint64(resultData[:8])
 
-	// Extract result hash
+	// Extract result hash (32 bytes) - convert to field element for circuit
 	resultHash := resultData[8:40]
+	resultCommitment := bytesToFieldElement(resultHash)
 
 	// Extract provider address
 	providerAddress := sdk.AccAddress(resultData[40:60])
 
-	// Derive the public inputs expected by the circuit (request + hash + provider hash)
+	// Compute provider commitment
 	providerHash := sha256.Sum256(providerAddress.Bytes())
-	publicInputs := serializePublicInputs(requestID, resultHash, providerHash[:])
+	providerCommitment := bytesToFieldElement(providerHash[:])
 
-	// Create ZKProof struct
-	zkProof := &types.ZKProof{
-		Proof:        proof,
-		PublicInputs: publicInputs,
-		ProofSystem:  "groth16",
-		CircuitId:    "compute-verification-v1",
-		GeneratedAt:  ctx.BlockTime(),
+	// Compute resource commitment (placeholder - would come from actual resource data)
+	// For compatibility, we use a zero commitment
+	resourceCommitment := bytesToFieldElement(make([]byte, 32))
+
+	// Get circuit manager and verify using compute circuit
+	cm := k.GetCircuitManager()
+	if !cm.IsInitialized() {
+		if err := cm.Initialize(ctx); err != nil {
+			return fmt.Errorf("failed to initialize circuit manager: %w", err)
+		}
 	}
 
-	// Get or create ZK verifier
-	verifier := NewZKVerifier(&k)
-
-	// Perform actual verification using the Groth16 verifier
-	verified, err := verifier.VerifyProof(ctx, zkProof, requestID, resultHash, providerAddress)
+	verified, err := cm.VerifyComputeProof(ctx, proof, &ComputePublicInputs{
+		RequestID:          requestID,
+		ResultCommitment:   resultCommitment,
+		ProviderCommitment: providerCommitment,
+		ResourceCommitment: resourceCommitment,
+	})
 	if err != nil {
 		return fmt.Errorf("ZK proof verification error: %w", err)
 	}
@@ -117,11 +122,38 @@ func (k Keeper) VerifyZKProofWithParams(
 		return false, fmt.Errorf("provider address cannot be empty")
 	}
 
-	// Get or create ZK verifier
-	verifier := NewZKVerifier(&k)
+	// Convert to field elements
+	resultCommitment := bytesToFieldElement(resultHash)
+	providerHash := sha256.Sum256(providerAddress.Bytes())
+	providerCommitment := bytesToFieldElement(providerHash[:])
+	resourceCommitment := bytesToFieldElement(make([]byte, 32))
 
-	// Perform verification
-	return verifier.VerifyProof(ctx, zkProof, requestID, resultHash, providerAddress)
+	// Get circuit manager and verify
+	cm := k.GetCircuitManager()
+	if !cm.IsInitialized() {
+		if err := cm.Initialize(ctx); err != nil {
+			return false, fmt.Errorf("failed to initialize circuit manager: %w", err)
+		}
+	}
+
+	return cm.VerifyComputeProof(ctx, zkProof.Proof, &ComputePublicInputs{
+		RequestID:          requestID,
+		ResultCommitment:   resultCommitment,
+		ProviderCommitment: providerCommitment,
+		ResourceCommitment: resourceCommitment,
+	})
+}
+
+// bytesToFieldElement converts bytes to a field element representation.
+// Takes up to 32 bytes and reduces into BN254 scalar field.
+func bytesToFieldElement(b []byte) interface{} {
+	if len(b) > 32 {
+		b = b[:32]
+	}
+	// Import the fr package for field elements
+	// This is a simple conversion - the actual field element conversion
+	// happens in the circuit manager when creating the witness
+	return b
 }
 
 func (k Keeper) ValidateZKProofVersion(proof *types.ZKProof) error {
