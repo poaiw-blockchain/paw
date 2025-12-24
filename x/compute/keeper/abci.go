@@ -143,11 +143,11 @@ func (k Keeper) CleanupExpiredNonces(ctx context.Context) error {
 
 			// Also delete the actual nonce entry
 			// Extract provider and nonce from the index key
-			// Format: NonceByHeightPrefix(1) + height(8) + provider(20) + nonce(8)
-			if len(key) >= 37 { // 1 + 8 + 20 + 8
-				providerStart := 9 // After prefix(1) + height(8)
-				providerEnd := 29  // providerStart + 20
-				nonceStart := 29
+			// Format: NonceByHeightPrefix(2) + height(8) + provider(20) + nonce(8)
+			if len(key) >= 38 { // 2 + 8 + 20 + 8
+				providerStart := 10 // After prefix(2) + height(8)
+				providerEnd := 30   // providerStart + 20
+				nonceStart := 30
 
 				if len(key) >= nonceStart+8 {
 					provider := sdk.AccAddress(key[providerStart:providerEnd])

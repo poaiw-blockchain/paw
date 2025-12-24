@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
-	"github.com/paw-chain/paw/x/compute/keeper"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -67,7 +66,7 @@ func TestSubmitRequestRevertOnEscrowFailure(t *testing.T) {
 	require.Contains(t, err.Error(), "not found")
 
 	// Verify requester balance unchanged (no escrow)
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	balance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	require.True(t, balance.Amount.IsZero(), "balance should remain zero")
 }
@@ -112,7 +111,7 @@ func TestCancelRequestRevertOnRefundFailure(t *testing.T) {
 	require.Greater(t, requestID, uint64(0))
 
 	// Verify escrow happened
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	requesterBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 	expectedBalance := fundAmount.Sub(maxPayment)
 	require.Equal(t, expectedBalance, requesterBalance.Amount)
@@ -182,7 +181,7 @@ func TestCompleteRequestRevertOnPaymentReleaseFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Drain module account to simulate payment release failure
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
 	moduleBalance := bankKeeper.GetBalance(ctx, moduleAddr, "upaw")
 	if moduleBalance.Amount.IsPositive() {
@@ -284,7 +283,7 @@ func TestPartialRequestFailureDoesNotCorruptState(t *testing.T) {
 	requester := sdk.AccAddress("requester__________")
 
 	// Get initial module balance
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
 	initialModuleBalance := bankKeeper.GetBalance(ctx, moduleAddr, "upaw")
 
@@ -455,7 +454,7 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	fundTestAccount(t, k, ctx, requester, "upaw", fundAmount)
 
 	// Get initial balance
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	initialBalance := bankKeeper.GetBalance(ctx, requester, "upaw")
 
 	// Submit request
@@ -493,21 +492,4 @@ func TestRequestRefundOnFailure(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, types.REQUEST_STATUS_FAILED, finalRequest.Status)
 	require.True(t, finalRequest.EscrowedAmount.IsZero(), "escrow should be released")
-}
-
-// Helper function to fund accounts in compute module tests
-func fundTestAccount(t *testing.T, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress, denom string, amount math.Int) {
-	// Get bank keeper using reflection
-	bankKeeper := getBankKeeper(t, k)
-
-	// Mint coins to module account first
-	moduleAddr := authtypes.NewModuleAddress(types.ModuleName)
-	coins := sdk.NewCoins(sdk.NewCoin(denom, amount))
-
-	err := bankKeeper.MintCoins(ctx, types.ModuleName, coins)
-	require.NoError(t, err)
-
-	// Transfer to target address
-	err = bankKeeper.SendCoins(ctx, moduleAddr, addr, coins)
-	require.NoError(t, err)
 }

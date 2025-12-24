@@ -17,7 +17,7 @@ import (
 func fundPaginationTestAccount(t *testing.T, k *keeper.Keeper, ctx sdk.Context, addr sdk.AccAddress) {
 	// Mint enough coins to cover provider stake and request payments
 	fundAmount := sdk.NewCoins(sdk.NewInt64Coin("upaw", 1_000_000_000))
-	bankKeeper := getBankKeeper(t, k)
+	bankKeeper := k.GetBankKeeper()
 	err := bankKeeper.MintCoins(ctx, types.ModuleName, fundAmount)
 	require.NoError(t, err)
 	err = bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, fundAmount)

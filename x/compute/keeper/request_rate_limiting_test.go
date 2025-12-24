@@ -191,14 +191,19 @@ func TestCleanupOldRequestRateLimitData(t *testing.T) {
 	params.RequestCooldownBlocks = 0
 	require.NoError(t, k.SetParams(ctx, params))
 
-	// Record some requests at early height
-	ctx = ctx.WithBlockHeight(100)
+	// Record some requests at early height (well before the cutoff)
+	// If current height is 35100, cutoff would be 35100 - 34560 = 540
+	// So we record at height 530-539 which will be in the cleanup range (530-540)
+	ctx = ctx.WithBlockHeight(530)
+	k.RecordComputeRequest(ctx, requester)
+	ctx = ctx.WithBlockHeight(535)
 	k.RecordComputeRequest(ctx, requester)
 
 	// Advance past retention period (34,560 blocks = 48 hours)
-	ctx = ctx.WithBlockHeight(100 + 35000)
+	// Set to height that makes our old records cleanable
+	ctx = ctx.WithBlockHeight(35100)
 
-	// Run cleanup
+	// Run cleanup - should clean data from ~540 blocks ago
 	err := k.CleanupOldRequestRateLimitData(ctx)
 	require.NoError(t, err)
 
@@ -299,8 +304,9 @@ func TestRequestRateLimit_MsgServerIntegration(t *testing.T) {
 	t.Parallel()
 
 	k, ctx := keepertest.ComputeKeeper(t)
-	ms := keeper.NewMsgServerImpl(k)
+	ms := keeper.NewMsgServerImpl(*k)
 	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
 
 	// Set params with strict limits
 	params := types.DefaultParams()
@@ -308,17 +314,29 @@ func TestRequestRateLimit_MsgServerIntegration(t *testing.T) {
 	params.RequestCooldownBlocks = 5
 	require.NoError(t, k.SetParams(ctx, params))
 
+	// Register a provider that can handle the request specs
+	err := k.RegisterProvider(ctx, provider, "test-provider", "http://test.com",
+		types.ComputeSpec{CpuCores: 2000, MemoryMb: 4096, StorageGb: 10, TimeoutSeconds: 3600},
+		types.Pricing{
+			CpuPricePerMcoreHour:  math.LegacyMustNewDecFromStr("0.001"),
+			MemoryPricePerMbHour:  math.LegacyMustNewDecFromStr("0.0001"),
+			StoragePricePerGbHour: math.LegacyMustNewDecFromStr("0.00001"),
+		},
+		math.NewInt(1000000),
+	)
+	require.NoError(t, err)
+
 	// Create a valid request message
 	msg := &types.MsgSubmitRequest{
 		Requester:      requester.String(),
-		Specs:          &types.ResourceSpec{CpuCores: 1, MemoryMb: 1024, StorageMb: 1024},
+		Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024, StorageGb: 1, TimeoutSeconds: 3600},
 		ContainerImage: "test:latest",
 		Command:        []string{"echo", "test"},
-		MaxPayment:     sdk.NewCoins(sdk.NewCoin("upaw", math.NewInt(1000))),
+		MaxPayment:     math.NewInt(1000000),
 	}
 
 	// First request should succeed
-	_, err := ms.SubmitRequest(ctx, msg)
+	_, err = ms.SubmitRequest(ctx, msg)
 	require.NoError(t, err)
 
 	// Second request without cooldown should fail

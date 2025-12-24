@@ -36,7 +36,7 @@ import (
 // setupKeeperForTest creates a test keeper for internal package tests.
 // This mirrors the testutil/keeper/compute.go setup for use in _test.go files
 // within the keeper package that need to test unexported functions.
-func setupKeeperForTest(t *testing.T) (*Keeper, context.Context) {
+func setupKeeperForTest(t *testing.T) (*Keeper, sdk.Context) {
 	t.Helper()
 
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)

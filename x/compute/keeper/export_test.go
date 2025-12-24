@@ -6,6 +6,7 @@ import (
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/paw-chain/paw/app/ibcutil"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -67,4 +68,20 @@ func (k Keeper) GetBankKeeper() types.BankKeeper {
 // GetStoreKeyForTesting exports the store key for testing
 func GetStoreKeyForTesting(k *Keeper) storetypes.StoreKey {
 	return k.storeKey
+}
+
+// AuthorizeComputeChannelForTest authorizes a channel for compute operations in tests.
+func (k *Keeper) AuthorizeComputeChannelForTest(ctx sdk.Context, channelID string) {
+	channels, _ := k.GetAuthorizedChannels(ctx)
+	channels = append(channels, ibcutil.AuthorizedChannel{PortId: types.PortID, ChannelId: channelID})
+	_ = k.SetAuthorizedChannels(ctx, channels)
+}
+
+// GetOrCreateCrossChainJobForTest gets or creates a job for testing.
+func (k *Keeper) GetOrCreateCrossChainJobForTest(ctx sdk.Context, jobID string) *CrossChainComputeJob {
+	job := k.GetCrossChainJob(ctx, jobID)
+	if job == nil {
+		return &CrossChainComputeJob{JobID: jobID}
+	}
+	return job
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/paw-chain/paw/app/ibcutil"
-	"github.com/paw-chain/paw/x/compute/types"
 )
 
 func TestKeeper_GetStore(t *testing.T) {

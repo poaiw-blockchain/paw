@@ -188,7 +188,24 @@ func TestComputeGenesisRoundTrip(t *testing.T) {
 
 	exported, err := k.ExportGenesis(ctx)
 	require.NoError(t, err)
-	require.Equal(t, genesis.Params, exported.Params)
+
+	// Check params - note that CircuitParamHashes may be populated by InitializeCircuits during InitGenesis
+	require.Equal(t, genesis.Params.MinProviderStake, exported.Params.MinProviderStake)
+	require.Equal(t, genesis.Params.VerificationTimeoutSeconds, exported.Params.VerificationTimeoutSeconds)
+	require.Equal(t, genesis.Params.MaxRequestTimeoutSeconds, exported.Params.MaxRequestTimeoutSeconds)
+	require.Equal(t, genesis.Params.ReputationSlashPercentage, exported.Params.ReputationSlashPercentage)
+	require.Equal(t, genesis.Params.StakeSlashPercentage, exported.Params.StakeSlashPercentage)
+	require.Equal(t, genesis.Params.MinReputationScore, exported.Params.MinReputationScore)
+	require.Equal(t, genesis.Params.EscrowReleaseDelaySeconds, exported.Params.EscrowReleaseDelaySeconds)
+	require.Equal(t, genesis.Params.AuthorizedChannels, exported.Params.AuthorizedChannels)
+	require.Equal(t, genesis.Params.NonceRetentionBlocks, exported.Params.NonceRetentionBlocks)
+	require.Equal(t, genesis.Params.ProviderCacheSize, exported.Params.ProviderCacheSize)
+	require.Equal(t, genesis.Params.ProviderCacheRefreshInterval, exported.Params.ProviderCacheRefreshInterval)
+	require.Equal(t, genesis.Params.UseProviderCache, exported.Params.UseProviderCache)
+	require.Equal(t, genesis.Params.MaxRequestsPerAddressPerDay, exported.Params.MaxRequestsPerAddressPerDay)
+	require.Equal(t, genesis.Params.RequestCooldownBlocks, exported.Params.RequestCooldownBlocks)
+	// CircuitParamHashes is populated during InitGenesis by InitializeCircuits - verify it exists
+	require.NotNil(t, exported.Params.CircuitParamHashes)
 	require.Equal(t, genesis.GovernanceParams, exported.GovernanceParams)
 	require.Equal(t, genesis.Providers, exported.Providers)
 	require.Equal(t, genesis.Requests, exported.Requests)

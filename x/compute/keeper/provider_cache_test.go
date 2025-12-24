@@ -92,6 +92,9 @@ func TestRefreshProviderCache(t *testing.T) {
 
 	// Register providers
 	for _, p := range providers {
+		// Fund the provider account before registration
+		fundTestAccount(t, k, sdkCtx, p.addr, "upaw", p.stake.MulRaw(2))
+
 		specs := types.ComputeSpec{
 			CpuCores:       4000,
 			MemoryMb:       8192,
@@ -230,7 +233,11 @@ func TestFindSuitableProviderFromCache(t *testing.T) {
 	}
 
 	// Register providers
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	for _, p := range providers {
+		// Fund the provider account before registration
+		fundTestAccount(t, k, sdkCtx, p.addr, "upaw", math.NewInt(2000000))
+
 		specs := types.ComputeSpec{
 			CpuCores:       p.cpuCores,
 			MemoryMb:       p.memoryMb,
@@ -322,9 +329,14 @@ func TestFindSuitableProviderFromCache(t *testing.T) {
 // TestCacheInvalidation tests cache invalidation triggers
 func TestCacheInvalidation(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Register a provider
 	providerAddr := sdk.AccAddress([]byte("provider1"))
+
+	// Fund the provider account before registration
+	fundTestAccount(t, k, sdkCtx, providerAddr, "upaw", math.NewInt(2000000))
+
 	specs := types.ComputeSpec{
 		CpuCores:       4000,
 		MemoryMb:       8192,
@@ -490,6 +502,7 @@ func TestGetCacheStats(t *testing.T) {
 // TestCacheWithMinReputationFilter tests that cache only includes providers above min reputation
 func TestCacheWithMinReputationFilter(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Create providers with varying reputations (some below min threshold)
 	providers := []struct {
@@ -505,6 +518,9 @@ func TestCacheWithMinReputationFilter(t *testing.T) {
 
 	// Register providers
 	for _, p := range providers {
+		// Fund the provider account before registration
+		fundTestAccount(t, k, sdkCtx, p.addr, "upaw", math.NewInt(2000000))
+
 		specs := types.ComputeSpec{
 			CpuCores:       4000,
 			MemoryMb:       8192,
