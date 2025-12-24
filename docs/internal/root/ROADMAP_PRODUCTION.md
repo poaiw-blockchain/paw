@@ -297,17 +297,19 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Impact: ~1,221 LOC deleted (exceeded ~800 estimate)
   - Completed: 2025-12-24
 
-- [ ] **P3-SIMP-2**: Simplify circuit manager abstraction
-  - Location: `x/compute/keeper/circuit_manager.go` (648 lines)
-  - Over-engineered for 3 fixed circuits
-  - Use simple package-level variables instead
-  - Impact: ~200 LOC
+- [x] **P3-SIMP-2**: Simplify circuit manager abstraction ✅
+  - Replaced complex CircuitManager struct with package-level state
+  - Static circuit definitions for 3 fixed circuits (compute, escrow, result)
+  - Reduced circuit_manager.go from 673 to 529 lines (144 LOC reduction)
+  - Also completed P3-SIMP-3 and P3-SIMP-7 as part of refactor
+  - Completed: 2025-12-24
 
-- [ ] **P3-SIMP-3**: Remove IBC channel authorization wrapper duplication
-  - Location: `x/*/keeper/keeper.go` (255 LOC total)
-  - All three modules have identical thin wrappers
-  - Embed ibcutil.ChannelStore interface directly
-  - Impact: ~200 LOC
+- [x] **P3-SIMP-3**: Remove IBC channel authorization wrapper duplication ✅
+  - Removed 78 LOC of wrapper methods from all three keepers
+  - Updated callers to use ibcutil functions directly
+  - Inlined minimal error conversion logic in adapters
+  - Completed as part of P3-SIMP-2 refactoring (commit 6f753e1)
+  - Completed: 2025-12-24
 
 - [x] **P3-SIMP-4**: Remove compute keeper channel cache (premature optimization) ✅
   - Location: `x/compute/keeper/keeper.go` (completed in 7e55d01)
@@ -329,11 +331,13 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Impact: ~2,400 LOC deleted
   - Completed: 2025-12-24
 
-- [ ] **P3-SIMP-7**: Remove dual ZK verification systems
-  - `x/compute/keeper/zk_verification.go` (600+ lines)
-  - `x/compute/keeper/circuit_manager.go` (648 lines)
-  - Keep circuit_manager (more complete), delete zk_verification
-  - Impact: ~400 LOC
+- [x] **P3-SIMP-7**: Remove dual ZK verification systems ✅
+  - Deleted: `x/compute/keeper/zk_verification.go` (933 lines)
+  - Created: `x/compute/keeper/circuit_params.go` (102 lines) for shared utilities
+  - Migrated VerifyZKProof to use unified CircuitManager
+  - Impact: ~831 LOC net reduction
+  - Completed as part of P3-SIMP-2 refactoring (commit 6f753e1)
+  - Completed: 2025-12-24
 
 #### Performance Optimizations
 
