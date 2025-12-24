@@ -320,11 +320,12 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Merge related tests (all IBC tests → ibc_test.go)
   - Impact: ~3,000 LOC, improved discoverability
 
-- [ ] **P3-SIMP-6**: Delete incomplete oracle advanced features
-  - Location: `x/oracle/keeper/oracle_advanced.go`
-  - Contains stubbed signature verification ("TODO: implement")
-  - YAGNI violation
-  - Impact: ~300 LOC
+- [x] **P3-SIMP-6**: Delete incomplete oracle advanced features ✅
+  - Deleted: `x/oracle/keeper/oracle_advanced.go` (1,510 lines)
+  - Deleted: `x/oracle/keeper/oracle_advanced_test.go` (836 lines)
+  - Removed unused key prefixes from `keys.go`
+  - Impact: ~2,400 LOC deleted
+  - Completed: 2025-12-24
 
 - [ ] **P3-SIMP-7**: Remove dual ZK verification systems
   - `x/compute/keeper/zk_verification.go` (600+ lines)
@@ -345,10 +346,13 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Queries are free regardless of limit
   - Add proportional gas charge: `limit * 100 gas`
 
-- [ ] **P3-PERF-3**: Pre-size memory allocations with capacity hints
-  - Location: `x/oracle/keeper/aggregation.go:778` and others
-  - `append()` without capacity hint causes reallocations
-  - Use `make([]T, 0, expectedSize)`
+- [x] **P3-PERF-3**: Pre-size memory allocations with capacity hints ✅
+  - 34 optimizations across 8 files in oracle, dex, compute keepers
+  - Oracle: aggregation.go, abci.go, query_server.go, price.go
+  - DEX: pool.go, query_server.go, limit_orders.go
+  - Compute: query_server.go
+  - Reduces reallocations, improves GC pressure
+  - Completed: 2025-12-24
 
 #### Security Hardening
 
@@ -357,15 +361,18 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - DEX has spam prevention, compute does not
   - Add: 100 requests/address/day, 10-block cooldown
 
-- [ ] **P3-SEC-2**: Increase oracle slash fraction for mainnet
-  - Location: `x/oracle/types/params.go` (default 1%)
-  - Too lenient: 1% loss acceptable for >1% manipulation gain
-  - Mainnet: Increase to 5-10%, add progressive slashing
+- [x] **P3-SEC-2**: Increase oracle slash fraction for mainnet ✅
+  - Location: `x/oracle/types/params.go`
+  - DefaultParams: SlashFraction increased from 1% to 5%
+  - MainnetParams: SlashFraction set to 7.5%
+  - Completed: 2025-12-24
 
-- [ ] **P3-SEC-3**: Add finalization flag check to request status invariant
+- [x] **P3-SEC-3**: Add finalization flag check to request status invariant ✅
   - Location: `x/compute/keeper/invariants.go:186-251`
-  - Completed requests should have finalization flag set
+  - Added check: completed requests must have finalization flag set
   - Prevents double-settlement edge cases
+  - Added 6 comprehensive test cases in `invariants_test.go`
+  - Completed: 2025-12-24
 
 ---
 
