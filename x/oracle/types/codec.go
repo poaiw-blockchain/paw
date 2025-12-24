@@ -23,12 +23,16 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgSubmitPrice{},
 		&MsgDelegateFeedConsent{},
 		&MsgUpdateParams{},
+		&MsgEmergencyPauseOracle{},
+		&MsgResumeOracle{},
 	)
 
 	registry.RegisterImplementations((*txtypes.MsgResponse)(nil),
 		&MsgSubmitPriceResponse{},
 		&MsgDelegateFeedConsentResponse{},
 		&MsgUpdateParamsResponse{},
+		&MsgEmergencyPauseOracleResponse{},
+		&MsgResumeOracleResponse{},
 	)
 }
 
