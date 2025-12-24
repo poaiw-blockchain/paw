@@ -103,8 +103,8 @@ func TestGetRequestIDFromBytes(t *testing.T) {
 	t.Run("round trip", func(t *testing.T) {
 		// Create a key and extract ID
 		key := RequestKey(123)
-		// Key format is prefix + 8 bytes
-		idBytes := key[1:] // Skip prefix
+		// Key format is prefix (2 bytes) + 8 bytes
+		idBytes := key[2:] // Skip 2-byte prefix
 		id := GetRequestIDFromBytes(idBytes)
 		require.Equal(t, uint64(123), id)
 	})
@@ -246,7 +246,7 @@ func TestAppealByStatusKey(t *testing.T) {
 func TestGetDisputeIDFromBytes(t *testing.T) {
 	t.Run("round trip", func(t *testing.T) {
 		key := DisputeKey(456)
-		idBytes := key[1:] // Skip prefix
+		idBytes := key[2:] // Skip 2-byte prefix
 		id := GetDisputeIDFromBytes(idBytes)
 		require.Equal(t, uint64(456), id)
 	})
@@ -255,7 +255,7 @@ func TestGetDisputeIDFromBytes(t *testing.T) {
 func TestGetSlashIDFromBytes(t *testing.T) {
 	t.Run("round trip", func(t *testing.T) {
 		key := SlashRecordKey(789)
-		idBytes := key[1:] // Skip prefix
+		idBytes := key[2:] // Skip 2-byte prefix
 		id := GetSlashIDFromBytes(idBytes)
 		require.Equal(t, uint64(789), id)
 	})
@@ -264,7 +264,7 @@ func TestGetSlashIDFromBytes(t *testing.T) {
 func TestGetAppealIDFromBytes(t *testing.T) {
 	t.Run("round trip", func(t *testing.T) {
 		key := AppealKey(321)
-		idBytes := key[1:] // Skip prefix
+		idBytes := key[2:] // Skip 2-byte prefix
 		id := GetAppealIDFromBytes(idBytes)
 		require.Equal(t, uint64(321), id)
 	})
