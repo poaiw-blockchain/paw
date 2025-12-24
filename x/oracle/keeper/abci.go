@@ -62,7 +62,7 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 	}
 
 	// Prune expired IBC nonces to prevent unbounded state growth
-	prunedCount, err := k.PruneExpiredNonces(ctx)
+	prunedCount, err := k.PruneExpiredNonces(sdkCtx)
 	if err != nil {
 		sdkCtx.Logger().Error("failed to prune expired nonces", "error", err)
 		// Don't return error - log and continue
