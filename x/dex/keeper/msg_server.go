@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -140,10 +141,7 @@ func (ms msgServer) CommitSwap(goCtx context.Context, msg *types.MsgCommitSwap) 
 	}
 
 	// Parse trader address
-	trader, err := sdk.AccAddressFromBech32(msg.Trader)
-	if err != nil {
-		return nil, err
-	}
+	_ = msg.Trader // Validated by msg.ValidateBasic()
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
@@ -167,9 +165,9 @@ func (ms msgServer) CommitSwap(goCtx context.Context, msg *types.MsgCommitSwap) 
 			"swap_committed",
 			sdk.NewAttribute("trader", msg.Trader),
 			sdk.NewAttribute("swap_hash", msg.SwapHash),
-			sdk.NewAttribute("commit_height", ctx.HeaderInfo().Height.String()),
-			sdk.NewAttribute("earliest_reveal_height", ctx.HeaderInfo().Height.String()),
-			sdk.NewAttribute("expiry_height", ctx.HeaderInfo().Height.String()),
+			sdk.NewAttribute("commit_height", fmt.Sprintf("%d", ctx.BlockHeight())),
+			sdk.NewAttribute("earliest_reveal_height", fmt.Sprintf("%d", earliestReveal)),
+			sdk.NewAttribute("expiry_height", fmt.Sprintf("%d", commit.ExpiryHeight)),
 		),
 	)
 
@@ -257,11 +255,11 @@ func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) 
 		sdk.NewEvent(
 			"swap_revealed",
 			sdk.NewAttribute("trader", msg.Trader),
-			sdk.NewAttribute("pool_id", ctx.HeaderInfo().Height.String()),
+			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", ctx.HeaderInfo().Height)),
 			sdk.NewAttribute("amount_in", msg.AmountIn.String()),
 			sdk.NewAttribute("amount_out", amountOut.String()),
-			sdk.NewAttribute("commit_height", ctx.HeaderInfo().Height.String()),
-			sdk.NewAttribute("reveal_height", ctx.HeaderInfo().Height.String()),
+			sdk.NewAttribute("commit_height", fmt.Sprintf("%d", ctx.HeaderInfo().Height)),
+			sdk.NewAttribute("reveal_height", fmt.Sprintf("%d", ctx.HeaderInfo().Height)),
 		),
 	)
 

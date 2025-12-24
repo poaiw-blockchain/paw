@@ -2,7 +2,6 @@ package keeper_test
 
 import (
 	"testing"
-	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -195,20 +194,21 @@ func TestShouldRefreshCache(t *testing.T) {
 	require.False(t, shouldRefresh)
 
 	// Advance block height past refresh interval
-	ctx = sdk.WrapSDKContext(sdkCtx.WithBlockHeight(sdkCtx.BlockHeight() + 101))
+	newSdkCtx := sdkCtx.WithBlockHeight(sdkCtx.BlockHeight() + 101)
+	newCtx := sdk.WrapSDKContext(newSdkCtx)
 
 	// Should refresh now
-	shouldRefresh, err = k.ShouldRefreshCache(ctx)
+	shouldRefresh, err = k.ShouldRefreshCache(newCtx)
 	require.NoError(t, err)
 	require.True(t, shouldRefresh)
 
 	// Disable cache
 	params.UseProviderCache = false
-	err = k.SetParams(ctx, params)
+	err = k.SetParams(newCtx, params)
 	require.NoError(t, err)
 
 	// Should not refresh when disabled
-	shouldRefresh, err = k.ShouldRefreshCache(ctx)
+	shouldRefresh, err = k.ShouldRefreshCache(newCtx)
 	require.NoError(t, err)
 	require.False(t, shouldRefresh)
 }

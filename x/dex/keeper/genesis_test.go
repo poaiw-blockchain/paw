@@ -615,7 +615,7 @@ func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
 		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
 
 	// Pause the pool with circuit breaker
-	pauseDuration := 24 * 60 * 60 // 24 hours in seconds
+	_ = 24 * 60 * 60 // 24 hours in seconds
 	pausedUntilTime := sdkCtx.BlockTime().Add(24 * 60 * 60 * 1_000_000_000) // 24 hours in nanoseconds
 	err := k.EmergencyPausePool(ctx, poolID, "security incident", 24*60*60*1_000_000_000)
 	require.NoError(t, err)
@@ -675,7 +675,7 @@ func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
 // pause state is cleared during genesis export/import when the parameter is disabled
 func TestGenesisExportImport_CircuitBreakerPreservationDisabled(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	_ = sdk.UnwrapSDKContext(ctx)
 
 	// Create test pool
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",

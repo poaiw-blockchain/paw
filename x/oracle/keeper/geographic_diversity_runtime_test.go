@@ -7,8 +7,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
+
+// testFixture encapsulates oracle keeper test environment
+type testFixture struct {
+	ctx           sdk.Context
+	oracleKeeper  *keeper.Keeper
+	msgServer     types.MsgServer
+}
 
 // TestCheckGeographicDiversityForNewValidator tests runtime diversity checking for new validators
 func TestCheckGeographicDiversityForNewValidator(t *testing.T) {
@@ -93,7 +102,12 @@ func TestCheckGeographicDiversityForNewValidator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := SetupTest(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
+			f := testFixture{
+				ctx:          ctx,
+				oracleKeeper: k,
+				msgServer:    keeper.NewMsgServerImpl(*k),
+			}
 
 			// Set params with appropriate enforcement
 			params := types.DefaultParams()
@@ -105,7 +119,7 @@ func TestCheckGeographicDiversityForNewValidator(t *testing.T) {
 
 			// Setup existing validators
 			for i, vs := range tt.setupValidators {
-				valAddr := createTestValidator(t, f, vs.power)
+				valAddr := createTestValidatorWithPower(t, f, vs.power)
 				oracle := types.ValidatorOracle{
 					ValidatorAddr:    valAddr.String(),
 					GeographicRegion: vs.region,
@@ -187,7 +201,12 @@ func TestMonitorGeographicDiversity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := SetupTest(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
+			f := testFixture{
+				ctx:          ctx,
+				oracleKeeper: k,
+				msgServer:    keeper.NewMsgServerImpl(*k),
+			}
 
 			// Set params requiring geographic diversity
 			params := types.DefaultParams()
@@ -199,7 +218,7 @@ func TestMonitorGeographicDiversity(t *testing.T) {
 
 			// Setup validators
 			for i, vs := range tt.validators {
-				valAddr := createTestValidator(t, f, vs.power)
+				valAddr := createTestValidatorWithPower(t, f, vs.power)
 				oracle := types.ValidatorOracle{
 					ValidatorAddr:    valAddr.String(),
 					GeographicRegion: vs.region,
@@ -296,7 +315,12 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := SetupTest(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
+			f := testFixture{
+				ctx:          ctx,
+				oracleKeeper: k,
+				msgServer:    keeper.NewMsgServerImpl(*k),
+			}
 
 			// Set params
 			params := types.DefaultParams()
@@ -308,7 +332,7 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 
 			// Setup existing validators
 			for i, vs := range tt.existingValidators {
-				valAddr := createTestValidator(t, f, vs.power)
+				valAddr := createTestValidatorWithPower(t, f, vs.power)
 				oracle := types.ValidatorOracle{
 					ValidatorAddr:    valAddr.String(),
 					GeographicRegion: vs.region,
@@ -321,7 +345,7 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 			}
 
 			// Create new validator with region
-			newValAddr := createTestValidator(t, f, 100)
+			newValAddr := createTestValidatorWithPower(t, f, 100)
 			newOracle := types.ValidatorOracle{
 				ValidatorAddr:    newValAddr.String(),
 				GeographicRegion: tt.newValidatorRegion,
@@ -358,7 +382,12 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 
 // TestBeginBlockerDiversityCheck tests that BeginBlocker periodically checks diversity
 func TestBeginBlockerDiversityCheck(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
+	f := testFixture{
+		ctx:          ctx,
+		oracleKeeper: k,
+		msgServer:    keeper.NewMsgServerImpl(*k),
+	}
 
 	// Set params with check interval
 	params := types.DefaultParams()
@@ -377,7 +406,7 @@ func TestBeginBlockerDiversityCheck(t *testing.T) {
 		{region: "europe", power: 100},
 	}
 	for i, vs := range validators {
-		valAddr := createTestValidator(t, f, vs.power)
+		valAddr := createTestValidatorWithPower(t, f, vs.power)
 		oracle := types.ValidatorOracle{
 			ValidatorAddr:    valAddr.String(),
 			GeographicRegion: vs.region,
@@ -497,7 +526,12 @@ func TestParamValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := SetupTest(t)
+			k, _, ctx := keepertest.OracleKeeper(t)
+			f := testFixture{
+				ctx:          ctx,
+				oracleKeeper: k,
+				msgServer:    keeper.NewMsgServerImpl(*k),
+			}
 
 			params := types.DefaultParams()
 			tt.modifyParams(&params)
@@ -526,4 +560,15 @@ func TestParamValidation(t *testing.T) {
 type validatorSetup struct {
 	region string
 	power  int64
+}
+
+// createTestValidatorWithPower creates a test validator address with index based on power
+func createTestValidatorWithPower(t *testing.T, f testFixture, power int64) sdk.ValAddress {
+	t.Helper()
+	// Create unique validator address for testing
+	addrBytes := make([]byte, 20)
+	copy(addrBytes, []byte("test_validator_"))
+	addrBytes[15] = byte(power % 256)
+	addrBytes[16] = byte((power / 256) % 256)
+	return sdk.ValAddress(addrBytes)
 }

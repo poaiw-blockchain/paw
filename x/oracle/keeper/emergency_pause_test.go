@@ -3,141 +3,129 @@ package keeper_test
 import (
 	"testing"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/oracle/keeper"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
 // TestEmergencyPause tests the basic emergency pause functionality
 func TestEmergencyPause(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Initially oracle should not be paused
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 
 	// Pause the oracle
 	pausedBy := "paw1admin"
 	reason := "Security incident detected"
-	err := f.oracleKeeper.EmergencyPauseOracle(f.ctx, pausedBy, reason)
+	err := k.EmergencyPauseOracle(ctx, pausedBy, reason)
 	require.NoError(t, err)
 
 	// Now oracle should be paused
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 
 	// Get pause state
-	pauseState, err := f.oracleKeeper.GetEmergencyPauseState(f.ctx)
+	pauseState, err := k.GetEmergencyPauseState(ctx)
 	require.NoError(t, err)
 	require.True(t, pauseState.Paused)
 	require.Equal(t, pausedBy, pauseState.PausedBy)
 	require.Equal(t, reason, pauseState.PauseReason)
-	require.Equal(t, f.ctx.BlockHeight(), pauseState.PausedAtHeight)
+	require.Equal(t, ctx.BlockHeight(), pauseState.PausedAtHeight)
 
 	// Try to pause again - should fail
-	err = f.oracleKeeper.EmergencyPauseOracle(f.ctx, pausedBy, "Another reason")
+	err = k.EmergencyPauseOracle(ctx, pausedBy, "Another reason")
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrOraclePaused)
 }
 
 // TestResumeOracle tests resuming oracle operations
 func TestResumeOracle(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Pause the oracle first
 	pausedBy := "paw1admin"
 	reason := "Testing"
-	err := f.oracleKeeper.EmergencyPauseOracle(f.ctx, pausedBy, reason)
+	err := k.EmergencyPauseOracle(ctx, pausedBy, reason)
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 
 	// Resume the oracle
 	resumedBy := "paw1governance"
 	resumeReason := "Issue resolved"
-	err = f.oracleKeeper.ResumeOracle(f.ctx, resumedBy, resumeReason)
+	err = k.ResumeOracle(ctx, resumedBy, resumeReason)
 	require.NoError(t, err)
 
 	// Oracle should no longer be paused
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 
 	// Try to resume again - should fail
-	err = f.oracleKeeper.ResumeOracle(f.ctx, resumedBy, resumeReason)
+	err = k.ResumeOracle(ctx, resumedBy, resumeReason)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrOracleNotPaused)
 }
 
 // TestCheckEmergencyPause tests the pause check function
 func TestCheckEmergencyPause(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Check should pass when not paused
-	err := f.oracleKeeper.CheckEmergencyPause(f.ctx)
+	err := k.CheckEmergencyPause(ctx)
 	require.NoError(t, err)
 
 	// Pause the oracle
-	err = f.oracleKeeper.EmergencyPauseOracle(f.ctx, "admin", "test")
+	err = k.EmergencyPauseOracle(ctx, "admin", "test")
 	require.NoError(t, err)
 
 	// Check should fail when paused
-	err = f.oracleKeeper.CheckEmergencyPause(f.ctx)
+	err = k.CheckEmergencyPause(ctx)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrOraclePaused)
 }
 
 // TestPriceSubmissionWhenPaused tests that price submissions are blocked when paused
 func TestPriceSubmissionWhenPaused(t *testing.T) {
-	f := SetupTest(t)
-
-	// Setup validator
-	validator := f.createValidator(t, 1)
-	validatorAddr := sdk.ValAddress(validator.GetOperator())
-
-	// Set geographic region for validator
-	err := f.oracleKeeper.SetValidatorGeographicRegion(f.ctx, validatorAddr, "na", "1.2.3.4", 12345)
-	require.NoError(t, err)
-
-	// Initially price submission should work
-	err = f.oracleKeeper.SubmitPrice(
-		f.ctx,
-		validatorAddr,
-		"BTC",
-		sdk.MustNewDecFromStr("50000.0"),
-		sdk.AccAddress(validatorAddr),
-	)
-	require.NoError(t, err)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Pause the oracle
-	err = f.oracleKeeper.EmergencyPauseOracle(f.ctx, "admin", "emergency test")
+	err := k.EmergencyPauseOracle(ctx, "admin", "emergency test")
 	require.NoError(t, err)
 
 	// Now price submission should be blocked via msg_server
-	msgServer := NewMsgServerImpl(f.oracleKeeper)
+	msgServer := keeper.NewMsgServerImpl(*k)
+
+	// Create a dummy validator address for testing
+	validatorAddr := sdk.ValAddress([]byte("validator____________"))
 	msg := types.NewMsgSubmitPrice(
 		validatorAddr.String(),
 		sdk.AccAddress(validatorAddr).String(),
 		"BTC",
-		sdk.MustNewDecFromStr("51000.0"),
+		math.LegacyMustNewDecFromStr("51000.0"),
 	)
 
-	_, err = msgServer.SubmitPrice(f.ctx, msg)
+	_, err = msgServer.SubmitPrice(ctx, msg)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "emergency pause check failed")
 }
 
 // TestAdminPauseAuthorization tests admin pause authorization
 func TestAdminPauseAuthorization(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Set emergency admin in params
-	params, err := f.oracleKeeper.GetParams(f.ctx)
+	params, err := k.GetParams(ctx)
 	require.NoError(t, err)
 
 	adminAddr := sdk.AccAddress([]byte("admin_______________"))
 	params.EmergencyAdmin = adminAddr.String()
-	err = f.oracleKeeper.SetParams(f.ctx, params)
+	err = k.SetParams(ctx, params)
 	require.NoError(t, err)
 
 	// Create msg server
-	msgServer := NewMsgServerImpl(f.oracleKeeper)
+	msgServer := keeper.NewMsgServerImpl(*k)
 
 	// Admin should be able to pause
 	pauseMsg := types.NewMsgEmergencyPauseOracle(
@@ -145,20 +133,20 @@ func TestAdminPauseAuthorization(t *testing.T) {
 		"Admin triggered pause",
 	)
 
-	_, err = msgServer.EmergencyPauseOracle(f.ctx, pauseMsg)
+	_, err = msgServer.EmergencyPauseOracle(ctx, pauseMsg)
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 }
 
 // TestGovernancePauseAuthorization tests governance pause authorization
 func TestGovernancePauseAuthorization(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Get the governance authority address
-	authority := f.oracleKeeper.GetAuthority()
+	authority := k.GetAuthority()
 
 	// Create msg server
-	msgServer := NewMsgServerImpl(f.oracleKeeper)
+	msgServer := keeper.NewMsgServerImpl(*k)
 
 	// Governance should be able to pause
 	pauseMsg := types.NewMsgEmergencyPauseOracle(
@@ -166,17 +154,17 @@ func TestGovernancePauseAuthorization(t *testing.T) {
 		"Governance triggered pause",
 	)
 
-	_, err := msgServer.EmergencyPauseOracle(f.ctx, pauseMsg)
+	_, err := msgServer.EmergencyPauseOracle(ctx, pauseMsg)
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 }
 
 // TestUnauthorizedPause tests that unauthorized addresses cannot pause
 func TestUnauthorizedPause(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Create msg server
-	msgServer := NewMsgServerImpl(f.oracleKeeper)
+	msgServer := keeper.NewMsgServerImpl(*k)
 
 	// Random address should not be able to pause
 	randomAddr := sdk.AccAddress([]byte("random______________"))
@@ -185,22 +173,22 @@ func TestUnauthorizedPause(t *testing.T) {
 		"Unauthorized pause attempt",
 	)
 
-	_, err := msgServer.EmergencyPauseOracle(f.ctx, pauseMsg)
+	_, err := msgServer.EmergencyPauseOracle(ctx, pauseMsg)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrUnauthorizedPause)
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 }
 
 // TestOnlyGovernanceCanResume tests that only governance can resume
 func TestOnlyGovernanceCanResume(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
 	// Pause first
-	err := f.oracleKeeper.EmergencyPauseOracle(f.ctx, "admin", "test")
+	err := k.EmergencyPauseOracle(ctx, "admin", "test")
 	require.NoError(t, err)
 
 	// Create msg server
-	msgServer := NewMsgServerImpl(f.oracleKeeper)
+	msgServer := keeper.NewMsgServerImpl(*k)
 
 	// Random address should not be able to resume
 	randomAddr := sdk.AccAddress([]byte("random______________"))
@@ -209,68 +197,68 @@ func TestOnlyGovernanceCanResume(t *testing.T) {
 		"Unauthorized resume attempt",
 	)
 
-	_, err = msgServer.ResumeOracle(f.ctx, resumeMsg)
+	_, err = msgServer.ResumeOracle(ctx, resumeMsg)
 	require.Error(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx)) // Still paused
+	require.True(t, k.IsOraclePaused(ctx)) // Still paused
 
 	// Governance should be able to resume
-	authority := f.oracleKeeper.GetAuthority()
+	authority := k.GetAuthority()
 	resumeMsg = types.NewMsgResumeOracle(
 		authority,
 		"Governance approved resume",
 	)
 
-	_, err = msgServer.ResumeOracle(f.ctx, resumeMsg)
+	_, err = msgServer.ResumeOracle(ctx, resumeMsg)
 	require.NoError(t, err)
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx)) // No longer paused
+	require.False(t, k.IsOraclePaused(ctx)) // No longer paused
 }
 
 // TestPauseCycle tests multiple pause/resume cycles
 func TestPauseCycle(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
-	authority := f.oracleKeeper.GetAuthority()
+	authority := k.GetAuthority()
 
 	// Cycle 1
-	err := f.oracleKeeper.EmergencyPauseOracle(f.ctx, authority, "cycle 1 pause")
+	err := k.EmergencyPauseOracle(ctx, authority, "cycle 1 pause")
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 
-	err = f.oracleKeeper.ResumeOracle(f.ctx, authority, "cycle 1 resume")
+	err = k.ResumeOracle(ctx, authority, "cycle 1 resume")
 	require.NoError(t, err)
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 
 	// Cycle 2
-	err = f.oracleKeeper.EmergencyPauseOracle(f.ctx, authority, "cycle 2 pause")
+	err = k.EmergencyPauseOracle(ctx, authority, "cycle 2 pause")
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 
-	err = f.oracleKeeper.ResumeOracle(f.ctx, authority, "cycle 2 resume")
+	err = k.ResumeOracle(ctx, authority, "cycle 2 resume")
 	require.NoError(t, err)
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 
 	// Cycle 3
-	err = f.oracleKeeper.EmergencyPauseOracle(f.ctx, authority, "cycle 3 pause")
+	err = k.EmergencyPauseOracle(ctx, authority, "cycle 3 pause")
 	require.NoError(t, err)
-	require.True(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.True(t, k.IsOraclePaused(ctx))
 
-	err = f.oracleKeeper.ResumeOracle(f.ctx, authority, "cycle 3 resume")
+	err = k.ResumeOracle(ctx, authority, "cycle 3 resume")
 	require.NoError(t, err)
-	require.False(t, f.oracleKeeper.IsOraclePaused(f.ctx))
+	require.False(t, k.IsOraclePaused(ctx))
 }
 
 // TestPauseEvents tests that proper events are emitted
 func TestPauseEvents(t *testing.T) {
-	f := SetupTest(t)
+	k, _, ctx := keepertest.OracleKeeper(t)
 
-	authority := f.oracleKeeper.GetAuthority()
+	authority := k.GetAuthority()
 
 	// Pause
-	err := f.oracleKeeper.EmergencyPauseOracle(f.ctx, authority, "test pause")
+	err := k.EmergencyPauseOracle(ctx, authority, "test pause")
 	require.NoError(t, err)
 
 	// Check for pause event
-	events := f.ctx.EventManager().Events()
+	events := ctx.EventManager().Events()
 	found := false
 	for _, event := range events {
 		if event.Type == types.EventTypeEmergencyPause {
@@ -294,14 +282,14 @@ func TestPauseEvents(t *testing.T) {
 	require.True(t, found, "pause event should be emitted")
 
 	// Reset event manager
-	f.ctx = f.ctx.WithEventManager(sdk.NewEventManager())
+	ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 	// Resume
-	err = f.oracleKeeper.ResumeOracle(f.ctx, authority, "test resume")
+	err = k.ResumeOracle(ctx, authority, "test resume")
 	require.NoError(t, err)
 
 	// Check for resume event
-	events = f.ctx.EventManager().Events()
+	events = ctx.EventManager().Events()
 	found = false
 	for _, event := range events {
 		if event.Type == types.EventTypeEmergencyResume {

@@ -13,6 +13,8 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgSubmitPrice{}, "paw/oracle/MsgSubmitPrice", nil)
 	cdc.RegisterConcrete(&MsgDelegateFeedConsent{}, "paw/oracle/MsgDelegateFeedConsent", nil)
 	cdc.RegisterConcrete(&MsgUpdateParams{}, "paw/oracle/MsgUpdateParams", nil)
+	cdc.RegisterConcrete(&MsgEmergencyPauseOracle{}, "paw/oracle/MsgEmergencyPauseOracle", nil)
+	cdc.RegisterConcrete(&MsgResumeOracle{}, "paw/oracle/MsgResumeOracle", nil)
 }
 
 // RegisterInterfaces registers the x/oracle interfaces types with the interface registry

@@ -14,6 +14,8 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgAddLiquidity{}, "paw/dex/MsgAddLiquidity", nil)
 	cdc.RegisterConcrete(&MsgRemoveLiquidity{}, "paw/dex/MsgRemoveLiquidity", nil)
 	cdc.RegisterConcrete(&MsgSwap{}, "paw/dex/MsgSwap", nil)
+	cdc.RegisterConcrete(&MsgCommitSwap{}, "paw/dex/MsgCommitSwap", nil)
+	cdc.RegisterConcrete(&MsgRevealSwap{}, "paw/dex/MsgRevealSwap", nil)
 }
 
 // RegisterInterfaces registers the x/dex interfaces types with the interface registry
@@ -23,6 +25,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgAddLiquidity{},
 		&MsgRemoveLiquidity{},
 		&MsgSwap{},
+		&MsgCommitSwap{},
+		&MsgRevealSwap{},
 	)
 
 	registry.RegisterImplementations((*txtypes.MsgResponse)(nil),
@@ -30,6 +34,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgAddLiquidityResponse{},
 		&MsgRemoveLiquidityResponse{},
 		&MsgSwapResponse{},
+		&MsgCommitSwapResponse{},
+		&MsgRevealSwapResponse{},
 	)
 }
 
