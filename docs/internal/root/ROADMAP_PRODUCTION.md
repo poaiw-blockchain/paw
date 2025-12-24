@@ -307,11 +307,12 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - Embed ibcutil.ChannelStore interface directly
   - Impact: ~200 LOC
 
-- [ ] **P3-SIMP-4**: Remove compute keeper channel cache (premature optimization)
-  - Location: `x/compute/keeper/keeper.go:46-49, 140-146, 177-215`
-  - DEX/Oracle work fine without cache
-  - 50 LOC of double-checked locking complexity
-  - Direct GetParams() call is sufficient
+- [x] **P3-SIMP-4**: Remove compute keeper channel cache (premature optimization) ✅
+  - Location: `x/compute/keeper/keeper.go` (completed in 7e55d01)
+  - Removed 69 LOC of double-checked locking complexity
+  - Replaced with direct `ibcutil.IsAuthorizedChannel()` calls
+  - All tests pass, consistent with DEX/Oracle pattern
+  - Completed: 2025-12-24
 
 - [ ] **P3-SIMP-5**: Consolidate fragmented test files
   - Location: `x/compute/keeper/` (72 test files, 14,675 lines)
