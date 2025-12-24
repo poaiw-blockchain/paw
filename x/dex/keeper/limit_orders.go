@@ -765,7 +765,8 @@ func (k Keeper) ProcessExpiredOrders(ctx context.Context) error {
 // GetOrdersByOwner returns all orders for a specific owner
 func (k Keeper) GetOrdersByOwner(ctx context.Context, owner sdk.AccAddress) ([]*LimitOrder, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
+	// P3-PERF-3: Pre-size with estimated orders per owner
+	orders := make([]*LimitOrder, 0, 20)
 
 	prefix := append(LimitOrderByOwnerPrefix, owner.Bytes()...)
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
@@ -793,8 +794,6 @@ func (k Keeper) GetOrdersByOwner(ctx context.Context, owner sdk.AccAddress) ([]*
 //   - O(limit) complexity per query, not O(n) of all orders
 func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddress, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
-	var nextKey []byte
 
 	if limit == 0 {
 		limit = 100 // Default limit
@@ -802,6 +801,10 @@ func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddr
 	if limit > 1000 {
 		limit = 1000 // Max limit
 	}
+
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	orders := make([]*LimitOrder, 0, limit)
+	var nextKey []byte
 
 	prefix := append(LimitOrderByOwnerPrefix, owner.Bytes()...)
 
@@ -852,7 +855,8 @@ func (k Keeper) GetOrdersByOwnerPaginated(ctx context.Context, owner sdk.AccAddr
 // GetOrdersByPool returns all orders for a specific pool
 func (k Keeper) GetOrdersByPool(ctx context.Context, poolID uint64) ([]*LimitOrder, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
+	// P3-PERF-3: Pre-size with estimated orders per pool
+	orders := make([]*LimitOrder, 0, 50)
 
 	poolIDBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(poolIDBytes, poolID)
@@ -883,8 +887,6 @@ func (k Keeper) GetOrdersByPool(ctx context.Context, poolID uint64) ([]*LimitOrd
 //   - O(limit) complexity per query, not O(n) of all orders
 func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pageKey []byte, limit uint64) ([]*LimitOrder, []byte, uint64, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
-	var nextKey []byte
 
 	if limit == 0 {
 		limit = 100 // Default limit
@@ -892,6 +894,10 @@ func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pag
 	if limit > 1000 {
 		limit = 1000 // Max limit
 	}
+
+	// P3-PERF-3: Pre-size with pagination limit capacity
+	orders := make([]*LimitOrder, 0, limit)
+	var nextKey []byte
 
 	poolIDBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(poolIDBytes, poolID)
@@ -944,7 +950,8 @@ func (k Keeper) GetOrdersByPoolPaginated(ctx context.Context, poolID uint64, pag
 // GetOpenOrders returns all open orders
 func (k Keeper) GetOpenOrders(ctx context.Context) ([]*LimitOrder, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
+	// P3-PERF-3: Pre-size with estimated open orders capacity
+	orders := make([]*LimitOrder, 0, 100)
 
 	iterator := storetypes.KVStorePrefixIterator(store, LimitOrderOpenPrefix)
 	defer iterator.Close()
@@ -1005,7 +1012,8 @@ func (k Keeper) GetOrderBook(ctx context.Context, poolID uint64, limit int) (buy
 // This is an internal helper that enables efficient, bounded retrieval of order book data.
 func (k Keeper) getOrdersByPoolAndSide(ctx context.Context, poolID uint64, orderType OrderType, limit int) ([]*LimitOrder, error) {
 	store := k.getStore(ctx)
-	var orders []*LimitOrder
+	// P3-PERF-3: Pre-size with limit capacity
+	orders := make([]*LimitOrder, 0, limit)
 	count := 0
 
 	poolIDBytes := make([]byte, 8)

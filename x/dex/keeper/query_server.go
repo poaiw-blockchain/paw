@@ -79,14 +79,14 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 	}
 
 	// P3-PERF-3: Pre-size with pagination limit capacity
-	limit := defaultPaginationLimit
+	limit := uint64(defaultPaginationLimit)
 	if req.Pagination != nil && req.Pagination.Limit > 0 {
 		limit = req.Pagination.Limit
 		if limit > maxPaginationLimit {
 			limit = maxPaginationLimit
 		}
 	}
-	pools := make([]types.Pool, 0, limit)
+	pools := make([]types.Pool, 0, int(limit))
 	store := qs.Keeper.getStore(goCtx)
 	poolStore := prefix.NewStore(store, PoolKeyPrefix)
 
@@ -199,14 +199,14 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 	}
 
 	// P3-PERF-3: Pre-size with pagination limit capacity
-	limit := defaultPaginationLimit
+	limit := uint64(defaultPaginationLimit)
 	if req.Pagination != nil && req.Pagination.Limit > 0 {
 		limit = req.Pagination.Limit
 		if limit > maxPaginationLimit {
 			limit = maxPaginationLimit
 		}
 	}
-	orders := make([]types.LimitOrder, 0, limit)
+	orders := make([]types.LimitOrder, 0, int(limit))
 	store := qs.Keeper.getStore(goCtx)
 	orderStore := prefix.NewStore(store, LimitOrderKeyPrefix)
 
