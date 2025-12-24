@@ -81,6 +81,12 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 		return fmt.Errorf("failed to set reputation index: %w", err)
 	}
 
+	// Invalidate provider cache when new provider is registered
+	if err := k.InvalidateProviderCache(ctx); err != nil {
+		// Log error but don't fail registration
+		sdkCtx.Logger().Error("failed to invalidate provider cache on registration", "error", err)
+	}
+
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -177,6 +183,13 @@ func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress)
 	// Remove from reputation index
 	if err := k.deleteReputationIndex(ctx, provider, existing.Reputation); err != nil {
 		return fmt.Errorf("failed to delete reputation index: %w", err)
+	}
+
+	// Invalidate provider cache when provider is deactivated
+	if err := k.InvalidateProviderCache(ctx); err != nil {
+		// Log error but don't fail deactivation
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx.Logger().Error("failed to invalidate provider cache on deactivation", "error", err)
 	}
 
 	// Return stake to provider
@@ -364,6 +377,14 @@ func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAd
 		if err := k.setReputationIndex(ctx, provider, providerRecord.Reputation); err != nil {
 			return fmt.Errorf("failed to set new reputation index: %w", err)
 		}
+
+		// Invalidate provider cache when reputation changes
+		// This ensures the cache is refreshed on next BeginBlocker
+		if err := k.InvalidateProviderCache(ctx); err != nil {
+			// Log error but don't fail the reputation update
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			sdkCtx.Logger().Error("failed to invalidate provider cache on reputation change", "error", err)
+		}
 	}
 
 	return k.SetProvider(ctx, *providerRecord)
@@ -443,6 +464,7 @@ func (k Keeper) validatePricing(pricing types.Pricing) error {
 }
 
 // FindSuitableProvider finds a suitable provider for the given specs
+// It first checks the cache for fast O(1) lookup, then falls back to full iteration
 func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpec, preferredProvider string) (sdk.AccAddress, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -462,7 +484,17 @@ func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpe
 		}
 	}
 
-	// Use reputation index to find best provider (already sorted by reputation descending)
+	// Try cache first if enabled
+	if params.UseProviderCache {
+		cached, err := k.FindSuitableProviderFromCache(ctx, specs)
+		if err == nil && cached != nil {
+			// Cache hit - return immediately
+			return cached, nil
+		}
+		// Cache miss or error - fall through to full iteration
+	}
+
+	// Fallback: Use reputation index to find best provider (already sorted by reputation descending)
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, ProvidersByReputationPrefix)
 	defer iterator.Close()

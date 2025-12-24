@@ -9,113 +9,129 @@ import (
 )
 
 var (
+	// ModuleNamespace is the namespace byte for the Compute module (0x01)
+	// All store keys are prefixed with this byte to prevent collisions with other modules
+	ModuleNamespace = byte(0x01)
+
 	// ParamsKey is the key for module parameters
-	ParamsKey = []byte{0x01}
+	ParamsKey = []byte{0x01, 0x01}
 
 	// ProviderKeyPrefix is the prefix for provider storage
-	ProviderKeyPrefix = []byte{0x02}
+	ProviderKeyPrefix = []byte{0x01, 0x02}
 
 	// RequestKeyPrefix is the prefix for request storage
-	RequestKeyPrefix = []byte{0x03}
+	RequestKeyPrefix = []byte{0x01, 0x03}
 
 	// ResultKeyPrefix is the prefix for result storage
-	ResultKeyPrefix = []byte{0x04}
+	ResultKeyPrefix = []byte{0x01, 0x04}
 
 	// NextRequestIDKey is the key for the next request ID counter
-	NextRequestIDKey = []byte{0x05}
+	NextRequestIDKey = []byte{0x01, 0x05}
 
 	// RequestsByRequesterPrefix is the prefix for indexing requests by requester
-	RequestsByRequesterPrefix = []byte{0x06}
+	RequestsByRequesterPrefix = []byte{0x01, 0x06}
 
 	// RequestsByProviderPrefix is the prefix for indexing requests by provider
-	RequestsByProviderPrefix = []byte{0x07}
+	RequestsByProviderPrefix = []byte{0x01, 0x07}
 
 	// RequestsByStatusPrefix is the prefix for indexing requests by status
-	RequestsByStatusPrefix = []byte{0x08}
+	RequestsByStatusPrefix = []byte{0x01, 0x08}
 
 	// ActiveProvidersPrefix is the prefix for indexing active providers
-	ActiveProvidersPrefix = []byte{0x09}
+	ActiveProvidersPrefix = []byte{0x01, 0x09}
 
 	// NonceKeyPrefix is the prefix for nonce tracking (replay attack prevention)
-	NonceKeyPrefix = []byte{0x0A}
+	NonceKeyPrefix = []byte{0x01, 0x0A}
 
 	// GovernanceParamsKey is the key for governance parameters
-	GovernanceParamsKey = []byte{0x0B}
+	GovernanceParamsKey = []byte{0x01, 0x0B}
 
 	// DisputeKeyPrefix is the prefix for dispute storage
-	DisputeKeyPrefix = []byte{0x0C}
+	DisputeKeyPrefix = []byte{0x01, 0x0C}
 
 	// EvidenceKeyPrefix is the prefix for evidence storage
-	EvidenceKeyPrefix = []byte{0x0D}
+	EvidenceKeyPrefix = []byte{0x01, 0x0D}
 
 	// SlashRecordKeyPrefix is the prefix for slash record storage
-	SlashRecordKeyPrefix = []byte{0x0E}
+	SlashRecordKeyPrefix = []byte{0x01, 0x0E}
 
 	// AppealKeyPrefix is the prefix for appeal storage
-	AppealKeyPrefix = []byte{0x0F}
+	AppealKeyPrefix = []byte{0x01, 0x0F}
 
 	// NextDisputeIDKey is the key for the next dispute ID counter
-	NextDisputeIDKey = []byte{0x10}
+	NextDisputeIDKey = []byte{0x01, 0x10}
 
 	// NextSlashIDKey is the key for the next slash ID counter
-	NextSlashIDKey = []byte{0x11}
+	NextSlashIDKey = []byte{0x01, 0x11}
 
 	// NextAppealIDKey is the key for the next appeal ID counter
-	NextAppealIDKey = []byte{0x12}
+	NextAppealIDKey = []byte{0x01, 0x12}
 
 	// DisputesByRequestPrefix is the prefix for indexing disputes by request
-	DisputesByRequestPrefix = []byte{0x13}
+	DisputesByRequestPrefix = []byte{0x01, 0x13}
 
 	// DisputesByStatusPrefix is the prefix for indexing disputes by status
-	DisputesByStatusPrefix = []byte{0x14}
+	DisputesByStatusPrefix = []byte{0x01, 0x14}
 
 	// SlashRecordsByProviderPrefix is the prefix for indexing slash records by provider
-	SlashRecordsByProviderPrefix = []byte{0x15}
+	SlashRecordsByProviderPrefix = []byte{0x01, 0x15}
 
 	// AppealsByStatusPrefix is the prefix for indexing appeals by status
-	AppealsByStatusPrefix = []byte{0x16}
+	AppealsByStatusPrefix = []byte{0x01, 0x16}
 
 	// CircuitParamsKeyPrefix is the prefix for ZK circuit parameters
-	CircuitParamsKeyPrefix = []byte{0x17}
+	CircuitParamsKeyPrefix = []byte{0x01, 0x17}
 
 	// ZKMetricsKey is the key for ZK proof verification metrics
-	ZKMetricsKey = []byte{0x18}
+	ZKMetricsKey = []byte{0x01, 0x18}
 
 	// VerificationProofHashPrefix stores digests of verification proofs to prevent reuse
-	VerificationProofHashPrefix = []byte{0x19}
+	VerificationProofHashPrefix = []byte{0x01, 0x19}
 
 	// ProviderSigningKeyPrefix stores fallback signing keys registered by providers
-	ProviderSigningKeyPrefix = []byte{0x1A}
+	ProviderSigningKeyPrefix = []byte{0x01, 0x1A}
 
 	// RequestFinalizedPrefix tracks whether a request has already settled funds
-	RequestFinalizedPrefix = []byte{0x1B}
-
-	// NonceByHeightPrefix is the prefix for indexing nonces by block height for cleanup
-	NonceByHeightPrefix = []byte{0x1E}
+	RequestFinalizedPrefix = []byte{0x01, 0x1B}
 
 	// ProviderStatsKeyPrefix is the prefix for provider performance statistics
-	ProviderStatsKeyPrefix = []byte{0x1C}
+	ProviderStatsKeyPrefix = []byte{0x01, 0x1C}
 
 	// EscrowTimeoutReversePrefix is the reverse index for escrow timeout lookup by request ID.
 	// Key: prefix + requestID -> timeout timestamp
 	// This enables O(1) lookup when removing timeout indexes.
-	EscrowTimeoutReversePrefix = []byte{0x1D}
+	EscrowTimeoutReversePrefix = []byte{0x01, 0x1D}
+
+	// NonceByHeightPrefix is the prefix for indexing nonces by block height for cleanup
+	NonceByHeightPrefix = []byte{0x01, 0x1E}
 
 	// ProvidersByReputationPrefix is the prefix for reputation-sorted provider index
 	// Key: prefix + reputation (inverted for descending order) + provider address
 	// This enables O(log n) provider selection by reputation score
-	ProvidersByReputationPrefix = []byte{0x1F}
+	ProvidersByReputationPrefix = []byte{0x01, 0x1F}
 
 	// CatastrophicFailureKeyPrefix is the prefix for catastrophic failure records
-	CatastrophicFailureKeyPrefix = []byte{0x23}
+	CatastrophicFailureKeyPrefix = []byte{0x01, 0x23}
 
 	// NextCatastrophicFailureIDKey is the key for the next catastrophic failure ID counter
-	NextCatastrophicFailureIDKey = []byte{0x24}
+	NextCatastrophicFailureIDKey = []byte{0x01, 0x24}
 
 	// IBCPacketKeyPrefix is the prefix for IBC packet sequence tracking
 	// Key: prefix + channelID + sequence -> requestID
 	// Used to track pending IBC compute requests for validation
-	IBCPacketKeyPrefix = []byte{0x25}
+	IBCPacketKeyPrefix = []byte{0x01, 0x25}
+
+	// ProviderCacheKeyPrefix is the prefix for cached provider entries
+	// Key: prefix + index (4 bytes) -> CachedProvider
+	// Stores top N providers by reputation for fast O(1) lookups
+	ProviderCacheKeyPrefix = []byte{0x01, 0x26}
+
+	// ProviderCacheMetadataKey stores cache metadata (last refresh block, cache size)
+	ProviderCacheMetadataKey = []byte{0x01, 0x27}
+
+	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
+	// Moved from types/keys.go - now properly namespaced
+	IBCPacketNonceKeyPrefix = []byte{0x01, 0x28}
 )
 
 // ProviderKey returns the store key for a provider
@@ -219,7 +235,7 @@ func EvidenceKey(disputeID uint64, evidenceIndex uint64) []byte {
 	return append(append(EvidenceKeyPrefix, disputeBz...), indexBz...)
 }
 
-// EvidenceKeyPrefix returns the prefix for all evidence for a dispute
+// EvidenceKeyPrefixForDispute returns the prefix for all evidence for a dispute
 func EvidenceKeyPrefixForDispute(disputeID uint64) []byte {
 	disputeBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(disputeBz, disputeID)
@@ -347,4 +363,17 @@ func CatastrophicFailureKey(failureID uint64) []byte {
 // GetCatastrophicFailureIDFromBytes converts bytes to catastrophic failure ID
 func GetCatastrophicFailureIDFromBytes(bz []byte) uint64 {
 	return binary.BigEndian.Uint64(bz)
+}
+
+// ProviderCacheKey returns the store key for a cached provider at index
+func ProviderCacheKey(index uint32) []byte {
+	indexBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(indexBz, index)
+	return append(ProviderCacheKeyPrefix, indexBz...)
+}
+
+// IBCPacketNonceKey returns the store key for IBC packet nonce tracking
+// Used for replay attack prevention by tracking nonce per channel/sender pair
+func IBCPacketNonceKey(channelID, sender string) []byte {
+	return append(append(IBCPacketNonceKeyPrefix, []byte(channelID+"/")...), []byte(sender)...)
 }

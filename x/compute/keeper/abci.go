@@ -18,6 +18,18 @@ import (
 func (k Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	// Refresh provider reputation cache if needed
+	// This is done first to ensure fresh cache for incoming requests
+	shouldRefresh, err := k.ShouldRefreshCache(ctx)
+	if err != nil {
+		sdkCtx.Logger().Error("failed to check cache refresh", "error", err)
+	} else if shouldRefresh {
+		if err := k.RefreshProviderCache(ctx); err != nil {
+			sdkCtx.Logger().Error("failed to refresh provider cache", "error", err)
+			// Don't return error - log and continue
+		}
+	}
+
 	// Update provider reputation scores based on performance
 	if err := k.UpdateProviderReputations(ctx); err != nil {
 		sdkCtx.Logger().Error("failed to update provider reputations", "error", err)

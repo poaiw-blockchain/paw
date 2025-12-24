@@ -21,6 +21,12 @@ func DefaultParams() Params {
 		MaxValidatorsPerAsn:        5,                                     // Max 5 validators per ASN
 		RequireGeographicDiversity: false,                                 // Default to optional for testnet
 		NonceTtlSeconds:            604800,                                // 7 days (604800 seconds)
+		DiversityCheckInterval:     100,                                   // Check diversity every 100 blocks
+		DiversityWarningThreshold:  math.LegacyMustNewDecFromStr("0.40"), // Warn below 40% diversity
+		EnforceRuntimeDiversity:    false,                                 // Default to warning-only for testnet
+		EmergencyAdmin:             "",                                    // No emergency admin by default
+		GeoipCacheTtlSeconds:       3600,                                  // 1 hour cache TTL
+		GeoipCacheMaxEntries:       1000,                                  // 1000 max cached IPs
 	}
 }
 
@@ -29,5 +35,6 @@ func MainnetParams() Params {
 	params := DefaultParams()
 	params.RequireGeographicDiversity = true // Mandatory for mainnet
 	params.MinGeographicRegions = 3          // Require at least 3 distinct regions
+	params.EnforceRuntimeDiversity = true    // Enforce diversity at runtime
 	return params
 }

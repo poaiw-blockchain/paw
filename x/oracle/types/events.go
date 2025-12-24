@@ -96,3 +96,16 @@ const (
 	EventTypeSlashingDisabled    = "oracle_slashing_disabled"
 	EventTypeSlashingEnabled     = "oracle_slashing_enabled"
 )
+
+// Emergency pause event types
+const (
+	EventTypeEmergencyPause  = "oracle_emergency_pause"
+	EventTypeEmergencyResume = "oracle_emergency_resume"
+)
+
+// Emergency pause attribute keys
+const (
+	AttributeKeyPausedBy     = "paused_by"
+	AttributeKeyPauseReason  = "pause_reason"
+	AttributeKeyResumeReason = "resume_reason"
+)

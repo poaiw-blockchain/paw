@@ -128,6 +128,7 @@ var (
 	ErrCommitmentExpired    = sdkerrors.Register(ModuleName, 44, "swap commitment expired")
 	ErrInsufficientDeposit  = sdkerrors.Register(ModuleName, 45, "insufficient deposit for commitment")
 	ErrInvalidPool          = sdkerrors.Register(ModuleName, 46, "invalid pool")
+	ErrCommitRevealDisabled = sdkerrors.Register(ModuleName, 47, "commit-reveal feature is disabled")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions

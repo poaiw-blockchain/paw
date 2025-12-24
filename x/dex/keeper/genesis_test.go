@@ -603,3 +603,296 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 	require.Equal(t, "", cbState.TriggeredBy, "TriggeredBy should be reset to empty string")
 	require.Equal(t, "", cbState.TriggerReason, "TriggerReason should be reset to empty string")
 }
+
+// TestGenesisExportImport_CircuitBreakerPreservationEnabled tests that circuit breaker
+// pause state is preserved across genesis export/import when the parameter is enabled (default)
+func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Create test pool
+	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+
+	// Pause the pool with circuit breaker
+	pauseDuration := 24 * 60 * 60 // 24 hours in seconds
+	pausedUntilTime := sdkCtx.BlockTime().Add(24 * 60 * 60 * 1_000_000_000) // 24 hours in nanoseconds
+	err := k.EmergencyPausePool(ctx, poolID, "security incident", 24*60*60*1_000_000_000)
+	require.NoError(t, err)
+
+	// Verify pool is paused
+	cbState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
+	require.NoError(t, err)
+	require.True(t, cbState.Enabled)
+	require.Equal(t, "governance", cbState.TriggeredBy)
+	require.Equal(t, "security incident", cbState.TriggerReason)
+	require.False(t, cbState.PausedUntil.IsZero())
+
+	// Export genesis with default params (preservation enabled)
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+	require.True(t, exportedGenesis.Params.UpgradePreserveCircuitBreakerState, "Default should preserve state")
+
+	// Verify exported circuit breaker state includes runtime data
+	require.Len(t, exportedGenesis.CircuitBreakerStates, 1)
+	exportedCB := exportedGenesis.CircuitBreakerStates[0]
+	require.Equal(t, poolID, exportedCB.PoolId)
+	require.True(t, exportedCB.Enabled)
+	require.Greater(t, exportedCB.PausedUntil, int64(0), "PausedUntil should be exported")
+	require.Equal(t, "governance", exportedCB.TriggeredBy)
+	require.Equal(t, "security incident", exportedCB.TriggerReason)
+
+	// Create new keeper for import simulation
+	k2, ctx2 := keepertest.DexKeeper(t)
+
+	// Import genesis
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify pause state was restored
+	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
+	require.NoError(t, err)
+	require.True(t, restoredState.Enabled, "Circuit breaker should remain enabled")
+	require.False(t, restoredState.PausedUntil.IsZero(), "PausedUntil should be restored")
+	require.Equal(t, "governance", restoredState.TriggeredBy)
+	require.Equal(t, "security incident", restoredState.TriggerReason)
+
+	// Verify pause time is approximately correct (within 1 second tolerance for rounding)
+	expectedPauseTime := pausedUntilTime.Unix()
+	actualPauseTime := restoredState.PausedUntil.Unix()
+	require.InDelta(t, expectedPauseTime, actualPauseTime, 1.0,
+		"Pause time should be preserved within 1 second tolerance")
+
+	// Verify pool operations are still blocked after import
+	pool, err := k2.GetPool(ctx2, poolID)
+	require.NoError(t, err)
+	err = k2.CheckPoolPriceDeviationForTesting(ctx2, pool, "test_operation")
+	require.Error(t, err, "Pool should remain paused after import")
+	require.Contains(t, err.Error(), "paused until")
+}
+
+// TestGenesisExportImport_CircuitBreakerPreservationDisabled tests that circuit breaker
+// pause state is cleared during genesis export/import when the parameter is disabled
+func TestGenesisExportImport_CircuitBreakerPreservationDisabled(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Create test pool
+	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+
+	// Pause the pool with circuit breaker
+	err := k.EmergencyPausePool(ctx, poolID, "security incident", 24*60*60*1_000_000_000)
+	require.NoError(t, err)
+
+	// Verify pool is paused
+	cbState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
+	require.NoError(t, err)
+	require.True(t, cbState.Enabled)
+	require.False(t, cbState.PausedUntil.IsZero())
+
+	// Modify params to disable preservation
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	params.UpgradePreserveCircuitBreakerState = false
+	err = k.SetParams(ctx, params)
+	require.NoError(t, err)
+
+	// Export genesis with preservation disabled
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+	require.False(t, exportedGenesis.Params.UpgradePreserveCircuitBreakerState,
+		"Parameter should be disabled")
+
+	// Verify exported circuit breaker state has runtime data cleared
+	require.Len(t, exportedGenesis.CircuitBreakerStates, 1)
+	exportedCB := exportedGenesis.CircuitBreakerStates[0]
+	require.Equal(t, poolID, exportedCB.PoolId)
+	require.True(t, exportedCB.Enabled, "Enabled flag should be preserved")
+	require.Equal(t, int64(0), exportedCB.PausedUntil, "PausedUntil should be zero")
+	require.Equal(t, "", exportedCB.TriggeredBy, "TriggeredBy should be empty")
+	require.Equal(t, "", exportedCB.TriggerReason, "TriggerReason should be empty")
+	require.Equal(t, int32(0), exportedCB.NotificationsSent)
+
+	// Create new keeper for import simulation
+	k2, ctx2 := keepertest.DexKeeper(t)
+
+	// Import genesis
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify pause state was NOT restored (cleared)
+	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
+	require.NoError(t, err)
+	require.True(t, restoredState.Enabled, "Enabled flag should be preserved")
+	require.True(t, restoredState.PausedUntil.IsZero(), "PausedUntil should be cleared")
+	require.Equal(t, "", restoredState.TriggeredBy)
+	require.Equal(t, "", restoredState.TriggerReason)
+	require.Equal(t, 0, restoredState.NotificationsSent)
+
+	// Verify pool operations are allowed after import (pause cleared)
+	pool, err := k2.GetPool(ctx2, poolID)
+	require.NoError(t, err)
+	err = k2.CheckPoolPriceDeviationForTesting(ctx2, pool, "test_operation")
+	require.NoError(t, err, "Pool should be operational after pause state cleared on import")
+}
+
+// TestGenesisExportImport_ExpiredPause tests that expired pause times are handled correctly
+func TestGenesisExportImport_ExpiredPause(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Create test pool
+	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+
+	// Pause the pool with very short duration (already expired)
+	pastTime := sdkCtx.BlockTime().Add(-1 * 60 * 60 * 1_000_000_000) // 1 hour ago
+	cbState := keeper.CircuitBreakerState{
+		Enabled:       true,
+		PausedUntil:   pastTime,
+		TriggeredBy:   "governance",
+		TriggerReason: "test expired pause",
+		LastPrice:     sdkmath.LegacyMustNewDecFromStr("1.0"),
+	}
+	err := k.SetCircuitBreakerState(ctx, poolID, cbState)
+	require.NoError(t, err)
+
+	// Export genesis (with preservation enabled by default)
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+
+	// Verify exported state includes the expired pause time
+	require.Len(t, exportedGenesis.CircuitBreakerStates, 1)
+	exportedCB := exportedGenesis.CircuitBreakerStates[0]
+	require.Greater(t, exportedCB.PausedUntil, int64(0))
+
+	// Create new keeper for import with advanced time
+	k2, ctx2 := keepertest.DexKeeper(t)
+	sdkCtx2 := sdk.UnwrapSDKContext(ctx2)
+
+	// Advance block time to simulate chain restart later
+	header := sdkCtx2.BlockHeader()
+	header.Time = sdkCtx.BlockTime().Add(2 * 60 * 60 * 1_000_000_000) // 2 hours after original
+	ctx2 = ctx2.WithBlockHeader(header)
+
+	// Import genesis
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify pause state was restored but is expired
+	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
+	require.NoError(t, err)
+	require.True(t, restoredState.Enabled)
+	require.False(t, restoredState.PausedUntil.IsZero())
+
+	// Verify that current time is after pause expiration
+	require.True(t, sdkCtx2.BlockTime().After(restoredState.PausedUntil),
+		"Current time should be after pause expiration")
+
+	// Verify pool operations are allowed (pause expired)
+	pool, err := k2.GetPool(ctx2, poolID)
+	require.NoError(t, err)
+	err = k2.CheckPoolPriceDeviationForTesting(ctx2, pool, "test_operation")
+	require.NoError(t, err, "Pool should be operational since pause expired")
+}
+
+// TestGenesisExportImport_MultiplePoolsPreservation tests preservation with multiple pools
+// in different states (some paused, some not)
+func TestGenesisExportImport_MultiplePoolsPreservation(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Create three pools
+	poolID1 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+	poolID2 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdc",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+	poolID3 := keepertest.CreateTestPool(t, k, ctx, "uatom", "uusdc",
+		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
+
+	// Pool 1: Paused by governance
+	err := k.EmergencyPausePool(ctx, poolID1, "security review", 12*60*60*1_000_000_000)
+	require.NoError(t, err)
+
+	// Pool 2: Not paused (operational)
+	// (default state - no action needed)
+
+	// Pool 3: Paused by automatic circuit breaker
+	cbState3 := keeper.CircuitBreakerState{
+		Enabled:           true,
+		PausedUntil:       sdkCtx.BlockTime().Add(6 * 60 * 60 * 1_000_000_000), // 6 hours
+		TriggeredBy:       "automatic",
+		TriggerReason:     "price deviation >20%",
+		LastPrice:         sdkmath.LegacyMustNewDecFromStr("1.5"),
+		NotificationsSent: 1,
+		LastNotification:  sdkCtx.BlockTime(),
+	}
+	err = k.SetCircuitBreakerState(ctx, poolID3, cbState3)
+	require.NoError(t, err)
+
+	// Export genesis with preservation enabled
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+	require.True(t, exportedGenesis.Params.UpgradePreserveCircuitBreakerState)
+
+	// Verify all three pools exported
+	require.Len(t, exportedGenesis.CircuitBreakerStates, 3)
+
+	// Find exported states
+	var exported1, exported2, exported3 *types.CircuitBreakerStateExport
+	for i := range exportedGenesis.CircuitBreakerStates {
+		switch exportedGenesis.CircuitBreakerStates[i].PoolId {
+		case poolID1:
+			exported1 = &exportedGenesis.CircuitBreakerStates[i]
+		case poolID2:
+			exported2 = &exportedGenesis.CircuitBreakerStates[i]
+		case poolID3:
+			exported3 = &exportedGenesis.CircuitBreakerStates[i]
+		}
+	}
+	require.NotNil(t, exported1)
+	require.NotNil(t, exported2)
+	require.NotNil(t, exported3)
+
+	// Pool 1: Should have governance pause state
+	require.True(t, exported1.Enabled)
+	require.Greater(t, exported1.PausedUntil, int64(0))
+	require.Equal(t, "governance", exported1.TriggeredBy)
+
+	// Pool 2: Should have no pause state
+	require.False(t, exported2.Enabled)
+	require.Equal(t, int64(0), exported2.PausedUntil)
+
+	// Pool 3: Should have automatic circuit breaker pause state
+	require.True(t, exported3.Enabled)
+	require.Greater(t, exported3.PausedUntil, int64(0))
+	require.Equal(t, "automatic", exported3.TriggeredBy)
+	require.Equal(t, "price deviation >20%", exported3.TriggerReason)
+	require.Equal(t, int32(1), exported3.NotificationsSent)
+
+	// Import into new keeper
+	k2, ctx2 := keepertest.DexKeeper(t)
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify all states restored correctly
+	restored1, err := k2.GetPoolCircuitBreakerState(ctx2, poolID1)
+	require.NoError(t, err)
+	require.True(t, restored1.Enabled)
+	require.False(t, restored1.PausedUntil.IsZero())
+	require.Equal(t, "governance", restored1.TriggeredBy)
+
+	restored2, err := k2.GetPoolCircuitBreakerState(ctx2, poolID2)
+	require.NoError(t, err)
+	require.False(t, restored2.Enabled)
+	require.True(t, restored2.PausedUntil.IsZero())
+
+	restored3, err := k2.GetPoolCircuitBreakerState(ctx2, poolID3)
+	require.NoError(t, err)
+	require.True(t, restored3.Enabled)
+	require.False(t, restored3.PausedUntil.IsZero())
+	require.Equal(t, "automatic", restored3.TriggeredBy)
+	require.Equal(t, "price deviation >20%", restored3.TriggerReason)
+	require.Equal(t, 1, restored3.NotificationsSent)
+}

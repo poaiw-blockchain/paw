@@ -801,6 +801,222 @@ func (k Keeper) ValidateGeographicDiversity(ctx context.Context) error {
 	return nil
 }
 
+// CheckGeographicDiversityForNewValidator checks if adding a new validator with the given region
+// would violate geographic diversity requirements. This is used for runtime enforcement.
+//
+// Returns:
+//   - nil if adding the validator is allowed
+//   - error if adding the validator would violate diversity constraints
+func (k Keeper) CheckGeographicDiversityForNewValidator(ctx context.Context, newValidatorRegion string) error {
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	// If geographic diversity is not required, allow registration
+	if !params.RequireGeographicDiversity {
+		return nil
+	}
+
+	// Get current distribution
+	distribution, err := k.TrackGeographicDiversity(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to track geographic diversity: %w", err)
+	}
+
+	// Simulate adding the new validator
+	simulatedDistribution := &GeographicDistribution{
+		RegionCounts:    make(map[string]int),
+		TotalValidators: distribution.TotalValidators + 1,
+	}
+
+	// Copy existing region counts
+	for region, count := range distribution.RegionCounts {
+		simulatedDistribution.RegionCounts[region] = count
+	}
+
+	// Add new validator's region
+	newRegion := strings.ToLower(strings.TrimSpace(newValidatorRegion))
+	if newRegion == "" {
+		newRegion = "unknown"
+	}
+	simulatedDistribution.RegionCounts[newRegion]++
+
+	// Calculate simulated diversity score (Herfindahl-Hirschman Index inverse)
+	hhi := sdkmath.LegacyZeroDec()
+	if simulatedDistribution.TotalValidators > 0 {
+		for _, count := range simulatedDistribution.RegionCounts {
+			share := sdkmath.LegacyNewDec(int64(count)).Quo(sdkmath.LegacyNewDec(int64(simulatedDistribution.TotalValidators)))
+			hhi = hhi.Add(share.Mul(share))
+		}
+	}
+	simulatedDistribution.DiversityScore = sdkmath.LegacyOneDec().Sub(hhi)
+
+	// Check if simulated diversity score falls below warning threshold
+	if simulatedDistribution.DiversityScore.LT(params.DiversityWarningThreshold) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"geographic_diversity_warning",
+				sdk.NewAttribute("region", newRegion),
+				sdk.NewAttribute("current_score", distribution.DiversityScore.String()),
+				sdk.NewAttribute("simulated_score", simulatedDistribution.DiversityScore.String()),
+				sdk.NewAttribute("threshold", params.DiversityWarningThreshold.String()),
+				sdk.NewAttribute("severity", "warning"),
+			),
+		)
+
+		// If enforcement is enabled, reject the registration
+		if params.EnforceRuntimeDiversity {
+			return fmt.Errorf("adding validator in region %s would reduce diversity score to %s (below threshold %s)",
+				newRegion, simulatedDistribution.DiversityScore.String(), params.DiversityWarningThreshold.String())
+		}
+	}
+
+	// Check if adding this validator would create excessive concentration in one region
+	// Maximum 40% of validators in a single region (except when total validators < 5)
+	if simulatedDistribution.TotalValidators >= 5 {
+		maxRegionShare := sdkmath.LegacyMustNewDecFromStr("0.40") // 40%
+		for region, count := range simulatedDistribution.RegionCounts {
+			regionShare := sdkmath.LegacyNewDec(int64(count)).Quo(sdkmath.LegacyNewDec(int64(simulatedDistribution.TotalValidators)))
+			if regionShare.GT(maxRegionShare) {
+				sdkCtx := sdk.UnwrapSDKContext(ctx)
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"geographic_concentration_warning",
+						sdk.NewAttribute("region", region),
+						sdk.NewAttribute("validator_count", fmt.Sprintf("%d", count)),
+						sdk.NewAttribute("total_validators", fmt.Sprintf("%d", simulatedDistribution.TotalValidators)),
+						sdk.NewAttribute("region_share", regionShare.String()),
+						sdk.NewAttribute("max_allowed", maxRegionShare.String()),
+						sdk.NewAttribute("severity", "high"),
+					),
+				)
+
+				// If enforcement is enabled and this is the region being added to, reject
+				if params.EnforceRuntimeDiversity && region == newRegion {
+					return fmt.Errorf("region %s would have %s of total validators (max allowed: %s)",
+						region, regionShare.String(), maxRegionShare.String())
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// MonitorGeographicDiversity checks and reports on current geographic diversity.
+// Called periodically from BeginBlocker to track diversity metrics and emit warnings.
+// This is part of P2-SEC-2 mitigation (runtime diversity monitoring).
+func (k Keeper) MonitorGeographicDiversity(ctx context.Context) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get params: %w", err)
+	}
+
+	// Skip monitoring if geographic diversity is not required
+	if !params.RequireGeographicDiversity {
+		return nil
+	}
+
+	// Get current distribution
+	distribution, err := k.TrackGeographicDiversity(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to track geographic diversity: %w", err)
+	}
+
+	// Count unique regions (exclude "unknown")
+	uniqueRegions := len(distribution.RegionCounts)
+	if _, hasUnknown := distribution.RegionCounts["unknown"]; hasUnknown && uniqueRegions > 1 {
+		uniqueRegions--
+	}
+
+	// Emit diversity metrics event for monitoring/alerting
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"geographic_diversity_status",
+			sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+			sdk.NewAttribute("diversity_score", distribution.DiversityScore.String()),
+			sdk.NewAttribute("unique_regions", fmt.Sprintf("%d", uniqueRegions)),
+			sdk.NewAttribute("total_validators", fmt.Sprintf("%d", distribution.TotalValidators)),
+			sdk.NewAttribute("min_required_regions", fmt.Sprintf("%d", params.MinGeographicRegions)),
+			sdk.NewAttribute("warning_threshold", params.DiversityWarningThreshold.String()),
+		),
+	)
+
+	// Check if diversity score is below warning threshold
+	if distribution.DiversityScore.LT(params.DiversityWarningThreshold) {
+		sdkCtx.Logger().Warn("geographic diversity below threshold",
+			"score", distribution.DiversityScore.String(),
+			"threshold", params.DiversityWarningThreshold.String(),
+			"unique_regions", uniqueRegions,
+		)
+
+		// Emit warning event
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"geographic_diversity_warning",
+				sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+				sdk.NewAttribute("diversity_score", distribution.DiversityScore.String()),
+				sdk.NewAttribute("threshold", params.DiversityWarningThreshold.String()),
+				sdk.NewAttribute("severity", "warning"),
+			),
+		)
+	}
+
+	// Check if minimum regions requirement is violated
+	if uint64(uniqueRegions) < params.MinGeographicRegions {
+		sdkCtx.Logger().Error("insufficient geographic regions",
+			"unique_regions", uniqueRegions,
+			"min_required", params.MinGeographicRegions,
+		)
+
+		// Emit critical warning event
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"geographic_diversity_critical",
+				sdk.NewAttribute("block_height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+				sdk.NewAttribute("unique_regions", fmt.Sprintf("%d", uniqueRegions)),
+				sdk.NewAttribute("min_required", fmt.Sprintf("%d", params.MinGeographicRegions)),
+				sdk.NewAttribute("severity", "critical"),
+			),
+		)
+	}
+
+	// Log detailed region distribution for diagnostics
+	for region, count := range distribution.RegionCounts {
+		regionShare := sdkmath.LegacyZeroDec()
+		if distribution.TotalValidators > 0 {
+			regionShare = sdkmath.LegacyNewDec(int64(count)).Quo(sdkmath.LegacyNewDec(int64(distribution.TotalValidators)))
+		}
+
+		sdkCtx.Logger().Debug("region distribution",
+			"region", region,
+			"validator_count", count,
+			"share", regionShare.String(),
+		)
+
+		// Warn if a single region has too much concentration
+		maxRegionShare := sdkmath.LegacyMustNewDecFromStr("0.50") // 50% max for any single region
+		if regionShare.GT(maxRegionShare) && distribution.TotalValidators >= 5 {
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"geographic_concentration_warning",
+					sdk.NewAttribute("region", region),
+					sdk.NewAttribute("validator_count", fmt.Sprintf("%d", count)),
+					sdk.NewAttribute("total_validators", fmt.Sprintf("%d", distribution.TotalValidators)),
+					sdk.NewAttribute("region_share", regionShare.String()),
+					sdk.NewAttribute("max_recommended", maxRegionShare.String()),
+					sdk.NewAttribute("severity", "high"),
+				),
+			)
+		}
+	}
+
+	return nil
+}
+
 // TASK 65: VerifyValidatorLocation validates validator location claims
 func (k Keeper) VerifyValidatorLocation(ctx context.Context, validatorAddr string, claimedRegion string, ipAddress string) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)

@@ -20,6 +20,8 @@ var (
 	_ sdk.Msg = &MsgAddLiquidity{}
 	_ sdk.Msg = &MsgRemoveLiquidity{}
 	_ sdk.Msg = &MsgSwap{}
+	_ sdk.Msg = &MsgCommitSwap{}
+	_ sdk.Msg = &MsgRevealSwap{}
 )
 
 // MsgCreatePool implementations
@@ -197,6 +199,117 @@ func (m *MsgSwap) ValidateBasic() error {
 // GetSigners returns the expected signers for MsgSwap
 // Assumes address is valid (validated in ValidateBasic)
 func (m *MsgSwap) GetSigners() []sdk.AccAddress {
+	trader, _ := sdk.AccAddressFromBech32(m.Trader)
+	return []sdk.AccAddress{trader}
+}
+
+// MsgCommitSwap implementations
+
+// ValidateBasic performs basic validation of MsgCommitSwap
+func (m *MsgCommitSwap) ValidateBasic() error {
+	if m.Trader == "" {
+		return fmt.Errorf("trader address cannot be empty")
+	}
+
+	if _, err := sdk.AccAddressFromBech32(m.Trader); err != nil {
+		return fmt.Errorf("invalid trader address: %w", err)
+	}
+
+	if m.SwapHash == "" {
+		return fmt.Errorf("swap_hash cannot be empty")
+	}
+
+	// Basic length check - hash should be hex-encoded (64 characters for 32 bytes)
+	if len(m.SwapHash) != 64 {
+		return fmt.Errorf("swap_hash must be 64 hex characters (32 bytes)")
+	}
+
+	// Verify it's valid hex
+	for _, c := range m.SwapHash {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return fmt.Errorf("swap_hash must be valid hexadecimal")
+		}
+	}
+
+	return nil
+}
+
+// GetSigners returns the expected signers for MsgCommitSwap
+func (m *MsgCommitSwap) GetSigners() []sdk.AccAddress {
+	trader, _ := sdk.AccAddressFromBech32(m.Trader)
+	return []sdk.AccAddress{trader}
+}
+
+// MsgRevealSwap implementations
+
+// ValidateBasic performs basic validation of MsgRevealSwap
+func (m *MsgRevealSwap) ValidateBasic() error {
+	if m.Trader == "" {
+		return fmt.Errorf("trader address cannot be empty")
+	}
+
+	if _, err := sdk.AccAddressFromBech32(m.Trader); err != nil {
+		return fmt.Errorf("invalid trader address: %w", err)
+	}
+
+	if m.PoolId == 0 {
+		return fmt.Errorf("pool_id must be positive")
+	}
+
+	if m.TokenIn == "" {
+		return fmt.Errorf("token_in cannot be empty")
+	}
+
+	if m.TokenOut == "" {
+		return fmt.Errorf("token_out cannot be empty")
+	}
+
+	if err := sdk.ValidateDenom(m.TokenIn); err != nil {
+		return fmt.Errorf("invalid denom for token_in: %w", err)
+	}
+
+	if err := sdk.ValidateDenom(m.TokenOut); err != nil {
+		return fmt.Errorf("invalid denom for token_out: %w", err)
+	}
+
+	if m.TokenIn == m.TokenOut {
+		return fmt.Errorf("cannot swap the same token denomination")
+	}
+
+	if m.AmountIn.IsZero() || m.AmountIn.IsNegative() {
+		return fmt.Errorf("invalid amount: amount_in must be positive")
+	}
+
+	if m.MinAmountOut.IsNegative() {
+		return fmt.Errorf("min_amount_out cannot be negative")
+	}
+
+	if m.MinAmountOut.IsZero() {
+		return fmt.Errorf("min_amount_out must be positive for slippage protection")
+	}
+
+	if m.Deadline == 0 {
+		return fmt.Errorf("deadline must be set for time-sensitive swap operations")
+	}
+
+	if m.Deadline < 0 {
+		return fmt.Errorf("deadline must be a positive unix timestamp")
+	}
+
+	if m.Nonce == "" {
+		return fmt.Errorf("nonce cannot be empty")
+	}
+
+	// Nonce should be at least 16 characters for security
+	if len(m.Nonce) < 16 {
+		return fmt.Errorf("nonce must be at least 16 characters for security")
+	}
+
+	return nil
+}
+
+// GetSigners returns the expected signers for MsgRevealSwap
+func (m *MsgRevealSwap) GetSigners() []sdk.AccAddress {
 	trader, _ := sdk.AccAddressFromBech32(m.Trader)
 	return []sdk.AccAddress{trader}
 }

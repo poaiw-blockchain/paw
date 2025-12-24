@@ -73,6 +73,39 @@ message Params {
   // Default: 604800 (7 days). After this time, nonces can be pruned to prevent unbounded state growth.
   // This prevents replay attacks within the TTL window while allowing cleanup of old nonces.
   uint64 nonce_ttl_seconds = 14;
+
+  // diversity_check_interval is the number of blocks between geographic diversity checks
+  // Default: 100 blocks (~10 minutes). Determines how frequently BeginBlocker checks diversity.
+  // Setting to 0 disables periodic checks (not recommended for mainnet).
+  uint64 diversity_check_interval = 15;
+
+  // diversity_warning_threshold is the minimum diversity score below which warnings are emitted
+  // Range: 0.0 to 1.0. Default: 0.40 (40% diversity score).
+  // Based on Herfindahl-Hirschman Index inverse. Lower scores indicate poor diversity.
+  string diversity_warning_threshold = 16 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+
+  // enforce_runtime_diversity when true, rejects validator oracle registrations that would violate
+  // geographic diversity requirements. When false, only emits warnings.
+  // Default: false for testnet, true for mainnet.
+  bool enforce_runtime_diversity = 17;
+
+  // emergency_admin is the address authorized to trigger emergency pause without governance vote
+  // Can only pause (not resume). Only governance can resume to prevent abuse.
+  // Set to empty string to disable admin pause capability.
+  string emergency_admin = 18 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // geoip_cache_ttl_seconds is the time-to-live for GeoIP cache entries in seconds
+  // Default: 3600 (1 hour). Cached lookups reduce file I/O on every validation.
+  // Lower values ensure fresher data, higher values improve performance.
+  uint64 geoip_cache_ttl_seconds = 19;
+
+  // geoip_cache_max_entries is the maximum number of IP addresses to cache
+  // Default: 1000. Uses LRU eviction when full. Should be >= number of validators.
+  uint64 geoip_cache_max_entries = 20;
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination

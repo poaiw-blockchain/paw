@@ -15,3 +15,20 @@ message CircuitBreakerState {
   int64 block_height = 4;
   int64 recovery_time = 5;
 }
+
+// EmergencyPauseState tracks the emergency pause status of the Oracle module
+message EmergencyPauseState {
+  option (gogoproto.equal) = true;
+
+  // paused indicates if the Oracle is currently paused
+  bool paused = 1;
+
+  // paused_by is the address that triggered the pause
+  string paused_by = 2;
+
+  // pause_reason explains why the pause was triggered
+  string pause_reason = 3;
+
+  // paused_at_height is the block height when pause was activated
+  int64 paused_at_height = 4;
+}

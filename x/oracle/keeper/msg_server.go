@@ -27,6 +27,11 @@ var _ types.MsgServer = msgServer{}
 func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice) (*types.MsgSubmitPriceResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
+	// SECURITY CHECK 0: Emergency Pause
+	if err := ms.CheckEmergencyPause(goCtx); err != nil {
+		return nil, fmt.Errorf("emergency pause check failed: %w", err)
+	}
+
 	// SECURITY CHECK 1: Circuit Breaker
 	if err := ms.CheckCircuitBreaker(goCtx); err != nil {
 		return nil, fmt.Errorf("circuit breaker check failed: %w", err)
@@ -47,6 +52,31 @@ func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice
 	// SECURITY CHECK 3: Sybil Attack Resistance
 	if err := ms.CheckSybilAttackResistance(goCtx, validatorAddr); err != nil {
 		return nil, fmt.Errorf("sybil resistance check failed: %w", err)
+	}
+
+	// SECURITY CHECK 3.5: Geographic Diversity (Runtime Enforcement)
+	// Check if this is a new validator oracle (first-time submission)
+	existingOracle, err := ms.GetValidatorOracle(goCtx, validatorAddr.String())
+	if err != nil || existingOracle.TotalSubmissions == 0 {
+		// This is a new validator oracle - check geographic diversity
+		// Get the validator's geographic region from their oracle info
+		validatorOracle, oracleErr := ms.GetValidatorOracle(goCtx, validatorAddr.String())
+		if oracleErr != nil {
+			// Oracle doesn't exist yet, will be created - check if we can determine region
+			ctx.Logger().Warn("new validator oracle without region info",
+				"validator", validatorAddr.String(),
+			)
+		} else if validatorOracle.GeographicRegion != "" {
+			// Check if adding this validator would violate diversity constraints
+			if err := ms.CheckGeographicDiversityForNewValidator(goCtx, validatorOracle.GeographicRegion); err != nil {
+				ctx.Logger().Warn("geographic diversity check failed for new validator",
+					"validator", validatorAddr.String(),
+					"region", validatorOracle.GeographicRegion,
+					"error", err,
+				)
+				return nil, fmt.Errorf("geographic diversity check failed: %w", err)
+			}
+		}
 	}
 
 	// Validate feeder address
@@ -230,5 +260,104 @@ func (ms msgServer) validateParams(params types.Params) error {
 		return fmt.Errorf("min geographic regions cannot exceed allowed regions")
 	}
 
+	// Validate diversity check interval (can be 0 to disable periodic checks)
+	// No upper limit validation - operators can set their own check frequency
+
+	// Validate diversity warning threshold
+	if params.DiversityWarningThreshold.IsNil() ||
+		params.DiversityWarningThreshold.LT(math.LegacyZeroDec()) ||
+		params.DiversityWarningThreshold.GT(math.LegacyOneDec()) {
+		return fmt.Errorf("diversity warning threshold must be between 0 and 1")
+	}
+
+	// Validate emergency admin address if provided
+	if params.EmergencyAdmin != "" {
+		if _, err := sdk.AccAddressFromBech32(params.EmergencyAdmin); err != nil {
+			return fmt.Errorf("invalid emergency admin address: %w", err)
+		}
+	}
+
 	return nil
+}
+
+// EmergencyPauseOracle handles emergency pause requests
+func (ms msgServer) EmergencyPauseOracle(goCtx context.Context, msg *types.MsgEmergencyPauseOracle) (*types.MsgEmergencyPauseOracleResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Get current params to check emergency admin
+	params, err := ms.GetParams(goCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get params: %w", err)
+	}
+
+	// Validate signer address
+	signerAddr, err := sdk.AccAddressFromBech32(msg.Signer)
+	if err != nil {
+		return nil, fmt.Errorf("invalid signer address: %w", err)
+	}
+
+	// Check authorization: must be either emergency admin or governance authority
+	isAdmin := params.EmergencyAdmin != "" && msg.Signer == params.EmergencyAdmin
+	isAuthority := msg.Signer == ms.authority
+
+	if !isAdmin && !isAuthority {
+		return nil, types.ErrUnauthorizedPause.Wrapf(
+			"signer %s is not authorized to pause oracle (admin: %s, authority: %s)",
+			msg.Signer,
+			params.EmergencyAdmin,
+			ms.authority,
+		)
+	}
+
+	// Validate reason is not empty
+	if strings.TrimSpace(msg.Reason) == "" {
+		return nil, fmt.Errorf("pause reason cannot be empty")
+	}
+
+	// Trigger emergency pause
+	if err := ms.Keeper.EmergencyPauseOracle(goCtx, signerAddr.String(), msg.Reason); err != nil {
+		return nil, err
+	}
+
+	ctx.Logger().Info(
+		"oracle emergency pause activated",
+		"paused_by", msg.Signer,
+		"reason", msg.Reason,
+		"is_admin", isAdmin,
+		"is_authority", isAuthority,
+	)
+
+	return &types.MsgEmergencyPauseOracleResponse{}, nil
+}
+
+// ResumeOracle handles resume requests (governance only)
+func (ms msgServer) ResumeOracle(goCtx context.Context, msg *types.MsgResumeOracle) (*types.MsgResumeOracleResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Validate authority (only governance can resume)
+	if ms.authority != msg.Authority {
+		return nil, govtypes.ErrInvalidSigner.Wrapf(
+			"invalid authority; expected %s, got %s",
+			ms.authority,
+			msg.Authority,
+		)
+	}
+
+	// Validate reason is not empty
+	if strings.TrimSpace(msg.Reason) == "" {
+		return nil, fmt.Errorf("resume reason cannot be empty")
+	}
+
+	// Resume oracle operations
+	if err := ms.Keeper.ResumeOracle(goCtx, msg.Authority, msg.Reason); err != nil {
+		return nil, err
+	}
+
+	ctx.Logger().Info(
+		"oracle emergency pause lifted",
+		"resumed_by", msg.Authority,
+		"reason", msg.Reason,
+	)
+
+	return &types.MsgResumeOracleResponse{}, nil
 }

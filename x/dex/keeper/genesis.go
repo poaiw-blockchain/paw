@@ -59,22 +59,36 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 	}
 
 	// Initialize circuit breaker states
-	// NOTE: We only import persistent configuration, NOT volatile runtime state.
-	// Runtime state (PausedUntil, NotificationsSent, LastNotification, TriggeredBy, TriggerReason)
-	// is intentionally reset to zero values for new chain instances.
+	// NOTE: Behavior depends on UpgradePreserveCircuitBreakerState parameter:
+	// - If true (default): Restore full state including pause times from genesis
+	// - If false: Only restore persistent configuration, clear runtime state
 	for _, cbState := range genState.CircuitBreakerStates {
 		state := CircuitBreakerState{
-			// Persistent configuration
+			// Persistent configuration - always restored
 			Enabled:        cbState.Enabled,
 			LastPrice:      cbState.LastPrice,
 			PersistenceKey: cbState.PersistenceKey,
+		}
 
-			// Runtime state - always reset to zero values on import
-			PausedUntil:       time.Time{}, // Zero time
-			NotificationsSent: 0,
-			LastNotification:  time.Time{}, // Zero time
-			TriggeredBy:       "",
-			TriggerReason:     "",
+		// Conditionally restore runtime state based on parameter
+		if genState.Params.UpgradePreserveCircuitBreakerState {
+			// Restore pause state from genesis
+			if cbState.PausedUntil > 0 {
+				state.PausedUntil = time.Unix(cbState.PausedUntil, 0)
+			}
+			state.NotificationsSent = int(cbState.NotificationsSent)
+			if cbState.LastNotification > 0 {
+				state.LastNotification = time.Unix(cbState.LastNotification, 0)
+			}
+			state.TriggeredBy = cbState.TriggeredBy
+			state.TriggerReason = cbState.TriggerReason
+		} else {
+			// Clear runtime state (intentional reset on upgrade)
+			state.PausedUntil = time.Time{}
+			state.NotificationsSent = 0
+			state.LastNotification = time.Time{}
+			state.TriggeredBy = ""
+			state.TriggerReason = ""
 		}
 
 		if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, state); err != nil {
@@ -127,6 +141,13 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 		}
 	}
 
+	// Initialize swap commits (commit-reveal MEV protection)
+	for _, commit := range genState.SwapCommits {
+		if err := k.SetSwapCommit(ctx, commit); err != nil {
+			return fmt.Errorf("failed to set swap commit for trader %s: %w", commit.Trader, err)
+		}
+	}
+
 	return nil
 }
 
@@ -156,27 +177,38 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	// Export circuit breaker states for all pools
-	// NOTE: We only export persistent configuration, NOT volatile runtime state.
-	// This ensures chain exports/imports don't carry over transient pause states.
+	// NOTE: Behavior depends on UpgradePreserveCircuitBreakerState parameter:
+	// - If true (default): Full state including pause times is preserved across upgrades
+	// - If false: Only persistent configuration is exported, runtime state is cleared
 	var cbStates []types.CircuitBreakerStateExport
 	for _, pool := range pools {
 		cbState, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 		if err == nil {
-			cbStates = append(cbStates, types.CircuitBreakerStateExport{
+			export := types.CircuitBreakerStateExport{
 				PoolId:         pool.Id,
 				PersistenceKey: cbState.PersistenceKey,
 
-				// Persistent configuration
+				// Persistent configuration - always exported
 				Enabled:   cbState.Enabled,
 				LastPrice: cbState.LastPrice,
+			}
 
-				// Runtime state - exported as zero values
-				PausedUntil:       0, // Reset to zero (no pause on new chain)
-				NotificationsSent: 0, // Reset counter
-				LastNotification:  0, // Reset timestamp
-				TriggeredBy:       "", // Clear transient event data
-				TriggerReason:     "", // Clear transient event data
-			})
+			// Conditionally export runtime state based on parameter
+			if params.UpgradePreserveCircuitBreakerState {
+				// Preserve full pause state across upgrades
+				if !cbState.PausedUntil.IsZero() {
+					export.PausedUntil = cbState.PausedUntil.Unix()
+				}
+				export.NotificationsSent = int32(cbState.NotificationsSent)
+				if !cbState.LastNotification.IsZero() {
+					export.LastNotification = cbState.LastNotification.Unix()
+				}
+				export.TriggeredBy = cbState.TriggeredBy
+				export.TriggerReason = cbState.TriggerReason
+			}
+			// If false, runtime state fields remain at zero values (default)
+
+			cbStates = append(cbStates, export)
 		}
 	}
 
@@ -203,6 +235,9 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, fmt.Errorf("failed to export pool TWAPs: %w", err)
 	}
 
+	// Export swap commits (commit-reveal MEV protection)
+	swapCommits := k.GetAllSwapCommits(ctx)
+
 	return &types.GenesisState{
 		Params:               params,
 		Pools:                pools,
@@ -210,6 +245,7 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		PoolTwapRecords:      twapRecords,
 		CircuitBreakerStates: cbStates,
 		LiquidityPositions:   liqPositions,
+		SwapCommits:          swapCommits,
 	}, nil
 }
 

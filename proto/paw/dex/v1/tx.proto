@@ -24,6 +24,14 @@ service Msg {
 
   // Swap defines a method for swapping tokens using AMM
   rpc Swap(MsgSwap) returns (MsgSwapResponse);
+
+  // CommitSwap defines a method for committing to a swap without revealing details
+  // This is the first phase of the commit-reveal MEV protection scheme
+  rpc CommitSwap(MsgCommitSwap) returns (MsgCommitSwapResponse);
+
+  // RevealSwap defines a method for revealing and executing a committed swap
+  // This is the second phase of the commit-reveal MEV protection scheme
+  rpc RevealSwap(MsgRevealSwap) returns (MsgRevealSwapResponse);
 }
 
 // MsgCreatePool defines the message for creating a new liquidity pool
@@ -108,9 +116,132 @@ message MsgRemoveLiquidityResponse {
 }
 
 // MsgSwap defines the message for swapping tokens
+//
+// MEV RISK WARNING:
+// This message is visible in the public mempool before execution, exposing it to:
+// - Front-running: Validators/bots can execute swaps before yours to move price against you
+// - Sandwich attacks: Attackers can trade before AND after your swap to extract value
+// - Slippage extraction: MEV searchers can manipulate price to your exact slippage limit
+//
+// CURRENT PROTECTIONS (Testnet):
+// - min_amount_out: Enforces minimum acceptable output (slippage protection)
+// - deadline: Transaction expires if not executed by deadline
+// - max_pool_drain_percent: Governance limit on single-swap liquidity extraction
+//
+// RECOMMENDED USER PRACTICES:
+// - Use tight slippage (0.5-1% for liquid pairs, up to 3% for illiquid pairs)
+// - Set short deadlines (30-120 seconds)
+// - Split large orders into smaller swaps across multiple blocks
+// - Monitor mempool congestion before submitting large swaps
+//
+// FUTURE MAINNET PROTECTIONS:
+// - Commit-reveal scheme (MsgCommitSwap/MsgRevealSwap) to hide swap details
+// - Private mempool integration with supporting validators
+// - Batch auction execution for MEV-resistant pricing
+//
+// See docs/security/MEV_RISKS.md for detailed information.
 message MsgSwap {
   option (cosmos.msg.v1.signer) = "trader";
   option (amino.name) = "paw/dex/MsgSwap";
+
+  string trader = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  uint64 pool_id = 2;
+  string token_in = 3;
+  string token_out = 4;
+  string amount_in = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  // min_amount_out enforces slippage protection - swap fails if output is less than this value
+  // This is your PRIMARY defense against MEV - set it carefully based on expected price impact
+  string min_amount_out = 6 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  // deadline is the unix timestamp (in seconds) after which the swap is no longer valid
+  // This protects against transaction delays that could result in unfavorable execution
+  // Recommended: 30-120 seconds from submission time
+  int64 deadline = 7;
+}
+
+// MsgSwapResponse defines the response for MsgSwap
+message MsgSwapResponse {
+  string amount_out = 1 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgCommitSwap defines the message for committing to a swap (MEV protection - phase 1)
+//
+// COMMIT-REVEAL SCHEME:
+// This two-phase mechanism protects against MEV by hiding swap details until after commitment.
+//
+// Phase 1 (MsgCommitSwap): Submit a hash of your swap parameters
+// - Hash must be: keccak256(trader, pool_id, token_in, token_out, amount_in, min_amount_out, deadline, nonce)
+// - Nonce must be random to prevent hash grinding attacks
+// - Commit is valid for commit_timeout_blocks (default: 100 blocks)
+//
+// Phase 2 (MsgRevealSwap): After commit_reveal_delay blocks, reveal actual parameters
+// - All revealed parameters must match the committed hash
+// - If validation passes, swap executes with revealed parameters
+// - If reveal doesn't match or timeout expires, commit is invalidated
+//
+// BENEFITS:
+// - Front-runners cannot see your swap details during commit phase
+// - Sandwich attacks become economically infeasible
+// - Your slippage tolerance remains hidden until reveal
+//
+// TRADEOFFS:
+// - Requires two transactions (higher gas cost)
+// - Minimum delay of commit_reveal_delay blocks (~60 seconds with 6s blocks)
+// - More complex UX compared to instant swaps
+//
+// WHEN TO USE:
+// - Large swaps where MEV risk exceeds additional gas cost
+// - High-value trades in volatile markets
+// - When mempool congestion is high
+//
+// This feature must be enabled via governance (enable_commit_reveal parameter).
+message MsgCommitSwap {
+  option (cosmos.msg.v1.signer) = "trader";
+  option (amino.name) = "paw/dex/MsgCommitSwap";
+
+  string trader = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // swap_hash is keccak256(trader, pool_id, token_in, token_out, amount_in, min_amount_out, deadline, nonce)
+  // All parameters must be in their canonical encoding (addresses as bech32, amounts as decimal strings, etc.)
+  string swap_hash = 2;
+}
+
+// MsgCommitSwapResponse defines the response for MsgCommitSwap
+message MsgCommitSwapResponse {
+  // commit_height is the block height at which the commit was included
+  // Reveal is allowed after commit_height + commit_reveal_delay
+  int64 commit_height = 1;
+  // earliest_reveal_height is the earliest block at which reveal is allowed
+  int64 earliest_reveal_height = 2;
+  // expiry_height is the block height at which the commit expires if not revealed
+  int64 expiry_height = 3;
+}
+
+// MsgRevealSwap defines the message for revealing and executing a committed swap (MEV protection - phase 2)
+//
+// This message reveals the parameters committed in MsgCommitSwap and executes the swap if valid.
+//
+// VALIDATION:
+// - Commit must exist for this trader and hash
+// - Current block height must be >= commit_height + commit_reveal_delay
+// - Current block height must be < commit expiry
+// - Hash of revealed parameters must match committed hash
+// - All standard swap validations apply (deadline, slippage, etc.)
+//
+// If all validations pass, the swap executes with the revealed parameters.
+message MsgRevealSwap {
+  option (cosmos.msg.v1.signer) = "trader";
+  option (amino.name) = "paw/dex/MsgRevealSwap";
 
   string trader = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
   uint64 pool_id = 2;
@@ -126,13 +257,14 @@ message MsgSwap {
     (gogoproto.customtype) = "cosmossdk.io/math.Int",
     (gogoproto.nullable) = false
   ];
-  // deadline is the unix timestamp (in seconds) after which the swap is no longer valid
-  // This protects against transaction delays that could result in unfavorable execution
   int64 deadline = 7;
+  // nonce is the random value used when creating the commit hash
+  // Must match the nonce used in the original commitment
+  string nonce = 8;
 }
 
-// MsgSwapResponse defines the response for MsgSwap
-message MsgSwapResponse {
+// MsgRevealSwapResponse defines the response for MsgRevealSwap
+message MsgRevealSwapResponse {
   string amount_out = 1 [
     (cosmos_proto.scalar) = "cosmos.Int",
     (gogoproto.customtype) = "cosmossdk.io/math.Int",

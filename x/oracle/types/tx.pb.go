@@ -319,6 +319,190 @@ func (m *MsgUpdateParamsResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgUpdateParamsResponse proto.InternalMessageInfo
 
+// MsgEmergencyPauseOracle pauses all oracle price feed operations
+type MsgEmergencyPauseOracle struct {
+	// signer is the address requesting the pause (must be admin or governance authority)
+	Signer string `protobuf:"bytes,1,opt,name=signer,proto3" json:"signer,omitempty"`
+	// reason explains why the pause is being triggered
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (m *MsgEmergencyPauseOracle) Reset()         { *m = MsgEmergencyPauseOracle{} }
+func (m *MsgEmergencyPauseOracle) String() string { return proto.CompactTextString(m) }
+func (*MsgEmergencyPauseOracle) ProtoMessage()    {}
+func (*MsgEmergencyPauseOracle) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f310c0dd2471290b, []int{6}
+}
+func (m *MsgEmergencyPauseOracle) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgEmergencyPauseOracle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgEmergencyPauseOracle.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgEmergencyPauseOracle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgEmergencyPauseOracle.Merge(m, src)
+}
+func (m *MsgEmergencyPauseOracle) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgEmergencyPauseOracle) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgEmergencyPauseOracle.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgEmergencyPauseOracle proto.InternalMessageInfo
+
+func (m *MsgEmergencyPauseOracle) GetSigner() string {
+	if m != nil {
+		return m.Signer
+	}
+	return ""
+}
+
+func (m *MsgEmergencyPauseOracle) GetReason() string {
+	if m != nil {
+		return m.Reason
+	}
+	return ""
+}
+
+// MsgEmergencyPauseOracleResponse defines the response for MsgEmergencyPauseOracle
+type MsgEmergencyPauseOracleResponse struct {
+}
+
+func (m *MsgEmergencyPauseOracleResponse) Reset()         { *m = MsgEmergencyPauseOracleResponse{} }
+func (m *MsgEmergencyPauseOracleResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgEmergencyPauseOracleResponse) ProtoMessage()    {}
+func (*MsgEmergencyPauseOracleResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f310c0dd2471290b, []int{7}
+}
+func (m *MsgEmergencyPauseOracleResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgEmergencyPauseOracleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgEmergencyPauseOracleResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgEmergencyPauseOracleResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgEmergencyPauseOracleResponse.Merge(m, src)
+}
+func (m *MsgEmergencyPauseOracleResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgEmergencyPauseOracleResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgEmergencyPauseOracleResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgEmergencyPauseOracleResponse proto.InternalMessageInfo
+
+// MsgResumeOracle resumes normal oracle operations
+type MsgResumeOracle struct {
+	// authority is the address that controls the module (defaults to x/gov unless overwritten)
+	Authority string `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
+	// reason explains why resuming operations
+	Reason string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+}
+
+func (m *MsgResumeOracle) Reset()         { *m = MsgResumeOracle{} }
+func (m *MsgResumeOracle) String() string { return proto.CompactTextString(m) }
+func (*MsgResumeOracle) ProtoMessage()    {}
+func (*MsgResumeOracle) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f310c0dd2471290b, []int{8}
+}
+func (m *MsgResumeOracle) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgResumeOracle) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgResumeOracle.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgResumeOracle) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgResumeOracle.Merge(m, src)
+}
+func (m *MsgResumeOracle) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgResumeOracle) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgResumeOracle.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgResumeOracle proto.InternalMessageInfo
+
+func (m *MsgResumeOracle) GetAuthority() string {
+	if m != nil {
+		return m.Authority
+	}
+	return ""
+}
+
+func (m *MsgResumeOracle) GetReason() string {
+	if m != nil {
+		return m.Reason
+	}
+	return ""
+}
+
+// MsgResumeOracleResponse defines the response for MsgResumeOracle
+type MsgResumeOracleResponse struct {
+}
+
+func (m *MsgResumeOracleResponse) Reset()         { *m = MsgResumeOracleResponse{} }
+func (m *MsgResumeOracleResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgResumeOracleResponse) ProtoMessage()    {}
+func (*MsgResumeOracleResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f310c0dd2471290b, []int{9}
+}
+func (m *MsgResumeOracleResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgResumeOracleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgResumeOracleResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgResumeOracleResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgResumeOracleResponse.Merge(m, src)
+}
+func (m *MsgResumeOracleResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgResumeOracleResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgResumeOracleResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgResumeOracleResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*MsgSubmitPrice)(nil), "paw.oracle.v1.MsgSubmitPrice")
 	proto.RegisterType((*MsgSubmitPriceResponse)(nil), "paw.oracle.v1.MsgSubmitPriceResponse")
@@ -326,49 +510,60 @@ func init() {
 	proto.RegisterType((*MsgDelegateFeedConsentResponse)(nil), "paw.oracle.v1.MsgDelegateFeedConsentResponse")
 	proto.RegisterType((*MsgUpdateParams)(nil), "paw.oracle.v1.MsgUpdateParams")
 	proto.RegisterType((*MsgUpdateParamsResponse)(nil), "paw.oracle.v1.MsgUpdateParamsResponse")
+	proto.RegisterType((*MsgEmergencyPauseOracle)(nil), "paw.oracle.v1.MsgEmergencyPauseOracle")
+	proto.RegisterType((*MsgEmergencyPauseOracleResponse)(nil), "paw.oracle.v1.MsgEmergencyPauseOracleResponse")
+	proto.RegisterType((*MsgResumeOracle)(nil), "paw.oracle.v1.MsgResumeOracle")
+	proto.RegisterType((*MsgResumeOracleResponse)(nil), "paw.oracle.v1.MsgResumeOracleResponse")
 }
 
 func init() { proto.RegisterFile("paw/oracle/v1/tx.proto", fileDescriptor_f310c0dd2471290b) }
 
 var fileDescriptor_f310c0dd2471290b = []byte{
-	// 580 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x54, 0x4d, 0x6f, 0xd3, 0x40,
-	0x10, 0x8d, 0x53, 0x12, 0x91, 0x2d, 0x1f, 0xc2, 0x84, 0xd6, 0x31, 0xaa, 0xdb, 0x46, 0xe2, 0x43,
-	0x11, 0xb6, 0x49, 0xa9, 0x10, 0xca, 0x05, 0x35, 0x44, 0x70, 0x21, 0x52, 0x95, 0x88, 0x1e, 0xb8,
-	0xa0, 0x8d, 0xbd, 0x6c, 0xac, 0xc6, 0x59, 0xcb, 0xbb, 0x49, 0x9a, 0x1b, 0xe2, 0xc8, 0xa9, 0xbf,
-	0x02, 0x71, 0x8c, 0x50, 0xfe, 0x02, 0x52, 0x8f, 0x55, 0x4e, 0x88, 0x43, 0x85, 0x92, 0x43, 0xfe,
-	0x06, 0xf2, 0x7a, 0xf3, 0xe1, 0xd6, 0x14, 0xa4, 0x5e, 0xac, 0xdd, 0x79, 0xf3, 0xde, 0xcc, 0x9b,
-	0x59, 0x19, 0xac, 0x79, 0xb0, 0x67, 0x12, 0x1f, 0x5a, 0x2d, 0x64, 0x76, 0x8b, 0x26, 0x3b, 0x32,
-	0x3c, 0x9f, 0x30, 0x22, 0xdf, 0xf4, 0x60, 0xcf, 0x08, 0xe3, 0x46, 0xb7, 0xa8, 0xde, 0x81, 0xae,
-	0xd3, 0x26, 0x26, 0xff, 0x86, 0x19, 0xea, 0xba, 0x45, 0xa8, 0x4b, 0xa8, 0xe9, 0x52, 0x1c, 0x30,
-	0x5d, 0x8a, 0x05, 0x90, 0x0b, 0x81, 0x0f, 0xfc, 0x66, 0x86, 0x17, 0x01, 0x65, 0x31, 0xc1, 0x24,
-	0x8c, 0x07, 0x27, 0x11, 0x55, 0xa3, 0x3d, 0x88, 0xaa, 0x1c, 0xcb, 0x1f, 0x27, 0xc1, 0xad, 0x2a,
-	0xc5, 0xf5, 0x4e, 0xc3, 0x75, 0xd8, 0xbe, 0xef, 0x58, 0x48, 0x7e, 0x09, 0x32, 0x5d, 0xd8, 0x72,
-	0x6c, 0xc8, 0x88, 0xaf, 0x48, 0x5b, 0xd2, 0xe3, 0x4c, 0x79, 0x7b, 0x34, 0xd4, 0x37, 0x44, 0xa5,
-	0x83, 0x19, 0xb6, 0x67, 0xdb, 0x3e, 0xa2, 0xb4, 0xce, 0x7c, 0xa7, 0x8d, 0x6b, 0x0b, 0x8e, 0xfc,
-	0x14, 0xa4, 0x3f, 0x22, 0x64, 0x23, 0x5f, 0x49, 0x72, 0xb6, 0x32, 0x1a, 0xea, 0x59, 0xc1, 0x8e,
-	0x92, 0x44, 0x9e, 0x9c, 0x05, 0x29, 0x48, 0x29, 0x62, 0xca, 0x4a, 0x40, 0xa8, 0x85, 0x17, 0xf9,
-	0x0d, 0x48, 0x79, 0x41, 0x47, 0xca, 0x35, 0x2e, 0x53, 0x3c, 0x39, 0xdb, 0x4c, 0xfc, 0x3a, 0xdb,
-	0xbc, 0x1f, 0x4a, 0x51, 0xfb, 0xd0, 0x70, 0x88, 0xe9, 0x42, 0xd6, 0x34, 0xde, 0x22, 0x0c, 0xad,
-	0x7e, 0x05, 0x59, 0xa3, 0xa1, 0x0e, 0x44, 0xa5, 0x0a, 0xb2, 0x6a, 0x21, 0xbf, 0xf4, 0xe4, 0xf3,
-	0x74, 0x50, 0x58, 0x34, 0xf8, 0x65, 0x3a, 0x28, 0xe4, 0x96, 0x66, 0x12, 0xf5, 0x9f, 0x57, 0xc0,
-	0x5a, 0x34, 0x52, 0x43, 0xd4, 0x23, 0x6d, 0x8a, 0xf2, 0x3f, 0x24, 0x0e, 0x55, 0x50, 0x0b, 0x61,
-	0xc8, 0xd0, 0x6b, 0x84, 0xec, 0x57, 0x01, 0xd0, 0x66, 0x57, 0x1f, 0xda, 0x2e, 0xb8, 0x6e, 0x0b,
-	0xdd, 0x7f, 0x8e, 0x6d, 0x9e, 0x59, 0xda, 0xbd, 0xe8, 0x6c, 0x3b, 0xea, 0x2c, 0xa6, 0xd9, 0xfc,
-	0x16, 0xd0, 0xe2, 0x91, 0xb9, 0xd3, 0xef, 0x12, 0xb8, 0x5d, 0xa5, 0xf8, 0x9d, 0x67, 0x43, 0x86,
-	0xf6, 0xa1, 0x0f, 0x5d, 0x2a, 0x3f, 0x07, 0x19, 0xd8, 0x61, 0x4d, 0xe2, 0x3b, 0xac, 0x2f, 0x2c,
-	0xfe, 0xbd, 0xc5, 0x45, 0xaa, 0xfc, 0x02, 0xa4, 0x3d, 0xae, 0xc0, 0x7d, 0xad, 0xee, 0xdc, 0x33,
-	0x22, 0x6f, 0xdf, 0x08, 0xe5, 0xcb, 0x99, 0x60, 0xbd, 0xdf, 0xa6, 0x83, 0x82, 0x54, 0x13, 0xf9,
-	0x25, 0x9d, 0xbb, 0x9b, 0x2b, 0x05, 0xee, 0xd4, 0xa8, 0xbb, 0xe5, 0x06, 0xf3, 0x39, 0xb0, 0x7e,
-	0x2e, 0x34, 0xf3, 0xb3, 0xf3, 0x35, 0x09, 0x56, 0xaa, 0x14, 0xcb, 0x75, 0xb0, 0xba, 0xfc, 0xd4,
-	0x37, 0xce, 0xb5, 0x12, 0xdd, 0xbb, 0xfa, 0xe0, 0x52, 0x78, 0x26, 0x2e, 0x1f, 0x82, 0xbb, 0x71,
-	0x4f, 0x22, 0x86, 0x1d, 0x93, 0xa6, 0xea, 0xff, 0x95, 0x36, 0x2f, 0x76, 0x00, 0x6e, 0x44, 0xb6,
-	0xa2, 0x5d, 0xa4, 0x2f, 0xe3, 0xea, 0xc3, 0xcb, 0xf1, 0x99, 0xae, 0x9a, 0xfa, 0x14, 0x8c, 0xbe,
-	0xbc, 0x77, 0x32, 0xd6, 0xa4, 0xd3, 0xb1, 0x26, 0xfd, 0x1e, 0x6b, 0xd2, 0xf1, 0x44, 0x4b, 0x9c,
-	0x4e, 0xb4, 0xc4, 0xcf, 0x89, 0x96, 0x78, 0xff, 0x08, 0x3b, 0xac, 0xd9, 0x69, 0x18, 0x16, 0x71,
-	0x4d, 0x0f, 0xf6, 0x74, 0xab, 0x09, 0x9d, 0x76, 0x70, 0x32, 0x8f, 0x66, 0x0b, 0x61, 0x7d, 0x0f,
-	0xd1, 0x46, 0x9a, 0xff, 0x59, 0x9e, 0xfd, 0x09, 0x00, 0x00, 0xff, 0xff, 0x24, 0x05, 0x3f, 0x68,
-	0xfb, 0x04, 0x00, 0x00,
+	// 692 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x55, 0xcf, 0x4f, 0xd4, 0x40,
+	0x14, 0xde, 0x82, 0x6c, 0xdc, 0xc1, 0x1f, 0xb1, 0xae, 0xb0, 0xd4, 0x50, 0xa0, 0x89, 0x3f, 0x42,
+	0x6c, 0x2b, 0x48, 0x8c, 0xd9, 0x8b, 0x01, 0x51, 0x2f, 0x12, 0x49, 0x89, 0x1c, 0xbc, 0x98, 0xa1,
+	0x7d, 0xce, 0x36, 0xd0, 0x4e, 0xd3, 0x99, 0x05, 0xf6, 0x66, 0x3c, 0x7a, 0xe2, 0xe6, 0xbf, 0xe0,
+	0x91, 0x18, 0xfe, 0x05, 0x13, 0x8e, 0x84, 0x93, 0xf1, 0x40, 0x0c, 0x1c, 0xb8, 0xf9, 0x37, 0x98,
+	0xb6, 0xb3, 0xa5, 0x85, 0x81, 0x25, 0x7a, 0x21, 0x9d, 0xf7, 0x7d, 0xef, 0xbd, 0xef, 0x9b, 0xf7,
+	0x86, 0x45, 0x43, 0x11, 0xde, 0xb0, 0x69, 0x8c, 0xdd, 0x35, 0xb0, 0xd7, 0xa7, 0x6c, 0xbe, 0x69,
+	0x45, 0x31, 0xe5, 0x54, 0xbd, 0x1e, 0xe1, 0x0d, 0x2b, 0x8b, 0x5b, 0xeb, 0x53, 0xda, 0x2d, 0x1c,
+	0xf8, 0x21, 0xb5, 0xd3, 0xbf, 0x19, 0x43, 0x1b, 0x76, 0x29, 0x0b, 0x28, 0xb3, 0x03, 0x46, 0x92,
+	0xcc, 0x80, 0x11, 0x01, 0x8c, 0x64, 0xc0, 0x87, 0xf4, 0x64, 0x67, 0x07, 0x01, 0xd5, 0x09, 0x25,
+	0x34, 0x8b, 0x27, 0x5f, 0x22, 0xaa, 0x95, 0x35, 0x88, 0xae, 0x29, 0x66, 0x6c, 0xf5, 0xa1, 0x1b,
+	0x0b, 0x8c, 0x2c, 0xb5, 0x57, 0x02, 0x9f, 0x2f, 0xc6, 0xbe, 0x0b, 0xea, 0x73, 0x54, 0x5b, 0xc7,
+	0x6b, 0xbe, 0x87, 0x39, 0x8d, 0x1b, 0xca, 0xb8, 0xf2, 0xb0, 0x36, 0x37, 0xb1, 0xbf, 0x63, 0x8e,
+	0x8a, 0x4e, 0xcb, 0x5d, 0x6c, 0xd6, 0xf3, 0x62, 0x60, 0x6c, 0x89, 0xc7, 0x7e, 0x48, 0x9c, 0x93,
+	0x1c, 0xf5, 0x31, 0xaa, 0x7e, 0x04, 0xf0, 0x20, 0x6e, 0xf4, 0xa5, 0xd9, 0x8d, 0xfd, 0x1d, 0xb3,
+	0x2e, 0xb2, 0xcb, 0x49, 0x82, 0xa7, 0xd6, 0xd1, 0x00, 0x66, 0x0c, 0x78, 0xa3, 0x3f, 0x49, 0x70,
+	0xb2, 0x83, 0xfa, 0x1a, 0x0d, 0x44, 0x89, 0xa2, 0xc6, 0x95, 0xb4, 0xcc, 0xd4, 0xee, 0xc1, 0x58,
+	0xe5, 0xd7, 0xc1, 0xd8, 0xdd, 0xac, 0x14, 0xf3, 0x56, 0x2d, 0x9f, 0xda, 0x01, 0xe6, 0x2d, 0xeb,
+	0x0d, 0x10, 0xec, 0x76, 0xe6, 0xc1, 0xdd, 0xdf, 0x31, 0x91, 0xe8, 0x34, 0x0f, 0xae, 0x93, 0xe5,
+	0x37, 0x1f, 0x7d, 0x3e, 0xde, 0x9e, 0x3c, 0x11, 0xf8, 0xe5, 0x78, 0x7b, 0x72, 0xa4, 0x70, 0x27,
+	0x65, 0xff, 0x46, 0x03, 0x0d, 0x95, 0x23, 0x0e, 0xb0, 0x88, 0x86, 0x0c, 0x8c, 0x1f, 0x4a, 0x0a,
+	0xcd, 0xc3, 0x1a, 0x10, 0xcc, 0xe1, 0x15, 0x80, 0xf7, 0x22, 0x01, 0x42, 0xfe, 0xff, 0x97, 0x36,
+	0x83, 0xae, 0x7a, 0xa2, 0x6e, 0xcf, 0x6b, 0xcb, 0x99, 0xcd, 0x99, 0xb3, 0xce, 0x26, 0xca, 0xce,
+	0x24, 0x62, 0x8d, 0x71, 0xa4, 0xcb, 0x91, 0xdc, 0xe9, 0x77, 0x05, 0xdd, 0x5c, 0x60, 0xe4, 0x5d,
+	0xe4, 0x61, 0x0e, 0x8b, 0x38, 0xc6, 0x01, 0x53, 0x9f, 0xa2, 0x1a, 0x6e, 0xf3, 0x16, 0x8d, 0x7d,
+	0xde, 0x11, 0x16, 0xcf, 0x97, 0x78, 0x42, 0x55, 0x9f, 0xa1, 0x6a, 0x94, 0x56, 0x48, 0x7d, 0x0d,
+	0x4e, 0xdf, 0xb1, 0x4a, 0xbb, 0x6f, 0x65, 0xe5, 0xe7, 0x6a, 0xc9, 0x78, 0xbf, 0x1d, 0x6f, 0x4f,
+	0x2a, 0x8e, 0xe0, 0x37, 0xcd, 0xd4, 0x5d, 0x5e, 0x29, 0x71, 0xa7, 0x95, 0xdd, 0x15, 0x05, 0x1a,
+	0x23, 0x68, 0xf8, 0x54, 0x28, 0xf7, 0xf3, 0x55, 0x49, 0xb1, 0x97, 0x01, 0xc4, 0x04, 0x42, 0xb7,
+	0xb3, 0x88, 0xdb, 0x0c, 0xde, 0xa6, 0x65, 0x92, 0x75, 0x65, 0x3e, 0x09, 0x21, 0xee, 0x69, 0x4a,
+	0xf0, 0xd4, 0x21, 0x54, 0x8d, 0x01, 0x33, 0x1a, 0x66, 0x93, 0x72, 0xc4, 0xa9, 0x39, 0x9d, 0xe8,
+	0x15, 0xa4, 0x44, 0xac, 0x51, 0x16, 0x2b, 0xeb, 0x6e, 0x4c, 0xa0, 0xb1, 0x73, 0xa0, 0x5c, 0xfc,
+	0x56, 0x36, 0x0c, 0x07, 0x58, 0x3b, 0xe8, 0x8a, 0xfe, 0xd7, 0x61, 0x9c, 0x27, 0xbd, 0xf7, 0x55,
+	0x17, 0xdb, 0x8b, 0xab, 0x2e, 0x86, 0xba, 0x6a, 0xa7, 0xff, 0xf4, 0xa3, 0xfe, 0x05, 0x46, 0xd4,
+	0x25, 0x34, 0x58, 0xfc, 0xaf, 0x32, 0x7a, 0x6a, 0xea, 0xe5, 0x27, 0xa6, 0xdd, 0xbb, 0x10, 0xee,
+	0x16, 0x57, 0x57, 0xd1, 0x6d, 0xd9, 0xeb, 0x93, 0x64, 0x4b, 0x68, 0x9a, 0x79, 0x29, 0x5a, 0xde,
+	0x6c, 0x19, 0x5d, 0x2b, 0x3d, 0x00, 0xfd, 0x6c, 0x7a, 0x11, 0xd7, 0xee, 0x5f, 0x8c, 0xe7, 0x75,
+	0x43, 0x54, 0x97, 0x2e, 0xa2, 0x24, 0x5f, 0xc6, 0xd3, 0xac, 0xcb, 0xf1, 0x8a, 0x3e, 0x4a, 0xbb,
+	0x23, 0xf1, 0x51, 0xc4, 0x65, 0x3e, 0x64, 0x93, 0xd6, 0x06, 0x3e, 0x25, 0xaf, 0x75, 0x6e, 0x76,
+	0xf7, 0x50, 0x57, 0xf6, 0x0e, 0x75, 0xe5, 0xf7, 0xa1, 0xae, 0x6c, 0x1d, 0xe9, 0x95, 0xbd, 0x23,
+	0xbd, 0xf2, 0xf3, 0x48, 0xaf, 0xbc, 0x7f, 0x40, 0x7c, 0xde, 0x6a, 0xaf, 0x58, 0x2e, 0x0d, 0xec,
+	0x08, 0x6f, 0x98, 0x6e, 0x0b, 0xfb, 0x61, 0xf2, 0x65, 0x6f, 0x76, 0x17, 0x8b, 0x77, 0x22, 0x60,
+	0x2b, 0xd5, 0xf4, 0xc7, 0xe8, 0xc9, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x30, 0xb6, 0x51, 0x21,
+	0x2e, 0x07, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -389,6 +584,10 @@ type MsgClient interface {
 	DelegateFeedConsent(ctx context.Context, in *MsgDelegateFeedConsent, opts ...grpc.CallOption) (*MsgDelegateFeedConsentResponse, error)
 	// UpdateParams updates the module parameters (governance only)
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
+	// EmergencyPauseOracle pauses all oracle operations (admin or governance)
+	EmergencyPauseOracle(ctx context.Context, in *MsgEmergencyPauseOracle, opts ...grpc.CallOption) (*MsgEmergencyPauseOracleResponse, error)
+	// ResumeOracle resumes normal oracle operations (governance only)
+	ResumeOracle(ctx context.Context, in *MsgResumeOracle, opts ...grpc.CallOption) (*MsgResumeOracleResponse, error)
 }
 
 type msgClient struct {
@@ -426,6 +625,24 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 	return out, nil
 }
 
+func (c *msgClient) EmergencyPauseOracle(ctx context.Context, in *MsgEmergencyPauseOracle, opts ...grpc.CallOption) (*MsgEmergencyPauseOracleResponse, error) {
+	out := new(MsgEmergencyPauseOracleResponse)
+	err := c.cc.Invoke(ctx, "/paw.oracle.v1.Msg/EmergencyPauseOracle", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *msgClient) ResumeOracle(ctx context.Context, in *MsgResumeOracle, opts ...grpc.CallOption) (*MsgResumeOracleResponse, error) {
+	out := new(MsgResumeOracleResponse)
+	err := c.cc.Invoke(ctx, "/paw.oracle.v1.Msg/ResumeOracle", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	// SubmitPrice submits a price feed update
@@ -434,6 +651,10 @@ type MsgServer interface {
 	DelegateFeedConsent(context.Context, *MsgDelegateFeedConsent) (*MsgDelegateFeedConsentResponse, error)
 	// UpdateParams updates the module parameters (governance only)
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
+	// EmergencyPauseOracle pauses all oracle operations (admin or governance)
+	EmergencyPauseOracle(context.Context, *MsgEmergencyPauseOracle) (*MsgEmergencyPauseOracleResponse, error)
+	// ResumeOracle resumes normal oracle operations (governance only)
+	ResumeOracle(context.Context, *MsgResumeOracle) (*MsgResumeOracleResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -448,6 +669,12 @@ func (*UnimplementedMsgServer) DelegateFeedConsent(ctx context.Context, req *Msg
 }
 func (*UnimplementedMsgServer) UpdateParams(ctx context.Context, req *MsgUpdateParams) (*MsgUpdateParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateParams not implemented")
+}
+func (*UnimplementedMsgServer) EmergencyPauseOracle(ctx context.Context, req *MsgEmergencyPauseOracle) (*MsgEmergencyPauseOracleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EmergencyPauseOracle not implemented")
+}
+func (*UnimplementedMsgServer) ResumeOracle(ctx context.Context, req *MsgResumeOracle) (*MsgResumeOracleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResumeOracle not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -508,6 +735,42 @@ func _Msg_UpdateParams_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_EmergencyPauseOracle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgEmergencyPauseOracle)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).EmergencyPauseOracle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/paw.oracle.v1.Msg/EmergencyPauseOracle",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).EmergencyPauseOracle(ctx, req.(*MsgEmergencyPauseOracle))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Msg_ResumeOracle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgResumeOracle)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).ResumeOracle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/paw.oracle.v1.Msg/ResumeOracle",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).ResumeOracle(ctx, req.(*MsgResumeOracle))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var Msg_serviceDesc = _Msg_serviceDesc
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "paw.oracle.v1.Msg",
@@ -524,6 +787,14 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateParams",
 			Handler:    _Msg_UpdateParams_Handler,
+		},
+		{
+			MethodName: "EmergencyPauseOracle",
+			Handler:    _Msg_EmergencyPauseOracle_Handler,
+		},
+		{
+			MethodName: "ResumeOracle",
+			Handler:    _Msg_ResumeOracle_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -730,6 +1001,126 @@ func (m *MsgUpdateParamsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *MsgEmergencyPauseOracle) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgEmergencyPauseOracle) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgEmergencyPauseOracle) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Reason) > 0 {
+		i -= len(m.Reason)
+		copy(dAtA[i:], m.Reason)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Reason)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Signer) > 0 {
+		i -= len(m.Signer)
+		copy(dAtA[i:], m.Signer)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Signer)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgEmergencyPauseOracleResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgEmergencyPauseOracleResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgEmergencyPauseOracleResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgResumeOracle) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgResumeOracle) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgResumeOracle) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Reason) > 0 {
+		i -= len(m.Reason)
+		copy(dAtA[i:], m.Reason)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Reason)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Authority) > 0 {
+		i -= len(m.Authority)
+		copy(dAtA[i:], m.Authority)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Authority)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgResumeOracleResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgResumeOracleResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgResumeOracleResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	offset -= sovTx(v)
 	base := offset
@@ -815,6 +1206,58 @@ func (m *MsgUpdateParams) Size() (n int) {
 }
 
 func (m *MsgUpdateParamsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgEmergencyPauseOracle) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Signer)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.Reason)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+
+func (m *MsgEmergencyPauseOracleResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgResumeOracle) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Authority)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.Reason)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+
+func (m *MsgResumeOracleResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1365,6 +1808,334 @@ func (m *MsgUpdateParamsResponse) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: MsgUpdateParamsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgEmergencyPauseOracle) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgEmergencyPauseOracle: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgEmergencyPauseOracle: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signer", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signer = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Reason = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgEmergencyPauseOracleResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgEmergencyPauseOracleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgEmergencyPauseOracleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgResumeOracle) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgResumeOracle: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgResumeOracle: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Authority", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Authority = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Reason = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgResumeOracleResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgResumeOracleResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgResumeOracleResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

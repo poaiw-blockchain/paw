@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -88,6 +89,31 @@ func (k Keeper) ValidateGeoIPAvailability() error {
 	return nil
 }
 
+// UpdateGeoIPCacheConfig updates the GeoIP cache configuration from params
+func (k Keeper) UpdateGeoIPCacheConfig(ctx context.Context) error {
+	if k.geoIPManager == nil {
+		return nil // No GeoIP manager, nothing to configure
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Update cache TTL if configured
+	if params.GeoipCacheTtlSeconds > 0 {
+		ttl := time.Duration(params.GeoipCacheTtlSeconds) * time.Second
+		k.geoIPManager.SetCacheTTL(ttl)
+	}
+
+	// Update cache max entries if configured
+	if params.GeoipCacheMaxEntries > 0 {
+		k.geoIPManager.SetCacheMaxEntries(int(params.GeoipCacheMaxEntries))
+	}
+
+	return nil
+}
+
 // getStore returns the KVStore for the oracle module
 func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -97,6 +123,11 @@ func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
 // GetStoreKey returns the store key for testing purposes
 func (k Keeper) GetStoreKey() storetypes.StoreKey {
 	return k.storeKey
+}
+
+// GetAuthority returns the authority address for governance
+func (k Keeper) GetAuthority() string {
+	return k.authority
 }
 
 // ClaimCapability claims a channel capability for the oracle module.

@@ -7,15 +7,19 @@ import (
 
 // Message type URLs
 const (
-	TypeMsgSubmitPrice         = "submit_price"
-	TypeMsgDelegateFeedConsent = "delegate_feed_consent"
-	TypeMsgUpdateParams        = "update_params"
+	TypeMsgSubmitPrice           = "submit_price"
+	TypeMsgDelegateFeedConsent   = "delegate_feed_consent"
+	TypeMsgUpdateParams          = "update_params"
+	TypeMsgEmergencyPauseOracle  = "emergency_pause_oracle"
+	TypeMsgResumeOracle          = "resume_oracle"
 )
 
 var (
 	_ sdk.Msg = &MsgSubmitPrice{}
 	_ sdk.Msg = &MsgDelegateFeedConsent{}
 	_ sdk.Msg = &MsgUpdateParams{}
+	_ sdk.Msg = &MsgEmergencyPauseOracle{}
+	_ sdk.Msg = &MsgResumeOracle{}
 )
 
 // NewMsgSubmitPrice creates a new MsgSubmitPrice instance
@@ -171,6 +175,100 @@ func (msg *MsgUpdateParams) ValidateBasic() error {
 
 	if msg.Params.SlashFraction.IsNil() || msg.Params.SlashFraction.LT(math.LegacyZeroDec()) || msg.Params.SlashFraction.GT(math.LegacyOneDec()) {
 		return ErrInvalidSlashFraction.Wrap("slash fraction must be between 0 and 1")
+	}
+
+	return nil
+}
+
+// NewMsgEmergencyPauseOracle creates a new MsgEmergencyPauseOracle instance
+func NewMsgEmergencyPauseOracle(signer string, reason string) *MsgEmergencyPauseOracle {
+	return &MsgEmergencyPauseOracle{
+		Signer: signer,
+		Reason: reason,
+	}
+}
+
+// Route implements sdk.Msg
+func (msg *MsgEmergencyPauseOracle) Route() string {
+	return RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg *MsgEmergencyPauseOracle) Type() string {
+	return TypeMsgEmergencyPauseOracle
+}
+
+// GetSigners implements sdk.Msg
+func (msg *MsgEmergencyPauseOracle) GetSigners() []sdk.AccAddress {
+	signer, _ := sdk.AccAddressFromBech32(msg.Signer)
+	return []sdk.AccAddress{signer}
+}
+
+// GetSignBytes implements sdk.Msg
+func (msg *MsgEmergencyPauseOracle) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// ValidateBasic implements sdk.Msg
+func (msg *MsgEmergencyPauseOracle) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Signer); err != nil {
+		return ErrUnauthorizedPause.Wrapf("invalid signer address: %s", err)
+	}
+
+	if msg.Reason == "" {
+		return ErrUnauthorizedPause.Wrap("pause reason cannot be empty")
+	}
+
+	if len(msg.Reason) > 512 {
+		return ErrUnauthorizedPause.Wrap("pause reason too long (max 512 chars)")
+	}
+
+	return nil
+}
+
+// NewMsgResumeOracle creates a new MsgResumeOracle instance
+func NewMsgResumeOracle(authority string, reason string) *MsgResumeOracle {
+	return &MsgResumeOracle{
+		Authority: authority,
+		Reason:    reason,
+	}
+}
+
+// Route implements sdk.Msg
+func (msg *MsgResumeOracle) Route() string {
+	return RouterKey
+}
+
+// Type implements sdk.Msg
+func (msg *MsgResumeOracle) Type() string {
+	return TypeMsgResumeOracle
+}
+
+// GetSigners implements sdk.Msg
+func (msg *MsgResumeOracle) GetSigners() []sdk.AccAddress {
+	authority, _ := sdk.AccAddressFromBech32(msg.Authority)
+	return []sdk.AccAddress{authority}
+}
+
+// GetSignBytes implements sdk.Msg
+func (msg *MsgResumeOracle) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// ValidateBasic implements sdk.Msg
+func (msg *MsgResumeOracle) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
+		return ErrUnauthorizedResume.Wrapf("invalid authority address: %s", err)
+	}
+
+	if msg.Reason == "" {
+		return ErrUnauthorizedResume.Wrap("resume reason cannot be empty")
+	}
+
+	if len(msg.Reason) > 512 {
+		return ErrUnauthorizedResume.Wrap("resume reason too long (max 512 chars)")
 	}
 
 	return nil

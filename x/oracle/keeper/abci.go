@@ -27,6 +27,39 @@ func (k Keeper) BeginBlocker(ctx context.Context) error {
 		// Don't return error - log and continue
 	}
 
+	// Check geographic diversity periodically (P2-SEC-2 mitigation)
+	params, err := k.GetParams(ctx)
+	if err == nil && params.DiversityCheckInterval > 0 {
+		// Check diversity every N blocks
+		if sdkCtx.BlockHeight()%int64(params.DiversityCheckInterval) == 0 {
+			if err := k.MonitorGeographicDiversity(ctx); err != nil {
+				sdkCtx.Logger().Error("geographic diversity monitoring failed", "error", err)
+				// Don't return error - log and continue
+			}
+		}
+	}
+
+	// Prune expired GeoIP cache entries periodically (P2-PERF-1 mitigation)
+	// Prune every 100 blocks (~10 minutes) to prevent unbounded cache growth
+	if err == nil && sdkCtx.BlockHeight()%100 == 0 {
+		if k.geoIPManager != nil {
+			pruned := k.geoIPManager.PruneCacheExpired()
+			if pruned > 0 {
+				sdkCtx.Logger().Debug("pruned expired GeoIP cache entries",
+					"pruned", pruned,
+					"height", sdkCtx.BlockHeight(),
+				)
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"geoip_cache_pruned",
+						sdk.NewAttribute("count", fmt.Sprintf("%d", pruned)),
+						sdk.NewAttribute("height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+					),
+				)
+			}
+		}
+	}
+
 	// Emit begin block event for monitoring
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

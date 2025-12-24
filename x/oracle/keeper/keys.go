@@ -7,39 +7,47 @@ import (
 )
 
 var (
+	// ModuleNamespace is the namespace byte for the Oracle module (0x03)
+	// All store keys are prefixed with this byte to prevent collisions with other modules
+	ModuleNamespace = byte(0x03)
+
 	// ParamsKey is the key for module parameters
-	ParamsKey = []byte{0x01}
+	ParamsKey = []byte{0x03, 0x01}
 
 	// PriceKeyPrefix is the prefix for price storage
-	PriceKeyPrefix = []byte{0x02}
+	PriceKeyPrefix = []byte{0x03, 0x02}
 
 	// ValidatorPriceKeyPrefix is the prefix for validator price submissions
-	ValidatorPriceKeyPrefix = []byte{0x03}
+	ValidatorPriceKeyPrefix = []byte{0x03, 0x03}
 
 	// ValidatorOracleKeyPrefix is the prefix for validator oracle info
-	ValidatorOracleKeyPrefix = []byte{0x04}
+	ValidatorOracleKeyPrefix = []byte{0x03, 0x04}
 
 	// PriceSnapshotKeyPrefix is the prefix for price snapshots
-	PriceSnapshotKeyPrefix = []byte{0x05}
+	PriceSnapshotKeyPrefix = []byte{0x03, 0x05}
 
 	// FeederDelegationKeyPrefix is the prefix for feeder delegations
-	FeederDelegationKeyPrefix = []byte{0x06}
+	FeederDelegationKeyPrefix = []byte{0x03, 0x06}
 
 	// SubmissionByHeightPrefix is the prefix for indexing submissions by block height for cleanup
-	SubmissionByHeightPrefix = []byte{0x07}
+	SubmissionByHeightPrefix = []byte{0x03, 0x07}
 
 	// ValidatorAccuracyKeyPrefix is the prefix for validator accuracy statistics
-	ValidatorAccuracyKeyPrefix = []byte{0x08}
+	ValidatorAccuracyKeyPrefix = []byte{0x03, 0x08}
 
 	// AccuracyBonusPoolKey is the key for the accuracy bonus pool
-	AccuracyBonusPoolKey = []byte{0x09}
+	AccuracyBonusPoolKey = []byte{0x03, 0x09}
 
 	// GeographicInfoKeyPrefix is the prefix for validator geographic information
-	GeographicInfoKeyPrefix = []byte{0x0A}
+	GeographicInfoKeyPrefix = []byte{0x03, 0x0A}
 
 	// OutlierHistoryKeyPrefix is the prefix for outlier history storage
 	// Tracks validator outlier submissions for reputation and slashing
-	OutlierHistoryKeyPrefix = []byte{0x0C}
+	OutlierHistoryKeyPrefix = []byte{0x03, 0x0C}
+
+	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
+	// Now properly namespaced under Oracle module
+	IBCPacketNonceKeyPrefix = []byte{0x03, 0x0D}
 )
 
 // GetPriceKey returns the store key for a price by asset
@@ -108,4 +116,10 @@ func GetValidatorAccuracyKey(validatorAddr sdk.ValAddress) []byte {
 // GetGeographicInfoKey returns the store key for validator geographic information
 func GetGeographicInfoKey(validatorAddr sdk.ValAddress) []byte {
 	return append(GeographicInfoKeyPrefix, []byte(validatorAddr.String())...)
+}
+
+// IBCPacketNonceKey returns the store key for IBC packet nonce tracking
+// Used for replay attack prevention by tracking nonce per channel/sender pair
+func IBCPacketNonceKey(channelID, sender string) []byte {
+	return append(append(IBCPacketNonceKeyPrefix, []byte(channelID+"/")...), []byte(sender)...)
 }

@@ -6,35 +6,38 @@ import (
 )
 
 var (
+	// ModuleNamespace is the namespace byte for the Compute module (0x01)
+	ModuleNamespace = byte(0x01)
+
 	// ParamsKey is the key for module parameters
-	ParamsKey = []byte{0x01}
+	ParamsKey = []byte{0x01, 0x01}
 
 	// ComputeRequestKeyPrefix is the prefix for compute request store keys
-	ComputeRequestKeyPrefix = []byte{0x02}
+	ComputeRequestKeyPrefix = []byte{0x01, 0x02}
 
 	// ProviderKeyPrefix is the prefix for provider store keys
-	ProviderKeyPrefix = []byte{0x03}
+	ProviderKeyPrefix = []byte{0x01, 0x03}
 
 	// EscrowKeyPrefix is the prefix for escrow store keys
-	EscrowKeyPrefix = []byte{0x04}
+	EscrowKeyPrefix = []byte{0x01, 0x04}
 
 	// JobStatusKeyPrefix is the prefix for job status store keys
-	JobStatusKeyPrefix = []byte{0x05}
+	JobStatusKeyPrefix = []byte{0x01, 0x05}
 
 	// NonceTrackerKeyPrefix is the prefix for nonce tracker store keys
-	NonceTrackerKeyPrefix = []byte{0x06}
+	NonceTrackerKeyPrefix = []byte{0x01, 0x06}
 
 	// NonceKeyPrefix is an alias for NonceTrackerKeyPrefix
-	NonceKeyPrefix = []byte{0x06}
+	NonceKeyPrefix = []byte{0x01, 0x06}
 
 	// RequestKeyPrefix is an alias for ComputeRequestKeyPrefix
-	RequestKeyPrefix = []byte{0x02}
+	RequestKeyPrefix = []byte{0x01, 0x02}
 
 	// ResultKeyPrefix is the prefix for compute result store keys
-	ResultKeyPrefix = []byte{0x07}
+	ResultKeyPrefix = []byte{0x01, 0x07}
 
 	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
-	IBCPacketNonceKeyPrefix = []byte{0x0D}
+	IBCPacketNonceKeyPrefix = []byte{0x01, 0x28}
 )
 
 // DefaultAuthority returns the governance module address, which is the only

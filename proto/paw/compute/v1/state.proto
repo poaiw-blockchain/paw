@@ -306,6 +306,21 @@ message Params {
   // This prevents accepting invalid or tampered ZK circuit parameters
   // Key: circuit_id, Value: SHA256 hash of canonical circuit parameters
   map<string, bytes> circuit_param_hashes = 10;
+
+  // provider_cache_size is the number of top providers to cache by reputation
+  // Caching reduces provider selection from O(n) to O(1) for typical requests
+  // Default: 10 providers
+  uint32 provider_cache_size = 11;
+
+  // provider_cache_refresh_interval is the number of blocks between cache refreshes
+  // Larger intervals reduce computational cost but may use stale rankings
+  // Default: 100 blocks (~8 minutes at 5s block time)
+  int64 provider_cache_refresh_interval = 12;
+
+  // use_provider_cache enables/disables the provider reputation cache
+  // When disabled, provider selection uses full iteration (higher gas cost)
+  // Default: true
+  bool use_provider_cache = 13;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets
@@ -657,6 +672,20 @@ message ProviderReputation {
 
   // performance_history is a rolling history of performance records
   repeated PerformanceRecord performance_history = 14 [(gogoproto.nullable) = false];
+}
+
+// CachedProvider represents a cached provider entry in the reputation cache.
+// This is used to optimize provider selection by maintaining a sorted list
+// of top providers by reputation, avoiding O(n) iteration on every request.
+message CachedProvider {
+  // provider is the bech32 address of the provider
+  string provider = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // reputation is the cached reputation score (0-100)
+  uint32 reputation = 2;
+
+  // cached_at_block is the block height when this entry was cached
+  int64 cached_at_block = 3;
 }
 
 // ProviderLoadTracker tracks active resource usage for a provider.

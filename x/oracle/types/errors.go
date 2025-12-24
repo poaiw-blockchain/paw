@@ -70,6 +70,13 @@ var (
 	// Circuit breaker errors
 	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 53, "circuit breaker already open")
 	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 54, "circuit breaker already closed")
+
+	// Emergency pause errors
+	ErrOraclePaused            = sdkerrors.Register(ModuleName, 55, "oracle is currently paused")
+	ErrOracleNotPaused         = sdkerrors.Register(ModuleName, 56, "oracle is not currently paused")
+	ErrUnauthorizedPause       = sdkerrors.Register(ModuleName, 57, "unauthorized to trigger emergency pause")
+	ErrUnauthorizedResume      = sdkerrors.Register(ModuleName, 58, "unauthorized to resume oracle")
+	ErrInvalidEmergencyAdmin   = sdkerrors.Register(ModuleName, 59, "invalid emergency admin address")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions
@@ -131,6 +138,12 @@ var RecoverySuggestions = map[error]string{
 	ErrInsufficientGeoDiversity:  "SECURITY: Insufficient geographic diversity among validators. Need minimum 3 distinct regions. This is critical for decentralization and resilience.",
 	ErrGeoIPDatabaseUnavailable:  "GeoIP database not available for location verification. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable.",
 	ErrTooManyValidatorsFromSameIP: "SECURITY: Too many validators sharing same IP address (max 2). This indicates centralization risk or Sybil attack. Ensure validators are independently operated.",
+
+	ErrOraclePaused:          "Oracle module is currently paused due to emergency. Price submissions are rejected. Existing prices can still be read but may be stale. Wait for governance to resume operations or check pause reason.",
+	ErrOracleNotPaused:       "Oracle is not currently paused. Cannot resume operations that are already running. Check oracle status before retrying.",
+	ErrUnauthorizedPause:     "SECURITY: Only the emergency admin or governance authority can trigger emergency pause. Contact the oracle administrator or submit a governance proposal.",
+	ErrUnauthorizedResume:    "SECURITY: Only governance authority can resume oracle operations after emergency pause. This prevents abuse of pause mechanism. Submit a governance proposal to resume.",
+	ErrInvalidEmergencyAdmin: "Emergency admin address format is invalid. Provide a valid bech32 address or empty string to disable admin capability. Update via governance proposal.",
 }
 
 // WrapWithRecovery wraps an error with recovery suggestion
