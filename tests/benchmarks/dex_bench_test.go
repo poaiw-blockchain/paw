@@ -415,3 +415,89 @@ func BenchmarkLargePoolOperations(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkMultiHopSwapBatched benchmarks the batched ExecuteMultiHopSwap function
+func BenchmarkMultiHopSwapBatched(b *testing.B) {
+	k, ctx := keepertest.DexKeeper(b)
+	trader := types.TestAddr()
+
+	// Create three pools for multi-hop
+	pool1 := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(10000000000))
+	pool2 := keepertest.CreateTestPool(b, k, ctx, "uatom", "uosmo", math.NewInt(10000000000), math.NewInt(10000000000))
+	pool3 := keepertest.CreateTestPool(b, k, ctx, "uosmo", "uusdc", math.NewInt(10000000000), math.NewInt(10000000000))
+
+	hops := []keepertest.SwapHop{
+		{PoolID: pool1, TokenIn: "upaw", TokenOut: "uatom"},
+		{PoolID: pool2, TokenIn: "uatom", TokenOut: "uosmo"},
+		{PoolID: pool3, TokenIn: "uosmo", TokenOut: "uusdc"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := k.ExecuteMultiHopSwap(ctx, trader, hops, math.NewInt(100000), math.NewInt(1))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkSimulateMultiHopSwap benchmarks simulation without state changes
+func BenchmarkSimulateMultiHopSwap(b *testing.B) {
+	k, ctx := keepertest.DexKeeper(b)
+
+	pool1 := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(10000000000))
+	pool2 := keepertest.CreateTestPool(b, k, ctx, "uatom", "uosmo", math.NewInt(10000000000), math.NewInt(10000000000))
+
+	hops := []keepertest.SwapHop{
+		{PoolID: pool1, TokenIn: "upaw", TokenOut: "uatom"},
+		{PoolID: pool2, TokenIn: "uatom", TokenOut: "uosmo"},
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := k.SimulateMultiHopSwap(ctx, hops, math.NewInt(100000))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkCommitRevealFlow benchmarks the commit-reveal swap mechanism
+func BenchmarkCommitRevealFlow(b *testing.B) {
+	k, ctx := keepertest.DexKeeper(b)
+	trader := types.TestAddr()
+
+	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(20000000000))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Commit phase
+		commitment, err := k.CreateSwapCommitment(ctx, trader, poolID, "upaw", "uatom", math.NewInt(1000000), math.NewInt(900000))
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		// Reveal phase (typically after N blocks)
+		_, err = k.RevealAndExecuteSwap(ctx, commitment.CommitHash, math.NewInt(1000000), math.NewInt(900000), []byte("secret"))
+		if err != nil {
+			// Expected to fail without proper block advancement, just measure commit
+			_ = err
+		}
+	}
+}
+
+// BenchmarkCircuitBreakerCheck benchmarks circuit breaker state lookup
+func BenchmarkCircuitBreakerCheck(b *testing.B) {
+	k, ctx := keepertest.DexKeeper(b)
+
+	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(20000000000))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := k.GetPoolCircuitBreakerState(ctx, poolID)
+		if err != nil {
+			// May not exist, that's OK for benchmark
+			_ = err
+		}
+	}
+}

@@ -624,7 +624,7 @@ func (k Keeper) sendComputeIBCPacket(
 		return 0, errors.Wrap(types.ErrInvalidRequest, "ibc keeper not configured for compute module")
 	}
 
-	timeoutTimestamp := saturateInt64ToUint64(ctx.BlockTime().Add(timeout).UnixNano())
+	timeoutTimestamp := types.SaturateInt64ToUint64(ctx.BlockTime().Add(timeout).UnixNano())
 	sourcePort := types.PortID
 
 	channelCap, found := k.GetChannelCapability(ctx, sourcePort, channelID)
@@ -847,7 +847,7 @@ func (k Keeper) buildMerkleProofPath(ctx sdk.Context, key []byte) [][]byte {
 
 	// Include the block height hash
 	heightBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBytes, saturateInt64ToUint64(ctx.BlockHeight()))
+	binary.BigEndian.PutUint64(heightBytes, types.SaturateInt64ToUint64(ctx.BlockHeight()))
 	heightHash := sha256.Sum256(heightBytes)
 	proofPath = append(proofPath, heightHash[:])
 
@@ -960,11 +960,6 @@ func (k Keeper) verifyIBCZKProof(ctx sdk.Context, proof []byte, publicInputs []b
 	)
 
 	return nil
-}
-
-// VerifyIBCZKProofForTest exposes the internal verifier for testing.
-func (k Keeper) VerifyIBCZKProofForTest(ctx sdk.Context, proof []byte, publicInputs []byte) error {
-	return k.verifyIBCZKProof(ctx, proof, publicInputs)
 }
 
 // Groth16ProofBN254 represents a Groth16 proof on the BN254 curve
@@ -1203,11 +1198,6 @@ func (k Keeper) verifyAttestations(ctx sdk.Context, attestations [][]byte, publi
 	return nil
 }
 
-// VerifyAttestationsForTest exposes verification helper for regression tests.
-func (k Keeper) VerifyAttestationsForTest(ctx sdk.Context, attestations [][]byte, publicKeys [][]byte, message []byte) error {
-	return k.verifyAttestations(ctx, attestations, publicKeys, message)
-}
-
 // getValidatorPublicKeys retrieves validator public keys for a chain
 // In production, this would query IBC client state or validator set
 func (k Keeper) getValidatorPublicKeys(ctx sdk.Context, chainID string) ([][]byte, error) {
@@ -1229,11 +1219,6 @@ func (k Keeper) getValidatorPublicKeys(ctx sdk.Context, chainID string) ([][]byt
 	}
 
 	return nil, errors.Wrapf(types.ErrVerificationFailed, "no validator public keys available for chain %s", chainID)
-}
-
-// GetValidatorPublicKeysForTest exposes validator key retrieval for tests.
-func (k Keeper) GetValidatorPublicKeysForTest(ctx sdk.Context, chainID string) ([][]byte, error) {
-	return k.getValidatorPublicKeys(ctx, chainID)
 }
 
 func (k Keeper) storePendingDiscovery(ctx sdk.Context, channelID string, sequence uint64, chainID string) {

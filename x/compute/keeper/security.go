@@ -372,12 +372,12 @@ func (k Keeper) GenerateSecureRandomness(ctx context.Context, seed []byte) *big.
 
 	// Block height
 	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, saturateInt64ToUint64(sdkCtx.BlockHeight()))
+	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(sdkCtx.BlockHeight()))
 	hasher.Write(heightBz)
 
 	// Block time
 	timeBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timeBz, saturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
+	binary.BigEndian.PutUint64(timeBz, types.SaturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
 	hasher.Write(timeBz)
 
 	// Additional seed

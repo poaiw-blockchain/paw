@@ -117,7 +117,3 @@ func (k Keeper) refundJobOnChannelClose(ctx sdk.Context, jobID string) error {
 	return nil
 }
 
-// TrackPendingOperationForTest exposes trackPendingOperation for white-box tests.
-func TrackPendingOperationForTest(k *Keeper, ctx sdk.Context, op ChannelOperation) {
-	k.trackPendingOperation(ctx, op)
-}

@@ -435,7 +435,7 @@ func NewPAWApp(
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
 
 	// Wire Compute IBC Module
-	computeIBCModule := computemodule.NewIBCModule(*app.ComputeKeeper, appCodec)
+	computeIBCModule := computemodule.NewIBCModule(app.ComputeKeeper, appCodec)
 	ibcRouter.AddRoute(computetypes.PortID, computeIBCModule)
 
 	// Wire DEX IBC Module

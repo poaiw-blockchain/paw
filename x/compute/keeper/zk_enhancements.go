@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -50,10 +51,7 @@ func (k Keeper) VerifyZKProof(ctx sdk.Context, proof []byte, resultData []byte) 
 	}
 
 	// Extract request ID
-	requestID := uint64(0)
-	for i := 0; i < 8; i++ {
-		requestID = (requestID << 8) | uint64(resultData[i])
-	}
+	requestID := binary.BigEndian.Uint64(resultData[:8])
 
 	// Extract result hash
 	resultHash := resultData[8:40]

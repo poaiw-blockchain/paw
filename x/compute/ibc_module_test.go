@@ -24,7 +24,7 @@ func setupComputeIBCModule(t *testing.T) (*compute.IBCModule, sdk.Context) {
 	registry := codectypes.NewInterfaceRegistry()
 	types.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule := compute.NewIBCModule(k, cdc)
 	return &ibcModule, ctx
 }
 
@@ -34,7 +34,7 @@ func setupComputeIBCModuleWithKeeper(t *testing.T) (*compute.IBCModule, *keeper.
 	registry := codectypes.NewInterfaceRegistry()
 	types.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
-	ibcModule := compute.NewIBCModule(*k, cdc)
+	ibcModule := compute.NewIBCModule(k, cdc)
 	return &ibcModule, k, ctx
 }
 

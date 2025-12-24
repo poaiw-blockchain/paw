@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/paw-chain/paw/x/compute/types"
 )
 
 var (
@@ -109,6 +111,11 @@ var (
 
 	// NextCatastrophicFailureIDKey is the key for the next catastrophic failure ID counter
 	NextCatastrophicFailureIDKey = []byte{0x24}
+
+	// IBCPacketKeyPrefix is the prefix for IBC packet sequence tracking
+	// Key: prefix + channelID + sequence -> requestID
+	// Used to track pending IBC compute requests for validation
+	IBCPacketKeyPrefix = []byte{0x25}
 )
 
 // ProviderKey returns the store key for a provider
@@ -290,7 +297,7 @@ func CircuitParamsKey(circuitID string) []byte {
 // NonceByHeightKey returns the index key for nonces by height for cleanup
 func NonceByHeightKey(height int64, provider sdk.AccAddress, nonce uint64) []byte {
 	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, saturateInt64ToUint64(height))
+	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(height))
 	nonceBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(nonceBz, nonce)
 	return append(append(append(NonceByHeightPrefix, heightBz...), provider.Bytes()...), nonceBz...)
@@ -299,7 +306,7 @@ func NonceByHeightKey(height int64, provider sdk.AccAddress, nonce uint64) []byt
 // NonceByHeightPrefixForHeight returns the prefix for all nonces at a specific height
 func NonceByHeightPrefixForHeight(height int64) []byte {
 	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, saturateInt64ToUint64(height))
+	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(height))
 	return append(NonceByHeightPrefix, heightBz...)
 }
 

@@ -211,7 +211,7 @@ func (k Keeper) TrackProviderPerformance(
 	totalJobs := metrics.JobsCompleted + metrics.JobsFailed
 	if totalJobs > 0 {
 		oldAvg := metrics.AverageResponseTime
-		jobCount := saturateUint64ToInt64(totalJobs)
+		jobCount := types.SaturateUint64ToInt64(totalJobs)
 		if jobCount > 0 {
 			metrics.AverageResponseTime = (oldAvg*time.Duration(jobCount-1) + responseTime) / time.Duration(jobCount)
 		}

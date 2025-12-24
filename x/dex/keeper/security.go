@@ -13,83 +13,15 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
-// Security constants - Production-grade parameters calibrated for mainnet security
+// Security constants - Production-grade parameters calibrated for mainnet security.
 //
-// SECURITY DESIGN PHILOSOPHY:
-// These parameters balance three critical concerns:
-// 1. Attack prevention (MEV, flash loans, price manipulation)
-// 2. Normal market operations (legitimate large trades, volatile assets)
-// 3. System availability (avoiding false-positive circuit breaker triggers)
+// These parameters balance attack prevention (MEV, flash loans, price manipulation),
+// normal market operations, and system availability. Values are conservative, erring
+// on the side of security. Parameters are intentionally NOT governable to prevent
+// governance attacks where malicious proposals weaken security.
 //
-// All values are conservative, erring on the side of security over convenience.
-// Parameters are intentionally NOT governable to prevent governance attacks.
-//
-// CODE-LOW-5: GOVERNANCE PATH FOR SECURITY PARAMETERS
-//
-// CURRENT STATE: Hard-coded constants (cannot be changed without upgrade)
-// RATIONALE: Prevents governance attacks where malicious proposals weaken security
-//
-// PATH TO GOVERNANCE CONTROL (if desired in future):
-//
-// 1. DESIGN CHANGES NEEDED:
-//   - Move these constants to module Params (x/dex/types/params.proto)
-//   - Add validation functions with STRICT bounds for each parameter
-//   - Implement parameter change proposals via x/gov integration
-//   - Add time-locks on security parameter changes (e.g., 7-day delay)
-//   - Require supermajority (>66%) for security-critical parameter changes
-//
-// 2. SECURITY REQUIREMENTS:
-//
-//   - Parameter bounds must be hard-coded (e.g., MaxPriceDeviation must be [0.1, 0.5])
-//
-//   - Changes must not take effect immediately (circuit breaker risk)
-//
-//   - Emergency governance override to restore safe defaults
-//
-//   - Audit trail of all parameter changes via events
-//
-//     3. IMPLEMENTATION STEPS:
-//     a) Add to params.proto:
-//     message Params {
-//     string max_price_deviation = 1; // constrained to [0.1, 0.5]
-//     string max_swap_size_percent = 2; // constrained to [0.05, 0.2]
-//     // ... other parameters
-//     }
-//
-//     b) Add validation in x/dex/types/params.go:
-//     func (p Params) Validate() error {
-//     deviation, _ := sdk.NewDecFromStr(p.MaxPriceDeviation)
-//     if deviation.LT(sdk.MustNewDecFromStr("0.1")) || deviation.GT(sdk.MustNewDecFromStr("0.5")) {
-//     return fmt.Errorf("max_price_deviation must be [0.1, 0.5]")
-//     }
-//     // ... validate others
-//     }
-//
-//     c) Replace constant usage with k.GetParams(ctx).MaxPriceDeviation throughout keeper
-//
-//     d) Add governance proposal handler in x/dex/keeper/msg_server.go
-//
-//     e) Add time-lock mechanism (store pending params, apply after delay)
-//
-// 4. MIGRATION STRATEGY:
-//   - Initialize params from current constants in genesis
-//   - Maintain backward compatibility for existing pools
-//   - Gradual rollout: governance disabled initially, enabled after security audit
-//
-// 5. RISKS OF GOVERNANCE:
-//   - Malicious proposals could weaken security (e.g., set MaxSwapSizePercent to 1.0)
-//   - Governance attacks via majority stake accumulation
-//   - Parameter changes could trigger unexpected circuit breaker behavior
-//   - Front-running of parameter changes by MEV searchers
-//
-// 6. AUDIT REQUIREMENTS:
-//   - Full security audit required before enabling governance
-//   - Formal verification of parameter bounds enforcement
-//   - Economic modeling of attack cost under different parameter values
-//   - Test governance attacks in adversarial testnet environment
-//
-// RECOMMENDATION: Keep hard-coded for mainnet launch. Consider governance after
-// 6-12 months of stable operation and comprehensive security audit.
+// For detailed governance implementation path and security analysis, see:
+// docs/design/SECURITY_PARAMETER_GOVERNANCE.md
 const (
 	// MaxPriceDeviation = "0.25" (25%)
 	// SECURITY RATIONALE:
@@ -381,11 +313,6 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 	}
 
 	return nil
-}
-
-// CheckPoolPriceDeviationForTesting exposes price deviation checks to tests without relaxing production visibility.
-func (k Keeper) CheckPoolPriceDeviationForTesting(ctx context.Context, pool *types.Pool, operation string) error {
-	return k.checkPoolPriceDeviation(ctx, pool, operation)
 }
 
 // GetPoolCircuitBreakerState retrieves circuit breaker state for a pool

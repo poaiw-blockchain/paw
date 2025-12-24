@@ -324,14 +324,7 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 func (k Keeper) setNextRequestID(ctx context.Context, nextID uint64) error {
 	store := k.getStore(ctx)
 	bz := make([]byte, 8)
-	bz[0] = byte(nextID >> 56)
-	bz[1] = byte(nextID >> 48)
-	bz[2] = byte(nextID >> 40)
-	bz[3] = byte(nextID >> 32)
-	bz[4] = byte(nextID >> 24)
-	bz[5] = byte(nextID >> 16)
-	bz[6] = byte(nextID >> 8)
-	bz[7] = byte(nextID)
+	binary.BigEndian.PutUint64(bz, nextID)
 	store.Set(NextRequestIDKey, bz)
 	return nil
 }
@@ -345,10 +338,7 @@ func (k Keeper) getNextRequestIDForExport(ctx context.Context) (uint64, error) {
 		return 1, nil
 	}
 
-	nextID := uint64(bz[0])<<56 | uint64(bz[1])<<48 | uint64(bz[2])<<40 | uint64(bz[3])<<32 |
-		uint64(bz[4])<<24 | uint64(bz[5])<<16 | uint64(bz[6])<<8 | uint64(bz[7])
-
-	return nextID, nil
+	return binary.BigEndian.Uint64(bz), nil
 }
 
 func (k Keeper) setNextDisputeID(ctx context.Context, nextID uint64) error {

@@ -231,7 +231,7 @@ func (k Keeper) initialReputation(stake, minStake math.Int, specs types.ComputeS
 	}
 
 	qualityBonus := computeSpecQuality(specs)
-	total := base + saturateInt64ToUint32(stakeBonus.Int64()) + qualityBonus
+	total := base + types.SaturateInt64ToUint32(stakeBonus.Int64()) + qualityBonus
 	if total > 100 {
 		return 100
 	}
@@ -249,7 +249,7 @@ func computeSpecQuality(specs types.ComputeSpec) uint32 {
 		score = 30
 	}
 
-	return saturateUint64ToUint32(score)
+	return types.SaturateUint64ToUint32(score)
 }
 
 // SetProvider stores a provider record
@@ -527,15 +527,15 @@ func (k Keeper) EstimateCost(ctx context.Context, providerAddr sdk.AccAddress, s
 	}
 
 	// Calculate cost per hour
-	cpuCost := provider.Pricing.CpuPricePerMcoreHour.MulInt64(saturateUint64ToInt64(specs.CpuCores))
-	memoryCost := provider.Pricing.MemoryPricePerMbHour.MulInt64(saturateUint64ToInt64(specs.MemoryMb))
-	gpuCost := provider.Pricing.GpuPricePerHour.MulInt64(saturateUint64ToInt64(uint64(specs.GpuCount)))
-	storageCost := provider.Pricing.StoragePricePerGbHour.MulInt64(saturateUint64ToInt64(specs.StorageGb))
+	cpuCost := provider.Pricing.CpuPricePerMcoreHour.MulInt64(types.SaturateUint64ToInt64(specs.CpuCores))
+	memoryCost := provider.Pricing.MemoryPricePerMbHour.MulInt64(types.SaturateUint64ToInt64(specs.MemoryMb))
+	gpuCost := provider.Pricing.GpuPricePerHour.MulInt64(types.SaturateUint64ToInt64(uint64(specs.GpuCount)))
+	storageCost := provider.Pricing.StoragePricePerGbHour.MulInt64(types.SaturateUint64ToInt64(specs.StorageGb))
 
 	costPerHour := cpuCost.Add(memoryCost).Add(gpuCost).Add(storageCost)
 
 	// Calculate total cost based on timeout
-	hours := math.LegacyNewDec(saturateUint64ToInt64(specs.TimeoutSeconds)).QuoInt64(3600)
+	hours := math.LegacyNewDec(types.SaturateUint64ToInt64(specs.TimeoutSeconds)).QuoInt64(3600)
 	totalCost := costPerHour.Mul(hours)
 
 	// Convert to integer (round up)

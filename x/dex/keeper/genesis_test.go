@@ -136,14 +136,22 @@ func TestDexGenesisRoundTrip(t *testing.T) {
 	require.Equal(t, len(genesis.LiquidityPositions), len(exported.LiquidityPositions))
 
 	// Verify circuit breaker states match
+	// NOTE: Only persistent configuration is preserved across export/import.
+	// Volatile runtime state (PausedUntil, NotificationsSent, etc.) is intentionally reset.
 	for i, expected := range genesis.CircuitBreakerStates {
 		actual := exported.CircuitBreakerStates[i]
+		// Persistent configuration should match
 		require.Equal(t, expected.PoolId, actual.PoolId)
 		require.Equal(t, expected.Enabled, actual.Enabled)
 		require.Equal(t, expected.LastPrice, actual.LastPrice)
-		require.Equal(t, expected.TriggeredBy, actual.TriggeredBy)
-		require.Equal(t, expected.TriggerReason, actual.TriggerReason)
-		require.Equal(t, expected.NotificationsSent, actual.NotificationsSent)
+		require.Equal(t, expected.PersistenceKey, actual.PersistenceKey)
+
+		// Runtime state should be reset to zero values on export
+		require.Equal(t, int64(0), actual.PausedUntil, "PausedUntil should be reset on export")
+		require.Equal(t, int32(0), actual.NotificationsSent, "NotificationsSent should be reset on export")
+		require.Equal(t, int64(0), actual.LastNotification, "LastNotification should be reset on export")
+		require.Equal(t, "", actual.TriggeredBy, "TriggeredBy should be reset on export")
+		require.Equal(t, "", actual.TriggerReason, "TriggerReason should be reset on export")
 	}
 
 	// Verify liquidity positions match
@@ -300,4 +308,69 @@ func TestGenesisSharesValidation(t *testing.T) {
 		err := k.InitGenesis(ctx, genesis)
 		require.NoError(t, err)
 	})
+}
+
+// TestCircuitBreakerRuntimeStateReset verifies that volatile runtime state
+// is reset during genesis import, even if it's present in the genesis data
+func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	params := types.DefaultParams()
+	creatorOne := sdk.AccAddress(bytes.Repeat([]byte{0x1}, 20)).String()
+
+	pools := []types.Pool{
+		{
+			Id:          1,
+			TokenA:      "atom",
+			TokenB:      "paw",
+			ReserveA:    sdkmath.NewInt(1_000_000),
+			ReserveB:    sdkmath.NewInt(2_000_000),
+			TotalShares: sdkmath.NewInt(900_000),
+			Creator:     creatorOne,
+		},
+	}
+
+	// Create genesis data with runtime state populated
+	// (simulating an export from a paused chain)
+	circuitBreakerStates := []types.CircuitBreakerStateExport{
+		{
+			PoolId:         1,
+			Enabled:        true,
+			LastPrice:      sdkmath.LegacyMustNewDecFromStr("2.0"),
+			PersistenceKey: "pool_1_cb",
+
+			// Runtime state that should be ignored during import
+			PausedUntil:       1_700_000_200, // Should be reset to 0
+			TriggeredBy:       "admin",       // Should be reset to ""
+			TriggerReason:     "manual pause", // Should be reset to ""
+			NotificationsSent: 5,              // Should be reset to 0
+			LastNotification:  1_700_000_150, // Should be reset to 0
+		},
+	}
+
+	genesis := types.GenesisState{
+		Params:               params,
+		Pools:                pools,
+		NextPoolId:           2,
+		CircuitBreakerStates: circuitBreakerStates,
+	}
+
+	// Import genesis
+	require.NoError(t, k.InitGenesis(ctx, genesis))
+
+	// Verify that runtime state was reset during import
+	cbState, err := k.GetPoolCircuitBreakerState(ctx, 1)
+	require.NoError(t, err)
+
+	// Persistent configuration should be preserved
+	require.True(t, cbState.Enabled, "Enabled flag should be preserved")
+	require.Equal(t, sdkmath.LegacyMustNewDecFromStr("2.0"), cbState.LastPrice, "LastPrice should be preserved")
+	require.Equal(t, "pool_1_cb", cbState.PersistenceKey, "PersistenceKey should be preserved")
+
+	// Runtime state should be reset to zero values
+	require.True(t, cbState.PausedUntil.IsZero(), "PausedUntil should be reset to zero time")
+	require.Equal(t, 0, cbState.NotificationsSent, "NotificationsSent should be reset to 0")
+	require.True(t, cbState.LastNotification.IsZero(), "LastNotification should be reset to zero time")
+	require.Equal(t, "", cbState.TriggeredBy, "TriggeredBy should be reset to empty string")
+	require.Equal(t, "", cbState.TriggerReason, "TriggerReason should be reset to empty string")
 }

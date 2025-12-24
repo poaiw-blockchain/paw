@@ -291,7 +291,7 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 
 	store := qs.Keeper.getStore(ctx)
 	statusBz := make([]byte, 4)
-	binary.BigEndian.PutUint32(statusBz, saturateInt64ToUint32(int64(req.Status)))
+	binary.BigEndian.PutUint32(statusBz, types.SaturateInt64ToUint32(int64(req.Status)))
 	statusPrefix := append(RequestsByStatusPrefix, statusBz...)
 	statusStore := storeprefix.NewStore(store, statusPrefix)
 
@@ -453,7 +453,7 @@ func (qs queryServer) DisputesByStatus(goCtx context.Context, req *types.QueryDi
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	statusPrefix := DisputeByStatusKey(saturateInt64ToUint32(int64(req.Status)), 0)[:len(DisputesByStatusPrefix)+4]
+	statusPrefix := DisputeByStatusKey(types.SaturateInt64ToUint32(int64(req.Status)), 0)[:len(DisputesByStatusPrefix)+4]
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var disputes []types.Dispute
@@ -577,7 +577,7 @@ func (qs queryServer) AppealsByStatus(goCtx context.Context, req *types.QueryApp
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	store := qs.Keeper.getStore(ctx)
-	statusPrefix := AppealByStatusKey(saturateInt64ToUint32(int64(req.Status)), 0)[:len(AppealsByStatusPrefix)+4]
+	statusPrefix := AppealByStatusKey(types.SaturateInt64ToUint32(int64(req.Status)), 0)[:len(AppealsByStatusPrefix)+4]
 	view := storeprefix.NewStore(store, statusPrefix)
 
 	var appeals []types.Appeal

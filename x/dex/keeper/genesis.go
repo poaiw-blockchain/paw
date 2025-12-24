@@ -59,22 +59,22 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 	}
 
 	// Initialize circuit breaker states
+	// NOTE: We only import persistent configuration, NOT volatile runtime state.
+	// Runtime state (PausedUntil, NotificationsSent, LastNotification, TriggeredBy, TriggerReason)
+	// is intentionally reset to zero values for new chain instances.
 	for _, cbState := range genState.CircuitBreakerStates {
 		state := CircuitBreakerState{
-			Enabled:           cbState.Enabled,
-			LastPrice:         cbState.LastPrice,
-			TriggeredBy:       cbState.TriggeredBy,
-			TriggerReason:     cbState.TriggerReason,
-			NotificationsSent: int(cbState.NotificationsSent),
-			PersistenceKey:    cbState.PersistenceKey,
-		}
+			// Persistent configuration
+			Enabled:        cbState.Enabled,
+			LastPrice:      cbState.LastPrice,
+			PersistenceKey: cbState.PersistenceKey,
 
-		// Set timestamps from genesis (Unix timestamps)
-		if cbState.PausedUntil > 0 {
-			state.PausedUntil = time.Unix(cbState.PausedUntil, 0)
-		}
-		if cbState.LastNotification > 0 {
-			state.LastNotification = time.Unix(cbState.LastNotification, 0)
+			// Runtime state - always reset to zero values on import
+			PausedUntil:       time.Time{}, // Zero time
+			NotificationsSent: 0,
+			LastNotification:  time.Time{}, // Zero time
+			TriggeredBy:       "",
+			TriggerReason:     "",
 		}
 
 		if err := k.SetCircuitBreakerState(ctx, cbState.PoolId, state); err != nil {
@@ -145,20 +145,26 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	// Export circuit breaker states for all pools
+	// NOTE: We only export persistent configuration, NOT volatile runtime state.
+	// This ensures chain exports/imports don't carry over transient pause states.
 	var cbStates []types.CircuitBreakerStateExport
 	for _, pool := range pools {
 		cbState, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 		if err == nil {
 			cbStates = append(cbStates, types.CircuitBreakerStateExport{
-				PoolId:            pool.Id,
-				Enabled:           cbState.Enabled,
-				PausedUntil:       cbState.PausedUntil.Unix(),
-				LastPrice:         cbState.LastPrice,
-				TriggeredBy:       cbState.TriggeredBy,
-				TriggerReason:     cbState.TriggerReason,
-				NotificationsSent: int32(cbState.NotificationsSent),
-				LastNotification:  cbState.LastNotification.Unix(),
-				PersistenceKey:    cbState.PersistenceKey,
+				PoolId:         pool.Id,
+				PersistenceKey: cbState.PersistenceKey,
+
+				// Persistent configuration
+				Enabled:   cbState.Enabled,
+				LastPrice: cbState.LastPrice,
+
+				// Runtime state - exported as zero values
+				PausedUntil:       0, // Reset to zero (no pause on new chain)
+				NotificationsSent: 0, // Reset counter
+				LastNotification:  0, // Reset timestamp
+				TriggeredBy:       "", // Clear transient event data
+				TriggerReason:     "", // Clear transient event data
 			})
 		}
 	}

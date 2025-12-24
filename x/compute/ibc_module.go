@@ -26,16 +26,17 @@ var (
 // IBCModule implements the ICS26 interface for the compute module.
 // This enables cross-chain compute job distribution and result verification.
 type IBCModule struct {
-	keeper keeper.Keeper
+	keeper *keeper.Keeper
 	cdc    codec.Codec
 }
 
 const maxProvidersPerAck = 50
 
-// NewIBCModule creates a new IBCModule given the keeper and codec
-func NewIBCModule(keeper keeper.Keeper, cdc codec.Codec) IBCModule {
+// NewIBCModule creates a new IBCModule given the keeper and codec.
+// The keeper is stored as a pointer to enable caching of authorized channels.
+func NewIBCModule(k *keeper.Keeper, cdc codec.Codec) IBCModule {
 	return IBCModule{
-		keeper: keeper,
+		keeper: k,
 		cdc:    cdc,
 	}
 }

@@ -14,112 +14,18 @@ import (
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
-// SECURITY CONSTANTS - Nation-state grade security parameters
+// SECURITY CONSTANTS - Nation-state grade security parameters.
 //
-// ORACLE SECURITY PHILOSOPHY:
 // Oracle security is CRITICAL - incorrect price data can drain all DEX pools.
-// These parameters enforce Byzantine fault tolerance and prevent oracle manipulation attacks.
+// These parameters enforce Byzantine fault tolerance (tolerates 33% malicious validators)
+// and prevent oracle manipulation attacks (eclipse, Sybil, data poisoning, flash loans).
+// Security is prioritized over liveness (halt rather than accept bad data).
 //
-// SECURITY MODEL:
-// - Assumes up to 33% of validators may be malicious (Byzantine fault tolerance)
-// - Defends against: eclipse attacks, Sybil attacks, data poisoning, flash loan manipulation
-// - Prioritizes security over liveness (halt rather than accept bad data)
+// Parameters are intentionally NOT governable. MinValidatorsForSecurity and
+// MinGeographicRegions should NEVER be governable - wrong values break BFT entirely.
 //
-// CODE-LOW-5: GOVERNANCE PATH FOR ORACLE SECURITY PARAMETERS
-//
-// CURRENT STATE: Hard-coded constants (immutable without chain upgrade)
-// RATIONALE: Oracle security is TOO CRITICAL to allow governance modification
-//
-// WHY ORACLE PARAMS ARE MORE SENSITIVE THAN DEX PARAMS:
-// - Compromised oracle can drain ALL DEX pools simultaneously
-// - Oracle manipulation affects every DeFi protocol using these prices
-// - Recovery from oracle attack is harder than recovering from DEX exploit
-// - Byzantine tolerance math must be EXACT - wrong parameters = total failure
-//
-// IF GOVERNANCE IS REQUIRED (extreme caution advised):
-//
-// 1. DESIGN CHANGES:
-//   - Move to module Params with EXTREMELY strict validation bounds
-//   - Require 2/3+ supermajority for oracle parameter changes
-//   - Implement 30-day time-lock (much longer than DEX params)
-//   - Add emergency pause mechanism if parameter change detected
-//   - Require validator set approval in addition to token holder governance
-//
-// 2. CRITICAL PARAMETERS (NEVER allow governance):
-//   - MinValidatorsForSecurity: Wrong value = broken BFT
-//   - MinGeographicRegions: Centralization risk if lowered
-//     These should ALWAYS remain hard-coded for security
-//
-// 3. POTENTIALLY GOVERNABLE PARAMETERS (with extreme caution):
-//
-//   - MaxDataStalenessBlocks: Could adjust for faster/slower block times
-//
-//   - MaxSubmissionsPerWindow: Could tune based on network load
-//
-//   - RateLimitWindow: Could optimize based on validator behavior
-//
-//     4. IMPLEMENTATION REQUIREMENTS:
-//     a) Add to params.proto with validation bounds:
-//     message OracleParams {
-//     uint64 max_data_staleness_blocks = 1; // constrained to [50, 500]
-//     uint64 max_submissions_per_window = 2; // constrained to [5, 20]
-//     // MIN_VALIDATORS and MIN_REGIONS remain hard-coded
-//     }
-//
-//     b) Add multi-sig governance requirement:
-//
-//   - Require both token holder vote AND validator set approval
-//
-//   - Implement via custom proposal type in x/gov
-//
-//     c) Add parameter change surveillance:
-//
-//   - Monitor for malicious governance proposals
-//
-//   - Automatic alerts to node operators
-//
-//   - Emergency governance veto mechanism
-//
-//     d) Implement gradual rollout:
-//
-//   - Parameter changes apply to NEW price submissions only
-//
-//   - Existing price data uses old parameters
-//
-//   - Transition period to detect issues
-//
-// 5. CATASTROPHIC RISKS:
-//   - Malicious governance reducing MinValidatorsForSecurity from 7 to 3
-//     → Attacker needs only 1 validator instead of 3 to compromise oracle
-//   - Reducing MinGeographicRegions from 3 to 1
-//     → Single datacenter outage can halt all price feeds
-//   - Increasing MaxDataStalenessBlocks to 10000
-//     → Oracle could use hour-old prices for arbitrage exploitation
-//   - Reducing MinBlocksBetweenSubmissions to 0
-//     → Enables flash loan attacks on oracle pricing
-//
-// 6. AUDIT REQUIREMENTS (if governance enabled):
-//
-//   - Formal verification of Byzantine tolerance under parameter ranges
-//
-//   - Economic game theory analysis of attack incentives
-//
-//   - Adversarial testing with malicious governance proposals
-//
-//   - Trail of Bits-level security audit specifically on governance attack surface
-//
-//   - 6+ month public testnet with governance attacks encouraged
-//
-//     7. RECOMMENDED APPROACH:
-//     Phase 1 (Year 1): Hard-coded parameters (current state)
-//     Phase 2 (Year 2): Add governance for ONLY staleness/rate-limiting params
-//     Phase 3 (Year 3+): Consider BFT params governance after extensive security proof
-//
-// STRONG RECOMMENDATION: NEVER make MinValidatorsForSecurity or MinGeographicRegions
-// governable. The risk of governance attack is too high. Oracle security is the
-// foundation of all DeFi protocols - if the oracle fails, everything fails.
-//
-// "In security, the safest code is the code that cannot be changed."
+// For detailed governance implementation path and security analysis, see:
+// docs/design/SECURITY_PARAMETER_GOVERNANCE.md
 const (
 	// MinValidatorsForSecurity = 7
 	// SECURITY RATIONALE:

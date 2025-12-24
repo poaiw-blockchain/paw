@@ -60,6 +60,8 @@ func TestRegisterInvariantsRegistersAllRoutes(t *testing.T) {
 		"compute:nonce-uniqueness",
 		"compute:dispute-index",
 		"compute:appeal-index",
+		"compute:escrow-timeout-index",
+		"compute:ibc-packet-sequence",
 	}, registry.routes)
 }
 

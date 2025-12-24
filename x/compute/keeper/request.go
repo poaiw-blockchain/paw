@@ -488,7 +488,7 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.RequestStatus, cb func(request types.Request) (stop bool, err error)) error {
 	store := k.getStore(ctx)
 	statusBz := make([]byte, 4)
-	binary.BigEndian.PutUint32(statusBz, saturateInt64ToUint32(int64(status)))
+	binary.BigEndian.PutUint32(statusBz, types.SaturateInt64ToUint32(int64(status)))
 	prefix := append(RequestsByStatusPrefix, statusBz...)
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
 	defer iterator.Close()
@@ -566,7 +566,7 @@ func (k Keeper) setRequestIndexes(ctx context.Context, request types.Request) er
 	}
 
 	// Index by status
-	store.Set(RequestByStatusKey(saturateInt64ToUint32(int64(request.Status)), request.Id), []byte{})
+	store.Set(RequestByStatusKey(types.SaturateInt64ToUint32(int64(request.Status)), request.Id), []byte{})
 
 	return nil
 }
@@ -577,12 +577,12 @@ func (k Keeper) updateRequestStatusIndex(ctx context.Context, request types.Requ
 
 	// Remove old status indexes (try all statuses)
 	for status := types.REQUEST_STATUS_PENDING; status <= types.REQUEST_STATUS_CANCELLED; status++ {
-		key := RequestByStatusKey(saturateInt64ToUint32(int64(status)), request.Id)
+		key := RequestByStatusKey(types.SaturateInt64ToUint32(int64(status)), request.Id)
 		store.Delete(key) // Ignore errors as key might not exist
 	}
 
 	// Add new status index
-	store.Set(RequestByStatusKey(saturateInt64ToUint32(int64(request.Status)), request.Id), []byte{})
+	store.Set(RequestByStatusKey(types.SaturateInt64ToUint32(int64(request.Status)), request.Id), []byte{})
 	return nil
 }
 
@@ -620,5 +620,5 @@ func (k Keeper) requestDeadline(ctx context.Context, request types.Request, now 
 		timeoutSeconds = maxSeconds
 	}
 
-	return baseTime.Add(secondsToDuration(timeoutSeconds)), nil
+	return baseTime.Add(types.SecondsToDuration(timeoutSeconds)), nil
 }

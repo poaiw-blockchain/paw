@@ -82,6 +82,22 @@ const (
 	CircuitTypeResult  CircuitType = "result-correctness-v1"
 )
 
+// CircuitDefinition provides metadata for circuit initialization.
+type CircuitDefinition interface {
+	frontend.Circuit
+	GetCircuitName() string
+	GetPublicInputCount() int
+	GetConstraintCount() int
+}
+
+// circuitConfig holds initialization config for each circuit type.
+type circuitConfig struct {
+	circuitType CircuitType
+	circuit     CircuitDefinition
+	description string
+	gasCost     uint64
+}
+
 // NewCircuitManager creates a new circuit manager for the keeper.
 func NewCircuitManager(keeper *Keeper) *CircuitManager {
 	return &CircuitManager{
@@ -135,205 +151,134 @@ func (cm *CircuitManager) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// initializeComputeCircuit compiles the compute verification circuit.
-func (cm *CircuitManager) initializeComputeCircuit(ctx context.Context) error {
-	circuit := &circuits.ComputeCircuit{}
-	circuitID := circuit.GetCircuitName()
+// initializeCircuit is the generic circuit initialization function.
+// It compiles the circuit, loads or generates keys, and stores circuit params.
+func (cm *CircuitManager) initializeCircuit(ctx context.Context, cfg circuitConfig) (constraint.ConstraintSystem, groth16.ProvingKey, groth16.VerifyingKey, error) {
+	circuitID := cfg.circuit.GetCircuitName()
 
 	// Compile circuit to constraint system
-	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
+	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, cfg.circuit)
 	if err != nil {
-		return fmt.Errorf("failed to compile compute circuit: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to compile %s circuit: %w", cfg.circuitType, err)
 	}
-	cm.computeCircuit = ccs
 
 	// Check for existing verifying key in state
 	existingParams, err := cm.keeper.GetCircuitParams(ctx, circuitID)
 	if err == nil && len(existingParams.VerifyingKey.VkData) > 0 {
-		// Use existing verifying key
-		cm.computeVerifyingKey = groth16.NewVerifyingKey(ecc.BN254)
-		if _, err := cm.computeVerifyingKey.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); err != nil {
-			// Key corrupted, regenerate
-			return cm.generateAndStoreComputeKeys(ctx, circuitID, ccs)
+		// Try to use existing verifying key
+		vk := groth16.NewVerifyingKey(ecc.BN254)
+		if _, readErr := vk.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); readErr == nil {
+			// Key loaded successfully, regenerate proving key
+			pk, _, setupErr := groth16Setup(ccs)
+			if setupErr != nil {
+				return nil, nil, nil, fmt.Errorf("failed to regenerate proving key: %w", setupErr)
+			}
+			cm.circuitVersions[string(cfg.circuitType)] = circuitID
+			return ccs, pk, vk, nil
 		}
-		// Need to regenerate proving key since it's not stored
-		pk, _, err := groth16Setup(ccs)
-		if err != nil {
-			return fmt.Errorf("failed to regenerate proving key: %w", err)
-		}
-		cm.computeProvingKey = pk
-	} else {
-		return cm.generateAndStoreComputeKeys(ctx, circuitID, ccs)
+		// Key corrupted, fall through to regenerate
 	}
 
-	cm.circuitVersions[string(CircuitTypeCompute)] = circuitID
-	return nil
+	// Generate new keys and store them
+	pk, vk, err := cm.generateAndStoreKeys(ctx, cfg, ccs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	cm.circuitVersions[string(cfg.circuitType)] = circuitID
+	return ccs, pk, vk, nil
 }
 
-// generateAndStoreComputeKeys generates new proving/verifying keys and stores them.
-func (cm *CircuitManager) generateAndStoreComputeKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
+// generateAndStoreKeys generates new proving/verifying keys and stores circuit params.
+func (cm *CircuitManager) generateAndStoreKeys(ctx context.Context, cfg circuitConfig, ccs constraint.ConstraintSystem) (groth16.ProvingKey, groth16.VerifyingKey, error) {
+	circuitID := cfg.circuit.GetCircuitName()
+
 	pk, vk, err := groth16Setup(ccs)
 	if err != nil {
-		return fmt.Errorf("failed to setup compute circuit: %w", err)
+		return nil, nil, fmt.Errorf("failed to setup %s circuit: %w", cfg.circuitType, err)
 	}
 
-	cm.computeProvingKey = pk
-	cm.computeVerifyingKey = vk
-
-	// Serialize and store verifying key
+	// Serialize verifying key
 	vkBytes := new(bytes.Buffer)
 	if _, err := vk.WriteTo(vkBytes); err != nil {
-		return fmt.Errorf("failed to serialize verifying key: %w", err)
+		return nil, nil, fmt.Errorf("failed to serialize verifying key: %w", err)
 	}
 
-	circuit := &circuits.ComputeCircuit{}
 	params := types.CircuitParams{
 		CircuitId:   circuitID,
-		Description: "Compute verification circuit (v2) - proves correct execution of computations",
+		Description: cfg.description,
 		VerifyingKey: types.VerifyingKey{
 			CircuitId:        circuitID,
 			Curve:            "bn254",
 			ProofSystem:      "groth16",
 			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
 			VkData:           vkBytes.Bytes(),
-			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
+			PublicInputCount: types.SaturateIntToUint32(cfg.circuit.GetPublicInputCount()),
 		},
 		MaxProofSize: 2048,
-		GasCost:      500000,
+		GasCost:      cfg.gasCost,
 		Enabled:      true,
 	}
 
-	return cm.keeper.SetCircuitParams(ctx, params)
+	if err := cm.keeper.SetCircuitParams(ctx, params); err != nil {
+		return nil, nil, err
+	}
+
+	return pk, vk, nil
+}
+
+// initializeComputeCircuit compiles the compute verification circuit.
+func (cm *CircuitManager) initializeComputeCircuit(ctx context.Context) error {
+	cfg := circuitConfig{
+		circuitType: CircuitTypeCompute,
+		circuit:     &circuits.ComputeCircuit{},
+		description: "Compute verification circuit (v2) - proves correct execution of computations",
+		gasCost:     500000,
+	}
+	ccs, pk, vk, err := cm.initializeCircuit(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	cm.computeCircuit = ccs
+	cm.computeProvingKey = pk
+	cm.computeVerifyingKey = vk
+	return nil
 }
 
 // initializeEscrowCircuit compiles the escrow release circuit.
 func (cm *CircuitManager) initializeEscrowCircuit(ctx context.Context) error {
-	circuit := &circuits.EscrowCircuit{}
-	circuitID := circuit.GetCircuitName()
-
-	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
+	cfg := circuitConfig{
+		circuitType: CircuitTypeEscrow,
+		circuit:     &circuits.EscrowCircuit{},
+		description: "Escrow release circuit - proves computation completion for fund release",
+		gasCost:     450000,
+	}
+	ccs, pk, vk, err := cm.initializeCircuit(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("failed to compile escrow circuit: %w", err)
+		return err
 	}
 	cm.escrowCircuit = ccs
-
-	existingParams, err := cm.keeper.GetCircuitParams(ctx, circuitID)
-	if err == nil && len(existingParams.VerifyingKey.VkData) > 0 {
-		cm.escrowVerifyingKey = groth16.NewVerifyingKey(ecc.BN254)
-		if _, err := cm.escrowVerifyingKey.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); err != nil {
-			return cm.generateAndStoreEscrowKeys(ctx, circuitID, ccs)
-		}
-		pk, _, err := groth16Setup(ccs)
-		if err != nil {
-			return fmt.Errorf("failed to regenerate proving key: %w", err)
-		}
-		cm.escrowProvingKey = pk
-	} else {
-		return cm.generateAndStoreEscrowKeys(ctx, circuitID, ccs)
-	}
-
-	cm.circuitVersions[string(CircuitTypeEscrow)] = circuitID
-	return nil
-}
-
-// generateAndStoreEscrowKeys generates and stores escrow circuit keys.
-func (cm *CircuitManager) generateAndStoreEscrowKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
-	pk, vk, err := groth16Setup(ccs)
-	if err != nil {
-		return fmt.Errorf("failed to setup escrow circuit: %w", err)
-	}
-
 	cm.escrowProvingKey = pk
 	cm.escrowVerifyingKey = vk
-
-	vkBytes := new(bytes.Buffer)
-	if _, err := vk.WriteTo(vkBytes); err != nil {
-		return fmt.Errorf("failed to serialize verifying key: %w", err)
-	}
-
-	circuit := &circuits.EscrowCircuit{}
-	params := types.CircuitParams{
-		CircuitId:   circuitID,
-		Description: "Escrow release circuit - proves computation completion for fund release",
-		VerifyingKey: types.VerifyingKey{
-			CircuitId:        circuitID,
-			Curve:            "bn254",
-			ProofSystem:      "groth16",
-			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
-			VkData:           vkBytes.Bytes(),
-			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
-		},
-		MaxProofSize: 2048,
-		GasCost:      450000,
-		Enabled:      true,
-	}
-
-	return cm.keeper.SetCircuitParams(ctx, params)
+	return nil
 }
 
 // initializeResultCircuit compiles the result correctness circuit.
 func (cm *CircuitManager) initializeResultCircuit(ctx context.Context) error {
-	circuit := &circuits.ResultCircuit{}
-	circuitID := circuit.GetCircuitName()
-
-	ccs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, circuit)
+	cfg := circuitConfig{
+		circuitType: CircuitTypeResult,
+		circuit:     &circuits.ResultCircuit{},
+		description: "Result correctness circuit - proves result validity with merkle proofs",
+		gasCost:     550000,
+	}
+	ccs, pk, vk, err := cm.initializeCircuit(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("failed to compile result circuit: %w", err)
+		return err
 	}
 	cm.resultCircuit = ccs
-
-	existingParams, err := cm.keeper.GetCircuitParams(ctx, circuitID)
-	if err == nil && len(existingParams.VerifyingKey.VkData) > 0 {
-		cm.resultVerifyingKey = groth16.NewVerifyingKey(ecc.BN254)
-		if _, err := cm.resultVerifyingKey.ReadFrom(bytes.NewReader(existingParams.VerifyingKey.VkData)); err != nil {
-			return cm.generateAndStoreResultKeys(ctx, circuitID, ccs)
-		}
-		pk, _, err := groth16Setup(ccs)
-		if err != nil {
-			return fmt.Errorf("failed to regenerate proving key: %w", err)
-		}
-		cm.resultProvingKey = pk
-	} else {
-		return cm.generateAndStoreResultKeys(ctx, circuitID, ccs)
-	}
-
-	cm.circuitVersions[string(CircuitTypeResult)] = circuitID
-	return nil
-}
-
-// generateAndStoreResultKeys generates and stores result circuit keys.
-func (cm *CircuitManager) generateAndStoreResultKeys(ctx context.Context, circuitID string, ccs constraint.ConstraintSystem) error {
-	pk, vk, err := groth16Setup(ccs)
-	if err != nil {
-		return fmt.Errorf("failed to setup result circuit: %w", err)
-	}
-
 	cm.resultProvingKey = pk
 	cm.resultVerifyingKey = vk
-
-	vkBytes := new(bytes.Buffer)
-	if _, err := vk.WriteTo(vkBytes); err != nil {
-		return fmt.Errorf("failed to serialize verifying key: %w", err)
-	}
-
-	circuit := &circuits.ResultCircuit{}
-	params := types.CircuitParams{
-		CircuitId:   circuitID,
-		Description: "Result correctness circuit - proves result validity with merkle proofs",
-		VerifyingKey: types.VerifyingKey{
-			CircuitId:        circuitID,
-			Curve:            "bn254",
-			ProofSystem:      "groth16",
-			CreatedAt:        sdk.UnwrapSDKContext(ctx).BlockTime(),
-			VkData:           vkBytes.Bytes(),
-			PublicInputCount: types.SaturateIntToUint32(circuit.GetPublicInputCount()),
-		},
-		MaxProofSize: 2048,
-		GasCost:      550000,
-		Enabled:      true,
-	}
-
-	return cm.keeper.SetCircuitParams(ctx, params)
+	return nil
 }
 
 // VerifyComputeProof verifies a compute verification proof.

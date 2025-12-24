@@ -8,11 +8,13 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/paw-chain/paw/control-center/network-controls/circuit"
+	"github.com/paw-chain/paw/control-center/network-controls/multisig"
 )
 
 // Handler provides HTTP handlers for circuit breaker operations
 type Handler struct {
-	manager *circuit.Manager
+	manager        *circuit.Manager
+	multiSigVerifier *multisig.Verifier
 }
 
 // NewHandler creates a new API handler
@@ -20,6 +22,18 @@ func NewHandler(manager *circuit.Manager) *Handler {
 	return &Handler{
 		manager: manager,
 	}
+}
+
+// NewHandlerWithMultiSig creates a new API handler with multi-signature verification
+func NewHandlerWithMultiSig(manager *circuit.Manager, multiSigConfig *multisig.MultiSigConfig) (*Handler, error) {
+	verifier, err := multisig.NewVerifier(multiSigConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create multi-sig verifier: %w", err)
+	}
+	return &Handler{
+		manager:        manager,
+		multiSigVerifier: verifier,
+	}, nil
 }
 
 // RegisterRoutes registers all circuit breaker routes
@@ -86,10 +100,11 @@ type CancelJobRequest struct {
 }
 
 type EmergencyHaltRequest struct {
-	Actor     string   `json:"actor"`
-	Reason    string   `json:"reason"`
-	Modules   []string `json:"modules"` // empty = all modules
-	Signature string   `json:"signature"`
+	Actor        string              `json:"actor"`
+	Reason       string              `json:"reason"`
+	Modules      []string            `json:"modules"` // empty = all modules
+	Signature    string              `json:"signature,omitempty"`  // deprecated: use multi_sig instead
+	MultiSig     *multisig.MultiSignature `json:"multi_sig,omitempty"` // multi-signature for verification
 }
 
 type StatusResponse struct {
@@ -493,10 +508,45 @@ func (h *Handler) handleEmergencyHalt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Verify multi-signature
-	if req.Signature == "" {
-		h.writeError(w, http.StatusUnauthorized, "Emergency halt requires signature")
-		return
+	// Verify multi-signature if verifier is configured
+	if h.multiSigVerifier != nil {
+		if req.MultiSig == nil {
+			h.writeError(w, http.StatusUnauthorized, "Emergency halt requires multi-signature")
+			return
+		}
+
+		// Verify the multi-signature
+		result, err := h.multiSigVerifier.Verify(req.MultiSig)
+		if err != nil {
+			h.writeError(w, http.StatusInternalServerError,
+				fmt.Sprintf("Multi-signature verification error: %v", err))
+			return
+		}
+
+		if !result.Valid {
+			h.writeError(w, http.StatusUnauthorized,
+				fmt.Sprintf("Insufficient valid signatures: got %d, need %d. Errors: %v",
+					result.ValidSignatures, result.RequiredThreshold, result.Errors))
+			return
+		}
+
+		// Verify the message content matches the request
+		expectedMessage := multisig.CreateSigningMessage("emergency_halt", map[string]interface{}{
+			"actor":   req.Actor,
+			"reason":  req.Reason,
+			"modules": fmt.Sprintf("%v", req.Modules),
+		})
+		if req.MultiSig.Message != expectedMessage {
+			h.writeError(w, http.StatusBadRequest,
+				"Signed message does not match request parameters")
+			return
+		}
+	} else {
+		// Legacy single signature mode (deprecated)
+		if req.Signature == "" && req.MultiSig == nil {
+			h.writeError(w, http.StatusUnauthorized, "Emergency halt requires signature")
+			return
+		}
 	}
 
 	modules := req.Modules
@@ -513,10 +563,11 @@ func (h *Handler) handleEmergencyHalt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeSuccess(w, map[string]interface{}{
-		"status":  "halted",
-		"modules": modules,
-		"actor":   req.Actor,
-		"message": "Emergency halt executed successfully",
+		"status":          "halted",
+		"modules":         modules,
+		"actor":           req.Actor,
+		"message":         "Emergency halt executed successfully",
+		"multi_sig_valid": req.MultiSig != nil,
 	})
 }
 

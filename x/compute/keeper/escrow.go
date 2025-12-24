@@ -45,7 +45,7 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 	}
 
 	now := sdkCtx.BlockTime()
-	expiresAt := now.Add(secondsToDuration(timeoutSeconds))
+	expiresAt := now.Add(types.SecondsToDuration(timeoutSeconds))
 
 	// Transfer funds atomically - CRITICAL: This must succeed or rollback entire operation
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
@@ -156,7 +156,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 	if !releaseImmediate {
 		if escrowState.ChallengeEndsAt == nil {
 			// First release attempt - start challenge period
-			challengeEnds := now.Add(secondsToDuration(params.EscrowReleaseDelaySeconds))
+			challengeEnds := now.Add(types.SecondsToDuration(params.EscrowReleaseDelaySeconds))
 			escrowState.ChallengeEndsAt = &challengeEnds
 			escrowState.Status = types.ESCROW_STATUS_CHALLENGED
 			escrowState.ReleaseAttempts++
@@ -435,7 +435,7 @@ func (k Keeper) setEscrowTimeoutIndex(ctx context.Context, requestID uint64, exp
 	// Also set reverse index: requestID -> timestamp (for O(1) deletion)
 	reverseKey := EscrowTimeoutReverseKey(requestID)
 	timestampBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBz, saturateInt64ToUint64(expiresAt.Unix()))
+	binary.BigEndian.PutUint64(timestampBz, types.SaturateInt64ToUint64(expiresAt.Unix()))
 	store.Set(reverseKey, timestampBz)
 
 	return nil
@@ -458,7 +458,7 @@ func (k Keeper) removeEscrowTimeoutIndex(ctx context.Context, requestID uint64) 
 
 	// Reconstruct the timeout key and delete
 	timestamp := binary.BigEndian.Uint64(timestampBz)
-	expiresAt := time.Unix(saturateUint64ToInt64(timestamp), 0)
+	expiresAt := time.Unix(types.SaturateUint64ToInt64(timestamp), 0)
 	timeoutKey := EscrowTimeoutKey(expiresAt, requestID)
 
 	// Delete both the timeout index and the reverse index
@@ -506,7 +506,7 @@ func (k Keeper) IterateEscrowTimeouts(ctx context.Context, beforeTime time.Time,
 		}
 
 		offset := len(EscrowTimeoutPrefix)
-		timestampUnix := saturateUint64ToInt64(binary.BigEndian.Uint64(key[offset : offset+8]))
+		timestampUnix := types.SaturateUint64ToInt64(binary.BigEndian.Uint64(key[offset : offset+8]))
 		requestID := binary.BigEndian.Uint64(key[offset+8:])
 
 		expiresAt := time.Unix(timestampUnix, 0)
@@ -588,7 +588,7 @@ func EscrowStateKey(requestID uint64) []byte {
 
 func EscrowTimeoutKey(expiresAt time.Time, requestID uint64) []byte {
 	timeBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timeBz, saturateInt64ToUint64(expiresAt.Unix()))
+	binary.BigEndian.PutUint64(timeBz, types.SaturateInt64ToUint64(expiresAt.Unix()))
 
 	idBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(idBz, requestID)

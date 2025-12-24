@@ -72,6 +72,18 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 		// Don't return error - log and continue
 	}
 
+	// Cleanup inactive pools from active set to prevent unbounded growth
+	if err := k.CleanupInactivePools(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to cleanup inactive pools", "error", err)
+		// Don't return error - log and continue
+	}
+
+	// Cleanup expired swap commitments (commit-reveal scheme for large swaps)
+	if err := k.CleanupExpiredCommitments(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to cleanup expired swap commitments", "error", err)
+		// Don't return error - log and continue
+	}
+
 	// Emit end block event for monitoring
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -231,6 +243,101 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 			sdk.NewAttribute("rate_limits_cleaned", fmt.Sprintf("%d", cleanedCount)),
 		),
 	)
+
+	return nil
+}
+
+// ActivePoolTTL is the duration after which an inactive pool is removed from the active set
+// Pools with no swaps or liquidity changes for this duration are removed from the active index
+// This prevents unbounded growth of the active pools tracking set
+const ActivePoolTTL = 24 * time.Hour
+
+// CleanupInactivePools removes pools from the active set if they haven't had activity
+// within the ActivePoolTTL window. This prevents unbounded growth of the active pools index.
+//
+// The cleanup is based on the LastTimestamp field in the PoolTWAP record, which is updated
+// on every swap or liquidity change via MarkPoolActive and UpdateCumulativePriceOnSwap.
+//
+// Note: This only removes the pool from the "active" index - it does NOT delete the pool itself
+// or any liquidity/TWAP data. The pool remains fully functional and will be re-added to the
+// active set on the next swap or liquidity operation.
+func (k Keeper) CleanupInactivePools(ctx context.Context) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	store := k.getStore(ctx)
+	currentTime := sdkCtx.BlockTime()
+
+	// Calculate the cutoff timestamp - pools inactive longer than this get cleaned up
+	cutoffTime := currentTime.Add(-ActivePoolTTL)
+	cutoffTimestamp := cutoffTime.Unix()
+
+	cleanedCount := 0
+	scannedCount := 0
+
+	// Iterate through all pools in the active set
+	iter := storetypes.KVStorePrefixIterator(store, ActivePoolsKeyPrefix)
+	defer iter.Close()
+
+	// Collect pools to remove (can't delete while iterating)
+	poolsToRemove := []uint64{}
+
+	for ; iter.Valid(); iter.Next() {
+		scannedCount++
+
+		// Extract pool ID from key: ActivePoolsKeyPrefix(1 byte) + poolID(8 bytes)
+		poolID := sdk.BigEndianToUint64(iter.Key()[len(ActivePoolsKeyPrefix):])
+
+		// Get the pool's TWAP record to check last activity timestamp
+		twapRecord, found, err := k.GetPoolTWAP(ctx, poolID)
+		if err != nil {
+			sdkCtx.Logger().Error("failed to get pool TWAP for cleanup check",
+				"pool_id", poolID,
+				"error", err,
+			)
+			continue // Skip this pool, continue iteration
+		}
+
+		// If no TWAP record exists, the pool has never had a swap
+		// In this case, we still want to keep it in the active set since it was
+		// explicitly marked active (likely via liquidity addition)
+		if !found {
+			continue
+		}
+
+		// Check if the pool's last activity was before the cutoff
+		if twapRecord.LastTimestamp < cutoffTimestamp {
+			poolsToRemove = append(poolsToRemove, poolID)
+		}
+	}
+
+	// Remove inactive pools from the active set
+	for _, poolID := range poolsToRemove {
+		store.Delete(ActivePoolKey(poolID))
+		cleanedCount++
+
+		sdkCtx.Logger().Debug("removed inactive pool from active set",
+			"pool_id", poolID,
+			"cutoff_time", cutoffTime.Format(time.RFC3339),
+		)
+	}
+
+	// Emit event with cleanup statistics
+	if cleanedCount > 0 {
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"active_pools_cleaned",
+				sdk.NewAttribute("scanned_count", fmt.Sprintf("%d", scannedCount)),
+				sdk.NewAttribute("cleaned_count", fmt.Sprintf("%d", cleanedCount)),
+				sdk.NewAttribute("cutoff_time", cutoffTime.Format(time.RFC3339)),
+				sdk.NewAttribute("ttl_hours", fmt.Sprintf("%d", int(ActivePoolTTL.Hours()))),
+			),
+		)
+
+		sdkCtx.Logger().Info("cleaned up inactive pools from active set",
+			"scanned", scannedCount,
+			"cleaned", cleanedCount,
+			"ttl", ActivePoolTTL.String(),
+		)
+	}
 
 	return nil
 }

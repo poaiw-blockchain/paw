@@ -266,10 +266,18 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 		}, nil
 	}
 
-	// Stage 1: Calculate baseline statistics
-	median := k.calculateMedian(priceValues)
-	mad := k.calculateMAD(priceValues, median)
-	q1, q3, iqr := k.calculateIQR(priceValues)
+	// OPTIMIZATION: Sort ONCE and reuse for all statistical calculations
+	// This eliminates 3 redundant sorts (median, MAD, IQR each sorted independently before)
+	sortedPrices := make([]sdkmath.LegacyDec, len(priceValues))
+	copy(sortedPrices, priceValues)
+	sort.Slice(sortedPrices, func(i, j int) bool {
+		return sortedPrices[i].LT(sortedPrices[j])
+	})
+
+	// Stage 1: Calculate baseline statistics using pre-sorted data
+	median := k.calculateMedianFromSorted(sortedPrices)
+	mad := k.calculateMADFromSorted(sortedPrices, median)
+	q1, q3, iqr := k.calculateIQRFromSorted(sortedPrices)
 
 	// Get asset-specific volatility
 	volatility := k.calculateVolatility(ctx, asset, 100)
@@ -882,4 +890,83 @@ func (k Keeper) CheckMissedVotes(ctx context.Context, asset string) error {
 	}
 
 	return nil
+}
+
+// calculateMedianFromSorted calculates median from pre-sorted prices (optimized version)
+func (k Keeper) calculateMedianFromSorted(sortedPrices []sdkmath.LegacyDec) sdkmath.LegacyDec {
+	if len(sortedPrices) == 0 {
+		return sdkmath.LegacyZeroDec()
+	}
+	n := len(sortedPrices)
+	if n%2 == 0 {
+		return sortedPrices[n/2-1].Add(sortedPrices[n/2]).Quo(sdkmath.LegacyNewDec(2))
+	}
+	return sortedPrices[n/2]
+}
+
+// calculateMADFromSorted calculates MAD from pre-sorted prices (optimized version)
+func (k Keeper) calculateMADFromSorted(sortedPrices []sdkmath.LegacyDec, median sdkmath.LegacyDec) sdkmath.LegacyDec {
+	if len(sortedPrices) == 0 {
+		return sdkmath.LegacyZeroDec()
+	}
+
+	// Calculate deviations (unsorted)
+	deviations := make([]sdkmath.LegacyDec, len(sortedPrices))
+	for i, price := range sortedPrices {
+		deviation := price.Sub(median).Abs()
+		deviations[i] = deviation
+	}
+
+	// Must sort deviations to find their median
+	sort.Slice(deviations, func(i, j int) bool {
+		return deviations[i].LT(deviations[j])
+	})
+	madMedian := k.calculateMedianFromSorted(deviations)
+
+	// MAD is typically scaled by 1.4826 for normal distribution consistency
+	scaleFactor := sdkmath.LegacyMustNewDecFromStr("1.4826")
+	return madMedian.Mul(scaleFactor)
+}
+
+// calculateIQRFromSorted calculates IQR from pre-sorted prices (optimized version)
+func (k Keeper) calculateIQRFromSorted(sortedPrices []sdkmath.LegacyDec) (q1, q3, iqr sdkmath.LegacyDec) {
+	if len(sortedPrices) < 4 {
+		return sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec()
+	}
+
+	n := len(sortedPrices)
+	nDec := sdkmath.LegacyNewDec(int64(n))
+
+	// R-7 method (standard): position = 1 + (n-1) * p
+	// For Q1 (p=0.25): position = 1 + (n-1) * 0.25
+	// For Q3 (p=0.75): position = 1 + (n-1) * 0.75
+
+	// Calculate Q1 (25th percentile) using linear interpolation
+	q1Pos := sdkmath.LegacyOneDec().Add(nDec.Sub(sdkmath.LegacyOneDec()).Mul(sdkmath.LegacyNewDecWithPrec(25, 2)))
+	q1IdxLow := int(q1Pos.TruncateInt64()) - 1 // Convert to 0-based index
+	if q1IdxLow < 0 {
+		q1IdxLow = 0
+	}
+	q1IdxHigh := q1IdxLow + 1
+	if q1IdxHigh >= n {
+		q1IdxHigh = n - 1
+	}
+	q1Frac := q1Pos.Sub(sdkmath.LegacyNewDec(int64(q1IdxLow + 1)))
+	q1 = sortedPrices[q1IdxLow].Add(sortedPrices[q1IdxHigh].Sub(sortedPrices[q1IdxLow]).Mul(q1Frac))
+
+	// Calculate Q3 (75th percentile) using linear interpolation
+	q3Pos := sdkmath.LegacyOneDec().Add(nDec.Sub(sdkmath.LegacyOneDec()).Mul(sdkmath.LegacyNewDecWithPrec(75, 2)))
+	q3IdxLow := int(q3Pos.TruncateInt64()) - 1 // Convert to 0-based index
+	if q3IdxLow < 0 {
+		q3IdxLow = 0
+	}
+	q3IdxHigh := q3IdxLow + 1
+	if q3IdxHigh >= n {
+		q3IdxHigh = n - 1
+	}
+	q3Frac := q3Pos.Sub(sdkmath.LegacyNewDec(int64(q3IdxLow + 1)))
+	q3 = sortedPrices[q3IdxLow].Add(sortedPrices[q3IdxHigh].Sub(sortedPrices[q3IdxLow]).Mul(q3Frac))
+
+	iqr = q3.Sub(q1)
+	return q1, q3, iqr
 }

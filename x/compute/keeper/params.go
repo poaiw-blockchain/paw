@@ -25,7 +25,10 @@ func (k Keeper) GetParams(ctx context.Context) (types.Params, error) {
 	return params, nil
 }
 
-// SetParams stores the module parameters
+// SetParams stores the module parameters.
+// Note: This does NOT automatically invalidate the authorized channels cache.
+// Callers that modify AuthorizedChannels must call InvalidateChannelCache() separately,
+// or use SetAuthorizedChannels/SetAuthorizedChannelsWithValidation for automatic invalidation.
 func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&params)

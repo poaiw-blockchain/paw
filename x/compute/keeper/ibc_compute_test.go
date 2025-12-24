@@ -57,7 +57,7 @@ func TestHandleJobResultReturnsAcknowledgement(t *testing.T) {
 		0,
 	)
 
-	ibcModule := computemodule.NewIBCModule(*k, nil)
+	ibcModule := computemodule.NewIBCModule(k, nil)
 	ack := ibcModule.OnRecvPacket(ctx, packet, nil)
 	t.Logf("job result ack payload: %s", string(ack.Acknowledgement()))
 	t.Logf("job result ack success flag: %v", ack.Success())
@@ -133,7 +133,7 @@ func TestHandleSubmitJobPersistsStateAndAck(t *testing.T) {
 		0,
 	)
 
-	ibcModule := computemodule.NewIBCModule(*k, nil)
+	ibcModule := computemodule.NewIBCModule(k, nil)
 	ack := ibcModule.OnRecvPacket(ctx, packet, nil)
 	require.True(t, ack.Success(), "ack: %s", string(ack.Acknowledgement()))
 
@@ -197,7 +197,7 @@ func TestHandleJobStatusQueryUsesStoredProgress(t *testing.T) {
 		0,
 	)
 
-	ibcModule := computemodule.NewIBCModule(*k, nil)
+	ibcModule := computemodule.NewIBCModule(k, nil)
 	ack := ibcModule.OnRecvPacket(ctx, packet, nil)
 	require.True(t, ack.Success(), "ack: %s", string(ack.Acknowledgement()))
 
@@ -215,7 +215,7 @@ func TestHandleJobStatusQueryUsesStoredProgress(t *testing.T) {
 
 func TestComputeOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
-	ibcModule := computemodule.NewIBCModule(*k, nil)
+	ibcModule := computemodule.NewIBCModule(k, nil)
 
 	packet := channeltypes.NewPacket(
 		nil,
@@ -237,7 +237,7 @@ func TestComputeOnAcknowledgementPacketRejectsOversizedPayload(t *testing.T) {
 
 func TestComputeOnRecvPacketRejectsUnauthorizedChannel(t *testing.T) {
 	k, ctx := keepertest.ComputeKeeper(t)
-	ibcModule := computemodule.NewIBCModule(*k, nil)
+	ibcModule := computemodule.NewIBCModule(k, nil)
 
 	packetData := types.SubmitJobPacketData{
 		Type:    types.SubmitJobType,

@@ -55,7 +55,7 @@ func (k Keeper) MarkPacketAsProcessed(ctx sdk.Context, channelID string, sequenc
 
 	// Store minimal data for efficiency
 	heightBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBytes, saturateInt64ToUint64(tracker.BlockHeight))
+	binary.BigEndian.PutUint64(heightBytes, types.SaturateInt64ToUint64(tracker.BlockHeight))
 	store.Set(key, heightBytes)
 
 	ctx.EventManager().EmitEvent(
@@ -142,7 +142,7 @@ func (k Keeper) CleanupOldPacketNonces(ctx sdk.Context, retentionBlocks int64) e
 	for ; iterator.Valid(); iterator.Next() {
 		// Extract block height from value
 		if len(iterator.Value()) >= 8 {
-			blockHeight := saturateUint64ToInt64(binary.BigEndian.Uint64(iterator.Value()))
+			blockHeight := types.SaturateUint64ToInt64(binary.BigEndian.Uint64(iterator.Value()))
 			if blockHeight < cutoffHeight {
 				store.Delete(iterator.Key())
 				deletedCount++

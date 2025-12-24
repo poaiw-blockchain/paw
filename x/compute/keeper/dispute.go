@@ -52,7 +52,7 @@ func (k Keeper) setDispute(ctx context.Context, dispute types.Dispute) error {
 
 	// indexes
 	store.Set(DisputeByRequestKey(dispute.RequestId, dispute.Id), []byte{})
-	store.Set(DisputeByStatusKey(saturateInt64ToUint32(int64(dispute.Status)), dispute.Id), []byte{})
+	store.Set(DisputeByStatusKey(types.SaturateInt64ToUint32(int64(dispute.Status)), dispute.Id), []byte{})
 	return nil
 }
 
@@ -134,8 +134,8 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 		Status:         types.DISPUTE_STATUS_EVIDENCE_SUBMISSION,
 		Deposit:        deposit,
 		CreatedAt:      now,
-		EvidenceEndsAt: now.Add(secondsToDuration(govParams.EvidencePeriodSeconds)),
-		VotingEndsAt:   now.Add(secondsToDuration(govParams.EvidencePeriodSeconds + govParams.VotingPeriodSeconds)),
+		EvidenceEndsAt: now.Add(types.SecondsToDuration(govParams.EvidencePeriodSeconds)),
+		VotingEndsAt:   now.Add(types.SecondsToDuration(govParams.EvidencePeriodSeconds + govParams.VotingPeriodSeconds)),
 		Votes:          []types.DisputeVote{},
 		Resolution:     types.DISPUTE_RESOLUTION_UNSPECIFIED,
 	}
@@ -328,7 +328,7 @@ func (k Keeper) CreateAppeal(ctx context.Context, provider sdk.AccAddress, slash
 		Status:        types.APPEAL_STATUS_PENDING,
 		Deposit:       deposit,
 		CreatedAt:     now,
-		VotingEndsAt:  now.Add(secondsToDuration(govParams.VotingPeriodSeconds)),
+		VotingEndsAt:  now.Add(types.SecondsToDuration(govParams.VotingPeriodSeconds)),
 		Votes:         []types.AppealVote{},
 	}
 
@@ -354,7 +354,7 @@ func (k Keeper) setAppeal(ctx context.Context, appeal types.Appeal) error {
 		return err
 	}
 	store.Set(AppealKey(appeal.Id), bz)
-	store.Set(AppealByStatusKey(saturateInt64ToUint32(int64(appeal.Status)), appeal.Id), []byte{})
+	store.Set(AppealByStatusKey(types.SaturateInt64ToUint32(int64(appeal.Status)), appeal.Id), []byte{})
 	return nil
 }
 

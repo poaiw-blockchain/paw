@@ -163,11 +163,11 @@ func ComputeMiMCHash(
 	h.Write(computationDataHash)
 
 	tsBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(tsBytes, saturateInt64ToUint64(executionTimestamp))
+	binary.BigEndian.PutUint64(tsBytes, types.SaturateInt64ToUint64(executionTimestamp))
 	h.Write(tsBytes)
 
 	ecBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(ecBytes, saturateInt64ToUint32(int64(exitCode)))
+	binary.BigEndian.PutUint32(ecBytes, types.SaturateInt64ToUint32(int64(exitCode)))
 	h.Write(ecBytes)
 
 	cpuBytes := make([]byte, 8)
@@ -326,8 +326,8 @@ func (zk *ZKVerifier) GenerateProof(
 		ctx,
 		requestID,
 		providerAddress.String(),
-		saturateInt64ToUint64(provingTime.Milliseconds()),
-		saturateInt64ToUint32(int64(len(proofBytes.Bytes()))),
+		types.SaturateInt64ToUint64(provingTime.Milliseconds()),
+		types.SaturateInt64ToUint32(int64(len(proofBytes.Bytes()))),
 	); err != nil {
 		// Log but don't fail on metrics update
 		sdkCtx.Logger().Error("failed to update proof generation metrics", "error", err)
@@ -511,7 +511,7 @@ func (zk *ZKVerifier) VerifyProof(
 	// Helper function to handle deposit refund on early errors
 	refundDeposit := func() {
 		if depositRequired > 0 {
-			depositCoin := sdk.NewCoin("upaw", math.NewInt(saturateUint64ToInt64(depositRequired)))
+			depositCoin := sdk.NewCoin("upaw", math.NewInt(types.SaturateUint64ToInt64(depositRequired)))
 			depositCoins := sdk.NewCoins(depositCoin)
 			if err := zk.keeper.bankKeeper.SendCoinsFromModuleToAccount(
 				sdkCtx,
@@ -550,7 +550,7 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Consume gas for deserializing keys - proportional to size
-	vkGas := saturateInt64ToUint64(int64(len(circuitParams.VerifyingKey.VkData)/32)) + 1000
+	vkGas := types.SaturateInt64ToUint64(int64(len(circuitParams.VerifyingKey.VkData)/32)) + 1000
 	sdkCtx.GasMeter().ConsumeGas(vkGas, "zk_verifying_key_deserialization")
 
 	// Get or deserialize verifying key
@@ -569,7 +569,7 @@ func (zk *ZKVerifier) VerifyProof(
 	}
 
 	// Consume gas for deserializing proof - proportional to size
-	proofGas := saturateInt64ToUint64(int64(len(zkProof.Proof)/32)) + 1000
+	proofGas := types.SaturateInt64ToUint64(int64(len(zkProof.Proof)/32)) + 1000
 	sdkCtx.GasMeter().ConsumeGas(proofGas, "zk_proof_deserialization")
 
 	// Deserialize proof
@@ -820,7 +820,7 @@ func (zk *ZKVerifier) updateVerificationMetrics(ctx context.Context, success boo
 
 	// Update average verification time (exponential moving average)
 	alpha := 0.1 // Smoothing factor
-	newTime := saturateInt64ToUint64(duration.Milliseconds())
+	newTime := types.SaturateInt64ToUint64(duration.Milliseconds())
 	if metrics.AverageVerificationTimeMs == 0 {
 		metrics.AverageVerificationTimeMs = newTime
 	} else {
@@ -892,13 +892,13 @@ func HashComputationResult(computationData []byte, metadata map[string]interface
 	// Hash metadata in deterministic order
 	if timestamp, ok := metadata["timestamp"].(int64); ok {
 		tsBytes := make([]byte, 8)
-		binary.BigEndian.PutUint64(tsBytes, saturateInt64ToUint64(timestamp))
+		binary.BigEndian.PutUint64(tsBytes, types.SaturateInt64ToUint64(timestamp))
 		hasher.Write(tsBytes)
 	}
 
 	if exitCode, ok := metadata["exit_code"].(int32); ok {
 		ecBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(ecBytes, saturateInt64ToUint32(int64(exitCode)))
+		binary.BigEndian.PutUint32(ecBytes, types.SaturateInt64ToUint32(int64(exitCode)))
 		hasher.Write(ecBytes)
 	}
 

@@ -313,7 +313,7 @@ func (k Keeper) calculateSuccessRate(ctx context.Context, providerAddr string) u
 
 	// Calculate success percentage
 	successRate := (stats.TotalJobsCompleted * 100) / totalJobs
-	return saturateUint64ToUint32(successRate)
+	return types.SaturateUint64ToUint32(successRate)
 }
 
 // calculateDisputeScore calculates reputation impact from disputes (0-100)
@@ -334,12 +334,12 @@ func (k Keeper) calculateDisputeScore(ctx context.Context, providerAddr string) 
 	// Calculate score based on dispute loss rate
 	// 0 disputes lost = 100, all disputes lost = 0
 	disputeLossRate := (disputesLost * 100) / totalDisputes
-	score := int64(100 - saturateUint64ToUint32(disputeLossRate))
+	score := int64(100 - types.SaturateUint64ToUint32(disputeLossRate))
 
 	// Additional penalty for high dispute volume
 	// More than 10 disputes total starts reducing score
 	if totalDisputes > 10 {
-		penaltyBase := saturateUint64ToInt64(totalDisputes - 10)
+		penaltyBase := types.SaturateUint64ToInt64(totalDisputes - 10)
 		penalty := penaltyBase * 2
 		if penalty > 30 {
 			penalty = 30 // Max 30% penalty
@@ -350,7 +350,7 @@ func (k Keeper) calculateDisputeScore(ctx context.Context, providerAddr string) 
 		}
 	}
 
-	return saturateInt64ToUint32(score)
+	return types.SaturateInt64ToUint32(score)
 }
 
 // calculateUptimeScore calculates uptime score (0-100) based on activity recency
