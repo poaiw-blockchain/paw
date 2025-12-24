@@ -792,7 +792,7 @@ func TestQueryServer_ErrorCases(t *testing.T) {
 func TestQueryServer_PaginatedQueryGasMetering(t *testing.T) {
 	server, k, ctx := setupDexQueryServer(t)
 	poolID1 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(1_000_000), sdkmath.NewInt(2_000_000))
-	poolID2 := keepertest.CreateTestPool(t, k, ctx, "uatom", "usdc", sdkmath.NewInt(500_000), sdkmath.NewInt(1_000_000))
+	_ = keepertest.CreateTestPool(t, k, ctx, "uatom", "usdc", sdkmath.NewInt(500_000), sdkmath.NewInt(1_000_000))
 
 	trader1 := sdk.AccAddress([]byte("trader1____________"))
 	trader2 := sdk.AccAddress([]byte("trader2____________"))

@@ -368,7 +368,7 @@ func TestCalculateSwapOutputSecurity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := keeper.Keeper{}
-			output, err := k.CalculateSwapOutputSecure(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
+			output, err := k.CalculateSwapOutput(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
 
 			if tt.expectErr {
 				require.Error(t, err)

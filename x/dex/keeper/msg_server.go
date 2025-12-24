@@ -34,7 +34,7 @@ func (ms msgServer) CreatePool(goCtx context.Context, msg *types.MsgCreatePool) 
 	}
 
 	// Create pool using secure implementation
-	pool, err := ms.Keeper.CreatePoolSecure(goCtx, creator, msg.TokenA, msg.TokenB, msg.AmountA, msg.AmountB)
+	pool, err := ms.Keeper.CreatePool(goCtx, creator, msg.TokenA, msg.TokenB, msg.AmountA, msg.AmountB)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (ms msgServer) AddLiquidity(goCtx context.Context, msg *types.MsgAddLiquidi
 	}
 
 	// Add liquidity using secure implementation
-	shares, err := ms.Keeper.AddLiquiditySecure(goCtx, provider, msg.PoolId, msg.AmountA, msg.AmountB)
+	shares, err := ms.Keeper.AddLiquidity(goCtx, provider, msg.PoolId, msg.AmountA, msg.AmountB)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (ms msgServer) RemoveLiquidity(goCtx context.Context, msg *types.MsgRemoveL
 	}
 
 	// Remove liquidity using secure implementation
-	amountA, amountB, err := ms.Keeper.RemoveLiquiditySecure(goCtx, provider, msg.PoolId, msg.Shares)
+	amountA, amountB, err := ms.Keeper.RemoveLiquidity(goCtx, provider, msg.PoolId, msg.Shares)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (ms msgServer) Swap(goCtx context.Context, msg *types.MsgSwap) (*types.MsgS
 	}
 
 	// Execute swap using secure implementation
-	amountOut, err := ms.Keeper.ExecuteSwapSecure(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
+	amountOut, err := ms.Keeper.ExecuteSwap(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) 
 	}
 
 	// Execute the swap using secure implementation
-	amountOut, err := ms.Keeper.ExecuteSwapSecure(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
+	amountOut, err := ms.Keeper.ExecuteSwap(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
 	if err != nil {
 		return nil, err
 	}

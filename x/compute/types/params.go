@@ -20,6 +20,8 @@ func DefaultParams() Params {
 		ProviderCacheSize:               10,             // Cache top 10 providers
 		ProviderCacheRefreshInterval:    100,            // Refresh every 100 blocks (~8 minutes)
 		UseProviderCache:                true,           // Enable cache by default
+		MaxRequestsPerAddressPerDay:     100,            // Maximum compute requests per address per day
+		RequestCooldownBlocks:           10,             // Minimum blocks between requests (~50 seconds at 5s blocks)
 	}
 }
 

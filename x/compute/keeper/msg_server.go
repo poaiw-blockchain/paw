@@ -119,6 +119,11 @@ func (ms msgServer) SubmitRequest(goCtx context.Context, msg *types.MsgSubmitReq
 		return nil, fmt.Errorf("invalid requester address: %w", err)
 	}
 
+	// Check rate limits before processing request
+	if err := ms.Keeper.CheckRequestRateLimit(ctx, requesterAddr); err != nil {
+		return nil, err
+	}
+
 	// Submit request
 	requestID, err := ms.Keeper.SubmitRequest(
 		ctx,
@@ -133,6 +138,9 @@ func (ms msgServer) SubmitRequest(goCtx context.Context, msg *types.MsgSubmitReq
 	if err != nil {
 		return nil, err
 	}
+
+	// Record request for rate limiting (after successful submission)
+	ms.Keeper.RecordComputeRequest(ctx, requesterAddr)
 
 	return &types.MsgSubmitRequestResponse{
 		RequestId: requestID,

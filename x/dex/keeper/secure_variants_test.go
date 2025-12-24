@@ -14,8 +14,8 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
-// TestCreatePoolSecure tests the secure pool creation variant
-func TestCreatePoolSecure(t *testing.T) {
+// TestCreatePool tests the secure pool creation variant
+func TestCreatePool(t *testing.T) {
 	tests := []struct {
 		name       string
 		tokenA     string
@@ -144,7 +144,7 @@ func TestCreatePoolSecure(t *testing.T) {
 				}
 			}
 
-			pool, err := k.CreatePoolSecure(ctx, creator, tt.tokenA, tt.tokenB, tt.amountA, tt.amountB)
+			pool, err := k.CreatePool(ctx, creator, tt.tokenA, tt.tokenB, tt.amountA, tt.amountB)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -171,8 +171,8 @@ func TestCreatePoolSecure(t *testing.T) {
 	}
 }
 
-// TestCreatePoolSecure_DuplicatePrevention tests that duplicate pools cannot be created
-func TestCreatePoolSecure_DuplicatePrevention(t *testing.T) {
+// TestCreatePool_DuplicatePrevention tests that duplicate pools cannot be created
+func TestCreatePool_DuplicatePrevention(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	creator := types.TestAddr()
 
@@ -184,45 +184,45 @@ func TestCreatePoolSecure_DuplicatePrevention(t *testing.T) {
 		))
 
 	// Create first pool
-	pool1, err := k.CreatePoolSecure(ctx, creator, "upaw", "uatom", math.NewInt(1_000_000), math.NewInt(1_000_000))
+	pool1, err := k.CreatePool(ctx, creator, "upaw", "uatom", math.NewInt(1_000_000), math.NewInt(1_000_000))
 	require.NoError(t, err)
 	require.NotNil(t, pool1)
 
 	// Attempt to create duplicate pool
-	pool2, err := k.CreatePoolSecure(ctx, creator, "upaw", "uatom", math.NewInt(1_000_000), math.NewInt(1_000_000))
+	pool2, err := k.CreatePool(ctx, creator, "upaw", "uatom", math.NewInt(1_000_000), math.NewInt(1_000_000))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "already exists")
 	require.Nil(t, pool2)
 
 	// Attempt with reversed token order (should still fail due to normalization)
-	pool3, err := k.CreatePoolSecure(ctx, creator, "uatom", "upaw", math.NewInt(1_000_000), math.NewInt(1_000_000))
+	pool3, err := k.CreatePool(ctx, creator, "uatom", "upaw", math.NewInt(1_000_000), math.NewInt(1_000_000))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "already exists")
 	require.Nil(t, pool3)
 }
 
-// TestGetPoolSecure tests secure pool retrieval
-func TestGetPoolSecure(t *testing.T) {
+// TestGetPool tests secure pool retrieval
+func TestGetPool(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
 	// Valid pool retrieval
-	pool, err := k.GetPoolSecure(ctx, poolID)
+	pool, err := k.GetPool(ctx, poolID)
 	require.NoError(t, err)
 	require.NotNil(t, pool)
 	require.Equal(t, poolID, pool.Id)
 
 	// Non-existent pool
-	pool, err = k.GetPoolSecure(ctx, 9999)
+	pool, err = k.GetPool(ctx, 9999)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not found")
 	require.Nil(t, pool)
 }
 
-// TestGetPoolByTokensSecure tests secure pool retrieval by token pair
-func TestGetPoolByTokensSecure(t *testing.T) {
+// TestGetPoolByTokens tests secure pool retrieval by token pair
+func TestGetPoolByTokens(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
@@ -279,7 +279,7 @@ func TestGetPoolByTokensSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pool, err := k.GetPoolByTokensSecure(ctx, tt.tokenA, tt.tokenB)
+			pool, err := k.GetPoolByTokens(ctx, tt.tokenA, tt.tokenB)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -295,8 +295,8 @@ func TestGetPoolByTokensSecure(t *testing.T) {
 	}
 }
 
-// TestGetAllPoolsSecure tests secure pool listing with pagination
-func TestGetAllPoolsSecure(t *testing.T) {
+// TestGetAllPools tests secure pool listing with pagination
+func TestGetAllPools(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	// Create multiple pools
@@ -343,7 +343,7 @@ func TestGetAllPoolsSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pools, err := k.GetAllPoolsSecure(ctx, tt.limit, tt.offset)
+			pools, err := k.GetAllPools(ctx)
 			require.NoError(t, err)
 
 			if tt.expectCount > 0 {
@@ -361,8 +361,8 @@ func TestGetAllPoolsSecure(t *testing.T) {
 	}
 }
 
-// TestAddLiquiditySecure tests secure liquidity addition with reentrancy protection
-func TestAddLiquiditySecure(t *testing.T) {
+// TestAddLiquidity tests secure liquidity addition with reentrancy protection
+func TestAddLiquidity(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -424,7 +424,7 @@ func TestAddLiquiditySecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			shares, err := k.AddLiquiditySecure(ctx, provider, poolID, tt.amountA, tt.amountB)
+			shares, err := k.AddLiquidity(ctx, provider, poolID, tt.amountA, tt.amountB)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -445,8 +445,8 @@ func TestAddLiquiditySecure(t *testing.T) {
 	}
 }
 
-// TestAddLiquiditySecure_InvariantPreservation tests that k never decreases
-func TestAddLiquiditySecure_InvariantPreservation(t *testing.T) {
+// TestAddLiquidity_InvariantPreservation tests that k never decreases
+func TestAddLiquidity_InvariantPreservation(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -466,7 +466,7 @@ func TestAddLiquiditySecure_InvariantPreservation(t *testing.T) {
 		))
 
 	// Add liquidity
-	shares, err := k.AddLiquiditySecure(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
+	shares, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 	require.True(t, shares.GT(math.ZeroInt()))
 
@@ -480,8 +480,8 @@ func TestAddLiquiditySecure_InvariantPreservation(t *testing.T) {
 	require.True(t, newK.GTE(oldK), "k invariant should never decrease")
 }
 
-// TestRemoveLiquiditySecure tests secure liquidity removal
-func TestRemoveLiquiditySecure(t *testing.T) {
+// TestRemoveLiquidity tests secure liquidity removal
+func TestRemoveLiquidity(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -498,7 +498,7 @@ func TestRemoveLiquiditySecure(t *testing.T) {
 			sdk.NewCoin(pool.TokenB, math.NewInt(10_000_000)),
 		))
 
-	shares, err := k.AddLiquiditySecure(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
+	shares, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 	require.True(t, shares.GT(math.ZeroInt()))
 
@@ -532,7 +532,7 @@ func TestRemoveLiquiditySecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			amountA, amountB, err := k.RemoveLiquiditySecure(ctx, provider, poolID, tt.shares)
+			amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, tt.shares)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -555,8 +555,8 @@ func TestRemoveLiquiditySecure(t *testing.T) {
 	}
 }
 
-// TestRemoveLiquiditySecure_FlashLoanProtection tests flash loan prevention
-func TestRemoveLiquiditySecure_FlashLoanProtection(t *testing.T) {
+// TestRemoveLiquidity_FlashLoanProtection tests flash loan prevention
+func TestRemoveLiquidity_FlashLoanProtection(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -574,26 +574,26 @@ func TestRemoveLiquiditySecure_FlashLoanProtection(t *testing.T) {
 		))
 
 	ctx = ctx.WithBlockHeight(100)
-	shares, err := k.AddLiquiditySecure(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
+	shares, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 	require.True(t, shares.GT(math.ZeroInt()))
 
 	// Attempt immediate removal (should fail due to flash loan protection)
 	ctx = ctx.WithBlockHeight(100)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "flash loan")
 
 	// Wait sufficient blocks
 	ctx = ctx.WithBlockHeight(120)
-	amountA, amountB, err := k.RemoveLiquiditySecure(ctx, provider, poolID, shares)
+	amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, shares)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
 	require.True(t, amountB.GT(math.ZeroInt()))
 }
 
-// TestExecuteSwapSecure tests secure swap execution
-func TestExecuteSwapSecure(t *testing.T) {
+// TestExecuteSwap tests secure swap execution
+func TestExecuteSwap(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	trader := types.TestAddr()
 
@@ -684,7 +684,7 @@ func TestExecuteSwapSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			amountOut, err := k.ExecuteSwapSecure(ctx, trader, poolID, tt.tokenIn, tt.tokenOut, tt.amountIn, tt.minAmountOut)
+			amountOut, err := k.ExecuteSwap(ctx, trader, poolID, tt.tokenIn, tt.tokenOut, tt.amountIn, tt.minAmountOut)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -706,8 +706,8 @@ func TestExecuteSwapSecure(t *testing.T) {
 	}
 }
 
-// TestExecuteSwapSecure_SlippageProtection tests slippage enforcement
-func TestExecuteSwapSecure_SlippageProtection(t *testing.T) {
+// TestExecuteSwap_SlippageProtection tests slippage enforcement
+func TestExecuteSwap_SlippageProtection(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	trader := types.TestAddr()
 
@@ -725,25 +725,25 @@ func TestExecuteSwapSecure_SlippageProtection(t *testing.T) {
 
 	// First, simulate to get expected output
 	amountIn := math.NewInt(10_000)
-	expectedOutput, err := k.SimulateSwapSecure(ctx, poolID, pool.TokenA, pool.TokenB, amountIn)
+	expectedOutput, err := k.SimulateSwap(ctx, poolID, pool.TokenA, pool.TokenB, amountIn)
 	require.NoError(t, err)
 	require.True(t, expectedOutput.GT(math.ZeroInt()))
 
 	// Set min amount out higher than expected (should fail)
 	unrealisticMin := expectedOutput.Mul(math.NewInt(2))
-	_, err = k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, amountIn, unrealisticMin)
+	_, err = k.ExecuteSwap(ctx, trader, poolID, pool.TokenA, pool.TokenB, amountIn, unrealisticMin)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "slippage")
 
 	// Set reasonable min amount out (should succeed)
 	reasonableMin := expectedOutput.Mul(math.NewInt(95)).Quo(math.NewInt(100)) // 5% slippage tolerance
-	amountOut, err := k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, amountIn, reasonableMin)
+	amountOut, err := k.ExecuteSwap(ctx, trader, poolID, pool.TokenA, pool.TokenB, amountIn, reasonableMin)
 	require.NoError(t, err)
 	require.True(t, amountOut.GTE(reasonableMin))
 }
 
-// TestExecuteSwapSecure_InvariantPreservation tests that k never decreases after swaps
-func TestExecuteSwapSecure_InvariantPreservation(t *testing.T) {
+// TestExecuteSwap_InvariantPreservation tests that k never decreases after swaps
+func TestExecuteSwap_InvariantPreservation(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	trader := types.TestAddr()
 
@@ -762,7 +762,7 @@ func TestExecuteSwapSecure_InvariantPreservation(t *testing.T) {
 		))
 
 	// Execute swap
-	amountOut, err := k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(10_000), math.NewInt(1))
+	amountOut, err := k.ExecuteSwap(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(10_000), math.NewInt(1))
 	require.NoError(t, err)
 	require.True(t, amountOut.GT(math.ZeroInt()))
 
@@ -776,8 +776,8 @@ func TestExecuteSwapSecure_InvariantPreservation(t *testing.T) {
 	require.True(t, newK.GTE(oldK), "k invariant should never decrease (should increase due to fees)")
 }
 
-// TestCalculateSwapOutputSecure tests secure swap calculation
-func TestCalculateSwapOutputSecure(t *testing.T) {
+// TestCalculateSwapOutput tests secure swap calculation
+func TestCalculateSwapOutput(t *testing.T) {
 	k := keeper.Keeper{}
 
 	tests := []struct {
@@ -863,7 +863,7 @@ func TestCalculateSwapOutputSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, err := k.CalculateSwapOutputSecure(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
+			output, err := k.CalculateSwapOutput(context.Background(), tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee, tt.maxDrainPercent)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -879,8 +879,8 @@ func TestCalculateSwapOutputSecure(t *testing.T) {
 	}
 }
 
-// TestSimulateSwapSecure tests swap simulation
-func TestSimulateSwapSecure(t *testing.T) {
+// TestSimulateSwap tests swap simulation
+func TestSimulateSwap(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
@@ -939,7 +939,7 @@ func TestSimulateSwapSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			amountOut, err := k.SimulateSwapSecure(ctx, poolID, tt.tokenIn, tt.tokenOut, tt.amountIn)
+			amountOut, err := k.SimulateSwap(ctx, poolID, tt.tokenIn, tt.tokenOut, tt.amountIn)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -955,8 +955,8 @@ func TestSimulateSwapSecure(t *testing.T) {
 	}
 }
 
-// TestGetSpotPriceSecure tests secure spot price retrieval
-func TestGetSpotPriceSecure(t *testing.T) {
+// TestGetSpotPrice tests secure spot price retrieval
+func TestGetSpotPrice(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
@@ -998,7 +998,7 @@ func TestGetSpotPriceSecure(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			price, err := k.GetSpotPriceSecure(ctx, poolID, tt.tokenIn, tt.tokenOut)
+			price, err := k.GetSpotPrice(ctx, poolID, tt.tokenIn, tt.tokenOut)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -1317,7 +1317,7 @@ func TestCheckCircuitBreaker_PriceDeviation(t *testing.T) {
 
 	// Attempt large swap that would cause significant price impact
 	// This should trigger circuit breaker due to price deviation
-	if _, swapErr := k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(300_000), math.NewInt(1)); swapErr != nil {
+	if _, swapErr := k.ExecuteSwap(ctx, trader, poolID, pool.TokenA, pool.TokenB, math.NewInt(300_000), math.NewInt(1)); swapErr != nil {
 		t.Logf("swap blocked before circuit breaker trigger: %v", swapErr)
 	}
 
@@ -1419,7 +1419,7 @@ func TestDeletePool(t *testing.T) {
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
 
 	// Remove all liquidity
-	_, _, err = k.RemoveLiquiditySecure(ctx, creator, poolID, creatorShares)
+	_, _, err = k.RemoveLiquidity(ctx, creator, poolID, creatorShares)
 	require.NoError(t, err)
 
 	// Verify pool is now empty
@@ -1467,7 +1467,7 @@ func TestDeletePool_Unauthorized(t *testing.T) {
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
 
 	// Remove all liquidity to make pool empty
-	_, _, err = k.RemoveLiquiditySecure(ctx, creator, poolID, creatorShares)
+	_, _, err = k.RemoveLiquidity(ctx, creator, poolID, creatorShares)
 	require.NoError(t, err)
 
 	// Verify pool is empty
@@ -1604,8 +1604,8 @@ func TestReentrancyGuard_ErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAddLiquiditySecure_InsufficientShares tests minimum shares requirement
-func TestAddLiquiditySecure_InsufficientShares(t *testing.T) {
+// TestAddLiquidity_InsufficientShares tests minimum shares requirement
+func TestAddLiquidity_InsufficientShares(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -1623,7 +1623,7 @@ func TestAddLiquiditySecure_InsufficientShares(t *testing.T) {
 		))
 
 	// Try to add very small liquidity (should fail or return minimal shares)
-	shares, err := k.AddLiquiditySecure(ctx, provider, poolID, math.NewInt(1), math.NewInt(1))
+	shares, err := k.AddLiquidity(ctx, provider, poolID, math.NewInt(1), math.NewInt(1))
 
 	// Either should error or return zero shares
 	if err != nil {
@@ -1633,8 +1633,8 @@ func TestAddLiquiditySecure_InsufficientShares(t *testing.T) {
 	}
 }
 
-// TestRemoveLiquiditySecure_InsufficientShares tests removing more shares than owned
-func TestRemoveLiquiditySecure_InsufficientShares(t *testing.T) {
+// TestRemoveLiquidity_InsufficientShares tests removing more shares than owned
+func TestRemoveLiquidity_InsufficientShares(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	provider := types.TestAddr()
 
@@ -1651,7 +1651,7 @@ func TestRemoveLiquiditySecure_InsufficientShares(t *testing.T) {
 			sdk.NewCoin(pool.TokenB, math.NewInt(10_000_000)),
 		))
 
-	_, err = k.AddLiquiditySecure(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
+	_, err = k.AddLiquidity(ctx, provider, poolID, math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
 	// Get actual user shares
@@ -1664,13 +1664,13 @@ func TestRemoveLiquiditySecure_InsufficientShares(t *testing.T) {
 
 	// Try to remove more shares than owned (10x the actual shares)
 	excessiveShares := userShares.Mul(math.NewInt(10))
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, excessiveShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, excessiveShares)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "insufficient shares")
 }
 
-// TestExecuteSwapSecure_PoolDrainProtection tests max pool drain limit
-func TestExecuteSwapSecure_PoolDrainProtection(t *testing.T) {
+// TestExecuteSwap_PoolDrainProtection tests max pool drain limit
+func TestExecuteSwap_PoolDrainProtection(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	trader := types.TestAddr()
 
@@ -1689,7 +1689,7 @@ func TestExecuteSwapSecure_PoolDrainProtection(t *testing.T) {
 	// Try to swap amount that would drain too much of the pool
 	largeSwap := math.NewInt(400_000) // 40% of pool
 
-	_, err = k.ExecuteSwapSecure(ctx, trader, poolID, pool.TokenA, pool.TokenB, largeSwap, math.NewInt(1))
+	_, err = k.ExecuteSwap(ctx, trader, poolID, pool.TokenA, pool.TokenB, largeSwap, math.NewInt(1))
 
 	// Should fail due to pool drain protection or swap size validation
 	require.Error(t, err)

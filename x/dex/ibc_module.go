@@ -510,7 +510,7 @@ func (im IBCModule) executeSwapFromIBC(ctx sdk.Context, req types.ExecuteSwapPac
 	}
 
 	moduleAddr := im.keeper.GetModuleAddress()
-	amountOut, err := im.keeper.ExecuteSwapSecure(ctx, moduleAddr, poolID, req.TokenIn, req.TokenOut, req.AmountIn, req.MinAmountOut)
+	amountOut, err := im.keeper.ExecuteSwap(ctx, moduleAddr, poolID, req.TokenIn, req.TokenOut, req.AmountIn, req.MinAmountOut)
 	if err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}

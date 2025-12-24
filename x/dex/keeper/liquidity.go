@@ -43,184 +43,162 @@ func (k Keeper) SetLiquidity(ctx context.Context, poolID uint64, provider sdk.Ac
 	return nil
 }
 
-// AddLiquidity adds liquidity to an existing pool
+// AddLiquidity adds liquidity with comprehensive security checks
+// CODE-LOW-4 DOCUMENTATION: Reentrancy Guard Implementation
+//
+// REENTRANCY ATTACK EXPLANATION:
+// A reentrancy attack occurs when an attacker calls back into a contract/module
+// during its execution, before the first invocation has completed. This can allow
+// an attacker to:
+// 1. Drain funds by repeatedly withdrawing before balance updates
+// 2. Manipulate state by executing operations in unexpected order
+// 3. Bypass security checks that assume single execution path
+//
+// Classic example: The DAO hack (Ethereum, 2016) - $60M stolen via reentrancy
+//
+// HOW THE GUARD WORKS:
+// 1. Before executing the operation, we acquire a lock specific to this pool+operation
+// 2. The lock is stored in the KVStore (persistent) and optionally in-memory (tests)
+// 3. If the lock already exists, we reject the operation with ErrReentrancy
+// 4. After operation completes (or fails), we release the lock via defer
+// 5. This ensures ONLY ONE instance of an operation can execute at a time per pool
+//
+// ATTACKS PREVENTED:
+// - Flash loan attacks: Attacker cannot add liquidity, execute swap, remove liquidity atomically
+// - State manipulation: Attacker cannot call AddLiquidity recursively to bypass checks
+// - Race conditions: Prevents concurrent modifications to same pool state
+// - Callback attacks: External contract calls cannot re-enter DEX functions
+//
+// IMPLEMENTATION DETAILS:
+// - Lock key format: "{poolID}:{operation}" (e.g., "42:add_liquidity")
+// - Lock storage: KVStore ensures persistence across context boundaries
+// - Lock cleanup: defer ensures release even on panic/error
+// - Optional in-memory guard: Used in tests for additional verification
+//
+// COSMOS SDK SECURITY NOTE:
+// Unlike Ethereum smart contracts, Cosmos SDK modules don't have external contract calls
+// in the traditional sense. However, reentrancy can still occur via:
+// - Module-to-module calls (e.g., DEX calling Bank, which calls hooks)
+// - Message server handlers calling keeper methods
+// - Ante handlers or post-handlers triggering operations
+//
+// This guard provides defense-in-depth even though the attack surface is smaller
+// than Ethereum. Production DeFi protocols prioritize security over minimal code.
 func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolID uint64, amountA, amountB math.Int) (math.Int, error) {
-	// Validate inputs
-	if amountA.IsZero() || amountB.IsZero() {
-		return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("liquidity amounts must be positive")
+	// Execute with reentrancy protection
+	var shares math.Int
+	err := k.WithReentrancyGuard(ctx, poolID, "add_liquidity", func() error {
+		var execErr error
+		shares, execErr = k.addLiquidityInternal(ctx, provider, poolID, amountA, amountB)
+		return execErr
+	})
+
+	return shares, err
+}
+
+// addLiquidityInternal is the internal implementation with all security checks
+func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddress, poolID uint64, amountA, amountB math.Int) (math.Int, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Gas metering: Base liquidity operation cost
+	sdkCtx.GasMeter().ConsumeGas(40000, "dex_add_liquidity_base")
+
+	// 1. Input validation
+	if amountA.IsZero() || amountA.IsNegative() {
+		return math.ZeroInt(), types.ErrInvalidInput.Wrap("amount A must be positive")
+	}
+	sdkCtx.GasMeter().ConsumeGas(1000, "dex_add_liquidity_validation")
+
+	if amountB.IsZero() || amountB.IsNegative() {
+		return math.ZeroInt(), types.ErrInvalidInput.Wrap("amount B must be positive")
 	}
 
-	// Get pool
+	// 2. Get pool and validate state
+	sdkCtx.GasMeter().ConsumeGas(5000, "dex_add_liquidity_pool_lookup")
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
+		return math.ZeroInt(), types.ErrPoolNotFound.Wrapf("pool %d not found", poolID)
+	}
+
+	if err := k.ValidatePoolState(pool); err != nil {
 		return math.ZeroInt(), err
 	}
 
-	// DIVISION BY ZERO PROTECTION: Explicit zero checks before Quo() operations
-	// Check for invalid pool states that would cause division by zero
+	// 3. Check circuit breaker
+	if err := k.checkPoolPriceDeviation(ctx, pool, "add_liquidity"); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 4. Calculate optimal amounts and shares (proportional liquidity)
+	var finalAmountA, finalAmountB, newShares math.Int
+
 	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
-		// Pool has no reserves - this is the first liquidity provision
-		if !pool.TotalShares.IsZero() {
-			// CRITICAL: Pool has shares but no reserves - this is a corrupted state
-			return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has shares but zero reserves")
-		}
-
-		// First liquidity provider - calculate initial shares with overflow protection
-		// Use geometric mean: sqrt(amountA * amountB) to prevent initial share manipulation
-		// This follows Uniswap V2 pattern for initial liquidity
-		newShares, err := k.SafeCalculatePoolShares(amountA, amountB)
-		if err != nil {
-			return math.ZeroInt(), err
-		}
-
-		if newShares.IsZero() {
-			return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("initial liquidity amounts too small")
-		}
-
-		// Update pool reserves and total shares for first deposit
-		pool.ReserveA = amountA
-		pool.ReserveB = amountB
-		pool.TotalShares = newShares
-
-		if err := k.SetPool(ctx, pool); err != nil {
-			return math.ZeroInt(), err
-		}
-
-		// Set user's liquidity position
-		if err := k.SetLiquidity(ctx, poolID, provider, newShares); err != nil {
-			return math.ZeroInt(), err
-		}
-
-		// Transfer tokens from provider to module
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
-		moduleAddr := k.GetModuleAddress()
-
-		coinA := sdk.NewCoin(pool.TokenA, amountA)
-		coinB := sdk.NewCoin(pool.TokenB, amountB)
-
-		if err := k.bankKeeper.SendCoins(sdkCtx, provider, moduleAddr, sdk.NewCoins(coinA, coinB)); err != nil {
-			return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
-		}
-
-		// Emit event
-		sdkCtx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				types.EventTypeDexAddLiquidity,
-				sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
-				sdk.NewAttribute(types.AttributeKeyProvider, provider.String()),
-				sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
-				sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
-				sdk.NewAttribute(types.AttributeKeyShares, newShares.String()),
-			),
-		)
-
-		// Record metrics
-		if k.metrics != nil {
-			poolIDStr := fmt.Sprintf("%d", poolID)
-			k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(amountA.Int64()))
-			k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(amountB.Int64()))
-		}
-
-		return newShares, nil
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("cannot add liquidity to empty pool")
 	}
 
-	// Additional safety check: pool must have shares if it has reserves
-	if pool.TotalShares.IsZero() {
-		// CRITICAL: Pool has reserves but no shares - this is a corrupted state
-		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has reserves but zero shares")
-	}
+	// Calculate optimal amounts to maintain price ratio
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	optimalAmountB := amountA.Mul(pool.ReserveB)
 
-	// Now safe to perform division operations - all denominators are guaranteed non-zero
-	// Calculate optimal amounts and shares with overflow protection
-	// For proportional liquidity: amountA/reserveA = amountB/reserveB = shares/totalShares
-
-	// OVERFLOW CHECK: amountA * pool.ReserveB
-	numeratorB, err := amountA.SafeMul(pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating optimal amountB: %s * %s: %v",
-			amountA.String(), pool.ReserveB.String(), err)
+	// Check for division by zero before Quo
+	if pool.ReserveA.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve A is zero")
 	}
-	optimalAmountB, err := numeratorB.SafeQuo(pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow in optimal amountB division: %s / %s: %v",
-			numeratorB.String(), pool.ReserveA.String(), err)
-	}
+	optimalAmountB = optimalAmountB.Quo(pool.ReserveA)
 
-	// OVERFLOW CHECK: amountB * pool.ReserveA
-	numeratorA, err := amountB.SafeMul(pool.ReserveA)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow calculating optimal amountA: %s * %s: %v",
-			amountB.String(), pool.ReserveA.String(), err)
-	}
-	optimalAmountA, err := numeratorA.SafeQuo(pool.ReserveB)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow in optimal amountA division: %s / %s: %v",
-			numeratorA.String(), pool.ReserveB.String(), err)
-	}
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	optimalAmountA := amountB.Mul(pool.ReserveA)
 
-	var finalAmountA, finalAmountB math.Int
+	// Check for division by zero before Quo
+	if pool.ReserveB.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve B is zero")
+	}
+	optimalAmountA = optimalAmountA.Quo(pool.ReserveB)
 
+	// Use the optimal amounts that fit within provided limits
 	if optimalAmountB.LTE(amountB) {
-		// Use amountA and calculated amountB
 		finalAmountA = amountA
 		finalAmountB = optimalAmountB
 	} else {
-		// Use amountB and calculated amountA
 		finalAmountA = optimalAmountA
 		finalAmountB = amountB
 	}
 
-	// Calculate shares to mint with overflow protection
-	newShares, err := k.SafeCalculateAddLiquidityShares(finalAmountA, finalAmountB, pool.ReserveA, pool.ReserveB, pool.TotalShares)
-	if err != nil {
-		return math.ZeroInt(), err
+	// 5. Calculate shares to mint (proportional to contribution)
+	sdkCtx.GasMeter().ConsumeGas(8000, "dex_add_liquidity_calculation")
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	sharesA := finalAmountA.Mul(pool.TotalShares)
+
+	// Check for division by zero before Quo (already validated above, but explicit check)
+	if pool.ReserveA.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve A is zero")
+	}
+	sharesA = sharesA.Quo(pool.ReserveA)
+
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	sharesB := finalAmountB.Mul(pool.TotalShares)
+
+	// Check for division by zero before Quo (already validated above, but explicit check)
+	if pool.ReserveB.IsZero() {
+		return math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool reserve B is zero")
+	}
+	sharesB = sharesB.Quo(pool.ReserveB)
+
+	// Use minimum to maintain proportionality
+	newShares = sharesA
+	if sharesB.LT(sharesA) {
+		newShares = sharesB
 	}
 
 	if newShares.IsZero() {
-		return math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("liquidity contribution too small")
+		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("liquidity contribution too small")
 	}
 
-	// Update pool reserves and total shares with overflow protection
-	newReserveA, err := pool.ReserveA.SafeAdd(finalAmountA)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveA: %s + %s: %v",
-			pool.ReserveA.String(), finalAmountA.String(), err)
-	}
-	newReserveB, err := pool.ReserveB.SafeAdd(finalAmountB)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to reserveB: %s + %s: %v",
-			pool.ReserveB.String(), finalAmountB.String(), err)
-	}
-	newTotalShares, err := pool.TotalShares.SafeAdd(newShares)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding to total shares: %s + %s: %v",
-			pool.TotalShares.String(), newShares.String(), err)
-	}
+	// 6. Store old k for invariant check
+	oldK := pool.ReserveA.Mul(pool.ReserveB)
 
-	pool.ReserveA = newReserveA
-	pool.ReserveB = newReserveB
-	pool.TotalShares = newTotalShares
-
-	if err := k.SetPool(ctx, pool); err != nil {
-		return math.ZeroInt(), err
-	}
-
-	// Update user's liquidity position with overflow protection
-	currentShares, err := k.GetLiquidity(ctx, poolID, provider)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	userTotalShares, err := currentShares.SafeAdd(newShares)
-	if err != nil {
-		return math.ZeroInt(), types.ErrOverflow.Wrapf("overflow adding user shares: %s + %s: %v",
-			currentShares.String(), newShares.String(), err)
-	}
-	if err := k.SetLiquidity(ctx, poolID, provider, userTotalShares); err != nil {
-		return math.ZeroInt(), err
-	}
-
-	// Transfer tokens from provider to module
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	// 7. Transfer tokens FIRST (checks-effects-interactions)
+	sdkCtx.GasMeter().ConsumeGas(15000, "dex_add_liquidity_token_transfer")
 	moduleAddr := k.GetModuleAddress()
 
 	coinA := sdk.NewCoin(pool.TokenA, finalAmountA)
@@ -230,14 +208,54 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 		return math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
-	// Mark pool as active for activity-based tracking
+	// 8. Update pool state AFTER receiving tokens
+	// math.Int.Add is safe from overflow (uses big.Int internally)
+	pool.ReserveA = pool.ReserveA.Add(finalAmountA)
+	pool.ReserveB = pool.ReserveB.Add(finalAmountB)
+	pool.TotalShares = pool.TotalShares.Add(newShares)
+
+	// 9. Validate invariant
+	if err := k.ValidatePoolInvariant(ctx, pool, oldK); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 10. Validate final pool state
+	if err := k.ValidatePoolState(pool); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 11. Save pool
+	sdkCtx.GasMeter().ConsumeGas(10000, "dex_add_liquidity_state_update")
+	if err := k.SetPool(ctx, pool); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 12. Update user's liquidity position
+	currentShares, err := k.GetLiquidity(ctx, poolID, provider)
+	if err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// math.Int.Add is safe from overflow (uses big.Int internally)
+	newTotalShares := currentShares.Add(newShares)
+
+	if err := k.SetLiquidity(ctx, poolID, provider, newTotalShares); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 13. Record liquidity action for flash loan protection
+	if err := k.SetLastLiquidityActionBlock(ctx, poolID, provider); err != nil {
+		return math.ZeroInt(), err
+	}
+
+	// 14. Mark pool as active for activity-based tracking
 	if err := k.MarkPoolActive(ctx, poolID); err != nil {
 		// Log error but don't fail the operation - activity tracking is non-critical
 		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
 	}
 
-	// Emit event
-	sdkCtx.EventManager().EmitEvent(
+	// 15. Emit event
+	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDexAddLiquidity,
 			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
@@ -245,101 +263,162 @@ func (k Keeper) AddLiquidity(ctx context.Context, provider sdk.AccAddress, poolI
 			sdk.NewAttribute(types.AttributeKeyAmountA, finalAmountA.String()),
 			sdk.NewAttribute(types.AttributeKeyAmountB, finalAmountB.String()),
 			sdk.NewAttribute(types.AttributeKeyShares, newShares.String()),
+			sdk.NewAttribute(types.AttributeKeyTotalShares, pool.TotalShares.String()),
 		),
-	)
-
-	// Record liquidity added metrics
-	if k.metrics != nil {
-		poolIDStr := fmt.Sprintf("%d", poolID)
-		k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(finalAmountA.Int64()))
-		k.metrics.LiquidityAdded.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(finalAmountB.Int64()))
-	}
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, provider.String()),
+		),
+	})
 
 	return newShares, nil
 }
 
-// RemoveLiquidity removes liquidity from a pool
+// RemoveLiquidity removes liquidity with comprehensive security checks
 func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, poolID uint64, shares math.Int) (math.Int, math.Int, error) {
-	// Validate inputs
-	if shares.IsZero() {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrap("shares must be positive")
-	}
+	// Execute with reentrancy protection
+	var amountA, amountB math.Int
+	err := k.WithReentrancyGuard(ctx, poolID, "remove_liquidity", func() error {
+		var execErr error
+		amountA, amountB, execErr = k.removeLiquidityInternal(ctx, provider, poolID, shares)
+		return execErr
+	})
 
-	// Get pool
-	pool, err := k.GetPool(ctx, poolID)
-	if err != nil {
+	return amountA, amountB, err
+}
+
+// removeLiquidityInternal is the internal implementation with all security checks
+func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAddress, poolID uint64, shares math.Int) (math.Int, math.Int, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Gas metering: Base remove liquidity operation cost
+	sdkCtx.GasMeter().ConsumeGas(40000, "dex_remove_liquidity_base")
+
+	// 1. Input validation
+	if shares.IsZero() || shares.IsNegative() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidInput.Wrap("shares must be positive")
+	}
+	sdkCtx.GasMeter().ConsumeGas(1000, "dex_remove_liquidity_validation")
+
+	// 2. Flash loan protection - check minimum lock period
+	if err := k.CheckFlashLoanProtection(ctx, poolID, provider); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	// DIVISION BY ZERO PROTECTION: Check pool state before Quo() operations
-	if pool.TotalShares.IsZero() {
-		// CRITICAL: Pool has no shares - cannot calculate withdrawal amounts
-		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has zero total shares")
+	// 3. Get pool and validate state
+	sdkCtx.GasMeter().ConsumeGas(5000, "dex_remove_liquidity_pool_lookup")
+	pool, err := k.GetPool(ctx, poolID)
+	if err != nil {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrPoolNotFound.Wrapf("pool %d not found", poolID)
 	}
 
-	// Additional safety: verify reserves are non-zero if shares exist
-	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
-		// CRITICAL: Pool has shares but zero reserves - corrupted state
-		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool has shares but zero reserves")
+	if err := k.ValidatePoolState(pool); err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	// Check user's liquidity position
+	// 4. Check circuit breaker
+	if err := k.checkPoolPriceDeviation(ctx, pool, "remove_liquidity"); err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
+	}
+
+	// 5. Check user's liquidity position
 	userShares, err := k.GetLiquidity(ctx, poolID, provider)
 	if err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
 	if shares.GT(userShares) {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf("have %s, need %s", userShares, shares)
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf(
+			"insufficient shares: have %s, need %s",
+			userShares, shares,
+		)
 	}
 
-	// Calculate amounts to return with overflow protection
-	amountA, amountB, err := k.SafeCalculateRemoveLiquidityAmounts(shares, pool.ReserveA, pool.ReserveB, pool.TotalShares)
-	if err != nil {
+	// 6. Calculate amounts to return (proportional to shares)
+	sdkCtx.GasMeter().ConsumeGas(8000, "dex_remove_liquidity_calculation")
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	amountA := shares.Mul(pool.ReserveA)
+
+	// Check for division by zero before Quo
+	if pool.TotalShares.IsZero() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool total shares is zero")
+	}
+	amountA = amountA.Quo(pool.TotalShares)
+
+	// math.Int.Mul is safe from overflow (uses big.Int internally)
+	amountB := shares.Mul(pool.ReserveB)
+
+	// Check for division by zero before Quo
+	if pool.TotalShares.IsZero() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidPoolState.Wrap("pool total shares is zero")
+	}
+	amountB = amountB.Quo(pool.TotalShares)
+
+	if amountA.IsZero() || amountB.IsZero() {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("withdrawal amounts too small")
+	}
+
+	// 7. Update pool state BEFORE transfers (checks-effects-interactions)
+	// Check for underflow before subtraction
+	if pool.ReserveA.LT(amountA) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf(
+			"insufficient reserve A: have %s, need %s",
+			pool.ReserveA, amountA,
+		)
+	}
+	pool.ReserveA = pool.ReserveA.Sub(amountA)
+
+	// Check for underflow before subtraction
+	if pool.ReserveB.LT(amountB) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf(
+			"insufficient reserve B: have %s, need %s",
+			pool.ReserveB, amountB,
+		)
+	}
+	pool.ReserveB = pool.ReserveB.Sub(amountB)
+
+	// Check for underflow before subtraction
+	if pool.TotalShares.LT(shares) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf(
+			"insufficient total shares: have %s, need %s",
+			pool.TotalShares, shares,
+		)
+	}
+	pool.TotalShares = pool.TotalShares.Sub(shares)
+
+	// 9. Validate pool state (note: k will decrease, which is expected)
+	if err := k.ValidatePoolState(pool); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	if amountA.IsZero() || amountB.IsZero() {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrInvalidLiquidityAmount.Wrap("withdrawal amounts too small")
-	}
-
-	// Update pool reserves and total shares with overflow protection
-	newReserveA, err := pool.ReserveA.SafeSub(amountA)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveA: %s - %s: %v",
-			pool.ReserveA.String(), amountA.String(), err)
-	}
-	newReserveB, err := pool.ReserveB.SafeSub(amountB)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from reserveB: %s - %s: %v",
-			pool.ReserveB.String(), amountB.String(), err)
-	}
-	newTotalShares, err := pool.TotalShares.SafeSub(shares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting from total shares: %s - %s: %v",
-			pool.TotalShares.String(), shares.String(), err)
-	}
-
-	pool.ReserveA = newReserveA
-	pool.ReserveB = newReserveB
-	pool.TotalShares = newTotalShares
-
+	// 10. Save pool
+	sdkCtx.GasMeter().ConsumeGas(10000, "dex_remove_liquidity_state_update")
 	if err := k.SetPool(ctx, pool); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	// Update user's liquidity position with overflow protection
-	newUserShares, err := userShares.SafeSub(shares)
-	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), types.ErrOverflow.Wrapf("overflow subtracting user shares: %s - %s: %v",
-			userShares.String(), shares.String(), err)
+	// 11. Update user's liquidity position
+	// Check for underflow before subtraction (already validated above in step 5, but explicit check)
+	if userShares.LT(shares) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientShares.Wrapf(
+			"insufficient user shares: have %s, need %s",
+			userShares, shares,
+		)
 	}
+	newUserShares := userShares.Sub(shares)
+
 	if err := k.SetLiquidity(ctx, poolID, provider, newUserShares); err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}
 
-	// Transfer tokens from module to provider
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	// 12. Record liquidity action for flash loan protection
+	if err := k.SetLastLiquidityActionBlock(ctx, poolID, provider); err != nil {
+		return math.ZeroInt(), math.ZeroInt(), err
+	}
+
+	// 13. Transfer tokens to provider LAST
+	sdkCtx.GasMeter().ConsumeGas(15000, "dex_remove_liquidity_token_transfer")
 	moduleAddr := k.GetModuleAddress()
 
 	coinA := sdk.NewCoin(pool.TokenA, amountA)
@@ -349,14 +428,14 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
-	// Mark pool as active for activity-based tracking
+	// 14. Mark pool as active for activity-based tracking
 	if err := k.MarkPoolActive(ctx, poolID); err != nil {
 		// Log error but don't fail the operation - activity tracking is non-critical
 		sdkCtx.Logger().Error("failed to mark pool active", "pool_id", poolID, "error", err)
 	}
 
-	// Emit event
-	sdkCtx.EventManager().EmitEvent(
+	// 15. Emit event
+	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDexRemoveLiquidity,
 			sdk.NewAttribute(types.AttributeKeyPoolID, fmt.Sprintf("%d", poolID)),
@@ -364,20 +443,18 @@ func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, po
 			sdk.NewAttribute(types.AttributeKeyAmountA, amountA.String()),
 			sdk.NewAttribute(types.AttributeKeyAmountB, amountB.String()),
 			sdk.NewAttribute(types.AttributeKeyShares, shares.String()),
+			sdk.NewAttribute("remaining_shares", newUserShares.String()),
 		),
-	)
-
-	// Record liquidity removed metrics
-	if k.metrics != nil {
-		poolIDStr := fmt.Sprintf("%d", poolID)
-		k.metrics.LiquidityRemoved.WithLabelValues(poolIDStr, pool.TokenA).Add(float64(amountA.Int64()))
-		k.metrics.LiquidityRemoved.WithLabelValues(poolIDStr, pool.TokenB).Add(float64(amountB.Int64()))
-	}
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeySender, provider.String()),
+		),
+	})
 
 	return amountA, amountB, nil
 }
 
-// IterateLiquidityByPool iterates over all liquidity positions in a pool
 func (k Keeper) IterateLiquidityByPool(ctx context.Context, poolID uint64, cb func(provider sdk.AccAddress, shares math.Int) (stop bool)) error {
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, LiquidityKeyByPoolPrefix(poolID))

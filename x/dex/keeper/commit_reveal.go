@@ -254,7 +254,7 @@ func (k Keeper) RevealAndExecuteSwap(
 	k.deleteSwapCommitment(ctx, expectedHash, commitment)
 
 	// Execute the swap using the secure path
-	amountOut, err := k.ExecuteSwapSecure(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
+	amountOut, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -490,7 +490,7 @@ func (k Keeper) SwapWithCommitReveal(
 	}
 
 	// Regular swap - execute directly
-	return k.ExecuteSwapSecure(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
+	return k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
 }
 
 // UpdateCommitRevealMetrics records metrics for commit-reveal operations

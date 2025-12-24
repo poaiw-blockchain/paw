@@ -321,6 +321,18 @@ message Params {
   // When disabled, provider selection uses full iteration (higher gas cost)
   // Default: true
   bool use_provider_cache = 13;
+
+  // max_requests_per_address_per_day is the maximum number of compute requests
+  // an address can submit in a 24-hour period (approximately 17,280 blocks)
+  // Set to 0 to disable daily rate limiting
+  // Default: 100 requests per day
+  uint64 max_requests_per_address_per_day = 14;
+
+  // request_cooldown_blocks is the minimum number of blocks that must pass
+  // between consecutive requests from the same address
+  // Set to 0 to disable cooldown rate limiting
+  // Default: 10 blocks (~50 seconds at 5s block time)
+  uint64 request_cooldown_blocks = 15;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets

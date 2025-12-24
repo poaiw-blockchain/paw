@@ -91,7 +91,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_SwapDuringSwap() {
 
 	// Attempt 1: Execute first swap (should succeed)
 	firstSwap := math.NewInt(1000)
-	_, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", firstSwap, math.NewInt(1))
+	_, err := suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", firstSwap, math.NewInt(1))
 	suite.Require().NoError(err, "First swap should succeed")
 
 	// Attempt 2: Simulate reentrancy by manually locking
@@ -99,7 +99,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_SwapDuringSwap() {
 	suite.Require().NoError(err, "Initial lock should succeed")
 
 	// Attempt 3: Try to execute swap while locked (simulates reentrant call)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", firstSwap, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", firstSwap, math.NewInt(1))
 	suite.Require().Error(err, "Reentrant swap should fail")
 	suite.Require().Contains(err.Error(), "reentrancy", "Error should indicate reentrancy detection")
 
@@ -107,7 +107,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_SwapDuringSwap() {
 	guard.Unlock("1:swap")
 
 	// Verify: After unlock, swap should work again
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
 	suite.Require().NoError(err, "Swap after unlock should succeed")
 }
 
@@ -115,7 +115,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_SwapDuringSwap() {
 func (suite *SecurityIntegrationSuite) TestReentrancyAttack_WithdrawDuringSwap() {
 	// Setup: Create pool and add liquidity
 	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
-	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.liquidityProvider, poolID, math.NewInt(10000), math.NewInt(10000))
+	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.liquidityProvider, poolID, math.NewInt(10000), math.NewInt(10000))
 	suite.Require().NoError(err)
 
 	// Advance block for flash loan protection
@@ -131,7 +131,7 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_WithdrawDuringSwap()
 
 	// Attempt to remove liquidity while swap is in progress (should fail if using same guard)
 	// Note: RemoveLiquidity doesn't currently use the guard, but this tests the guard mechanism
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.liquidityProvider, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.liquidityProvider, poolID, shares)
 	suite.Require().NoError(err)
 	// This will succeed because RemoveLiquidity uses different operation key
 	// But demonstrates the guard prevents same operation type
@@ -150,12 +150,12 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PriceManipulation() {
 	// to manipulate pool price without risk
 
 	// Step 1: Add liquidity
-	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID, math.NewInt(50000), math.NewInt(50000))
+	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID, math.NewInt(50000), math.NewInt(50000))
 	suite.Require().NoError(err)
 	suite.Require().True(shares.GT(math.ZeroInt()))
 
 	// Step 2: Try to immediately remove liquidity in same block (should fail)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Same-block liquidity removal should be blocked")
 	suite.Require().Contains(err.Error(), "flash loan", "Error should indicate flash loan detection")
 
@@ -163,7 +163,7 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PriceManipulation() {
 	suite.advanceFlashLoanWindow()
 
 	// Step 4: Now removal should succeed
-	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	amountA, amountB, err := suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().NoError(err, "Liquidity removal should succeed after block delay")
 	suite.Require().True(amountA.GT(math.ZeroInt()))
 	suite.Require().True(amountB.GT(math.ZeroInt()))
@@ -178,28 +178,28 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_MultiplePools() {
 	// Attack scenario: Try to manipulate prices across pools using flash loans
 
 	// Add liquidity to pool 1
-	shares1, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, pool1, math.NewInt(10000), math.NewInt(10000))
+	shares1, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, pool1, math.NewInt(10000), math.NewInt(10000))
 	suite.Require().NoError(err)
 
 	// Add liquidity to pool 2
-	shares2, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, pool2, math.NewInt(10000), math.NewInt(20000))
+	shares2, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, pool2, math.NewInt(10000), math.NewInt(20000))
 	suite.Require().NoError(err)
 
 	// Try to remove from pool 1 immediately (should fail)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool1, shares1)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, pool1, shares1)
 	suite.Require().Error(err, "Flash loan protection should prevent same-block removal")
 
 	// Try to remove from pool 2 immediately (should also fail)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool2, shares2)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, pool2, shares2)
 	suite.Require().Error(err, "Flash loan protection should work independently per pool")
 
 	// Advance block window for flash loan protection
 	suite.advanceFlashLoanWindow()
 
 	// Now both should succeed
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool1, shares1)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, pool1, shares1)
 	suite.Require().NoError(err)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, pool2, shares2)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, pool2, shares2)
 	suite.Require().NoError(err)
 }
 
@@ -220,7 +220,7 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 
 	// Attack scenario: Add→Swap→Remove in same block
 	// Step 1: Attacker adds huge liquidity (becomes dominant LP)
-	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID,
+	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID,
 		math.NewInt(500000), math.NewInt(500000))
 	suite.Require().NoError(err, "Initial liquidity addition should succeed")
 	suite.Require().True(shares.GT(math.ZeroInt()))
@@ -228,7 +228,7 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	// Step 2: Execute large swap to manipulate price (still same block)
 	// This would normally move the price, creating arbitrage opportunity
 	swapAmount := math.NewInt(50000) // 10% of reserves after addition
-	if _, swapErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID,
+	if _, swapErr := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID,
 		"atom", "usdc", swapAmount, math.NewInt(1)); swapErr != nil {
 		suite.T().Logf("swap prevented by MEV protections: %v", swapErr)
 	}
@@ -238,21 +238,21 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	// In real attack, attacker would profit from price difference between chains
 
 	// Step 4: Try to remove liquidity immediately (MUST BE BLOCKED)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Flash loan protection MUST block same-block removal after add")
 	suite.Require().Contains(err.Error(), "flash loan",
 		"Error must indicate flash loan protection triggered")
 
 	// Verify protection persists for insufficient block gap
 	suite.advanceBlock(5) // Advance only 5 blocks (less than 10 block minimum)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Protection must persist for minimum lock period")
 	suite.Require().Contains(err.Error(), "flash loan",
 		"Error must indicate flash loan protection still active")
 
 	// Verify removal succeeds after full lock period
 	suite.advanceBlock(5) // Now total 10 blocks have passed
-	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	amountA, amountB, err := suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().NoError(err, "Removal should succeed after full lock period")
 	suite.Require().True(amountA.GT(math.ZeroInt()), "Should receive non-zero amount A")
 	suite.Require().True(amountB.GT(math.ZeroInt()), "Should receive non-zero amount B")
@@ -268,19 +268,19 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PartialRemovalBlocked
 	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
 
 	// Add liquidity
-	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID,
+	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID,
 		math.NewInt(200000), math.NewInt(200000))
 	suite.Require().NoError(err)
 
 	// Try to remove even a tiny fraction immediately (should still be blocked)
 	partialShares := shares.QuoRaw(100) // Just 1% of shares
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, partialShares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, partialShares)
 	suite.Require().Error(err, "Even partial removal must be blocked in same block")
 	suite.Require().Contains(err.Error(), "flash loan")
 
 	// After lock period, partial removal should work
 	suite.advanceFlashLoanWindow()
-	amountA, amountB, err := suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, partialShares)
+	amountA, amountB, err := suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, partialShares)
 	suite.Require().NoError(err, "Partial removal should succeed after lock period")
 	suite.Require().True(amountA.GT(math.ZeroInt()))
 	suite.Require().True(amountB.GT(math.ZeroInt()))
@@ -302,12 +302,12 @@ func (suite *SecurityIntegrationSuite) TestMEVAttack_Frontrunning() {
 	attackerSwap := math.NewInt(15000)
 
 	// Attacker's large swap should fail due to size limit (>10% of reserve)
-	_, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", attackerSwap, math.NewInt(1))
+	_, err := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", attackerSwap, math.NewInt(1))
 	suite.Require().Error(err, "Swap exceeding 10% should be blocked")
 	suite.Require().Contains(err.Error(), "too large", "Error should indicate swap size limit")
 
 	// Normal user's swap should succeed (within limits)
-	amountOut, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", normalUserSwap, math.NewInt(1))
+	amountOut, err := suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", normalUserSwap, math.NewInt(1))
 	suite.Require().NoError(err, "Normal sized swap should succeed")
 	suite.Require().True(amountOut.GT(math.ZeroInt()))
 
@@ -331,7 +331,7 @@ func (suite *SecurityIntegrationSuite) TestMEVAttack_Sandwiching() {
 
 	// Step 1: Attacker tries to frontrun with max allowed swap (10%)
 	attackFrontrun := math.NewInt(10000) // Exactly 10% of reserve
-	frontrunOut, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", attackFrontrun, math.NewInt(1))
+	frontrunOut, err := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", attackFrontrun, math.NewInt(1))
 	suite.Require().NoError(err, "10% swap should succeed")
 
 	// Get pool state after frontrun
@@ -340,13 +340,13 @@ func (suite *SecurityIntegrationSuite) TestMEVAttack_Sandwiching() {
 	oldReserveB := poolAfterFrontrun.ReserveB
 
 	// Step 2: Victim executes trade (gets worse price due to frontrun)
-	victimOut, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", victimSwap, math.NewInt(1))
+	victimOut, err := suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", victimSwap, math.NewInt(1))
 	suite.Require().NoError(err)
 
 	// Step 3: Attacker tries to backrun by selling back
 	// This should be limited by price impact protection (50% max)
 	// Selling large amount back should fail if price impact is too high
-	if _, backrunErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", frontrunOut, math.NewInt(1)); backrunErr != nil {
+	if _, backrunErr := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "usdc", "atom", frontrunOut, math.NewInt(1)); backrunErr != nil {
 		suite.T().Logf("backrun attempt limited: %v", backrunErr)
 	}
 
@@ -381,7 +381,7 @@ func (suite *SecurityIntegrationSuite) TestOverflowAttack_LargeAmounts() {
 	// Attempt 1: Try swap with huge amount (should fail gracefully, not overflow)
 	params, paramErr := suite.keeper.GetParams(suite.ctx)
 	suite.Require().NoError(paramErr)
-	_, err := suite.keeper.CalculateSwapOutputSecure(
+	_, err := suite.keeper.CalculateSwapOutput(
 		suite.ctx,
 		hugeAmount,
 		math.NewInt(100000),
@@ -422,7 +422,7 @@ func (suite *SecurityIntegrationSuite) TestUnderflowAttack_NegativeBalances() {
 	drainAmount := pool.ReserveA.Add(math.NewInt(1))
 
 	// This should fail before causing underflow
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", drainAmount, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", drainAmount, math.NewInt(1))
 	suite.Require().Error(err, "Swap larger than reserve should fail")
 	suite.Require().NotContains(err.Error(), "negative", "Should prevent underflow, not create negative")
 
@@ -447,7 +447,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_ExtremePriceDeviation(
 	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
 
 	// Execute initial swap to establish price baseline
-	_, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(1000), math.NewInt(1))
+	_, err := suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(1000), math.NewInt(1))
 	suite.Require().NoError(err)
 
 	// Get pool and manually manipulate reserves to simulate extreme price change
@@ -465,7 +465,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_ExtremePriceDeviation(
 	suite.Require().NoError(suite.keeper.SetPool(suite.ctx, pool))
 
 	// Try to execute swap - should trigger circuit breaker
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
 	suite.Require().Error(err, "Circuit breaker should trigger on extreme price deviation")
 	suite.Require().Contains(err.Error(), "circuit breaker", "Error should indicate circuit breaker activation")
 
@@ -476,7 +476,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_ExtremePriceDeviation(
 	suite.Require().False(cbState.PausedUntil.IsZero(), "Pause time should be set")
 
 	// Verify all operations are blocked
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
 	suite.Require().Error(err, "All swaps should be blocked")
 }
 
@@ -490,7 +490,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_AutoRecovery() {
 	suite.Require().NoError(err)
 
 	// Verify pool is paused
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
 	suite.Require().Error(err, "Operations should be blocked while paused")
 	suite.Require().Contains(err.Error(), "circuit breaker", "Should indicate circuit breaker is active")
 
@@ -500,7 +500,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_AutoRecovery() {
 	suite.ctx = suite.ctx.WithBlockHeader(header)
 
 	// Now operations should succeed (auto-recovery)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(1000), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(1000), math.NewInt(1))
 	suite.Require().NoError(err, "Operations should resume after pause timeout")
 
 	// Verify circuit breaker is no longer blocking
@@ -550,7 +550,7 @@ func (suite *SecurityIntegrationSuite) TestInvariantViolation_AfterSwap() {
 
 	// Execute swap
 	swapAmount := math.NewInt(5000)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", swapAmount, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", swapAmount, math.NewInt(1))
 	suite.Require().NoError(err)
 
 	// Get pool state after swap
@@ -621,7 +621,7 @@ func (suite *SecurityIntegrationSuite) TestDoSAttack_TinySwapSpam() {
 	failedSwaps := 0
 
 	for i := 0; i < 100; i++ {
-		_, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", tinySwap, math.NewInt(0))
+		_, err := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", tinySwap, math.NewInt(0))
 		if err != nil {
 			failedSwaps++
 			// Tiny swaps might fail due to "output amount too small"
@@ -641,7 +641,7 @@ func (suite *SecurityIntegrationSuite) TestDoSAttack_TinySwapSpam() {
 
 	// Verify normal swaps still work
 	normalSwap := math.NewInt(1000)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", normalSwap, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", normalSwap, math.NewInt(1))
 	suite.Require().NoError(err, "Normal swaps should still work after spam")
 }
 
@@ -653,29 +653,29 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_MultipleAttackV
 	poolID := suite.createTestPool("atom", "usdc", math.NewInt(500000), math.NewInt(500000))
 
 	// Attack Vector 1: Try flash loan
-	shares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID, math.NewInt(100000), math.NewInt(100000))
+	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID, math.NewInt(100000), math.NewInt(100000))
 	suite.Require().NoError(err)
 
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Flash loan should be blocked")
 
 	suite.advanceFlashLoanWindow()
 
 	// Attack Vector 2: Try large swap for MEV
 	largeSwap := math.NewInt(70000) // More than 10% of reserve after initial add
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", largeSwap, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", largeSwap, math.NewInt(1))
 	suite.Require().Error(err, "Large swap should be blocked")
 
 	// Attack Vector 3: Try acceptable swap followed by another large one
 	acceptableSwap := math.NewInt(40000) // Under 10% limit
-	out1, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", acceptableSwap, math.NewInt(1))
+	out1, err := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", acceptableSwap, math.NewInt(1))
 	suite.Require().NoError(err, "First swap within limits should succeed")
 	suite.Require().True(out1.GT(math.ZeroInt()))
 
 	// Pool reserves changed, now try another 10% swap (of new reserves)
 	pool, _ := suite.keeper.GetPool(suite.ctx, poolID)
 	nextSwap := pool.ReserveA.QuoRaw(10) // 10% of new reserve
-	out2, err := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", nextSwap, math.NewInt(1))
+	out2, err := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", nextSwap, math.NewInt(1))
 	suite.Require().NoError(err, "Sequential swaps within individual limits should work")
 	suite.Require().True(out2.GT(math.ZeroInt()))
 
@@ -722,7 +722,7 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	suite.Require().NoError(err, "Circuit breaker should not be triggered initially")
 
 	// Test 6: Flash loan protection
-	shares, _ := suite.keeper.AddLiquiditySecure(suite.ctx, suite.normalUser, poolID, math.NewInt(10000), math.NewInt(10000))
+	shares, _ := suite.keeper.AddLiquidity(suite.ctx, suite.normalUser, poolID, math.NewInt(10000), math.NewInt(10000))
 	err = suite.keeper.CheckFlashLoanProtection(suite.ctx, poolID, suite.normalUser)
 	suite.Require().Error(err, "Flash loan protection should block same-block removal")
 
@@ -744,12 +744,12 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	suite.Require().NoError(err)
 
 	// Test 9: Execute secure swap with all protections
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(10000), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(10000), math.NewInt(1))
 	suite.Require().NoError(err, "Secure swap with all protections should succeed")
 
 	// Clean up - remove liquidity
 	suite.advanceFlashLoanWindow()
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.normalUser, poolID, shares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.normalUser, poolID, shares)
 	suite.Require().NoError(err)
 }
 
@@ -765,7 +765,7 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	suite.fundAccount(user1, "atom", math.NewInt(100000))
 	suite.fundAccount(user1, "usdc", math.NewInt(100000))
 
-	shares1, err := suite.keeper.AddLiquiditySecure(suite.ctx, user1, poolID, math.NewInt(50000), math.NewInt(50000))
+	shares1, err := suite.keeper.AddLiquidity(suite.ctx, user1, poolID, math.NewInt(50000), math.NewInt(50000))
 	suite.Require().NoError(err)
 
 	suite.advanceFlashLoanWindow()
@@ -774,7 +774,7 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	user2 := sdk.AccAddress([]byte("regular_user_2_____"))
 	suite.fundAccount(user2, "atom", math.NewInt(10000))
 
-	out2, err := suite.keeper.ExecuteSwapSecure(suite.ctx, user2, poolID, "atom", "usdc", math.NewInt(5000), math.NewInt(1))
+	out2, err := suite.keeper.ExecuteSwap(suite.ctx, user2, poolID, "atom", "usdc", math.NewInt(5000), math.NewInt(1))
 	suite.Require().NoError(err)
 	suite.Require().True(out2.GT(math.ZeroInt()))
 
@@ -785,37 +785,37 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	// Attacker frontrun (max 10%)
 	pool, _ := suite.keeper.GetPool(suite.ctx, poolID)
 	frontrunAmount := pool.ReserveA.QuoRaw(10)
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "atom", "usdc", frontrunAmount, math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "atom", "usdc", frontrunAmount, math.NewInt(1))
 	suite.Require().NoError(err, "10% frontrun succeeds")
 
 	// Victim trade
-	_, err = suite.keeper.ExecuteSwapSecure(suite.ctx, user3, poolID, "atom", "usdc", math.NewInt(10000), math.NewInt(1))
+	_, err = suite.keeper.ExecuteSwap(suite.ctx, user3, poolID, "atom", "usdc", math.NewInt(10000), math.NewInt(1))
 	suite.Require().NoError(err)
 
 	// Attacker backrun attempt - price impact should limit profit
 	pool, _ = suite.keeper.GetPool(suite.ctx, poolID)
 	backrunAmount := pool.ReserveB.QuoRaw(10)
-	if _, swapErr := suite.keeper.ExecuteSwapSecure(suite.ctx, suite.attacker, poolID, "usdc", "atom", backrunAmount, math.NewInt(1)); swapErr != nil {
+	if _, swapErr := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID, "usdc", "atom", backrunAmount, math.NewInt(1)); swapErr != nil {
 		suite.T().Logf("backrun thwarted: %v", swapErr)
 	}
 	// May succeed or fail depending on price impact
 
 	// Attacker attempt 2: Flash loan attack
 	suite.advanceFlashLoanWindow()
-	attackShares, err := suite.keeper.AddLiquiditySecure(suite.ctx, suite.attacker, poolID, math.NewInt(200000), math.NewInt(200000))
+	attackShares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID, math.NewInt(200000), math.NewInt(200000))
 	suite.Require().NoError(err)
 
 	// Try to remove immediately
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, attackShares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, attackShares)
 	suite.Require().Error(err, "Flash loan protection blocks immediate removal")
 
 	// User 1 removes their liquidity successfully (added earlier)
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, user1, poolID, shares1)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, user1, poolID, shares1)
 	suite.Require().NoError(err, "Legitimate liquidity removal succeeds")
 
 	// Advance block(s) and attacker can now remove
 	suite.advanceFlashLoanWindow()
-	_, _, err = suite.keeper.RemoveLiquiditySecure(suite.ctx, suite.attacker, poolID, attackShares)
+	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, attackShares)
 	suite.Require().NoError(err)
 
 	// Verify pool integrity after all interactions

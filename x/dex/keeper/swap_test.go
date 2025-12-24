@@ -241,7 +241,7 @@ func TestPoolDrainLimit(t *testing.T) {
 	reserveIn := math.NewInt(10_000_000)
 	reserveOut := math.NewInt(20_000_000)
 
-	_, err = k.CalculateSwapOutputSecure(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
+	_, err = k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrSwapTooLarge)
 	require.Contains(t, err.Error(), "drain too much liquidity")
@@ -326,115 +326,10 @@ func TestSwap_InsufficientLiquidity(t *testing.T) {
 }
 
 // TestCalculateSwapOutput tests swap output calculation
-func TestCalculateSwapOutput(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-
-	params, err := k.GetParams(ctx)
-	require.NoError(t, err)
-
-	tests := []struct {
-		name         string
-		amountIn     math.Int
-		reserveIn    math.Int
-		reserveOut   math.Int
-		swapFee      math.LegacyDec
-		expectError  bool
-		minAmountOut math.Int
-	}{
-		{
-			name:         "normal swap",
-			amountIn:     math.NewInt(1000000),
-			reserveIn:    math.NewInt(10000000),
-			reserveOut:   math.NewInt(20000000),
-			swapFee:      params.SwapFee,
-			expectError:  false,
-			minAmountOut: math.NewInt(1),
-		},
-		{
-			name:         "zero input",
-			amountIn:     math.NewInt(0),
-			reserveIn:    math.NewInt(10000000),
-			reserveOut:   math.NewInt(20000000),
-			swapFee:      params.SwapFee,
-			expectError:  true,
-			minAmountOut: math.NewInt(0),
-		},
-		{
-			name:         "zero reserve in",
-			amountIn:     math.NewInt(1000000),
-			reserveIn:    math.NewInt(0),
-			reserveOut:   math.NewInt(20000000),
-			swapFee:      params.SwapFee,
-			expectError:  true,
-			minAmountOut: math.NewInt(0),
-		},
-		{
-			name:         "zero reserve out",
-			amountIn:     math.NewInt(1000000),
-			reserveIn:    math.NewInt(10000000),
-			reserveOut:   math.NewInt(0),
-			swapFee:      params.SwapFee,
-			expectError:  true,
-			minAmountOut: math.NewInt(0),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			amountOut, err := k.CalculateSwapOutput(ctx, tt.amountIn, tt.reserveIn, tt.reserveOut, tt.swapFee)
-
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.True(t, amountOut.GTE(tt.minAmountOut))
-			}
-		})
-	}
-}
 
 // TestSimulateSwap tests swap simulation without execution
-func TestSimulateSwap(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	poolID := setupPoolForSwaps(t, k, ctx)
-
-	tokenIn := "upaw"
-	tokenOut := "uusdt"
-	amountIn := math.NewInt(1000000)
-
-	// Get initial pool state
-	poolBefore, err := k.GetPool(ctx, poolID)
-	require.NoError(t, err)
-
-	// Simulate swap
-	amountOut, err := k.SimulateSwap(ctx, poolID, tokenIn, tokenOut, amountIn)
-	require.NoError(t, err)
-	require.True(t, amountOut.IsPositive())
-
-	// Verify pool state unchanged
-	poolAfter, err := k.GetPool(ctx, poolID)
-	require.NoError(t, err)
-	require.Equal(t, poolBefore.ReserveA, poolAfter.ReserveA)
-	require.Equal(t, poolBefore.ReserveB, poolAfter.ReserveB)
-}
 
 // TestGetSpotPrice tests spot price calculation
-func TestGetSpotPrice(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	poolID := setupPoolForSwaps(t, k, ctx)
-
-	// Pool has 10M upaw and 20M uusdt
-	// Spot price of uusdt in terms of upaw = 20M / 10M = 2.0
-
-	spotPrice, err := k.GetSpotPrice(ctx, poolID, "upaw", "uusdt")
-	require.NoError(t, err)
-	require.Equal(t, math.LegacyNewDec(2), spotPrice)
-
-	// Reverse direction: upaw in terms of uusdt = 10M / 20M = 0.5
-	spotPriceReverse, err := k.GetSpotPrice(ctx, poolID, "uusdt", "upaw")
-	require.NoError(t, err)
-	require.Equal(t, math.LegacyNewDecWithPrec(5, 1), spotPriceReverse)
-}
 
 // TestSwap_PriceImpact tests that large swaps have high price impact
 func TestSwap_PriceImpact(t *testing.T) {

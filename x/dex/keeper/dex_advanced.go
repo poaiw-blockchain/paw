@@ -360,7 +360,7 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 // Implementation:
 // - SetLastLiquidityActionBlock: Records block height on add/remove
 // - CheckFlashLoanProtection: Validates minimum blocks elapsed before removal
-// - RemoveLiquiditySecure: Calls CheckFlashLoanProtection before allowing removal
+// - RemoveLiquidity: Calls CheckFlashLoanProtection before allowing removal
 const (
 	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset.
 	// Value of 10 blocks (~1 minute at 6s blocks) provides security while not overly restricting LPs.

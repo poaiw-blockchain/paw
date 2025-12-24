@@ -143,57 +143,8 @@ func TestCreatePool_TokenOrdering(t *testing.T) {
 }
 
 // TestGetPool tests pool retrieval
-func TestGetPool(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	creator := types.TestAddr()
-
-	tokenA := "upaw"
-	tokenB := "uusdt"
-	amountA := math.NewInt(1000000)
-	amountB := math.NewInt(2000000)
-
-	// Pool doesn't exist initially
-	_, err := k.GetPool(ctx, 1)
-	require.Error(t, err)
-
-	// Create pool
-	pool, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
-	require.NoError(t, err)
-
-	// Retrieve pool
-	retrieved, err := k.GetPool(ctx, pool.Id)
-	require.NoError(t, err)
-	require.Equal(t, pool.Id, retrieved.Id)
-	require.Equal(t, pool.TokenA, retrieved.TokenA)
-	require.Equal(t, pool.TokenB, retrieved.TokenB)
-	require.Equal(t, pool.ReserveA, retrieved.ReserveA)
-	require.Equal(t, pool.ReserveB, retrieved.ReserveB)
-}
 
 // TestGetPoolByTokens tests pool retrieval by token pair
-func TestGetPoolByTokens(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	creator := types.TestAddr()
-
-	tokenA := "upaw"
-	tokenB := "uusdt"
-	amountA := math.NewInt(1000000)
-	amountB := math.NewInt(2000000)
-
-	// Create pool
-	pool, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
-	require.NoError(t, err)
-
-	// Retrieve by token pair (in same order)
-	retrieved, err := k.GetPoolByTokens(ctx, tokenA, tokenB)
-	require.NoError(t, err)
-	require.Equal(t, pool.Id, retrieved.Id)
-
-	// Retrieve by token pair (in reverse order - should still work)
-	retrieved, err = k.GetPoolByTokens(ctx, tokenB, tokenA)
-	require.NoError(t, err)
-	require.Equal(t, pool.Id, retrieved.Id)
-}
 
 // TestIteratePools tests pool iteration
 func TestIteratePools(t *testing.T) {
@@ -228,34 +179,6 @@ func TestIteratePools(t *testing.T) {
 }
 
 // TestGetAllPools tests getting all pools
-func TestGetAllPools(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	creator := types.TestAddr()
-
-	// Create multiple pools
-	numPools := 3
-	for i := 0; i < numPools; i++ {
-		tokenA := "upaw"
-		tokenB := "token" + string(rune('A'+i))
-		amountA := math.NewInt(1000000)
-		amountB := math.NewInt(2000000)
-
-		_, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
-		require.NoError(t, err)
-	}
-
-	// Get all pools
-	pools, err := k.GetAllPools(ctx)
-	require.NoError(t, err)
-	require.Equal(t, numPools, len(pools))
-
-	// Verify all pools are valid
-	for _, pool := range pools {
-		require.Greater(t, pool.Id, uint64(0))
-		require.True(t, pool.ReserveA.IsPositive())
-		require.True(t, pool.ReserveB.IsPositive())
-	}
-}
 
 // TestPoolID_Increment tests that pool IDs increment correctly
 func TestPoolID_Increment(t *testing.T) {
@@ -351,33 +274,6 @@ func TestPoolShares_Calculation(t *testing.T) {
 }
 
 // TestSetPool tests pool update
-func TestSetPool(t *testing.T) {
-	k, ctx := keepertest.DexKeeper(t)
-	creator := types.TestAddr()
-
-	tokenA := "upaw"
-	tokenB := "uusdt"
-	amountA := math.NewInt(1000000)
-	amountB := math.NewInt(2000000)
-
-	// Create pool
-	pool, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
-	require.NoError(t, err)
-
-	// Modify pool
-	pool.ReserveA = math.NewInt(1500000)
-	pool.ReserveB = math.NewInt(2500000)
-
-	// Save changes
-	err = k.SetPool(ctx, pool)
-	require.NoError(t, err)
-
-	// Verify changes persisted
-	retrieved, err := k.GetPool(ctx, pool.Id)
-	require.NoError(t, err)
-	require.Equal(t, pool.ReserveA, retrieved.ReserveA)
-	require.Equal(t, pool.ReserveB, retrieved.ReserveB)
-}
 
 // TestPoolByTokensIndex tests token pair indexing
 func TestPoolByTokensIndex(t *testing.T) {

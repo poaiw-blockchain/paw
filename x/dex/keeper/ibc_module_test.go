@@ -27,7 +27,7 @@ func TestExecuteSwapFromIBCInvalidPool(t *testing.T) {
 	moduleAddr := k.GetModuleAddress()
 	require.NotNil(t, moduleAddr)
 
-	amountOut, err := k.ExecuteSwapSecure(ctx, moduleAddr, 999, "upaw", "uosmo", math.NewInt(1), math.NewInt(1))
+	amountOut, err := k.ExecuteSwap(ctx, moduleAddr, 999, "upaw", "uosmo", math.NewInt(1), math.NewInt(1))
 	require.Error(t, err)
 	require.True(t, amountOut.IsZero())
 }

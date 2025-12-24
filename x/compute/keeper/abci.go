@@ -70,6 +70,12 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 		// Don't return error - log and continue
 	}
 
+	// Cleanup old request rate limit data to prevent state bloat
+	if err := k.CleanupOldRequestRateLimitData(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to cleanup old request rate limit data", "error", err)
+		// Don't return error - log and continue
+	}
+
 	// Emit end block event for monitoring
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(

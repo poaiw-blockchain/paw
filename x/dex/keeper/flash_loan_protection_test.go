@@ -127,13 +127,13 @@ func TestFlashLoanProtection_AddAndRemoveSameBlock(t *testing.T) {
 	ctx = ctx.WithBlockHeight(100)
 
 	// Attacker adds liquidity
-	sharesAdded, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	sharesAdded, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.True(t, sharesAdded.GT(math.ZeroInt()))
 
 	// SAME BLOCK: Attacker tries to remove liquidity immediately
 	// This should FAIL due to flash loan protection
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, sharesAdded)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, sharesAdded)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 	require.Contains(t, err.Error(), "must wait")
@@ -153,7 +153,7 @@ func TestFlashLoanProtection_AddAndRemoveNextBlock(t *testing.T) {
 
 	// Add liquidity at block 100
 	ctx = ctx.WithBlockHeight(100)
-	sharesAdded, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	sharesAdded, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 	require.True(t, sharesAdded.GT(math.ZeroInt()))
@@ -161,7 +161,7 @@ func TestFlashLoanProtection_AddAndRemoveNextBlock(t *testing.T) {
 	// Block 110 (10 blocks later): Remove liquidity
 	// With FlashLoanProtectionBlocks=10, this should SUCCEED
 	ctx = ctx.WithBlockHeight(110)
-	amountA, amountB, err := k.RemoveLiquiditySecure(ctx, provider, poolID, sharesAdded)
+	amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, sharesAdded)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
 	require.True(t, amountB.GT(math.ZeroInt()))
@@ -185,34 +185,34 @@ func TestFlashLoanProtection_MultipleProviders(t *testing.T) {
 	ctx = ctx.WithBlockHeight(100)
 
 	// Provider 1 adds liquidity
-	shares1, err := k.AddLiquiditySecure(ctx, provider1, poolID,
+	shares1, err := k.AddLiquidity(ctx, provider1, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
 	// Provider 2 adds liquidity in SAME BLOCK
-	shares2, err := k.AddLiquiditySecure(ctx, provider2, poolID,
+	shares2, err := k.AddLiquidity(ctx, provider2, poolID,
 		math.NewInt(50_000), math.NewInt(50_000))
 	require.NoError(t, err)
 
 	// Provider 1 cannot remove in same block
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider1, poolID, shares1)
+	_, _, err = k.RemoveLiquidity(ctx, provider1, poolID, shares1)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
 	// Provider 2 cannot remove in same block
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider2, poolID, shares2)
+	_, _, err = k.RemoveLiquidity(ctx, provider2, poolID, shares2)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
 	// Block 110 (10 blocks later): both providers can remove
 	ctx = ctx.WithBlockHeight(110)
 
-	amountA1, amountB1, err := k.RemoveLiquiditySecure(ctx, provider1, poolID, shares1)
+	amountA1, amountB1, err := k.RemoveLiquidity(ctx, provider1, poolID, shares1)
 	require.NoError(t, err)
 	require.True(t, amountA1.GT(math.ZeroInt()))
 	require.True(t, amountB1.GT(math.ZeroInt()))
 
-	amountA2, amountB2, err := k.RemoveLiquiditySecure(ctx, provider2, poolID, shares2)
+	amountA2, amountB2, err := k.RemoveLiquidity(ctx, provider2, poolID, shares2)
 	require.NoError(t, err)
 	require.True(t, amountA2.GT(math.ZeroInt()))
 	require.True(t, amountB2.GT(math.ZeroInt()))
@@ -232,32 +232,32 @@ func TestFlashLoanProtection_MultipleAddRemoveCycles(t *testing.T) {
 
 	// Cycle 1: Add at block 100
 	ctx = ctx.WithBlockHeight(100)
-	shares1, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	shares1, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
 	// Cannot remove in same block
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares1)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares1)
 	require.Error(t, err)
 
 	// Cycle 1: Remove at block 101
 	ctx = ctx.WithBlockHeight(110)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares1)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares1)
 	require.NoError(t, err)
 
 	// Cycle 2: Add at block 102
 	ctx = ctx.WithBlockHeight(120)
-	shares2, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	shares2, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(80_000), math.NewInt(80_000))
 	require.NoError(t, err)
 
 	// Cannot remove in same block
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares2)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares2)
 	require.Error(t, err)
 
 	// Cycle 2: Remove at block 103
 	ctx = ctx.WithBlockHeight(130)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares2)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares2)
 	require.NoError(t, err)
 }
 
@@ -275,26 +275,26 @@ func TestFlashLoanProtection_PartialRemoval(t *testing.T) {
 
 	// Add liquidity at block 100
 	ctx = ctx.WithBlockHeight(100)
-	totalShares, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	totalShares, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
 	// Block 110 (10 blocks after add): Remove 50% of shares
 	ctx = ctx.WithBlockHeight(110)
 	halfShares := totalShares.QuoRaw(2)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, halfShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, halfShares)
 	require.NoError(t, err)
 
 	// SAME BLOCK 110: Try to remove remaining 50%
 	// This should FAIL because we just performed a liquidity action
 	remainingShares := totalShares.Sub(halfShares)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, remainingShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, remainingShares)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
 	// Block 120 (10 blocks after previous remove): Can now remove the rest
 	ctx = ctx.WithBlockHeight(120)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, remainingShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, remainingShares)
 	require.NoError(t, err)
 }
 
@@ -312,13 +312,13 @@ func TestFlashLoanProtection_AddMultipleThenRemove(t *testing.T) {
 
 	// Add liquidity at block 100
 	ctx = ctx.WithBlockHeight(100)
-	shares1, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	shares1, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(50_000), math.NewInt(50_000))
 	require.NoError(t, err)
 
 	// Add MORE liquidity at block 101 (different block)
 	ctx = ctx.WithBlockHeight(110)
-	shares2, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	shares2, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(50_000), math.NewInt(50_000))
 	require.NoError(t, err)
 
@@ -326,13 +326,13 @@ func TestFlashLoanProtection_AddMultipleThenRemove(t *testing.T) {
 
 	// Try to remove ALL at block 110 (same block as last add)
 	// This should FAIL
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, totalShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, totalShares)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
 	// Block 120 (10 blocks after previous remove): Can remove all
 	ctx = ctx.WithBlockHeight(120)
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, totalShares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, totalShares)
 	require.NoError(t, err)
 }
 
@@ -353,14 +353,14 @@ func TestFlashLoanProtection_SimulatedAttackScenario(t *testing.T) {
 	// ATTACK SCENARIO:
 	// Block 1000: Attacker gets flash loan and adds massive liquidity
 	ctx = ctx.WithBlockHeight(1000)
-	attackShares, err := k.AddLiquiditySecure(ctx, attacker, poolID,
+	attackShares, err := k.AddLiquidity(ctx, attacker, poolID,
 		math.NewInt(5_000_000), math.NewInt(5_000_000))
 	require.NoError(t, err)
 	require.True(t, attackShares.GT(math.ZeroInt()))
 
 	// SAME BLOCK 1000: Attacker tries to manipulate pool and remove liquidity
 	// This is where flash loan protection kicks in - should FAIL
-	_, _, err = k.RemoveLiquiditySecure(ctx, attacker, poolID, attackShares)
+	_, _, err = k.RemoveLiquidity(ctx, attacker, poolID, attackShares)
 	require.Error(t, err, "flash loan attack should be prevented")
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 	require.Contains(t, err.Error(), "must wait", "error should explain the waiting period")
@@ -374,7 +374,7 @@ func TestFlashLoanProtection_SimulatedAttackScenario(t *testing.T) {
 
 	// Block 1010 (10 blocks later): Attacker can now remove, but the atomic attack is broken
 	ctx = ctx.WithBlockHeight(1010)
-	amountA, amountB, err := k.RemoveLiquiditySecure(ctx, attacker, poolID, attackShares)
+	amountA, amountB, err := k.RemoveLiquidity(ctx, attacker, poolID, attackShares)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
 	require.True(t, amountB.GT(math.ZeroInt()))
@@ -463,13 +463,13 @@ func TestFlashLoanProtection_IntegrationWithReentrancy(t *testing.T) {
 
 	// Add liquidity
 	ctx = ctx.WithBlockHeight(100)
-	shares, err := k.AddLiquiditySecure(ctx, provider, poolID,
+	shares, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
 	// Same block removal fails due to flash loan protection
 	// Even if reentrancy guard somehow allowed it, flash loan protection is second line of defense
-	_, _, err = k.RemoveLiquiditySecure(ctx, provider, poolID, shares)
+	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 }

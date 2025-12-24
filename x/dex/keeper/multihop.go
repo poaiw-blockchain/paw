@@ -139,7 +139,7 @@ func (k Keeper) ExecuteMultiHopSwap(
 			return nil, types.ErrInvalidSwapAmount.Wrapf("hop %d: amount too small after fees", i)
 		}
 
-		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
+		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec(), params.MaxPoolDrainPercent)
 		if err != nil {
 			return nil, err
 		}
@@ -345,7 +345,7 @@ func (k Keeper) SimulateMultiHopSwap(
 			return nil, types.ErrInvalidSwapAmount.Wrapf("hop %d: amount too small", i)
 		}
 
-		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec())
+		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec(), params.MaxPoolDrainPercent)
 		if err != nil {
 			return nil, err
 		}
