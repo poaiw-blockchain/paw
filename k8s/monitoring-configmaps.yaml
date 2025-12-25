@@ -1,0 +1,401 @@
+# PAW Blockchain Monitoring ConfigMaps
+# Alertmanager config with Slack/Email/PagerDuty receivers
+# Prometheus config with IBC alert rules
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: paw-blockchain
+  labels:
+    app: alertmanager
+    component: monitoring
+data:
+  config.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+      smtp_from: 'alerts@paw-chain.io'
+      smtp_auth_username: '${SMTP_USER}'
+      smtp_auth_password: '${SMTP_PASSWORD}'
+      slack_api_url: '${SLACK_WEBHOOK_URL}'
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+
+    route:
+      group_by: ['alertname', 'service', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+
+      # Send resolved notifications for all alerts
+      send_resolved: true
+
+      routes:
+        # CRITICAL IBC alerts - immediate escalation
+        - match:
+            service: ibc
+            severity: critical
+          receiver: 'ibc-critical'
+          group_wait: 10s
+          repeat_interval: 30m
+          continue: true
+
+        # HIGH IBC alerts
+        - match:
+            service: ibc
+            severity: high
+          receiver: 'ibc-high'
+          group_wait: 1m
+          repeat_interval: 1h
+
+        # All IBC alerts go to dedicated channel
+        - match:
+            service: ibc
+          receiver: 'ibc-alerts'
+          group_wait: 30s
+          repeat_interval: 2h
+
+        # Critical alerts - PagerDuty
+        - match:
+            severity: critical
+          receiver: 'pagerduty-critical'
+          group_wait: 10s
+          repeat_interval: 30m
+          continue: true
+
+        # Security alerts
+        - match:
+            team: security
+          receiver: 'security-team'
+          group_wait: 10s
+          repeat_interval: 1h
+
+        # Genesis verification alerts
+        - match:
+            component: genesis
+          receiver: 'genesis-alerts'
+          group_wait: 10s
+          repeat_interval: 30m
+
+    receivers:
+      - name: 'default-receiver'
+        slack_configs:
+          - channel: '#paw-alerts'
+            send_resolved: true
+            title: '{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+
+      - name: 'ibc-critical'
+        slack_configs:
+          - channel: '#paw-ibc-critical'
+            send_resolved: true
+            title: '🚨 CRITICAL IBC: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+        pagerduty_configs:
+          - service_key: '${PAGERDUTY_IBC_KEY}'
+            send_resolved: true
+            severity: critical
+            description: '{{ .CommonAnnotations.summary }}'
+        email_configs:
+          - to: 'ibc-oncall@paw-chain.io'
+            send_resolved: true
+
+      - name: 'ibc-high'
+        slack_configs:
+          - channel: '#paw-ibc-alerts'
+            send_resolved: true
+            title: '⚠️ HIGH IBC: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+        email_configs:
+          - to: 'ibc-team@paw-chain.io'
+            send_resolved: true
+
+      - name: 'ibc-alerts'
+        slack_configs:
+          - channel: '#paw-ibc-alerts'
+            send_resolved: true
+            title: 'IBC {{ .Status }}: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+
+      - name: 'pagerduty-critical'
+        pagerduty_configs:
+          - service_key: '${PAGERDUTY_CRITICAL_KEY}'
+            send_resolved: true
+            severity: critical
+            description: '{{ .CommonAnnotations.summary }}'
+            details:
+              firing: '{{ .Alerts.Firing | len }}'
+              resolved: '{{ .Alerts.Resolved | len }}'
+              dashboard: '{{ .CommonAnnotations.dashboard_url }}'
+              runbook: '{{ .CommonAnnotations.runbook_url }}'
+
+      - name: 'security-team'
+        slack_configs:
+          - channel: '#paw-security'
+            send_resolved: true
+            title: '🔐 SECURITY: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+        email_configs:
+          - to: 'security@paw-chain.io'
+            send_resolved: true
+
+      - name: 'genesis-alerts'
+        slack_configs:
+          - channel: '#paw-genesis-alerts'
+            send_resolved: true
+            title: '📋 Genesis: {{ .CommonAnnotations.summary }}'
+            text: '{{ .CommonAnnotations.description }}'
+        pagerduty_configs:
+          - service_key: '${PAGERDUTY_GENESIS_KEY}'
+            send_resolved: true
+            severity: critical
+
+    inhibit_rules:
+      # Inhibit warning alerts if critical is firing for same service
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'service']
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'paw-blockchain'
+        environment: 'production'
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    scrape_configs:
+      # Validator nodes
+      - job_name: 'paw-validators'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['paw-blockchain']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: paw-validator
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+      # Full nodes
+      - job_name: 'paw-nodes'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['paw-blockchain']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: paw-node
+            action: keep
+
+      # API services
+      - job_name: 'paw-api'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['paw-blockchain']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: paw-api
+            action: keep
+
+  # IBC Alert Rules
+  ibc-rules.yml: |
+    groups:
+      - name: ibc.alerts
+        interval: 30s
+        rules:
+          # IBC Channel Status
+          - alert: IBCChannelDown
+            expr: ibc_channel_status{state!="open"} == 1
+            for: 5m
+            labels:
+              severity: critical
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC channel {{ $labels.channel_id }} is not open"
+              description: |
+                IBC channel {{ $labels.channel_id }} to {{ $labels.counterparty }}
+                is in state {{ $labels.state }} for more than 5 minutes.
+
+                Actions:
+                1. Check relayer logs: kubectl logs -l app=hermes -n paw-blockchain
+                2. Verify counterparty chain status
+                3. Check for pending packets
+              runbook_url: "https://docs.paw-chain.org/runbooks/ibc-channel-down"
+              dashboard_url: "https://grafana.paw-chain.org/d/ibc-overview"
+
+          # IBC Packet Timeout
+          - alert: IBCPacketTimeout
+            expr: increase(ibc_packet_timeout_total[5m]) > 0
+            for: 1m
+            labels:
+              severity: high
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC packet timeouts detected on {{ $labels.channel_id }}"
+              description: |
+                {{ $value }} IBC packets have timed out on channel {{ $labels.channel_id }}
+                in the last 5 minutes.
+
+                This may indicate:
+                - Counterparty chain is down/slow
+                - Relayer issues
+                - Network connectivity problems
+
+          # IBC Pending Packets (Boundary Alert)
+          - alert: IBCPendingPacketsHigh
+            expr: ibc_pending_packets > 100
+            for: 10m
+            labels:
+              severity: warning
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "High pending IBC packets on {{ $labels.channel_id }}"
+              description: |
+                {{ $value }} packets pending on channel {{ $labels.channel_id }}.
+                Relayer may be falling behind.
+
+          - alert: IBCPendingPacketsCritical
+            expr: ibc_pending_packets > 500
+            for: 5m
+            labels:
+              severity: critical
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "CRITICAL: IBC packet backlog on {{ $labels.channel_id }}"
+              description: |
+                {{ $value }} packets pending - immediate attention required.
+                Packets may start timing out.
+
+          # IBC Relayer Health
+          - alert: IBCRelayerDown
+            expr: up{job="hermes-relayer"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC Relayer (Hermes) is down"
+              description: |
+                The Hermes IBC relayer is not responding.
+                All IBC packet relay is halted.
+
+                Actions:
+                1. Check relayer pod: kubectl get pods -l app=hermes -n paw-blockchain
+                2. Check logs: kubectl logs -l app=hermes -n paw-blockchain
+                3. Restart if needed: kubectl rollout restart deployment/hermes -n paw-blockchain
+
+          # IBC Transaction Failures
+          - alert: IBCTransactionFailures
+            expr: rate(ibc_tx_failures_total[5m]) > 0.1
+            for: 5m
+            labels:
+              severity: high
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC transaction failures on {{ $labels.channel_id }}"
+              description: |
+                IBC transactions are failing at rate {{ $value | humanize }}/sec.
+                Check for gas issues, chain congestion, or configuration problems.
+
+          # IBC Acknowledgement Errors
+          - alert: IBCAckErrors
+            expr: increase(ibc_ack_errors_total[10m]) > 5
+            for: 5m
+            labels:
+              severity: warning
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC acknowledgement errors detected"
+              description: |
+                {{ $value }} acknowledgement errors in the last 10 minutes.
+                Some cross-chain transactions may have failed.
+
+          # Client Expiry Warning
+          - alert: IBCClientExpiringSoon
+            expr: (ibc_client_expiry_timestamp - time()) < 86400
+            for: 1h
+            labels:
+              severity: warning
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "IBC client {{ $labels.client_id }} expiring within 24h"
+              description: |
+                IBC light client {{ $labels.client_id }} will expire in
+                {{ $value | humanizeDuration }}.
+                Update the client before expiry to maintain the channel.
+
+          - alert: IBCClientExpired
+            expr: (ibc_client_expiry_timestamp - time()) < 0
+            for: 1m
+            labels:
+              severity: critical
+              service: ibc
+              team: ibc
+            annotations:
+              summary: "CRITICAL: IBC client {{ $labels.client_id }} has EXPIRED"
+              description: |
+                IBC light client {{ $labels.client_id }} has expired.
+                The IBC channel is now unusable until governance action.
+
+      - name: ibc.performance
+        interval: 1m
+        rules:
+          # IBC Latency
+          - alert: IBCHighLatency
+            expr: histogram_quantile(0.95, ibc_packet_relay_duration_seconds_bucket) > 30
+            for: 10m
+            labels:
+              severity: warning
+              service: ibc
+            annotations:
+              summary: "High IBC packet relay latency"
+              description: "95th percentile latency is {{ $value }}s (target: <30s)"
+
+          # Relayer Memory Usage
+          - alert: IBCRelayerHighMemory
+            expr: container_memory_usage_bytes{container="hermes"} / container_spec_memory_limit_bytes{container="hermes"} > 0.85
+            for: 10m
+            labels:
+              severity: warning
+              service: ibc
+            annotations:
+              summary: "IBC relayer memory usage high"
+              description: "Hermes using {{ $value | humanizePercentage }} of memory limit"
