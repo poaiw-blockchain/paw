@@ -911,3 +911,204 @@ func TestGenesisExportImport_MultiplePoolsPreservation(t *testing.T) {
 	require.Equal(t, "price deviation >20%", restored3.TriggerReason)
 	require.Equal(t, 1, restored3.NotificationsSent)
 }
+
+// TestGenesisExportImportWithRealSwapFeeAccumulation tests that pools with fees
+// accumulated through actual swap operations can be successfully exported and imported.
+// This test performs real swaps to accumulate fees, then verifies the complete flow.
+func TestGenesisExportImportWithRealSwapFeeAccumulation(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	// Set swap fee to 0.3%
+	params := types.DefaultParams()
+	params.SwapFee = sdkmath.LegacyNewDecWithPrec(3, 3) // 0.3%
+	require.NoError(t, k.SetParams(ctx, params))
+
+	// Create pool with 1M:1M reserves
+	creatorAddr := types.TestAddr()
+	traderAddr := sdk.AccAddress([]byte("test_trader_address"))
+
+	initialReserveA := sdkmath.NewInt(1_000_000)
+	initialReserveB := sdkmath.NewInt(1_000_000)
+
+	pool, err := k.CreatePool(ctx, creatorAddr, "upaw", "uatom", initialReserveA, initialReserveB)
+	require.NoError(t, err)
+
+	// Capture initial state
+	initialShares := pool.TotalShares
+	initialK := initialReserveA.Mul(initialReserveB)
+
+	// Perform multiple swaps to accumulate fees
+	// Each swap: 10,000 upaw -> uatom
+	swapAmount := sdkmath.NewInt(10_000)
+	numSwaps := 10
+
+	for i := 0; i < numSwaps; i++ {
+		_, err := k.ExecuteSwap(ctx, traderAddr, pool.Id, "upaw", "uatom", swapAmount, sdkmath.OneInt())
+		require.NoError(t, err, "swap %d should succeed", i+1)
+	}
+
+	// Get pool state after swaps
+	poolAfterSwaps, err := k.GetPool(ctx, pool.Id)
+	require.NoError(t, err)
+
+	// Verify fees accumulated (reserves increased while shares stayed constant)
+	require.Equal(t, initialShares, poolAfterSwaps.TotalShares, "shares should not change from swaps")
+	newK := poolAfterSwaps.ReserveA.Mul(poolAfterSwaps.ReserveB)
+	require.True(t, newK.GT(initialK), "k-value should increase from swap fees")
+
+	kRatio := sdkmath.LegacyNewDecFromInt(newK).Quo(sdkmath.LegacyNewDecFromInt(initialK))
+	t.Logf("After %d swaps: k increased by %s%%", numSwaps, kRatio.Sub(sdkmath.LegacyOneDec()).Mul(sdkmath.LegacyNewDec(100)))
+
+	// Export genesis
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+	require.Len(t, exportedGenesis.Pools, 1)
+
+	exportedPool := exportedGenesis.Pools[0]
+	require.Equal(t, poolAfterSwaps.ReserveA, exportedPool.ReserveA, "export should preserve fee-accumulated reserves")
+	require.Equal(t, poolAfterSwaps.ReserveB, exportedPool.ReserveB, "export should preserve fee-accumulated reserves")
+	require.Equal(t, poolAfterSwaps.TotalShares, exportedPool.TotalShares, "export should preserve shares")
+
+	// Import into new keeper
+	k2, ctx2 := keepertest.DexKeeper(t)
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify imported pool matches
+	importedPool, err := k2.GetPool(ctx2, pool.Id)
+	require.NoError(t, err)
+	require.Equal(t, poolAfterSwaps.ReserveA, importedPool.ReserveA)
+	require.Equal(t, poolAfterSwaps.ReserveB, importedPool.ReserveB)
+	require.Equal(t, poolAfterSwaps.TotalShares, importedPool.TotalShares)
+
+	// Verify LP position imported correctly
+	importedCreatorShares, err := k2.GetLiquidity(ctx2, pool.Id, creatorAddr)
+	require.NoError(t, err)
+	require.Equal(t, initialShares, importedCreatorShares, "LP shares should match after import")
+
+	// Verify k-value is preserved
+	importedK := importedPool.ReserveA.Mul(importedPool.ReserveB)
+	require.Equal(t, newK, importedK, "k-value should be preserved across import")
+
+	// Verify constant product invariant still holds with fee-accumulated reserves
+	cpInvariant := keeper.ConstantProductInvariant(*k2)
+	msg, broken := cpInvariant(ctx2)
+	require.False(t, broken, "constant product invariant should pass with fee-accumulated reserves: %s", msg)
+
+	// Verify liquidity shares invariant passes
+	sharesInvariant := keeper.LiquiditySharesInvariant(*k2)
+	msg, broken = sharesInvariant(ctx2)
+	require.False(t, broken, "liquidity shares invariant should pass: %s", msg)
+}
+
+// TestGenesisExportImportWithFeeAccumulationAndLiquidity tests genesis export/import
+// when pools have both fee accumulation AND multiple liquidity providers
+func TestGenesisExportImportWithFeeAccumulationAndLiquidity(t *testing.T) {
+	k, ctx := keepertest.DexKeeper(t)
+
+	// Set swap fee
+	params := types.DefaultParams()
+	params.SwapFee = sdkmath.LegacyNewDecWithPrec(3, 3) // 0.3%
+	require.NoError(t, k.SetParams(ctx, params))
+
+	// Create pool
+	creator := types.TestAddr()
+	provider2 := sdk.AccAddress([]byte("provider2_address_"))
+	trader := sdk.AccAddress([]byte("test_trader_address"))
+
+	initialReserveA := sdkmath.NewInt(1_000_000)
+	initialReserveB := sdkmath.NewInt(1_000_000)
+
+	pool, err := k.CreatePool(ctx, creator, "upaw", "uatom", initialReserveA, initialReserveB)
+	require.NoError(t, err)
+
+	// Get creator's initial shares
+	creatorShares, err := k.GetLiquidity(ctx, pool.Id, creator)
+	require.NoError(t, err)
+
+	// Add liquidity from second provider (50% more)
+	addReserveA := sdkmath.NewInt(500_000)
+	addReserveB := sdkmath.NewInt(500_000)
+	provider2Shares, err := k.AddLiquidity(ctx, provider2, pool.Id, addReserveA, addReserveB)
+	require.NoError(t, err)
+
+	// Verify total shares
+	poolAfterLP, err := k.GetPool(ctx, pool.Id)
+	require.NoError(t, err)
+	expectedTotalShares := creatorShares.Add(provider2Shares)
+	require.Equal(t, expectedTotalShares, poolAfterLP.TotalShares)
+
+	// Perform swaps to accumulate fees
+	for i := 0; i < 5; i++ {
+		_, err := k.ExecuteSwap(ctx, trader, pool.Id, "upaw", "uatom", sdkmath.NewInt(10_000), sdkmath.OneInt())
+		require.NoError(t, err)
+	}
+
+	// Get final pool state
+	poolBeforeExport, err := k.GetPool(ctx, pool.Id)
+	require.NoError(t, err)
+	require.Equal(t, expectedTotalShares, poolBeforeExport.TotalShares, "shares unchanged by swaps")
+
+	// Export genesis
+	exportedGenesis, err := k.ExportGenesis(ctx)
+	require.NoError(t, err)
+	require.Len(t, exportedGenesis.Pools, 1)
+	require.Len(t, exportedGenesis.LiquidityPositions, 2, "should export both LP positions")
+
+	// Verify LP positions sum to TotalShares
+	var totalExportedShares sdkmath.Int = sdkmath.ZeroInt()
+	for _, lp := range exportedGenesis.LiquidityPositions {
+		totalExportedShares = totalExportedShares.Add(lp.Shares)
+	}
+	require.Equal(t, poolBeforeExport.TotalShares, totalExportedShares)
+
+	// Import into new keeper
+	k2, ctx2 := keepertest.DexKeeper(t)
+	err = k2.InitGenesis(ctx2, *exportedGenesis)
+	require.NoError(t, err)
+
+	// Verify pool imported correctly
+	importedPool, err := k2.GetPool(ctx2, pool.Id)
+	require.NoError(t, err)
+	require.Equal(t, poolBeforeExport.ReserveA, importedPool.ReserveA)
+	require.Equal(t, poolBeforeExport.ReserveB, importedPool.ReserveB)
+	require.Equal(t, poolBeforeExport.TotalShares, importedPool.TotalShares)
+
+	// Verify both LP positions imported correctly
+	importedCreatorShares, err := k2.GetLiquidity(ctx2, pool.Id, creator)
+	require.NoError(t, err)
+	require.Equal(t, creatorShares, importedCreatorShares, "creator shares should be preserved")
+
+	importedProvider2Shares, err := k2.GetLiquidity(ctx2, pool.Id, provider2)
+	require.NoError(t, err)
+	require.Equal(t, provider2Shares, importedProvider2Shares, "provider2 shares should be preserved")
+
+	// Verify LP share ownership percentages are preserved
+	totalImportedShares := importedCreatorShares.Add(importedProvider2Shares)
+	require.Equal(t, poolBeforeExport.TotalShares, totalImportedShares, "total shares should match")
+	require.Equal(t, importedPool.TotalShares, totalImportedShares, "pool total shares should match sum of LP positions")
+
+	// Verify share values are preserved by calculating theoretical redemption value
+	// Creator owns: creatorShares / totalShares of the pool
+	// Expected redemption: (creatorShares / totalShares) * reserves
+	creatorOwnershipRatio := sdkmath.LegacyNewDecFromInt(creatorShares).Quo(sdkmath.LegacyNewDecFromInt(totalImportedShares))
+	expectedCreatorValueA := creatorOwnershipRatio.MulInt(importedPool.ReserveA).TruncateInt()
+	expectedCreatorValueB := creatorOwnershipRatio.MulInt(importedPool.ReserveB).TruncateInt()
+	require.True(t, expectedCreatorValueA.GT(sdkmath.ZeroInt()), "creator should have claim on tokenA reserves")
+	require.True(t, expectedCreatorValueB.GT(sdkmath.ZeroInt()), "creator should have claim on tokenB reserves")
+
+	// Verify fee accumulation is reflected in increased LP value
+	// With fee accumulation, LP shares are now worth more than initial deposit
+	initialK := initialReserveA.Mul(initialReserveB)
+	finalK := importedPool.ReserveA.Mul(importedPool.ReserveB)
+	require.True(t, finalK.GT(initialK), "k-value increased from fees, so LP shares are worth more")
+
+	// Run invariants to ensure consistency
+	cpInvariant := keeper.ConstantProductInvariant(*k2)
+	msg, broken := cpInvariant(ctx2)
+	require.False(t, broken, "constant product invariant should pass with fee accumulation: %s", msg)
+
+	sharesInvariant := keeper.LiquiditySharesInvariant(*k2)
+	msg, broken = sharesInvariant(ctx2)
+	require.False(t, broken, "liquidity shares invariant should pass: %s", msg)
+}
