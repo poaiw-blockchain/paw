@@ -41,7 +41,7 @@ spec:
 
       initContainers:
         - name: config-init
-          image: localhost:5000/pawd:latest
+          image: 100.91.253.108:5000/pawd:latest
           imagePullPolicy: Always
           command: ["/bin/sh", "-c"]
           args:
@@ -128,7 +128,7 @@ spec:
 
       containers:
         - name: paw-node
-          image: localhost:5000/pawd:latest
+          image: 100.91.253.108:5000/pawd:latest
           imagePullPolicy: Always
           command: ["/app/bin/paw-node"]
           args:
