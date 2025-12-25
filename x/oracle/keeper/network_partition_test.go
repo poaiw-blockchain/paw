@@ -443,6 +443,11 @@ func TestNetworkPartition_NoStateCorruption(t *testing.T) {
 	// Phase 2: Network partition - only 5 validators can submit (50% < 67%)
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 10)
 
+	// Clear old validator prices first to simulate partition
+	for _, valAddr := range validators {
+		k.DeleteValidatorPrice(ctx, valAddr, "BTC")
+	}
+
 	partitionPrice := sdkmath.LegacyMustNewDecFromStr("55000")
 	partitionedValidators := validators[:5]
 
