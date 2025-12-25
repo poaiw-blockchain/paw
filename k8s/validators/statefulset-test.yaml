@@ -1,0 +1,225 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: paw-validator
+  namespace: paw-blockchain
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+    app.kubernetes.io/part-of: paw-network
+spec:
+  serviceName: paw-validator-headless
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw
+      app.kubernetes.io/component: validator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw
+        app.kubernetes.io/component: validator
+        app.kubernetes.io/part-of: paw-network
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: paw-node
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      initContainers:
+        - name: config-init
+          image: localhost:5000/pawd:latest
+          imagePullPolicy: Always
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "=== PAW Config Initialization ==="
+              PAWD=/app/bin/paw-node
+
+              # Create directories
+              mkdir -p /data/config /data/data
+
+              # Check if already initialized with valid genesis (has signing info)
+              if [ -f /data/config/genesis.json ] && [ -f /data/data/priv_validator_state.json ]; then
+                if grep -q '"signing_infos":\[{"address"' /data/config/genesis.json 2>/dev/null; then
+                  echo "Node already initialized with signing info, skipping..."
+                  exit 0
+                fi
+              fi
+
+              echo "Performing fresh initialization..."
+              rm -rf /data/config/* /data/data/* /data/keyring-test 2>/dev/null || true
+              mkdir -p /data/config /data/data
+
+              echo "Initializing PAW node..."
+              $PAWD init "paw-validator-0" --chain-id "paw-testnet-1" --home /data
+
+              echo "Creating validator account..."
+              $PAWD keys add validator --keyring-backend test --home /data --no-backup
+
+              VALIDATOR_ADDR=$($PAWD keys show validator --keyring-backend test --home /data 2>&1 | grep "address:" | awk '{print $2}')
+              echo "Using validator address: $VALIDATOR_ADDR"
+
+              echo "Adding genesis account with tokens..."
+              $PAWD add-genesis-account $VALIDATOR_ADDR 100000000000upaw --keyring-backend test --home /data
+
+              echo "Creating gentx..."
+              $PAWD gentx validator 50000000000upaw --chain-id "paw-testnet-1" --keyring-backend test --home /data
+
+              echo "Collecting gentxs..."
+              $PAWD collect-gentxs --home /data
+
+              # Get consensus address and add signing info for slashing module
+              echo "Adding validator signing info..."
+              CONS_ADDR=$($PAWD tendermint show-address --home /data 2>/dev/null || echo "")
+              if [ -z "$CONS_ADDR" ]; then
+                # Fallback: extract from genesis validators
+                CONS_ADDR=$(cat /data/config/genesis.json | jq -r '.app_state.staking.validators[0].consensus_pubkey.key' 2>/dev/null || echo "")
+                if [ -n "$CONS_ADDR" ] && [ "$CONS_ADDR" != "null" ]; then
+                  # Use the validator address from staking state
+                  CONS_ADDR=$(cat /data/config/genesis.json | jq -r '.validators[0].address' 2>/dev/null || echo "")
+                fi
+              fi
+
+              if [ -n "$CONS_ADDR" ] && [ "$CONS_ADDR" != "null" ]; then
+                echo "Consensus address: $CONS_ADDR"
+                # Add signing info to genesis
+                jq --arg addr "$CONS_ADDR" '.app_state.slashing.signing_infos = [{"address": $addr, "validator_signing_info": {"address": $addr, "start_height": "0", "index_offset": "0", "jailed_until": "1970-01-01T00:00:00Z", "tombstoned": false, "missed_blocks_counter": "0"}}]' /data/config/genesis.json > /data/config/genesis.json.tmp
+                mv /data/config/genesis.json.tmp /data/config/genesis.json
+              else
+                echo "Warning: Could not determine consensus address"
+              fi
+
+              echo "Validating genesis..."
+              $PAWD validate --home /data
+
+              echo "Initialization complete!"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+
+      containers:
+        - name: paw-node
+          image: localhost:5000/pawd:latest
+          imagePullPolicy: Always
+          command: ["/app/bin/paw-node"]
+          args:
+            - start
+            - --home=/data
+            - --rpc.laddr=tcp://0.0.0.0:26657
+            - --p2p.laddr=tcp://0.0.0.0:26656
+            - --grpc.address=0.0.0.0:9090
+            - --api.enable=true
+            - --api.address=tcp://0.0.0.0:1317
+            - --api.swagger=true
+            - --minimum-gas-prices=0.001upaw
+          ports:
+            - containerPort: 26656
+              name: p2p
+              protocol: TCP
+            - containerPort: 26657
+              name: rpc
+              protocol: TCP
+            - containerPort: 9090
+              name: grpc
+              protocol: TCP
+            - containerPort: 1317
+              name: api
+              protocol: TCP
+            - containerPort: 26660
+              name: metrics
+              protocol: TCP
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 26657
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-validator-headless
+  namespace: paw-blockchain
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: validator
+  ports:
+    - port: 26656
+      name: p2p
+    - port: 26657
+      name: rpc
+    - port: 9090
+      name: grpc
+    - port: 1317
+      name: api
+    - port: 26660
+      name: metrics

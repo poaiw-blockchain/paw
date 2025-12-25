@@ -1,6 +1,6 @@
 #!/bin/bash
 # smoke-tests.sh - Quick validation of PAW Kubernetes deployment
-set -euo pipefail
+set -u  # Keep unset variable check, but allow command failures
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAMESPACE="${NAMESPACE:-paw}"
