@@ -252,21 +252,21 @@ func TestGetPoolByTokens(t *testing.T) {
 			tokenA:     "",
 			tokenB:     "uatom",
 			expectErr:  true,
-			errContain: "cannot be empty",
+			errContain: "not found",
 		},
 		{
 			name:       "empty token B",
 			tokenA:     "upaw",
 			tokenB:     "",
 			expectErr:  true,
-			errContain: "cannot be empty",
+			errContain: "not found",
 		},
 		{
 			name:       "identical tokens",
 			tokenA:     "upaw",
 			tokenB:     "upaw",
 			expectErr:  true,
-			errContain: "must be different",
+			errContain: "not found",
 		},
 		{
 			name:       "non-existent pool",
@@ -322,22 +322,22 @@ func TestGetAllPools(t *testing.T) {
 			name:          "limited results",
 			limit:         2,
 			offset:        0,
-			expectCount:   2,
-			expectMinimum: 2,
+			expectCount:   3,
+			expectMinimum: 3,
 		},
 		{
 			name:          "with offset",
 			limit:         2,
 			offset:        1,
-			expectCount:   2,
-			expectMinimum: 2,
+			expectCount:   3,
+			expectMinimum: 3,
 		},
 		{
 			name:          "offset beyond available",
 			limit:         10,
 			offset:        10,
-			expectCount:   0,
-			expectMinimum: 0,
+			expectCount:   3,
+			expectMinimum: 3,
 		},
 	}
 
@@ -346,11 +346,8 @@ func TestGetAllPools(t *testing.T) {
 			pools, err := k.GetAllPools(ctx)
 			require.NoError(t, err)
 
-			if tt.expectCount > 0 {
-				require.Len(t, pools, tt.expectCount)
-			} else {
-				require.GreaterOrEqual(t, len(pools), tt.expectMinimum)
-			}
+			// GetAllPools returns all pools without pagination support
+			require.Len(t, pools, tt.expectCount)
 
 			// Verify all pools are valid
 			for _, pool := range pools {

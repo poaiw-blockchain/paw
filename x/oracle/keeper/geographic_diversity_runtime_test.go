@@ -5,6 +5,7 @@ import (
 
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/stretchr/testify/require"
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
@@ -16,6 +17,7 @@ import (
 type testFixture struct {
 	ctx           sdk.Context
 	oracleKeeper  *keeper.Keeper
+	stakingKeeper *stakingkeeper.Keeper
 	msgServer     types.MsgServer
 }
 
@@ -102,11 +104,12 @@ func TestCheckGeographicDiversityForNewValidator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, _, ctx := keepertest.OracleKeeper(t)
+			k, sk, ctx := keepertest.OracleKeeper(t)
 			f := testFixture{
-				ctx:          ctx,
-				oracleKeeper: k,
-				msgServer:    keeper.NewMsgServerImpl(*k),
+				ctx:           ctx,
+				oracleKeeper:  k,
+				stakingKeeper: sk,
+				msgServer:     keeper.NewMsgServerImpl(*k),
 			}
 
 			// Set params with appropriate enforcement
@@ -201,11 +204,12 @@ func TestMonitorGeographicDiversity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, _, ctx := keepertest.OracleKeeper(t)
+			k, sk, ctx := keepertest.OracleKeeper(t)
 			f := testFixture{
-				ctx:          ctx,
-				oracleKeeper: k,
-				msgServer:    keeper.NewMsgServerImpl(*k),
+				ctx:           ctx,
+				oracleKeeper:  k,
+				stakingKeeper: sk,
+				msgServer:     keeper.NewMsgServerImpl(*k),
 			}
 
 			// Set params requiring geographic diversity
@@ -315,11 +319,12 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, _, ctx := keepertest.OracleKeeper(t)
+			k, sk, ctx := keepertest.OracleKeeper(t)
 			f := testFixture{
-				ctx:          ctx,
-				oracleKeeper: k,
-				msgServer:    keeper.NewMsgServerImpl(*k),
+				ctx:           ctx,
+				oracleKeeper:  k,
+				stakingKeeper: sk,
+				msgServer:     keeper.NewMsgServerImpl(*k),
 			}
 
 			// Set params
@@ -382,11 +387,12 @@ func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 
 // TestBeginBlockerDiversityCheck tests that BeginBlocker periodically checks diversity
 func TestBeginBlockerDiversityCheck(t *testing.T) {
-	k, _, ctx := keepertest.OracleKeeper(t)
+	k, sk, ctx := keepertest.OracleKeeper(t)
 	f := testFixture{
-		ctx:          ctx,
-		oracleKeeper: k,
-		msgServer:    keeper.NewMsgServerImpl(*k),
+		ctx:           ctx,
+		oracleKeeper:  k,
+		stakingKeeper: sk,
+		msgServer:     keeper.NewMsgServerImpl(*k),
 	}
 
 	// Set params with check interval
@@ -526,11 +532,12 @@ func TestParamValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			k, _, ctx := keepertest.OracleKeeper(t)
+			k, sk, ctx := keepertest.OracleKeeper(t)
 			f := testFixture{
-				ctx:          ctx,
-				oracleKeeper: k,
-				msgServer:    keeper.NewMsgServerImpl(*k),
+				ctx:           ctx,
+				oracleKeeper:  k,
+				stakingKeeper: sk,
+				msgServer:     keeper.NewMsgServerImpl(*k),
 			}
 
 			params := types.DefaultParams()
@@ -562,7 +569,7 @@ type validatorSetup struct {
 	power  int64
 }
 
-// createTestValidatorWithPower creates a test validator address with index based on power
+// createTestValidatorWithPower creates a test validator with the given power in the staking keeper
 func createTestValidatorWithPower(t *testing.T, f testFixture, power int64) sdk.ValAddress {
 	t.Helper()
 	// Create unique validator address for testing
@@ -570,5 +577,11 @@ func createTestValidatorWithPower(t *testing.T, f testFixture, power int64) sdk.
 	copy(addrBytes, []byte("test_validator_"))
 	addrBytes[15] = byte(power % 256)
 	addrBytes[16] = byte((power / 256) % 256)
-	return sdk.ValAddress(addrBytes)
+	valAddr := sdk.ValAddress(addrBytes)
+
+	// Create the validator in the staking keeper
+	err := keepertest.EnsureBondedValidatorWithKeeper(f.ctx, f.stakingKeeper, valAddr)
+	require.NoError(t, err)
+
+	return valAddr
 }

@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	// Key prefixes - must match the keeper
-	PriceKeyPrefix           = []byte{0x01}
-	ValidatorOracleKeyPrefix = []byte{0x02}
-	ValidatorPriceKeyPrefix  = []byte{0x03}
-	ParamsKey                = []byte{0x04}
-	PriceSnapshotKeyPrefix   = []byte{0x05}
-	MissCounterKeyPrefix     = []byte{0x10}
-	AssetListKey             = []byte{0x11}
+	// Key prefixes - must match the keeper (with module namespace 0x03)
+	PriceKeyPrefix           = []byte{0x03, 0x02}
+	ValidatorOracleKeyPrefix = []byte{0x03, 0x04}
+	ValidatorPriceKeyPrefix  = []byte{0x03, 0x03}
+	ParamsKey                = []byte{0x03, 0x01}
+	PriceSnapshotKeyPrefix   = []byte{0x03, 0x05}
+	MissCounterKeyPrefix     = []byte{0x03, 0x10}
+	AssetListKey             = []byte{0x03, 0x11}
 )
 
 // Migrate implements store migrations from v1 to v2 for the Oracle module.
