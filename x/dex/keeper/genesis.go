@@ -168,8 +168,11 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	// Get next pool ID
 	store := k.getStore(ctx)
 	bz := store.Get(PoolCountKey)
-	var nextPoolID uint64 = 1
-	if bz != nil {
+	var nextPoolID uint64
+	if bz == nil {
+		// Default to 1 if no counter exists
+		nextPoolID = 1
+	} else {
 		// Decode big-endian uint64
 		for i := 0; i < 8; i++ {
 			nextPoolID |= uint64(bz[7-i]) << (8 * i)
