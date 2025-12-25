@@ -106,6 +106,28 @@ References
 - CometBFT: https://cometbft.com/
 - IBC: https://ibcprotocol.org/
 
+Public Testnet Participation
+- Chain ID: `paw-testnet-1`
+- RPC Endpoint: `https://rpc.testnet.paw.network` (coming soon)
+- REST API: `https://api.testnet.paw.network` (coming soon)
+- Block Explorer: `https://explorer.testnet.paw.network` (coming soon)
+- Faucet: `https://faucet.testnet.paw.network` (coming soon)
+
+Join as a Validator:
+1. Build the binary: `make build`
+2. Initialize node: `./build/pawd init <moniker> --chain-id paw-testnet-1`
+3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/testnet/genesis.json`
+4. Configure persistent peers in `~/.paw/config/config.toml`
+5. Start node: `./build/pawd start --minimum-gas-prices 0.001upaw`
+6. Create validator after sync: `pawd tx staking create-validator ...`
+
+See `docs/guides/VALIDATOR_QUICKSTART.md` for detailed instructions.
+
+Get Testnet Tokens:
+1. Create a wallet: `./build/pawd keys add <name>`
+2. Request tokens from faucet (when available)
+3. Check balance: `./build/pawd query bank balances <address>`
+
 Status
-- Latest update: Nov 2025
-- Chain status: Beta testnet
+- Latest update: Dec 2025
+- Chain status: Public testnet ready

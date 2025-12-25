@@ -70,6 +70,12 @@ func EnsureBondedValidatorWithKeeper(ctx sdk.Context, sk *stakingkeeper.Keeper, 
 	if err := sk.SetValidator(ctx, validatorObj); err != nil {
 		return err
 	}
+
+	// Set validator by consensus address so JailValidator can find it
+	if err := sk.SetValidatorByConsAddr(ctx, validatorObj); err != nil {
+		return err
+	}
+
 	return sk.SetNewValidatorByPowerIndex(ctx, validatorObj)
 }
 
