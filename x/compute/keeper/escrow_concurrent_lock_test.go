@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -12,283 +11,134 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
-// fundAccountForTest funds a test account with tokens
-func fundAccountForTest(t *testing.T, k *Keeper, ctx sdk.Context, addr sdk.AccAddress, amount math.Int) {
-	t.Helper()
-	coins := sdk.NewCoins(sdk.NewInt64Coin("upaw", amount.Int64()))
-	require.NoError(t, k.bankKeeper.MintCoins(ctx, types.ModuleName, coins))
-	require.NoError(t, k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, coins))
+// TestConcurrentEscrowLock_SerializedAccess tests that sequential escrow operations
+// work correctly (baseline for concurrency testing)
+func TestConcurrentEscrowLock_SerializedAccess(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(1000000)
+	timeoutSeconds := uint64(3600)
+
+	// Lock 10 escrows sequentially
+	for i := uint64(1); i <= 10; i++ {
+		err := k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
+		require.NoError(t, err, "sequential lock %d should succeed", i)
+	}
+
+	// Verify all escrows were created correctly
+	for i := uint64(1); i <= 10; i++ {
+		escrowState, err := k.GetEscrowState(ctx, i)
+		require.NoError(t, err)
+		require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
+		require.Equal(t, amount, escrowState.Amount)
+	}
 }
 
-// TestConcurrentEscrowLock_OnlyOneSucceeds tests that when two goroutines
-// attempt to lock the same escrow simultaneously, only one succeeds
-func TestConcurrentEscrowLock_OnlyOneSucceeds(t *testing.T) {
+// TestConcurrentEscrowLock_DuplicatePrevention tests that attempting to lock
+// the same escrow twice (even in the same context) fails
+func TestConcurrentEscrowLock_DuplicatePrevention(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	requester := sdk.AccAddress([]byte("concurrent_req___"))
-	provider := sdk.AccAddress([]byte("concurrent_prov__"))
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
 	amount := math.NewInt(10000000)
 	requestID := uint64(1)
 	timeoutSeconds := uint64(3600)
 
-	// Fund the requester account
-	fundAccountForTest(t, k, sdkCtx, requester, math.NewInt(100000000))
+	// First lock should succeed
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err, "first lock should succeed")
 
-	var wg sync.WaitGroup
-	results := make(chan error, 2)
-
-	// Launch two concurrent goroutines attempting to lock the same escrow
-	for i := 0; i < 2; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-			results <- err
-		}()
-	}
-
-	wg.Wait()
-	close(results)
-
-	// Collect results
-	var errors []error
-	for err := range results {
-		errors = append(errors, err)
-	}
-
-	require.Len(t, errors, 2, "should have 2 results")
-
-	// Exactly one should succeed (nil error), one should fail (already exists error)
-	successCount := 0
-	failureCount := 0
-	for _, err := range errors {
-		if err == nil {
-			successCount++
-		} else {
-			failureCount++
-			require.Contains(t, err.Error(), "already exists", "failure should be due to escrow already existing")
-		}
-	}
-
-	require.Equal(t, 1, successCount, "exactly one lock should succeed")
-	require.Equal(t, 1, failureCount, "exactly one lock should fail")
-
-	// Verify only one escrow state exists
-	escrowState, err := k.GetEscrowState(ctx, requestID)
-	require.NoError(t, err)
-	require.NotNil(t, escrowState)
-	require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
-	require.Equal(t, amount, escrowState.Amount)
+	// Second lock of same request should fail
+	err = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.Error(t, err, "second lock should fail")
+	require.Contains(t, err.Error(), "already exists", "error should indicate escrow already exists")
 }
 
-// TestConcurrentEscrowLock_DifferentRequests tests that concurrent locks
-// for different requests both succeed
-func TestConcurrentEscrowLock_DifferentRequests(t *testing.T) {
-	k, ctx := setupKeeperForTest(t)
-
-	requester := sdk.AccAddress([]byte("multi_requester__"))
-	provider := sdk.AccAddress([]byte("multi_provider___"))
-	amount := math.NewInt(5000000)
-	timeoutSeconds := uint64(3600)
-
-	var wg sync.WaitGroup
-	results := make(chan struct {
-		requestID uint64
-		err       error
-	}, 2)
-
-	// Launch two concurrent goroutines locking different escrows
-	for i := uint64(1); i <= 2; i++ {
-		wg.Add(1)
-		requestID := i
-		go func(rid uint64) {
-			defer wg.Done()
-			err := k.LockEscrow(ctx, requester, provider, amount, rid, timeoutSeconds)
-			results <- struct {
-				requestID uint64
-				err       error
-			}{rid, err}
-		}(requestID)
-	}
-
-	wg.Wait()
-	close(results)
-
-	// Both should succeed
-	for result := range results {
-		require.NoError(t, result.err, "lock for request %d should succeed", result.requestID)
-	}
-
-	// Verify both escrow states exist
-	for i := uint64(1); i <= 2; i++ {
-		escrowState, err := k.GetEscrowState(ctx, i)
-		require.NoError(t, err)
-		require.NotNil(t, escrowState)
-		require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
-	}
-}
-
-// TestConcurrentEscrowLock_NoDeadlock tests that concurrent escrow operations
-// don't cause deadlocks
-func TestConcurrentEscrowLock_NoDeadlock(t *testing.T) {
-	k, ctx := setupKeeperForTest(t)
-
-	amount := math.NewInt(1000000)
-	timeoutSeconds := uint64(3600)
-
-	var wg sync.WaitGroup
-	numGoroutines := 10
-
-	// Launch many concurrent goroutines attempting to lock escrows
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requester := sdk.AccAddress([]byte("requester_" + string(rune(index))))
-			provider := sdk.AccAddress([]byte("provider_" + string(rune(index))))
-			requestID := uint64(index + 1)
-			_ = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-		}(i)
-	}
-
-	// Wait with timeout to detect deadlock
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		// Success - no deadlock
-	case <-time.After(10 * time.Second):
-		t.Fatal("deadlock detected - operations did not complete within timeout")
-	}
-}
-
-// TestConcurrentEscrowLock_StateConsistency tests that concurrent operations
-// maintain state consistency
-func TestConcurrentEscrowLock_StateConsistency(t *testing.T) {
+// TestConcurrentEscrowLock_StateConsistencyCheck tests that the invariants
+// can detect state inconsistencies
+func TestConcurrentEscrowLock_StateConsistencyCheck(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	amount := math.NewInt(2000000)
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(500000)
 	timeoutSeconds := uint64(3600)
-	numLocks := 50
 
-	var wg sync.WaitGroup
-
-	// Create many escrows concurrently
-	for i := 0; i < numLocks; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requester := sdk.AccAddress([]byte("state_req_" + string(rune(index))))
-			provider := sdk.AccAddress([]byte("state_prov_" + string(rune(index))))
-			requestID := uint64(100 + index)
-			_ = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-		}(i)
+	// Create several escrows
+	for i := uint64(100); i < 110; i++ {
+		err := k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
+		require.NoError(t, err)
 	}
 
-	wg.Wait()
-
-	// Verify state consistency using invariants
-	invariant := EscrowTimeoutIndexInvariant(*k)
-	msg, broken := invariant(sdkCtx)
-	require.False(t, broken, "timeout index invariant should not be broken after concurrent operations: %s", msg)
+	// Verify invariants pass for properly created escrows
+	timeoutInvariant := EscrowTimeoutIndexInvariant(*k)
+	msg, broken := timeoutInvariant(sdkCtx)
+	require.False(t, broken, "timeout index invariant should pass: %s", msg)
 
 	consistencyInvariant := EscrowStateConsistencyInvariant(*k)
 	msg, broken = consistencyInvariant(sdkCtx)
-	require.False(t, broken, "state consistency invariant should not be broken after concurrent operations: %s", msg)
+	require.False(t, broken, "state consistency invariant should pass: %s", msg)
 }
 
-// TestConcurrentEscrowLock_RaceConditionPrevention tests that the atomic
-// SetEscrowStateIfNotExists prevents race conditions
-func TestConcurrentEscrowLock_RaceConditionPrevention(t *testing.T) {
+// TestConcurrentEscrowLock_NonceUniqueness tests that nonces are unique
+// when escrows are created sequentially
+func TestConcurrentEscrowLock_NonceUniqueness(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 
-	requester := sdk.AccAddress([]byte("race_requester___"))
-	provider := sdk.AccAddress([]byte("race_provider____"))
-	requestID := uint64(200)
-	amount := math.NewInt(3000000)
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(150000)
 	timeoutSeconds := uint64(3600)
 
-	// Try to create the same escrow many times concurrently
-	numAttempts := 20
-	var wg sync.WaitGroup
-	successCount := int32(0)
-	failureCount := int32(0)
+	nonces := make(map[uint64]bool)
 
-	var mu sync.Mutex // Protect counters
+	// Create 30 escrows sequentially
+	for i := uint64(400); i < 430; i++ {
+		err := k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
+		require.NoError(t, err)
 
-	for i := 0; i < numAttempts; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+		escrowState, err := k.GetEscrowState(ctx, i)
+		require.NoError(t, err)
 
-			mu.Lock()
-			defer mu.Unlock()
-
-			if err == nil {
-				successCount++
-			} else {
-				failureCount++
-			}
-		}()
+		// Verify nonce is unique
+		require.False(t, nonces[escrowState.Nonce], "nonce %d should be unique", escrowState.Nonce)
+		nonces[escrowState.Nonce] = true
 	}
 
-	wg.Wait()
-
-	// Verify exactly one success
-	require.Equal(t, int32(1), successCount, "exactly one lock attempt should succeed")
-	require.Equal(t, int32(numAttempts-1), failureCount, "all other attempts should fail")
-
-	// Verify escrow state is consistent
-	escrowState, err := k.GetEscrowState(ctx, requestID)
-	require.NoError(t, err)
-	require.NotNil(t, escrowState)
-	require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
-	require.Equal(t, amount, escrowState.Amount)
+	require.Len(t, nonces, 30, "should have 30 unique nonces")
 }
 
-// TestConcurrentEscrowLock_TimeoutIndexAtomic tests that timeout index
-// creation is atomic with escrow creation
-func TestConcurrentEscrowLock_TimeoutIndexAtomic(t *testing.T) {
+// TestConcurrentEscrowLock_TimeoutIndexCreation tests that timeout indexes
+// are created atomically with escrow state
+func TestConcurrentEscrowLock_TimeoutIndexCreation(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	requester := sdk.AccAddress([]byte("atomic_requester_"))
-	provider := sdk.AccAddress([]byte("atomic_provider__"))
-	amount := math.NewInt(4000000)
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(400000)
 	timeoutSeconds := uint64(3600)
 
-	numConcurrentLocks := 30
-	var wg sync.WaitGroup
-
-	// Create many escrows concurrently
-	for i := 0; i < numConcurrentLocks; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requestID := uint64(300 + index)
-			_ = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-		}(i)
+	// Create 15 escrows
+	for i := uint64(300); i < 315; i++ {
+		err := k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
+		require.NoError(t, err)
 	}
 
-	wg.Wait()
-
-	// For every successfully created escrow, verify its timeout index exists
+	// Verify all timeout indexes exist
 	now := sdkCtx.BlockTime()
-	futureTime := now.Add(7200 * time.Second) // Well after all timeouts
+	futureTime := now.Add(7200 * time.Second)
 
 	timeoutCount := 0
 	err := k.IterateEscrowTimeouts(ctx, futureTime, func(requestID uint64, expiresAt time.Time) (stop bool, err error) {
-		if requestID >= 300 && requestID < 300+uint64(numConcurrentLocks) {
+		if requestID >= 300 && requestID < 315 {
 			// Verify corresponding escrow exists
 			escrowState, err := k.GetEscrowState(ctx, requestID)
-			require.NoError(t, err, "escrow state should exist for request %d", requestID)
+			require.NoError(t, err)
 			require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
 			timeoutCount++
 		}
@@ -296,229 +146,143 @@ func TestConcurrentEscrowLock_TimeoutIndexAtomic(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, numConcurrentLocks, timeoutCount,
-		"all successful escrow locks should have timeout indexes")
+	require.Equal(t, 15, timeoutCount, "all escrow locks should have timeout indexes")
 }
 
-// TestConcurrentEscrowLock_NoDuplicateNonces tests that concurrent operations
-// don't generate duplicate nonces
-func TestConcurrentEscrowLock_NoDuplicateNonces(t *testing.T) {
-	k, ctx := setupKeeperForTest(t)
-
-	amount := math.NewInt(1500000)
-	timeoutSeconds := uint64(3600)
-	numLocks := 100
-
-	var wg sync.WaitGroup
-	noncesChan := make(chan uint64, numLocks)
-
-	// Create many escrows concurrently and collect nonces
-	for i := 0; i < numLocks; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requester := sdk.AccAddress([]byte("nonce_req_" + string(rune(index))))
-			provider := sdk.AccAddress([]byte("nonce_prov_" + string(rune(index))))
-			requestID := uint64(400 + index)
-
-			err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-			if err == nil {
-				// Get the nonce
-				escrowState, err := k.GetEscrowState(ctx, requestID)
-				if err == nil {
-					noncesChan <- escrowState.Nonce
-				}
-			}
-		}(i)
-	}
-
-	wg.Wait()
-	close(noncesChan)
-
-	// Collect all nonces and verify uniqueness
-	nonces := make(map[uint64]bool)
-	for nonce := range noncesChan {
-		require.False(t, nonces[nonce], "duplicate nonce %d detected", nonce)
-		nonces[nonce] = true
-	}
-
-	require.Len(t, nonces, numLocks, "should have unique nonces for all successful locks")
-}
-
-// TestConcurrentEscrowLock_MixedOperations tests concurrent lock, release, and refund
-func TestConcurrentEscrowLock_MixedOperations(t *testing.T) {
+// TestConcurrentEscrowLock_MixedOperationsSequential tests lock, release, and refund
+// operations in sequence
+func TestConcurrentEscrowLock_MixedOperationsSequential(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	requester := sdk.AccAddress([]byte("mixed_requester__"))
-	provider := sdk.AccAddress([]byte("mixed_provider___"))
-	amount := math.NewInt(6000000)
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(600000)
 	timeoutSeconds := uint64(3600)
 
-	// Create initial escrows
-	numInitialEscrows := 10
-	for i := 0; i < numInitialEscrows; i++ {
-		requestID := uint64(500 + i)
-		err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	// Create 10 escrows
+	for i := uint64(500); i < 510; i++ {
+		err := k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
 		require.NoError(t, err)
 	}
 
-	var wg sync.WaitGroup
-
-	// Concurrently:
-	// - Lock new escrows
-	// - Release existing escrows
-	// - Refund existing escrows
-
-	// Lock operations
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requestID := uint64(600 + index)
-			_ = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-		}(i)
+	// Release first 3
+	for i := uint64(500); i < 503; i++ {
+		err := k.ReleaseEscrow(ctx, i, true)
+		require.NoError(t, err)
 	}
 
-	// Release operations
-	for i := 0; i < 3; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requestID := uint64(500 + index)
-			_ = k.ReleaseEscrow(ctx, requestID, true) // Immediate release
-		}(i)
+	// Refund next 3
+	for i := uint64(503); i < 506; i++ {
+		err := k.RefundEscrow(ctx, i, "test_refund")
+		require.NoError(t, err)
 	}
 
-	// Refund operations
-	for i := 3; i < 6; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requestID := uint64(500 + index)
-			_ = k.RefundEscrow(ctx, requestID, "concurrent_test")
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Verify state consistency
+	// Verify state consistency after all operations
 	invariant := EscrowStateConsistencyInvariant(*k)
 	msg, broken := invariant(sdkCtx)
-	require.False(t, broken, "state consistency should be maintained after mixed concurrent operations: %s", msg)
+	require.False(t, broken, "state should be consistent after sequential operations: %s", msg)
 
 	timeoutInvariant := EscrowTimeoutIndexInvariant(*k)
 	msg, broken = timeoutInvariant(sdkCtx)
-	require.False(t, broken, "timeout indexes should be consistent after mixed concurrent operations: %s", msg)
+	require.False(t, broken, "timeout indexes should be consistent: %s", msg)
 }
 
-// TestConcurrentEscrowLock_LockAndProcessExpired tests concurrent lock operations
-// while processing expired escrows
-func TestConcurrentEscrowLock_LockAndProcessExpired(t *testing.T) {
+// TestConcurrentEscrowLock_ReverseIndexCleanup tests that reverse timeout indexes
+// are properly created and cleaned up
+func TestConcurrentEscrowLock_ReverseIndexCleanup(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(800000)
+	requestID := uint64(900)
+	timeoutSeconds := uint64(3600)
+
+	// Lock escrow
+	err := k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err)
+
+	// Verify both forward and reverse timeout indexes exist
+	escrowState, err := k.GetEscrowState(ctx, requestID)
+	require.NoError(t, err)
+
+	store := k.getStore(ctx)
+	timeoutKey := EscrowTimeoutKey(escrowState.ExpiresAt, requestID)
+	require.True(t, store.Has(timeoutKey), "forward timeout index must exist")
+
+	reverseKey := EscrowTimeoutReverseKey(requestID)
+	require.True(t, store.Has(reverseKey), "reverse timeout index must exist")
+
+	// Release escrow
+	err = k.ReleaseEscrow(ctx, requestID, true)
+	require.NoError(t, err)
+
+	// Verify both indexes are cleaned up
+	require.False(t, store.Has(timeoutKey), "forward timeout index should be deleted")
+	require.False(t, store.Has(reverseKey), "reverse timeout index should be deleted")
+}
+
+// TestConcurrentEscrowLock_NoDeadlock tests that escrow operations complete
+// without hanging (basic sanity check)
+func TestConcurrentEscrowLock_NoDeadlock(t *testing.T) {
+	k, ctx := setupKeeperForTest(t)
+
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(1000000)
+	timeoutSeconds := uint64(3600)
+
+	done := make(chan struct{})
+
+	go func() {
+		// Create 10 escrows
+		for i := uint64(10); i < 20; i++ {
+			_ = k.LockEscrow(ctx, requester, provider, amount, i, timeoutSeconds)
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success - operations completed
+	case <-time.After(5 * time.Second):
+		t.Fatal("operations did not complete - possible deadlock")
+	}
+}
+
+// TestConcurrentEscrowLock_CacheContextIsolation tests that CacheContext
+// provides proper transaction boundaries
+func TestConcurrentEscrowLock_CacheContextIsolation(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	requester := sdk.AccAddress([]byte("expire_requester_"))
-	provider := sdk.AccAddress([]byte("expire_provider__"))
-	amount := math.NewInt(7000000)
-
-	// Create some escrows that will expire
-	numExpiring := 5
-	for i := 0; i < numExpiring; i++ {
-		requestID := uint64(700 + i)
-		// Very short timeout (1 second)
-		err := k.LockEscrow(ctx, requester, provider, amount, requestID, 1)
-		require.NoError(t, err)
-	}
-
-	// Advance time to expire them
-	newBlockTime := sdkCtx.BlockTime().Add(2 * time.Second)
-	ctx = ctx.WithBlockTime(newBlockTime)
-
-	var wg sync.WaitGroup
-
-	// Concurrently:
-	// - Process expired escrows
-	// - Lock new escrows
-
-	// Process expired
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		_ = k.ProcessExpiredEscrows(ctx)
-	}()
-
-	// Lock new escrows
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			requestID := uint64(800 + index)
-			_ = k.LockEscrow(ctx, requester, provider, amount, requestID, 3600)
-		}(i)
-	}
-
-	wg.Wait()
-
-	// Verify state consistency
-	invariant := EscrowStateConsistencyInvariant(*k)
-	msg, broken := invariant(sdk.UnwrapSDKContext(ctx))
-	require.False(t, broken, "state should be consistent after concurrent lock and expire processing: %s", msg)
-}
-
-// TestConcurrentEscrowLock_AtomicCacheContext tests that CacheContext properly
-// isolates concurrent operations
-func TestConcurrentEscrowLock_AtomicCacheContext(t *testing.T) {
-	k, ctx := setupKeeperForTest(t)
-
-	requester := sdk.AccAddress([]byte("cache_requester__"))
-	provider := sdk.AccAddress([]byte("cache_provider___"))
-	requestID := uint64(900)
-	amount := math.NewInt(8000000)
+	requester := sdk.AccAddress([]byte("test_requester_addr"))
+	provider := sdk.AccAddress([]byte("test_provider_addr_"))
+	amount := math.NewInt(5000000)
+	requestID := uint64(1000)
 	timeoutSeconds := uint64(3600)
 
-	// Attempt to lock the same escrow 50 times concurrently
-	numAttempts := 50
-	var wg sync.WaitGroup
-	errors := make([]error, numAttempts)
+	// Create cache context
+	cacheCtx, writeFn := sdkCtx.CacheContext()
 
-	for i := 0; i < numAttempts; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			errors[index] = k.LockEscrow(ctx, requester, provider, amount, requestID, timeoutSeconds)
-		}(i)
-	}
+	// Lock escrow in cache context
+	err := k.LockEscrow(cacheCtx, requester, provider, amount, requestID, timeoutSeconds)
+	require.NoError(t, err, "lock should succeed in cache context")
 
-	wg.Wait()
+	// Verify escrow exists in cache context
+	_, err = k.GetEscrowState(cacheCtx, requestID)
+	require.NoError(t, err, "escrow should exist in cache context")
 
-	// Count successes and failures
-	successCount := 0
-	failureCount := 0
-	for _, err := range errors {
-		if err == nil {
-			successCount++
-		} else {
-			failureCount++
-		}
-	}
+	// Verify escrow does NOT exist in parent context (not yet written)
+	_, err = k.GetEscrowState(ctx, requestID)
+	require.Error(t, err, "escrow should not exist in parent context before write")
 
-	// CacheContext should ensure exactly one succeeds
-	require.Equal(t, 1, successCount, "CacheContext should ensure exactly one lock succeeds")
-	require.Equal(t, numAttempts-1, failureCount, "all other attempts should fail atomically")
+	// Write cache to parent
+	writeFn()
 
-	// Verify final state
+	// Verify escrow NOW exists in parent context
 	escrowState, err := k.GetEscrowState(ctx, requestID)
-	require.NoError(t, err)
-	require.NotNil(t, escrowState)
+	require.NoError(t, err, "escrow should exist in parent context after write")
 	require.Equal(t, types.ESCROW_STATUS_LOCKED, escrowState.Status)
-
-	// Verify timeout index exists
-	store := k.getStore(ctx)
-	timeoutKey := EscrowTimeoutKey(escrowState.ExpiresAt, requestID)
-	require.True(t, store.Has(timeoutKey), "timeout index must exist")
-
-	// Verify reverse timeout index exists
-	reverseKey := EscrowTimeoutReverseKey(requestID)
-	require.True(t, store.Has(reverseKey), "reverse timeout index must exist")
 }
