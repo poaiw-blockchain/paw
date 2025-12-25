@@ -563,28 +563,8 @@ func TestGenesisState_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "max evidence size must be positive",
 		},
-		{
-			name: "negative max evidence size",
-			genesis: GenesisState{
-				Params: DefaultParams(),
-				GovernanceParams: GovernanceParams{
-					DisputeDeposit:          math.NewInt(1_000_000),
-					EvidencePeriodSeconds:   86400,
-					VotingPeriodSeconds:     86400,
-					QuorumPercentage:        math.LegacyMustNewDecFromStr("0.334"),
-					ConsensusThreshold:      math.LegacyMustNewDecFromStr("0.5"),
-					SlashPercentage:         math.LegacyMustNewDecFromStr("0.1"),
-					AppealDepositPercentage: math.LegacyMustNewDecFromStr("0.05"),
-					MaxEvidenceSize:         -1,
-				},
-				NextRequestId: 1,
-				NextDisputeId: 1,
-				NextSlashId:   1,
-				NextAppealId:  1,
-			},
-			wantErr: true,
-			errMsg:  "max evidence size must be positive",
-		},
+		// Note: MaxEvidenceSize is uint64, so we can't test negative values directly
+		// The zero case already covers invalid evidence size
 		{
 			name: "zero next request id",
 			genesis: GenesisState{

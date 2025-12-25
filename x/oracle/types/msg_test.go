@@ -605,3 +605,237 @@ func TestMsgSubmitPrice_AssetEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+// ============================================================================
+// MsgEmergencyPauseOracle Tests
+// ============================================================================
+
+func TestMsgEmergencyPauseOracle_ValidateBasic(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     MsgEmergencyPauseOracle
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid message",
+			msg: MsgEmergencyPauseOracle{
+				Signer: validAddress,
+				Reason: "Critical security issue detected",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid signer address",
+			msg: MsgEmergencyPauseOracle{
+				Signer: invalidAddress,
+				Reason: "Critical security issue detected",
+			},
+			wantErr: true,
+			errMsg:  "invalid signer address",
+		},
+		{
+			name: "empty reason",
+			msg: MsgEmergencyPauseOracle{
+				Signer: validAddress,
+				Reason: "",
+			},
+			wantErr: true,
+			errMsg:  "pause reason cannot be empty",
+		},
+		{
+			name: "reason too long",
+			msg: MsgEmergencyPauseOracle{
+				Signer: validAddress,
+				Reason: strings.Repeat("a", 513),
+			},
+			wantErr: true,
+			errMsg:  "pause reason too long",
+		},
+		{
+			name: "reason at max length",
+			msg: MsgEmergencyPauseOracle{
+				Signer: validAddress,
+				Reason: strings.Repeat("a", 512),
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgEmergencyPauseOracle.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgEmergencyPauseOracle.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestMsgEmergencyPauseOracle_GetSigners(t *testing.T) {
+	msg := MsgEmergencyPauseOracle{
+		Signer: validAddress,
+		Reason: "Critical security issue",
+	}
+
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		t.Errorf("Expected 1 signer, got %d", len(signers))
+	}
+
+	expected, _ := sdk.AccAddressFromBech32(validAddress)
+	if !signers[0].Equals(expected) {
+		t.Errorf("Expected signer %s, got %s", expected, signers[0])
+	}
+}
+
+func TestMsgEmergencyPauseOracle_Type(t *testing.T) {
+	msg := MsgEmergencyPauseOracle{}
+	if msg.Type() != TypeMsgEmergencyPauseOracle {
+		t.Errorf("Expected type %s, got %s", TypeMsgEmergencyPauseOracle, msg.Type())
+	}
+}
+
+func TestMsgEmergencyPauseOracle_Route(t *testing.T) {
+	msg := MsgEmergencyPauseOracle{}
+	if msg.Route() != RouterKey {
+		t.Errorf("Expected route %s, got %s", RouterKey, msg.Route())
+	}
+}
+
+func TestNewMsgEmergencyPauseOracle(t *testing.T) {
+	signer := validAddress
+	reason := "Critical security issue"
+
+	msg := NewMsgEmergencyPauseOracle(signer, reason)
+
+	if msg.Signer != signer {
+		t.Errorf("Expected signer %s, got %s", signer, msg.Signer)
+	}
+	if msg.Reason != reason {
+		t.Errorf("Expected reason %s, got %s", reason, msg.Reason)
+	}
+}
+
+// ============================================================================
+// MsgResumeOracle Tests
+// ============================================================================
+
+func TestMsgResumeOracle_ValidateBasic(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     MsgResumeOracle
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid message",
+			msg: MsgResumeOracle{
+				Authority: moduleAuthority,
+				Reason:    "Security issue resolved",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid authority address",
+			msg: MsgResumeOracle{
+				Authority: invalidAddress,
+				Reason:    "Security issue resolved",
+			},
+			wantErr: true,
+			errMsg:  "invalid authority address",
+		},
+		{
+			name: "empty reason",
+			msg: MsgResumeOracle{
+				Authority: moduleAuthority,
+				Reason:    "",
+			},
+			wantErr: true,
+			errMsg:  "resume reason cannot be empty",
+		},
+		{
+			name: "reason too long",
+			msg: MsgResumeOracle{
+				Authority: moduleAuthority,
+				Reason:    strings.Repeat("a", 513),
+			},
+			wantErr: true,
+			errMsg:  "resume reason too long",
+		},
+		{
+			name: "reason at max length",
+			msg: MsgResumeOracle{
+				Authority: moduleAuthority,
+				Reason:    strings.Repeat("a", 512),
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgResumeOracle.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgResumeOracle.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestMsgResumeOracle_GetSigners(t *testing.T) {
+	msg := MsgResumeOracle{
+		Authority: moduleAuthority,
+		Reason:    "Security issue resolved",
+	}
+
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		t.Errorf("Expected 1 signer, got %d", len(signers))
+	}
+
+	expected := moduleAccAddr
+	if !signers[0].Equals(expected) {
+		t.Errorf("Expected signer %s, got %s", expected, signers[0])
+	}
+}
+
+func TestMsgResumeOracle_Type(t *testing.T) {
+	msg := MsgResumeOracle{}
+	if msg.Type() != TypeMsgResumeOracle {
+		t.Errorf("Expected type %s, got %s", TypeMsgResumeOracle, msg.Type())
+	}
+}
+
+func TestMsgResumeOracle_Route(t *testing.T) {
+	msg := MsgResumeOracle{}
+	if msg.Route() != RouterKey {
+		t.Errorf("Expected route %s, got %s", RouterKey, msg.Route())
+	}
+}
+
+func TestNewMsgResumeOracle(t *testing.T) {
+	authority := moduleAuthority
+	reason := "Security issue resolved"
+
+	msg := NewMsgResumeOracle(authority, reason)
+
+	if msg.Authority != authority {
+		t.Errorf("Expected authority %s, got %s", authority, msg.Authority)
+	}
+	if msg.Reason != reason {
+		t.Errorf("Expected reason %s, got %s", reason, msg.Reason)
+	}
+}

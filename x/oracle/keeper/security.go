@@ -565,12 +565,14 @@ func (k Keeper) GetValidatorSecurityProfile(ctx context.Context, validatorAddr s
 	accuracyScore := reputationScore
 
 	profile := ValidatorSecurityProfile{
-		ValidatorAddr:   validatorAddr,
-		ReputationScore: reputationScore,
-		OutlierCount:    uint64(outlierCount),
-		SubmissionCount: validatorOracle.TotalSubmissions,
-		AccuracyScore:   accuracyScore,
-		IsSuspicious:    reputationScore.LT(sdkmath.LegacyMustNewDecFromStr("0.5")),
+		ValidatorAddr:    validatorAddr,
+		ReputationScore:  reputationScore,
+		OutlierCount:     uint64(outlierCount),
+		SubmissionCount:  validatorOracle.TotalSubmissions,
+		AccuracyScore:    accuracyScore,
+		IsSuspicious:     reputationScore.LT(sdkmath.LegacyMustNewDecFromStr("0.5")),
+		GeographicRegion: validatorOracle.GeographicRegion,
+		IPAddress:        validatorOracle.IpAddress,
 	}
 
 	return profile, nil
@@ -851,6 +853,11 @@ func (k Keeper) CheckGeographicDiversityForNewValidator(ctx context.Context, new
 		}
 	}
 	simulatedDistribution.DiversityScore = sdkmath.LegacyOneDec().Sub(hhi)
+
+	// Skip diversity checks when total validators < 5 (too few to enforce meaningful diversity)
+	if simulatedDistribution.TotalValidators < 5 {
+		return nil
+	}
 
 	// Check if simulated diversity score falls below warning threshold
 	if simulatedDistribution.DiversityScore.LT(params.DiversityWarningThreshold) {

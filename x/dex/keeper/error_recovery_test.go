@@ -196,6 +196,9 @@ func TestRemoveLiquidityRevertOnTokenTransferFailure(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, shares.IsPositive())
 
+	// Advance blocks to avoid flash loan protection (requires 10 blocks between liquidity actions)
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 11)
+
 	// Drain module account to force transfer failure
 	moduleAddr := k.GetModuleAddress()
 	moduleBalanceA := k.BankKeeper().GetBalance(ctx, moduleAddr, tokenA)

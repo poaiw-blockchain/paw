@@ -569,14 +569,20 @@ type validatorSetup struct {
 	power  int64
 }
 
+// validatorCounter is used to generate unique validator addresses
+var validatorCounter int64
+
 // createTestValidatorWithPower creates a test validator with the given power in the staking keeper
 func createTestValidatorWithPower(t *testing.T, f testFixture, power int64) sdk.ValAddress {
 	t.Helper()
 	// Create unique validator address for testing
+	validatorCounter++
 	addrBytes := make([]byte, 20)
 	copy(addrBytes, []byte("test_validator_"))
-	addrBytes[15] = byte(power % 256)
-	addrBytes[16] = byte((power / 256) % 256)
+	addrBytes[15] = byte(validatorCounter % 256)
+	addrBytes[16] = byte((validatorCounter / 256) % 256)
+	addrBytes[17] = byte(power % 256)
+	addrBytes[18] = byte((power / 256) % 256)
 	valAddr := sdk.ValAddress(addrBytes)
 
 	// Create the validator in the staking keeper

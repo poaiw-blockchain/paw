@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -244,36 +245,13 @@ func log2(x float64) float64 {
 	return logNatural(x) / logNatural(2)
 }
 
-// logNatural computes natural logarithm using Taylor series
-// This is a simple implementation for blockchain use
+// logNatural computes natural logarithm
+// Uses the standard math library for accurate results
 func logNatural(x float64) float64 {
 	if x <= 0 {
 		return 0
 	}
-	if x == 1 {
-		return 0
-	}
-
-	// For x close to 1, use Taylor series: ln(1+y) = y - y²/2 + y³/3 - ...
-	// Transform x to (1+y) form
-	y := x - 1
-	if y > -0.5 && y < 0.5 {
-		result := 0.0
-		term := y
-		for i := 1; i <= 20; i++ {
-			if i%2 == 1 {
-				result += term / float64(i)
-			} else {
-				result -= term / float64(i)
-			}
-			term *= y
-		}
-		return result
-	}
-
-	// For other values, use approximation
-	// ln(x) ≈ 2 * (x-1)/(x+1) for rough estimate
-	return 2 * (x - 1) / (x + 1)
+	return math.Log(x)
 }
 
 // IsSufficient checks if geographic diversity is sufficient

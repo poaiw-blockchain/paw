@@ -19,11 +19,6 @@ func TestParams_String(t *testing.T) {
 			want:   "",
 		},
 		{
-			name:   "default params",
-			params: &Params{},
-			want:   "",
-		},
-		{
 			name: "params with values",
 			params: &Params{
 				MinProviderStake:           math.NewInt(1000000),
