@@ -1,0 +1,433 @@
+---
+# PAW Blockchain Status Dashboard ConfigMap
+# Serves a static HTML dashboard for network monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: paw-status-dashboard
+  namespace: paw-blockchain
+  labels:
+    app.kubernetes.io/name: paw
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: paw-network
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PAW Blockchain Status</title>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #0a0a0f;
+                color: #e0e0e0;
+                min-height: 100vh;
+                padding: 20px;
+            }
+            .container { max-width: 1200px; margin: 0 auto; }
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid #2a2a3a;
+            }
+            h1 { font-size: 24px; font-weight: 600; }
+            .status-badge {
+                padding: 6px 16px;
+                border-radius: 20px;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            .status-healthy { background: #0d3320; color: #4ade80; }
+            .status-warning { background: #3d2e0a; color: #fbbf24; }
+            .status-error { background: #3d1414; color: #f87171; }
+            .status-unknown { background: #2a2a3a; color: #9ca3af; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+            .card {
+                background: #12121a;
+                border: 1px solid #2a2a3a;
+                border-radius: 12px;
+                padding: 20px;
+            }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+            }
+            .card-title { font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+            .card-value { font-size: 32px; font-weight: 700; color: #fff; }
+            .card-subtitle { font-size: 12px; color: #6b7280; margin-top: 4px; }
+            .validators-list { margin-top: 12px; }
+            .validator-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid #2a2a3a;
+            }
+            .validator-item:last-child { border-bottom: none; }
+            .validator-name { font-size: 14px; }
+            .validator-status { display: flex; align-items: center; gap: 8px; }
+            .dot { width: 8px; height: 8px; border-radius: 50%; }
+            .dot-green { background: #4ade80; }
+            .dot-yellow { background: #fbbf24; }
+            .dot-red { background: #f87171; }
+            .blocks-list { max-height: 300px; overflow-y: auto; }
+            .block-item {
+                display: flex;
+                justify-content: space-between;
+                padding: 10px 0;
+                border-bottom: 1px solid #2a2a3a;
+                font-size: 13px;
+            }
+            .block-height { font-weight: 600; color: #60a5fa; }
+            .block-hash { color: #6b7280; font-family: monospace; font-size: 12px; }
+            .block-time { color: #9ca3af; }
+            .refresh-info {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                color: #6b7280;
+            }
+            .spinner {
+                width: 14px;
+                height: 14px;
+                border: 2px solid #2a2a3a;
+                border-top-color: #60a5fa;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                display: none;
+            }
+            .spinner.active { display: inline-block; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .error-message {
+                background: #3d1414;
+                border: 1px solid #7f1d1d;
+                color: #fca5a5;
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                display: none;
+            }
+            .wide { grid-column: span 2; }
+            @media (max-width: 768px) { .wide { grid-column: span 1; } }
+            .health-indicators { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+            .health-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>PAW Blockchain Status</h1>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div class="refresh-info">
+                        <span class="spinner" id="spinner"></span>
+                        <span>Auto-refresh: <span id="countdown">30</span>s</span>
+                    </div>
+                    <span class="status-badge status-unknown" id="network-status">Loading...</span>
+                </div>
+            </header>
+
+            <div class="error-message" id="error-message"></div>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Block Height</span>
+                    </div>
+                    <div class="card-value" id="block-height">--</div>
+                    <div class="card-subtitle" id="block-time">--</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Chain ID</span>
+                    </div>
+                    <div class="card-value" id="chain-id" style="font-size: 20px;">--</div>
+                    <div class="card-subtitle" id="network-info">--</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Validators</span>
+                    </div>
+                    <div class="card-value"><span id="active-validators">--</span> / <span id="total-validators">--</span></div>
+                    <div class="card-subtitle">Active / Total</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Peers</span>
+                    </div>
+                    <div class="card-value" id="peer-count">--</div>
+                    <div class="card-subtitle" id="peer-info">Connected peers</div>
+                </div>
+
+                <div class="card wide">
+                    <div class="card-header">
+                        <span class="card-title">Network Health</span>
+                    </div>
+                    <div class="health-indicators" id="health-indicators">
+                        <div class="health-item"><span class="dot dot-green"></span> Consensus</div>
+                        <div class="health-item"><span class="dot dot-green"></span> P2P Network</div>
+                        <div class="health-item"><span class="dot dot-green"></span> RPC</div>
+                        <div class="health-item"><span class="dot dot-green"></span> Block Production</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Validator Status</span>
+                    </div>
+                    <div class="validators-list" id="validators-list">
+                        <div class="validator-item">
+                            <span class="validator-name">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Recent Blocks</span>
+                    </div>
+                    <div class="blocks-list" id="blocks-list">
+                        <div class="block-item">
+                            <span>Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const RPC_ENDPOINT = 'http://paw-validator-headless:26657';
+            const REFRESH_INTERVAL = 30;
+            let countdown = REFRESH_INTERVAL;
+            let lastBlockHeight = 0;
+
+            async function fetchJSON(url) {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            }
+
+            function formatTime(isoString) {
+                return new Date(isoString).toLocaleTimeString();
+            }
+
+            function formatTimeAgo(isoString) {
+                const seconds = Math.floor((Date.now() - new Date(isoString)) / 1000);
+                if (seconds < 60) return seconds + 's ago';
+                if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+                return Math.floor(seconds / 3600) + 'h ago';
+            }
+
+            function truncateHash(hash) {
+                if (!hash) return '--';
+                return hash.substring(0, 8) + '...' + hash.substring(hash.length - 6);
+            }
+
+            function updateStatus(status, text) {
+                const badge = document.getElementById('network-status');
+                badge.className = 'status-badge status-' + status;
+                badge.textContent = text;
+            }
+
+            function showError(message) {
+                const el = document.getElementById('error-message');
+                el.textContent = message;
+                el.style.display = 'block';
+            }
+
+            function hideError() {
+                document.getElementById('error-message').style.display = 'none';
+            }
+
+            function updateHealthIndicator(index, status) {
+                const indicators = document.querySelectorAll('#health-indicators .dot');
+                if (indicators[index]) {
+                    indicators[index].className = 'dot dot-' + status;
+                }
+            }
+
+            async function fetchStatus() {
+                const spinner = document.getElementById('spinner');
+                spinner.classList.add('active');
+
+                try {
+                    const status = await fetchJSON(RPC_ENDPOINT + '/status');
+                    const nodeInfo = status.result.node_info;
+                    const syncInfo = status.result.sync_info;
+
+                    const height = parseInt(syncInfo.latest_block_height);
+                    document.getElementById('block-height').textContent = height.toLocaleString();
+                    document.getElementById('block-time').textContent = 'Last block: ' + formatTimeAgo(syncInfo.latest_block_time);
+
+                    const blockProducing = height > lastBlockHeight || lastBlockHeight === 0;
+                    lastBlockHeight = height;
+                    updateHealthIndicator(3, blockProducing ? 'green' : 'red');
+
+                    document.getElementById('chain-id').textContent = nodeInfo.network;
+                    document.getElementById('network-info').textContent = 'Version: ' + nodeInfo.version;
+
+                    const validators = await fetchJSON(RPC_ENDPOINT + '/validators?per_page=100');
+                    const validatorList = validators.result.validators || [];
+                    const totalValidators = parseInt(validators.result.total);
+                    const activeValidators = validatorList.filter(function(v) { return parseInt(v.voting_power) > 0; }).length;
+
+                    document.getElementById('total-validators').textContent = totalValidators;
+                    document.getElementById('active-validators').textContent = activeValidators;
+
+                    const validatorsListEl = document.getElementById('validators-list');
+                    if (validatorList.length > 0) {
+                        validatorsListEl.innerHTML = validatorList.slice(0, 10).map(function(v) {
+                            const active = parseInt(v.voting_power) > 0;
+                            return '<div class="validator-item"><span class="validator-name">' + truncateHash(v.address) + '</span><div class="validator-status"><span>' + parseInt(v.voting_power).toLocaleString() + ' VP</span><span class="dot dot-' + (active ? 'green' : 'red') + '"></span></div></div>';
+                        }).join('');
+                    }
+
+                    try {
+                        const netInfo = await fetchJSON(RPC_ENDPOINT + '/net_info');
+                        const peerCount = netInfo.result.n_peers || 0;
+                        document.getElementById('peer-count').textContent = peerCount;
+                        document.getElementById('peer-info').textContent = peerCount > 0 ? 'Connected peers' : 'No peers connected';
+                        updateHealthIndicator(1, peerCount > 0 ? 'green' : 'red');
+                    } catch (e) {
+                        document.getElementById('peer-count').textContent = '--';
+                        updateHealthIndicator(1, 'yellow');
+                    }
+
+                    const blocksListEl = document.getElementById('blocks-list');
+                    try {
+                        const minHeight = Math.max(1, height - 9);
+                        const blockchain = await fetchJSON(RPC_ENDPOINT + '/blockchain?minHeight=' + minHeight + '&maxHeight=' + height);
+                        const blocks = blockchain.result.block_metas || [];
+                        if (blocks.length > 0) {
+                            blocksListEl.innerHTML = blocks.map(function(b) {
+                                return '<div class="block-item"><div><span class="block-height">#' + parseInt(b.header.height).toLocaleString() + '</span> <span class="block-hash">' + truncateHash(b.block_id.hash) + '</span></div><span class="block-time">' + formatTime(b.header.time) + '</span></div>';
+                            }).join('');
+                        }
+                    } catch (e) {
+                        blocksListEl.innerHTML = '<div class="block-item"><span>Unable to fetch blocks</span></div>';
+                    }
+
+                    const catching_up = syncInfo.catching_up;
+                    updateHealthIndicator(0, catching_up ? 'yellow' : 'green');
+                    updateHealthIndicator(2, 'green');
+
+                    if (catching_up) {
+                        updateStatus('warning', 'Syncing');
+                    } else if (activeValidators < totalValidators * 0.67) {
+                        updateStatus('warning', 'Low Validators');
+                    } else {
+                        updateStatus('healthy', 'Healthy');
+                    }
+
+                    hideError();
+
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    showError('Failed to connect to RPC endpoint: ' + error.message);
+                    updateStatus('error', 'Disconnected');
+                    updateHealthIndicator(2, 'red');
+                } finally {
+                    spinner.classList.remove('active');
+                }
+            }
+
+            function updateCountdown() {
+                countdown--;
+                document.getElementById('countdown').textContent = countdown;
+                if (countdown <= 0) {
+                    countdown = REFRESH_INTERVAL;
+                    fetchStatus();
+                }
+            }
+
+            fetchStatus();
+            setInterval(updateCountdown, 1000);
+        </script>
+    </body>
+    </html>
+
+---
+# Deployment for serving the dashboard via nginx
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paw-status-dashboard
+  namespace: paw-blockchain
+  labels:
+    app.kubernetes.io/name: paw-status-dashboard
+    app.kubernetes.io/component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paw-status-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paw-status-dashboard
+        app.kubernetes.io/component: monitoring
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+              name: http
+          volumeMounts:
+            - name: dashboard
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+      volumes:
+        - name: dashboard
+          configMap:
+            name: paw-status-dashboard
+
+---
+# Service to expose the dashboard
+apiVersion: v1
+kind: Service
+metadata:
+  name: paw-status-dashboard
+  namespace: paw-blockchain
+  labels:
+    app.kubernetes.io/name: paw-status-dashboard
+    app.kubernetes.io/component: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: paw-status-dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP

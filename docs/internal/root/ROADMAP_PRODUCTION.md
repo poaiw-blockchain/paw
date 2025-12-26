@@ -61,13 +61,13 @@ cd /home/hudson/blockchain-projects/paw/k8s
 
 | Test Suite | Passed | Failed | Warnings |
 |------------|--------|--------|----------|
-| Smoke | 9 | 0 | 10 |
-| Security | 10 | 0 | 6 |
+| Smoke | 10 | 0 | 6 |
+| Security | 11 | 0 | 6 |
 | Integration | 9 | 0 | 0 |
-| Performance | 14 | 2* | 2 |
-| Monitoring | 21 | 2* | 36 |
+| Performance | 15 | 0 | 3 |
+| Monitoring | 34 | 0 | 24 |
 
-*Environment limitations: RPC requires port-forward, monitoring stack not fully deployed
+All test failures resolved. Warnings are informational (services pending deployment).
 
 ### Phase 1: Infrastructure (45 tests)
 
@@ -452,7 +452,7 @@ cd /home/hudson/blockchain-projects/paw/k8s
 - [x] Issue templates (bug, feature) ✓
 - [x] Pull request template ✓
 - [x] CI workflows (build, test, coverage, security) ✓
-- [ ] Add branch protection rules for `main` (requires GitHub admin access)
+- [ ] Add branch protection rules for `main` [BLOCKED: requires GitHub Pro or public repo]
 - [x] Configure dependabot for dependency updates ✅
   - `.github/dependabot.yml` configured for Go modules
 - [x] Add DCO (Developer Certificate of Origin) requirement ✅
@@ -477,8 +477,16 @@ cd /home/hudson/blockchain-projects/paw/k8s
   - `docs/GENESIS_CEREMONY.md` - Complete 5-phase ceremony process
   - Covers preparation, gentx submission, verification, coordinated launch
   - Completed: 2025-12-25
-- [ ] Create block explorer public instance (external setup required)
-- [ ] Prepare network status dashboard (external setup required)
+- [x] Create block explorer public instance ✅
+  - Created `k8s/monitoring/block-explorer.html` - Cosmos SDK block explorer
+  - K8s deployment with nginx proxy to RPC endpoint
+  - Features: block list, block details, tx list, search, auto-refresh
+  - Completed: 2025-12-26
+- [x] Prepare network status dashboard ✅
+  - Created `k8s/monitoring/status-dashboard.html` - Network status page
+  - Shows: block height, chain-id, validators, peers, health, recent blocks
+  - K8s deployment running in paw-blockchain namespace
+  - Completed: 2025-12-26
 
 ---
 

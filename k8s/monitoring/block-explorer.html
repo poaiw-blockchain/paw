@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Block Explorer</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --border: #30363d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            margin-bottom: 24px;
+        }
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .search-box {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            max-width: 500px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .search-box input:focus { outline: none; border-color: var(--accent); }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--border); }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .stat-card h3 { color: var(--text-secondary); font-size: 12px; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 600; color: var(--text-primary); }
+        .stat-card .sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .content-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header h2 { font-size: 16px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 12px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        td { font-size: 14px; }
+        tr:hover { background: var(--bg-tertiary); }
+        .link { color: var(--accent); text-decoration: none; cursor: pointer; }
+        .link:hover { text-decoration: underline; }
+        .hash { font-family: monospace; font-size: 13px; }
+        .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-success { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+        .badge-warning { background: rgba(210, 153, 34, 0.2); color: var(--warning); }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+        }
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        .pagination button:hover:not(:disabled) { background: var(--border); }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .detail-view {
+            display: none;
+            padding: 20px;
+        }
+        .detail-view.active { display: block; }
+        .detail-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label {
+            width: 180px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .detail-value {
+            flex: 1;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .back-btn { margin-bottom: 16px; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid #f85149;
+            color: #f85149;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .refresh-indicator.active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .hidden { display: none !important; }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .search-box { max-width: 100%; order: 3; flex-basis: 100%; }
+            th, td { padding: 10px 12px; }
+            .detail-row { flex-direction: column; gap: 4px; }
+            .detail-label { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">PAW Explorer</div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by block height or tx hash...">
+                <button class="btn" onclick="handleSearch()">Search</button>
+            </div>
+            <div class="refresh-indicator" id="refreshIndicator">
+                <span>Auto-refresh: </span>
+                <button class="btn btn-secondary" id="refreshToggle" onclick="toggleAutoRefresh()">ON</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="errorBox" class="error hidden"></div>
+
+        <div class="stats-grid" id="statsSection">
+            <div class="stat-card">
+                <h3>Latest Block</h3>
+                <div class="value" id="latestBlock">-</div>
+                <div class="sub" id="latestBlockTime">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Chain ID</h3>
+                <div class="value" id="chainId">-</div>
+                <div class="sub">Network</div>
+            </div>
+            <div class="stat-card">
+                <h3>Validators</h3>
+                <div class="value" id="validatorCount">-</div>
+                <div class="sub">Active validators</div>
+            </div>
+            <div class="stat-card">
+                <h3>Node Status</h3>
+                <div class="value" id="nodeStatus">-</div>
+                <div class="sub" id="nodeVersion">-</div>
+            </div>
+        </div>
+
+        <div id="listView">
+            <div class="tabs">
+                <button class="tab active" data-tab="blocks" onclick="switchTab('blocks')">Blocks</button>
+                <button class="tab" data-tab="transactions" onclick="switchTab('transactions')">Transactions</button>
+            </div>
+
+            <div class="content-panel" id="blocksPanel">
+                <div class="panel-header">
+                    <h2>Latest Blocks</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Height</th>
+                            <th>Hash</th>
+                            <th>Proposer</th>
+                            <th>Txs</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blocksTable">
+                        <tr><td colspan="5" class="loading">Loading blocks...</td></tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button onclick="prevBlockPage()" id="prevBlockBtn">Previous</button>
+                    <span id="blockPageInfo">Page 1</span>
+                    <button onclick="nextBlockPage()" id="nextBlockBtn">Next</button>
+                </div>
+            </div>
+
+            <div class="content-panel hidden" id="transactionsPanel">
+                <div class="panel-header">
+                    <h2>Recent Transactions</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tx Hash</th>
+                            <th>Block</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="txTable">
+                        <tr><td colspan="5" class="loading">Loading transactions...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="detailView" class="content-panel hidden">
+            <div class="detail-view active">
+                <button class="btn btn-secondary back-btn" onclick="showListView()">Back to List</button>
+                <div id="detailContent"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Configuration
+        const RPC_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:26657'
+            : '/rpc';  // Use nginx proxy in k8s
+
+        let currentBlockPage = 1;
+        let latestHeight = 0;
+        let autoRefresh = true;
+        let refreshInterval = null;
+        const BLOCKS_PER_PAGE = 20;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStatus();
+            fetchBlocks();
+            startAutoRefresh();
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSearch();
+            });
+        });
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                if (autoRefresh && document.getElementById('listView').className !== 'hidden') {
+                    fetchStatus();
+                    if (currentBlockPage === 1) fetchBlocks();
+                }
+            }, 5000);
+            document.getElementById('refreshIndicator').classList.add('active');
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            document.getElementById('refreshToggle').textContent = autoRefresh ? 'ON' : 'OFF';
+            document.getElementById('refreshIndicator').classList.toggle('active', autoRefresh);
+        }
+
+        // API calls
+        async function rpcCall(method, params = {}) {
+            try {
+                const url = new URL(RPC_URL);
+                url.pathname = '/' + method;
+                Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+                const response = await fetch(url.toString());
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message || data.error);
+                hideError();
+                return data.result;
+            } catch (err) {
+                showError(`RPC Error: ${err.message}`);
+                throw err;
+            }
+        }
+
+        // Fetch status
+        async function fetchStatus() {
+            try {
+                const status = await rpcCall('status');
+                latestHeight = parseInt(status.sync_info.latest_block_height);
+                document.getElementById('latestBlock').textContent = latestHeight.toLocaleString();
+                document.getElementById('latestBlockTime').textContent = formatTime(status.sync_info.latest_block_time);
+                document.getElementById('chainId').textContent = status.node_info.network;
+                document.getElementById('nodeStatus').textContent = status.sync_info.catching_up ? 'Syncing' : 'Synced';
+                document.getElementById('nodeVersion').textContent = status.node_info.version;
+
+                // Fetch validators
+                const validators = await rpcCall('validators');
+                document.getElementById('validatorCount').textContent = validators.validators.length;
+            } catch (err) {
+                console.error('Failed to fetch status:', err);
+            }
+        }
+
+        // Fetch blocks
+        async function fetchBlocks() {
+            const tbody = document.getElementById('blocksTable');
+            try {
+                const minHeight = Math.max(1, latestHeight - (currentBlockPage * BLOCKS_PER_PAGE) + 1);
+                const maxHeight = Math.max(1, latestHeight - ((currentBlockPage - 1) * BLOCKS_PER_PAGE));
+
+                if (minHeight > maxHeight) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">No more blocks</td></tr>';
+                    return;
+                }
+
+                const result = await rpcCall('blockchain', { minHeight, maxHeight });
+                const blocks = result.block_metas || [];
+
+                if (blocks.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">No blocks found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = blocks.map(block => `
+                    <tr>
+                        <td><a class="link" onclick="showBlockDetail(${block.header.height})">${parseInt(block.header.height).toLocaleString()}</a></td>
+                        <td class="hash truncate">${block.block_id.hash.substring(0, 16)}...</td>
+                        <td class="hash truncate">${block.header.proposer_address.substring(0, 12)}...</td>
+                        <td>${block.num_txs || 0}</td>
+                        <td>${formatTime(block.header.time)}</td>
+                    </tr>
+                `).join('');
+
+                updateBlockPagination();
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="loading">Error loading blocks</td></tr>`;
+            }
+        }
+
+        function updateBlockPagination() {
+            document.getElementById('blockPageInfo').textContent = `Page ${currentBlockPage}`;
+            document.getElementById('prevBlockBtn').disabled = currentBlockPage === 1;
+            const totalPages = Math.ceil(latestHeight / BLOCKS_PER_PAGE);
+            document.getElementById('nextBlockBtn').disabled = currentBlockPage >= totalPages;
+        }
+
+        function prevBlockPage() {
+            if (currentBlockPage > 1) {
+                currentBlockPage--;
+                fetchBlocks();
+            }
+        }
+
+        function nextBlockPage() {
+            currentBlockPage++;
+            fetchBlocks();
+        }
+
+        // Fetch transactions from recent blocks
+        async function fetchTransactions() {
+            const tbody = document.getElementById('txTable');
+            try {
+                const txs = [];
+                // Get transactions from recent blocks
+                for (let h = latestHeight; h > Math.max(1, latestHeight - 10) && txs.length < 20; h--) {
+                    try {
+                        const block = await rpcCall('block', { height: h });
+                        const blockTxs = block.block.data.txs || [];
+                        for (const tx of blockTxs) {
+                            const txResult = await rpcCall('tx', { hash: '0x' + btoa(tx).replace(/[^a-zA-Z0-9]/g, '').substring(0, 64) });
+                            txs.push({ ...txResult, block_height: h, block_time: block.block.header.time });
+                        }
+                    } catch (e) { /* Skip blocks with no txs */ }
+                }
+
+                if (txs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">No recent transactions</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = txs.slice(0, 20).map(tx => `
+                    <tr>
+                        <td class="hash truncate"><a class="link" onclick="showTxDetail('${tx.hash}')">${tx.hash.substring(0, 16)}...</a></td>
+                        <td><a class="link" onclick="showBlockDetail(${tx.height})">${tx.height}</a></td>
+                        <td>-</td>
+                        <td><span class="badge ${tx.tx_result.code === 0 ? 'badge-success' : 'badge-warning'}">${tx.tx_result.code === 0 ? 'Success' : 'Failed'}</span></td>
+                        <td>${formatTime(tx.block_time)}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="loading">No recent transactions</td></tr>';
+            }
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            document.getElementById('blocksPanel').classList.toggle('hidden', tab !== 'blocks');
+            document.getElementById('transactionsPanel').classList.toggle('hidden', tab !== 'transactions');
+
+            if (tab === 'transactions') fetchTransactions();
+        }
+
+        // Block detail
+        async function showBlockDetail(height) {
+            try {
+                const [block, blockResults] = await Promise.all([
+                    rpcCall('block', { height }),
+                    rpcCall('block_results', { height })
+                ]);
+
+                const header = block.block.header;
+                const txs = block.block.data.txs || [];
+
+                document.getElementById('detailContent').innerHTML = `
+                    <h2 style="margin-bottom: 20px;">Block #${parseInt(height).toLocaleString()}</h2>
+                    <div class="detail-row">
+                        <div class="detail-label">Block Hash</div>
+                        <div class="detail-value hash">${block.block_id.hash}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Height</div>
+                        <div class="detail-value">${parseInt(header.height).toLocaleString()}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Time</div>
+                        <div class="detail-value">${new Date(header.time).toLocaleString()}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Chain ID</div>
+                        <div class="detail-value">${header.chain_id}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Proposer</div>
+                        <div class="detail-value hash">${header.proposer_address}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Transactions</div>
+                        <div class="detail-value">${txs.length}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">App Hash</div>
+                        <div class="detail-value hash">${header.app_hash || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Last Block Hash</div>
+                        <div class="detail-value hash">${header.last_block_id?.hash || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Validators Hash</div>
+                        <div class="detail-value hash">${header.validators_hash}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Consensus Hash</div>
+                        <div class="detail-value hash">${header.consensus_hash}</div>
+                    </div>
+                    ${txs.length > 0 ? `
+                        <h3 style="margin: 24px 0 12px;">Transactions in Block</h3>
+                        <table>
+                            <thead><tr><th>Hash</th><th>Status</th></tr></thead>
+                            <tbody>
+                                ${txs.map((tx, i) => {
+                                    const result = blockResults.txs_results?.[i];
+                                    return `<tr>
+                                        <td class="hash truncate">${i + 1}</td>
+                                        <td><span class="badge ${result?.code === 0 ? 'badge-success' : 'badge-warning'}">${result?.code === 0 ? 'Success' : 'Failed'}</span></td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    ` : ''}
+                `;
+                showDetailView();
+            } catch (err) {
+                showError(`Failed to load block: ${err.message}`);
+            }
+        }
+
+        // Tx detail
+        async function showTxDetail(hash) {
+            try {
+                const tx = await rpcCall('tx', { hash: '0x' + hash });
+
+                document.getElementById('detailContent').innerHTML = `
+                    <h2 style="margin-bottom: 20px;">Transaction Details</h2>
+                    <div class="detail-row">
+                        <div class="detail-label">Hash</div>
+                        <div class="detail-value hash">${tx.hash}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Height</div>
+                        <div class="detail-value"><a class="link" onclick="showBlockDetail(${tx.height})">${tx.height}</a></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Index</div>
+                        <div class="detail-value">${tx.index}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value"><span class="badge ${tx.tx_result.code === 0 ? 'badge-success' : 'badge-warning'}">${tx.tx_result.code === 0 ? 'Success' : 'Failed'}</span></div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Gas Wanted</div>
+                        <div class="detail-value">${tx.tx_result.gas_wanted || 'N/A'}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Gas Used</div>
+                        <div class="detail-value">${tx.tx_result.gas_used || 'N/A'}</div>
+                    </div>
+                    ${tx.tx_result.log ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Log</div>
+                            <div class="detail-value" style="white-space: pre-wrap;">${tx.tx_result.log}</div>
+                        </div>
+                    ` : ''}
+                `;
+                showDetailView();
+            } catch (err) {
+                showError(`Failed to load transaction: ${err.message}`);
+            }
+        }
+
+        // Search
+        async function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            // Try as block height
+            if (/^\d+$/.test(query)) {
+                await showBlockDetail(parseInt(query));
+                return;
+            }
+
+            // Try as tx hash
+            if (/^[A-Fa-f0-9]{64}$/.test(query)) {
+                await showTxDetail(query);
+                return;
+            }
+
+            showError('Please enter a valid block height (number) or transaction hash (64 hex characters)');
+        }
+
+        // View switching
+        function showDetailView() {
+            document.getElementById('listView').classList.add('hidden');
+            document.getElementById('detailView').classList.remove('hidden');
+        }
+
+        function showListView() {
+            document.getElementById('detailView').classList.add('hidden');
+            document.getElementById('listView').classList.remove('hidden');
+        }
+
+        // Utilities
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = (now - date) / 1000;
+
+            if (diff < 60) return `${Math.floor(diff)}s ago`;
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent = msg;
+            box.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorBox').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
