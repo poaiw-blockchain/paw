@@ -160,7 +160,7 @@ spec:
 
         # Config initialization
         - name: config-init
-          image: paw-chain/pawd:latest
+          image: paw-chain/pawd:v20251226
           command:
             - /bin/sh
             - -c
@@ -281,7 +281,7 @@ spec:
 
       containers:
         - name: pawd
-          image: paw-chain/pawd:latest
+          image: paw-chain/pawd:v20251226
           imagePullPolicy: IfNotPresent
           command:
             - /app/bin/paw-node

@@ -10,6 +10,8 @@ metadata:
   labels:
     app: alertmanager
     component: monitoring
+  annotations:
+    checksum/config: "21b7aa9f586b8da168e283033512211280a4866e9792571e18f2f0914f73e36d"
 data:
   config.yml: |
     global:
@@ -171,6 +173,8 @@ metadata:
   labels:
     app: prometheus
     component: monitoring
+  annotations:
+    checksum/config: "21b7aa9f586b8da168e283033512211280a4866e9792571e18f2f0914f73e36d"
 data:
   prometheus.yml: |
     global:

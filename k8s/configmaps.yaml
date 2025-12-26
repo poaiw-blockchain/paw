@@ -7,6 +7,8 @@ metadata:
   namespace: paw-blockchain
   labels:
     app: paw
+  annotations:
+    checksum/config: "435397b091a3d4b82b931e04eb469133f7e37538df2925e291974e9f4ec6f864"
 data:
   # Chain configuration
   chain_id: 'paw-1'
@@ -35,6 +37,8 @@ metadata:
   labels:
     app: paw
     component: node
+  annotations:
+    checksum/config: "435397b091a3d4b82b931e04eb469133f7e37538df2925e291974e9f4ec6f864"
 data:
   config.toml: |
     # CometBFT Configuration for Full Node
@@ -186,6 +190,8 @@ metadata:
   labels:
     app: paw
     component: validator
+  annotations:
+    checksum/config: "435397b091a3d4b82b931e04eb469133f7e37538df2925e291974e9f4ec6f864"
 data:
   config.toml: |
     # CometBFT Configuration for Validator Node

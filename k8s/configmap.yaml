@@ -5,6 +5,8 @@ metadata:
   namespace: paw-blockchain
   labels:
     app: paw
+  annotations:
+    checksum/config: "3c712a1b3f81b5e82b53b9e48520907e00e2a5f1584f5f0397c62de9f0909f25"
 data:
   CHAIN_ID: 'paw-testnet-1'
   MINIMUM_GAS_PRICES: '0.025upaw'
@@ -23,6 +25,8 @@ metadata:
   namespace: paw-blockchain
   labels:
     app: paw-node
+  annotations:
+    checksum/config: "3c712a1b3f81b5e82b53b9e48520907e00e2a5f1584f5f0397c62de9f0909f25"
 data:
   STATE_SYNC_ENABLED: 'false'
   PRUNING_KEEP_RECENT: '100'

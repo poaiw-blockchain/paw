@@ -31,6 +31,15 @@ spec:
     spec:
       serviceAccountName: paw-node
       terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: validator
+              topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -41,8 +50,8 @@ spec:
 
       initContainers:
         - name: config-init
-          image: 100.91.253.108:5000/pawd:latest
-          imagePullPolicy: Always
+          image: 100.91.253.108:5000/pawd:v20251226
+          imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -128,8 +137,8 @@ spec:
 
       containers:
         - name: paw-node
-          image: 100.91.253.108:5000/pawd:latest
-          imagePullPolicy: Always
+          image: 100.91.253.108:5000/pawd:v20251226
+          imagePullPolicy: IfNotPresent
           command: ["/app/bin/paw-node"]
           args:
             - start

@@ -41,8 +41,8 @@ spec:
 
       initContainers:
         - name: config-init
-          image: localhost:5050/pawd:latest
-          imagePullPolicy: Never
+          image: localhost:5050/pawd:v20251226
+          imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
             - |
@@ -161,8 +161,8 @@ spec:
 
       containers:
         - name: pawd
-          image: localhost:5050/pawd:latest
-          imagePullPolicy: Never
+          image: localhost:5050/pawd:v20251226
+          imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:
             - |

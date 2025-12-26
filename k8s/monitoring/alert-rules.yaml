@@ -1,0 +1,183 @@
+# PAW Blockchain Prometheus Alert Rules
+# Core infrastructure alerts for block production, resources, and validators
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: paw-blockchain
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  alert-rules.yml: |
+    groups:
+      - name: paw.blockchain.alerts
+        interval: 15s
+        rules:
+          # Block Production Stopped
+          - alert: BlockProductionStopped
+            expr: increase(tendermint_consensus_height[60s]) == 0
+            for: 60s
+            labels:
+              severity: critical
+              service: blockchain
+              team: validators
+            annotations:
+              summary: "Block production has stopped"
+              description: |
+                No new blocks have been produced in the last 60 seconds.
+                This indicates a critical consensus failure.
+
+                Actions:
+                1. Check validator status: kubectl get pods -l app=paw-validator -n paw-blockchain
+                2. Check consensus logs: kubectl logs -l app=paw-validator -n paw-blockchain --tail=100
+                3. Verify network connectivity between validators
+              runbook_url: "https://docs.paw-chain.org/runbooks/block-production-stopped"
+              dashboard_url: "https://grafana.paw-chain.org/d/consensus-overview"
+
+          # Low Peer Count
+          - alert: LowPeerCount
+            expr: tendermint_p2p_peers < 2
+            for: 2m
+            labels:
+              severity: warning
+              service: p2p
+              team: infrastructure
+            annotations:
+              summary: "Low P2P peer count on {{ $labels.pod }}"
+              description: |
+                Node {{ $labels.pod }} has only {{ $value }} peers (minimum: 2).
+                This may affect block propagation and consensus participation.
+
+                Actions:
+                1. Check network policies: kubectl get networkpolicy -n paw-blockchain
+                2. Verify seed/persistent peers configuration
+                3. Check node logs for connection errors
+              runbook_url: "https://docs.paw-chain.org/runbooks/low-peer-count"
+
+      - name: paw.resources.alerts
+        interval: 30s
+        rules:
+          # High CPU Usage
+          - alert: HighCPUUsage
+            expr: |
+              (
+                sum(rate(container_cpu_usage_seconds_total{namespace="paw-blockchain"}[5m])) by (pod)
+                /
+                sum(container_spec_cpu_quota{namespace="paw-blockchain"}/container_spec_cpu_period{namespace="paw-blockchain"}) by (pod)
+              ) * 100 > 80
+            for: 5m
+            labels:
+              severity: warning
+              service: resources
+              team: infrastructure
+            annotations:
+              summary: "High CPU usage on {{ $labels.pod }}"
+              description: |
+                Pod {{ $labels.pod }} CPU usage is {{ $value | printf "%.1f" }}% (threshold: 80%).
+                Sustained high CPU may indicate performance issues or resource constraints.
+
+                Actions:
+                1. Check pod resources: kubectl top pod {{ $labels.pod }} -n paw-blockchain
+                2. Review recent workload changes
+                3. Consider scaling or resource limit adjustments
+              runbook_url: "https://docs.paw-chain.org/runbooks/high-cpu-usage"
+
+          # High Disk Usage
+          - alert: HighDiskUsage
+            expr: |
+              (
+                kubelet_volume_stats_used_bytes{namespace="paw-blockchain"}
+                /
+                kubelet_volume_stats_capacity_bytes{namespace="paw-blockchain"}
+              ) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+              service: storage
+              team: infrastructure
+            annotations:
+              summary: "High disk usage on {{ $labels.persistentvolumeclaim }}"
+              description: |
+                PVC {{ $labels.persistentvolumeclaim }} disk usage is {{ $value | printf "%.1f" }}% (threshold: 85%).
+                Blockchain data growth may require volume expansion.
+
+                Actions:
+                1. Check volume usage: kubectl exec -n paw-blockchain <pod> -- df -h
+                2. Review data retention policies
+                3. Consider expanding PVC or pruning old data
+              runbook_url: "https://docs.paw-chain.org/runbooks/high-disk-usage"
+
+          # High Memory Usage
+          - alert: HighMemoryUsage
+            expr: |
+              (
+                container_memory_usage_bytes{namespace="paw-blockchain"}
+                /
+                container_spec_memory_limit_bytes{namespace="paw-blockchain"}
+              ) * 100 > 90
+            for: 5m
+            labels:
+              severity: warning
+              service: resources
+              team: infrastructure
+            annotations:
+              summary: "High memory usage on {{ $labels.pod }}"
+              description: |
+                Pod {{ $labels.pod }} memory usage is {{ $value | printf "%.1f" }}% (threshold: 90%).
+                High memory usage may lead to OOM kills.
+
+                Actions:
+                1. Check pod memory: kubectl top pod {{ $labels.pod }} -n paw-blockchain
+                2. Review memory limits in deployment
+                3. Check for memory leaks in application logs
+              runbook_url: "https://docs.paw-chain.org/runbooks/high-memory-usage"
+
+      - name: paw.validator.alerts
+        interval: 15s
+        rules:
+          # Validator Missed Blocks
+          - alert: ValidatorMissedBlocks
+            expr: increase(tendermint_consensus_validator_missed_blocks[5m]) > 0
+            for: 1m
+            labels:
+              severity: warning
+              service: validator
+              team: validators
+            annotations:
+              summary: "Validator {{ $labels.validator_address }} missed blocks"
+              description: |
+                Validator {{ $labels.validator_address }} has missed {{ $value }} blocks
+                in the last 5 minutes.
+
+                Possible causes:
+                - Network connectivity issues
+                - Node synchronization lag
+                - Insufficient resources
+
+                Actions:
+                1. Check validator status: kubectl get pods -l app=paw-validator -n paw-blockchain
+                2. Verify node is synced: kubectl exec <pod> -- pawd status
+                3. Check for network issues between validators
+              runbook_url: "https://docs.paw-chain.org/runbooks/validator-missed-blocks"
+
+          # Validator Missed Blocks Critical (high rate)
+          - alert: ValidatorMissedBlocksCritical
+            expr: increase(tendermint_consensus_validator_missed_blocks[5m]) > 10
+            for: 2m
+            labels:
+              severity: critical
+              service: validator
+              team: validators
+            annotations:
+              summary: "CRITICAL: Validator {{ $labels.validator_address }} missing many blocks"
+              description: |
+                Validator {{ $labels.validator_address }} has missed {{ $value }} blocks
+                in the last 5 minutes. Risk of slashing.
+
+                IMMEDIATE ACTIONS REQUIRED:
+                1. Check validator pod health immediately
+                2. Verify signing key availability
+                3. Check for double-signing protection activation
+              runbook_url: "https://docs.paw-chain.org/runbooks/validator-critical"
