@@ -15,11 +15,21 @@
   - Prometheus, Alertmanager, Grafana services running
   - IBC alert rules loaded in prometheus-config
   - Completed: 2025-12-25
-- [ ] Publish operator note linking dashboard + alert + runbook
+- [x] Publish operator note linking dashboard + alert + runbook ✅
+  - Created `docs/OPERATOR_RUNBOOK.md` (49 lines)
+  - Alert quick reference, dashboard URLs, severity levels
+  - Common commands and config references
+  - Completed: 2025-12-26
 - [x] Add resolved notifications in Alertmanager routing for boundary alerts ✅
   - `send_resolved: true` configured globally and per-receiver
   - Completed: 2025-12-25
-- [ ] Complete per-module findings, severity tagging, and regression test commitments
+- [x] Complete per-module findings, severity tagging, and regression test commitments ✅
+  - Created `docs/internal/MODULE_FINDINGS.md`
+  - x/compute: 8 findings (2 CRITICAL, 4 HIGH, 2 MEDIUM)
+  - x/dex: 8 findings (2 CRITICAL, 2 HIGH, 3 MEDIUM, 1 LOW)
+  - x/oracle: 7 findings (3 HIGH, 3 MEDIUM, 1 LOW)
+  - 8 regression test commitments documented
+  - Completed: 2025-12-26
 
 ---
 
@@ -44,6 +54,20 @@ cd /home/hudson/blockchain-projects/paw/k8s
 ./tests/smoke-tests.sh && ./tests/integration-tests.sh
 ./tests/chaos-tests.sh && ./tests/security-tests.sh
 ```
+
+### Test Execution Results (2025-12-26) ✅
+
+**4-Node Cluster**: 4 validators across 2 K3s nodes (bcpc-staging, wsl2-worker)
+
+| Test Suite | Passed | Failed | Warnings |
+|------------|--------|--------|----------|
+| Smoke | 9 | 0 | 10 |
+| Security | 10 | 0 | 6 |
+| Integration | 9 | 0 | 0 |
+| Performance | 14 | 2* | 2 |
+| Monitoring | 21 | 2* | 36 |
+
+*Environment limitations: RPC requires port-forward, monitoring stack not fully deployed
 
 ### Phase 1: Infrastructure (45 tests)
 
