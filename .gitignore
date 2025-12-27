@@ -142,3 +142,22 @@ __pycache__/
 # Devnet state directories (contains keys and mnemonics)
 scripts/devnet/.state/
 scripts/devnet/.state.bak*/
+
+# ============================================================================
+# K8s Secrets - NEVER COMMIT
+# ============================================================================
+k8s/**/secret*.yaml
+k8s/genesis-secret.yaml
+k8s/secrets-configmaps.yaml
+.kube/
+
+# ============================================================================
+# Test Reports and Analysis Artifacts
+# ============================================================================
+TEST_STATUS.csv
+TEST_FAILURE_DETAILS.json
+QUICK_TEST_SUMMARY.txt
+*SUMMARY*.md
+*ANALYSIS*.md
+*FINDINGS*.txt
+!docs/**
