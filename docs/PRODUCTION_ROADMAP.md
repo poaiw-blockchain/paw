@@ -146,7 +146,8 @@
 
 ### Documentation
 
-- [ ] **DOC-4: Expand changelog** with migration instructions per version
+- [x] **DOC-4: Expand changelog** with migration instructions per version
+  - Created `docs/CHANGELOG.md` with breaking changes, security fixes, migration guide
 - [ ] **DOC-5: Breaking change migration guides**
 - [ ] **DOC-6: CosmWasm/Smart contract integration guide**
 
