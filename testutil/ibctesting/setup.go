@@ -19,6 +19,7 @@ import (
 	ibctestingtypes "github.com/cosmos/ibc-go/v8/testing/types"
 
 	"github.com/paw-chain/paw/app"
+	"github.com/paw-chain/paw/app/ibcutil"
 	computetypes "github.com/paw-chain/paw/x/compute/types"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 	oracletypes "github.com/paw-chain/paw/x/oracle/types"
@@ -123,15 +124,15 @@ func AuthorizeModuleChannel(chain *ibctesting.TestChain, portID, channelID strin
 
 	switch portID {
 	case computetypes.PortID:
-		if err := pawApp.ComputeKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+		if err := ibcutil.AuthorizeChannel(ctx, pawApp.ComputeKeeper, portID, channelID); err != nil {
 			panic(err)
 		}
 	case dextypes.PortID:
-		if err := pawApp.DEXKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+		if err := ibcutil.AuthorizeChannel(ctx, pawApp.DEXKeeper, portID, channelID); err != nil {
 			panic(err)
 		}
 	case oracletypes.PortID:
-		if err := pawApp.OracleKeeper.AuthorizeChannel(ctx, portID, channelID); err != nil {
+		if err := ibcutil.AuthorizeChannel(ctx, pawApp.OracleKeeper, portID, channelID); err != nil {
 			panic(err)
 		}
 	default:

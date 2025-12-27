@@ -169,7 +169,7 @@ func (k *DexGasKeeper) Swap(ctx sdk.Context, traderAddr string, poolID uint64, t
 	}
 
 	trader := sdk.MustAccAddressFromBech32(traderAddr)
-	amountOut, err := k.Keeper.ExecuteSwapSecure(
+	amountOut, err := k.Keeper.ExecuteSwap(
 		ctx,
 		trader,
 		poolID,
@@ -190,7 +190,7 @@ func (k *DexGasKeeper) AddLiquidity(ctx sdk.Context, providerAddr string, poolID
 	ctx.GasMeter().ConsumeGas(70_000, "add_liquidity")
 
 	provider := sdk.MustAccAddressFromBech32(providerAddr)
-	shares, err := k.Keeper.AddLiquiditySecure(ctx, provider, poolID, amountA, amountB)
+	shares, err := k.Keeper.AddLiquidity(ctx, provider, poolID, amountA, amountB)
 	if err != nil {
 		return math.ZeroInt(), err
 	}
@@ -206,7 +206,7 @@ func (k *DexGasKeeper) RemoveLiquidity(ctx sdk.Context, providerAddr string, poo
 	ctx.GasMeter().ConsumeGas(70_000, "remove_liquidity")
 
 	provider := sdk.MustAccAddressFromBech32(providerAddr)
-	amountA, amountB, err = k.Keeper.RemoveLiquiditySecure(ctx, provider, poolID, lpTokens)
+	amountA, amountB, err = k.Keeper.RemoveLiquidity(ctx, provider, poolID, lpTokens)
 	if err != nil {
 		return math.ZeroInt(), math.ZeroInt(), err
 	}

@@ -60,7 +60,7 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	balanceBefore := suite.app.BankKeeper.GetBalance(suite.ctx, attackerAddr, "upaw")
 
 	// First swap should succeed (use 1% of pool to avoid MEV protection)
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -75,7 +75,7 @@ func (suite *AdversarialTestSuite) TestDoubleSpending_Prevention() {
 	suite.Require().True(balanceAfterFirst.Amount.LT(balanceBefore.Amount), "Balance should decrease after swap")
 
 	// Second identical swap
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -129,7 +129,7 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	poolId := pool.Id
 
 	// Execute attacker swap first (front-running) - use 3% of pool
-	attackerAmountOut, err := suite.app.DEXKeeper.Swap(
+	attackerAmountOut, err := suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -141,7 +141,7 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	suite.Require().NoError(err)
 
 	// Execute victim swap (price now worse due to front-running) - use 2% of pool
-	victimAmountOut, err := suite.app.DEXKeeper.Swap(
+	victimAmountOut, err := suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		victimAddr,
 		poolId,
@@ -160,7 +160,7 @@ func (suite *AdversarialTestSuite) TestFrontRunning_Simulation() {
 	}
 
 	// Attacker tries to back-run by swapping reverse
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -208,7 +208,7 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	poolId := pool.Id
 
 	// 1. Attacker front-runs with buy (use 2% of pool)
-	attackBuyAmountOut, err := suite.app.DEXKeeper.Swap(
+	attackBuyAmountOut, err := suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -220,7 +220,7 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	suite.Require().NoError(err)
 
 	// 2. Victim executes their trade (use 3% of pool)
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		victimAddr,
 		poolId,
@@ -232,7 +232,7 @@ func (suite *AdversarialTestSuite) TestSandwichAttack_Detection() {
 	suite.Require().NoError(err)
 
 	// 3. Attacker back-runs with sell
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -433,7 +433,7 @@ func (suite *AdversarialTestSuite) TestReplayAttack() {
 	poolId := pool.Id
 
 	// Execute swap (use 1% of pool)
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,
@@ -446,7 +446,7 @@ func (suite *AdversarialTestSuite) TestReplayAttack() {
 
 	// Attempt to replay same transaction
 	// In Cosmos SDK, sequence numbers prevent replay attacks
-	_, err = suite.app.DEXKeeper.Swap(
+	_, err = suite.app.DEXKeeper.ExecuteSwap(
 		suite.ctx,
 		attackerAddr,
 		poolId,

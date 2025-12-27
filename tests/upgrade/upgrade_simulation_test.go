@@ -155,7 +155,7 @@ func (suite *UpgradeSimulationSuite) TestUpgradeWithActiveOperations() {
 	// Perform swap
 	trader := sdk.AccAddress([]byte("active_trader_______"))
 	suite.fundAccount(trader, sdk.NewCoins(sdk.NewInt64Coin("upaw", 1_000_000)))
-	_, err = suite.app.DEXKeeper.Swap(suite.ctx, trader, pool.Id, "upaw", "uusdc", sdkmath.NewInt(100_000), sdkmath.NewInt(1))
+	_, err = suite.app.DEXKeeper.ExecuteSwap(suite.ctx, trader, pool.Id, "upaw", "uusdc", sdkmath.NewInt(100_000), sdkmath.NewInt(1))
 	suite.Require().NoError(err)
 
 	// Verify operations can continue - test pool retrieval and provider status
