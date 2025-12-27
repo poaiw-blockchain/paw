@@ -359,6 +359,30 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 		return math.ZeroInt(), math.ZeroInt(), types.ErrInsufficientLiquidity.Wrap("withdrawal amounts too small")
 	}
 
+	// SEC-6: Enforce minimum reserves - pools cannot be fully drained
+	// This is critical to prevent:
+	// 1. Price manipulation via dust amounts
+	// 2. Flash loan attacks that drain pools
+	// 3. Griefing attacks that leave pools unusable
+	remainingReserveA := pool.ReserveA.Sub(amountA)
+	remainingReserveB := pool.ReserveB.Sub(amountB)
+	minReserves := math.NewInt(MinimumReserves)
+
+	// Always enforce minimum reserves - full draining is NOT allowed
+	// Pools must maintain at least MinimumReserves (1000 base units) in each token
+	if remainingReserveA.LT(minReserves) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrMinimumReserves.Wrapf(
+			"withdrawal would leave reserve A at %s, minimum required is %s",
+			remainingReserveA, minReserves,
+		)
+	}
+	if remainingReserveB.LT(minReserves) {
+		return math.ZeroInt(), math.ZeroInt(), types.ErrMinimumReserves.Wrapf(
+			"withdrawal would leave reserve B at %s, minimum required is %s",
+			remainingReserveB, minReserves,
+		)
+	}
+
 	// 7. Update pool state BEFORE transfers (checks-effects-interactions)
 	// Check for underflow before subtraction
 	if pool.ReserveA.LT(amountA) {
@@ -455,12 +479,34 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 	return amountA, amountB, nil
 }
 
+// DefaultMaxLiquidityIterations is the maximum number of liquidity positions to iterate
+// in a single call to prevent unbounded iteration. This can be overridden using
+// IterateLiquidityByPoolPaginated for queries requiring pagination.
+const DefaultMaxLiquidityIterations = 10000
+
+// IterateLiquidityByPool iterates over all liquidity positions in a pool with a safety limit.
+// PERF-3: Added maximum iteration limit to prevent unbounded iteration that could cause timeout.
+// For genesis export and other operations requiring all records, the callback can return false
+// to continue iteration, but the function will stop after DefaultMaxLiquidityIterations.
+// Use IterateLiquidityByPoolPaginated for queries requiring explicit pagination.
 func (k Keeper) IterateLiquidityByPool(ctx context.Context, poolID uint64, cb func(provider sdk.AccAddress, shares math.Int) (stop bool)) error {
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, LiquidityKeyByPoolPrefix(poolID))
 	defer iterator.Close()
 
+	count := 0
 	for ; iterator.Valid(); iterator.Next() {
+		// PERF-3: Safety limit to prevent unbounded iteration
+		count++
+		if count > DefaultMaxLiquidityIterations {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			sdkCtx.Logger().Warn("IterateLiquidityByPool reached maximum iteration limit",
+				"pool_id", poolID,
+				"limit", DefaultMaxLiquidityIterations,
+			)
+			break
+		}
+
 		var shares math.Int
 		if err := shares.Unmarshal(iterator.Value()); err != nil {
 			return err
@@ -476,4 +522,111 @@ func (k Keeper) IterateLiquidityByPool(ctx context.Context, poolID uint64, cb fu
 		}
 	}
 	return nil
+}
+
+// LiquidityPosition represents a single liquidity provider's position in a pool.
+type LiquidityPosition struct {
+	Provider sdk.AccAddress
+	Shares   math.Int
+}
+
+// PaginatedLiquidityResult contains the paginated result of liquidity positions.
+type PaginatedLiquidityResult struct {
+	Positions  []LiquidityPosition
+	NextKey    []byte // nil if no more results
+	TotalCount uint64 // total positions returned in this page
+}
+
+// IterateLiquidityByPoolPaginated returns a paginated list of liquidity positions for a pool.
+// PERF-3: This function provides explicit pagination support with limit and startAfter parameters
+// to prevent unbounded iteration and support efficient queries on pools with many providers.
+//
+// Parameters:
+//   - poolID: The pool to query liquidity positions for
+//   - startAfter: Provider address to start after (nil for first page)
+//   - limit: Maximum number of positions to return (capped at DefaultMaxLiquidityIterations)
+//
+// Returns:
+//   - PaginatedLiquidityResult with positions, next key for pagination, and count
+func (k Keeper) IterateLiquidityByPoolPaginated(
+	ctx context.Context,
+	poolID uint64,
+	startAfter sdk.AccAddress,
+	limit uint64,
+) (*PaginatedLiquidityResult, error) {
+	store := k.getStore(ctx)
+
+	// Cap limit to prevent excessive iteration
+	if limit == 0 || limit > uint64(DefaultMaxLiquidityIterations) {
+		limit = uint64(DefaultMaxLiquidityIterations)
+	}
+
+	prefix := LiquidityKeyByPoolPrefix(poolID)
+	var iterator storetypes.Iterator
+
+	if startAfter == nil {
+		// Start from beginning
+		iterator = storetypes.KVStorePrefixIterator(store, prefix)
+	} else {
+		// Start after the given key
+		startKey := LiquidityKey(poolID, startAfter)
+		// Add 1 byte to skip the exact match (start AFTER, not AT)
+		startKey = append(startKey, 0x00)
+		endKey := storetypes.PrefixEndBytes(prefix)
+		iterator = store.Iterator(startKey, endKey)
+	}
+	defer iterator.Close()
+
+	positions := make([]LiquidityPosition, 0, limit)
+	var lastProvider sdk.AccAddress
+
+	for count := uint64(0); iterator.Valid() && count < limit; iterator.Next() {
+		var shares math.Int
+		if err := shares.Unmarshal(iterator.Value()); err != nil {
+			return nil, err
+		}
+
+		// Extract provider address from key
+		key := iterator.Key()
+		providerBytes := key[len(prefix):]
+		provider := sdk.AccAddress(providerBytes)
+
+		positions = append(positions, LiquidityPosition{
+			Provider: provider,
+			Shares:   shares,
+		})
+		lastProvider = provider
+		count++
+	}
+
+	result := &PaginatedLiquidityResult{
+		Positions:  positions,
+		TotalCount: uint64(len(positions)),
+	}
+
+	// Check if there are more results
+	if iterator.Valid() && lastProvider != nil {
+		result.NextKey = lastProvider.Bytes()
+	}
+
+	return result, nil
+}
+
+// GetLiquidityProviderCount returns the total number of liquidity providers for a pool.
+// PERF-3: This function iterates through all providers but only counts them,
+// avoiding the overhead of unmarshaling values. Useful for estimating pagination needs.
+func (k Keeper) GetLiquidityProviderCount(ctx context.Context, poolID uint64) (uint64, error) {
+	store := k.getStore(ctx)
+	iterator := storetypes.KVStorePrefixIterator(store, LiquidityKeyByPoolPrefix(poolID))
+	defer iterator.Close()
+
+	count := uint64(0)
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+		// Safety limit: if we exceed this, we know there are "many" providers
+		if count > uint64(DefaultMaxLiquidityIterations) {
+			return count, nil
+		}
+	}
+	return count, nil
 }

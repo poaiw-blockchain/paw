@@ -9,14 +9,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/dex/types"
+	sharedibc "github.com/paw-chain/paw/x/shared/ibc"
 )
 
-// ChannelOperation tracks an outbound IBC packet that still has funds or state locked locally.
-type ChannelOperation struct {
-	ChannelID  string `json:"channel_id"`
-	Sequence   uint64 `json:"sequence"`
-	PacketType string `json:"packet_type"`
-}
+// ChannelOperation is an alias to the shared IBC ChannelOperation type.
+// This enables a unified struct across all modules (dex, oracle, compute).
+type ChannelOperation = sharedibc.ChannelOperation
 
 func pendingOperationPrefix(channelID string) []byte {
 	return []byte(fmt.Sprintf("pending_op/%s/", channelID))

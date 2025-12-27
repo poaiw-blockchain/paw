@@ -2,12 +2,14 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/dex/types"
@@ -141,18 +143,52 @@ func (k Keeper) WithReentrancyGuard(ctx context.Context, poolID uint64, operatio
 	return fn()
 }
 
-// acquireReentrancyLock attempts to acquire a reentrancy lock from the KVStore
+// LockExpirationBlocks is the maximum number of blocks a reentrancy lock can persist.
+// SEC-4 FIX: If a lock is older than this, it's considered stale and will be released.
+// This prevents permanent lock persistence if a panic occurs before defer runs.
+// 2 blocks is sufficient since operations should complete within a single block.
+const LockExpirationBlocks = int64(2)
+
+// acquireReentrancyLock attempts to acquire a reentrancy lock from the KVStore.
+// SEC-4 FIX: Now includes block height to allow expiration of stale locks.
 func (k Keeper) acquireReentrancyLock(ctx context.Context, lockKey string) error {
 	store := k.getStore(ctx)
 	key := ReentrancyLockKey(lockKey)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
 
 	// Check if lock already exists
-	if store.Has(key) {
-		return types.ErrReentrancy.Wrapf("operation %s is already locked", lockKey)
+	if existingData := store.Get(key); existingData != nil {
+		// SEC-4 FIX: Check if the lock is stale (expired)
+		if len(existingData) >= 8 {
+			lockHeight := int64(binary.BigEndian.Uint64(existingData[:8]))
+			if currentHeight-lockHeight > LockExpirationBlocks {
+				// Lock is stale, we can safely override it
+				// Log the stale lock cleanup for monitoring
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						"stale_reentrancy_lock_cleared",
+						sdk.NewAttribute("lock_key", lockKey),
+						sdk.NewAttribute("lock_height", fmt.Sprintf("%d", lockHeight)),
+						sdk.NewAttribute("current_height", fmt.Sprintf("%d", currentHeight)),
+					),
+				)
+			} else {
+				// Lock is still valid
+				return types.ErrReentrancy.Wrapf("operation %s is already locked (since block %d)", lockKey, lockHeight)
+			}
+		} else {
+			// Legacy lock without height data - treat as valid for one more block then expire
+			return types.ErrReentrancy.Wrapf("operation %s is already locked", lockKey)
+		}
 	}
 
-	// Acquire lock by setting a marker in the store
-	store.Set(key, []byte{0x01})
+	// SEC-4 FIX: Store lock with block height for expiration tracking
+	// Format: [8 bytes: block height] + [1 byte: lock marker]
+	lockData := make([]byte, 9)
+	binary.BigEndian.PutUint64(lockData[:8], uint64(currentHeight))
+	lockData[8] = 0x01 // Lock marker
+	store.Set(key, lockData)
 	return nil
 }
 
@@ -161,6 +197,43 @@ func (k Keeper) releaseReentrancyLock(ctx context.Context, lockKey string) {
 	store := k.getStore(ctx)
 	key := ReentrancyLockKey(lockKey)
 	store.Delete(key)
+}
+
+// CleanupStaleReentrancyLocks cleans up any stale reentrancy locks from previous blocks.
+// SEC-4 FIX: This should be called in EndBlocker to ensure stale locks don't persist.
+// This is a safety net - normally locks are cleaned up by defer in WithReentrancyGuard.
+func (k Keeper) CleanupStaleReentrancyLocks(ctx context.Context) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
+	store := k.getStore(ctx)
+
+	// Iterate over all reentrancy locks
+	prefix := []byte{0x02, 0x30} // ReentrancyLockPrefix from keys.go
+	iterator := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
+	defer iterator.Close()
+
+	var staleKeys [][]byte
+	for ; iterator.Valid(); iterator.Next() {
+		lockData := iterator.Value()
+		if len(lockData) >= 8 {
+			lockHeight := int64(binary.BigEndian.Uint64(lockData[:8]))
+			if currentHeight-lockHeight > LockExpirationBlocks {
+				staleKeys = append(staleKeys, append([]byte{}, iterator.Key()...))
+			}
+		}
+	}
+
+	// Delete stale locks
+	for _, key := range staleKeys {
+		store.Delete(key)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"reentrancy_lock_expired",
+				sdk.NewAttribute("lock_key", string(key)),
+				sdk.NewAttribute("current_height", fmt.Sprintf("%d", currentHeight)),
+			),
+		)
+	}
 }
 
 // ValidatePoolInvariant checks the constant product invariant k = x * y

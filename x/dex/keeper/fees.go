@@ -157,14 +157,18 @@ func (k Keeper) GetProtocolFees(ctx context.Context, token string) (math.Int, er
 }
 
 // ClaimLPFees allows liquidity providers to claim their share of fees
+// FIXED DATA-5: Uses CacheContext pattern for atomic state changes.
+// Previously, fee state was updated BEFORE SendCoins - if transfer failed,
+// state was corrupted with reduced fees but user didn't receive tokens.
+// Now: all state changes happen in cache, transfer occurs, cache is only
+// written if transfer succeeds. This follows checks-effects-interactions.
 func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID uint64) error {
-	// Get pool
+	// CHECKS: Validate inputs and calculate fees without modifying state
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
 		return err
 	}
 
-	// Get provider's liquidity shares
 	shares, err := k.GetLiquidityShares(ctx, poolID, provider)
 	if err != nil {
 		return err
@@ -174,13 +178,20 @@ func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID
 		return types.ErrInsufficientLiquidity.Wrap("no liquidity shares to claim fees")
 	}
 
-	// Calculate provider's share of fees for each token
+	// Calculate provider's share of fees for each token (read-only)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	moduleAddr := k.GetModuleAddress()
+
+	// Structure to track fee updates for atomic application
+	type feeUpdate struct {
+		token         string
+		providerShare math.Int
+		newLPFees     math.Int
+	}
+	var feeUpdates []feeUpdate
 	coinsToSend := sdk.NewCoins()
 
 	for _, token := range []string{pool.TokenA, pool.TokenB} {
-		// Get accumulated LP fees
 		totalLPFees, err := k.GetPoolLPFees(ctx, poolID, token)
 		if err != nil {
 			return err
@@ -200,52 +211,67 @@ func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID
 			continue
 		}
 
-		// Deduct claimed amount from accumulated fees
-		newLPFees := totalLPFees.Sub(providerShare)
+		// Track the update for later atomic application
+		feeUpdates = append(feeUpdates, feeUpdate{
+			token:         token,
+			providerShare: providerShare,
+			newLPFees:     totalLPFees.Sub(providerShare),
+		})
+		coinsToSend = coinsToSend.Add(sdk.NewCoin(token, providerShare))
+	}
 
-		// Update stored fees
-		store := k.getStore(ctx)
-		key := types.GetPoolLPFeeKey(poolID, token)
-		bz, err := newLPFees.Marshal()
+	// Nothing to claim
+	if coinsToSend.IsZero() {
+		return nil
+	}
+
+	// INTERACTIONS: Perform external call (SendCoins) FIRST
+	// Use CacheContext so if transfer fails, no state changes persist
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+
+	// Apply state updates in cache context
+	for _, update := range feeUpdates {
+		store := k.getStore(cacheCtx)
+		key := types.GetPoolLPFeeKey(poolID, update.token)
+		bz, err := update.newLPFees.Marshal()
 		if err != nil {
 			return types.ErrInvalidState.Wrap("failed to marshal LP fee")
 		}
 		store.Set(key, bz)
-
-		// Add to coins to send
-		coinsToSend = coinsToSend.Add(sdk.NewCoin(token, providerShare))
 	}
 
-	// Send fees to provider
-	if !coinsToSend.IsZero() {
-		if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, provider, coinsToSend); err != nil {
-			return types.ErrInsufficientLiquidity.Wrapf("failed to send fees: %v", err)
-		}
-
-		// Emit event
-		sdkCtx.EventManager().EmitEvent(
-			sdk.NewEvent(
-				"dex_lp_fees_claimed",
-				sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
-				sdk.NewAttribute("provider", provider.String()),
-				sdk.NewAttribute("shares", shares.String()),
-				sdk.NewAttribute("fees_claimed", coinsToSend.String()),
-			),
-		)
+	// Transfer in cache context - if this fails, cache is discarded
+	if err := k.bankKeeper.SendCoins(cacheCtx, moduleAddr, provider, coinsToSend); err != nil {
+		// Cache is automatically discarded - no state corruption
+		return types.ErrInsufficientLiquidity.Wrapf("failed to send fees: %v", err)
 	}
+
+	// EFFECTS: Only commit state changes AFTER successful transfer
+	writeFn()
+
+	// Emit event (after successful commit)
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"dex_lp_fees_claimed",
+			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
+			sdk.NewAttribute("provider", provider.String()),
+			sdk.NewAttribute("shares", shares.String()),
+			sdk.NewAttribute("fees_claimed", coinsToSend.String()),
+		),
+	)
 
 	return nil
 }
 
 // WithdrawProtocolFees allows governance to withdraw protocol fees
+// Uses CacheContext pattern for atomic state changes (same fix as ClaimLPFees).
 func (k Keeper) WithdrawProtocolFees(ctx context.Context, recipient sdk.AccAddress, token string, amount math.Int) error {
-	// Get accumulated protocol fees
+	// CHECKS: Validate inputs without modifying state
 	totalFees, err := k.GetProtocolFees(ctx, token)
 	if err != nil {
 		return err
 	}
 
-	// Validate withdrawal amount
 	if amount.GT(totalFees) {
 		return types.ErrInsufficientLiquidity.Wrapf(
 			"withdrawal amount %s exceeds available fees %s",
@@ -253,11 +279,18 @@ func (k Keeper) WithdrawProtocolFees(ctx context.Context, recipient sdk.AccAddre
 		)
 	}
 
-	// Deduct withdrawn amount
+	// Calculate new fee balance
 	newFees := totalFees.Sub(amount)
 
-	// Update stored fees
-	store := k.getStore(ctx)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	moduleAddr := k.GetModuleAddress()
+	coin := sdk.NewCoin(token, amount)
+
+	// Use CacheContext for atomic execution
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+
+	// Apply state update in cache
+	store := k.getStore(cacheCtx)
 	key := types.GetProtocolFeeKey(token)
 	bz, err := newFees.Marshal()
 	if err != nil {
@@ -265,14 +298,14 @@ func (k Keeper) WithdrawProtocolFees(ctx context.Context, recipient sdk.AccAddre
 	}
 	store.Set(key, bz)
 
-	// Send fees to recipient
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	moduleAddr := k.GetModuleAddress()
-	coin := sdk.NewCoin(token, amount)
-
-	if err := k.bankKeeper.SendCoins(sdkCtx, moduleAddr, recipient, sdk.NewCoins(coin)); err != nil {
+	// INTERACTIONS: Transfer in cache context
+	if err := k.bankKeeper.SendCoins(cacheCtx, moduleAddr, recipient, sdk.NewCoins(coin)); err != nil {
+		// Cache is automatically discarded - no state corruption
 		return types.ErrInsufficientLiquidity.Wrapf("failed to send fees: %v", err)
 	}
+
+	// EFFECTS: Commit state changes only after successful transfer
+	writeFn()
 
 	// Emit event
 	sdkCtx.EventManager().EmitEvent(

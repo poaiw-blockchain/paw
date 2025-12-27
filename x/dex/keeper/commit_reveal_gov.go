@@ -13,8 +13,11 @@ import (
 )
 
 // Storage key prefixes for governance-based commit-reveal
+// Uses the SAME prefix as SwapCommitmentKeyPrefix in commit_reveal.go
+// to ensure consistent storage for swap commits across both implementations.
+// DEX module namespace prefix (0x02) is used for consistency.
 var (
-	SwapCommitKeyPrefix = []byte{0x19} // Prefix for swap commits
+	SwapCommitKeyPrefix = []byte{0x02, 0x1D} // Unified prefix for swap commits
 )
 
 // SwapCommitKey returns the store key for a swap commit by hash

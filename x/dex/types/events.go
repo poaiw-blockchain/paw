@@ -8,10 +8,10 @@ const (
 	EventTypeDexSwapFailed     = "dex_swap_failed"
 	EventTypeDexLimitOrder     = "dex_limit_order"
 	EventTypeDexOrderFilled    = "dex_order_filled"
-	EventTypeDexOrderCancelled = "limit_order_cancelled"
-	EventTypeDexOrderPlaced    = "limit_order_placed"
-	EventTypeDexOrderMatched   = "limit_order_matched"
-	EventTypeDexOrderExpired   = "limit_order_expired"
+	EventTypeDexOrderCancelled = "dex_limit_order_cancelled"
+	EventTypeDexOrderPlaced    = "dex_limit_order_placed"
+	EventTypeDexOrderMatched   = "dex_limit_order_matched"
+	EventTypeDexOrderExpired   = "dex_limit_order_expired"
 
 	// Liquidity events
 	EventTypeDexAddLiquidity    = "dex_add_liquidity"
@@ -26,7 +26,7 @@ const (
 	EventTypeDexLargeSwap               = "dex_large_swap"
 	EventTypeDexLargeLiquidityAddition  = "dex_large_liquidity_addition"
 	EventTypeDexSlippageExceeded        = "dex_slippage_exceeded"
-	EventTypeDexPotentialSandwichAttack = "potential_sandwich_attack"
+	EventTypeDexPotentialSandwichAttack = "dex_potential_sandwich_attack"
 
 	// Cross-chain events
 	EventTypeDexCrossChainSwap        = "dex_cross_chain_swap"

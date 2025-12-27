@@ -117,7 +117,8 @@ func TestCreatePool_BelowMinimumLiquidity(t *testing.T) {
 
 	_, err := k.CreatePool(ctx, creator, tokenA, tokenB, amountA, amountB)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "too low")
+	// SEC-6: Now enforces minimum initial liquidity per token
+	require.Contains(t, err.Error(), "minimum initial liquidity")
 }
 
 // TestCreatePool_TokenOrdering tests that tokens are ordered consistently

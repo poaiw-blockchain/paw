@@ -399,3 +399,29 @@ func (ms msgServer) UpdateGovernanceParams(goCtx context.Context, msg *types.Msg
 
 	return &types.MsgUpdateGovernanceParamsResponse{}, nil
 }
+
+// RegisterSigningKey handles the registration of a provider's signing key.
+// SEC-2 FIX: Providers MUST explicitly register their signing key before submitting results.
+// This prevents trust-on-first-use attacks where an attacker could submit a result with
+// their own key before the legitimate provider registers.
+func (ms msgServer) RegisterSigningKey(goCtx context.Context, msg *types.MsgRegisterSigningKey) (*types.MsgRegisterSigningKeyResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Validate message
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	// Parse provider address
+	providerAddr, err := sdk.AccAddressFromBech32(msg.Provider)
+	if err != nil {
+		return nil, fmt.Errorf("invalid provider address: %w", err)
+	}
+
+	// Register the signing key
+	if err := ms.Keeper.RegisterSigningKey(ctx, providerAddr, msg.PublicKey, msg.OldKeySignature); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgRegisterSigningKeyResponse{}, nil
+}

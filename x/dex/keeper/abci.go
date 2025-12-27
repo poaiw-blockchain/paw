@@ -199,40 +199,44 @@ func (k Keeper) CleanupOldRateLimitData(ctx context.Context) error {
 			continue
 		}
 
-		// Get all rate limits at this height
-		heightPrefix := RateLimitByHeightPrefixForHeight(height)
-		iterator := store.Iterator(heightPrefix, storetypes.PrefixEndBytes(heightPrefix))
-		defer iterator.Close()
+		// Use IIFE to ensure iterator is closed at end of each iteration
+		// This prevents iterator accumulation (defer inside loop would keep all open until function returns)
+		func() {
+			// Get all rate limits at this height
+			heightPrefix := RateLimitByHeightPrefixForHeight(height)
+			iterator := store.Iterator(heightPrefix, storetypes.PrefixEndBytes(heightPrefix))
+			defer iterator.Close() // Now properly closes at end of this anonymous function
 
-		rateLimitsToDelete := [][]byte{}
-		for ; iterator.Valid(); iterator.Next() {
-			rateLimitsToDelete = append(rateLimitsToDelete, iterator.Key())
-			cleanedCount++
-		}
-		// Delete the rate limit index entries
-		for _, key := range rateLimitsToDelete {
-			store.Delete(key)
+			rateLimitsToDelete := [][]byte{}
+			for ; iterator.Valid(); iterator.Next() {
+				rateLimitsToDelete = append(rateLimitsToDelete, iterator.Key())
+				cleanedCount++
+			}
+			// Delete the rate limit index entries
+			for _, key := range rateLimitsToDelete {
+				store.Delete(key)
 
-			// Also delete the actual rate limit entry
-			// Extract user and window from the index key
-			// Format: RateLimitByHeightPrefix(2) + height(8) + user(20) + window(8) = 38 bytes
-			// Keys are namespaced with 2-byte prefix
-			if len(key) >= 38 { // 2 + 8 + 20 + 8
-				userStart := 10 // After prefix(2) + height(8)
-				userEnd := 30   // userStart + 20
-				windowStart := 30
+				// Also delete the actual rate limit entry
+				// Extract user and window from the index key
+				// Format: RateLimitByHeightPrefix(2) + height(8) + user(20) + window(8) = 38 bytes
+				// Keys are namespaced with 2-byte prefix
+				if len(key) >= 38 { // 2 + 8 + 20 + 8
+					userStart := 10 // After prefix(2) + height(8)
+					userEnd := 30   // userStart + 20
+					windowStart := 30
 
-				if len(key) >= windowStart+8 {
-					user := sdk.AccAddress(key[userStart:userEnd])
-					windowBytes := key[windowStart : windowStart+8]
-					window := int64(binary.BigEndian.Uint64(windowBytes))
+					if len(key) >= windowStart+8 {
+						user := sdk.AccAddress(key[userStart:userEnd])
+						windowBytes := key[windowStart : windowStart+8]
+						window := int64(binary.BigEndian.Uint64(windowBytes))
 
-					// Delete the actual rate limit entry
-					rateLimitKey := RateLimitKey(user, window)
-					store.Delete(rateLimitKey)
+						// Delete the actual rate limit entry
+						rateLimitKey := RateLimitKey(user, window)
+						store.Delete(rateLimitKey)
+					}
 				}
 			}
-		}
+		}()
 	}
 
 	// Emit event with cleanup statistics

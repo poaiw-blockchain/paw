@@ -124,28 +124,29 @@ type LimitOrder struct {
 // - Open index: Fast iteration over all active orders for EndBlock matching
 var (
 	// LimitOrderKeyPrefix is the prefix for primary limit order storage (key: orderID).
-	LimitOrderKeyPrefix = []byte{0x0E}
+	// Uses DEX module namespace prefix (0x02) for consistency with other module keys.
+	LimitOrderKeyPrefix = []byte{0x02, 0x17}
 
 	// LimitOrderCountKey is the key for storing the next available order ID (global counter).
-	LimitOrderCountKey = []byte{0x0F}
+	LimitOrderCountKey = []byte{0x02, 0x18}
 
 	// LimitOrderByOwnerPrefix is the prefix for indexing orders by owner address.
-	// Key format: 0x10 || ownerAddr || orderID
-	LimitOrderByOwnerPrefix = []byte{0x10}
+	// Key format: 0x02 0x19 || ownerAddr || orderID
+	LimitOrderByOwnerPrefix = []byte{0x02, 0x19}
 
 	// LimitOrderByPoolPrefix is the prefix for indexing orders by pool ID.
-	// Key format: 0x11 || poolID || orderID
-	LimitOrderByPoolPrefix = []byte{0x11}
+	// Key format: 0x02 0x1A || poolID || orderID
+	LimitOrderByPoolPrefix = []byte{0x02, 0x1A}
 
 	// LimitOrderByPricePrefix is the prefix for indexing orders by price for efficient matching.
-	// Key format: 0x12 || poolID || orderType || encodedPrice || orderID
+	// Key format: 0x02 0x1B || poolID || orderType || encodedPrice || orderID
 	// Price is encoded to maintain lexicographic ordering for range queries.
-	LimitOrderByPricePrefix = []byte{0x12}
+	LimitOrderByPricePrefix = []byte{0x02, 0x1B}
 
 	// LimitOrderOpenPrefix is the prefix for indexing only open/partial orders.
-	// Key format: 0x13 || orderID
+	// Key format: 0x02 0x1C || orderID
 	// This index enables efficient iteration over active orders in EndBlock.
-	LimitOrderOpenPrefix = []byte{0x13}
+	LimitOrderOpenPrefix = []byte{0x02, 0x1C}
 )
 
 // ============================================================================

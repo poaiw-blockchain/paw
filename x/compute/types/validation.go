@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -155,11 +156,10 @@ func ValidateOutputURL(outputURL string) error {
 			}
 		}
 
-		// Block private IP ranges (basic check)
-		if strings.HasPrefix(parsedURL.Host, "10.") ||
-			strings.HasPrefix(parsedURL.Host, "192.168.") ||
-			strings.HasPrefix(parsedURL.Host, "172.16.") {
-			return fmt.Errorf("private IP addresses are not allowed")
+		// SEC-3 FIX: Block ALL private IP ranges and IPv6 private addresses
+		// This prevents SSRF attacks where providers could access internal services
+		if isPrivateOrReservedIP(parsedURL.Host) {
+			return fmt.Errorf("private or reserved IP addresses are not allowed")
 		}
 	}
 
@@ -323,4 +323,115 @@ func SanitizeString(s string) string {
 
 	// Trim whitespace
 	return strings.TrimSpace(sanitized.String())
+}
+
+// isPrivateOrReservedIP checks if a host is a private or reserved IP address.
+// SEC-3 FIX: This function provides comprehensive blocking of all private IP ranges
+// to prevent SSRF (Server-Side Request Forgery) attacks.
+//
+// Blocked ranges:
+// - IPv4: 10.0.0.0/8, 172.16.0.0/12 (172.16-31.x.x), 192.168.0.0/16, 169.254.0.0/16 (link-local)
+// - IPv4: 127.0.0.0/8 (loopback), 0.0.0.0/8 (current network)
+// - IPv6: ::1 (loopback), fe80::/10 (link-local), fc00::/7 (unique local)
+// - IPv6: ::ffff:0:0/96 (IPv4-mapped)
+func isPrivateOrReservedIP(host string) bool {
+	// Strip port if present
+	hostOnly := host
+	if colonIdx := strings.LastIndex(host, ":"); colonIdx != -1 {
+		// Check if this is an IPv6 address with brackets
+		if strings.HasPrefix(host, "[") {
+			// IPv6 with port: [::1]:8080
+			if bracketIdx := strings.Index(host, "]"); bracketIdx != -1 {
+				hostOnly = host[1:bracketIdx]
+			}
+		} else if strings.Count(host, ":") == 1 {
+			// IPv4 with port: 192.168.1.1:8080
+			hostOnly = host[:colonIdx]
+		}
+		// Otherwise it's an IPv6 without brackets, keep as-is
+	}
+
+	// Parse the IP address
+	ip := net.ParseIP(hostOnly)
+	if ip == nil {
+		// Not an IP address (could be a hostname), check for string patterns
+		// that might resolve to private addresses
+		return false
+	}
+
+	// Check for loopback
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Check for private addresses
+	if ip.IsPrivate() {
+		return true
+	}
+
+	// Check for link-local addresses (169.254.x.x for IPv4, fe80::/10 for IPv6)
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	// Check for unspecified address (0.0.0.0 or ::)
+	if ip.IsUnspecified() {
+		return true
+	}
+
+	// Additional IPv4 private range checks for net.IP limitations
+	// 172.16.0.0/12 range: 172.16.0.0 - 172.31.255.255
+	if ip4 := ip.To4(); ip4 != nil {
+		// 172.16.0.0 - 172.31.255.255
+		if ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31 {
+			return true
+		}
+		// 100.64.0.0/10 (Carrier-Grade NAT)
+		if ip4[0] == 100 && ip4[1] >= 64 && ip4[1] <= 127 {
+			return true
+		}
+		// 192.0.0.0/24 (IANA special purpose)
+		if ip4[0] == 192 && ip4[1] == 0 && ip4[2] == 0 {
+			return true
+		}
+		// 192.0.2.0/24 (TEST-NET-1)
+		if ip4[0] == 192 && ip4[1] == 0 && ip4[2] == 2 {
+			return true
+		}
+		// 198.51.100.0/24 (TEST-NET-2)
+		if ip4[0] == 198 && ip4[1] == 51 && ip4[2] == 100 {
+			return true
+		}
+		// 203.0.113.0/24 (TEST-NET-3)
+		if ip4[0] == 203 && ip4[1] == 0 && ip4[2] == 113 {
+			return true
+		}
+		// 224.0.0.0/4 (Multicast)
+		if ip4[0] >= 224 && ip4[0] <= 239 {
+			return true
+		}
+		// 240.0.0.0/4 (Reserved for future use)
+		if ip4[0] >= 240 {
+			return true
+		}
+	}
+
+	// IPv6 unique local addresses (fc00::/7)
+	if ip6 := ip.To16(); ip6 != nil && ip.To4() == nil {
+		// fc00::/7 covers fc00:: through fdff::
+		if ip6[0] == 0xfc || ip6[0] == 0xfd {
+			return true
+		}
+		// IPv4-mapped IPv6 addresses (::ffff:0:0/96)
+		// These could be used to bypass IPv4 checks
+		if ip6[0] == 0 && ip6[1] == 0 && ip6[2] == 0 && ip6[3] == 0 &&
+			ip6[4] == 0 && ip6[5] == 0 && ip6[6] == 0 && ip6[7] == 0 &&
+			ip6[8] == 0 && ip6[9] == 0 && ip6[10] == 0xff && ip6[11] == 0xff {
+			// This is an IPv4-mapped address, check the embedded IPv4
+			embeddedIP := net.IPv4(ip6[12], ip6[13], ip6[14], ip6[15])
+			return isPrivateOrReservedIP(embeddedIP.String())
+		}
+	}
+
+	return false
 }

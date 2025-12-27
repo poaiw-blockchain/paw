@@ -17,6 +17,15 @@ const (
 
 	// MinSharesForRedemption is the minimum shares required to redeem liquidity
 	MinSharesForRedemption = 100
+
+	// SEC-6: MinimumInitialLiquidity is the minimum amount required to create a pool
+	// Prevents pools with dust amounts that are vulnerable to manipulation
+	MinimumInitialLiquidity = 1000
+
+	// SEC-6: MinimumReserves is the minimum reserve amount that must remain in a pool
+	// after withdrawal. Prevents full pool drainage attacks.
+	// Set to 1000 base units to prevent dust pools and price manipulation.
+	MinimumReserves = 1000
 )
 
 var (

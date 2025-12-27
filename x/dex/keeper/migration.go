@@ -37,6 +37,18 @@ func (k Keeper) MigrateStoreKeys(ctx sdk.Context) error {
 		{[]byte{0x0D}, RateLimitByHeightPrefix},
 		{[]byte{0x0E}, PoolTWAPKeyPrefix},
 		{[]byte{0x15}, ActivePoolsKeyPrefix},
+		// Limit order keys (old single-byte to new namespaced)
+		{[]byte{0x0E}, LimitOrderKeyPrefix},      // Note: 0x0E also used for TWAP, limit orders were added later
+		{[]byte{0x0F}, LimitOrderCountKey},
+		{[]byte{0x10}, LimitOrderByOwnerPrefix},
+		{[]byte{0x11}, LimitOrderByPoolPrefix},
+		{[]byte{0x12}, LimitOrderByPricePrefix},
+		{[]byte{0x13}, LimitOrderOpenPrefix},
+		// Commit-reveal keys (old single-byte to new namespaced)
+		{[]byte{0x16}, SwapCommitmentKeyPrefix},
+		{[]byte{0x17}, SwapCommitmentByExpiryPrefix},
+		{[]byte{0x18}, SwapCommitmentByTraderPrefix},
+		{[]byte{0x19}, SwapCommitKeyPrefix}, // Governance commit-reveal (unified with SwapCommitmentKeyPrefix)
 	}
 
 	// Migrate each prefix

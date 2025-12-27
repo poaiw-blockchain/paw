@@ -15,14 +15,15 @@ import (
 )
 
 var (
-	// Key prefixes - must match the keeper
-	PoolKeyPrefix             = []byte{0x01}
-	PoolCounterKey            = []byte{0x02}
-	ParamsKey                 = []byte{0x03}
-	LiquidityKeyPrefix        = []byte{0x04}
-	PoolByTokensKeyPrefix     = []byte{0x05}
-	CircuitBreakerKeyPrefix   = []byte{0x10}
-	LastLiquidityActionPrefix = []byte{0x11}
+	// Key prefixes - MUST match current namespaced prefixes in keeper/keys.go
+	// All DEX module keys use 0x02 namespace prefix
+	PoolKeyPrefix             = []byte{0x02, 0x01}
+	PoolCounterKey            = []byte{0x02, 0x02}
+	ParamsKey                 = []byte{0x02, 0x05}
+	LiquidityKeyPrefix        = []byte{0x02, 0x04}
+	PoolByTokensKeyPrefix     = []byte{0x02, 0x03}
+	CircuitBreakerKeyPrefix   = []byte{0x02, 0x06}
+	LastLiquidityActionPrefix = []byte{0x02, 0x07}
 )
 
 type circuitBreakerState struct {

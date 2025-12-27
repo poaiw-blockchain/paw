@@ -120,8 +120,11 @@ var (
 	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 36, "circuit breaker already open")
 	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 37, "circuit breaker already closed")
 
+	// SEC-6: Minimum reserves error for pool drainage protection
+	ErrMinimumReserves = sdkerrors.Register(ModuleName, 48, "minimum reserves requirement not met")
+
 	// Commit-reveal errors for large swap protection
-	ErrCommitRequired       = sdkerrors.Register(ModuleName, 40, "commit-reveal required for large swap")
+	ErrCommitRequired = sdkerrors.Register(ModuleName, 40, "commit-reveal required for large swap")
 	ErrCommitmentNotFound   = sdkerrors.Register(ModuleName, 41, "swap commitment not found")
 	ErrDuplicateCommitment  = sdkerrors.Register(ModuleName, 42, "duplicate swap commitment")
 	ErrRevealTooEarly       = sdkerrors.Register(ModuleName, 43, "reveal too early")
@@ -189,6 +192,9 @@ var RecoverySuggestions = map[error]string{
 	ErrRevealTooEarly:      "Must wait at least 2 blocks after commit before reveal. Check your commit block height and wait for the delay period to pass.",
 	ErrCommitmentExpired:   "Commitment expired after 50 blocks without reveal. Deposit was forfeited. Create a new commitment with a fresh hash.",
 	ErrInsufficientDeposit: "Insufficient funds for commitment deposit (1 UPAW required). Ensure account has enough balance for the deposit.",
+
+	// SEC-6: Minimum reserves protection
+	ErrMinimumReserves: "Pool must maintain minimum reserves to prevent full drainage. Reduce withdrawal amount or leave at least 100 units of each token in the pool.",
 }
 
 // WrapWithRecovery wraps an error with recovery suggestion

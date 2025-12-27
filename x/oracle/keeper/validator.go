@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 
 	storetypes "cosmossdk.io/store/types"
@@ -114,6 +115,27 @@ func (k *Keeper) GetValidatorVotingPower(ctx context.Context, validatorAddr sdk.
 	}
 
 	return validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx)), nil
+}
+
+// GetCachedTotalVotingPower retrieves the cached total voting power of all bonded validators.
+// PERF-2: This value is updated once per block in BeginBlocker, avoiding O(n) iteration
+// per asset aggregation. Returns 0 if cache is not yet populated.
+func (k *Keeper) GetCachedTotalVotingPower(ctx context.Context) int64 {
+	store := k.getStore(ctx)
+	bz := store.Get(CachedTotalVotingPowerKey)
+	if bz == nil || len(bz) != 8 {
+		return 0
+	}
+	return int64(binary.BigEndian.Uint64(bz))
+}
+
+// SetCachedTotalVotingPower stores the total voting power of all bonded validators.
+// PERF-2: Called from BeginBlocker to cache the value once per block.
+func (k *Keeper) SetCachedTotalVotingPower(ctx context.Context, totalPower int64) {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, uint64(totalPower))
+	store.Set(CachedTotalVotingPowerKey, bz)
 }
 
 // GetBondedValidators returns all bonded validators

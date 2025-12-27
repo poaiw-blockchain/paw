@@ -24,6 +24,7 @@ const (
 	TypeMsgVoteOnAppeal       = "vote_on_appeal"
 	TypeMsgResolveAppeal      = "resolve_appeal"
 	TypeMsgUpdateGovParams    = "update_governance_params"
+	TypeMsgRegisterSigningKey = "register_signing_key"
 )
 
 var (
@@ -42,7 +43,48 @@ var (
 	_ sdk.Msg = &MsgVoteOnAppeal{}
 	_ sdk.Msg = &MsgResolveAppeal{}
 	_ sdk.Msg = &MsgUpdateGovernanceParams{}
+	_ sdk.Msg = &MsgRegisterSigningKey{}
 )
+
+// MsgRegisterSigningKey is the message for registering a provider's signing key.
+// SEC-2 FIX: This message MUST be submitted by providers BEFORE they can submit results.
+// This prevents trust-on-first-use attacks where an attacker submits a result with their
+// own key before the legitimate provider registers their key.
+type MsgRegisterSigningKey struct {
+	// Provider is the bech32 address of the provider registering their key
+	Provider string `json:"provider"`
+	// PublicKey is the Ed25519 public key (32 bytes) to register
+	PublicKey []byte `json:"public_key"`
+	// OldKeySignature is required when rotating an existing key.
+	// Must be a signature of "ROTATE_KEY:" + provider address + new public key
+	// signed with the existing registered key.
+	OldKeySignature []byte `json:"old_key_signature,omitempty"`
+}
+
+// MsgRegisterSigningKeyResponse is the response for MsgRegisterSigningKey.
+type MsgRegisterSigningKeyResponse struct{}
+
+// ProtoMessage implements proto.Message for MsgRegisterSigningKey
+func (msg *MsgRegisterSigningKey) ProtoMessage() {}
+
+// Reset implements proto.Message for MsgRegisterSigningKey
+func (msg *MsgRegisterSigningKey) Reset() { *msg = MsgRegisterSigningKey{} }
+
+// String implements proto.Message for MsgRegisterSigningKey
+func (msg *MsgRegisterSigningKey) String() string {
+	return fmt.Sprintf("MsgRegisterSigningKey{Provider: %s, PublicKey: %x}", msg.Provider, msg.PublicKey)
+}
+
+// ProtoMessage implements proto.Message for MsgRegisterSigningKeyResponse
+func (msg *MsgRegisterSigningKeyResponse) ProtoMessage() {}
+
+// Reset implements proto.Message for MsgRegisterSigningKeyResponse
+func (msg *MsgRegisterSigningKeyResponse) Reset() { *msg = MsgRegisterSigningKeyResponse{} }
+
+// String implements proto.Message for MsgRegisterSigningKeyResponse
+func (msg *MsgRegisterSigningKeyResponse) String() string {
+	return "MsgRegisterSigningKeyResponse{}"
+}
 
 const (
 	maxGovernanceEvidenceSizeLimit = 50 * 1024 * 1024 // 50 MB absolute ceiling
@@ -142,6 +184,12 @@ func (msg *MsgResolveAppeal) GetSigners() []sdk.AccAddress {
 func (msg *MsgUpdateGovernanceParams) GetSigners() []sdk.AccAddress {
 	auth, _ := sdk.AccAddressFromBech32(msg.Authority)
 	return []sdk.AccAddress{auth}
+}
+
+// GetSigners returns the expected signers for MsgRegisterSigningKey
+func (msg *MsgRegisterSigningKey) GetSigners() []sdk.AccAddress {
+	provider, _ := sdk.AccAddressFromBech32(msg.Provider)
+	return []sdk.AccAddress{provider}
 }
 
 // ValidateBasic performs basic validation of MsgRegisterProvider
@@ -423,6 +471,39 @@ func (msg *MsgUpdateGovernanceParams) ValidateBasic() error {
 
 	if err := validateGovernanceParams(msg.Params); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ValidateBasic performs basic validation of MsgRegisterSigningKey
+// SEC-2 FIX: Validates the signing key registration message.
+func (msg *MsgRegisterSigningKey) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromBech32(msg.Provider); err != nil {
+		return fmt.Errorf("invalid provider address: %w", err)
+	}
+
+	// Validate public key length (Ed25519 = 32 bytes)
+	if len(msg.PublicKey) != 32 {
+		return fmt.Errorf("invalid public key size: expected 32 bytes, got %d", len(msg.PublicKey))
+	}
+
+	// Check for all-zeros key (invalid)
+	allZeros := true
+	for _, b := range msg.PublicKey {
+		if b != 0 {
+			allZeros = false
+			break
+		}
+	}
+	if allZeros {
+		return fmt.Errorf("invalid public key: all zeros")
+	}
+
+	// OldKeySignature is optional (only required for key rotation)
+	// If provided, validate its length (Ed25519 signature = 64 bytes)
+	if len(msg.OldKeySignature) > 0 && len(msg.OldKeySignature) != 64 {
+		return fmt.Errorf("invalid old key signature size: expected 64 bytes, got %d", len(msg.OldKeySignature))
 	}
 
 	return nil

@@ -40,6 +40,10 @@ var (
 	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
 	// Now properly namespaced under Oracle module
 	IBCPacketNonceKeyPrefix = []byte{0x03, 0x0D}
+
+	// CachedTotalVotingPowerKey stores the cached total voting power of all bonded validators
+	// PERF-2: Updated in BeginBlocker to avoid O(n*m) recalculation per asset per block
+	CachedTotalVotingPowerKey = []byte{0x03, 0x0E}
 )
 
 // GetPriceKey returns the store key for a price by asset

@@ -66,8 +66,19 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 	nonceReplay := false
 	proofReplay := k.hasProofHash(ctx, provider, proofHash[:])
 	keyMismatch := false
+	nonceReserved := false
 	if proof != nil {
-		nonceReplay = k.checkReplayAttack(ctx, provider, proof.Nonce)
+		// SEC-1 FIX: Reserve nonce BEFORE verification to prevent replay attack window.
+		// Previously, nonce was only recorded AFTER verification, allowing attackers to
+		// submit duplicate requests during the verification window.
+		// Now we use a reservation pattern: reserve immediately, upgrade to "used" after.
+		if !k.reserveNonce(ctx, provider, proof.Nonce) {
+			// Nonce already used or reserved - this is a replay attack
+			nonceReplay = true
+			k.recordReplayAttempt(ctx, provider, proof.Nonce)
+		} else {
+			nonceReserved = true
+		}
 
 		// SEC-HIGH-1: Reject results with future timestamps (security enforcement)
 		if proof.Timestamp > sdkCtx.BlockTime().Add(maxProofFutureSkew).Unix() {
@@ -89,7 +100,7 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 			)
 		}
 
-		if nonceReplay || proofReplay {
+		if proofReplay {
 			k.recordReplayAttempt(ctx, provider, proof.Nonce)
 		}
 
@@ -105,6 +116,8 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 		}
 	}
 	forceFailure := nonceReplay || proofReplay || keyMismatch
+	// Track whether nonce was reserved so we can upgrade it to "used" after verification
+	_ = nonceReserved
 
 	now := sdkCtx.BlockTime()
 	result := types.Result{
@@ -148,7 +161,10 @@ func (k Keeper) SubmitResult(ctx context.Context, provider sdk.AccAddress, reque
 		return fmt.Errorf("failed to update result with verification: %w", err)
 	}
 
-	if proof != nil && !nonceReplay {
+	// SEC-1 FIX: Upgrade reserved nonce to "used" status after verification completes.
+	// The nonce was already reserved at the start of verification (via reserveNonce),
+	// so this just upgrades the status byte from Reserved to Used.
+	if proof != nil && nonceReserved {
 		k.recordNonceUsage(ctx, provider, proof.Nonce)
 	}
 	if !proofReplay {
@@ -519,12 +535,28 @@ func (k Keeper) verifyEd25519Signature(proof *types.VerificationProof, result ty
 		return false
 	}
 
-	// Validate public key is not low-order point (small subgroup attack prevention)
-	// Ed25519 low-order points that must be rejected for security
+	// SEC-5: Validate public key is not a low-order point (small subgroup attack prevention)
+	// Ed25519 has 8 low-order points that must be rejected for security.
+	// Using a low-order public key allows signature forgery attacks because
+	// multiplying by the curve order produces the identity element.
+	// Reference: https://cr.yp.to/ecdh/curve25519-20060209.pdf
 	lowOrderPoints := [][]byte{
+		// 1. Identity point (0)
 		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		// 2. Order 1 point
 		{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		// 3. Order 8 point (p-1 encoding)
 		{0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		// 4. Order 2 point (non-canonical)
+		{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b, 0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39, 0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0x7a},
+		// 5. Order 4 point (non-canonical, high bit set)
+		{0xc7, 0x17, 0x6a, 0x70, 0x3d, 0x4d, 0xd8, 0x4f, 0xba, 0x3c, 0x0b, 0x76, 0x0d, 0x10, 0x67, 0x0f, 0x2a, 0x20, 0x53, 0xfa, 0x2c, 0x39, 0xcc, 0xc6, 0x4e, 0xc7, 0xfd, 0x77, 0x92, 0xac, 0x03, 0xfa},
+		// 6. Order 4 point
+		{0x26, 0xe8, 0x95, 0x8f, 0xc2, 0xb2, 0x27, 0xb0, 0x45, 0xc3, 0xf4, 0x89, 0xf2, 0xef, 0x98, 0xf0, 0xd5, 0xdf, 0xac, 0x05, 0xd3, 0xc6, 0x33, 0x39, 0xb1, 0x38, 0x02, 0x88, 0x6d, 0x53, 0xfc, 0x05},
+		// 7. Order 4 point (high bit set)
+		{0x26, 0xe8, 0x95, 0x8f, 0xc2, 0xb2, 0x27, 0xb0, 0x45, 0xc3, 0xf4, 0x89, 0xf2, 0xef, 0x98, 0xf0, 0xd5, 0xdf, 0xac, 0x05, 0xd3, 0xc6, 0x33, 0x39, 0xb1, 0x38, 0x02, 0x88, 0x6d, 0x53, 0xfc, 0x85},
+		// 8. Identity with high bit set (non-canonical zero)
+		{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80},
 	}
 	for _, lowOrder := range lowOrderPoints {
 		if bytes.Equal(proof.PublicKey, lowOrder) {
@@ -643,25 +675,73 @@ func (k Keeper) checkReplayAttack(ctx context.Context, provider sdk.AccAddress, 
 	return store.Has(key)
 }
 
-// recordNonceUsage records a nonce as used to prevent replay attacks.
-// It stores the nonce both directly and in a height-indexed structure for cleanup.
+// NonceReservationStatus represents the status of a nonce reservation.
+// SEC-1 FIX: This type enables the nonce reservation pattern that prevents replay attacks
+// during the window between nonce check and verification completion.
+type NonceReservationStatus byte
+
+const (
+	// NonceStatusReserved indicates the nonce is reserved but verification not complete.
+	// This prevents concurrent submissions with the same nonce.
+	NonceStatusReserved NonceReservationStatus = 0x01
+	// NonceStatusUsed indicates the nonce has been fully used (verification complete).
+	NonceStatusUsed NonceReservationStatus = 0x02
+)
+
+// reserveNonce reserves a nonce BEFORE verification begins to prevent replay attacks.
+// SEC-1 FIX: This prevents the race condition where an attacker could submit the same
+// nonce while verification is in progress. The nonce is marked as reserved immediately,
+// and upgraded to "used" status after verification completes.
+// Returns true if the reservation was successful (nonce not already used/reserved).
+func (k Keeper) reserveNonce(ctx context.Context, provider sdk.AccAddress, nonce uint64) bool {
+	store := k.getStore(ctx)
+	key := NonceKey(provider, nonce)
+
+	// Check if nonce already exists (either reserved or used)
+	if store.Has(key) {
+		return false
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
+
+	// Store nonce with "reserved" status and timestamp
+	// Format: [status byte][timestamp 8 bytes]
+	data := make([]byte, 9)
+	data[0] = byte(NonceStatusReserved)
+	binary.BigEndian.PutUint64(data[1:], types.SaturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
+
+	store.Set(key, data)
+
+	// Create height-indexed entry for cleanup
+	heightIndexKey := NonceByHeightKey(currentHeight, provider, nonce)
+	store.Set(heightIndexKey, data)
+
+	return true
+}
+
+// recordNonceUsage upgrades a reserved nonce to "used" status after verification completes.
+// If the nonce was not previously reserved, it creates a new entry with "used" status.
+// SEC-1 FIX: This completes the reservation pattern - nonces are reserved at the START
+// of verification and marked as used at the END, preventing any replay window.
 func (k Keeper) recordNonceUsage(ctx context.Context, provider sdk.AccAddress, nonce uint64) {
 	store := k.getStore(ctx)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
 
-	// Store timestamp as 8-byte big-endian integer
-	timestampBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBz, types.SaturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
+	// Store with "used" status and timestamp
+	// Format: [status byte][timestamp 8 bytes]
+	data := make([]byte, 9)
+	data[0] = byte(NonceStatusUsed)
+	binary.BigEndian.PutUint64(data[1:], types.SaturateInt64ToUint64(sdkCtx.BlockTime().Unix()))
 
-	// Store the nonce with timestamp in the main nonce store
+	// Store the nonce with "used" status in the main nonce store
 	key := NonceKey(provider, nonce)
-	store.Set(key, timestampBz)
+	store.Set(key, data)
 
-	// Create a height-indexed entry for cleanup
-	// This allows efficient cleanup of old nonces by block height
+	// Create/update height-indexed entry for cleanup
 	heightIndexKey := NonceByHeightKey(currentHeight, provider, nonce)
-	store.Set(heightIndexKey, timestampBz)
+	store.Set(heightIndexKey, data)
 }
 
 // recordReplayAttempt records a detected replay attack attempt.
@@ -692,24 +772,157 @@ func (k Keeper) recordProofHashUsage(ctx context.Context, provider sdk.AccAddres
 }
 
 // verifyProviderSigningKey ensures the provided key matches the provider's registered signing key.
+// SEC-2 FIX: This function no longer auto-trusts first-submitted keys. Providers MUST explicitly
+// register their signing key via RegisterSigningKey BEFORE submitting results. This prevents
+// trust-on-first-use attacks where an attacker could submit a result with their own key
+// before the legitimate provider registers.
 func (k Keeper) verifyProviderSigningKey(ctx context.Context, provider sdk.AccAddress, pubKey []byte) bool {
+	// First, check if the provider's on-chain account has a public key set
+	// This is the primary source of truth for identity verification
 	account := k.accountKeeper.GetAccount(ctx, provider)
 	if account != nil && account.GetPubKey() != nil {
 		return bytes.Equal(account.GetPubKey().Bytes(), pubKey)
 	}
 
+	// Fall back to explicitly registered signing key
 	store := k.getStore(ctx)
 	key := ProviderSigningKeyKey(provider)
 	stored := store.Get(key)
+
+	// SEC-2 FIX: If no key is registered, reject the verification.
+	// Providers MUST call RegisterSigningKey first before submitting results.
+	// This prevents trust-on-first-use (TOFU) attacks.
 	if len(stored) == 0 {
-		// No key recorded yet, persist this key as the canonical signer
-		stored = make([]byte, len(pubKey))
-		copy(stored, pubKey)
-		store.Set(key, stored)
-		return true
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"signing_key_not_registered",
+				sdk.NewAttribute("provider", provider.String()),
+				sdk.NewAttribute("action", "result_submission_rejected"),
+			),
+		)
+		return false
 	}
 
 	return bytes.Equal(stored, pubKey)
+}
+
+// RegisterSigningKey explicitly registers a provider's signing key.
+// SEC-2 FIX: This is the ONLY way to register a signing key. The key is NOT auto-trusted
+// on first use. Providers must call this function to register their key before submitting results.
+// The key can only be registered if:
+// 1. The provider is a registered and active provider
+// 2. No key is currently registered, OR
+// 3. The provider is updating their key (requires proof of ownership of old key)
+func (k Keeper) RegisterSigningKey(ctx context.Context, provider sdk.AccAddress, newPubKey []byte, oldKeySignature []byte) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Validate the provider is registered and active
+	providerRecord, err := k.GetProvider(ctx, provider)
+	if err != nil {
+		return fmt.Errorf("provider not registered: %w", err)
+	}
+
+	if !providerRecord.Active {
+		return fmt.Errorf("provider is not active")
+	}
+
+	// Validate the new public key
+	if len(newPubKey) != ed25519.PublicKeySize {
+		return fmt.Errorf("invalid public key size: expected %d bytes, got %d", ed25519.PublicKeySize, len(newPubKey))
+	}
+
+	// Check for all-zeros key (invalid)
+	allZeros := true
+	for _, b := range newPubKey {
+		if b != 0 {
+			allZeros = false
+			break
+		}
+	}
+	if allZeros {
+		return fmt.Errorf("invalid public key: all zeros")
+	}
+
+	store := k.getStore(ctx)
+	key := ProviderSigningKeyKey(provider)
+	existingKey := store.Get(key)
+
+	// If a key is already registered, require proof of ownership (signature)
+	if len(existingKey) > 0 {
+		if len(oldKeySignature) == 0 {
+			return fmt.Errorf("key rotation requires signature from existing key")
+		}
+
+		// Verify the signature using the existing key
+		// Message: "ROTATE_KEY:" + provider address + new public key
+		message := []byte("ROTATE_KEY:" + provider.String())
+		message = append(message, newPubKey...)
+		messageHash := sha256.Sum256(message)
+
+		if len(oldKeySignature) != ed25519.SignatureSize {
+			return fmt.Errorf("invalid signature size")
+		}
+
+		if !ed25519.Verify(existingKey, messageHash[:], oldKeySignature) {
+			return fmt.Errorf("invalid signature for key rotation: must sign with existing key")
+		}
+
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"signing_key_rotated",
+				sdk.NewAttribute("provider", provider.String()),
+				sdk.NewAttribute("old_key_hash", hex.EncodeToString(sha256.New().Sum(existingKey)[:8])),
+				sdk.NewAttribute("new_key_hash", hex.EncodeToString(sha256.New().Sum(newPubKey)[:8])),
+			),
+		)
+	} else {
+		// First-time registration: verify provider owns the new key by checking
+		// that the transaction was signed by the provider's account
+		// (This is implicitly verified by Cosmos SDK's ante handler)
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"signing_key_registered",
+				sdk.NewAttribute("provider", provider.String()),
+				sdk.NewAttribute("key_hash", hex.EncodeToString(sha256.New().Sum(newPubKey)[:8])),
+			),
+		)
+	}
+
+	// Store the new signing key
+	keyToStore := make([]byte, len(newPubKey))
+	copy(keyToStore, newPubKey)
+	store.Set(key, keyToStore)
+
+	return nil
+}
+
+// HasRegisteredSigningKey checks if a provider has a registered signing key.
+func (k Keeper) HasRegisteredSigningKey(ctx context.Context, provider sdk.AccAddress) bool {
+	// Check on-chain account key first
+	account := k.accountKeeper.GetAccount(ctx, provider)
+	if account != nil && account.GetPubKey() != nil {
+		return true
+	}
+
+	// Check explicitly registered key
+	store := k.getStore(ctx)
+	key := ProviderSigningKeyKey(provider)
+	return len(store.Get(key)) > 0
+}
+
+// GetRegisteredSigningKey returns the registered signing key for a provider, if any.
+func (k Keeper) GetRegisteredSigningKey(ctx context.Context, provider sdk.AccAddress) []byte {
+	// Check on-chain account key first
+	account := k.accountKeeper.GetAccount(ctx, provider)
+	if account != nil && account.GetPubKey() != nil {
+		return account.GetPubKey().Bytes()
+	}
+
+	// Check explicitly registered key
+	store := k.getStore(ctx)
+	key := ProviderSigningKeyKey(provider)
+	return store.Get(key)
 }
 
 // slashProviderForInvalidProof slashes a provider's stake for submitting invalid verification proofs.

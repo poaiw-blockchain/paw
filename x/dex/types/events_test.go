@@ -16,10 +16,10 @@ func TestEventTypes(t *testing.T) {
 		{"EventTypeDexSwapFailed", EventTypeDexSwapFailed, "dex_"},
 		{"EventTypeDexLimitOrder", EventTypeDexLimitOrder, "dex_"},
 		{"EventTypeDexOrderFilled", EventTypeDexOrderFilled, "dex_"},
-		{"EventTypeDexOrderCancelled", EventTypeDexOrderCancelled, ""},
-		{"EventTypeDexOrderPlaced", EventTypeDexOrderPlaced, ""},
-		{"EventTypeDexOrderMatched", EventTypeDexOrderMatched, ""},
-		{"EventTypeDexOrderExpired", EventTypeDexOrderExpired, ""},
+		{"EventTypeDexOrderCancelled", EventTypeDexOrderCancelled, "dex_"},
+		{"EventTypeDexOrderPlaced", EventTypeDexOrderPlaced, "dex_"},
+		{"EventTypeDexOrderMatched", EventTypeDexOrderMatched, "dex_"},
+		{"EventTypeDexOrderExpired", EventTypeDexOrderExpired, "dex_"},
 
 		// Liquidity events
 		{"EventTypeDexAddLiquidity", EventTypeDexAddLiquidity, "dex_"},
@@ -34,7 +34,7 @@ func TestEventTypes(t *testing.T) {
 		{"EventTypeDexLargeSwap", EventTypeDexLargeSwap, "dex_"},
 		{"EventTypeDexLargeLiquidityAddition", EventTypeDexLargeLiquidityAddition, "dex_"},
 		{"EventTypeDexSlippageExceeded", EventTypeDexSlippageExceeded, "dex_"},
-		{"EventTypeDexPotentialSandwichAttack", EventTypeDexPotentialSandwichAttack, ""},
+		{"EventTypeDexPotentialSandwichAttack", EventTypeDexPotentialSandwichAttack, "dex_"},
 
 		// Cross-chain events
 		{"EventTypeDexCrossChainSwap", EventTypeDexCrossChainSwap, "dex_"},

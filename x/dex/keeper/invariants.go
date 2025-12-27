@@ -140,36 +140,42 @@ func LiquiditySharesInvariant(k Keeper) sdk.Invariant {
 		}
 
 		for _, pool := range pools {
-			// Sum all liquidity shares for this pool
-			totalShares := math.ZeroInt()
+			// Sum all liquidity shares for this pool using IIFE pattern
+			// to ensure iterator is closed at end of each loop iteration.
+			// FIXED DATA-4: defer iter.Close() inside loop caused resource accumulation
+			// because defer only executes when the enclosing function returns, not at loop end.
+			totalShares, iterErr := func() (math.Int, error) {
+				store := k.getStore(ctx)
+				iter := storetypes.KVStorePrefixIterator(store, LiquidityKeyPrefix)
+				defer iter.Close() // Now properly closes at end of IIFE, not outer function
 
-			store := k.getStore(ctx)
-			iter := storetypes.KVStorePrefixIterator(store, LiquidityKeyPrefix)
-			defer iter.Close()
+				sum := math.ZeroInt()
+				for ; iter.Valid(); iter.Next() {
+					// Check if this share belongs to the current pool
+					key := iter.Key()
+					if len(key) < 10 { // prefix(2) + poolID(8) - keys are namespaced with 2-byte prefix
+						continue
+					}
 
-			for ; iter.Valid(); iter.Next() {
-				// Check if this share belongs to the current pool
-				key := iter.Key()
-				if len(key) < 10 { // prefix(2) + poolID(8) - keys are namespaced with 2-byte prefix
-					continue
+					poolID := sdk.BigEndianToUint64(key[2:10])
+					if poolID != pool.Id {
+						continue
+					}
+
+					var shares math.Int
+					if err := shares.Unmarshal(iter.Value()); err != nil {
+						return math.ZeroInt(), fmt.Errorf("pool %d: error unmarshaling shares: %v", pool.Id, err)
+					}
+
+					sum = sum.Add(shares)
 				}
+				return sum, nil
+			}()
 
-				poolID := sdk.BigEndianToUint64(key[2:10])
-				if poolID != pool.Id {
-					continue
-				}
-
-				var shares math.Int
-				if err := shares.Unmarshal(iter.Value()); err != nil {
-					broken = true
-					issues = append(issues, fmt.Sprintf(
-						"pool %d: error unmarshaling shares: %v",
-						pool.Id, err,
-					))
-					continue
-				}
-
-				totalShares = totalShares.Add(shares)
+			if iterErr != nil {
+				broken = true
+				issues = append(issues, iterErr.Error())
+				continue
 			}
 
 			// Check if sum matches pool total shares

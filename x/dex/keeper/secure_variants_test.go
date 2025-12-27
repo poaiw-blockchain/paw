@@ -97,31 +97,35 @@ func TestCreatePool(t *testing.T) {
 			errContain: "must be positive",
 		},
 		{
+			// SEC-6: Now catches minimum initial liquidity before extreme ratio check
+			// because both tokens need >= 1000 base units
 			name:       "extreme price ratio (too high)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(1),
-			amountB:    math.NewInt(10_000_000),
+			amountA:    math.NewInt(1000),           // Meet minimum for token A
+			amountB:    math.NewInt(1_000_000_000),  // Extreme ratio with token B
 			expectErr:  true,
 			errContain: "extreme",
 		},
 		{
+			// SEC-6: Now catches minimum initial liquidity before extreme ratio check
 			name:       "extreme price ratio (too low)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(10_000_000),
-			amountB:    math.NewInt(1),
+			amountA:    math.NewInt(1_000_000_000),  // Extreme ratio with token A
+			amountB:    math.NewInt(1000),           // Meet minimum for token B
 			expectErr:  true,
 			errContain: "extreme",
 		},
 		{
+			// SEC-6: Minimum initial liquidity enforcement per token
 			name:       "insufficient initial liquidity",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
 			amountA:    math.NewInt(1),
 			amountB:    math.NewInt(1),
 			expectErr:  true,
-			errContain: "initial liquidity too low",
+			errContain: "minimum initial liquidity",
 		},
 	}
 

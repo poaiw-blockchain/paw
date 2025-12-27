@@ -463,6 +463,9 @@ func (k Keeper) AggregatePrices(ctx context.Context) error {
 }
 
 // UpdateValidatorPowers updates validator oracle info with current staking power
+// and caches the total voting power for efficient price aggregation.
+// PERF-2: Total voting power is cached here once per block instead of being
+// recalculated O(n*m) times (n validators * m assets) during price aggregation.
 func (k Keeper) UpdateValidatorPowers(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -473,11 +476,17 @@ func (k Keeper) UpdateValidatorPowers(ctx context.Context) error {
 	}
 
 	updatedCount := 0
+	powerReduction := k.stakingKeeper.PowerReduction(ctx)
+	totalVotingPower := int64(0)
 
-	// Update or create validator oracle info
+	// Update or create validator oracle info and compute total voting power
 	for _, validator := range validators {
 		valAddr := validator.GetOperator()
-		// power := validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx))
+
+		// PERF-2: Accumulate total voting power for bonded validators only
+		if validator.IsBonded() {
+			totalVotingPower += validator.GetConsensusPower(powerReduction)
+		}
 
 		validatorOracle, err := k.GetValidatorOracle(ctx, valAddr)
 		if err != nil {
@@ -498,9 +507,14 @@ func (k Keeper) UpdateValidatorPowers(ctx context.Context) error {
 		updatedCount++
 	}
 
+	// PERF-2: Cache total voting power for use in price aggregation
+	// This eliminates O(n) iteration per asset during calculateVotingPower
+	k.SetCachedTotalVotingPower(ctx, totalVotingPower)
+
 	if updatedCount > 0 {
 		sdkCtx.Logger().Debug("updated validator powers",
 			"count", updatedCount,
+			"total_voting_power", totalVotingPower,
 		)
 	}
 

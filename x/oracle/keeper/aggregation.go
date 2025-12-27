@@ -689,23 +689,33 @@ func (k Keeper) getOutlierReason(severity OutlierSeverity) string {
 	}
 }
 
-// calculateVotingPower calculates total voting power and filters valid prices
+// calculateVotingPower retrieves cached total voting power and filters valid prices.
+// PERF-2: Uses cached total voting power from BeginBlocker instead of iterating
+// all bonded validators. This reduces complexity from O(n*m) to O(m) where:
+// - n = number of validators (cached once per block)
+// - m = number of assets (price aggregations per block)
+// With 100+ validators and 20+ assets, this eliminates ~2000+ validator iterations per block.
 func (k Keeper) calculateVotingPower(ctx context.Context, validatorPrices []types.ValidatorPrice) (int64, []types.ValidatorPrice, error) {
-	totalVotingPower := int64(0)
+	// PERF-2: Use cached total voting power instead of iterating all validators
+	totalVotingPower := k.GetCachedTotalVotingPower(ctx)
+
 	// P3-PERF-3: Pre-size with input length capacity
 	validPrices := make([]types.ValidatorPrice, 0, len(validatorPrices))
 
-	bondedValidators, err := k.GetBondedValidators(ctx)
-	if err != nil {
-		return 0, nil, err
+	// Fallback: if cache is empty (first block or test environments), compute from staking
+	if totalVotingPower == 0 {
+		bondedValidators, err := k.GetBondedValidators(ctx)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		powerReduction := k.stakingKeeper.PowerReduction(ctx)
+		for _, val := range bondedValidators {
+			totalVotingPower += val.GetConsensusPower(powerReduction)
+		}
 	}
 
-	powerReduction := k.stakingKeeper.PowerReduction(ctx)
-	for _, val := range bondedValidators {
-		totalVotingPower += val.GetConsensusPower(powerReduction)
-	}
-
-	// Fallback: if no bonded validators are found (test environments), derive total power from submissions.
+	// Fallback: if still no bonded validators (test environments), derive from submissions
 	if totalVotingPower == 0 {
 		for _, vp := range validatorPrices {
 			totalVotingPower += vp.VotingPower

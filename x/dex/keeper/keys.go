@@ -59,6 +59,25 @@ var (
 	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
 	// Now properly namespaced under DEX module
 	IBCPacketNonceKeyPrefix = []byte{0x02, 0x16}
+
+	// ============================================================================
+	// Limit Order Key Prefixes (0x17-0x1C)
+	// Defined in limit_orders.go, documented here for reference
+	// ============================================================================
+	// LimitOrderKeyPrefix        = []byte{0x02, 0x17} - Primary limit order storage
+	// LimitOrderCountKey         = []byte{0x02, 0x18} - Next order ID counter
+	// LimitOrderByOwnerPrefix    = []byte{0x02, 0x19} - Index by owner
+	// LimitOrderByPoolPrefix     = []byte{0x02, 0x1A} - Index by pool
+	// LimitOrderByPricePrefix    = []byte{0x02, 0x1B} - Index by price
+	// LimitOrderOpenPrefix       = []byte{0x02, 0x1C} - Index of open orders
+
+	// ============================================================================
+	// Commit-Reveal Key Prefixes (0x1D-0x1F)
+	// Defined in commit_reveal.go and commit_reveal_gov.go, documented here for reference
+	// ============================================================================
+	// SwapCommitmentKeyPrefix      = []byte{0x02, 0x1D} - Swap commitments (unified)
+	// SwapCommitmentByExpiryPrefix = []byte{0x02, 0x1E} - Index by expiry
+	// SwapCommitmentByTraderPrefix = []byte{0x02, 0x1F} - Index by trader
 )
 
 // PoolKey returns the store key for a pool by ID

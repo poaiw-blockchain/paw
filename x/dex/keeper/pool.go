@@ -60,6 +60,22 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 		return nil, types.ErrInvalidInput.Wrap("amount B must be positive")
 	}
 
+	// SEC-6: Enforce minimum initial liquidity per token
+	// This prevents dust pools that are vulnerable to manipulation
+	minInitialLiquidity := math.NewInt(MinimumInitialLiquidity)
+	if amountA.LT(minInitialLiquidity) {
+		return nil, types.ErrInsufficientLiquidity.Wrapf(
+			"amount A %s below minimum initial liquidity %s",
+			amountA, minInitialLiquidity,
+		)
+	}
+	if amountB.LT(minInitialLiquidity) {
+		return nil, types.ErrInsufficientLiquidity.Wrapf(
+			"amount B %s below minimum initial liquidity %s",
+			amountB, minInitialLiquidity,
+		)
+	}
+
 	// 2. Ensure consistent token ordering (lexicographic)
 	if tokenA > tokenB {
 		tokenA, tokenB = tokenB, tokenA

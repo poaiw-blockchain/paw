@@ -32,10 +32,11 @@ const (
 )
 
 // Storage key prefixes for commit-reveal
+// Uses DEX module namespace prefix (0x02) for consistency with other module keys.
 var (
-	SwapCommitmentKeyPrefix       = []byte{0x16}
-	SwapCommitmentByExpiryPrefix  = []byte{0x17}
-	SwapCommitmentByTraderPrefix  = []byte{0x18}
+	SwapCommitmentKeyPrefix      = []byte{0x02, 0x1D}
+	SwapCommitmentByExpiryPrefix = []byte{0x02, 0x1E}
+	SwapCommitmentByTraderPrefix = []byte{0x02, 0x1F}
 )
 
 // SwapCommitment stores a pending swap commitment
