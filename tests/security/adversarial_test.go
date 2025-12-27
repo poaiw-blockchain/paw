@@ -1,7 +1,6 @@
 package security_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -583,10 +582,10 @@ func (suite *AdversarialTestSuite) TestCircuitBreakerBlocksManipulation() {
 
 // TestReentrancyGuardPreventsNestedSwap proves the per-pool guard rejects nested execution paths.
 func (suite *AdversarialTestSuite) TestReentrancyGuardPreventsNestedSwap() {
-	ctxWithGuard := context.WithValue(suite.ctx, "reentrancy_guard", dexkeeper.NewReentrancyGuard())
+	guard := dexkeeper.NewReentrancyGuard()
 
-	err := suite.app.DEXKeeper.WithReentrancyGuard(ctxWithGuard, 99, "swap", func() error {
-		innerErr := suite.app.DEXKeeper.WithReentrancyGuard(ctxWithGuard, 99, "swap", func() error {
+	err := suite.app.DEXKeeper.WithReentrancyGuardAndLock(suite.ctx, 99, "swap", guard, func() error {
+		innerErr := suite.app.DEXKeeper.WithReentrancyGuardAndLock(suite.ctx, 99, "swap", guard, func() error {
 			return nil
 		})
 		suite.Require().ErrorIs(innerErr, dextypes.ErrReentrancy)

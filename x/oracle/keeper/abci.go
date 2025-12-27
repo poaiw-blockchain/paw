@@ -163,6 +163,8 @@ func (k Keeper) ProcessSlashWindows(ctx context.Context) error {
 // CleanupOldOutlierHistoryGlobal removes outlier history older than the retention window
 // for all validators and assets to prevent unbounded state growth.
 //
+// SEC-9: Uses MaxOutlierHistoryBlocks constant to control retention period.
+//
 // Performance optimization: Uses amortized cleanup to avoid O(n×m) iteration every block.
 // The cleanup is distributed across blocks using modulo-based scheduling, processing only
 // a subset of the total work per block. This prevents block timeouts with large validator sets.
@@ -172,8 +174,9 @@ func (k Keeper) CleanupOldOutlierHistoryGlobal(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
 
-	// Keep outlier history for the last OutlierReputationWindow blocks
-	minHeight := currentHeight - OutlierReputationWindow
+	// SEC-9: Keep outlier history for the last MaxOutlierHistoryBlocks blocks
+	// History older than this is cleaned up to prevent unbounded state growth
+	minHeight := currentHeight - MaxOutlierHistoryBlocks
 
 	if minHeight <= 0 {
 		return nil // Don't cleanup in early blocks

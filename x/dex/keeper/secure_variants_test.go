@@ -1540,21 +1540,19 @@ func TestGetCircuitBreakerState_NonExistent(t *testing.T) {
 // TestReentrancyGuard_ComplexScenario tests reentrancy guard with multiple operations
 func TestReentrancyGuard_ComplexScenario(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Create in-memory guard for testing
+	// Create in-memory guard for testing using explicit parameter
 	guard := keeper.NewReentrancyGuard()
-	ctx = sdkCtx.WithValue("reentrancy_guard", guard)
 
 	poolID := uint64(1)
 
 	// Test 1: Multiple different operations should succeed
-	err1 := k.WithReentrancyGuard(ctx, poolID, "op1", func() error {
+	err1 := k.WithReentrancyGuardAndLock(ctx, poolID, "op1", guard, func() error {
 		return nil
 	})
 	require.NoError(t, err1)
 
-	err2 := k.WithReentrancyGuard(ctx, poolID, "op2", func() error {
+	err2 := k.WithReentrancyGuardAndLock(ctx, poolID, "op2", guard, func() error {
 		return nil
 	})
 	require.NoError(t, err2)
@@ -1563,11 +1561,11 @@ func TestReentrancyGuard_ComplexScenario(t *testing.T) {
 	outerExecuted := false
 	innerExecuted := false
 
-	err := k.WithReentrancyGuard(ctx, poolID, "concurrent_op", func() error {
+	err := k.WithReentrancyGuardAndLock(ctx, poolID, "concurrent_op", guard, func() error {
 		outerExecuted = true
 
 		// Try to acquire same lock (should fail)
-		return k.WithReentrancyGuard(ctx, poolID, "concurrent_op", func() error {
+		return k.WithReentrancyGuardAndLock(ctx, poolID, "concurrent_op", guard, func() error {
 			innerExecuted = true
 			return nil
 		})
@@ -1582,16 +1580,14 @@ func TestReentrancyGuard_ComplexScenario(t *testing.T) {
 // TestReentrancyGuard_ErrorHandling tests that locks are released on error
 func TestReentrancyGuard_ErrorHandling(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	guard := keeper.NewReentrancyGuard()
-	ctx = sdkCtx.WithValue("reentrancy_guard", guard)
 
 	poolID := uint64(1)
 	expectedErr := types.ErrInvalidInput.Wrap("test error")
 
 	// Execute operation that returns error
-	err := k.WithReentrancyGuard(ctx, poolID, "error_op", func() error {
+	err := k.WithReentrancyGuardAndLock(ctx, poolID, "error_op", guard, func() error {
 		return expectedErr
 	})
 
@@ -1599,7 +1595,7 @@ func TestReentrancyGuard_ErrorHandling(t *testing.T) {
 	require.Contains(t, err.Error(), "test error")
 
 	// Lock should be released, so same operation should succeed
-	err = k.WithReentrancyGuard(ctx, poolID, "error_op", func() error {
+	err = k.WithReentrancyGuardAndLock(ctx, poolID, "error_op", guard, func() error {
 		return nil
 	})
 	require.NoError(t, err)

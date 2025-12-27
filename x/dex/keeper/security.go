@@ -122,10 +122,17 @@ func (g *ReentrancyGuard) Unlock(key string) {
 // WithReentrancyGuard executes a function with reentrancy protection
 // Stores locks in KVStore to ensure they persist across context boundaries
 func (k Keeper) WithReentrancyGuard(ctx context.Context, poolID uint64, operation string, fn func() error) error {
+	return k.WithReentrancyGuardAndLock(ctx, poolID, operation, nil, fn)
+}
+
+// WithReentrancyGuardAndLock executes a function with reentrancy protection using both
+// KVStore-based locks and an optional in-memory guard for test scenarios.
+// The guard parameter allows tests to pass an explicit ReentrancyGuard instead of using context values.
+func (k Keeper) WithReentrancyGuardAndLock(ctx context.Context, poolID uint64, operation string, guard *ReentrancyGuard, fn func() error) error {
 	lockKey := fmt.Sprintf("%d:%s", poolID, operation)
 
-	// Optional in-memory guard for test scenarios
-	if guard, ok := ctx.Value("reentrancy_guard").(*ReentrancyGuard); ok && guard != nil {
+	// Use explicit guard parameter for in-memory locking (primarily for tests)
+	if guard != nil {
 		if err := guard.Lock(lockKey); err != nil {
 			return err
 		}
@@ -352,8 +359,15 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 
 		if deviation.GT(maxDeviation) {
 			// Trigger circuit breaker
+			// Get circuit breaker duration from params (defaults to 1 hour)
+			params, paramsErr := k.GetParams(ctx)
+			circuitBreakerDuration := time.Hour // fallback default
+			if paramsErr == nil && params.CircuitBreakerDurationSeconds > 0 {
+				circuitBreakerDuration = time.Duration(params.CircuitBreakerDurationSeconds) * time.Second
+			}
+
 			state.Enabled = true
-			state.PausedUntil = sdkCtx.BlockTime().Add(1 * time.Hour)
+			state.PausedUntil = sdkCtx.BlockTime().Add(circuitBreakerDuration)
 			state.TriggerReason = fmt.Sprintf("price deviation of %s%% during %s", deviation.Mul(math.LegacyNewDec(100)), operation)
 
 			if err := k.SetCircuitBreakerState(ctx, pool.Id, state); err != nil {

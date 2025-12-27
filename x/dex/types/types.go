@@ -62,6 +62,7 @@ func DefaultParams() Params {
 		EnableCommitReveal:                 false,                            // Disabled for testnet
 		CommitRevealDelay:                  10,                               // 10 blocks
 		CommitTimeoutBlocks:                100,                              // 100 blocks
+		CircuitBreakerDurationSeconds:      3600,                             // 1 hour
 	}
 }
 

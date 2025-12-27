@@ -98,6 +98,11 @@ message Params {
   // Recommended: 100 blocks (~10 minutes)
   // Default: 100
   uint64 commit_timeout_blocks = 16;
+
+  // circuit_breaker_duration_seconds is the duration in seconds that a pool remains
+  // paused when the circuit breaker is triggered due to price deviation.
+  // Default: 3600 (1 hour)
+  uint64 circuit_breaker_duration_seconds = 17;
 }
 
 // AuthorizedChannel represents a port/channel pair permitted to send packets

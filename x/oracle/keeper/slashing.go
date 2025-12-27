@@ -20,6 +20,11 @@ const (
 
 	// Repeated offender threshold (number of outliers in window)
 	RepeatedOffenderThreshold = 3
+
+	// MaxOutlierHistoryBlocks is the maximum number of blocks to retain outlier history.
+	// History older than this is eligible for cleanup to prevent unbounded state growth.
+	// SEC-9: This constant controls the cleanup window for outlier history storage.
+	MaxOutlierHistoryBlocks = 1000
 )
 
 // OutlierHistory tracks outlier submissions for reputation
