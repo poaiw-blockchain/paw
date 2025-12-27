@@ -225,9 +225,14 @@ func ValidateEndpoint(endpoint string) error {
 		return fmt.Errorf("invalid endpoint URL: %w", err)
 	}
 
-	// Must use HTTPS
-	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
-		return fmt.Errorf("endpoint must use HTTP or HTTPS scheme")
+	// Must use HTTPS in production; allow HTTP only for localhost/127.0.0.1 (development)
+	if parsedURL.Scheme == "http" {
+		host := parsedURL.Hostname()
+		if host != "localhost" && host != "127.0.0.1" {
+			return fmt.Errorf("endpoint must use HTTPS (HTTP only allowed for localhost/127.0.0.1)")
+		}
+	} else if parsedURL.Scheme != "https" {
+		return fmt.Errorf("endpoint must use HTTPS scheme")
 	}
 
 	if parsedURL.Host == "" {

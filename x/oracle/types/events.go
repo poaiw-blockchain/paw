@@ -59,6 +59,7 @@ const (
 
 	// Slashing attributes
 	AttributeKeyReason        = "reason"
+	AttributeKeyDetails       = "details"
 	AttributeKeySlashFraction = "slash_fraction"
 	AttributeKeySlashAmount   = "slash_amount"
 	AttributeKeySeverity      = "severity"

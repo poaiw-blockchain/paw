@@ -387,7 +387,7 @@ func (k Keeper) SlashBadData(ctx context.Context, validatorAddr sdk.ValAddress, 
 			types.EventTypeOracleSlash,
 			sdk.NewAttribute(types.AttributeKeyValidator, validatorAddr.String()),
 			sdk.NewAttribute(types.AttributeKeyReason, "bad_data"),
-			sdk.NewAttribute(types.AttributeKeyReason, reason), // details
+			sdk.NewAttribute(types.AttributeKeyDetails, reason),
 			sdk.NewAttribute(types.AttributeKeySlashFraction, badDataSlashFraction.String()),
 			sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 		),
