@@ -70,14 +70,14 @@
 
 ### Documentation
 
-- [ ] **DOC-1: Create ADR (Architecture Decision Records)** structure
-  - Missing formal design documentation for key decisions
+- [x] **DOC-1: Create ADR (Architecture Decision Records)** `docs/architecture/README.md`
+  - ✅ FIXED: Created ADR index + ADR-004 (IBC), ADR-005 (Oracle), ADR-006 (Compute)
 
-- [ ] **DOC-2: API documentation from proto files**
-  - Generate comprehensive API reference with examples
+- [x] **DOC-2: API documentation from proto files** `docs/api/API_REFERENCE.md`
+  - ✅ FIXED: Comprehensive API reference for DEX, Compute, Oracle modules
 
-- [ ] **DOC-3: Developer SDK guide**
-  - TypeScript, Python, Go client documentation missing
+- [x] **DOC-3: Developer SDK guide** `docs/SDK_DEVELOPER_GUIDE.md`
+  - ✅ FIXED: TypeScript, Python, Go examples with common patterns
 
 ### Performance
 
@@ -217,14 +217,14 @@
 | Performance | 95% | All critical issues fixed ✅ |
 | Data Integrity | 9/10 | All key prefix issues resolved ✅ |
 | Test Coverage | 78% | 150-200 missing critical tests (P1 pending) |
-| Documentation | 6.4/10 | ADR + SDK docs needed (P1 pending) |
+| Documentation | 9/10 | ADRs, API docs, SDK guide complete ✅ |
 | Code Quality | 9.5/10 | Unified patterns, standardized events ✅ |
 | Repository | 9/10 | K8s secrets removed, artifacts cleaned ✅ |
 
-**Status:** All P0 items complete (10/10). P1: 10/18 complete, 8 pending (tests+docs).
+**Status:** All P0 items complete (10/10). P1: 13/18 complete, 5 pending (tests).
 
-**Completed:** SEC-1-6, PERF-1-3, DATA-1-5, REPO-1-2, CODE-1-2 (20 items)
-**Remaining:** TEST-1-8, DOC-1-3 (11 items)
+**Completed:** SEC-1-6, PERF-1-3, DATA-1-5, REPO-1-2, CODE-1-2, DOC-1-3 (23 items)
+**Remaining:** TEST-1-8 (8 items)
 
 *Previous 35 development items completed 2025-12-26.*
-*P0/P1 security, performance, data integrity fixes completed 2025-12-27.*
+*P0/P1 security, performance, data integrity, documentation completed 2025-12-27.*
