@@ -37,3 +37,9 @@ testnet-status() {
 
 # Kubernetes namespace for this project
 export KUBECONFIG="$PROJECT_ROOT/.kube/config"
+
+# Test infrastructure environment variables
+export GEOIP_DB_PATH=/usr/share/GeoIP/GeoLite2-Country.mmdb
+export PAW_AUDITLOG_TEST_DB="postgres://audit:audit@localhost:5432/audit_test?sslmode=disable"
+export PAW_FAUCET_TEST_DB="postgres://faucet:faucet@localhost:5432/faucet_test?sslmode=disable"
+export REDIS_URL="redis://localhost:6379"

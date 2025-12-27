@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -68,7 +69,7 @@ func TestAPI_GetLog(t *testing.T) {
 		Severity:  types.SeverityInfo,
 		Hash:      "testhash",
 	}
-	err := stor.Insert(nil, entry)
+	err := stor.Insert(context.Background(), entry)
 	require.NoError(t, err)
 
 	// Get the entry
