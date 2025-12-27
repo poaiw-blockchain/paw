@@ -12,6 +12,7 @@ const (
 	EventTypeDexOrderPlaced    = "dex_limit_order_placed"
 	EventTypeDexOrderMatched   = "dex_limit_order_matched"
 	EventTypeDexOrderExpired   = "dex_limit_order_expired"
+	EventTypeDexOrdersPruned   = "dex_limit_orders_pruned"
 
 	// Liquidity events
 	EventTypeDexAddLiquidity    = "dex_add_liquidity"

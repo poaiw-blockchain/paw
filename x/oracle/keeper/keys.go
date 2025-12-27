@@ -44,6 +44,11 @@ var (
 	// CachedTotalVotingPowerKey stores the cached total voting power of all bonded validators
 	// PERF-2: Updated in BeginBlocker to avoid O(n*m) recalculation per asset per block
 	CachedTotalVotingPowerKey = []byte{0x03, 0x0E}
+
+	// ValidatorPriceByAssetKeyPrefix is the prefix for secondary index of validator prices by asset
+	// PERF-6: Enables O(v) iteration for asset-specific price lookups instead of O(V) full scan
+	// Key format: prefix + asset + 0x00 + validator
+	ValidatorPriceByAssetKeyPrefix = []byte{0x03, 0x0F}
 )
 
 // GetPriceKey returns the store key for a price by asset
@@ -61,6 +66,21 @@ func GetValidatorPriceKey(validatorAddr sdk.ValAddress, asset string) []byte {
 // GetValidatorPricesByValidatorKey returns the prefix for all prices from a validator
 func GetValidatorPricesByValidatorKey(validatorAddr sdk.ValAddress) []byte {
 	return append(ValidatorPriceKeyPrefix, []byte(validatorAddr.String())...)
+}
+
+// GetValidatorPriceByAssetKey returns the secondary index key for a validator's price by asset
+// PERF-6: This enables efficient iteration of all validator prices for a specific asset
+func GetValidatorPriceByAssetKey(asset string, validatorAddr sdk.ValAddress) []byte {
+	key := append(ValidatorPriceByAssetKeyPrefix, []byte(asset)...)
+	key = append(key, byte(0x00)) // separator
+	return append(key, []byte(validatorAddr.String())...)
+}
+
+// GetValidatorPricesByAssetPrefix returns the prefix for all validator prices for an asset
+// PERF-6: Used for efficient iteration by asset
+func GetValidatorPricesByAssetPrefix(asset string) []byte {
+	key := append(ValidatorPriceByAssetKeyPrefix, []byte(asset)...)
+	return append(key, byte(0x00)) // include separator for exact asset match
 }
 
 // GetValidatorOracleKey returns the store key for validator oracle info

@@ -329,9 +329,11 @@ func (k Keeper) GetAllPools(ctx context.Context) ([]types.Pool, error) {
 	return pools, err
 }
 
-// GetModuleAddress returns the module account address
+// GetModuleAddress returns the cached module account address.
+// The address is computed once during Keeper initialization and cached
+// to avoid repeated byte slice allocations in hot paths (swaps, liquidity, fees).
 func (k Keeper) GetModuleAddress() sdk.AccAddress {
-	return sdk.AccAddress([]byte(types.ModuleName))
+	return k.moduleAddressCache
 }
 // DeletePool removes a pool (governance only - emergency use)
 // This function requires governance authority and can only delete empty pools.

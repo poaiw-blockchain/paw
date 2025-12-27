@@ -60,6 +60,14 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 		// Don't return error - log and continue to prevent block production halt
 	}
 
+	// Prune old completed/cancelled/expired orders (PERF-5)
+	// Orders older than 30 days that are no longer active are deleted
+	// Uses amortized cleanup (MaxOrdersToPrunePerBlock per block)
+	if err := k.PruneOldLimitOrders(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to prune old limit orders", "error", err)
+		// Don't return error - log and continue to prevent block production halt
+	}
+
 	// Process circuit breaker auto-recovery for all pools
 	if err := k.ProcessCircuitBreakerRecovery(ctx); err != nil {
 		sdkCtx.Logger().Error("failed to process circuit breaker recovery", "error", err)

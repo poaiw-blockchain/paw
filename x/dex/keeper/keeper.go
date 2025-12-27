@@ -19,15 +19,16 @@ import (
 
 // Keeper of the dex store
 type Keeper struct {
-	storeKey       storetypes.StoreKey
-	cdc            codec.BinaryCodec
-	bankKeeper     bankkeeper.Keeper
-	ibcKeeper      *ibckeeper.Keeper
-	portKeeper     *portkeeper.Keeper
-	scopedKeeper   capabilitykeeper.ScopedKeeper
-	portCapability *capabilitytypes.Capability
-	authority      string
-	metrics        *DEXMetrics
+	storeKey           storetypes.StoreKey
+	cdc                codec.BinaryCodec
+	bankKeeper         bankkeeper.Keeper
+	ibcKeeper          *ibckeeper.Keeper
+	portKeeper         *portkeeper.Keeper
+	scopedKeeper       capabilitykeeper.ScopedKeeper
+	portCapability     *capabilitytypes.Capability
+	authority          string
+	metrics            *DEXMetrics
+	moduleAddressCache sdk.AccAddress // Cached module address to avoid repeated allocations
 }
 
 // NewKeeper creates a new dex Keeper instance
@@ -41,14 +42,15 @@ func NewKeeper(
 	scopedKeeper capabilitykeeper.ScopedKeeper,
 ) *Keeper {
 	return &Keeper{
-		storeKey:     key,
-		cdc:          cdc,
-		bankKeeper:   bankKeeper,
-		ibcKeeper:    ibcKeeper,
-		portKeeper:   portKeeper,
-		authority:    authority,
-		scopedKeeper: scopedKeeper,
-		metrics:      NewDEXMetrics(),
+		storeKey:           key,
+		cdc:                cdc,
+		bankKeeper:         bankKeeper,
+		ibcKeeper:          ibcKeeper,
+		portKeeper:         portKeeper,
+		authority:          authority,
+		scopedKeeper:       scopedKeeper,
+		metrics:            NewDEXMetrics(),
+		moduleAddressCache: sdk.AccAddress([]byte(dextypes.ModuleName)), // Cache module address at init
 	}
 }
 

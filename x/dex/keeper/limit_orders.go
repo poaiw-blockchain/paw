@@ -759,6 +759,100 @@ func (k Keeper) ProcessExpiredOrders(ctx context.Context) error {
 	return nil
 }
 
+// PruneOldLimitOrders removes completed/cancelled/expired orders older than MaxLimitOrderAgeBlocks.
+//
+// This function is called in EndBlock to archive and delete old orders that are no longer
+// active. This prevents unbounded state growth from accumulated historical orders.
+//
+// Parameters:
+//   - ctx: Blockchain context for state access (called from EndBlock)
+//
+// Returns:
+//   - error: Always returns nil (errors are logged but don't halt processing)
+//
+// Behavior:
+//  1. Calculates cutoff block height based on MaxLimitOrderAgeBlocks
+//  2. Iterates through all orders (not just open orders)
+//  3. Processes up to MaxOrdersToPrunePerBlock orders per block (amortized)
+//  4. Only prunes orders with status Filled, Cancelled, or Expired
+//  5. Deletes order and all associated indexes
+//  6. Emits orders_pruned event with count
+//
+// Security Notes:
+//   - Never prunes Open or Partial orders (active orders are preserved)
+//   - Uses amortized processing to prevent chain halt
+//   - Order data is permanently deleted (no archival storage)
+func (k Keeper) PruneOldLimitOrders(ctx context.Context) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
+
+	// Calculate cutoff height - orders created before this are candidates for pruning
+	cutoffHeight := currentHeight - MaxLimitOrderAgeBlocks
+	if cutoffHeight <= 0 {
+		return nil // Chain too young, nothing to prune
+	}
+
+	store := k.getStore(ctx)
+	prunedCount := 0
+
+	// Iterate through all orders by ID (primary index)
+	iterator := storetypes.KVStorePrefixIterator(store, LimitOrderKeyPrefix)
+	defer iterator.Close()
+
+	// Collect orders to prune (can't modify store while iterating)
+	ordersToPrune := make([]*LimitOrder, 0, MaxOrdersToPrunePerBlock)
+
+	for ; iterator.Valid() && len(ordersToPrune) < MaxOrdersToPrunePerBlock; iterator.Next() {
+		orderID := binary.BigEndian.Uint64(iterator.Key()[len(LimitOrderKeyPrefix):])
+
+		order, err := k.GetLimitOrder(ctx, orderID)
+		if err != nil {
+			continue
+		}
+
+		// Only prune non-active orders that are old enough
+		if order.CreatedAtHeight < cutoffHeight {
+			switch order.Status {
+			case OrderStatusFilled, OrderStatusCancelled, OrderStatusExpired:
+				ordersToPrune = append(ordersToPrune, order)
+			}
+			// Skip Open and Partial orders - they are still active
+		}
+	}
+
+	// Delete the collected orders
+	for _, order := range ordersToPrune {
+		if err := k.DeleteLimitOrder(ctx, order); err != nil {
+			sdkCtx.Logger().Error("failed to prune old order",
+				"order_id", order.ID,
+				"created_at_height", order.CreatedAtHeight,
+				"error", err,
+			)
+			continue
+		}
+		prunedCount++
+	}
+
+	// Emit event if any orders were pruned
+	if prunedCount > 0 {
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeDexOrdersPruned,
+				sdk.NewAttribute("count", fmt.Sprintf("%d", prunedCount)),
+				sdk.NewAttribute("cutoff_height", fmt.Sprintf("%d", cutoffHeight)),
+				sdk.NewAttribute("current_height", fmt.Sprintf("%d", currentHeight)),
+			),
+		)
+
+		sdkCtx.Logger().Debug("pruned old limit orders",
+			"count", prunedCount,
+			"cutoff_height", cutoffHeight,
+		)
+	}
+
+	return nil
+}
+
 // ============================================================================
 // Query Functions
 // ============================================================================
@@ -1065,6 +1159,15 @@ const (
 	MaxGasForMatching     = 5_000_000
 	DefaultOrderBookLimit = 50
 	MaxOrderBookLimit     = 100
+
+	// MaxLimitOrderAgeBlocks is the maximum age of completed/cancelled/expired orders
+	// before they are pruned from state. At ~6s block time, 432000 blocks = 30 days.
+	// Only non-active orders (Filled, Cancelled, Expired) are pruned.
+	MaxLimitOrderAgeBlocks int64 = 432000
+
+	// MaxOrdersToPrunePerBlock is the maximum number of old orders to prune per block.
+	// This amortizes cleanup to prevent any single block from taking too long.
+	MaxOrdersToPrunePerBlock = 50
 )
 
 // MatchAllOrders attempts to match open limit orders against their respective pools.

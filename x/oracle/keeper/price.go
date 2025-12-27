@@ -101,6 +101,10 @@ func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.Vali
 	}
 	store.Set(GetValidatorPriceKey(valAddr, validatorPrice.Asset), bz)
 
+	// PERF-6: Write secondary index for efficient asset-based iteration
+	// Index stores empty value since actual data is in primary key
+	store.Set(GetValidatorPriceByAssetKey(validatorPrice.Asset, valAddr), []byte{})
+
 	return nil
 }
 
@@ -226,10 +230,19 @@ func (k Keeper) GetValidatorPrice(ctx context.Context, validatorAddr sdk.ValAddr
 func (k Keeper) DeleteValidatorPrice(ctx context.Context, validatorAddr sdk.ValAddress, asset string) {
 	store := k.getStore(ctx)
 	store.Delete(GetValidatorPriceKey(validatorAddr, asset))
+	// PERF-6: Also delete secondary index
+	store.Delete(GetValidatorPriceByAssetKey(asset, validatorAddr))
 }
 
 // IterateValidatorPrices iterates over all validator prices for an asset
+// PERF-6: When asset is specified, uses secondary index for O(v) instead of O(V) iteration
 func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb func(validatorPrice types.ValidatorPrice) (stop bool)) error {
+	// PERF-6: Use asset-specific iteration when asset is specified
+	if asset != "" {
+		return k.IterateValidatorPricesByAsset(ctx, asset, cb)
+	}
+
+	// Iterate all prices when no asset filter
 	store := k.getStore(ctx)
 	iterator := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
 	defer iterator.Close()
@@ -239,10 +252,43 @@ func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb fun
 		if err := k.cdc.Unmarshal(iterator.Value(), &validatorPrice); err != nil {
 			return err
 		}
-		// Filter by asset if specified
-		if asset != "" && validatorPrice.Asset != asset {
+		if cb(validatorPrice) {
+			break
+		}
+	}
+	return nil
+}
+
+// IterateValidatorPricesByAsset iterates over validator prices for a specific asset
+// PERF-6: Uses secondary index (asset -> validator) for efficient O(v) iteration
+// where v = validators who submitted for this asset, instead of O(V) for all validators
+func (k Keeper) IterateValidatorPricesByAsset(ctx context.Context, asset string, cb func(validatorPrice types.ValidatorPrice) (stop bool)) error {
+	store := k.getStore(ctx)
+
+	// Use secondary index prefix to iterate only validators for this asset
+	prefix := GetValidatorPricesByAssetPrefix(asset)
+	iterator := storetypes.KVStorePrefixIterator(store, prefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// Extract validator address from index key
+		// Key format: prefix + asset + 0x00 + validator
+		key := iterator.Key()
+		if len(key) <= len(prefix) {
 			continue
 		}
+		validatorStr := string(key[len(prefix):])
+		valAddr, err := sdk.ValAddressFromBech32(validatorStr)
+		if err != nil {
+			continue // Skip malformed keys
+		}
+
+		// Fetch actual validator price from primary storage
+		validatorPrice, err := k.GetValidatorPrice(ctx, valAddr, asset)
+		if err != nil {
+			continue // Index entry without corresponding price (should not happen)
+		}
+
 		if cb(validatorPrice) {
 			break
 		}
