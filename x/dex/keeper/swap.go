@@ -43,8 +43,10 @@ import (
 // - New security features are added exclusively to this file
 //
 
-// ExecuteSwap performs a token swap with comprehensive security checks
-// This is the production-grade version with all security features enabled
+// ExecuteSwap performs a token swap with comprehensive security checks.
+// This is the production-grade entry point with reentrancy protection, circuit breakers,
+// invariant validation, and MEV protection. Returns the output amount received.
+// Returns ErrSlippageTooHigh if output is below minAmountOut, ErrPoolNotFound if pool doesn't exist.
 func (k Keeper) ExecuteSwap(ctx context.Context, trader sdk.AccAddress, poolID uint64, tokenIn, tokenOut string, amountIn, minAmountOut math.Int) (math.Int, error) {
 	// Execute with reentrancy protection
 	var amountOut math.Int
@@ -307,7 +309,9 @@ func (k Keeper) executeSwapInternal(ctx context.Context, trader sdk.AccAddress, 
 	return amountOut, nil
 }
 
-// CalculateSwapOutput calculates swap output with overflow protection
+// CalculateSwapOutput calculates swap output using constant product formula (x*y=k).
+// Applies swap fee and enforces maxPoolDrainPercent limit. Returns ErrSwapTooLarge if
+// output would drain more than the allowed percentage of reserves.
 func (k Keeper) CalculateSwapOutput(
 	ctx context.Context,
 	amountIn, reserveIn, reserveOut math.Int,
@@ -382,7 +386,8 @@ func (k Keeper) CalculateSwapOutput(
 	return amountOut, nil
 }
 
-// SimulateSwap simulates a swap with all validations but no state changes
+// SimulateSwap simulates a swap with all validations but no state changes.
+// Useful for querying expected output before executing. Returns the estimated output amount.
 func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenOut string, amountIn math.Int) (math.Int, error) {
 	// Input validation
 	if amountIn.IsZero() || amountIn.IsNegative() {
@@ -450,7 +455,8 @@ func (k Keeper) SimulateSwap(ctx context.Context, poolID uint64, tokenIn, tokenO
 	return amountOut, nil
 }
 
-// GetSpotPrice returns the spot price with validation
+// GetSpotPrice returns the current spot price (reserveOut/reserveIn) for a token pair.
+// Returns ErrPoolNotFound if pool doesn't exist, ErrInvalidTokenPair for invalid tokens.
 func (k Keeper) GetSpotPrice(ctx context.Context, poolID uint64, tokenIn, tokenOut string) (math.LegacyDec, error) {
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)

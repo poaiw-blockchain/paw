@@ -87,7 +87,8 @@ func (k Keeper) GetAllPrices(ctx context.Context) ([]types.Price, error) {
 	return prices, err
 }
 
-// SetValidatorPrice sets a validator's price submission for an asset
+// SetValidatorPrice stores a validator's price submission for an asset.
+// Creates both primary storage and secondary index for efficient asset-based queries.
 func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.ValidatorPrice) error {
 	valAddr, err := sdk.ValAddressFromBech32(validatorPrice.ValidatorAddr)
 	if err != nil {
@@ -108,7 +109,9 @@ func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.Vali
 	return nil
 }
 
-// SubmitPrice records a validator price submission with full validation and aggregation triggers.
+// SubmitPrice records a validator price submission with full validation and triggers aggregation.
+// Validates the submitter is an active bonded validator and the price is within acceptable bounds.
+// Triggers price aggregation at vote period boundaries. Returns error if validator is not bonded.
 func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset string, price math.LegacyDec, feeders ...sdk.AccAddress) error {
 	// Track price submission latency
 	start := time.Now()

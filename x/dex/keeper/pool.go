@@ -41,7 +41,9 @@ func (k Keeper) SetNextPoolId(ctx context.Context, poolID uint64) {
 	store.Set(PoolCountKey, bz)
 }
 
-// CreatePool creates a new liquidity pool with comprehensive security checks
+// CreatePool creates a new liquidity pool with comprehensive security checks.
+// Tokens are ordered lexicographically. Returns ErrPoolAlreadyExists if the pair exists,
+// ErrInsufficientLiquidity if amounts are below minimum, ErrMaxPoolsReached at limit.
 func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, tokenB string, amountA, amountB math.Int) (*types.Pool, error) {
 	// 1. Input validation
 	if tokenA == tokenB {
@@ -234,7 +236,8 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 
 
 
-// GetPool retrieves a pool by ID
+// GetPool retrieves a pool by its unique numeric ID.
+// Returns ErrPoolNotFound if the pool does not exist.
 func (k Keeper) GetPool(ctx context.Context, poolID uint64) (*types.Pool, error) {
 	store := k.getStore(ctx)
 	bz := store.Get(PoolKey(poolID))
@@ -260,7 +263,8 @@ func (k Keeper) SetPool(ctx context.Context, pool *types.Pool) error {
 	return nil
 }
 
-// GetPoolByTokens retrieves a pool by its token pair
+// GetPoolByTokens retrieves a pool by its token pair (order-independent).
+// Tokens are internally sorted for consistent lookup. Returns ErrPoolNotFound if not found.
 func (k Keeper) GetPoolByTokens(ctx context.Context, tokenA, tokenB string) (*types.Pool, error) {
 	// Ensure consistent ordering
 	if tokenA > tokenB {

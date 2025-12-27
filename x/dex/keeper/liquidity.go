@@ -43,7 +43,10 @@ func (k Keeper) SetLiquidity(ctx context.Context, poolID uint64, provider sdk.Ac
 	return nil
 }
 
-// AddLiquidity adds liquidity with comprehensive security checks
+// AddLiquidity deposits tokens into a pool and mints LP shares to the provider.
+// Uses reentrancy protection and maintains price ratio. Returns the number of shares minted.
+// Returns ErrPoolNotFound if pool doesn't exist, ErrInsufficientLiquidity if contribution too small.
+//
 // CODE-LOW-4 DOCUMENTATION: Reentrancy Guard Implementation
 //
 // REENTRANCY ATTACK EXPLANATION:
@@ -275,7 +278,9 @@ func (k Keeper) addLiquidityInternal(ctx context.Context, provider sdk.AccAddres
 	return newShares, nil
 }
 
-// RemoveLiquidity removes liquidity with comprehensive security checks
+// RemoveLiquidity burns LP shares and returns proportional tokens to the provider.
+// Enforces flash loan protection and minimum reserve requirements.
+// Returns (amountA, amountB, error). Returns ErrInsufficientShares if shares exceed balance.
 func (k Keeper) RemoveLiquidity(ctx context.Context, provider sdk.AccAddress, poolID uint64, shares math.Int) (math.Int, math.Int, error) {
 	// Execute with reentrancy protection
 	var amountA, amountB math.Int

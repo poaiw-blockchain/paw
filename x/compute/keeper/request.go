@@ -14,7 +14,9 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
-// SubmitRequest creates a new compute request and escrows payment
+// SubmitRequest creates a new compute request, finds a suitable provider, and escrows payment.
+// Returns the request ID on success. Automatically assigns to a provider matching the specs.
+// Returns error if no suitable provider is found or if maxPayment is insufficient for estimated cost.
 func (k Keeper) SubmitRequest(ctx context.Context, requester sdk.AccAddress, specs types.ComputeSpec, containerImage string, command []string, envVars map[string]string, maxPayment math.Int, preferredProvider string) (uint64, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -339,7 +341,8 @@ func (k Keeper) CompleteRequest(ctx context.Context, requestID uint64, success b
 	return nil
 }
 
-// GetRequest retrieves a request by ID
+// GetRequest retrieves a compute request by its unique ID.
+// Returns error if the request does not exist in the store.
 func (k Keeper) GetRequest(ctx context.Context, requestID uint64) (*types.Request, error) {
 	store := k.getStore(ctx)
 	bz := store.Get(RequestKey(requestID))

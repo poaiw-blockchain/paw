@@ -187,7 +187,8 @@
 ### Documentation
 
 - [ ] **DOC-7: Add godoc to all public functions**
-- [ ] **DOC-8: Create FAQ document**
+- [x] **DOC-8: Create FAQ document** `docs/FAQ.md`
+  - ✅ FIXED: Created comprehensive FAQ covering General, DEX, Oracle, Compute, and Development sections
 - [ ] **DOC-9: Module development guide** for third-party developers
 
 ### Code Quality
