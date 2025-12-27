@@ -3,6 +3,8 @@ package types
 import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+
+	sharedibc "github.com/paw-chain/paw/x/shared/ibc"
 )
 
 var (
@@ -49,5 +51,5 @@ func DefaultAuthority() string {
 // GetIBCPacketNonceKey returns the store key for IBC packet nonce tracking
 // Used for replay attack prevention by tracking nonce per channel/sender pair
 func GetIBCPacketNonceKey(channelID, sender string) []byte {
-	return append(append(IBCPacketNonceKeyPrefix, []byte(channelID+"/")...), []byte(sender)...)
+	return sharedibc.GetIBCPacketNonceKey(IBCPacketNonceKeyPrefix, channelID, sender)
 }

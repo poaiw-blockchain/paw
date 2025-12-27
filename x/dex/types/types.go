@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -69,4 +71,12 @@ func DefaultParams() Params {
 // TestAddr returns a test address for testing purposes
 func TestAddr() sdk.AccAddress {
 	return sdk.AccAddress([]byte("test_address_______"))
+}
+
+// TestAddrWithSeed returns a deterministic test address based on a seed value.
+// Used to generate multiple unique addresses for testing purposes.
+func TestAddrWithSeed(seed int) sdk.AccAddress {
+	addr := make([]byte, 20)
+	copy(addr, fmt.Sprintf("test_addr_%08d___", seed))
+	return sdk.AccAddress(addr)
 }

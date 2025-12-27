@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	sharedibc "github.com/paw-chain/paw/x/shared/ibc"
 )
 
 var (
@@ -127,5 +129,5 @@ func GetSubmissionByHeightPrefixForHeight(height int64) []byte {
 // IBCPacketNonceKey returns the store key for IBC packet nonce tracking
 // Used for replay attack prevention by tracking nonce per channel/sender pair
 func IBCPacketNonceKey(channelID, sender string) []byte {
-	return append(append(IBCPacketNonceKeyPrefix, []byte(channelID+"/")...), []byte(sender)...)
+	return sharedibc.GetIBCPacketNonceKey(IBCPacketNonceKeyPrefix, channelID, sender)
 }

@@ -19,3 +19,10 @@ type ChannelOperation struct {
 	JobID       string `json:"job_id,omitempty"`
 	TargetChain string `json:"target_chain,omitempty"`
 }
+
+// GetIBCPacketNonceKey returns the store key for IBC packet nonce tracking.
+// Used for replay attack prevention by tracking nonce per channel/sender pair.
+// The prefix parameter allows each module to use its own namespace.
+func GetIBCPacketNonceKey(prefix []byte, channelID, sender string) []byte {
+	return append(append(prefix, []byte(channelID+"/")...), []byte(sender)...)
+}
