@@ -3,12 +3,31 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
 
+	sdkmath "cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
+
+// maxAggregationWorkers is the maximum number of parallel goroutines for price aggregation.
+// PERF-8: Using 4 workers provides good parallelism without overwhelming CPU resources.
+const maxAggregationWorkers = 4
+
+// AssetAggregationResult holds the computed result from parallel asset price aggregation.
+// PERF-8: This struct captures computation results so writes can be serialized.
+type AssetAggregationResult struct {
+	Asset          string
+	Price          types.Price
+	Snapshot       types.PriceSnapshot
+	FilteredData   *FilteredPriceData
+	AggregatedDec  sdkmath.LegacyDec
+	MinHeight      int64
+	Err            error
+}
 
 // BeginBlocker is called at the beginning of every block
 // It handles price aggregation and validator power updates
@@ -399,7 +418,8 @@ func (k Keeper) CleanupOldSubmissions(ctx context.Context) error {
 	return nil
 }
 
-// AggregatePrices aggregates validator price submissions for all assets
+// AggregatePrices aggregates validator price submissions for all assets using parallel processing.
+// PERF-8: Uses a worker pool to compute aggregations in parallel, then serializes writes.
 func (k Keeper) AggregatePrices(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
@@ -433,20 +453,42 @@ func (k Keeper) AggregatePrices(ctx context.Context) error {
 		return nil
 	}
 
-	aggregatedCount := 0
-
+	// PERF-8: Convert set to slice for parallel processing
+	assets := make([]string, 0, len(assetSet))
 	for asset := range assetSet {
-		if err := k.AggregateAssetPrice(ctx, asset); err != nil {
+		assets = append(assets, asset)
+	}
+
+	// PERF-8: Sort assets for deterministic ordering of writes
+	// Map iteration order is random in Go, so we must sort for consensus
+	sort.Strings(assets)
+
+	// PERF-8: Parallel aggregation using worker pool
+	results := k.aggregateAssetsParallel(sdkCtx, assets)
+
+	// PERF-8: Apply results sequentially (writes must be serialized for determinism)
+	aggregatedCount := 0
+	for _, result := range results {
+		if result.Err != nil {
 			sdkCtx.Logger().Error("failed to aggregate price",
-				"asset", asset,
-				"error", err,
+				"asset", result.Asset,
+				"error", result.Err,
 			)
 			if k.metrics != nil && k.metrics.AggregationCount != nil {
 				k.metrics.AggregationCount.With(map[string]string{
-					"asset":  asset,
+					"asset":  result.Asset,
 					"status": "error",
 				}).Inc()
 			}
+			continue
+		}
+
+		// Apply writes for successful aggregation
+		if err := k.applyAggregationResult(ctx, sdkCtx, result); err != nil {
+			sdkCtx.Logger().Error("failed to apply aggregation result",
+				"asset", result.Asset,
+				"error", err,
+			)
 			continue
 		}
 		aggregatedCount++
@@ -460,6 +502,226 @@ func (k Keeper) AggregatePrices(ctx context.Context) error {
 				sdk.NewAttribute("height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 			),
 		)
+	}
+
+	return nil
+}
+
+// aggregateAssetsParallel computes aggregations for multiple assets in parallel.
+// PERF-8: Uses a bounded worker pool to limit concurrency and prevent CPU overload.
+// Reads are done in parallel using CacheContext for isolation; writes are returned for
+// sequential application to maintain deterministic state.
+func (k Keeper) aggregateAssetsParallel(sdkCtx sdk.Context, assets []string) []AssetAggregationResult {
+	numAssets := len(assets)
+	if numAssets == 0 {
+		return nil
+	}
+
+	// Pre-allocate results slice
+	results := make([]AssetAggregationResult, numAssets)
+
+	// For small numbers of assets, process sequentially to avoid goroutine overhead
+	if numAssets <= 2 {
+		for i, asset := range assets {
+			results[i] = k.computeAssetAggregation(sdkCtx, asset)
+		}
+		return results
+	}
+
+	// PERF-8: Worker pool pattern with semaphore for bounded concurrency
+	sem := make(chan struct{}, maxAggregationWorkers)
+	var wg sync.WaitGroup
+
+	for i, asset := range assets {
+		wg.Add(1)
+		go func(idx int, a string) {
+			defer wg.Done()
+			sem <- struct{}{}        // acquire
+			defer func() { <-sem }() // release
+
+			// PERF-8: Use CacheContext for read isolation in each goroutine
+			// CacheContext creates an isolated cache - reads are safe but writes won't persist
+			cacheCtx, _ := sdkCtx.CacheContext()
+			results[idx] = k.computeAssetAggregation(cacheCtx, a)
+		}(i, asset)
+	}
+
+	wg.Wait()
+	return results
+}
+
+// computeAssetAggregation performs the read-heavy computation for a single asset.
+// PERF-8: This function is safe to call from multiple goroutines with CacheContext.
+// It returns all computed data needed for writes without performing any writes itself.
+func (k Keeper) computeAssetAggregation(sdkCtx sdk.Context, asset string) AssetAggregationResult {
+	result := AssetAggregationResult{Asset: asset}
+
+	validatorPrices, err := k.GetValidatorPricesByAsset(sdkCtx, asset)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	if len(validatorPrices) == 0 {
+		result.Err = fmt.Errorf("no price submissions for asset: %s", asset)
+		return result
+	}
+
+	params, err := k.GetParams(sdkCtx)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	totalVotingPower, validPrices, err := k.calculateVotingPower(sdkCtx, validatorPrices)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	if len(validPrices) == 0 {
+		result.Err = fmt.Errorf("no valid price submissions for asset: %s", asset)
+		return result
+	}
+
+	submittedVotingPower := int64(0)
+	for _, vp := range validPrices {
+		submittedVotingPower += vp.VotingPower
+	}
+
+	votePercentage := sdkmath.LegacyNewDec(submittedVotingPower).Quo(sdkmath.LegacyNewDec(totalVotingPower))
+	if votePercentage.LT(params.VoteThreshold) {
+		result.Err = fmt.Errorf("insufficient voting power: %s < %s", votePercentage.String(), params.VoteThreshold.String())
+		return result
+	}
+
+	// Multi-stage statistical outlier detection
+	filteredData, err := k.detectAndFilterOutliers(sdkCtx, asset, validPrices)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	if len(filteredData.ValidPrices) == 0 {
+		result.Err = fmt.Errorf("all prices filtered as outliers for asset: %s", asset)
+		return result
+	}
+
+	// Calculate weighted median from filtered prices
+	aggregatedPrice, err := k.calculateWeightedMedian(filteredData.ValidPrices)
+	if err != nil {
+		result.Err = err
+		return result
+	}
+
+	// Prepare result struct for later write application
+	result.Price = types.Price{
+		Asset:         asset,
+		Price:         aggregatedPrice,
+		BlockHeight:   sdkCtx.BlockHeight(),
+		BlockTime:     sdkCtx.BlockTime().Unix(),
+		NumValidators: uint32(len(filteredData.ValidPrices)),
+	}
+
+	result.Snapshot = types.PriceSnapshot{
+		Asset:       asset,
+		Price:       aggregatedPrice,
+		BlockHeight: sdkCtx.BlockHeight(),
+		BlockTime:   sdkCtx.BlockTime().Unix(),
+	}
+
+	result.FilteredData = filteredData
+	result.AggregatedDec = aggregatedPrice
+	result.MinHeight = sdkCtx.BlockHeight() - int64(params.TwapLookbackWindow)
+
+	return result
+}
+
+// applyAggregationResult writes the computed aggregation result to state.
+// PERF-8: This function must be called sequentially to maintain deterministic state ordering.
+func (k Keeper) applyAggregationResult(ctx context.Context, sdkCtx sdk.Context, result AssetAggregationResult) error {
+	// Handle outlier slashing and emit events
+	for _, outlier := range result.FilteredData.FilteredOutliers {
+		if err := k.handleOutlierSlashing(ctx, result.Asset, outlier); err != nil {
+			sdkCtx.Logger().Error("failed to slash outlier validator",
+				"validator", outlier.ValidatorAddr,
+				"asset", result.Asset,
+				"severity", outlier.Severity,
+				"error", err.Error(),
+			)
+		}
+
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeOracleOutlier,
+				sdk.NewAttribute(types.AttributeKeyValidator, outlier.ValidatorAddr),
+				sdk.NewAttribute(types.AttributeKeyAsset, result.Asset),
+				sdk.NewAttribute(types.AttributeKeyPrice, outlier.Price.String()),
+				sdk.NewAttribute(types.AttributeKeySeverity, fmt.Sprintf("%d", outlier.Severity)),
+				sdk.NewAttribute(types.AttributeKeyDeviation, outlier.Deviation.String()),
+				sdk.NewAttribute(types.AttributeKeyReason, outlier.Reason),
+				sdk.NewAttribute(types.AttributeKeyMedian, result.FilteredData.Median.String()),
+				sdk.NewAttribute(types.AttributeKeyMAD, result.FilteredData.MAD.String()),
+			),
+		)
+	}
+
+	// Write aggregated price
+	if err := k.SetPrice(ctx, result.Price); err != nil {
+		return err
+	}
+
+	// Write price snapshot
+	if err := k.SetPriceSnapshot(ctx, result.Snapshot); err != nil {
+		return err
+	}
+
+	// Delete old snapshots
+	if err := k.DeleteOldSnapshots(ctx, result.Asset, result.MinHeight); err != nil {
+		return err
+	}
+
+	// Emit aggregation event
+	sdkCtx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeOraclePriceAggregated,
+			sdk.NewAttribute(types.AttributeKeyAsset, result.Asset),
+			sdk.NewAttribute(types.AttributeKeyPrice, result.AggregatedDec.String()),
+			sdk.NewAttribute(types.AttributeKeyNumValidators, fmt.Sprintf("%d", len(result.FilteredData.ValidPrices))),
+			sdk.NewAttribute(types.AttributeKeyNumOutliers, fmt.Sprintf("%d", len(result.FilteredData.FilteredOutliers))),
+			sdk.NewAttribute(types.AttributeKeyMedian, result.FilteredData.Median.String()),
+			sdk.NewAttribute(types.AttributeKeyMAD, result.FilteredData.MAD.String()),
+		),
+	)
+
+	// Record metrics
+	if k.metrics != nil {
+		if k.metrics.AggregationCount != nil {
+			k.metrics.AggregationCount.With(map[string]string{
+				"asset":  result.Asset,
+				"status": "success",
+			}).Inc()
+		}
+
+		if k.metrics.ValidatorParticipation != nil {
+			k.metrics.ValidatorParticipation.With(map[string]string{
+				"asset": result.Asset,
+			}).Set(float64(len(result.FilteredData.ValidPrices)))
+		}
+
+		if k.metrics.OutliersDetected != nil {
+			severityCounts := make(map[string]float64)
+			for _, outlier := range result.FilteredData.FilteredOutliers {
+				severityKey := fmt.Sprintf("%d", outlier.Severity)
+				severityCounts[severityKey]++
+			}
+			for severity, count := range severityCounts {
+				k.metrics.OutliersDetected.With(map[string]string{
+					"asset":    result.Asset,
+					"severity": severity,
+				}).Add(count)
+			}
+		}
 	}
 
 	return nil

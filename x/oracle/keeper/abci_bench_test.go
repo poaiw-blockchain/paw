@@ -120,6 +120,66 @@ func BenchmarkCleanupOldOutlierHistory_SinglePair(b *testing.B) {
 	}
 }
 
+// BenchmarkAggregatePrices_Parallel benchmarks PERF-8 parallel asset aggregation
+func BenchmarkAggregatePrices_Parallel(b *testing.B) {
+	testCases := []struct {
+		name          string
+		numValidators int
+		numAssets     int
+	}{
+		{"3assets_10vals", 10, 3},   // Triggers parallel processing (>2 assets)
+		{"5assets_20vals", 20, 5},   // Moderate parallelism
+		{"10assets_50vals", 50, 10}, // Good parallelism benefit
+		{"20assets_100vals", 100, 20},
+	}
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			k, _, ctx := keepertest.OracleKeeper(b)
+			ctx = ctx.WithBlockHeight(100).WithEventManager(sdk.NewEventManager())
+
+			// Setup validators
+			validators := make([]sdk.ValAddress, tc.numValidators)
+			for i := 0; i < tc.numValidators; i++ {
+				validators[i] = makeValidatorAddress(byte(i % 256))
+				keepertest.RegisterTestOracle(b, k, ctx, validators[i].String())
+			}
+
+			// Setup assets and validator prices
+			assets := make([]string, tc.numAssets)
+			for i := 0; i < tc.numAssets; i++ {
+				assets[i] = fmt.Sprintf("ASSET%d/USD", i)
+			}
+
+			// Populate validator prices for each asset
+			for _, asset := range assets {
+				for j, val := range validators {
+					vp := types.ValidatorPrice{
+						ValidatorAddr: val.String(),
+						Asset:         asset,
+						Price:         sdkmath.LegacyNewDec(100 + int64(j)),
+						BlockHeight:   ctx.BlockHeight(),
+						VotingPower:   1,
+					}
+					require.NoError(b, k.SetValidatorPrice(ctx, vp))
+				}
+			}
+
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				// Reset event manager each iteration
+				ctx = ctx.WithEventManager(sdk.NewEventManager())
+				err := k.AggregatePrices(ctx)
+				require.NoError(b, err)
+			}
+
+			b.ReportMetric(float64(tc.numAssets), "assets")
+			b.ReportMetric(float64(tc.numValidators), "validators")
+		})
+	}
+}
+
 // BenchmarkExtractValidatorAssetPair benchmarks the key parsing helper
 func BenchmarkExtractValidatorAssetPair(b *testing.B) {
 	// Create a realistic outlier history key

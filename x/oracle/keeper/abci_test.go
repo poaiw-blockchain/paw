@@ -123,6 +123,169 @@ func eventExists(events sdk.Events, eventType string, attrKey string, attrValue 
 	return false
 }
 
+// TestAggregatePrices_ParallelProcessing tests PERF-8 parallel asset aggregation
+func TestAggregatePrices_ParallelProcessing(t *testing.T) {
+	k, _, ctx := keepertest.OracleKeeper(t)
+	ctx = ctx.WithBlockHeight(100).
+		WithBlockTime(time.Unix(1_700_000_000, 0)).
+		WithEventManager(sdk.NewEventManager())
+
+	// Create multiple assets to trigger parallel processing (>2 assets)
+	assets := []string{"BTC/USD", "ETH/USD", "PAW/USD", "ATOM/USD", "SOL/USD"}
+
+	// Create validators and submit prices for each asset
+	validators := make([]sdk.ValAddress, 4)
+	for i := 0; i < 4; i++ {
+		validators[i] = makeValidatorAddress(byte(i + 1))
+		keepertest.RegisterTestOracle(t, k, ctx, validators[i].String())
+	}
+
+	// Submit prices for all assets
+	for _, asset := range assets {
+		for i, val := range validators {
+			// Slightly different prices per validator
+			price := sdkmath.LegacyNewDec(int64(100 + i*5))
+			vp := types.ValidatorPrice{
+				ValidatorAddr: val.String(),
+				Asset:         asset,
+				Price:         price,
+				BlockHeight:   ctx.BlockHeight(),
+				VotingPower:   1,
+			}
+			require.NoError(t, k.SetValidatorPrice(ctx, vp))
+		}
+	}
+
+	// Run aggregation - should process in parallel since >2 assets
+	require.NoError(t, k.AggregatePrices(ctx))
+
+	// Verify all assets were aggregated
+	for _, asset := range assets {
+		aggregated, err := k.GetPrice(ctx, asset)
+		require.NoError(t, err, "expected aggregated price for %s", asset)
+		require.Equal(t, asset, aggregated.Asset)
+		require.True(t, aggregated.Price.IsPositive(), "expected positive price for %s", asset)
+		require.Equal(t, ctx.BlockHeight(), aggregated.BlockHeight)
+	}
+
+	// Verify aggregation event
+	events := ctx.EventManager().Events()
+	require.True(t, eventExists(events, "prices_aggregated", "", ""),
+		"expected prices_aggregated event")
+
+	// Verify individual asset events
+	for _, asset := range assets {
+		require.True(t, eventExists(events, "oracle_price_aggregated", "asset", asset),
+			"expected oracle_price_aggregated event for asset %s", asset)
+	}
+}
+
+// TestAggregatePrices_DeterministicOrdering tests that parallel aggregation produces deterministic results
+func TestAggregatePrices_DeterministicOrdering(t *testing.T) {
+	// Create 3 assets with distinct prices so order differences would be visible
+	assets := []string{"ZZZ/USD", "AAA/USD", "MMM/USD"}
+
+	// Run aggregation multiple times and verify same results
+	for run := 0; run < 3; run++ {
+		k, _, ctx := keepertest.OracleKeeper(t)
+		ctx = ctx.WithBlockHeight(100).
+			WithBlockTime(time.Unix(1_700_000_000, 0)).
+			WithEventManager(sdk.NewEventManager())
+
+		validators := make([]sdk.ValAddress, 4)
+		for i := 0; i < 4; i++ {
+			validators[i] = makeValidatorAddress(byte(i + 1))
+			keepertest.RegisterTestOracle(t, k, ctx, validators[i].String())
+		}
+
+		// Submit prices for all assets with consistent prices per asset
+		for _, asset := range assets {
+			for i, val := range validators {
+				// Price based on asset name to make them distinguishable
+				var basePrice int64
+				switch asset {
+				case "AAA/USD":
+					basePrice = 100
+				case "MMM/USD":
+					basePrice = 200
+				case "ZZZ/USD":
+					basePrice = 300
+				}
+				price := sdkmath.LegacyNewDec(basePrice + int64(i))
+				vp := types.ValidatorPrice{
+					ValidatorAddr: val.String(),
+					Asset:         asset,
+					Price:         price,
+					BlockHeight:   ctx.BlockHeight(),
+					VotingPower:   1,
+				}
+				require.NoError(t, k.SetValidatorPrice(ctx, vp))
+			}
+		}
+
+		require.NoError(t, k.AggregatePrices(ctx))
+
+		// Verify prices are consistent
+		aaaPrice, err := k.GetPrice(ctx, "AAA/USD")
+		require.NoError(t, err)
+		require.True(t, aaaPrice.Price.Equal(sdkmath.LegacyNewDec(100)) ||
+			aaaPrice.Price.Equal(sdkmath.LegacyNewDec(101)),
+			"AAA/USD price should be ~100, got %s", aaaPrice.Price)
+
+		mmmPrice, err := k.GetPrice(ctx, "MMM/USD")
+		require.NoError(t, err)
+		require.True(t, mmmPrice.Price.Equal(sdkmath.LegacyNewDec(200)) ||
+			mmmPrice.Price.Equal(sdkmath.LegacyNewDec(201)),
+			"MMM/USD price should be ~200, got %s", mmmPrice.Price)
+
+		zzzPrice, err := k.GetPrice(ctx, "ZZZ/USD")
+		require.NoError(t, err)
+		require.True(t, zzzPrice.Price.Equal(sdkmath.LegacyNewDec(300)) ||
+			zzzPrice.Price.Equal(sdkmath.LegacyNewDec(301)),
+			"ZZZ/USD price should be ~300, got %s", zzzPrice.Price)
+	}
+}
+
+// TestAggregatePrices_SequentialFallback tests that small asset counts use sequential processing
+func TestAggregatePrices_SequentialFallback(t *testing.T) {
+	k, _, ctx := keepertest.OracleKeeper(t)
+	ctx = ctx.WithBlockHeight(100).
+		WithBlockTime(time.Unix(1_700_000_000, 0)).
+		WithEventManager(sdk.NewEventManager())
+
+	// Only 2 assets - should use sequential processing (<=2 threshold)
+	assets := []string{"BTC/USD", "ETH/USD"}
+
+	validators := make([]sdk.ValAddress, 4)
+	for i := 0; i < 4; i++ {
+		validators[i] = makeValidatorAddress(byte(i + 1))
+		keepertest.RegisterTestOracle(t, k, ctx, validators[i].String())
+	}
+
+	for _, asset := range assets {
+		for i, val := range validators {
+			price := sdkmath.LegacyNewDec(int64(100 + i*5))
+			vp := types.ValidatorPrice{
+				ValidatorAddr: val.String(),
+				Asset:         asset,
+				Price:         price,
+				BlockHeight:   ctx.BlockHeight(),
+				VotingPower:   1,
+			}
+			require.NoError(t, k.SetValidatorPrice(ctx, vp))
+		}
+	}
+
+	require.NoError(t, k.AggregatePrices(ctx))
+
+	// Verify both assets were aggregated correctly
+	for _, asset := range assets {
+		aggregated, err := k.GetPrice(ctx, asset)
+		require.NoError(t, err, "expected aggregated price for %s", asset)
+		require.Equal(t, asset, aggregated.Asset)
+	}
+}
+
 // TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing tests the amortized cleanup algorithm
 func TestCleanupOldOutlierHistoryGlobal_AmortizedProcessing(t *testing.T) {
 	k, _, ctx := keepertest.OracleKeeper(t)

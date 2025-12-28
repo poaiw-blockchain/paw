@@ -182,7 +182,8 @@
 ### Performance
 
 - [ ] **PERF-7: Top-N streaming for provider cache** `x/compute/keeper/provider_cache.go`
-- [ ] **PERF-8: Parallel asset aggregation** in oracle module
+- [x] **PERF-8: Parallel asset aggregation** in oracle module
+  - FIXED: Worker pool (4 workers) with CacheContext for thread safety, sorted assets for determinism
 
 ### Testing
 
