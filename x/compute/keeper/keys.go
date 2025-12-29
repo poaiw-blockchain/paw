@@ -133,6 +133,19 @@ var (
 	// IBCPacketNonceKeyPrefix is the prefix for IBC packet nonce tracking (replay protection)
 	// Moved from types/keys.go - now properly namespaced
 	IBCPacketNonceKeyPrefix = []byte{0x01, 0x28}
+
+	// RandomnessCommitmentKeyPrefix is the prefix for randomness commitment storage
+	// Key: prefix + validator_address -> RandomnessCommitment
+	RandomnessCommitmentKeyPrefix = []byte{0x01, 0x29}
+
+	// RandomnessCommitmentByHeightPrefix is the prefix for indexing commitments by block height
+	// Key: prefix + block_height (8 bytes) + validator_address -> empty value
+	// Used to efficiently iterate commitments for a specific block's reveal phase
+	RandomnessCommitmentByHeightPrefix = []byte{0x01, 0x2A}
+
+	// AggregatedRandomnessKey is the key for storing the combined randomness from revealed values
+	// This randomness is used for the NEXT block's provider selection
+	AggregatedRandomnessKey = []byte{0x01, 0x2B}
 )
 
 // ProviderKey returns the store key for a provider
@@ -377,4 +390,23 @@ func ProviderCacheKey(index uint32) []byte {
 // Used for replay attack prevention by tracking nonce per channel/sender pair
 func IBCPacketNonceKey(channelID, sender string) []byte {
 	return sharedibc.GetIBCPacketNonceKey(IBCPacketNonceKeyPrefix, channelID, sender)
+}
+
+// RandomnessCommitmentKey returns the store key for a validator's randomness commitment
+func RandomnessCommitmentKey(validator sdk.AccAddress) []byte {
+	return append(RandomnessCommitmentKeyPrefix, validator.Bytes()...)
+}
+
+// RandomnessCommitmentByHeightKey returns the index key for a commitment at a specific height
+func RandomnessCommitmentByHeightKey(height int64, validator sdk.AccAddress) []byte {
+	heightBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(height))
+	return append(append(RandomnessCommitmentByHeightPrefix, heightBz...), validator.Bytes()...)
+}
+
+// RandomnessCommitmentByHeightPrefixForHeight returns the prefix for all commitments at a height
+func RandomnessCommitmentByHeightPrefixForHeight(height int64) []byte {
+	heightBz := make([]byte, 8)
+	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(height))
+	return append(RandomnessCommitmentByHeightPrefix, heightBz...)
 }

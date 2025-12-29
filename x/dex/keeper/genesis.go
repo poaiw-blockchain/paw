@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -63,7 +62,7 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 	// - If true (default): Restore full state including pause times from genesis
 	// - If false: Only restore persistent configuration, clear runtime state
 	for _, cbState := range genState.CircuitBreakerStates {
-		state := CircuitBreakerState{
+		state := &types.CircuitBreakerState{
 			// Persistent configuration - always restored
 			Enabled:        cbState.Enabled,
 			LastPrice:      cbState.LastPrice,
@@ -72,21 +71,17 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 
 		// Conditionally restore runtime state based on parameter
 		if genState.Params.UpgradePreserveCircuitBreakerState {
-			// Restore pause state from genesis
-			if cbState.PausedUntil > 0 {
-				state.PausedUntil = time.Unix(cbState.PausedUntil, 0)
-			}
-			state.NotificationsSent = int(cbState.NotificationsSent)
-			if cbState.LastNotification > 0 {
-				state.LastNotification = time.Unix(cbState.LastNotification, 0)
-			}
+			// Restore pause state from genesis (already Unix timestamps)
+			state.PausedUntil = cbState.PausedUntil
+			state.NotificationsSent = cbState.NotificationsSent
+			state.LastNotification = cbState.LastNotification
 			state.TriggeredBy = cbState.TriggeredBy
 			state.TriggerReason = cbState.TriggerReason
 		} else {
 			// Clear runtime state (intentional reset on upgrade)
-			state.PausedUntil = time.Time{}
+			state.PausedUntil = 0
 			state.NotificationsSent = 0
-			state.LastNotification = time.Time{}
+			state.LastNotification = 0
 			state.TriggeredBy = ""
 			state.TriggerReason = ""
 		}
@@ -198,14 +193,10 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 
 			// Conditionally export runtime state based on parameter
 			if params.UpgradePreserveCircuitBreakerState {
-				// Preserve full pause state across upgrades
-				if !cbState.PausedUntil.IsZero() {
-					export.PausedUntil = cbState.PausedUntil.Unix()
-				}
-				export.NotificationsSent = int32(cbState.NotificationsSent)
-				if !cbState.LastNotification.IsZero() {
-					export.LastNotification = cbState.LastNotification.Unix()
-				}
+				// Preserve full pause state across upgrades (already Unix timestamps)
+				export.PausedUntil = cbState.PausedUntil
+				export.NotificationsSent = cbState.NotificationsSent
+				export.LastNotification = cbState.LastNotification
 				export.TriggeredBy = cbState.TriggeredBy
 				export.TriggerReason = cbState.TriggerReason
 			}

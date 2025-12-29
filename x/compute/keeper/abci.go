@@ -18,6 +18,20 @@ import (
 func (k Keeper) BeginBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
+	// Process randomness commit phase - cleanup expired commitments
+	// This runs first to prepare for new commitments in this block
+	if err := k.ProcessRandomnessCommitPhase(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to process randomness commit phase", "error", err)
+		// Don't return error - randomness is supplementary
+	}
+
+	// Auto-commit randomness from the block proposer
+	// This ensures there's always at least one commitment per block
+	if err := k.AutoCommitFromBlockProposer(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to auto-commit randomness", "error", err)
+		// Don't return error - randomness is supplementary
+	}
+
 	// Refresh provider reputation cache if needed
 	// This is done first to ensure fresh cache for incoming requests
 	shouldRefresh, err := k.ShouldRefreshCache(ctx)
@@ -57,6 +71,13 @@ func (k Keeper) BeginBlocker(ctx context.Context) error {
 // It handles time-based operations like escrow timeouts and cleanup
 func (k Keeper) EndBlocker(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Process randomness reveal phase - aggregate revealed values for next block
+	// This runs first so the aggregated randomness is ready for the next block
+	if err := k.ProcessRandomnessRevealPhase(ctx); err != nil {
+		sdkCtx.Logger().Error("failed to process randomness reveal phase", "error", err)
+		// Don't return error - randomness is supplementary
+	}
 
 	// Process expired escrows and refund them automatically
 	if err := k.ProcessExpiredEscrows(ctx); err != nil {

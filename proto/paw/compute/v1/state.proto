@@ -890,4 +890,48 @@ message GenesisState {
 
   // next_catastrophic_failure_id is the next catastrophic failure ID to be assigned
   uint64 next_catastrophic_failure_id = 16;
+
+  // randomness_commitments is the list of pending randomness commitments at genesis
+  repeated RandomnessCommitment randomness_commitments = 17 [(gogoproto.nullable) = false];
+
+  // aggregated_randomness is the combined randomness from revealed values (for next block)
+  bytes aggregated_randomness = 18;
+}
+
+// RandomnessCommitmentStatus defines the lifecycle states for randomness commitments.
+enum RandomnessCommitmentStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  RANDOMNESS_COMMITMENT_STATUS_UNSPECIFIED = 0;
+  RANDOMNESS_COMMITMENT_STATUS_COMMITTED = 1;   // Commitment hash submitted
+  RANDOMNESS_COMMITMENT_STATUS_REVEALED = 2;    // Reveal value submitted and verified
+  RANDOMNESS_COMMITMENT_STATUS_EXPIRED = 3;     // Commitment expired without reveal
+}
+
+// RandomnessCommitment stores a validator's commitment for the commit-reveal scheme.
+// This provides unpredictable randomness for provider selection by combining
+// off-chain entropy from multiple validators with on-chain block entropy.
+message RandomnessCommitment {
+  // validator is the bech32 address of the validator submitting the commitment
+  string validator = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // commitment_hash is the SHA256(reveal_value || validator_address)
+  // This commits to a secret value without revealing it
+  bytes commitment_hash = 2;
+
+  // reveal_value is the actual random value (32 bytes), set after reveal phase
+  // Empty until the validator reveals
+  bytes reveal_value = 3;
+
+  // block_height is the block at which this commitment was made
+  int64 block_height = 4;
+
+  // status tracks whether the commitment has been revealed
+  RandomnessCommitmentStatus status = 5;
+
+  // committed_at is when the commitment was submitted
+  google.protobuf.Timestamp committed_at = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false];
+
+  // revealed_at is when the value was revealed (if revealed)
+  google.protobuf.Timestamp revealed_at = 7 [(gogoproto.stdtime) = true];
 }

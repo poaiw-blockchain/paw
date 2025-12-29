@@ -250,6 +250,22 @@ message SwapCommit {
   int64 expiry_height = 4;
 }
 
+// CircuitBreakerState represents the circuit breaker status for a pool (runtime state)
+message CircuitBreakerState {
+  bool enabled = 1;
+  int64 paused_until = 2; // Unix timestamp
+  string last_price = 3 [
+    (cosmos_proto.scalar) = "cosmos.Dec",
+    (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
+    (gogoproto.nullable) = false
+  ];
+  string triggered_by = 4;
+  string trigger_reason = 5;
+  int32 notifications_sent = 6;
+  int64 last_notification = 7; // Unix timestamp
+  string persistence_key = 8;
+}
+
 // GenesisState defines the dex module's genesis state.
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];

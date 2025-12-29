@@ -282,14 +282,14 @@ func TestInvariantValidation(t *testing.T) {
 // TestCircuitBreakerMechanism tests emergency pause functionality
 func TestCircuitBreakerMechanism(t *testing.T) {
 	// Test circuit breaker state management
-	state := keeper.CircuitBreakerState{
+	state := &types.CircuitBreakerState{
 		Enabled:       true,
-		PausedUntil:   time.Now().Add(1 * time.Hour),
+		PausedUntil:   time.Now().Add(1 * time.Hour).Unix(),
 		TriggerReason: "test pause",
 	}
 
 	require.True(t, state.Enabled)
-	require.False(t, state.PausedUntil.IsZero())
+	require.NotZero(t, state.PausedUntil)
 }
 
 // TestCalculateSwapOutputSecurity tests swap calculation with all validations

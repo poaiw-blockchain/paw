@@ -20827,6 +20827,57 @@ func (x *_GenesisState_15_list) IsValid() bool {
 	return x.list != nil
 }
 
+var _ protoreflect.List = (*_GenesisState_17_list)(nil)
+
+type _GenesisState_17_list struct {
+	list *[]*RandomnessCommitment
+}
+
+func (x *_GenesisState_17_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_GenesisState_17_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfMessage((*x.list)[i].ProtoReflect())
+}
+
+func (x *_GenesisState_17_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.Message()
+	concreteValue := valueUnwrapped.Interface().(*RandomnessCommitment)
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_GenesisState_17_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.Message()
+	concreteValue := valueUnwrapped.Interface().(*RandomnessCommitment)
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_GenesisState_17_list) AppendMutable() protoreflect.Value {
+	v := new(RandomnessCommitment)
+	*x.list = append(*x.list, v)
+	return protoreflect.ValueOfMessage(v.ProtoReflect())
+}
+
+func (x *_GenesisState_17_list) Truncate(n int) {
+	for i := n; i < len(*x.list); i++ {
+		(*x.list)[i] = nil
+	}
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_GenesisState_17_list) NewElement() protoreflect.Value {
+	v := new(RandomnessCommitment)
+	return protoreflect.ValueOfMessage(v.ProtoReflect())
+}
+
+func (x *_GenesisState_17_list) IsValid() bool {
+	return x.list != nil
+}
+
 var (
 	md_GenesisState                              protoreflect.MessageDescriptor
 	fd_GenesisState_params                       protoreflect.FieldDescriptor
@@ -20845,6 +20896,8 @@ var (
 	fd_GenesisState_next_escrow_nonce            protoreflect.FieldDescriptor
 	fd_GenesisState_catastrophic_failures        protoreflect.FieldDescriptor
 	fd_GenesisState_next_catastrophic_failure_id protoreflect.FieldDescriptor
+	fd_GenesisState_randomness_commitments       protoreflect.FieldDescriptor
+	fd_GenesisState_aggregated_randomness        protoreflect.FieldDescriptor
 )
 
 func init() {
@@ -20866,6 +20919,8 @@ func init() {
 	fd_GenesisState_next_escrow_nonce = md_GenesisState.Fields().ByName("next_escrow_nonce")
 	fd_GenesisState_catastrophic_failures = md_GenesisState.Fields().ByName("catastrophic_failures")
 	fd_GenesisState_next_catastrophic_failure_id = md_GenesisState.Fields().ByName("next_catastrophic_failure_id")
+	fd_GenesisState_randomness_commitments = md_GenesisState.Fields().ByName("randomness_commitments")
+	fd_GenesisState_aggregated_randomness = md_GenesisState.Fields().ByName("aggregated_randomness")
 }
 
 var _ protoreflect.Message = (*fastReflection_GenesisState)(nil)
@@ -21029,6 +21084,18 @@ func (x *fastReflection_GenesisState) Range(f func(protoreflect.FieldDescriptor,
 			return
 		}
 	}
+	if len(x.RandomnessCommitments) != 0 {
+		value := protoreflect.ValueOfList(&_GenesisState_17_list{list: &x.RandomnessCommitments})
+		if !f(fd_GenesisState_randomness_commitments, value) {
+			return
+		}
+	}
+	if len(x.AggregatedRandomness) != 0 {
+		value := protoreflect.ValueOfBytes(x.AggregatedRandomness)
+		if !f(fd_GenesisState_aggregated_randomness, value) {
+			return
+		}
+	}
 }
 
 // Has reports whether a field is populated.
@@ -21076,6 +21143,10 @@ func (x *fastReflection_GenesisState) Has(fd protoreflect.FieldDescriptor) bool 
 		return len(x.CatastrophicFailures) != 0
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		return x.NextCatastrophicFailureId != uint64(0)
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		return len(x.RandomnessCommitments) != 0
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		return len(x.AggregatedRandomness) != 0
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21124,6 +21195,10 @@ func (x *fastReflection_GenesisState) Clear(fd protoreflect.FieldDescriptor) {
 		x.CatastrophicFailures = nil
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		x.NextCatastrophicFailureId = uint64(0)
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		x.RandomnessCommitments = nil
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		x.AggregatedRandomness = nil
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21212,6 +21287,15 @@ func (x *fastReflection_GenesisState) Get(descriptor protoreflect.FieldDescripto
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		value := x.NextCatastrophicFailureId
 		return protoreflect.ValueOfUint64(value)
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		if len(x.RandomnessCommitments) == 0 {
+			return protoreflect.ValueOfList(&_GenesisState_17_list{})
+		}
+		listValue := &_GenesisState_17_list{list: &x.RandomnessCommitments}
+		return protoreflect.ValueOfList(listValue)
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		value := x.AggregatedRandomness
+		return protoreflect.ValueOfBytes(value)
 	default:
 		if descriptor.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21280,6 +21364,12 @@ func (x *fastReflection_GenesisState) Set(fd protoreflect.FieldDescriptor, value
 		x.CatastrophicFailures = *clv.list
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		x.NextCatastrophicFailureId = value.Uint()
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		lv := value.List()
+		clv := lv.(*_GenesisState_17_list)
+		x.RandomnessCommitments = *clv.list
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		x.AggregatedRandomness = value.Bytes()
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21358,6 +21448,12 @@ func (x *fastReflection_GenesisState) Mutable(fd protoreflect.FieldDescriptor) p
 		}
 		value := &_GenesisState_15_list{list: &x.CatastrophicFailures}
 		return protoreflect.ValueOfList(value)
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		if x.RandomnessCommitments == nil {
+			x.RandomnessCommitments = []*RandomnessCommitment{}
+		}
+		value := &_GenesisState_17_list{list: &x.RandomnessCommitments}
+		return protoreflect.ValueOfList(value)
 	case "paw.compute.v1.GenesisState.next_request_id":
 		panic(fmt.Errorf("field next_request_id of message paw.compute.v1.GenesisState is not mutable"))
 	case "paw.compute.v1.GenesisState.next_dispute_id":
@@ -21370,6 +21466,8 @@ func (x *fastReflection_GenesisState) Mutable(fd protoreflect.FieldDescriptor) p
 		panic(fmt.Errorf("field next_escrow_nonce of message paw.compute.v1.GenesisState is not mutable"))
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		panic(fmt.Errorf("field next_catastrophic_failure_id of message paw.compute.v1.GenesisState is not mutable"))
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		panic(fmt.Errorf("field aggregated_randomness of message paw.compute.v1.GenesisState is not mutable"))
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21425,6 +21523,11 @@ func (x *fastReflection_GenesisState) NewField(fd protoreflect.FieldDescriptor) 
 		return protoreflect.ValueOfList(&_GenesisState_15_list{list: &list})
 	case "paw.compute.v1.GenesisState.next_catastrophic_failure_id":
 		return protoreflect.ValueOfUint64(uint64(0))
+	case "paw.compute.v1.GenesisState.randomness_commitments":
+		list := []*RandomnessCommitment{}
+		return protoreflect.ValueOfList(&_GenesisState_17_list{list: &list})
+	case "paw.compute.v1.GenesisState.aggregated_randomness":
+		return protoreflect.ValueOfBytes(nil)
 	default:
 		if fd.IsExtension() {
 			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.GenesisState"))
@@ -21568,6 +21671,16 @@ func (x *fastReflection_GenesisState) ProtoMethods() *protoiface.Methods {
 		if x.NextCatastrophicFailureId != 0 {
 			n += 2 + runtime.Sov(uint64(x.NextCatastrophicFailureId))
 		}
+		if len(x.RandomnessCommitments) > 0 {
+			for _, e := range x.RandomnessCommitments {
+				l = options.Size(e)
+				n += 2 + l + runtime.Sov(uint64(l))
+			}
+		}
+		l = len(x.AggregatedRandomness)
+		if l > 0 {
+			n += 2 + l + runtime.Sov(uint64(l))
+		}
 		if x.unknownFields != nil {
 			n += len(x.unknownFields)
 		}
@@ -21596,6 +21709,33 @@ func (x *fastReflection_GenesisState) ProtoMethods() *protoiface.Methods {
 		if x.unknownFields != nil {
 			i -= len(x.unknownFields)
 			copy(dAtA[i:], x.unknownFields)
+		}
+		if len(x.AggregatedRandomness) > 0 {
+			i -= len(x.AggregatedRandomness)
+			copy(dAtA[i:], x.AggregatedRandomness)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.AggregatedRandomness)))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x92
+		}
+		if len(x.RandomnessCommitments) > 0 {
+			for iNdEx := len(x.RandomnessCommitments) - 1; iNdEx >= 0; iNdEx-- {
+				encoded, err := options.Marshal(x.RandomnessCommitments[iNdEx])
+				if err != nil {
+					return protoiface.MarshalOutput{
+						NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+						Buf:               input.Buf,
+					}, err
+				}
+				i -= len(encoded)
+				copy(dAtA[i:], encoded)
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+				i--
+				dAtA[i] = 0x1
+				i--
+				dAtA[i] = 0x8a
+			}
 		}
 		if x.NextCatastrophicFailureId != 0 {
 			i = runtime.EncodeVarint(dAtA, i, uint64(x.NextCatastrophicFailureId))
@@ -22292,6 +22432,880 @@ func (x *fastReflection_GenesisState) ProtoMethods() *protoiface.Methods {
 						break
 					}
 				}
+			case 17:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field RandomnessCommitments", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.RandomnessCommitments = append(x.RandomnessCommitments, &RandomnessCommitment{})
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.RandomnessCommitments[len(x.RandomnessCommitments)-1]); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			case 18:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field AggregatedRandomness", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.AggregatedRandomness = append(x.AggregatedRandomness[:0], dAtA[iNdEx:postIndex]...)
+				if x.AggregatedRandomness == nil {
+					x.AggregatedRandomness = []byte{}
+				}
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var (
+	md_RandomnessCommitment                 protoreflect.MessageDescriptor
+	fd_RandomnessCommitment_validator       protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_commitment_hash protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_reveal_value    protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_block_height    protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_status          protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_committed_at    protoreflect.FieldDescriptor
+	fd_RandomnessCommitment_revealed_at     protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_state_proto_init()
+	md_RandomnessCommitment = File_paw_compute_v1_state_proto.Messages().ByName("RandomnessCommitment")
+	fd_RandomnessCommitment_validator = md_RandomnessCommitment.Fields().ByName("validator")
+	fd_RandomnessCommitment_commitment_hash = md_RandomnessCommitment.Fields().ByName("commitment_hash")
+	fd_RandomnessCommitment_reveal_value = md_RandomnessCommitment.Fields().ByName("reveal_value")
+	fd_RandomnessCommitment_block_height = md_RandomnessCommitment.Fields().ByName("block_height")
+	fd_RandomnessCommitment_status = md_RandomnessCommitment.Fields().ByName("status")
+	fd_RandomnessCommitment_committed_at = md_RandomnessCommitment.Fields().ByName("committed_at")
+	fd_RandomnessCommitment_revealed_at = md_RandomnessCommitment.Fields().ByName("revealed_at")
+}
+
+var _ protoreflect.Message = (*fastReflection_RandomnessCommitment)(nil)
+
+type fastReflection_RandomnessCommitment RandomnessCommitment
+
+func (x *RandomnessCommitment) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_RandomnessCommitment)(x)
+}
+
+func (x *RandomnessCommitment) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_state_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_RandomnessCommitment_messageType fastReflection_RandomnessCommitment_messageType
+var _ protoreflect.MessageType = fastReflection_RandomnessCommitment_messageType{}
+
+type fastReflection_RandomnessCommitment_messageType struct{}
+
+func (x fastReflection_RandomnessCommitment_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_RandomnessCommitment)(nil)
+}
+func (x fastReflection_RandomnessCommitment_messageType) New() protoreflect.Message {
+	return new(fastReflection_RandomnessCommitment)
+}
+func (x fastReflection_RandomnessCommitment_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_RandomnessCommitment
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_RandomnessCommitment) Descriptor() protoreflect.MessageDescriptor {
+	return md_RandomnessCommitment
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_RandomnessCommitment) Type() protoreflect.MessageType {
+	return _fastReflection_RandomnessCommitment_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_RandomnessCommitment) New() protoreflect.Message {
+	return new(fastReflection_RandomnessCommitment)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_RandomnessCommitment) Interface() protoreflect.ProtoMessage {
+	return (*RandomnessCommitment)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_RandomnessCommitment) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.Validator != "" {
+		value := protoreflect.ValueOfString(x.Validator)
+		if !f(fd_RandomnessCommitment_validator, value) {
+			return
+		}
+	}
+	if len(x.CommitmentHash) != 0 {
+		value := protoreflect.ValueOfBytes(x.CommitmentHash)
+		if !f(fd_RandomnessCommitment_commitment_hash, value) {
+			return
+		}
+	}
+	if len(x.RevealValue) != 0 {
+		value := protoreflect.ValueOfBytes(x.RevealValue)
+		if !f(fd_RandomnessCommitment_reveal_value, value) {
+			return
+		}
+	}
+	if x.BlockHeight != int64(0) {
+		value := protoreflect.ValueOfInt64(x.BlockHeight)
+		if !f(fd_RandomnessCommitment_block_height, value) {
+			return
+		}
+	}
+	if x.Status != 0 {
+		value := protoreflect.ValueOfEnum((protoreflect.EnumNumber)(x.Status))
+		if !f(fd_RandomnessCommitment_status, value) {
+			return
+		}
+	}
+	if x.CommittedAt != nil {
+		value := protoreflect.ValueOfMessage(x.CommittedAt.ProtoReflect())
+		if !f(fd_RandomnessCommitment_committed_at, value) {
+			return
+		}
+	}
+	if x.RevealedAt != nil {
+		value := protoreflect.ValueOfMessage(x.RevealedAt.ProtoReflect())
+		if !f(fd_RandomnessCommitment_revealed_at, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_RandomnessCommitment) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		return x.Validator != ""
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		return len(x.CommitmentHash) != 0
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		return len(x.RevealValue) != 0
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		return x.BlockHeight != int64(0)
+	case "paw.compute.v1.RandomnessCommitment.status":
+		return x.Status != 0
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		return x.CommittedAt != nil
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		return x.RevealedAt != nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_RandomnessCommitment) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		x.Validator = ""
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		x.CommitmentHash = nil
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		x.RevealValue = nil
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		x.BlockHeight = int64(0)
+	case "paw.compute.v1.RandomnessCommitment.status":
+		x.Status = 0
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		x.CommittedAt = nil
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		x.RevealedAt = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_RandomnessCommitment) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		value := x.Validator
+		return protoreflect.ValueOfString(value)
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		value := x.CommitmentHash
+		return protoreflect.ValueOfBytes(value)
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		value := x.RevealValue
+		return protoreflect.ValueOfBytes(value)
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		value := x.BlockHeight
+		return protoreflect.ValueOfInt64(value)
+	case "paw.compute.v1.RandomnessCommitment.status":
+		value := x.Status
+		return protoreflect.ValueOfEnum((protoreflect.EnumNumber)(value))
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		value := x.CommittedAt
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		value := x.RevealedAt
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_RandomnessCommitment) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		x.Validator = value.Interface().(string)
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		x.CommitmentHash = value.Bytes()
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		x.RevealValue = value.Bytes()
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		x.BlockHeight = value.Int()
+	case "paw.compute.v1.RandomnessCommitment.status":
+		x.Status = (RandomnessCommitmentStatus)(value.Enum())
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		x.CommittedAt = value.Message().Interface().(*timestamppb.Timestamp)
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		x.RevealedAt = value.Message().Interface().(*timestamppb.Timestamp)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_RandomnessCommitment) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		if x.CommittedAt == nil {
+			x.CommittedAt = new(timestamppb.Timestamp)
+		}
+		return protoreflect.ValueOfMessage(x.CommittedAt.ProtoReflect())
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		if x.RevealedAt == nil {
+			x.RevealedAt = new(timestamppb.Timestamp)
+		}
+		return protoreflect.ValueOfMessage(x.RevealedAt.ProtoReflect())
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		panic(fmt.Errorf("field validator of message paw.compute.v1.RandomnessCommitment is not mutable"))
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		panic(fmt.Errorf("field commitment_hash of message paw.compute.v1.RandomnessCommitment is not mutable"))
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		panic(fmt.Errorf("field reveal_value of message paw.compute.v1.RandomnessCommitment is not mutable"))
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		panic(fmt.Errorf("field block_height of message paw.compute.v1.RandomnessCommitment is not mutable"))
+	case "paw.compute.v1.RandomnessCommitment.status":
+		panic(fmt.Errorf("field status of message paw.compute.v1.RandomnessCommitment is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_RandomnessCommitment) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.RandomnessCommitment.validator":
+		return protoreflect.ValueOfString("")
+	case "paw.compute.v1.RandomnessCommitment.commitment_hash":
+		return protoreflect.ValueOfBytes(nil)
+	case "paw.compute.v1.RandomnessCommitment.reveal_value":
+		return protoreflect.ValueOfBytes(nil)
+	case "paw.compute.v1.RandomnessCommitment.block_height":
+		return protoreflect.ValueOfInt64(int64(0))
+	case "paw.compute.v1.RandomnessCommitment.status":
+		return protoreflect.ValueOfEnum(0)
+	case "paw.compute.v1.RandomnessCommitment.committed_at":
+		m := new(timestamppb.Timestamp)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	case "paw.compute.v1.RandomnessCommitment.revealed_at":
+		m := new(timestamppb.Timestamp)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.RandomnessCommitment"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.RandomnessCommitment does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_RandomnessCommitment) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.RandomnessCommitment", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_RandomnessCommitment) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_RandomnessCommitment) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_RandomnessCommitment) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_RandomnessCommitment) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*RandomnessCommitment)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		l = len(x.Validator)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		l = len(x.CommitmentHash)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		l = len(x.RevealValue)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.BlockHeight != 0 {
+			n += 1 + runtime.Sov(uint64(x.BlockHeight))
+		}
+		if x.Status != 0 {
+			n += 1 + runtime.Sov(uint64(x.Status))
+		}
+		if x.CommittedAt != nil {
+			l = options.Size(x.CommittedAt)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.RevealedAt != nil {
+			l = options.Size(x.RevealedAt)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*RandomnessCommitment)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if x.RevealedAt != nil {
+			encoded, err := options.Marshal(x.RevealedAt)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0x3a
+		}
+		if x.CommittedAt != nil {
+			encoded, err := options.Marshal(x.CommittedAt)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0x32
+		}
+		if x.Status != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.Status))
+			i--
+			dAtA[i] = 0x28
+		}
+		if x.BlockHeight != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.BlockHeight))
+			i--
+			dAtA[i] = 0x20
+		}
+		if len(x.RevealValue) > 0 {
+			i -= len(x.RevealValue)
+			copy(dAtA[i:], x.RevealValue)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.RevealValue)))
+			i--
+			dAtA[i] = 0x1a
+		}
+		if len(x.CommitmentHash) > 0 {
+			i -= len(x.CommitmentHash)
+			copy(dAtA[i:], x.CommitmentHash)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.CommitmentHash)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if len(x.Validator) > 0 {
+			i -= len(x.Validator)
+			copy(dAtA[i:], x.Validator)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.Validator)))
+			i--
+			dAtA[i] = 0xa
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*RandomnessCommitment)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: RandomnessCommitment: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: RandomnessCommitment: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Validator", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.Validator = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field CommitmentHash", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.CommitmentHash = append(x.CommitmentHash[:0], dAtA[iNdEx:postIndex]...)
+				if x.CommitmentHash == nil {
+					x.CommitmentHash = []byte{}
+				}
+				iNdEx = postIndex
+			case 3:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field RevealValue", wireType)
+				}
+				var byteLen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					byteLen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if byteLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + byteLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.RevealValue = append(x.RevealValue[:0], dAtA[iNdEx:postIndex]...)
+				if x.RevealValue == nil {
+					x.RevealValue = []byte{}
+				}
+				iNdEx = postIndex
+			case 4:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field BlockHeight", wireType)
+				}
+				x.BlockHeight = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.BlockHeight |= int64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 5:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+				}
+				x.Status = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.Status |= RandomnessCommitmentStatus(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 6:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field CommittedAt", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.CommittedAt == nil {
+					x.CommittedAt = &timestamppb.Timestamp{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.CommittedAt); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			case 7:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field RevealedAt", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.RevealedAt == nil {
+					x.RevealedAt = &timestamppb.Timestamp{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.RevealedAt); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
 			default:
 				iNdEx = preIndex
 				skippy, err := runtime.Skip(dAtA[iNdEx:])
@@ -22683,6 +23697,59 @@ func (x AppealStatus) Number() protoreflect.EnumNumber {
 // Deprecated: Use AppealStatus.Descriptor instead.
 func (AppealStatus) EnumDescriptor() ([]byte, []int) {
 	return file_paw_compute_v1_state_proto_rawDescGZIP(), []int{5}
+}
+
+// RandomnessCommitmentStatus defines the lifecycle states for randomness commitments.
+type RandomnessCommitmentStatus int32
+
+const (
+	RandomnessCommitmentStatus_RANDOMNESS_COMMITMENT_STATUS_UNSPECIFIED RandomnessCommitmentStatus = 0
+	RandomnessCommitmentStatus_RANDOMNESS_COMMITMENT_STATUS_COMMITTED   RandomnessCommitmentStatus = 1 // Commitment hash submitted
+	RandomnessCommitmentStatus_RANDOMNESS_COMMITMENT_STATUS_REVEALED    RandomnessCommitmentStatus = 2 // Reveal value submitted and verified
+	RandomnessCommitmentStatus_RANDOMNESS_COMMITMENT_STATUS_EXPIRED     RandomnessCommitmentStatus = 3 // Commitment expired without reveal
+)
+
+// Enum value maps for RandomnessCommitmentStatus.
+var (
+	RandomnessCommitmentStatus_name = map[int32]string{
+		0: "RANDOMNESS_COMMITMENT_STATUS_UNSPECIFIED",
+		1: "RANDOMNESS_COMMITMENT_STATUS_COMMITTED",
+		2: "RANDOMNESS_COMMITMENT_STATUS_REVEALED",
+		3: "RANDOMNESS_COMMITMENT_STATUS_EXPIRED",
+	}
+	RandomnessCommitmentStatus_value = map[string]int32{
+		"RANDOMNESS_COMMITMENT_STATUS_UNSPECIFIED": 0,
+		"RANDOMNESS_COMMITMENT_STATUS_COMMITTED":   1,
+		"RANDOMNESS_COMMITMENT_STATUS_REVEALED":    2,
+		"RANDOMNESS_COMMITMENT_STATUS_EXPIRED":     3,
+	}
+)
+
+func (x RandomnessCommitmentStatus) Enum() *RandomnessCommitmentStatus {
+	p := new(RandomnessCommitmentStatus)
+	*p = x
+	return p
+}
+
+func (x RandomnessCommitmentStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RandomnessCommitmentStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_paw_compute_v1_state_proto_enumTypes[6].Descriptor()
+}
+
+func (RandomnessCommitmentStatus) Type() protoreflect.EnumType {
+	return &file_paw_compute_v1_state_proto_enumTypes[6]
+}
+
+func (x RandomnessCommitmentStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RandomnessCommitmentStatus.Descriptor instead.
+func (RandomnessCommitmentStatus) EnumDescriptor() ([]byte, []int) {
+	return file_paw_compute_v1_state_proto_rawDescGZIP(), []int{6}
 }
 
 // ComputeSpec defines the resource specifications for compute requests.
@@ -25139,6 +26206,10 @@ type GenesisState struct {
 	CatastrophicFailures []*CatastrophicFailure `protobuf:"bytes,15,rep,name=catastrophic_failures,json=catastrophicFailures,proto3" json:"catastrophic_failures,omitempty"`
 	// next_catastrophic_failure_id is the next catastrophic failure ID to be assigned
 	NextCatastrophicFailureId uint64 `protobuf:"varint,16,opt,name=next_catastrophic_failure_id,json=nextCatastrophicFailureId,proto3" json:"next_catastrophic_failure_id,omitempty"`
+	// randomness_commitments is the list of pending randomness commitments at genesis
+	RandomnessCommitments []*RandomnessCommitment `protobuf:"bytes,17,rep,name=randomness_commitments,json=randomnessCommitments,proto3" json:"randomness_commitments,omitempty"`
+	// aggregated_randomness is the combined randomness from revealed values (for next block)
+	AggregatedRandomness []byte `protobuf:"bytes,18,opt,name=aggregated_randomness,json=aggregatedRandomness,proto3" json:"aggregated_randomness,omitempty"`
 }
 
 func (x *GenesisState) Reset() {
@@ -25271,6 +26342,115 @@ func (x *GenesisState) GetNextCatastrophicFailureId() uint64 {
 		return x.NextCatastrophicFailureId
 	}
 	return 0
+}
+
+func (x *GenesisState) GetRandomnessCommitments() []*RandomnessCommitment {
+	if x != nil {
+		return x.RandomnessCommitments
+	}
+	return nil
+}
+
+func (x *GenesisState) GetAggregatedRandomness() []byte {
+	if x != nil {
+		return x.AggregatedRandomness
+	}
+	return nil
+}
+
+// RandomnessCommitment stores a validator's commitment for the commit-reveal scheme.
+// This provides unpredictable randomness for provider selection by combining
+// off-chain entropy from multiple validators with on-chain block entropy.
+type RandomnessCommitment struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// validator is the bech32 address of the validator submitting the commitment
+	Validator string `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
+	// commitment_hash is the SHA256(reveal_value || validator_address)
+	// This commits to a secret value without revealing it
+	CommitmentHash []byte `protobuf:"bytes,2,opt,name=commitment_hash,json=commitmentHash,proto3" json:"commitment_hash,omitempty"`
+	// reveal_value is the actual random value (32 bytes), set after reveal phase
+	// Empty until the validator reveals
+	RevealValue []byte `protobuf:"bytes,3,opt,name=reveal_value,json=revealValue,proto3" json:"reveal_value,omitempty"`
+	// block_height is the block at which this commitment was made
+	BlockHeight int64 `protobuf:"varint,4,opt,name=block_height,json=blockHeight,proto3" json:"block_height,omitempty"`
+	// status tracks whether the commitment has been revealed
+	Status RandomnessCommitmentStatus `protobuf:"varint,5,opt,name=status,proto3,enum=paw.compute.v1.RandomnessCommitmentStatus" json:"status,omitempty"`
+	// committed_at is when the commitment was submitted
+	CommittedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=committed_at,json=committedAt,proto3" json:"committed_at,omitempty"`
+	// revealed_at is when the value was revealed (if revealed)
+	RevealedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=revealed_at,json=revealedAt,proto3" json:"revealed_at,omitempty"`
+}
+
+func (x *RandomnessCommitment) Reset() {
+	*x = RandomnessCommitment{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_state_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RandomnessCommitment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RandomnessCommitment) ProtoMessage() {}
+
+// Deprecated: Use RandomnessCommitment.ProtoReflect.Descriptor instead.
+func (*RandomnessCommitment) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_state_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RandomnessCommitment) GetValidator() string {
+	if x != nil {
+		return x.Validator
+	}
+	return ""
+}
+
+func (x *RandomnessCommitment) GetCommitmentHash() []byte {
+	if x != nil {
+		return x.CommitmentHash
+	}
+	return nil
+}
+
+func (x *RandomnessCommitment) GetRevealValue() []byte {
+	if x != nil {
+		return x.RevealValue
+	}
+	return nil
+}
+
+func (x *RandomnessCommitment) GetBlockHeight() int64 {
+	if x != nil {
+		return x.BlockHeight
+	}
+	return 0
+}
+
+func (x *RandomnessCommitment) GetStatus() RandomnessCommitmentStatus {
+	if x != nil {
+		return x.Status
+	}
+	return RandomnessCommitmentStatus_RANDOMNESS_COMMITMENT_STATUS_UNSPECIFIED
+}
+
+func (x *RandomnessCommitment) GetCommittedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CommittedAt
+	}
+	return nil
+}
+
+func (x *RandomnessCommitment) GetRevealedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RevealedAt
+	}
+	return nil
 }
 
 var File_paw_compute_v1_state_proto protoreflect.FileDescriptor
@@ -25961,7 +27141,7 @@ var file_paw_compute_v1_state_proto_rawDesc = []byte{
 	0x73, 0x6f, 0x6c, 0x76, 0x65, 0x64, 0x41, 0x74, 0x12, 0x29, 0x0a, 0x10, 0x72, 0x65, 0x73, 0x6f,
 	0x6c, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6e, 0x6f, 0x74, 0x65, 0x73, 0x18, 0x0a, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x0f, 0x72, 0x65, 0x73, 0x6f, 0x6c, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x4e, 0x6f,
-	0x74, 0x65, 0x73, 0x22, 0xb4, 0x07, 0x0a, 0x0c, 0x47, 0x65, 0x6e, 0x65, 0x73, 0x69, 0x73, 0x53,
+	0x74, 0x65, 0x73, 0x22, 0xcc, 0x08, 0x0a, 0x0c, 0x47, 0x65, 0x6e, 0x65, 0x73, 0x69, 0x73, 0x53,
 	0x74, 0x61, 0x74, 0x65, 0x12, 0x34, 0x0a, 0x06, 0x70, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
 	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x50, 0x61, 0x72, 0x61, 0x6d, 0x73, 0x42, 0x04, 0xc8, 0xde,
@@ -26020,84 +27200,132 @@ var file_paw_compute_v1_state_proto_rawDesc = []byte{
 	0x74, 0x5f, 0x63, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x5f, 0x66,
 	0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x10, 0x20, 0x01, 0x28, 0x04, 0x52,
 	0x19, 0x6e, 0x65, 0x78, 0x74, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69,
-	0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x49, 0x64, 0x2a, 0xe4, 0x01, 0x0a, 0x0d, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1e, 0x0a, 0x1a,
-	0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55,
-	0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x1a, 0x0a, 0x16,
-	0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50,
-	0x45, 0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x01, 0x12, 0x1b, 0x0a, 0x17, 0x52, 0x45, 0x51, 0x55,
-	0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x41, 0x53, 0x53, 0x49, 0x47,
-	0x4e, 0x45, 0x44, 0x10, 0x02, 0x12, 0x1d, 0x0a, 0x19, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54,
-	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50, 0x52, 0x4f, 0x43, 0x45, 0x53, 0x53, 0x49,
-	0x4e, 0x47, 0x10, 0x03, 0x12, 0x1c, 0x0a, 0x18, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f,
-	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x43, 0x4f, 0x4d, 0x50, 0x4c, 0x45, 0x54, 0x45, 0x44,
-	0x10, 0x04, 0x12, 0x19, 0x0a, 0x15, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54,
-	0x41, 0x54, 0x55, 0x53, 0x5f, 0x46, 0x41, 0x49, 0x4c, 0x45, 0x44, 0x10, 0x05, 0x12, 0x1c, 0x0a,
-	0x18, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
-	0x43, 0x41, 0x4e, 0x43, 0x45, 0x4c, 0x4c, 0x45, 0x44, 0x10, 0x06, 0x1a, 0x04, 0x88, 0xa3, 0x1e,
-	0x00, 0x2a, 0xbf, 0x01, 0x0a, 0x0c, 0x45, 0x73, 0x63, 0x72, 0x6f, 0x77, 0x53, 0x74, 0x61, 0x74,
-	0x75, 0x73, 0x12, 0x1d, 0x0a, 0x19, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41,
-	0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10,
-	0x00, 0x12, 0x18, 0x0a, 0x14, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54,
-	0x55, 0x53, 0x5f, 0x4c, 0x4f, 0x43, 0x4b, 0x45, 0x44, 0x10, 0x01, 0x12, 0x1c, 0x0a, 0x18, 0x45,
-	0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x43, 0x48, 0x41,
-	0x4c, 0x4c, 0x45, 0x4e, 0x47, 0x45, 0x44, 0x10, 0x02, 0x12, 0x1a, 0x0a, 0x16, 0x45, 0x53, 0x43,
-	0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x4c, 0x45, 0x41,
-	0x53, 0x45, 0x44, 0x10, 0x03, 0x12, 0x1a, 0x0a, 0x16, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f,
-	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x46, 0x55, 0x4e, 0x44, 0x45, 0x44, 0x10,
-	0x04, 0x12, 0x1a, 0x0a, 0x16, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54,
-	0x55, 0x53, 0x5f, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x44, 0x10, 0x05, 0x1a, 0x04, 0x88,
-	0xa3, 0x1e, 0x00, 0x2a, 0xcf, 0x01, 0x0a, 0x0d, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x53,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1e, 0x0a, 0x1a, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45,
+	0x63, 0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x49, 0x64, 0x12, 0x61, 0x0a, 0x16, 0x72, 0x61,
+	0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x6d,
+	0x65, 0x6e, 0x74, 0x73, 0x18, 0x11, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x70, 0x61, 0x77,
+	0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x61, 0x6e, 0x64,
+	0x6f, 0x6d, 0x6e, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e, 0x74,
+	0x42, 0x04, 0xc8, 0xde, 0x1f, 0x00, 0x52, 0x15, 0x72, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65,
+	0x73, 0x73, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x33, 0x0a,
+	0x15, 0x61, 0x67, 0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x72, 0x61, 0x6e, 0x64,
+	0x6f, 0x6d, 0x6e, 0x65, 0x73, 0x73, 0x18, 0x12, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x14, 0x61, 0x67,
+	0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65,
+	0x73, 0x73, 0x22, 0x8d, 0x03, 0x0a, 0x14, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65, 0x73,
+	0x73, 0x43, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e, 0x74, 0x12, 0x36, 0x0a, 0x09, 0x76,
+	0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x18,
+	0xd2, 0xb4, 0x2d, 0x14, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x2e, 0x41, 0x64, 0x64, 0x72, 0x65,
+	0x73, 0x73, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x52, 0x09, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61,
+	0x74, 0x6f, 0x72, 0x12, 0x27, 0x0a, 0x0f, 0x63, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e,
+	0x74, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x0e, 0x63, 0x6f,
+	0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e, 0x74, 0x48, 0x61, 0x73, 0x68, 0x12, 0x21, 0x0a, 0x0c,
+	0x72, 0x65, 0x76, 0x65, 0x61, 0x6c, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x0c, 0x52, 0x0b, 0x72, 0x65, 0x76, 0x65, 0x61, 0x6c, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12,
+	0x21, 0x0a, 0x0c, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x5f, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18,
+	0x04, 0x20, 0x01, 0x28, 0x03, 0x52, 0x0b, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x48, 0x65, 0x69, 0x67,
+	0x68, 0x74, 0x12, 0x42, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x05, 0x20, 0x01,
+	0x28, 0x0e, 0x32, 0x2a, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
+	0x2e, 0x76, 0x31, 0x2e, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65, 0x73, 0x73, 0x43, 0x6f,
+	0x6d, 0x6d, 0x69, 0x74, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x06,
+	0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x47, 0x0a, 0x0c, 0x63, 0x6f, 0x6d, 0x6d, 0x69, 0x74,
+	0x74, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67,
+	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54,
+	0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x42, 0x08, 0xc8, 0xde, 0x1f, 0x00, 0x90, 0xdf,
+	0x1f, 0x01, 0x52, 0x0b, 0x63, 0x6f, 0x6d, 0x6d, 0x69, 0x74, 0x74, 0x65, 0x64, 0x41, 0x74, 0x12,
+	0x41, 0x0a, 0x0b, 0x72, 0x65, 0x76, 0x65, 0x61, 0x6c, 0x65, 0x64, 0x5f, 0x61, 0x74, 0x18, 0x07,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70,
+	0x42, 0x04, 0x90, 0xdf, 0x1f, 0x01, 0x52, 0x0a, 0x72, 0x65, 0x76, 0x65, 0x61, 0x6c, 0x65, 0x64,
+	0x41, 0x74, 0x2a, 0xe4, 0x01, 0x0a, 0x0d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x12, 0x1e, 0x0a, 0x1a, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f,
+	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49,
+	0x45, 0x44, 0x10, 0x00, 0x12, 0x1a, 0x0a, 0x16, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f,
+	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50, 0x45, 0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x01,
+	0x12, 0x1b, 0x0a, 0x17, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54,
+	0x55, 0x53, 0x5f, 0x41, 0x53, 0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x02, 0x12, 0x1d, 0x0a,
+	0x19, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
+	0x50, 0x52, 0x4f, 0x43, 0x45, 0x53, 0x53, 0x49, 0x4e, 0x47, 0x10, 0x03, 0x12, 0x1c, 0x0a, 0x18,
+	0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x43,
+	0x4f, 0x4d, 0x50, 0x4c, 0x45, 0x54, 0x45, 0x44, 0x10, 0x04, 0x12, 0x19, 0x0a, 0x15, 0x52, 0x45,
+	0x51, 0x55, 0x45, 0x53, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x46, 0x41, 0x49,
+	0x4c, 0x45, 0x44, 0x10, 0x05, 0x12, 0x1c, 0x0a, 0x18, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54,
+	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x43, 0x41, 0x4e, 0x43, 0x45, 0x4c, 0x4c, 0x45,
+	0x44, 0x10, 0x06, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xbf, 0x01, 0x0a, 0x0c, 0x45, 0x73,
+	0x63, 0x72, 0x6f, 0x77, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1d, 0x0a, 0x19, 0x45, 0x53,
+	0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50,
+	0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x18, 0x0a, 0x14, 0x45, 0x53, 0x43,
+	0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x4c, 0x4f, 0x43, 0x4b, 0x45,
+	0x44, 0x10, 0x01, 0x12, 0x1c, 0x0a, 0x18, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54,
+	0x41, 0x54, 0x55, 0x53, 0x5f, 0x43, 0x48, 0x41, 0x4c, 0x4c, 0x45, 0x4e, 0x47, 0x45, 0x44, 0x10,
+	0x02, 0x12, 0x1a, 0x0a, 0x16, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54,
+	0x55, 0x53, 0x5f, 0x52, 0x45, 0x4c, 0x45, 0x41, 0x53, 0x45, 0x44, 0x10, 0x03, 0x12, 0x1a, 0x0a,
+	0x16, 0x45, 0x53, 0x43, 0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52,
+	0x45, 0x46, 0x55, 0x4e, 0x44, 0x45, 0x44, 0x10, 0x04, 0x12, 0x1a, 0x0a, 0x16, 0x45, 0x53, 0x43,
+	0x52, 0x4f, 0x57, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x44, 0x49, 0x53, 0x50, 0x55,
+	0x54, 0x45, 0x44, 0x10, 0x05, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xcf, 0x01, 0x0a, 0x0d,
+	0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1e, 0x0a,
+	0x1a, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
+	0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x26, 0x0a,
+	0x22, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
+	0x45, 0x56, 0x49, 0x44, 0x45, 0x4e, 0x43, 0x45, 0x5f, 0x53, 0x55, 0x42, 0x4d, 0x49, 0x53, 0x53,
+	0x49, 0x4f, 0x4e, 0x10, 0x01, 0x12, 0x19, 0x0a, 0x15, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45,
+	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x56, 0x4f, 0x54, 0x49, 0x4e, 0x47, 0x10, 0x02,
+	0x12, 0x1b, 0x0a, 0x17, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54,
+	0x55, 0x53, 0x5f, 0x54, 0x41, 0x4c, 0x4c, 0x59, 0x49, 0x4e, 0x47, 0x10, 0x03, 0x12, 0x1b, 0x0a,
+	0x17, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
+	0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44, 0x10, 0x04, 0x12, 0x1b, 0x0a, 0x17, 0x44, 0x49,
+	0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x41, 0x50, 0x50,
+	0x45, 0x41, 0x4c, 0x45, 0x44, 0x10, 0x05, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xbd, 0x01,
+	0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x56, 0x6f, 0x74, 0x65, 0x4f, 0x70, 0x74,
+	0x69, 0x6f, 0x6e, 0x12, 0x1c, 0x0a, 0x18, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56,
+	0x4f, 0x54, 0x45, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10,
+	0x00, 0x12, 0x1f, 0x0a, 0x1b, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54,
+	0x45, 0x5f, 0x50, 0x52, 0x4f, 0x56, 0x49, 0x44, 0x45, 0x52, 0x5f, 0x46, 0x41, 0x55, 0x4c, 0x54,
+	0x10, 0x01, 0x12, 0x20, 0x0a, 0x1c, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f,
+	0x54, 0x45, 0x5f, 0x52, 0x45, 0x51, 0x55, 0x45, 0x53, 0x54, 0x45, 0x52, 0x5f, 0x46, 0x41, 0x55,
+	0x4c, 0x54, 0x10, 0x02, 0x12, 0x26, 0x0a, 0x22, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f,
+	0x56, 0x4f, 0x54, 0x45, 0x5f, 0x49, 0x4e, 0x53, 0x55, 0x46, 0x46, 0x49, 0x43, 0x49, 0x45, 0x4e,
+	0x54, 0x5f, 0x45, 0x56, 0x49, 0x44, 0x45, 0x4e, 0x43, 0x45, 0x10, 0x03, 0x12, 0x19, 0x0a, 0x15,
+	0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54, 0x45, 0x5f, 0x4e, 0x4f, 0x5f,
+	0x46, 0x41, 0x55, 0x4c, 0x54, 0x10, 0x04, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xd5, 0x01,
+	0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x6c, 0x75, 0x74,
+	0x69, 0x6f, 0x6e, 0x12, 0x22, 0x0a, 0x1e, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52,
+	0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43,
+	0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x25, 0x0a, 0x21, 0x44, 0x49, 0x53, 0x50, 0x55,
+	0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x53, 0x4c,
+	0x41, 0x53, 0x48, 0x5f, 0x50, 0x52, 0x4f, 0x56, 0x49, 0x44, 0x45, 0x52, 0x10, 0x01, 0x12, 0x20,
+	0x0a, 0x1c, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55,
+	0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x4e, 0x4f, 0x5f, 0x52, 0x45, 0x46, 0x55, 0x4e, 0x44, 0x10, 0x02,
+	0x12, 0x25, 0x0a, 0x21, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f,
+	0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50, 0x41, 0x52, 0x54, 0x49, 0x41, 0x4c, 0x5f, 0x52,
+	0x45, 0x46, 0x55, 0x4e, 0x44, 0x10, 0x03, 0x12, 0x26, 0x0a, 0x22, 0x44, 0x49, 0x53, 0x50, 0x55,
+	0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x54, 0x45,
+	0x43, 0x48, 0x4e, 0x49, 0x43, 0x41, 0x4c, 0x5f, 0x49, 0x53, 0x53, 0x55, 0x45, 0x10, 0x04, 0x1a,
+	0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0x84, 0x01, 0x0a, 0x0c, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c,
+	0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1d, 0x0a, 0x19, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c,
 	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46,
-	0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x26, 0x0a, 0x22, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45,
-	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x45, 0x56, 0x49, 0x44, 0x45, 0x4e, 0x43, 0x45,
-	0x5f, 0x53, 0x55, 0x42, 0x4d, 0x49, 0x53, 0x53, 0x49, 0x4f, 0x4e, 0x10, 0x01, 0x12, 0x19, 0x0a,
-	0x15, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
-	0x56, 0x4f, 0x54, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x12, 0x1b, 0x0a, 0x17, 0x44, 0x49, 0x53, 0x50,
-	0x55, 0x54, 0x45, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x54, 0x41, 0x4c, 0x4c, 0x59,
-	0x49, 0x4e, 0x47, 0x10, 0x03, 0x12, 0x1b, 0x0a, 0x17, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45,
-	0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44,
-	0x10, 0x04, 0x12, 0x1b, 0x0a, 0x17, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x53, 0x54,
-	0x41, 0x54, 0x55, 0x53, 0x5f, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x45, 0x44, 0x10, 0x05, 0x1a,
-	0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xbd, 0x01, 0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74,
-	0x65, 0x56, 0x6f, 0x74, 0x65, 0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1c, 0x0a, 0x18, 0x44,
-	0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54, 0x45, 0x5f, 0x55, 0x4e, 0x53, 0x50,
-	0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x1f, 0x0a, 0x1b, 0x44, 0x49, 0x53,
-	0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54, 0x45, 0x5f, 0x50, 0x52, 0x4f, 0x56, 0x49, 0x44,
-	0x45, 0x52, 0x5f, 0x46, 0x41, 0x55, 0x4c, 0x54, 0x10, 0x01, 0x12, 0x20, 0x0a, 0x1c, 0x44, 0x49,
-	0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x51, 0x55, 0x45,
-	0x53, 0x54, 0x45, 0x52, 0x5f, 0x46, 0x41, 0x55, 0x4c, 0x54, 0x10, 0x02, 0x12, 0x26, 0x0a, 0x22,
-	0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x56, 0x4f, 0x54, 0x45, 0x5f, 0x49, 0x4e, 0x53,
-	0x55, 0x46, 0x46, 0x49, 0x43, 0x49, 0x45, 0x4e, 0x54, 0x5f, 0x45, 0x56, 0x49, 0x44, 0x45, 0x4e,
-	0x43, 0x45, 0x10, 0x03, 0x12, 0x19, 0x0a, 0x15, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f,
-	0x56, 0x4f, 0x54, 0x45, 0x5f, 0x4e, 0x4f, 0x5f, 0x46, 0x41, 0x55, 0x4c, 0x54, 0x10, 0x04, 0x1a,
-	0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xd5, 0x01, 0x0a, 0x11, 0x44, 0x69, 0x73, 0x70, 0x75, 0x74,
-	0x65, 0x52, 0x65, 0x73, 0x6f, 0x6c, 0x75, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x22, 0x0a, 0x1e, 0x44,
-	0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f,
-	0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12,
-	0x25, 0x0a, 0x21, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c,
-	0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x53, 0x4c, 0x41, 0x53, 0x48, 0x5f, 0x50, 0x52, 0x4f, 0x56,
-	0x49, 0x44, 0x45, 0x52, 0x10, 0x01, 0x12, 0x20, 0x0a, 0x1c, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54,
-	0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x4e, 0x4f, 0x5f,
-	0x52, 0x45, 0x46, 0x55, 0x4e, 0x44, 0x10, 0x02, 0x12, 0x25, 0x0a, 0x21, 0x44, 0x49, 0x53, 0x50,
-	0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50,
-	0x41, 0x52, 0x54, 0x49, 0x41, 0x4c, 0x5f, 0x52, 0x45, 0x46, 0x55, 0x4e, 0x44, 0x10, 0x03, 0x12,
-	0x26, 0x0a, 0x22, 0x44, 0x49, 0x53, 0x50, 0x55, 0x54, 0x45, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c,
-	0x55, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x54, 0x45, 0x43, 0x48, 0x4e, 0x49, 0x43, 0x41, 0x4c, 0x5f,
-	0x49, 0x53, 0x53, 0x55, 0x45, 0x10, 0x04, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0x84, 0x01,
-	0x0a, 0x0c, 0x41, 0x70, 0x70, 0x65, 0x61, 0x6c, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x1d,
-	0x0a, 0x19, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
-	0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x19, 0x0a,
-	0x15, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50,
-	0x45, 0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x01, 0x12, 0x18, 0x0a, 0x14, 0x41, 0x50, 0x50, 0x45,
-	0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x56, 0x4f, 0x54, 0x49, 0x4e, 0x47,
-	0x10, 0x02, 0x12, 0x1a, 0x0a, 0x16, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41,
-	0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x53, 0x4f, 0x4c, 0x56, 0x45, 0x44, 0x10, 0x03, 0x1a, 0x04,
-	0x88, 0xa3, 0x1e, 0x00, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x70, 0x61, 0x77, 0x2d, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77,
-	0x2f, 0x78, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x19, 0x0a, 0x15, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x5f,
+	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50, 0x45, 0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x01,
+	0x12, 0x18, 0x0a, 0x14, 0x41, 0x50, 0x50, 0x45, 0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55,
+	0x53, 0x5f, 0x56, 0x4f, 0x54, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x12, 0x1a, 0x0a, 0x16, 0x41, 0x50,
+	0x50, 0x45, 0x41, 0x4c, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x53, 0x4f,
+	0x4c, 0x56, 0x45, 0x44, 0x10, 0x03, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00, 0x2a, 0xd1, 0x01, 0x0a,
+	0x1a, 0x52, 0x61, 0x6e, 0x64, 0x6f, 0x6d, 0x6e, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x6d, 0x6d, 0x69,
+	0x74, 0x6d, 0x65, 0x6e, 0x74, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x2c, 0x0a, 0x28, 0x52,
+	0x41, 0x4e, 0x44, 0x4f, 0x4d, 0x4e, 0x45, 0x53, 0x53, 0x5f, 0x43, 0x4f, 0x4d, 0x4d, 0x49, 0x54,
+	0x4d, 0x45, 0x4e, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50,
+	0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x2a, 0x0a, 0x26, 0x52, 0x41, 0x4e,
+	0x44, 0x4f, 0x4d, 0x4e, 0x45, 0x53, 0x53, 0x5f, 0x43, 0x4f, 0x4d, 0x4d, 0x49, 0x54, 0x4d, 0x45,
+	0x4e, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x43, 0x4f, 0x4d, 0x4d, 0x49, 0x54,
+	0x54, 0x45, 0x44, 0x10, 0x01, 0x12, 0x29, 0x0a, 0x25, 0x52, 0x41, 0x4e, 0x44, 0x4f, 0x4d, 0x4e,
+	0x45, 0x53, 0x53, 0x5f, 0x43, 0x4f, 0x4d, 0x4d, 0x49, 0x54, 0x4d, 0x45, 0x4e, 0x54, 0x5f, 0x53,
+	0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x52, 0x45, 0x56, 0x45, 0x41, 0x4c, 0x45, 0x44, 0x10, 0x02,
+	0x12, 0x28, 0x0a, 0x24, 0x52, 0x41, 0x4e, 0x44, 0x4f, 0x4d, 0x4e, 0x45, 0x53, 0x53, 0x5f, 0x43,
+	0x4f, 0x4d, 0x4d, 0x49, 0x54, 0x4d, 0x45, 0x4e, 0x54, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53,
+	0x5f, 0x45, 0x58, 0x50, 0x49, 0x52, 0x45, 0x44, 0x10, 0x03, 0x1a, 0x04, 0x88, 0xa3, 0x1e, 0x00,
+	0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70,
+	0x61, 0x77, 0x2d, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x78, 0x2f, 0x63,
+	0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -26112,105 +27340,111 @@ func file_paw_compute_v1_state_proto_rawDescGZIP() []byte {
 	return file_paw_compute_v1_state_proto_rawDescData
 }
 
-var file_paw_compute_v1_state_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_paw_compute_v1_state_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_paw_compute_v1_state_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_paw_compute_v1_state_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_paw_compute_v1_state_proto_goTypes = []interface{}{
-	(RequestStatus)(0),            // 0: paw.compute.v1.RequestStatus
-	(EscrowStatus)(0),             // 1: paw.compute.v1.EscrowStatus
-	(DisputeStatus)(0),            // 2: paw.compute.v1.DisputeStatus
-	(DisputeVoteOption)(0),        // 3: paw.compute.v1.DisputeVoteOption
-	(DisputeResolution)(0),        // 4: paw.compute.v1.DisputeResolution
-	(AppealStatus)(0),             // 5: paw.compute.v1.AppealStatus
-	(*ComputeSpec)(nil),           // 6: paw.compute.v1.ComputeSpec
-	(*Provider)(nil),              // 7: paw.compute.v1.Provider
-	(*Pricing)(nil),               // 8: paw.compute.v1.Pricing
-	(*Request)(nil),               // 9: paw.compute.v1.Request
-	(*Result)(nil),                // 10: paw.compute.v1.Result
-	(*EscrowState)(nil),           // 11: paw.compute.v1.EscrowState
-	(*Params)(nil),                // 12: paw.compute.v1.Params
-	(*AuthorizedChannel)(nil),     // 13: paw.compute.v1.AuthorizedChannel
-	(*Dispute)(nil),               // 14: paw.compute.v1.Dispute
-	(*DisputeVote)(nil),           // 15: paw.compute.v1.DisputeVote
-	(*Evidence)(nil),              // 16: paw.compute.v1.Evidence
-	(*SlashRecord)(nil),           // 17: paw.compute.v1.SlashRecord
-	(*Appeal)(nil),                // 18: paw.compute.v1.Appeal
-	(*AppealVote)(nil),            // 19: paw.compute.v1.AppealVote
-	(*GovernanceParams)(nil),      // 20: paw.compute.v1.GovernanceParams
-	(*PerformanceRecord)(nil),     // 21: paw.compute.v1.PerformanceRecord
-	(*ProviderReputation)(nil),    // 22: paw.compute.v1.ProviderReputation
-	(*CachedProvider)(nil),        // 23: paw.compute.v1.CachedProvider
-	(*ProviderLoadTracker)(nil),   // 24: paw.compute.v1.ProviderLoadTracker
-	(*RateLimitBucket)(nil),       // 25: paw.compute.v1.RateLimitBucket
-	(*ResourceQuota)(nil),         // 26: paw.compute.v1.ResourceQuota
-	(*CatastrophicFailure)(nil),   // 27: paw.compute.v1.CatastrophicFailure
-	(*GenesisState)(nil),          // 28: paw.compute.v1.GenesisState
-	nil,                           // 29: paw.compute.v1.Request.EnvVarsEntry
-	nil,                           // 30: paw.compute.v1.Params.CircuitParamHashesEntry
-	(*timestamppb.Timestamp)(nil), // 31: google.protobuf.Timestamp
+	(RequestStatus)(0),              // 0: paw.compute.v1.RequestStatus
+	(EscrowStatus)(0),               // 1: paw.compute.v1.EscrowStatus
+	(DisputeStatus)(0),              // 2: paw.compute.v1.DisputeStatus
+	(DisputeVoteOption)(0),          // 3: paw.compute.v1.DisputeVoteOption
+	(DisputeResolution)(0),          // 4: paw.compute.v1.DisputeResolution
+	(AppealStatus)(0),               // 5: paw.compute.v1.AppealStatus
+	(RandomnessCommitmentStatus)(0), // 6: paw.compute.v1.RandomnessCommitmentStatus
+	(*ComputeSpec)(nil),             // 7: paw.compute.v1.ComputeSpec
+	(*Provider)(nil),                // 8: paw.compute.v1.Provider
+	(*Pricing)(nil),                 // 9: paw.compute.v1.Pricing
+	(*Request)(nil),                 // 10: paw.compute.v1.Request
+	(*Result)(nil),                  // 11: paw.compute.v1.Result
+	(*EscrowState)(nil),             // 12: paw.compute.v1.EscrowState
+	(*Params)(nil),                  // 13: paw.compute.v1.Params
+	(*AuthorizedChannel)(nil),       // 14: paw.compute.v1.AuthorizedChannel
+	(*Dispute)(nil),                 // 15: paw.compute.v1.Dispute
+	(*DisputeVote)(nil),             // 16: paw.compute.v1.DisputeVote
+	(*Evidence)(nil),                // 17: paw.compute.v1.Evidence
+	(*SlashRecord)(nil),             // 18: paw.compute.v1.SlashRecord
+	(*Appeal)(nil),                  // 19: paw.compute.v1.Appeal
+	(*AppealVote)(nil),              // 20: paw.compute.v1.AppealVote
+	(*GovernanceParams)(nil),        // 21: paw.compute.v1.GovernanceParams
+	(*PerformanceRecord)(nil),       // 22: paw.compute.v1.PerformanceRecord
+	(*ProviderReputation)(nil),      // 23: paw.compute.v1.ProviderReputation
+	(*CachedProvider)(nil),          // 24: paw.compute.v1.CachedProvider
+	(*ProviderLoadTracker)(nil),     // 25: paw.compute.v1.ProviderLoadTracker
+	(*RateLimitBucket)(nil),         // 26: paw.compute.v1.RateLimitBucket
+	(*ResourceQuota)(nil),           // 27: paw.compute.v1.ResourceQuota
+	(*CatastrophicFailure)(nil),     // 28: paw.compute.v1.CatastrophicFailure
+	(*GenesisState)(nil),            // 29: paw.compute.v1.GenesisState
+	(*RandomnessCommitment)(nil),    // 30: paw.compute.v1.RandomnessCommitment
+	nil,                             // 31: paw.compute.v1.Request.EnvVarsEntry
+	nil,                             // 32: paw.compute.v1.Params.CircuitParamHashesEntry
+	(*timestamppb.Timestamp)(nil),   // 33: google.protobuf.Timestamp
 }
 var file_paw_compute_v1_state_proto_depIdxs = []int32{
-	6,  // 0: paw.compute.v1.Provider.available_specs:type_name -> paw.compute.v1.ComputeSpec
-	8,  // 1: paw.compute.v1.Provider.pricing:type_name -> paw.compute.v1.Pricing
-	31, // 2: paw.compute.v1.Provider.registered_at:type_name -> google.protobuf.Timestamp
-	31, // 3: paw.compute.v1.Provider.last_active_at:type_name -> google.protobuf.Timestamp
-	6,  // 4: paw.compute.v1.Request.specs:type_name -> paw.compute.v1.ComputeSpec
-	29, // 5: paw.compute.v1.Request.env_vars:type_name -> paw.compute.v1.Request.EnvVarsEntry
+	7,  // 0: paw.compute.v1.Provider.available_specs:type_name -> paw.compute.v1.ComputeSpec
+	9,  // 1: paw.compute.v1.Provider.pricing:type_name -> paw.compute.v1.Pricing
+	33, // 2: paw.compute.v1.Provider.registered_at:type_name -> google.protobuf.Timestamp
+	33, // 3: paw.compute.v1.Provider.last_active_at:type_name -> google.protobuf.Timestamp
+	7,  // 4: paw.compute.v1.Request.specs:type_name -> paw.compute.v1.ComputeSpec
+	31, // 5: paw.compute.v1.Request.env_vars:type_name -> paw.compute.v1.Request.EnvVarsEntry
 	0,  // 6: paw.compute.v1.Request.status:type_name -> paw.compute.v1.RequestStatus
-	31, // 7: paw.compute.v1.Request.created_at:type_name -> google.protobuf.Timestamp
-	31, // 8: paw.compute.v1.Request.assigned_at:type_name -> google.protobuf.Timestamp
-	31, // 9: paw.compute.v1.Request.completed_at:type_name -> google.protobuf.Timestamp
-	31, // 10: paw.compute.v1.Result.submitted_at:type_name -> google.protobuf.Timestamp
+	33, // 7: paw.compute.v1.Request.created_at:type_name -> google.protobuf.Timestamp
+	33, // 8: paw.compute.v1.Request.assigned_at:type_name -> google.protobuf.Timestamp
+	33, // 9: paw.compute.v1.Request.completed_at:type_name -> google.protobuf.Timestamp
+	33, // 10: paw.compute.v1.Result.submitted_at:type_name -> google.protobuf.Timestamp
 	1,  // 11: paw.compute.v1.EscrowState.status:type_name -> paw.compute.v1.EscrowStatus
-	31, // 12: paw.compute.v1.EscrowState.locked_at:type_name -> google.protobuf.Timestamp
-	31, // 13: paw.compute.v1.EscrowState.expires_at:type_name -> google.protobuf.Timestamp
-	31, // 14: paw.compute.v1.EscrowState.released_at:type_name -> google.protobuf.Timestamp
-	31, // 15: paw.compute.v1.EscrowState.refunded_at:type_name -> google.protobuf.Timestamp
-	31, // 16: paw.compute.v1.EscrowState.challenge_ends_at:type_name -> google.protobuf.Timestamp
-	13, // 17: paw.compute.v1.Params.authorized_channels:type_name -> paw.compute.v1.AuthorizedChannel
-	30, // 18: paw.compute.v1.Params.circuit_param_hashes:type_name -> paw.compute.v1.Params.CircuitParamHashesEntry
+	33, // 12: paw.compute.v1.EscrowState.locked_at:type_name -> google.protobuf.Timestamp
+	33, // 13: paw.compute.v1.EscrowState.expires_at:type_name -> google.protobuf.Timestamp
+	33, // 14: paw.compute.v1.EscrowState.released_at:type_name -> google.protobuf.Timestamp
+	33, // 15: paw.compute.v1.EscrowState.refunded_at:type_name -> google.protobuf.Timestamp
+	33, // 16: paw.compute.v1.EscrowState.challenge_ends_at:type_name -> google.protobuf.Timestamp
+	14, // 17: paw.compute.v1.Params.authorized_channels:type_name -> paw.compute.v1.AuthorizedChannel
+	32, // 18: paw.compute.v1.Params.circuit_param_hashes:type_name -> paw.compute.v1.Params.CircuitParamHashesEntry
 	2,  // 19: paw.compute.v1.Dispute.status:type_name -> paw.compute.v1.DisputeStatus
-	31, // 20: paw.compute.v1.Dispute.created_at:type_name -> google.protobuf.Timestamp
-	31, // 21: paw.compute.v1.Dispute.evidence_ends_at:type_name -> google.protobuf.Timestamp
-	31, // 22: paw.compute.v1.Dispute.voting_ends_at:type_name -> google.protobuf.Timestamp
-	15, // 23: paw.compute.v1.Dispute.votes:type_name -> paw.compute.v1.DisputeVote
+	33, // 20: paw.compute.v1.Dispute.created_at:type_name -> google.protobuf.Timestamp
+	33, // 21: paw.compute.v1.Dispute.evidence_ends_at:type_name -> google.protobuf.Timestamp
+	33, // 22: paw.compute.v1.Dispute.voting_ends_at:type_name -> google.protobuf.Timestamp
+	16, // 23: paw.compute.v1.Dispute.votes:type_name -> paw.compute.v1.DisputeVote
 	4,  // 24: paw.compute.v1.Dispute.resolution:type_name -> paw.compute.v1.DisputeResolution
-	31, // 25: paw.compute.v1.Dispute.resolved_at:type_name -> google.protobuf.Timestamp
+	33, // 25: paw.compute.v1.Dispute.resolved_at:type_name -> google.protobuf.Timestamp
 	3,  // 26: paw.compute.v1.DisputeVote.option:type_name -> paw.compute.v1.DisputeVoteOption
-	31, // 27: paw.compute.v1.DisputeVote.voted_at:type_name -> google.protobuf.Timestamp
-	31, // 28: paw.compute.v1.Evidence.submitted_at:type_name -> google.protobuf.Timestamp
-	31, // 29: paw.compute.v1.SlashRecord.slashed_at:type_name -> google.protobuf.Timestamp
+	33, // 27: paw.compute.v1.DisputeVote.voted_at:type_name -> google.protobuf.Timestamp
+	33, // 28: paw.compute.v1.Evidence.submitted_at:type_name -> google.protobuf.Timestamp
+	33, // 29: paw.compute.v1.SlashRecord.slashed_at:type_name -> google.protobuf.Timestamp
 	5,  // 30: paw.compute.v1.Appeal.status:type_name -> paw.compute.v1.AppealStatus
-	31, // 31: paw.compute.v1.Appeal.created_at:type_name -> google.protobuf.Timestamp
-	31, // 32: paw.compute.v1.Appeal.voting_ends_at:type_name -> google.protobuf.Timestamp
-	19, // 33: paw.compute.v1.Appeal.votes:type_name -> paw.compute.v1.AppealVote
-	31, // 34: paw.compute.v1.Appeal.resolved_at:type_name -> google.protobuf.Timestamp
-	31, // 35: paw.compute.v1.AppealVote.voted_at:type_name -> google.protobuf.Timestamp
-	31, // 36: paw.compute.v1.PerformanceRecord.timestamp:type_name -> google.protobuf.Timestamp
-	31, // 37: paw.compute.v1.ProviderReputation.last_decay_timestamp:type_name -> google.protobuf.Timestamp
-	31, // 38: paw.compute.v1.ProviderReputation.last_update_timestamp:type_name -> google.protobuf.Timestamp
-	21, // 39: paw.compute.v1.ProviderReputation.performance_history:type_name -> paw.compute.v1.PerformanceRecord
-	31, // 40: paw.compute.v1.ProviderLoadTracker.last_updated:type_name -> google.protobuf.Timestamp
-	31, // 41: paw.compute.v1.RateLimitBucket.last_refill:type_name -> google.protobuf.Timestamp
-	31, // 42: paw.compute.v1.RateLimitBucket.hour_reset_at:type_name -> google.protobuf.Timestamp
-	31, // 43: paw.compute.v1.RateLimitBucket.day_reset_at:type_name -> google.protobuf.Timestamp
-	31, // 44: paw.compute.v1.ResourceQuota.last_updated:type_name -> google.protobuf.Timestamp
-	31, // 45: paw.compute.v1.CatastrophicFailure.occurred_at:type_name -> google.protobuf.Timestamp
-	31, // 46: paw.compute.v1.CatastrophicFailure.resolved_at:type_name -> google.protobuf.Timestamp
-	12, // 47: paw.compute.v1.GenesisState.params:type_name -> paw.compute.v1.Params
-	20, // 48: paw.compute.v1.GenesisState.governance_params:type_name -> paw.compute.v1.GovernanceParams
-	7,  // 49: paw.compute.v1.GenesisState.providers:type_name -> paw.compute.v1.Provider
-	9,  // 50: paw.compute.v1.GenesisState.requests:type_name -> paw.compute.v1.Request
-	10, // 51: paw.compute.v1.GenesisState.results:type_name -> paw.compute.v1.Result
-	14, // 52: paw.compute.v1.GenesisState.disputes:type_name -> paw.compute.v1.Dispute
-	17, // 53: paw.compute.v1.GenesisState.slash_records:type_name -> paw.compute.v1.SlashRecord
-	18, // 54: paw.compute.v1.GenesisState.appeals:type_name -> paw.compute.v1.Appeal
-	11, // 55: paw.compute.v1.GenesisState.escrow_states:type_name -> paw.compute.v1.EscrowState
-	27, // 56: paw.compute.v1.GenesisState.catastrophic_failures:type_name -> paw.compute.v1.CatastrophicFailure
-	57, // [57:57] is the sub-list for method output_type
-	57, // [57:57] is the sub-list for method input_type
-	57, // [57:57] is the sub-list for extension type_name
-	57, // [57:57] is the sub-list for extension extendee
-	0,  // [0:57] is the sub-list for field type_name
+	33, // 31: paw.compute.v1.Appeal.created_at:type_name -> google.protobuf.Timestamp
+	33, // 32: paw.compute.v1.Appeal.voting_ends_at:type_name -> google.protobuf.Timestamp
+	20, // 33: paw.compute.v1.Appeal.votes:type_name -> paw.compute.v1.AppealVote
+	33, // 34: paw.compute.v1.Appeal.resolved_at:type_name -> google.protobuf.Timestamp
+	33, // 35: paw.compute.v1.AppealVote.voted_at:type_name -> google.protobuf.Timestamp
+	33, // 36: paw.compute.v1.PerformanceRecord.timestamp:type_name -> google.protobuf.Timestamp
+	33, // 37: paw.compute.v1.ProviderReputation.last_decay_timestamp:type_name -> google.protobuf.Timestamp
+	33, // 38: paw.compute.v1.ProviderReputation.last_update_timestamp:type_name -> google.protobuf.Timestamp
+	22, // 39: paw.compute.v1.ProviderReputation.performance_history:type_name -> paw.compute.v1.PerformanceRecord
+	33, // 40: paw.compute.v1.ProviderLoadTracker.last_updated:type_name -> google.protobuf.Timestamp
+	33, // 41: paw.compute.v1.RateLimitBucket.last_refill:type_name -> google.protobuf.Timestamp
+	33, // 42: paw.compute.v1.RateLimitBucket.hour_reset_at:type_name -> google.protobuf.Timestamp
+	33, // 43: paw.compute.v1.RateLimitBucket.day_reset_at:type_name -> google.protobuf.Timestamp
+	33, // 44: paw.compute.v1.ResourceQuota.last_updated:type_name -> google.protobuf.Timestamp
+	33, // 45: paw.compute.v1.CatastrophicFailure.occurred_at:type_name -> google.protobuf.Timestamp
+	33, // 46: paw.compute.v1.CatastrophicFailure.resolved_at:type_name -> google.protobuf.Timestamp
+	13, // 47: paw.compute.v1.GenesisState.params:type_name -> paw.compute.v1.Params
+	21, // 48: paw.compute.v1.GenesisState.governance_params:type_name -> paw.compute.v1.GovernanceParams
+	8,  // 49: paw.compute.v1.GenesisState.providers:type_name -> paw.compute.v1.Provider
+	10, // 50: paw.compute.v1.GenesisState.requests:type_name -> paw.compute.v1.Request
+	11, // 51: paw.compute.v1.GenesisState.results:type_name -> paw.compute.v1.Result
+	15, // 52: paw.compute.v1.GenesisState.disputes:type_name -> paw.compute.v1.Dispute
+	18, // 53: paw.compute.v1.GenesisState.slash_records:type_name -> paw.compute.v1.SlashRecord
+	19, // 54: paw.compute.v1.GenesisState.appeals:type_name -> paw.compute.v1.Appeal
+	12, // 55: paw.compute.v1.GenesisState.escrow_states:type_name -> paw.compute.v1.EscrowState
+	28, // 56: paw.compute.v1.GenesisState.catastrophic_failures:type_name -> paw.compute.v1.CatastrophicFailure
+	30, // 57: paw.compute.v1.GenesisState.randomness_commitments:type_name -> paw.compute.v1.RandomnessCommitment
+	6,  // 58: paw.compute.v1.RandomnessCommitment.status:type_name -> paw.compute.v1.RandomnessCommitmentStatus
+	33, // 59: paw.compute.v1.RandomnessCommitment.committed_at:type_name -> google.protobuf.Timestamp
+	33, // 60: paw.compute.v1.RandomnessCommitment.revealed_at:type_name -> google.protobuf.Timestamp
+	61, // [61:61] is the sub-list for method output_type
+	61, // [61:61] is the sub-list for method input_type
+	61, // [61:61] is the sub-list for extension type_name
+	61, // [61:61] is the sub-list for extension extendee
+	0,  // [0:61] is the sub-list for field type_name
 }
 
 func init() { file_paw_compute_v1_state_proto_init() }
@@ -26495,14 +27729,26 @@ func file_paw_compute_v1_state_proto_init() {
 				return nil
 			}
 		}
+		file_paw_compute_v1_state_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RandomnessCommitment); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_paw_compute_v1_state_proto_rawDesc,
-			NumEnums:      6,
-			NumMessages:   25,
+			NumEnums:      7,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

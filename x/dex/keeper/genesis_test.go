@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -612,9 +613,9 @@ func TestCircuitBreakerRuntimeStateReset(t *testing.T) {
 	require.Equal(t, "pool_1_cb", cbState.PersistenceKey, "PersistenceKey should be preserved")
 
 	// Runtime state should be reset to zero values
-	require.True(t, cbState.PausedUntil.IsZero(), "PausedUntil should be reset to zero time")
-	require.Equal(t, 0, cbState.NotificationsSent, "NotificationsSent should be reset to 0")
-	require.True(t, cbState.LastNotification.IsZero(), "LastNotification should be reset to zero time")
+	require.Equal(t, int64(0), cbState.PausedUntil, "PausedUntil should be reset to zero")
+	require.Equal(t, int32(0), cbState.NotificationsSent, "NotificationsSent should be reset to 0")
+	require.Equal(t, int64(0), cbState.LastNotification, "LastNotification should be reset to zero")
 	require.Equal(t, "", cbState.TriggeredBy, "TriggeredBy should be reset to empty string")
 	require.Equal(t, "", cbState.TriggerReason, "TriggerReason should be reset to empty string")
 }
@@ -641,7 +642,7 @@ func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
 	require.True(t, cbState.Enabled)
 	require.Equal(t, "governance", cbState.TriggeredBy)
 	require.Equal(t, "security incident", cbState.TriggerReason)
-	require.False(t, cbState.PausedUntil.IsZero())
+	require.NotZero(t, cbState.PausedUntil)
 
 	// Export genesis with default params (preservation enabled)
 	exportedGenesis, err := k.ExportGenesis(ctx)
@@ -668,13 +669,13 @@ func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
 	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
 	require.NoError(t, err)
 	require.True(t, restoredState.Enabled, "Circuit breaker should remain enabled")
-	require.False(t, restoredState.PausedUntil.IsZero(), "PausedUntil should be restored")
+	require.NotZero(t, restoredState.PausedUntil, "PausedUntil should be restored")
 	require.Equal(t, "governance", restoredState.TriggeredBy)
 	require.Equal(t, "security incident", restoredState.TriggerReason)
 
 	// Verify pause time is approximately correct (within 1 second tolerance for rounding)
 	expectedPauseTime := pausedUntilTime.Unix()
-	actualPauseTime := restoredState.PausedUntil.Unix()
+	actualPauseTime := restoredState.PausedUntil
 	require.InDelta(t, expectedPauseTime, actualPauseTime, 1.0,
 		"Pause time should be preserved within 1 second tolerance")
 
@@ -704,7 +705,7 @@ func TestGenesisExportImport_CircuitBreakerPreservationDisabled(t *testing.T) {
 	cbState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.True(t, cbState.Enabled)
-	require.False(t, cbState.PausedUntil.IsZero())
+	require.NotZero(t, cbState.PausedUntil)
 
 	// Modify params to disable preservation
 	params, err := k.GetParams(ctx)
@@ -740,10 +741,10 @@ func TestGenesisExportImport_CircuitBreakerPreservationDisabled(t *testing.T) {
 	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
 	require.NoError(t, err)
 	require.True(t, restoredState.Enabled, "Enabled flag should be preserved")
-	require.True(t, restoredState.PausedUntil.IsZero(), "PausedUntil should be cleared")
+	require.Zero(t, restoredState.PausedUntil, "PausedUntil should be cleared")
 	require.Equal(t, "", restoredState.TriggeredBy)
 	require.Equal(t, "", restoredState.TriggerReason)
-	require.Equal(t, 0, restoredState.NotificationsSent)
+	require.Equal(t, int32(0), restoredState.NotificationsSent)
 
 	// Verify pool operations are allowed after import (pause cleared)
 	pool, err := k2.GetPool(ctx2, poolID)
@@ -763,9 +764,9 @@ func TestGenesisExportImport_ExpiredPause(t *testing.T) {
 
 	// Pause the pool with very short duration (already expired)
 	pastTime := sdkCtx.BlockTime().Add(-1 * 60 * 60 * 1_000_000_000) // 1 hour ago
-	cbState := keeper.CircuitBreakerState{
+	cbState := &types.CircuitBreakerState{
 		Enabled:       true,
-		PausedUntil:   pastTime,
+		PausedUntil:   pastTime.Unix(),
 		TriggeredBy:   "governance",
 		TriggerReason: "test expired pause",
 		LastPrice:     sdkmath.LegacyMustNewDecFromStr("1.0"),
@@ -799,10 +800,10 @@ func TestGenesisExportImport_ExpiredPause(t *testing.T) {
 	restoredState, err := k2.GetPoolCircuitBreakerState(ctx2, poolID)
 	require.NoError(t, err)
 	require.True(t, restoredState.Enabled)
-	require.False(t, restoredState.PausedUntil.IsZero())
+	require.NotZero(t, restoredState.PausedUntil)
 
 	// Verify that current time is after pause expiration
-	require.True(t, sdkCtx2.BlockTime().After(restoredState.PausedUntil),
+	require.True(t, sdkCtx2.BlockTime().After(time.Unix(restoredState.PausedUntil, 0)),
 		"Current time should be after pause expiration")
 
 	// Verify pool operations are allowed (pause expired)
@@ -834,14 +835,14 @@ func TestGenesisExportImport_MultiplePoolsPreservation(t *testing.T) {
 	// (default state - no action needed)
 
 	// Pool 3: Paused by automatic circuit breaker
-	cbState3 := keeper.CircuitBreakerState{
+	cbState3 := &types.CircuitBreakerState{
 		Enabled:           true,
-		PausedUntil:       sdkCtx.BlockTime().Add(6 * 60 * 60 * 1_000_000_000), // 6 hours
+		PausedUntil:       sdkCtx.BlockTime().Add(6 * 60 * 60 * 1_000_000_000).Unix(), // 6 hours
 		TriggeredBy:       "automatic",
 		TriggerReason:     "price deviation >20%",
 		LastPrice:         sdkmath.LegacyMustNewDecFromStr("1.5"),
 		NotificationsSent: 1,
-		LastNotification:  sdkCtx.BlockTime(),
+		LastNotification:  sdkCtx.BlockTime().Unix(),
 	}
 	err = k.SetCircuitBreakerState(ctx, poolID3, cbState3)
 	require.NoError(t, err)
@@ -895,21 +896,21 @@ func TestGenesisExportImport_MultiplePoolsPreservation(t *testing.T) {
 	restored1, err := k2.GetPoolCircuitBreakerState(ctx2, poolID1)
 	require.NoError(t, err)
 	require.True(t, restored1.Enabled)
-	require.False(t, restored1.PausedUntil.IsZero())
+	require.NotZero(t, restored1.PausedUntil)
 	require.Equal(t, "governance", restored1.TriggeredBy)
 
 	restored2, err := k2.GetPoolCircuitBreakerState(ctx2, poolID2)
 	require.NoError(t, err)
 	require.False(t, restored2.Enabled)
-	require.True(t, restored2.PausedUntil.IsZero())
+	require.Zero(t, restored2.PausedUntil)
 
 	restored3, err := k2.GetPoolCircuitBreakerState(ctx2, poolID3)
 	require.NoError(t, err)
 	require.True(t, restored3.Enabled)
-	require.False(t, restored3.PausedUntil.IsZero())
+	require.NotZero(t, restored3.PausedUntil)
 	require.Equal(t, "automatic", restored3.TriggeredBy)
 	require.Equal(t, "price deviation >20%", restored3.TriggerReason)
-	require.Equal(t, 1, restored3.NotificationsSent)
+	require.Equal(t, int32(1), restored3.NotificationsSent)
 }
 
 // TestGenesisExportImportWithRealSwapFeeAccumulation tests that pools with fees

@@ -359,9 +359,28 @@ func (k Keeper) ReleaseProviderResources(ctx context.Context, provider sdk.AccAd
 	return nil
 }
 
-// GenerateSecureRandomness generates cryptographically secure randomness for provider selection
-// Uses block hash, timestamp, and deterministic seed for reproducibility
+// GenerateSecureRandomness generates cryptographically secure randomness for provider selection.
+// Uses a commit-reveal scheme combined with block entropy for unpredictable randomness.
+//
+// Security improvements over pure on-chain randomness:
+// 1. Aggregated randomness from validator commit-reveal scheme prevents prediction
+// 2. Multiple entropy sources (block hash, height, time, validator reveals)
+// 3. SHA256 combination ensures uniform distribution
+//
+// The commit-reveal scheme works as follows:
+// - BeginBlocker: Block proposer auto-commits randomness
+// - Transaction processing: Additional validators can submit commits
+// - EndBlocker: All reveals are processed and aggregated for next block
 func (k Keeper) GenerateSecureRandomness(ctx context.Context, seed []byte) *big.Int {
+	// Use the aggregated randomness from the commit-reveal scheme
+	// This combines validator-contributed entropy with block entropy
+	return k.GetAggregatedRandomness(ctx, seed)
+}
+
+// GenerateSecureRandomnessLegacy generates randomness using only on-chain data.
+// DEPRECATED: Use GenerateSecureRandomness which uses the commit-reveal scheme.
+// This function is kept for backward compatibility and fallback scenarios.
+func (k Keeper) GenerateSecureRandomnessLegacy(ctx context.Context, seed []byte) *big.Int {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 	// Combine multiple entropy sources

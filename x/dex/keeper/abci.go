@@ -120,11 +120,12 @@ func (k Keeper) ProcessCircuitBreakerRecovery(ctx context.Context) error {
 		}
 
 		// Check if circuit breaker is enabled and pause period has expired
-		if cbState.Enabled && !cbState.PausedUntil.IsZero() && now.After(cbState.PausedUntil) {
+		pausedUntil := time.Unix(cbState.PausedUntil, 0)
+		if cbState.Enabled && cbState.PausedUntil > 0 && now.After(pausedUntil) {
 			// Auto-recover the pool
 			cbState.Enabled = false
 			oldPausedUntil := cbState.PausedUntil
-			cbState.PausedUntil = time.Time{}
+			cbState.PausedUntil = 0
 			oldReason := cbState.TriggerReason
 			cbState.TriggerReason = ""
 
@@ -141,7 +142,7 @@ func (k Keeper) ProcessCircuitBreakerRecovery(ctx context.Context) error {
 				sdk.NewEvent(
 					"circuit_breaker_recovered",
 					sdk.NewAttribute("pool_id", fmt.Sprintf("%d", pool.Id)),
-					sdk.NewAttribute("paused_until", oldPausedUntil.Format(time.RFC3339)),
+					sdk.NewAttribute("paused_until", time.Unix(oldPausedUntil, 0).Format(time.RFC3339)),
 					sdk.NewAttribute("trigger_reason", oldReason),
 					sdk.NewAttribute("recovered_at", now.Format(time.RFC3339)),
 				),
@@ -157,7 +158,7 @@ func (k Keeper) ProcessCircuitBreakerRecovery(ctx context.Context) error {
 
 			sdkCtx.Logger().Info("auto-recovered pool from circuit breaker",
 				"pool_id", pool.Id,
-				"was_paused_until", oldPausedUntil,
+				"was_paused_until", time.Unix(oldPausedUntil, 0),
 			)
 
 			recoveredCount++

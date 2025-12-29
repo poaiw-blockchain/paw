@@ -1,16 +1,50 @@
 package keeper
 
 import (
+	"container/heap"
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
 )
+
+// providerReputation holds provider info for caching
+type providerReputation struct {
+	address    sdk.AccAddress
+	reputation uint32
+}
+
+// providerMinHeap implements heap.Interface for a min-heap of providers by reputation.
+// A min-heap allows us to efficiently maintain the top N providers:
+// - When we see a new provider, if heap is full and new provider's reputation > min, pop min and push new
+// - This gives O(P log N) complexity where P is total providers and N is cache size
+// - Memory usage is O(N) instead of O(P)
+type providerMinHeap []providerReputation
+
+func (h providerMinHeap) Len() int           { return len(h) }
+func (h providerMinHeap) Less(i, j int) bool { return h[i].reputation < h[j].reputation } // Min-heap: smaller reputation at root
+func (h providerMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *providerMinHeap) Push(x interface{}) {
+	*h = append(*h, x.(providerReputation))
+}
+
+func (h *providerMinHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+// peek returns the minimum element without removing it
+func (h providerMinHeap) peek() providerReputation {
+	return h[0]
+}
 
 // ProviderCacheMetadata stores metadata about the provider cache
 type ProviderCacheMetadata struct {
@@ -109,7 +143,11 @@ func (k Keeper) ClearProviderCache(ctx context.Context) error {
 }
 
 // RefreshProviderCache refreshes the provider cache with top N providers by reputation
-// This is called periodically in BeginBlocker to maintain an up-to-date cache
+// This is called periodically in BeginBlocker to maintain an up-to-date cache.
+//
+// Uses a min-heap of size N to maintain only the top N providers during iteration.
+// This reduces memory usage from O(all providers) to O(cache size).
+// Time complexity: O(P log N) where P is total providers and N is cache size.
 func (k Keeper) RefreshProviderCache(ctx context.Context) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
@@ -129,27 +167,46 @@ func (k Keeper) RefreshProviderCache(ctx context.Context) error {
 		return nil
 	}
 
-	// Collect all active providers with their reputations
-	type providerReputation struct {
-		address    sdk.AccAddress
-		reputation uint32
+	// Determine target cache size
+	targetCacheSize := params.ProviderCacheSize
+	if targetCacheSize == 0 {
+		targetCacheSize = 10 // Default
 	}
 
-	providers := []providerReputation{}
+	// Use a min-heap to maintain top N providers by reputation.
+	// We use a min-heap so we can efficiently evict the lowest-reputation provider
+	// when we find a better one. Memory usage is O(N) instead of O(all providers).
+	topProviders := &providerMinHeap{}
+	heap.Init(topProviders)
+	totalEligible := 0
 
 	err = k.IterateActiveProviders(ctx, func(provider types.Provider) (bool, error) {
+		// Only include providers meeting minimum reputation
+		if provider.Reputation < params.MinReputationScore {
+			return false, nil // Continue iterating
+		}
+
 		addr, err := sdk.AccAddressFromBech32(provider.Address)
 		if err != nil {
 			return false, nil // Skip invalid address
 		}
 
-		// Only include providers meeting minimum reputation
-		if provider.Reputation >= params.MinReputationScore {
-			providers = append(providers, providerReputation{
-				address:    addr,
-				reputation: provider.Reputation,
-			})
+		totalEligible++
+		newProvider := providerReputation{
+			address:    addr,
+			reputation: provider.Reputation,
 		}
+
+		if topProviders.Len() < int(targetCacheSize) {
+			// Heap not full yet, just add the provider
+			heap.Push(topProviders, newProvider)
+		} else if newProvider.reputation > topProviders.peek().reputation {
+			// New provider has higher reputation than the minimum in our top N
+			// Pop the minimum and push the new one
+			heap.Pop(topProviders)
+			heap.Push(topProviders, newProvider)
+		}
+		// If new provider's reputation <= minimum, we ignore it
 
 		return false, nil // Continue iterating
 	})
@@ -158,21 +215,15 @@ func (k Keeper) RefreshProviderCache(ctx context.Context) error {
 		return fmt.Errorf("failed to iterate providers: %w", err)
 	}
 
-	// Sort providers by reputation (descending)
-	sort.Slice(providers, func(i, j int) bool {
-		return providers[i].reputation > providers[j].reputation
-	})
-
-	// Determine cache size
-	cacheSize := params.ProviderCacheSize
-	if cacheSize == 0 {
-		cacheSize = 10 // Default
+	// Extract providers from heap (they'll come out in ascending order)
+	// We need to reverse to get descending order (highest reputation first)
+	heapSize := topProviders.Len()
+	providers := make([]providerReputation, heapSize)
+	for i := heapSize - 1; i >= 0; i-- {
+		providers[i] = heap.Pop(topProviders).(providerReputation)
 	}
 
-	// Limit cache to actual number of providers
-	if uint32(len(providers)) < cacheSize {
-		cacheSize = uint32(len(providers))
-	}
+	cacheSize := uint32(len(providers))
 
 	// Clear old cache entries
 	if err := k.ClearProviderCache(ctx); err != nil {
@@ -180,11 +231,11 @@ func (k Keeper) RefreshProviderCache(ctx context.Context) error {
 	}
 
 	// Store top N providers in cache
-	for i := uint32(0); i < cacheSize && i < uint32(len(providers)); i++ {
+	for i := uint32(0); i < cacheSize; i++ {
 		cached := types.CachedProvider{
-			Provider:       providers[i].address.String(),
-			Reputation:     providers[i].reputation,
-			CachedAtBlock:  currentHeight,
+			Provider:      providers[i].address.String(),
+			Reputation:    providers[i].reputation,
+			CachedAtBlock: currentHeight,
 		}
 
 		if err := k.SetCachedProvider(ctx, i, cached); err != nil {
@@ -209,7 +260,7 @@ func (k Keeper) RefreshProviderCache(ctx context.Context) error {
 			"provider_cache_refreshed",
 			sdk.NewAttribute("height", fmt.Sprintf("%d", currentHeight)),
 			sdk.NewAttribute("cache_size", fmt.Sprintf("%d", cacheSize)),
-			sdk.NewAttribute("total_eligible_providers", fmt.Sprintf("%d", len(providers))),
+			sdk.NewAttribute("total_eligible_providers", fmt.Sprintf("%d", totalEligible)),
 		),
 	)
 

@@ -1347,7 +1347,8 @@ func TestEmergencyPausePool(t *testing.T) {
 	require.Equal(t, "security incident", state.TriggerReason)
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	require.True(t, state.PausedUntil.After(sdkCtx.BlockTime()))
+	pausedUntil := time.Unix(state.PausedUntil, 0)
+	require.True(t, pausedUntil.After(sdkCtx.BlockTime()))
 
 	// Test 3: Verify pool operations are blocked
 	pool, err := k.GetPool(ctx, poolID)
@@ -1501,9 +1502,9 @@ func TestCircuitBreakerPersistence(t *testing.T) {
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
 	// Set circuit breaker state
-	originalState := keeper.CircuitBreakerState{
+	originalState := &types.CircuitBreakerState{
 		Enabled:       true,
-		PausedUntil:   time.Now().Add(1 * time.Hour),
+		PausedUntil:   time.Now().Add(1 * time.Hour).Unix(),
 		LastPrice:     math.LegacyNewDec(100),
 		TriggeredBy:   "test",
 		TriggerReason: "testing persistence",

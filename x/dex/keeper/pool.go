@@ -201,7 +201,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	}
 
 	// 17. Initialize circuit breaker state
-	cbState := CircuitBreakerState{
+	cbState := &types.CircuitBreakerState{
 		Enabled:       false,
 		LastPrice:     math.LegacyNewDecFromInt(amountB).Quo(math.LegacyNewDecFromInt(amountA)),
 		TriggerReason: "",

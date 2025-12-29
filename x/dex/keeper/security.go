@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -76,17 +75,8 @@ const (
 	PriceUpdateTolerance = "0.001"
 )
 
-// CircuitBreakerState represents the circuit breaker status for a pool
-type CircuitBreakerState struct {
-	Enabled           bool
-	PausedUntil       time.Time
-	LastPrice         math.LegacyDec
-	TriggeredBy       string
-	TriggerReason     string
-	NotificationsSent int
-	LastNotification  time.Time
-	PersistenceKey    string
-}
+// CircuitBreakerState is now defined in types/dex.pb.go (generated from proto)
+// Helper functions to convert between time.Time and Unix timestamps for the proto type
 
 // ReentrancyGuard provides lightweight in-memory locks for tests and auxiliary flows.
 type ReentrancyGuard struct {
@@ -327,12 +317,13 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	pausedUntil := time.Unix(state.PausedUntil, 0)
 
 	// Check if pool is currently paused
-	if state.Enabled && sdkCtx.BlockTime().Before(state.PausedUntil) {
+	if state.Enabled && sdkCtx.BlockTime().Before(pausedUntil) {
 		return types.ErrCircuitBreakerTriggered.Wrapf(
 			"pool %d paused until %s, reason: %s",
-			pool.Id, state.PausedUntil, state.TriggerReason,
+			pool.Id, pausedUntil, state.TriggerReason,
 		)
 	}
 
@@ -366,8 +357,9 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 				circuitBreakerDuration = time.Duration(params.CircuitBreakerDurationSeconds) * time.Second
 			}
 
+			newPausedUntil := sdkCtx.BlockTime().Add(circuitBreakerDuration)
 			state.Enabled = true
-			state.PausedUntil = sdkCtx.BlockTime().Add(circuitBreakerDuration)
+			state.PausedUntil = newPausedUntil.Unix()
 			state.TriggerReason = fmt.Sprintf("price deviation of %s%% during %s", deviation.Mul(math.LegacyNewDec(100)), operation)
 
 			if err := k.SetCircuitBreakerState(ctx, pool.Id, state); err != nil {
@@ -380,7 +372,7 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 					"circuit_breaker_triggered",
 					sdk.NewAttribute("pool_id", fmt.Sprintf("%d", pool.Id)),
 					sdk.NewAttribute("reason", state.TriggerReason),
-					sdk.NewAttribute("paused_until", state.PausedUntil.String()),
+					sdk.NewAttribute("paused_until", newPausedUntil.String()),
 				),
 			)
 
@@ -403,30 +395,28 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 }
 
 // GetPoolCircuitBreakerState retrieves circuit breaker state for a pool
-func (k Keeper) GetPoolCircuitBreakerState(ctx context.Context, poolID uint64) (CircuitBreakerState, error) {
+func (k Keeper) GetPoolCircuitBreakerState(ctx context.Context, poolID uint64) (*types.CircuitBreakerState, error) {
 	store := k.getStore(ctx)
 	bz := store.Get(CircuitBreakerKey(poolID))
 	if bz == nil {
-		return CircuitBreakerState{
+		return &types.CircuitBreakerState{
 			Enabled:       false,
 			LastPrice:     math.LegacyZeroDec(),
 			TriggerReason: "",
 		}, nil
 	}
 
-	var state CircuitBreakerState
-	// Use encoding/json for non-protobuf types
-	if err := json.Unmarshal(bz, &state); err != nil {
-		return CircuitBreakerState{}, err
+	var state types.CircuitBreakerState
+	if err := k.cdc.Unmarshal(bz, &state); err != nil {
+		return nil, err
 	}
-	return state, nil
+	return &state, nil
 }
 
 // SetCircuitBreakerState saves circuit breaker state for a pool
-func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state CircuitBreakerState) error {
+func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state *types.CircuitBreakerState) error {
 	store := k.getStore(ctx)
-	// Use encoding/json for non-protobuf types
-	bz, err := json.Marshal(&state)
+	bz, err := k.cdc.Marshal(state)
 	if err != nil {
 		return err
 	}
@@ -441,12 +431,14 @@ func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state
 // EmergencyPausePool pauses all operations on a pool (governance only)
 func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason string, duration time.Duration) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	pausedUntil := sdkCtx.BlockTime().Add(duration)
 
-	state := CircuitBreakerState{
+	state := &types.CircuitBreakerState{
 		Enabled:       true,
-		PausedUntil:   sdkCtx.BlockTime().Add(duration),
+		PausedUntil:   pausedUntil.Unix(),
 		TriggeredBy:   "governance",
 		TriggerReason: reason,
+		LastPrice:     math.LegacyZeroDec(),
 	}
 
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {
@@ -459,7 +451,7 @@ func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason st
 			"pool_emergency_paused",
 			sdk.NewAttribute("pool_id", fmt.Sprintf("%d", poolID)),
 			sdk.NewAttribute("reason", reason),
-			sdk.NewAttribute("paused_until", state.PausedUntil.String()),
+			sdk.NewAttribute("paused_until", pausedUntil.String()),
 		),
 	)
 
@@ -474,7 +466,7 @@ func (k Keeper) UnpausePool(ctx context.Context, poolID uint64) error {
 	}
 
 	state.Enabled = false
-	state.PausedUntil = time.Time{}
+	state.PausedUntil = 0
 	state.TriggerReason = ""
 
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {
@@ -504,7 +496,7 @@ func (k Keeper) SendCircuitBreakerNotification(ctx context.Context, poolID uint6
 
 	// Increment notification counter
 	state.NotificationsSent++
-	state.LastNotification = timestamp
+	state.LastNotification = timestamp.Unix()
 
 	// Persist updated state
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {

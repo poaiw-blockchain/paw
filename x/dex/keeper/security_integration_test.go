@@ -477,7 +477,7 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_ExtremePriceDeviation(
 	cbState, err := suite.keeper.GetPoolCircuitBreakerState(suite.ctx, poolID)
 	suite.Require().NoError(err)
 	suite.Require().True(cbState.Enabled, "Circuit breaker should be enabled")
-	suite.Require().False(cbState.PausedUntil.IsZero(), "Pause time should be set")
+	suite.Require().NotZero(cbState.PausedUntil, "Pause time should be set")
 
 	// Verify all operations are blocked
 	_, err = suite.keeper.ExecuteSwap(suite.ctx, suite.normalUser, poolID, "atom", "usdc", math.NewInt(100), math.NewInt(1))
@@ -512,7 +512,8 @@ func (suite *SecurityIntegrationSuite) TestCircuitBreaker_AutoRecovery() {
 	suite.Require().NoError(err)
 	// State might still exist but should not be blocking
 	currentTime := suite.ctx.BlockTime()
-	suite.Require().True(currentTime.After(cbState.PausedUntil), "Current time should be past pause deadline")
+	pausedUntil := time.Unix(cbState.PausedUntil, 0)
+	suite.Require().True(currentTime.After(pausedUntil), "Current time should be past pause deadline")
 }
 
 // ========== INVARIANT VIOLATION TESTS ==========

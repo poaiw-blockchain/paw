@@ -612,6 +612,72 @@ func BenchmarkProviderSelectionCache(b *testing.B) {
 	}
 }
 
+// TestMinHeapProviderSelection tests the min-heap optimization correctly selects top N providers
+// even when providers are encountered in non-sorted order during iteration
+func TestMinHeapProviderSelection(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Create 20 providers with scrambled reputations to test heap behavior
+	// The providers are registered in a non-sorted order to ensure the heap
+	// correctly identifies the top N regardless of insertion order.
+	reputations := []uint32{30, 95, 50, 70, 85, 20, 100, 40, 60, 80, 15, 90, 45, 75, 55, 25, 65, 35, 99, 10}
+	expectedTop5 := []uint32{100, 99, 95, 90, 85} // Top 5 in descending order
+
+	for i, rep := range reputations {
+		addr := sdk.AccAddress([]byte{byte(i + 1)}) // Start from 1 to avoid zero-value address
+		fundTestAccount(t, k, sdkCtx, addr, "upaw", math.NewInt(2000000))
+
+		specs := types.ComputeSpec{
+			CpuCores:       4000,
+			MemoryMb:       8192,
+			StorageGb:      100,
+			TimeoutSeconds: 3600,
+		}
+		pricing := types.Pricing{
+			CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+			MemoryPricePerMbHour:  math.LegacyNewDec(10),
+			GpuPricePerHour:       math.LegacyNewDec(1000),
+			StoragePricePerGbHour: math.LegacyNewDec(5),
+		}
+
+		err := k.RegisterProvider(ctx, addr, "Provider", "http://localhost:8080", specs, pricing, math.NewInt(1000000))
+		require.NoError(t, err)
+
+		// Set reputation
+		provider, err := k.GetProvider(ctx, addr)
+		require.NoError(t, err)
+		provider.Reputation = rep
+		err = k.SetProvider(ctx, *provider)
+		require.NoError(t, err)
+	}
+
+	// Set params to cache top 5 providers
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	params.UseProviderCache = true
+	params.ProviderCacheSize = 5
+	params.MinReputationScore = 0 // Allow all reputations
+	err = k.SetParams(ctx, params)
+	require.NoError(t, err)
+
+	// Refresh cache using min-heap algorithm
+	err = k.RefreshProviderCache(ctx)
+	require.NoError(t, err)
+
+	// Verify cache size is correct
+	metadata, err := k.GetProviderCacheMetadata(ctx)
+	require.NoError(t, err)
+	require.Equal(t, uint32(5), metadata.CacheSize)
+
+	// Verify cached providers are the top 5 by reputation in descending order
+	for i := uint32(0); i < 5; i++ {
+		cached, err := k.GetCachedProvider(ctx, i)
+		require.NoError(t, err)
+		require.Equal(t, expectedTop5[i], cached.Reputation, "provider at index %d should have reputation %d", i, expectedTop5[i])
+	}
+}
+
 // BenchmarkProviderSelectionNoCache benchmarks provider selection without cache
 func BenchmarkProviderSelectionNoCache(b *testing.B) {
 	k, ctx := keepertest.ComputeKeeper(b)

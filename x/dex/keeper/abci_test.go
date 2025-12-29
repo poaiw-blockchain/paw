@@ -11,6 +11,7 @@ import (
 
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/keeper"
+	"github.com/paw-chain/paw/x/dex/types"
 )
 
 func TestBeginBlocker_UpdatePoolTWAPs(t *testing.T) {
@@ -144,9 +145,9 @@ func TestEndBlocker_CircuitBreakerRecovery(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uusdt", sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
 
-	state := keeper.CircuitBreakerState{
+	state := &types.CircuitBreakerState{
 		Enabled:       true,
-		PausedUntil:   ctx.BlockTime().Add(-1 * time.Minute),
+		PausedUntil:   ctx.BlockTime().Add(-1 * time.Minute).Unix(),
 		TriggerReason: "test-trigger",
 	}
 	require.NoError(t, k.SetCircuitBreakerState(ctx, poolID, state))
@@ -157,7 +158,7 @@ func TestEndBlocker_CircuitBreakerRecovery(t *testing.T) {
 	recoveredState, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	require.NoError(t, err)
 	require.False(t, recoveredState.Enabled)
-	require.True(t, recoveredState.PausedUntil.IsZero())
+	require.Equal(t, int64(0), recoveredState.PausedUntil)
 	require.Empty(t, recoveredState.TriggerReason)
 
 	hasRecoveryEvent := false
