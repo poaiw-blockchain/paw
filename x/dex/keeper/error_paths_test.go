@@ -63,7 +63,13 @@ func TestErrorPath_UnauthorizedOrderCancellation(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(500_000))
 
+	// Fund the owner before placing order
 	owner := types.TestAddrWithSeed(10)
+	keepertest.FundAccount(t, k, ctx, owner, sdk.NewCoins(
+		sdk.NewInt64Coin("upaw", 10_000_000),
+		sdk.NewInt64Coin("uatom", 10_000_000),
+	))
+
 	order, err := k.PlaceLimitOrder(ctx, owner, poolID, keeper.OrderTypeBuy, "upaw", "uatom",
 		math.NewInt(1000), math.LegacyNewDecWithPrec(50, 2), time.Hour)
 	require.NoError(t, err)
@@ -73,7 +79,7 @@ func TestErrorPath_UnauthorizedOrderCancellation(t *testing.T) {
 		attacker := types.TestAddrWithSeed(999)
 		err := k.CancelLimitOrder(ctx, attacker, order.ID)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "unauthorized")
+		require.Contains(t, err.Error(), "not authorized")
 	})
 }
 
@@ -267,22 +273,23 @@ func TestErrorPath_DuplicatePool(t *testing.T) {
 
 	creator := types.TestAddr()
 
-	// Create first pool
+	// Create first pool (amounts must meet minimum initial liquidity of 1000)
 	_, err := k.CreatePool(ctx, creator, "upaw", "uatom",
-		math.NewInt(1000), math.NewInt(500))
+		math.NewInt(10_000), math.NewInt(5_000))
 	require.NoError(t, err)
 
 	t.Run("rejects duplicate pool creation", func(t *testing.T) {
 		_, err := k.CreatePool(ctx, creator, "upaw", "uatom",
-			math.NewInt(2000), math.NewInt(1000))
+			math.NewInt(20_000), math.NewInt(10_000))
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "already exists")
 	})
 
 	t.Run("rejects duplicate pool with reversed tokens", func(t *testing.T) {
 		_, err := k.CreatePool(ctx, creator, "uatom", "upaw",
-			math.NewInt(500), math.NewInt(1000))
+			math.NewInt(5_000), math.NewInt(10_000))
 		require.Error(t, err)
+		require.Contains(t, err.Error(), "already exists")
 	})
 }
 

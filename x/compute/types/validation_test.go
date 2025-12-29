@@ -171,19 +171,19 @@ func TestValidateOutputURL(t *testing.T) {
 			name:    "https with private IP 10.x.x.x",
 			url:     "https://10.1.1.1/data",
 			wantErr: true,
-			errMsg:  "private IP addresses are not allowed",
+			errMsg:  "private or reserved IP addresses are not allowed",
 		},
 		{
 			name:    "https with private IP 192.168.x.x",
 			url:     "https://192.168.1.1/data",
 			wantErr: true,
-			errMsg:  "private IP addresses are not allowed",
+			errMsg:  "private or reserved IP addresses are not allowed",
 		},
 		{
 			name:    "https with private IP 172.16.x.x",
 			url:     "https://172.16.1.1/data",
 			wantErr: true,
-			errMsg:  "private IP addresses are not allowed",
+			errMsg:  "private or reserved IP addresses are not allowed",
 		},
 		{
 			name:    "https without host",
@@ -369,8 +369,8 @@ func TestValidateEndpoint(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "valid http endpoint",
-			endpoint: "http://provider.example.com:8080",
+			name:     "valid http localhost endpoint",
+			endpoint: "http://localhost:8080",
 			wantErr:  false,
 		},
 		{
@@ -389,13 +389,13 @@ func TestValidateEndpoint(t *testing.T) {
 			name:     "invalid URL format",
 			endpoint: "not a url",
 			wantErr:  true,
-			errMsg:   "endpoint must use HTTP or HTTPS scheme",
+			errMsg:   "endpoint must use HTTPS scheme",
 		},
 		{
 			name:     "endpoint with ftp scheme",
 			endpoint: "ftp://provider.example.com",
 			wantErr:  true,
-			errMsg:   "endpoint must use HTTP or HTTPS scheme",
+			errMsg:   "endpoint must use HTTPS scheme",
 		},
 		{
 			name:     "endpoint without host",

@@ -99,21 +99,23 @@ func TestCreatePool(t *testing.T) {
 		{
 			// SEC-6: Now catches minimum initial liquidity before extreme ratio check
 			// because both tokens need >= 1000 base units
+			// Ratio = 1000 / 10_000_000_000 = 0.0000001 < 0.000001 (minRatio)
 			name:       "extreme price ratio (too high)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(1000),           // Meet minimum for token A
-			amountB:    math.NewInt(1_000_000_000),  // Extreme ratio with token B
+			amountA:    math.NewInt(1000),             // Meet minimum for token A
+			amountB:    math.NewInt(10_000_000_000),   // Extreme ratio - exceeds 1:1000000 limit
 			expectErr:  true,
 			errContain: "extreme",
 		},
 		{
 			// SEC-6: Now catches minimum initial liquidity before extreme ratio check
+			// Ratio = 10_000_000_000 / 1000 = 10_000_000 > 1_000_000 (maxRatio)
 			name:       "extreme price ratio (too low)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(1_000_000_000),  // Extreme ratio with token A
-			amountB:    math.NewInt(1000),           // Meet minimum for token B
+			amountA:    math.NewInt(10_000_000_000),   // Extreme ratio - exceeds 1000000:1 limit
+			amountB:    math.NewInt(1000),             // Meet minimum for token B
 			expectErr:  true,
 			errContain: "extreme",
 		},
@@ -1389,29 +1391,24 @@ func TestUnpausePool(t *testing.T) {
 }
 
 // TestDeletePool tests secure pool deletion
+// Note: Due to SEC-6 minimum reserves requirement, pools cannot be fully drained
+// This test verifies that pool deletion requires empty pools, which can only happen
+// if the pool is force-cleared via governance or was never funded beyond minimums
 func TestDeletePool(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
-	provider := types.TestAddr()
 
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	pool, err := k.GetPool(ctx, poolID)
-	require.NoError(t, err)
-
 	// Test 1: Cannot delete pool with active liquidity
-	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
+	err := k.DeletePool(ctx, poolID, types.DefaultAuthority())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "active liquidity")
 
-	// Test 2: Remove all liquidity first
-	keepertest.FundAccount(t, k, ctx, provider,
-		sdk.NewCoins(
-			sdk.NewCoin(pool.TokenA, math.NewInt(10_000_000)),
-			sdk.NewCoin(pool.TokenB, math.NewInt(10_000_000)),
-		))
+	// Test 2: Get creator and attempt to drain pool
+	pool, err := k.GetPool(ctx, poolID)
+	require.NoError(t, err)
 
-	// Get creator shares
 	creator := sdk.MustAccAddressFromBech32(pool.Creator)
 	creatorShares, err := k.GetLiquidity(ctx, poolID, creator)
 	require.NoError(t, err)
@@ -1420,24 +1417,21 @@ func TestDeletePool(t *testing.T) {
 	// Advance blocks for flash loan protection
 	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
 
-	// Remove all liquidity
+	// Test 3: Verify minimum reserves check prevents full drain
 	_, _, err = k.RemoveLiquidity(ctx, creator, poolID, creatorShares)
-	require.NoError(t, err)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "minimum")
 
-	// Verify pool is now empty
+	// Test 4: Pool should still exist with reserves
 	pool, err = k.GetPool(ctx, poolID)
 	require.NoError(t, err)
-	require.True(t, pool.ReserveA.IsZero())
-	require.True(t, pool.ReserveB.IsZero())
-	require.True(t, pool.TotalShares.IsZero())
+	require.True(t, pool.ReserveA.GT(math.ZeroInt()))
+	require.True(t, pool.ReserveB.GT(math.ZeroInt()))
 
-	// Test 3: Now deletion should succeed
+	// Test 5: Deletion still fails because pool has liquidity
 	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
-	require.NoError(t, err)
-
-	// Test 4: Verify pool is deleted
-	_, err = k.GetPool(ctx, poolID)
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "active liquidity")
 }
 
 // TestDeletePool_NonExistent tests deleting non-existent pool
@@ -1449,49 +1443,28 @@ func TestDeletePool_NonExistent(t *testing.T) {
 	require.Contains(t, err.Error(), "not found")
 }
 
-// TestDeletePool_Unauthorized tests that only governance can delete pools
+// TestDeletePool_Unauthorized tests that only governance can attempt to delete pools
 func TestDeletePool_Unauthorized(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 
-	// Create a pool and empty it
+	// Create a pool
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	pool, err := k.GetPool(ctx, poolID)
-	require.NoError(t, err)
-
-	// Get creator and remove all liquidity
-	creator := sdk.MustAccAddressFromBech32(pool.Creator)
-	creatorShares, err := k.GetLiquidity(ctx, poolID, creator)
-	require.NoError(t, err)
-
-	// Advance blocks for flash loan protection
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
-
-	// Remove all liquidity to make pool empty
-	_, _, err = k.RemoveLiquidity(ctx, creator, poolID, creatorShares)
-	require.NoError(t, err)
-
-	// Verify pool is empty
-	pool, err = k.GetPool(ctx, poolID)
-	require.NoError(t, err)
-	require.True(t, pool.ReserveA.IsZero())
-	require.True(t, pool.ReserveB.IsZero())
-	require.True(t, pool.TotalShares.IsZero())
-
-	// Test: Attempt to delete with wrong authority should fail
+	// Test 1: Attempt to delete with wrong authority should fail with unauthorized error
 	unauthorizedAddr := "cosmos1unauthorized000000000000000000000000000"
-	err = k.DeletePool(ctx, poolID, unauthorizedAddr)
+	err := k.DeletePool(ctx, poolID, unauthorizedAddr)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid authority")
 
-	// Test: Deletion with correct authority should succeed
+	// Test 2: Even with correct authority, deletion fails because pool has liquidity
 	err = k.DeletePool(ctx, poolID, types.DefaultAuthority())
-	require.NoError(t, err)
-
-	// Verify pool is deleted
-	_, err = k.GetPool(ctx, poolID)
 	require.Error(t, err)
+	require.Contains(t, err.Error(), "active liquidity")
+
+	// Verify pool still exists
+	_, err = k.GetPool(ctx, poolID)
+	require.NoError(t, err)
 }
 
 // TestCircuitBreakerPersistence tests circuit breaker state persistence

@@ -126,6 +126,7 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 		sdk.NewInt64Coin("tokenC", 5_000_000_000),
 		sdk.NewInt64Coin("tokenD", 5_000_000_000),
 		sdk.NewInt64Coin("tokenE", 5_000_000_000),
+		sdk.NewInt64Coin("tokenF", 5_000_000_000),
 	)
 
 	fundAddrs := []sdk.AccAddress{

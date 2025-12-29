@@ -38,11 +38,18 @@ func setupProviderForRequests(t *testing.T, k *keeper.Keeper, ctx sdk.Context) s
 	return provider
 }
 
-func buildVerificationProof(t *testing.T, requestID uint64, outputHash, containerImage string, command []string) []byte {
+func buildVerificationProof(t *testing.T, requestID uint64, outputHash, containerImage string, command []string) ([]byte, []byte) {
 	t.Helper()
 
 	pubKey, privKey, err := ed25519.GenerateKey(nil)
 	require.NoError(t, err)
+
+	proofBytes := buildVerificationProofWithKey(t, requestID, outputHash, containerImage, command, pubKey, privKey)
+	return proofBytes, pubKey
+}
+
+func buildVerificationProofWithKey(t *testing.T, requestID uint64, outputHash, containerImage string, command []string, pubKey ed25519.PublicKey, privKey ed25519.PrivateKey) []byte {
+	t.Helper()
 
 	execTrace := bytes.Repeat([]byte{0xAB}, 32)
 	merkleSibling := bytes.Repeat([]byte{0xCD}, 32)
@@ -415,7 +422,11 @@ func TestSubmitResult_Valid(t *testing.T) {
 	outputHash := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	outputURL := "https://storage.paw/results/1"
 	logsURL := "https://storage.paw/logs/1"
-	proofBytes := buildVerificationProof(t, requestID, outputHash, containerImage, command)
+	proofBytes, pubKey := buildVerificationProof(t, requestID, outputHash, containerImage, command)
+
+	// Register signing key before submitting result
+	err = k.RegisterSigningKey(sdkCtx, provider, pubKey, nil)
+	require.NoError(t, err)
 
 	err = k.SubmitResult(sdkCtx, provider, requestID, outputHash, outputURL, 0, logsURL, proofBytes)
 	require.NoError(t, err)
@@ -440,7 +451,7 @@ func TestSubmitResult_NotFound(t *testing.T) {
 
 	outputHash := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 	outputURL := "https://storage.paw/results/missing"
-	proofBytes := buildVerificationProof(t, 99999, outputHash, "ubuntu:22.04", []string{"/bin/bash"})
+	proofBytes, _ := buildVerificationProof(t, 99999, outputHash, "ubuntu:22.04", []string{"/bin/bash"})
 
 	err := k.SubmitResult(ctx, provider, 99999, outputHash, outputURL, 0, "", proofBytes)
 	require.Error(t, err)
@@ -466,7 +477,7 @@ func TestSubmitResult_WrongProvider(t *testing.T) {
 	wrongProvider := sdk.AccAddress([]byte("wrong_provider_addr_"))
 	outputHash := "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
 	outputURL := "https://storage.paw/results/wrong-provider"
-	proofBytes := buildVerificationProof(t, requestID, outputHash, containerImage, command)
+	proofBytes, _ := buildVerificationProof(t, requestID, outputHash, containerImage, command)
 
 	err = k.SubmitResult(ctx, wrongProvider, requestID, outputHash, outputURL, 0, "", proofBytes)
 	require.Error(t, err)
@@ -614,7 +625,11 @@ func TestRequestStatusTransitions(t *testing.T) {
 	outputHash := "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
 	outputURL := "https://storage.paw/results/status"
 	logsURL := "https://storage.paw/logs/status"
-	proofBytes := buildVerificationProof(t, requestID, outputHash, containerImage, command)
+	proofBytes, pubKey := buildVerificationProof(t, requestID, outputHash, containerImage, command)
+
+	// Register signing key before submitting result
+	err = k.RegisterSigningKey(ctx, provider, pubKey, nil)
+	require.NoError(t, err)
 
 	err = k.SubmitResult(ctx, provider, requestID, outputHash, outputURL, 0, logsURL, proofBytes)
 	require.NoError(t, err)
