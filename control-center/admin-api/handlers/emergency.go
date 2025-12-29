@@ -190,13 +190,46 @@ func (h *EmergencyHandler) pauseModule(c *gin.Context, module string) {
 // Helper methods
 
 func (h *EmergencyHandler) pauseModuleOnChain(ctx context.Context, module, signer string) (string, error) {
-	// Placeholder - would interact with actual blockchain
-	return fmt.Sprintf("0x%s-emergency-pause-%d", module, time.Now().Unix()), nil
+	// Get current module params
+	params, err := h.rpcClient.GetModuleParams(ctx, module)
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s params: %w", module, err)
+	}
+
+	// Set paused flag to true
+	params["paused"] = true
+	params["paused_at"] = time.Now().Unix()
+	params["paused_by"] = signer
+	params["pause_reason"] = "emergency"
+
+	// Update params on chain
+	txHash, err := h.rpcClient.UpdateModuleParams(ctx, module, params, signer)
+	if err != nil {
+		return "", fmt.Errorf("failed to pause %s: %w", module, err)
+	}
+
+	return txHash, nil
 }
 
 func (h *EmergencyHandler) resumeModuleOnChain(ctx context.Context, module, signer string) (string, error) {
-	// Placeholder - would interact with actual blockchain
-	return fmt.Sprintf("0x%s-emergency-resume-%d", module, time.Now().Unix()), nil
+	// Get current module params
+	params, err := h.rpcClient.GetModuleParams(ctx, module)
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s params: %w", module, err)
+	}
+
+	// Set paused flag to false
+	params["paused"] = false
+	params["resumed_at"] = time.Now().Unix()
+	params["resumed_by"] = signer
+
+	// Update params on chain
+	txHash, err := h.rpcClient.UpdateModuleParams(ctx, module, params, signer)
+	if err != nil {
+		return "", fmt.Errorf("failed to resume %s: %w", module, err)
+	}
+
+	return txHash, nil
 }
 
 // UpgradeHandler handles network upgrade operations

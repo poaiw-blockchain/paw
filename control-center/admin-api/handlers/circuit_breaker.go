@@ -304,14 +304,43 @@ func (h *CircuitBreakerHandler) GetStatus(c *gin.Context) {
 // Helper methods to interact with blockchain
 
 func (h *CircuitBreakerHandler) pauseModuleOnChain(ctx context.Context, module, signer string) (string, error) {
-	// This would call the appropriate RPC method to pause the module
-	// For example, using a governance proposal or circuit breaker transaction
-	// Placeholder implementation
-	return fmt.Sprintf("0x%s-pause-%d", module, time.Now().Unix()), nil
+	// Get current module params
+	params, err := h.rpcClient.GetModuleParams(ctx, module)
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s params: %w", module, err)
+	}
+
+	// Set circuit breaker state
+	params["circuit_breaker_enabled"] = true
+	params["circuit_breaker_triggered_at"] = time.Now().Unix()
+	params["circuit_breaker_triggered_by"] = signer
+
+	// Update params on chain
+	txHash, err := h.rpcClient.UpdateModuleParams(ctx, module, params, signer)
+	if err != nil {
+		return "", fmt.Errorf("failed to enable circuit breaker for %s: %w", module, err)
+	}
+
+	return txHash, nil
 }
 
 func (h *CircuitBreakerHandler) resumeModuleOnChain(ctx context.Context, module, signer string) (string, error) {
-	// This would call the appropriate RPC method to resume the module
-	// Placeholder implementation
-	return fmt.Sprintf("0x%s-resume-%d", module, time.Now().Unix()), nil
+	// Get current module params
+	params, err := h.rpcClient.GetModuleParams(ctx, module)
+	if err != nil {
+		return "", fmt.Errorf("failed to get %s params: %w", module, err)
+	}
+
+	// Disable circuit breaker
+	params["circuit_breaker_enabled"] = false
+	params["circuit_breaker_reset_at"] = time.Now().Unix()
+	params["circuit_breaker_reset_by"] = signer
+
+	// Update params on chain
+	txHash, err := h.rpcClient.UpdateModuleParams(ctx, module, params, signer)
+	if err != nil {
+		return "", fmt.Errorf("failed to disable circuit breaker for %s: %w", module, err)
+	}
+
+	return txHash, nil
 }

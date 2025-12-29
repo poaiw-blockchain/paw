@@ -245,20 +245,89 @@ func (m *Manager) BatchSend(alerts []*alerting.Alert) error {
 
 	// Send batches
 	for _, ca := range channelMap {
-		// For now, send individually
-		// TODO: Implement actual batch sending for channels that support it
-		for _, alert := range ca.alerts {
-			m.mu.RLock()
-			notifier := m.channels[ca.channel.Type]
-			m.mu.RUnlock()
+		if !ca.channel.Enabled {
+			continue
+		}
 
-			if notifier != nil {
+		m.mu.RLock()
+		notifier := m.channels[ca.channel.Type]
+		m.mu.RUnlock()
+
+		if notifier == nil {
+			continue
+		}
+
+		// Check if channel supports batch sending
+		if batchNotifier, ok := notifier.(BatchNotificationChannel); ok {
+			// Use batch send for channels that support it
+			if err := m.sendBatchWithRetry(ca.alerts, ca.channel, batchNotifier); err != nil {
+				log.Printf("Batch send failed for channel %s: %v, falling back to individual", ca.channel.Name, err)
+				// Fall back to individual sends
+				for _, alert := range ca.alerts {
+					m.sendWithRetry(alert, ca.channel, notifier)
+				}
+			}
+		} else {
+			// Send individually for channels that don't support batching
+			for _, alert := range ca.alerts {
 				m.sendWithRetry(alert, ca.channel, notifier)
 			}
 		}
 	}
 
 	return nil
+}
+
+// BatchNotificationChannel interface for channels that support batch sending
+type BatchNotificationChannel interface {
+	NotificationChannel
+	SendBatch(alerts []*alerting.Alert, channel *alerting.Channel) error
+}
+
+// sendBatchWithRetry sends a batch of notifications with retry logic
+func (m *Manager) sendBatchWithRetry(alerts []*alerting.Alert, channel *alerting.Channel, notifier BatchNotificationChannel) error {
+	if len(alerts) == 0 {
+		return nil
+	}
+
+	var lastErr error
+	batchNotification := &alerting.Notification{
+		ID:          uuid.New().String(),
+		AlertID:     fmt.Sprintf("batch-%d-alerts", len(alerts)),
+		ChannelID:   channel.ID,
+		ChannelType: channel.Type,
+		SentAt:      time.Now(),
+		RetryCount:  0,
+	}
+
+	for attempt := 0; attempt <= m.config.MaxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff
+			backoff := m.config.RetryBackoff * time.Duration(1<<uint(attempt-1))
+			log.Printf("Retrying batch notification after %s (attempt %d/%d)", backoff, attempt, m.config.MaxRetries)
+			time.Sleep(backoff)
+			batchNotification.RetryCount = attempt
+		}
+
+		err := notifier.SendBatch(alerts, channel)
+		if err == nil {
+			// Success
+			batchNotification.Success = true
+			m.storage.SaveNotification(batchNotification)
+			log.Printf("Successfully sent batch of %d alerts to channel %s (%s)", len(alerts), channel.Name, channel.Type)
+			return nil
+		}
+
+		lastErr = err
+		log.Printf("Failed to send batch notification (attempt %d/%d): %v", attempt+1, m.config.MaxRetries+1, err)
+	}
+
+	// All retries failed
+	batchNotification.Success = false
+	batchNotification.Error = lastErr.Error()
+	m.storage.SaveNotification(batchNotification)
+
+	return fmt.Errorf("batch send failed after %d retries: %w", m.config.MaxRetries, lastErr)
 }
 
 // TestChannel tests a notification channel

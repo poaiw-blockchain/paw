@@ -228,21 +228,20 @@
 
 ### Control Center (Admin UI - Non-Critical)
 
-- [ ] **CC-1: Implement chain interaction for emergency controls** `control-center/admin-api/handlers/emergency.go:193,198`
-  - pauseModuleOnChain() returns placeholder tx hash
-  - resumeModuleOnChain() returns placeholder tx hash
+- [x] **CC-1: Implement chain interaction for emergency controls** `control-center/admin-api/handlers/emergency.go:192-233`
+  - ✅ FIXED: Uses RPC client to get/update module params with paused flag
 
-- [ ] **CC-2: Implement circuit breaker chain interaction** `control-center/admin-api/handlers/circuit_breaker.go:309,315`
-  - Placeholder implementation for enabling/disabling circuit breakers
+- [x] **CC-2: Implement circuit breaker chain interaction** `control-center/admin-api/handlers/circuit_breaker.go:306-346`
+  - ✅ FIXED: Uses RPC client to get/update module params with circuit_breaker_enabled flag
 
-- [ ] **CC-3: Implement alert batch sending** `control-center/alerting/channels/manager.go:249`
-  - Currently sends alerts individually; optimize with batching
+- [x] **CC-3: Implement alert batch sending** `control-center/alerting/channels/manager.go:249`
+  - ✅ FIXED: BatchNotificationChannel interface, sendBatchWithRetry, webhook SendBatch with Slack/Discord payloads
 
-- [ ] **CC-4: Implement alert grouping** `control-center/alerting/engine/rules.go:389`
-  - Merge related alerts before sending grouped notification
+- [x] **CC-4: Implement alert grouping** `control-center/alerting/engine/rules.go:389`
+  - ✅ FIXED: AlertGrouper.mergeAlerts() aggregates by severity, value stats, timestamps; SetHandler() wires to RulesEngine
 
-- [ ] **CC-5: Implement pattern matching** `control-center/alerting/engine/evaluator.go:191`
-  - Time-series analysis, anomaly detection logic
+- [x] **CC-5: Implement pattern matching** `control-center/alerting/engine/evaluator.go:181`
+  - ✅ FIXED: Z-score anomaly, IQR outliers, moving average trends, spike/drop/anomaly detection
 
 ### Chain Code (Documented Limitations - Acceptable)
 
@@ -291,21 +290,21 @@
 | Code Quality | 10/10 | All CODE-1-7 items resolved ✅ |
 | Repository | 10/10 | Archived, cleaned, organized ✅ |
 
-**Status:** All P0 complete (10/10). All P1 complete (18/18). All P2 complete (15/15). P3: 8/11 complete. P4: 4/9 complete. ✅
+**Status:** All P0 complete (10/10). All P1 complete (18/18). All P2 complete (15/15). P3: 8/11 complete. P4: 9/9 complete. ✅
 
-**Completed:** 56 items total
+**Completed:** 61 items total
 - P0: SEC-1-4, PERF-1, DATA-1-3, REPO-1-2
 - P1: SEC-5-6, PERF-2-3, DATA-4-5, CODE-1-2, DOC-1-3, TEST-1-8
 - P2: SEC-7-8, PERF-4-6, CODE-3-5, DOC-4-6, TEST-9-10, REPO-3
 - P3: SEC-9, CODE-6-7, DOC-7-9, PERF-7-8
-- P4: WALLET-1-2 (wallet crypto + signing), CHAIN-1-2 (documented limitations)
+- P4: WALLET-1-2 (wallet crypto + signing), CHAIN-1-2 (documented limitations), CC-1-5 (control center)
 
-**Remaining:** 10 items
+**Remaining:** 5 items
 - P3: TEST-11-13 (long-running tests)
-- P4: CC-1-5 (control center admin UI - non-critical)
 - Upgrade path test (v1.0 → v1.1)
 - External security audit
 
+*CC-1-5 completed 2025-12-29.*
 *WALLET-1-2 completed 2025-12-29.*
 
 *P0/P1 completed 2025-12-27.*

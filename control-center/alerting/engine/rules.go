@@ -52,6 +52,10 @@ func NewRulesEngine(storage *storage.PostgresStorage, evaluator *Evaluator, conf
 
 	if config.EnableGrouping {
 		engine.grouper = NewAlertGrouper(config.GroupingWindow)
+		// Wire up the grouper to use handleAlert for merged alerts
+		engine.grouper.SetHandler(func(mergedAlert *alerting.Alert, originalAlerts []*alerting.Alert) error {
+			return engine.handleAlert(mergedAlert)
+		})
 	}
 
 	return engine
@@ -329,11 +333,15 @@ func (d *Deduplicator) cleanup() {
 
 // AlertGrouper groups similar alerts together
 type AlertGrouper struct {
-	window  time.Duration
-	groups  map[string][]*alerting.Alert
-	mu      sync.RWMutex
-	flusher chan string
+	window       time.Duration
+	groups       map[string][]*alerting.Alert
+	mu           sync.RWMutex
+	flusher      chan string
+	flushHandler GroupedAlertHandler
 }
+
+// GroupedAlertHandler handles a group of merged alerts
+type GroupedAlertHandler func(mergedAlert *alerting.Alert, originalAlerts []*alerting.Alert) error
 
 // NewAlertGrouper creates a new alert grouper
 func NewAlertGrouper(window time.Duration) *AlertGrouper {
@@ -346,6 +354,13 @@ func NewAlertGrouper(window time.Duration) *AlertGrouper {
 	go g.flushLoop()
 
 	return g
+}
+
+// SetHandler sets the handler for grouped alerts
+func (g *AlertGrouper) SetHandler(handler GroupedAlertHandler) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.flushHandler = handler
 }
 
 // Add adds an alert to a group
@@ -380,14 +395,138 @@ func (g *AlertGrouper) flushLoop() {
 	for key := range g.flusher {
 		g.mu.Lock()
 		alerts, exists := g.groups[key]
+		handler := g.flushHandler
 		if exists {
 			delete(g.groups, key)
 		}
 		g.mu.Unlock()
 
 		if exists && len(alerts) > 0 {
-			// TODO: Merge alerts and send grouped notification
-			log.Printf("Grouped %d alerts for key %s", len(alerts), key)
+			mergedAlert := g.mergeAlerts(alerts)
+			log.Printf("Grouped %d alerts for key %s into merged alert %s", len(alerts), key, mergedAlert.ID)
+
+			if handler != nil {
+				if err := handler(mergedAlert, alerts); err != nil {
+					log.Printf("Error handling grouped alert: %v", err)
+				}
+			}
 		}
+	}
+}
+
+// mergeAlerts combines multiple alerts into a single summary alert
+func (g *AlertGrouper) mergeAlerts(alerts []*alerting.Alert) *alerting.Alert {
+	if len(alerts) == 0 {
+		return nil
+	}
+
+	if len(alerts) == 1 {
+		return alerts[0]
+	}
+
+	// Use the first alert as the base
+	first := alerts[0]
+
+	// Find highest severity among alerts
+	highestSeverity := first.Severity
+	for _, alert := range alerts[1:] {
+		if severityPriority(alert.Severity) > severityPriority(highestSeverity) {
+			highestSeverity = alert.Severity
+		}
+	}
+
+	// Aggregate values
+	var totalValue, maxValue, minValue float64
+	minValue = alerts[0].Value
+	maxValue = alerts[0].Value
+	for _, alert := range alerts {
+		totalValue += alert.Value
+		if alert.Value > maxValue {
+			maxValue = alert.Value
+		}
+		if alert.Value < minValue {
+			minValue = alert.Value
+		}
+	}
+	avgValue := totalValue / float64(len(alerts))
+
+	// Find earliest and latest timestamps
+	earliest := alerts[0].CreatedAt
+	latest := alerts[0].CreatedAt
+	for _, alert := range alerts[1:] {
+		if alert.CreatedAt.Before(earliest) {
+			earliest = alert.CreatedAt
+		}
+		if alert.CreatedAt.After(latest) {
+			latest = alert.CreatedAt
+		}
+	}
+
+	// Create merged alert ID
+	hash := sha256.New()
+	hash.Write([]byte(first.RuleID))
+	hash.Write([]byte(fmt.Sprintf("%d", len(alerts))))
+	hash.Write([]byte(earliest.Format(time.RFC3339)))
+	mergedID := "grp-" + hex.EncodeToString(hash.Sum(nil))[:12]
+
+	// Build summary message
+	summaryMessage := fmt.Sprintf("[GROUPED] %d alerts from rule '%s': avg=%.2f, min=%.2f, max=%.2f",
+		len(alerts), first.RuleName, avgValue, minValue, maxValue)
+
+	// Collect unique sources
+	sources := make(map[alerting.AlertSource]int)
+	for _, alert := range alerts {
+		sources[alert.Source]++
+	}
+
+	// Build metadata with aggregation info
+	metadata := map[string]interface{}{
+		"grouped":       true,
+		"alert_count":   len(alerts),
+		"avg_value":     avgValue,
+		"min_value":     minValue,
+		"max_value":     maxValue,
+		"first_alert":   earliest.Format(time.RFC3339),
+		"last_alert":    latest.Format(time.RFC3339),
+		"source_counts": sources,
+	}
+
+	// Include IDs of original alerts
+	alertIDs := make([]string, len(alerts))
+	for i, alert := range alerts {
+		alertIDs[i] = alert.ID
+	}
+	metadata["original_alert_ids"] = alertIDs
+
+	return &alerting.Alert{
+		ID:          mergedID,
+		RuleID:      first.RuleID,
+		RuleName:    first.RuleName,
+		Source:      first.Source,
+		Severity:    highestSeverity,
+		Status:      alerting.StatusActive,
+		Message:     summaryMessage,
+		Description: fmt.Sprintf("Grouped alert containing %d individual alerts", len(alerts)),
+		Labels:      first.Labels,
+		Annotations: first.Annotations,
+		Value:       avgValue,
+		Threshold:   first.Threshold,
+		CreatedAt:   earliest,
+		UpdatedAt:   time.Now(),
+		Metadata:    metadata,
+	}
+}
+
+// severityPriority returns a numeric priority for severity comparison
+func severityPriority(s alerting.Severity) int {
+	switch s {
+	case alerting.SeverityCritical:
+		return 4
+	case alerting.SeverityWarning:
+		return 3
+	case alerting.SeverityInfo:
+		return 2
+	default:
+		return 1
 	}
 }
