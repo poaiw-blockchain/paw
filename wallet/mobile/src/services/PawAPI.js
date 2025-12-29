@@ -106,6 +106,50 @@ class PawAPIService {
       `/cosmos/distribution/v1beta1/delegators/${address}/rewards`,
     );
   }
+
+  /**
+   * Broadcast a signed transaction to the chain
+   * @param {string} txBytes - Base64 encoded signed transaction bytes
+   * @param {string} mode - Broadcast mode: BROADCAST_MODE_SYNC, BROADCAST_MODE_ASYNC, BROADCAST_MODE_BLOCK
+   * @returns {Promise<Object>} Transaction response with hash
+   */
+  async broadcastTransaction(txBytes, mode = 'BROADCAST_MODE_SYNC') {
+    try {
+      const response = await this.client.post('/cosmos/tx/v1beta1/txs', {
+        tx_bytes: txBytes,
+        mode: mode,
+      });
+      const txResponse = response.data?.tx_response;
+      if (txResponse?.code !== 0 && txResponse?.code !== undefined) {
+        throw new Error(txResponse.raw_log || `Transaction failed with code ${txResponse.code}`);
+      }
+      return txResponse;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Simulate a transaction to estimate gas
+   * @param {string} txBytes - Base64 encoded transaction bytes
+   * @returns {Promise<Object>} Simulation result with gas estimate
+   */
+  async simulateTransaction(txBytes) {
+    try {
+      const response = await this.client.post('/cosmos/tx/v1beta1/simulate', {
+        tx_bytes: txBytes,
+      });
+      return response.data;
+    } catch (error) {
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
+    }
+  }
 }
 
 const PawAPI = new PawAPIService();

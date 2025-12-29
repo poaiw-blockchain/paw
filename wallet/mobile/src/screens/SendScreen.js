@@ -1,9 +1,11 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, TextInput, StyleSheet, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal} from 'react-native';
+import {Buffer} from 'buffer';
 import { signLedgerSend } from '../services/hardware/flows';
 import KeyStore from '../services/KeyStore';
 import PawAPI from '../services/PawAPI';
 import BiometricAuth from '../services/BiometricAuth';
+import {buildAndSignSendTx} from '../utils/transaction';
 
 const SendScreen = () => {
   const [address, setAddress] = useState('');
@@ -12,6 +14,9 @@ const SendScreen = () => {
   const [useHardware, setUseHardware] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [pendingSignDoc, setPendingSignDoc] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -89,14 +94,99 @@ const SendScreen = () => {
         });
         Alert.alert('Signed', `Transaction signed with Ledger (BLE) on ${signed.path}`);
       } else {
-        // Placeholder software signing; production would derive private key
-        Alert.alert('Signed', 'Software signing placeholder');
+        // Software signing - authenticate and sign with stored private key
+        const txParams = {
+          fromAddress,
+          toAddress: address,
+          amount: (Number(amount) * 1_000_000).toString(),
+          chainId,
+          accountNumber,
+          sequence,
+        };
+
+        if (biometricEnabled) {
+          // Use biometric authentication
+          try {
+            await BiometricAuth.authenticate('Authenticate to sign transaction');
+            // After biometric auth, we still need the password to decrypt the wallet
+            // Store params and show password modal
+            setPendingSignDoc(txParams);
+            setShowPasswordModal(true);
+            return; // handlePasswordSubmit will complete the transaction
+          } catch (bioError) {
+            // Fall back to password
+            setPendingSignDoc(txParams);
+            setShowPasswordModal(true);
+            return;
+          }
+        } else {
+          // Direct password entry
+          setPendingSignDoc(txParams);
+          setShowPasswordModal(true);
+          return; // handlePasswordSubmit will complete the transaction
+        }
       }
     } catch (err) {
       Alert.alert('Send failed', err.message || 'Unable to sign transaction');
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!password || !pendingSignDoc) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    setShowPasswordModal(false);
+    setIsSending(true);
+
+    try {
+      // Retrieve wallet using password
+      const wallet = await KeyStore.retrieveWallet(password);
+      if (!wallet || !wallet.privateKey) {
+        throw new Error('Unable to decrypt wallet. Check your password.');
+      }
+
+      // Build and sign the transaction
+      const signedTx = buildAndSignSendTx({
+        ...pendingSignDoc,
+        privateKey: wallet.privateKey,
+      });
+
+      // Broadcast the transaction
+      const result = await PawAPI.broadcastTransaction(
+        Buffer.from(JSON.stringify(signedTx.tx)).toString('base64'),
+        'BROADCAST_MODE_SYNC',
+      );
+
+      if (result && result.txhash) {
+        Alert.alert(
+          'Transaction Sent',
+          `Transaction hash:\n${result.txhash.substring(0, 20)}...`,
+          [{text: 'OK', onPress: () => {
+            setAddress('');
+            setAmount('');
+          }}],
+        );
+      } else {
+        Alert.alert('Transaction Submitted', 'Transaction was submitted to the network');
+      }
+    } catch (err) {
+      Alert.alert('Transaction Failed', err.message || 'Unable to sign or broadcast transaction');
+    } finally {
+      setIsSending(false);
+      setPassword('');
+      setPendingSignDoc(null);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPassword('');
+    setPendingSignDoc(null);
+    setIsSending(false);
   };
 
   return (
@@ -137,6 +227,43 @@ const SendScreen = () => {
           {useHardware ? 'Using Ledger (BLE)' : 'Use Ledger (BLE)'}
         </Text>
       </TouchableOpacity>
+
+      {/* Password Modal for Software Signing */}
+      <Modal
+        visible={showPasswordModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handlePasswordCancel}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter Password</Text>
+            <Text style={styles.modalSubtitle}>
+              Enter your wallet password to sign this transaction
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Password"
+              placeholderTextColor="#666"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={true}
+              autoFocus={true}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={handlePasswordCancel}>
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonConfirm}
+                onPress={handlePasswordSubmit}>
+                <Text style={styles.modalButtonConfirmText}>Sign</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -185,6 +312,70 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#4A90E2',
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1a1a24',
+    borderRadius: 12,
+    padding: 24,
+    width: '85%',
+    maxWidth: 320,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    backgroundColor: '#15151d',
+    borderRadius: 8,
+    padding: 12,
+    color: '#fff',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButtonCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#555',
+    alignItems: 'center',
+  },
+  modalButtonCancelText: {
+    color: '#888',
+    fontWeight: '600',
+  },
+  modalButtonConfirm: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: '#4A90E2',
+    alignItems: 'center',
+  },
+  modalButtonConfirmText: {
+    color: '#fff',
     fontWeight: '600',
   },
 });
