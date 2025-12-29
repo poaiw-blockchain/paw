@@ -373,19 +373,96 @@ func (k Keeper) SimulateMultiHopSwap(
 	}, nil
 }
 
-// FindBestRoute finds the best route between two tokens
-// Returns nil if no route exists
+// Route finding constants - bounded to prevent resource exhaustion
+const (
+	MaxRouteSearchPools  = 100 // Maximum pools to consider in route search
+	MaxRouteCandidates   = 10  // Maximum candidate routes to evaluate
+	DefaultMaxHops       = 3   // Default maximum hops if not specified
+)
+
+// tokenGraph represents the pool connectivity graph for route finding
+type tokenGraph struct {
+	// edges[tokenA] = []poolEdge where each edge leads to another token
+	edges map[string][]poolEdge
+}
+
+// poolEdge represents a connection between tokens via a pool
+type poolEdge struct {
+	poolID   uint64
+	tokenOut string
+}
+
+// routeNode represents a node in BFS traversal
+type routeNode struct {
+	token string
+	hops  []SwapHop
+}
+
+// buildTokenGraph builds an adjacency graph from pools for route finding.
+// Limits to MaxRouteSearchPools for bounded memory usage.
+func (k Keeper) buildTokenGraph(ctx context.Context) (*tokenGraph, error) {
+	graph := &tokenGraph{
+		edges: make(map[string][]poolEdge),
+	}
+
+	poolCount := 0
+	err := k.IteratePools(ctx, func(pool types.Pool) bool {
+		poolCount++
+		if poolCount > MaxRouteSearchPools {
+			return true // stop iteration
+		}
+
+		// Add bidirectional edges for this pool
+		graph.edges[pool.TokenA] = append(graph.edges[pool.TokenA], poolEdge{
+			poolID:   pool.Id,
+			tokenOut: pool.TokenB,
+		})
+		graph.edges[pool.TokenB] = append(graph.edges[pool.TokenB], poolEdge{
+			poolID:   pool.Id,
+			tokenOut: pool.TokenA,
+		})
+
+		return false
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return graph, nil
+}
+
+// FindBestRoute finds the best route between two tokens using BFS for path
+// discovery and simulation for output optimization.
+//
+// Algorithm:
+//  1. Build token connectivity graph from pools (bounded by MaxRouteSearchPools)
+//  2. BFS to find all routes up to maxHops (bounded by MaxRouteCandidates)
+//  3. Simulate each candidate route to find best output
+//
+// Returns ErrPoolNotFound if no route exists.
 func (k Keeper) FindBestRoute(
 	ctx context.Context,
 	tokenIn, tokenOut string,
 	amountIn math.Int,
 	maxHops int,
 ) ([]SwapHop, error) {
+	// Validate and bound maxHops
 	if maxHops <= 0 || maxHops > 5 {
-		maxHops = 3 // default to 3 hops max
+		maxHops = DefaultMaxHops
 	}
 
-	// Try direct route first
+	// Input validation
+	if tokenIn == "" || tokenOut == "" {
+		return nil, types.ErrInvalidInput.Wrap("token denoms cannot be empty")
+	}
+	if tokenIn == tokenOut {
+		return nil, types.ErrInvalidInput.Wrap("tokenIn and tokenOut must be different")
+	}
+	if amountIn.IsZero() || amountIn.IsNegative() {
+		return nil, types.ErrInvalidSwapAmount.Wrap("amountIn must be positive")
+	}
+
+	// Fast path: check for direct route first (no graph building needed)
 	directPool, err := k.GetPoolByTokens(ctx, tokenIn, tokenOut)
 	if err == nil {
 		return []SwapHop{{
@@ -395,7 +472,150 @@ func (k Keeper) FindBestRoute(
 		}}, nil
 	}
 
-	// TODO: Implement multi-hop route finding using BFS/Dijkstra
-	// For now, return nil if no direct route exists
-	return nil, types.ErrPoolNotFound.Wrapf("no route found from %s to %s", tokenIn, tokenOut)
+	// Build token graph for multi-hop search
+	graph, err := k.buildTokenGraph(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if tokens exist in the graph
+	if _, exists := graph.edges[tokenIn]; !exists {
+		return nil, types.ErrPoolNotFound.Wrapf("no pools contain token %s", tokenIn)
+	}
+	if _, exists := graph.edges[tokenOut]; !exists {
+		return nil, types.ErrPoolNotFound.Wrapf("no pools contain token %s", tokenOut)
+	}
+
+	// BFS to find candidate routes
+	candidateRoutes := k.findRoutesWithBFS(graph, tokenIn, tokenOut, maxHops)
+	if len(candidateRoutes) == 0 {
+		return nil, types.ErrPoolNotFound.Wrapf("no route found from %s to %s within %d hops", tokenIn, tokenOut, maxHops)
+	}
+
+	// Evaluate routes and find best output
+	var bestRoute []SwapHop
+	var bestOutput math.Int
+
+	for _, route := range candidateRoutes {
+		result, err := k.SimulateMultiHopSwap(ctx, route, amountIn)
+		if err != nil {
+			continue // Skip routes that fail simulation
+		}
+
+		if bestRoute == nil || result.AmountOut.GT(bestOutput) {
+			bestRoute = route
+			bestOutput = result.AmountOut
+		}
+	}
+
+	if bestRoute == nil {
+		return nil, types.ErrPoolNotFound.Wrapf("no viable route found from %s to %s", tokenIn, tokenOut)
+	}
+
+	return bestRoute, nil
+}
+
+// findRoutesWithBFS performs BFS to find all routes from tokenIn to tokenOut.
+// Returns up to MaxRouteCandidates routes, preferring shorter routes.
+func (k Keeper) findRoutesWithBFS(
+	graph *tokenGraph,
+	tokenIn, tokenOut string,
+	maxHops int,
+) [][]SwapHop {
+	var routes [][]SwapHop
+
+	// BFS queue with initial node
+	queue := []routeNode{{
+		token: tokenIn,
+		hops:  nil,
+	}}
+
+	// Track visited tokens per path to avoid cycles
+	// Note: we allow visiting the same token in different paths
+
+	for len(queue) > 0 && len(routes) < MaxRouteCandidates {
+		// Dequeue
+		current := queue[0]
+		queue = queue[1:]
+
+		// Skip if we've exceeded max hops
+		if len(current.hops) >= maxHops {
+			continue
+		}
+
+		// Build set of tokens already in this path to avoid cycles
+		visited := make(map[string]bool)
+		visited[tokenIn] = true
+		for _, hop := range current.hops {
+			visited[hop.TokenOut] = true
+		}
+
+		// Explore neighbors
+		for _, edge := range graph.edges[current.token] {
+			// Skip if this would create a cycle
+			if visited[edge.tokenOut] {
+				continue
+			}
+
+			// Build new hop
+			newHop := SwapHop{
+				PoolID:   edge.poolID,
+				TokenIn:  current.token,
+				TokenOut: edge.tokenOut,
+			}
+
+			// Check if we've reached the destination
+			if edge.tokenOut == tokenOut {
+				route := make([]SwapHop, len(current.hops)+1)
+				copy(route, current.hops)
+				route[len(current.hops)] = newHop
+				routes = append(routes, route)
+
+				if len(routes) >= MaxRouteCandidates {
+					break
+				}
+				continue
+			}
+
+			// Add to queue for further exploration
+			newHops := make([]SwapHop, len(current.hops)+1)
+			copy(newHops, current.hops)
+			newHops[len(current.hops)] = newHop
+
+			queue = append(queue, routeNode{
+				token: edge.tokenOut,
+				hops:  newHops,
+			})
+		}
+	}
+
+	return routes
+}
+
+// FindAllRoutes returns all valid routes between two tokens up to maxHops.
+// Useful for route analysis and UI display.
+func (k Keeper) FindAllRoutes(
+	ctx context.Context,
+	tokenIn, tokenOut string,
+	maxHops int,
+) ([][]SwapHop, error) {
+	if maxHops <= 0 || maxHops > 5 {
+		maxHops = DefaultMaxHops
+	}
+
+	if tokenIn == tokenOut {
+		return nil, types.ErrInvalidInput.Wrap("tokenIn and tokenOut must be different")
+	}
+
+	graph, err := k.buildTokenGraph(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	routes := k.findRoutesWithBFS(graph, tokenIn, tokenOut, maxHops)
+	if len(routes) == 0 {
+		return nil, types.ErrPoolNotFound.Wrapf("no routes found from %s to %s", tokenIn, tokenOut)
+	}
+
+	return routes, nil
 }
