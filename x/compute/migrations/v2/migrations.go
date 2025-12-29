@@ -23,6 +23,13 @@ var (
 	RequestByProviderPrefix = []byte{0x01, 0x12}
 )
 
+// Additional key prefixes for escrow migration (must match keeper keys)
+var (
+	EscrowStateKeyPrefix       = []byte{0x20}
+	EscrowTimeoutPrefix        = []byte{0x21}
+	EscrowTimeoutReversePrefix = []byte{0x01, 0x1D}
+)
+
 // Migrate implements store migrations from v1 to v2 for the compute module.
 // This migration performs the following operations:
 // 1. Validates existing state consistency
@@ -30,6 +37,7 @@ var (
 // 3. Migrates request status enum values (if changed)
 // 4. Updates params with new fields
 // 5. Validates and fixes provider reputation scores
+// 6. DATA-7: Rebuilds escrow timeout indexes
 func Migrate(ctx sdk.Context, storeKey storetypes.StoreKey, cdc codec.BinaryCodec) error {
 	ctx.Logger().Info("Starting compute module v1 to v2 migration")
 
@@ -58,6 +66,11 @@ func Migrate(ctx sdk.Context, storeKey storetypes.StoreKey, cdc codec.BinaryCode
 	// Step 5: Validate request counter consistency
 	if err := validateRequestCounter(ctx, store, cdc); err != nil {
 		return fmt.Errorf("failed to validate request counter: %w", err)
+	}
+
+	// Step 6: DATA-7: Rebuild escrow timeout indexes to ensure consistency
+	if err := rebuildEscrowTimeoutIndexes(ctx, store, cdc); err != nil {
+		return fmt.Errorf("failed to rebuild escrow timeout indexes: %w", err)
 	}
 
 	ctx.Logger().Info("Compute module v1 to v2 migration completed successfully")
@@ -307,4 +320,49 @@ func getRequestIDBytes(id uint64) []byte {
 	bz := make([]byte, 8)
 	binary.BigEndian.PutUint64(bz, id)
 	return bz
+}
+
+// rebuildEscrowTimeoutIndexes rebuilds escrow timeout indexes from escrow state.
+// DATA-7: This ensures timeout indexes are consistent after migrations that may have
+// created escrow states without corresponding timeout indexes.
+func rebuildEscrowTimeoutIndexes(ctx sdk.Context, store storetypes.KVStore, cdc codec.BinaryCodec) error {
+	ctx.Logger().Info("Rebuilding escrow timeout indexes")
+
+	// Clear existing timeout indexes and reverse indexes to rebuild from scratch
+	clearPrefix(store, EscrowTimeoutPrefix)
+	clearPrefix(store, EscrowTimeoutReversePrefix)
+
+	// Iterate through all escrow states and rebuild timeout indexes for LOCKED and CHALLENGED escrows
+	iterator := storetypes.KVStorePrefixIterator(store, EscrowStateKeyPrefix)
+	defer iterator.Close()
+
+	count := 0
+	for ; iterator.Valid(); iterator.Next() {
+		var escrow types.EscrowState
+		if err := cdc.Unmarshal(iterator.Value(), &escrow); err != nil {
+			return fmt.Errorf("failed to unmarshal escrow state: %w", err)
+		}
+
+		// Only LOCKED and CHALLENGED escrows need timeout indexes
+		// RELEASED and REFUNDED escrows should NOT have timeout indexes
+		if escrow.Status == types.ESCROW_STATUS_LOCKED || escrow.Status == types.ESCROW_STATUS_CHALLENGED {
+			// Create timeout index key: prefix + timestamp + requestID
+			timeBz := make([]byte, 8)
+			binary.BigEndian.PutUint64(timeBz, uint64(escrow.ExpiresAt.Unix()))
+			idBz := make([]byte, 8)
+			binary.BigEndian.PutUint64(idBz, escrow.RequestId)
+
+			timeoutKey := append(append(EscrowTimeoutPrefix, timeBz...), idBz...)
+			store.Set(timeoutKey, []byte{})
+
+			// Create reverse index: prefix + requestID -> timestamp
+			reverseKey := append(EscrowTimeoutReversePrefix, idBz...)
+			store.Set(reverseKey, timeBz)
+
+			count++
+		}
+	}
+
+	ctx.Logger().Info("Escrow timeout indexes rebuilt", "count", count)
+	return nil
 }

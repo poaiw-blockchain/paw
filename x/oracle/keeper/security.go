@@ -51,6 +51,18 @@ const (
 	// to perform network-level attacks (BGP hijacking, regional internet outage exploitation)
 	MinGeographicRegions = 3
 
+	// SEC-11: BootstrapGracePeriodBlocks = 10000
+	// SECURITY RATIONALE:
+	// - New chains cannot launch with 7 validators and 3 regions from block 0
+	// - Grace period allows chain to launch and grow to full BFT requirements
+	// - During bootstrap, violations are logged as warnings instead of hard errors
+	// - After bootstrap period, full Byzantine tolerance is strictly enforced
+	// - 10,000 blocks at ~6s/block ≈ 16.7 hours of grace period
+	// - Set to 0 to disable grace period (strict from genesis)
+	// WARNING: After bootstrap, if validator count drops below 7 or regions < 3,
+	// oracle operations will fail to maintain security guarantees
+	BootstrapGracePeriodBlocks = 10000
+
 	// MinBlocksBetweenSubmissions = 1
 	// SECURITY RATIONALE:
 	// - Prevents flash loan attacks using same-block price manipulation
@@ -124,15 +136,40 @@ type GeographicDistribution struct {
 }
 
 // CheckByzantineTolerance ensures the oracle maintains Byzantine fault tolerance
+// SEC-11: During bootstrap grace period, violations are warnings instead of errors
 func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
+	inBootstrap := BootstrapGracePeriodBlocks > 0 && currentHeight <= int64(BootstrapGracePeriodBlocks)
+
 	bondedVals, err := k.GetBondedValidators(ctx)
 	if err != nil {
 		return err
 	}
 
 	if len(bondedVals) < MinValidatorsForSecurity {
-		return fmt.Errorf("insufficient validators for security: %d < %d (ECLIPSE ATTACK RISK)",
+		errMsg := fmt.Sprintf("insufficient validators for security: %d < %d (ECLIPSE ATTACK RISK)",
 			len(bondedVals), MinValidatorsForSecurity)
+		if inBootstrap {
+			sdkCtx.Logger().Warn("SEC-11: Byzantine tolerance warning (in bootstrap grace period)",
+				"block_height", currentHeight,
+				"grace_period_ends_at", BootstrapGracePeriodBlocks,
+				"warning", errMsg,
+			)
+			// During bootstrap, emit event but don't error
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"oracle_bootstrap_warning",
+					sdk.NewAttribute("warning_type", "insufficient_validators"),
+					sdk.NewAttribute("current_validators", fmt.Sprintf("%d", len(bondedVals))),
+					sdk.NewAttribute("required_validators", fmt.Sprintf("%d", MinValidatorsForSecurity)),
+					sdk.NewAttribute("block_height", fmt.Sprintf("%d", currentHeight)),
+					sdk.NewAttribute("grace_period_ends", fmt.Sprintf("%d", BootstrapGracePeriodBlocks)),
+				),
+			)
+		} else {
+			return fmt.Errorf("%s", errMsg)
+		}
 	}
 
 	// Calculate stake concentration
@@ -187,7 +224,6 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 
 	// TASK 64: Enforce stake-weighted voting power checks
 	if concentration.GT(maxStakeConcentration) {
-		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		sdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				"stake_concentration_violation",
@@ -201,8 +237,27 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 	}
 
 	if uint64(len(regionCounts)) < params.MinGeographicRegions {
-		return fmt.Errorf("insufficient geographic diversity: %d < %d distinct regions",
+		errMsg := fmt.Sprintf("insufficient geographic diversity: %d < %d distinct regions",
 			len(regionCounts), params.MinGeographicRegions)
+		if inBootstrap {
+			sdkCtx.Logger().Warn("SEC-11: Geographic diversity warning (in bootstrap grace period)",
+				"block_height", currentHeight,
+				"grace_period_ends_at", BootstrapGracePeriodBlocks,
+				"warning", errMsg,
+			)
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"oracle_bootstrap_warning",
+					sdk.NewAttribute("warning_type", "insufficient_geographic_diversity"),
+					sdk.NewAttribute("current_regions", fmt.Sprintf("%d", len(regionCounts))),
+					sdk.NewAttribute("required_regions", fmt.Sprintf("%d", params.MinGeographicRegions)),
+					sdk.NewAttribute("block_height", fmt.Sprintf("%d", currentHeight)),
+					sdk.NewAttribute("grace_period_ends", fmt.Sprintf("%d", BootstrapGracePeriodBlocks)),
+				),
+			)
+		} else {
+			return fmt.Errorf("%s", errMsg)
+		}
 	}
 
 	return nil

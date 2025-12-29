@@ -98,10 +98,12 @@ func AuthorizeChannel(ctx context.Context, store ChannelStore, portID, channelID
 // This function is called during IBC packet reception to validate that incoming
 // packets are from trusted channels. It is a critical security function.
 //
-// Security considerations:
+// Security considerations (SEC-10):
 //   - Must be called before processing any IBC packet data
 //   - Returns false on any error (fail-safe behavior)
+//   - Returns false if authorized channels list is empty (fail-safe - explicit allowlist required)
 //   - Case-sensitive exact match required
+//   - Logs unauthorized attempts for monitoring
 //
 // Parameters:
 //   - ctx: SDK context for state access
@@ -111,13 +113,24 @@ func AuthorizeChannel(ctx context.Context, store ChannelStore, portID, channelID
 //
 // Returns:
 //   - true if the channel is authorized
-//   - false if not authorized or if an error occurs loading params
+//   - false if not authorized, if an error occurs, or if allowlist is empty
 func IsAuthorizedChannel(ctx context.Context, store ChannelStore, portID, channelID string) bool {
 	channels, err := store.GetAuthorizedChannels(ctx)
 	if err != nil {
 		// Fail-safe: if we can't load params, deny access
 		if sdkCtx, ok := ctx.(sdk.Context); ok {
-			sdkCtx.Logger().Error("failed to load authorized channels", "error", err)
+			sdkCtx.Logger().Error("SEC-10: failed to load authorized channels", "error", err)
+		}
+		return false
+	}
+
+	// SEC-10: Fail-safe - require explicit allowlist, don't allow empty list to bypass
+	if len(channels) == 0 {
+		if sdkCtx, ok := ctx.(sdk.Context); ok {
+			sdkCtx.Logger().Warn("SEC-10: IBC channel authorization denied - no channels in allowlist",
+				"port", portID,
+				"channel", channelID,
+			)
 		}
 		return false
 	}
@@ -127,6 +140,15 @@ func IsAuthorizedChannel(ctx context.Context, store ChannelStore, portID, channe
 		if ch.PortId == portID && ch.ChannelId == channelID {
 			return true
 		}
+	}
+
+	// Log unauthorized attempt for security monitoring
+	if sdkCtx, ok := ctx.(sdk.Context); ok {
+		sdkCtx.Logger().Warn("SEC-10: IBC channel not in allowlist",
+			"port", portID,
+			"channel", channelID,
+			"allowlist_size", len(channels),
+		)
 	}
 
 	return false

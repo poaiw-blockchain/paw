@@ -174,6 +174,26 @@ func (k Keeper) InitGenesis(ctx context.Context, data types.GenesisState) error 
 		return fmt.Errorf("failed to set next escrow nonce: %w", err)
 	}
 
+	// DATA-6: Initialize catastrophic failure records from genesis
+	var maxCatastrophicFailureID uint64
+	for _, failure := range data.CatastrophicFailures {
+		if failure.Id > maxCatastrophicFailureID {
+			maxCatastrophicFailureID = failure.Id
+		}
+		if err := k.setCatastrophicFailure(ctx, failure); err != nil {
+			return fmt.Errorf("failed to initialize catastrophic failure %d: %w", failure.Id, err)
+		}
+	}
+
+	// Set next catastrophic failure ID
+	nextCatastrophicFailureID := data.NextCatastrophicFailureId
+	if nextCatastrophicFailureID == 0 || nextCatastrophicFailureID <= maxCatastrophicFailureID {
+		nextCatastrophicFailureID = maxCatastrophicFailureID + 1
+	}
+	if err := k.setNextCatastrophicFailureID(ctx, nextCatastrophicFailureID); err != nil {
+		return fmt.Errorf("failed to set next catastrophic failure ID: %w", err)
+	}
+
 	// HIGH-9: Initialize ZK circuits during genesis to avoid unpredictable latency on first use
 	// This is an expensive operation but ensures consistent performance from the start
 	sdkCtx.Logger().Info("Initializing ZK circuits during genesis...")
@@ -302,21 +322,42 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 		return nil, fmt.Errorf("failed to get next escrow nonce: %w", err)
 	}
 
+	// DATA-6: Collect all catastrophic failure records for genesis export
+	// This is critical for state preservation across chain upgrades
+	var catastrophicFailures []types.CatastrophicFailure
+	cfIter := storetypes.KVStorePrefixIterator(store, CatastrophicFailureKeyPrefix)
+	defer cfIter.Close()
+	for ; cfIter.Valid(); cfIter.Next() {
+		var failure types.CatastrophicFailure
+		if err := k.cdc.Unmarshal(cfIter.Value(), &failure); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal catastrophic failure: %w", err)
+		}
+		catastrophicFailures = append(catastrophicFailures, failure)
+	}
+
+	// Get next catastrophic failure ID
+	nextCatastrophicFailureID, err := k.getNextCatastrophicFailureIDForExport(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get next catastrophic failure ID: %w", err)
+	}
+
 	return &types.GenesisState{
-		Params:           params,
-		GovernanceParams: govParams,
-		Providers:        providers,
-		Requests:         requests,
-		Results:          results,
-		Disputes:         disputes,
-		SlashRecords:     slashRecords,
-		Appeals:          appeals,
-		EscrowStates:     escrowStates,
-		NextRequestId:    nextRequestID,
-		NextDisputeId:    nextDisputeID,
-		NextSlashId:      nextSlashID,
-		NextAppealId:     nextAppealID,
-		NextEscrowNonce:  nextEscrowNonce,
+		Params:                     params,
+		GovernanceParams:           govParams,
+		Providers:                  providers,
+		Requests:                   requests,
+		Results:                    results,
+		Disputes:                   disputes,
+		SlashRecords:               slashRecords,
+		Appeals:                    appeals,
+		EscrowStates:               escrowStates,
+		CatastrophicFailures:       catastrophicFailures,
+		NextRequestId:              nextRequestID,
+		NextDisputeId:              nextDisputeID,
+		NextSlashId:                nextSlashID,
+		NextAppealId:               nextAppealID,
+		NextEscrowNonce:            nextEscrowNonce,
+		NextCatastrophicFailureId:  nextCatastrophicFailureID,
 	}, nil
 }
 
@@ -399,6 +440,36 @@ func (k Keeper) getNextEscrowNonceForExport(ctx context.Context) (uint64, error)
 		return 1, nil
 	}
 	return binary.BigEndian.Uint64(bz), nil
+}
+
+// getNextCatastrophicFailureIDForExport gets the current next catastrophic failure ID without incrementing
+func (k Keeper) getNextCatastrophicFailureIDForExport(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz := store.Get(NextCatastrophicFailureIDKey)
+	if bz == nil {
+		return 1, nil
+	}
+	return binary.BigEndian.Uint64(bz), nil
+}
+
+// setNextCatastrophicFailureID sets the next catastrophic failure ID (used in genesis initialization)
+func (k Keeper) setNextCatastrophicFailureID(ctx context.Context, nextID uint64) error {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, nextID)
+	store.Set(NextCatastrophicFailureIDKey, bz)
+	return nil
+}
+
+// setCatastrophicFailure stores a catastrophic failure directly (used in genesis initialization)
+func (k Keeper) setCatastrophicFailure(ctx context.Context, failure types.CatastrophicFailure) error {
+	store := k.getStore(ctx)
+	bz, err := k.cdc.Marshal(&failure)
+	if err != nil {
+		return fmt.Errorf("failed to marshal catastrophic failure: %w", err)
+	}
+	store.Set(CatastrophicFailureKey(failure.Id), bz)
+	return nil
 }
 
 func (k Keeper) setNextEscrowNonce(ctx context.Context, nextNonce uint64) error {
