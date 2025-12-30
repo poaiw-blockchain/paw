@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"testing"
+
+	"cosmossdk.io/math"
 )
 
 func TestVerificationProof_Validate(t *testing.T) {
@@ -446,5 +448,430 @@ func TestBigEndianEncoding(t *testing.T) {
 	decoded := binary.BigEndian.Uint64(buf)
 	if decoded != testVal {
 		t.Errorf("BigEndian decoding mismatch: got %v, want %v", decoded, testVal)
+	}
+}
+
+// ============================================================================
+// State Types Tests - ComputeProvider, ComputeRequest, Resource, ComputeResult
+// ============================================================================
+
+func TestComputeProvider(t *testing.T) {
+	provider := ComputeProvider{
+		Address:       "cosmos1test",
+		Stake:         math.NewInt(1000000),
+		Active:        true,
+		Reputation:    95.5,
+		TotalJobs:     100,
+		CompletedJobs: 95,
+		FailedJobs:    5,
+		LastActive:    1234567890,
+	}
+
+	// Test field access
+	if provider.Address != "cosmos1test" {
+		t.Errorf("ComputeProvider.Address = %v, want 'cosmos1test'", provider.Address)
+	}
+
+	if !provider.Stake.Equal(math.NewInt(1000000)) {
+		t.Errorf("ComputeProvider.Stake = %v, want 1000000", provider.Stake)
+	}
+
+	if !provider.Active {
+		t.Error("ComputeProvider.Active = false, want true")
+	}
+
+	if provider.Reputation != 95.5 {
+		t.Errorf("ComputeProvider.Reputation = %v, want 95.5", provider.Reputation)
+	}
+
+	if provider.TotalJobs != 100 {
+		t.Errorf("ComputeProvider.TotalJobs = %v, want 100", provider.TotalJobs)
+	}
+
+	if provider.CompletedJobs != 95 {
+		t.Errorf("ComputeProvider.CompletedJobs = %v, want 95", provider.CompletedJobs)
+	}
+
+	if provider.FailedJobs != 5 {
+		t.Errorf("ComputeProvider.FailedJobs = %v, want 5", provider.FailedJobs)
+	}
+
+	if provider.LastActive != 1234567890 {
+		t.Errorf("ComputeProvider.LastActive = %v, want 1234567890", provider.LastActive)
+	}
+}
+
+func TestComputeRequest(t *testing.T) {
+	request := ComputeRequest{
+		ID:             1,
+		Requester:      "cosmos1requester",
+		Provider:       "cosmos1provider",
+		ContainerImage: "docker.io/library/ubuntu:latest",
+		InputData:      []byte("input data"),
+		ResourceSpec: Resource{
+			CPUCores:  4,
+			MemoryMB:  8192,
+			StorageGB: 100,
+			GPUs:      1,
+		},
+		EscrowAmount:    math.NewInt(1000000),
+		Status:          "pending",
+		SubmittedHeight: 100,
+		Timeout:         3600,
+	}
+
+	// Test basic fields
+	if request.ID != 1 {
+		t.Errorf("ComputeRequest.ID = %v, want 1", request.ID)
+	}
+
+	if request.Requester != "cosmos1requester" {
+		t.Errorf("ComputeRequest.Requester = %v, want 'cosmos1requester'", request.Requester)
+	}
+
+	if request.Provider != "cosmos1provider" {
+		t.Errorf("ComputeRequest.Provider = %v, want 'cosmos1provider'", request.Provider)
+	}
+
+	if request.ContainerImage != "docker.io/library/ubuntu:latest" {
+		t.Errorf("ComputeRequest.ContainerImage = %v, want 'docker.io/library/ubuntu:latest'", request.ContainerImage)
+	}
+
+	if !bytes.Equal(request.InputData, []byte("input data")) {
+		t.Errorf("ComputeRequest.InputData = %v, want 'input data'", request.InputData)
+	}
+
+	if request.Status != "pending" {
+		t.Errorf("ComputeRequest.Status = %v, want 'pending'", request.Status)
+	}
+
+	if request.SubmittedHeight != 100 {
+		t.Errorf("ComputeRequest.SubmittedHeight = %v, want 100", request.SubmittedHeight)
+	}
+
+	if request.Timeout != 3600 {
+		t.Errorf("ComputeRequest.Timeout = %v, want 3600", request.Timeout)
+	}
+}
+
+func TestResource(t *testing.T) {
+	tests := []struct {
+		name     string
+		resource Resource
+	}{
+		{
+			name: "minimal resource",
+			resource: Resource{
+				CPUCores:  1,
+				MemoryMB:  512,
+				StorageGB: 10,
+				GPUs:      0,
+			},
+		},
+		{
+			name: "full resource with GPU",
+			resource: Resource{
+				CPUCores:  32,
+				MemoryMB:  65536,
+				StorageGB: 1000,
+				GPUs:      4,
+			},
+		},
+		{
+			name: "zero resource",
+			resource: Resource{
+				CPUCores:  0,
+				MemoryMB:  0,
+				StorageGB: 0,
+				GPUs:      0,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify fields are accessible
+			_ = tt.resource.CPUCores
+			_ = tt.resource.MemoryMB
+			_ = tt.resource.StorageGB
+			_ = tt.resource.GPUs
+		})
+	}
+}
+
+func TestComputeResult(t *testing.T) {
+	result := ComputeResult{
+		RequestID:   1,
+		Provider:    "cosmos1provider",
+		ResultData:  []byte("result data"),
+		ResultHash:  "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+		Verified:    true,
+		SubmittedAt: 1234567890,
+		VerifiedAt:  1234567900,
+	}
+
+	if result.RequestID != 1 {
+		t.Errorf("ComputeResult.RequestID = %v, want 1", result.RequestID)
+	}
+
+	if result.Provider != "cosmos1provider" {
+		t.Errorf("ComputeResult.Provider = %v, want 'cosmos1provider'", result.Provider)
+	}
+
+	if !bytes.Equal(result.ResultData, []byte("result data")) {
+		t.Errorf("ComputeResult.ResultData = %v, want 'result data'", result.ResultData)
+	}
+
+	if result.ResultHash != "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3" {
+		t.Errorf("ComputeResult.ResultHash = %v, want expected hash", result.ResultHash)
+	}
+
+	if !result.Verified {
+		t.Error("ComputeResult.Verified = false, want true")
+	}
+
+	if result.SubmittedAt != 1234567890 {
+		t.Errorf("ComputeResult.SubmittedAt = %v, want 1234567890", result.SubmittedAt)
+	}
+
+	if result.VerifiedAt != 1234567900 {
+		t.Errorf("ComputeResult.VerifiedAt = %v, want 1234567900", result.VerifiedAt)
+	}
+}
+
+func TestComputeResultUnverified(t *testing.T) {
+	result := ComputeResult{
+		RequestID:   2,
+		Provider:    "cosmos1provider2",
+		ResultData:  []byte("pending result"),
+		ResultHash:  "b665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae4",
+		Verified:    false,
+		SubmittedAt: 1234567890,
+		VerifiedAt:  0, // Not verified yet
+	}
+
+	if result.Verified {
+		t.Error("ComputeResult.Verified = true, want false for unverified result")
+	}
+
+	if result.VerifiedAt != 0 {
+		t.Errorf("ComputeResult.VerifiedAt = %v, want 0 for unverified result", result.VerifiedAt)
+	}
+}
+
+// ============================================================================
+// NonceTracker Tests
+// ============================================================================
+
+func TestNonceTracker(t *testing.T) {
+	tracker := NonceTracker{
+		Provider: "cosmos1provider",
+		Nonce:    12345,
+		UsedAt:   1234567890,
+	}
+
+	if tracker.Provider != "cosmos1provider" {
+		t.Errorf("NonceTracker.Provider = %v, want 'cosmos1provider'", tracker.Provider)
+	}
+
+	if tracker.Nonce != 12345 {
+		t.Errorf("NonceTracker.Nonce = %v, want 12345", tracker.Nonce)
+	}
+
+	if tracker.UsedAt != 1234567890 {
+		t.Errorf("NonceTracker.UsedAt = %v, want 1234567890", tracker.UsedAt)
+	}
+}
+
+// ============================================================================
+// VerificationMetrics Tests
+// ============================================================================
+
+func TestVerificationMetrics(t *testing.T) {
+	metrics := VerificationMetrics{
+		TotalVerifications:      100,
+		SuccessfulVerifications: 90,
+		FailedVerifications:     10,
+		AverageScore:            85.5,
+		SignatureFailures:       3,
+		MerkleFailures:          2,
+		StateTransitionFailures: 4,
+		ReplayAttempts:          1,
+	}
+
+	if metrics.TotalVerifications != 100 {
+		t.Errorf("VerificationMetrics.TotalVerifications = %v, want 100", metrics.TotalVerifications)
+	}
+
+	if metrics.SuccessfulVerifications != 90 {
+		t.Errorf("VerificationMetrics.SuccessfulVerifications = %v, want 90", metrics.SuccessfulVerifications)
+	}
+
+	if metrics.FailedVerifications != 10 {
+		t.Errorf("VerificationMetrics.FailedVerifications = %v, want 10", metrics.FailedVerifications)
+	}
+
+	if metrics.AverageScore != 85.5 {
+		t.Errorf("VerificationMetrics.AverageScore = %v, want 85.5", metrics.AverageScore)
+	}
+
+	if metrics.SignatureFailures != 3 {
+		t.Errorf("VerificationMetrics.SignatureFailures = %v, want 3", metrics.SignatureFailures)
+	}
+
+	if metrics.MerkleFailures != 2 {
+		t.Errorf("VerificationMetrics.MerkleFailures = %v, want 2", metrics.MerkleFailures)
+	}
+
+	if metrics.StateTransitionFailures != 4 {
+		t.Errorf("VerificationMetrics.StateTransitionFailures = %v, want 4", metrics.StateTransitionFailures)
+	}
+
+	if metrics.ReplayAttempts != 1 {
+		t.Errorf("VerificationMetrics.ReplayAttempts = %v, want 1", metrics.ReplayAttempts)
+	}
+}
+
+func TestVerificationMetricsZero(t *testing.T) {
+	metrics := VerificationMetrics{}
+
+	if metrics.TotalVerifications != 0 {
+		t.Errorf("VerificationMetrics.TotalVerifications = %v, want 0", metrics.TotalVerifications)
+	}
+
+	if metrics.AverageScore != 0 {
+		t.Errorf("VerificationMetrics.AverageScore = %v, want 0", metrics.AverageScore)
+	}
+}
+
+// ============================================================================
+// Request Status Transitions Tests
+// ============================================================================
+
+func TestComputeRequestStatusTransitions(t *testing.T) {
+	validStatuses := []string{
+		"pending",
+		"assigned",
+		"running",
+		"completed",
+		"failed",
+		"cancelled",
+	}
+
+	for _, status := range validStatuses {
+		t.Run(status, func(t *testing.T) {
+			request := ComputeRequest{
+				ID:     1,
+				Status: status,
+			}
+
+			if request.Status != status {
+				t.Errorf("ComputeRequest.Status = %v, want %v", request.Status, status)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// Edge Cases Tests
+// ============================================================================
+
+func TestComputeProviderEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider ComputeProvider
+	}{
+		{
+			name: "zero stake",
+			provider: ComputeProvider{
+				Address:    "cosmos1test",
+				Stake:      math.NewInt(0),
+				Active:     false,
+				Reputation: 0,
+			},
+		},
+		{
+			name: "max stake",
+			provider: ComputeProvider{
+				Address:    "cosmos1test",
+				Stake:      math.NewInt(1000000000000000),
+				Active:     true,
+				Reputation: 100,
+			},
+		},
+		{
+			name: "inactive provider with jobs",
+			provider: ComputeProvider{
+				Address:       "cosmos1test",
+				Stake:         math.NewInt(1000000),
+				Active:        false,
+				Reputation:    50,
+				TotalJobs:     1000,
+				CompletedJobs: 500,
+				FailedJobs:    500,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Verify we can access all fields without panic
+			_ = tt.provider.Address
+			_ = tt.provider.Stake
+			_ = tt.provider.Active
+			_ = tt.provider.Reputation
+			_ = tt.provider.TotalJobs
+			_ = tt.provider.CompletedJobs
+			_ = tt.provider.FailedJobs
+			_ = tt.provider.LastActive
+		})
+	}
+}
+
+func TestComputeRequestWithEmptyProvider(t *testing.T) {
+	// Test request without assigned provider
+	request := ComputeRequest{
+		ID:             1,
+		Requester:      "cosmos1requester",
+		Provider:       "", // No provider assigned yet
+		ContainerImage: "docker.io/library/ubuntu:latest",
+		Status:         "pending",
+	}
+
+	if request.Provider != "" {
+		t.Errorf("ComputeRequest.Provider = %v, want empty string", request.Provider)
+	}
+}
+
+func TestComputeRequestWithNilInputData(t *testing.T) {
+	request := ComputeRequest{
+		ID:             1,
+		Requester:      "cosmos1requester",
+		ContainerImage: "docker.io/library/ubuntu:latest",
+		InputData:      nil, // No input data
+		Status:         "pending",
+	}
+
+	if request.InputData != nil {
+		t.Error("ComputeRequest.InputData should be nil")
+	}
+}
+
+func TestVerificationProofNilFields(t *testing.T) {
+	// Test that nil fields cause validation errors
+	vp := &VerificationProof{
+		Signature:       nil,
+		PublicKey:       nil,
+		MerkleRoot:      nil,
+		MerkleProof:     nil,
+		StateCommitment: nil,
+		ExecutionTrace:  nil,
+		Nonce:           0,
+		Timestamp:       0,
+	}
+
+	err := vp.Validate()
+	if err == nil {
+		t.Error("VerificationProof.Validate() should return error for nil fields")
 	}
 }

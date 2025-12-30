@@ -228,6 +228,9 @@ type PAWApp struct {
 
 	// telemetry for OpenTelemetry tracing and metrics
 	telemetryProvider *pawtelemetry.Provider
+
+	// ARCH-6: Circuit breaker coordinator for cross-module circuit breaker propagation
+	CircuitBreakerCoordinator *CircuitBreakerCoordinator
 }
 
 // NewPAWApp returns a reference to an initialized PAW application.
@@ -426,6 +429,16 @@ func NewPAWApp(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		scopedOracleKeeper,
 	)
+
+	// ARCH-6: Initialize circuit breaker coordinator for cross-module propagation
+	// The coordinator listens for circuit breaker events in one module and notifies dependent modules
+	app.CircuitBreakerCoordinator = NewCircuitBreakerCoordinator(
+		app.OracleKeeper,
+		app.DEXKeeper,
+		app.ComputeKeeper,
+	)
+	// Set up hooks to receive circuit breaker events from each module
+	app.CircuitBreakerCoordinator.SetupHooks()
 
 	// Create IBC Router
 	ibcRouter := porttypes.NewRouter()

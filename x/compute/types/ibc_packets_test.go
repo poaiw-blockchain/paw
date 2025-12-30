@@ -944,3 +944,246 @@ func BenchmarkValidateBasic(b *testing.B) {
 		_ = packet.ValidateBasic()
 	}
 }
+
+// ============================================================================
+// GetBytes Tests for Complete Coverage
+// ============================================================================
+
+func TestSubmitJobPacketData_GetBytesError(t *testing.T) {
+	// Test that GetBytes returns valid JSON bytes
+	packet := SubmitJobPacketData{
+		Type:      SubmitJobType,
+		Nonce:     1,
+		Timestamp: 1000,
+		JobID:     "job-123",
+		JobType:   "wasm",
+		JobData:   []byte("test data"),
+		Requirements: JobRequirements{
+			CPUCores: 4,
+			MemoryMB: 8192,
+		},
+		Provider:  "provider-1",
+		Requester: validAddress,
+	}
+
+	bytes, err := packet.GetBytes()
+	if err != nil {
+		t.Fatalf("GetBytes() returned unexpected error: %v", err)
+	}
+
+	if len(bytes) == 0 {
+		t.Error("GetBytes() returned empty bytes")
+	}
+
+	// Verify it's valid JSON
+	var unmarshaled SubmitJobPacketData
+	if err := json.Unmarshal(bytes, &unmarshaled); err != nil {
+		t.Errorf("GetBytes() produced invalid JSON: %v", err)
+	}
+}
+
+func TestJobResultPacketData_GetBytesError(t *testing.T) {
+	// Test that GetBytes returns valid JSON bytes
+	packet := JobResultPacketData{
+		Type:      JobResultType,
+		Nonce:     1,
+		Timestamp: 1000,
+		JobID:     "job-123",
+		Provider:  "provider-1",
+		Result: JobResult{
+			ResultData: []byte("result data"),
+			ResultHash: "hash123",
+		},
+	}
+
+	bytes, err := packet.GetBytes()
+	if err != nil {
+		t.Fatalf("GetBytes() returned unexpected error: %v", err)
+	}
+
+	if len(bytes) == 0 {
+		t.Error("GetBytes() returned empty bytes")
+	}
+
+	// Verify it's valid JSON
+	var unmarshaled JobResultPacketData
+	if err := json.Unmarshal(bytes, &unmarshaled); err != nil {
+		t.Errorf("GetBytes() produced invalid JSON: %v", err)
+	}
+}
+
+func TestJobStatusPacketData_GetBytesError(t *testing.T) {
+	// Test that GetBytes returns valid JSON bytes
+	packet := JobStatusPacketData{
+		Type:      JobStatusType,
+		Nonce:     1,
+		Timestamp: 1000,
+		JobID:     "job-123",
+		Requester: validAddress,
+	}
+
+	bytes, err := packet.GetBytes()
+	if err != nil {
+		t.Fatalf("GetBytes() returned unexpected error: %v", err)
+	}
+
+	if len(bytes) == 0 {
+		t.Error("GetBytes() returned empty bytes")
+	}
+
+	// Verify it's valid JSON
+	var unmarshaled JobStatusPacketData
+	if err := json.Unmarshal(bytes, &unmarshaled); err != nil {
+		t.Errorf("GetBytes() produced invalid JSON: %v", err)
+	}
+}
+
+func TestReleaseEscrowPacketData_GetBytesError(t *testing.T) {
+	// Test that GetBytes returns valid JSON bytes
+	packet := ReleaseEscrowPacketData{
+		Type:      ReleaseEscrowType,
+		Nonce:     1,
+		Timestamp: 1000,
+		JobID:     "job-123",
+		Provider:  "provider-1",
+		Amount:    math.NewInt(1000000),
+	}
+
+	bytes, err := packet.GetBytes()
+	if err != nil {
+		t.Fatalf("GetBytes() returned unexpected error: %v", err)
+	}
+
+	if len(bytes) == 0 {
+		t.Error("GetBytes() returned empty bytes")
+	}
+
+	// Verify it's valid JSON
+	var unmarshaled ReleaseEscrowPacketData
+	if err := json.Unmarshal(bytes, &unmarshaled); err != nil {
+		t.Errorf("GetBytes() produced invalid JSON: %v", err)
+	}
+}
+
+// ============================================================================
+// Additional GetType Tests for Complete Coverage
+// ============================================================================
+
+func TestAllPacketTypes_GetType(t *testing.T) {
+	tests := []struct {
+		name       string
+		packet     interface{ GetType() string }
+		expectType string
+	}{
+		{
+			name: "DiscoverProvidersPacketData",
+			packet: &DiscoverProvidersPacketData{
+				Type: DiscoverProvidersType,
+			},
+			expectType: DiscoverProvidersType,
+		},
+		{
+			name: "SubmitJobPacketData",
+			packet: &SubmitJobPacketData{
+				Type: SubmitJobType,
+			},
+			expectType: SubmitJobType,
+		},
+		{
+			name: "JobResultPacketData",
+			packet: &JobResultPacketData{
+				Type: JobResultType,
+			},
+			expectType: JobResultType,
+		},
+		{
+			name: "JobStatusPacketData",
+			packet: &JobStatusPacketData{
+				Type: JobStatusType,
+			},
+			expectType: JobStatusType,
+		},
+		{
+			name: "ReleaseEscrowPacketData",
+			packet: &ReleaseEscrowPacketData{
+				Type: ReleaseEscrowType,
+			},
+			expectType: ReleaseEscrowType,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.packet.GetType(); got != tt.expectType {
+				t.Errorf("GetType() = %v, want %v", got, tt.expectType)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// ParsePacketData Error Cases
+// ============================================================================
+
+func TestParsePacketData_InvalidJSON(t *testing.T) {
+	invalidJSON := []byte("{invalid json")
+	_, err := ParsePacketData(invalidJSON)
+	if err == nil {
+		t.Error("Expected error for invalid JSON")
+	}
+}
+
+func TestParsePacketData_UnknownType(t *testing.T) {
+	unknownType := []byte(`{"type": "unknown_type"}`)
+	_, err := ParsePacketData(unknownType)
+	if err == nil {
+		t.Error("Expected error for unknown packet type")
+	}
+}
+
+func TestParsePacketData_AllTypes(t *testing.T) {
+	tests := []struct {
+		name       string
+		packetJSON string
+		expectType string
+	}{
+		{
+			name:       "discover_providers",
+			packetJSON: `{"type":"discover_providers","nonce":1,"timestamp":1000,"requester":"` + validAddress + `"}`,
+			expectType: DiscoverProvidersType,
+		},
+		{
+			name:       "submit_job",
+			packetJSON: `{"type":"submit_job","nonce":1,"timestamp":1000,"job_id":"job-123","job_type":"wasm","job_data":"dGVzdA==","requirements":{"cpu_cores":4,"memory_mb":8192},"provider":"provider-1","requester":"` + validAddress + `"}`,
+			expectType: SubmitJobType,
+		},
+		{
+			name:       "job_result",
+			packetJSON: `{"type":"job_result","nonce":1,"timestamp":1000,"job_id":"job-123","provider":"provider-1","result":{"result_data":"dGVzdA==","result_hash":"hash123"}}`,
+			expectType: JobResultType,
+		},
+		{
+			name:       "job_status",
+			packetJSON: `{"type":"job_status","nonce":1,"timestamp":1000,"job_id":"job-123","requester":"` + validAddress + `"}`,
+			expectType: JobStatusType,
+		},
+		{
+			name:       "release_escrow",
+			packetJSON: `{"type":"release_escrow","nonce":1,"timestamp":1000,"job_id":"job-123","provider":"provider-1","amount":"1000000"}`,
+			expectType: ReleaseEscrowType,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			packet, err := ParsePacketData([]byte(tt.packetJSON))
+			if err != nil {
+				t.Errorf("ParsePacketData() error = %v", err)
+				return
+			}
+			if packet == nil {
+				t.Error("ParsePacketData() returned nil packet")
+			}
+		})
+	}
+}

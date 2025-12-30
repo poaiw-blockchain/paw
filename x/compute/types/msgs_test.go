@@ -1235,3 +1235,608 @@ func TestGetSigners(t *testing.T) {
 		})
 	}
 }
+
+// ============================================================================
+// MsgUpdateParams Tests
+// ============================================================================
+
+func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     MsgUpdateParams
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid message with default params",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params:    DefaultParams(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid authority address",
+			msg: MsgUpdateParams{
+				Authority: invalidAddress,
+				Params:    DefaultParams(),
+			},
+			wantErr: true,
+			errMsg:  "invalid authority address",
+		},
+		{
+			name: "unauthorized authority",
+			msg: MsgUpdateParams{
+				Authority: validAddress,
+				Params:    DefaultParams(),
+			},
+			wantErr: true,
+			errMsg:  "invalid authority",
+		},
+		{
+			name: "nil min provider stake",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.Int{},
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   3600,
+				},
+			},
+			wantErr: true,
+			errMsg:  "min_provider_stake must be non-negative",
+		},
+		{
+			name: "negative min provider stake",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(-1000),
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   3600,
+				},
+			},
+			wantErr: true,
+			errMsg:  "min_provider_stake must be non-negative",
+		},
+		{
+			name: "zero verification timeout",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(1000000),
+					VerificationTimeoutSeconds: 0,
+					MaxRequestTimeoutSeconds:   3600,
+				},
+			},
+			wantErr: true,
+			errMsg:  "verification_timeout_seconds must be greater than 0",
+		},
+		{
+			name: "zero max request timeout",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(1000000),
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   0,
+				},
+			},
+			wantErr: true,
+			errMsg:  "max_request_timeout_seconds must be greater than 0",
+		},
+		{
+			name: "reputation slash percentage exceeds 100",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(1000000),
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   3600,
+					ReputationSlashPercentage:  101,
+				},
+			},
+			wantErr: true,
+			errMsg:  "reputation_slash_percentage cannot exceed 100",
+		},
+		{
+			name: "stake slash percentage exceeds 100",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(1000000),
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   3600,
+					ReputationSlashPercentage:  10,
+					StakeSlashPercentage:       101,
+				},
+			},
+			wantErr: true,
+			errMsg:  "stake_slash_percentage cannot exceed 100",
+		},
+		{
+			name: "min reputation score exceeds 100",
+			msg: MsgUpdateParams{
+				Authority: moduleAuthority,
+				Params: Params{
+					MinProviderStake:           math.NewInt(1000000),
+					VerificationTimeoutSeconds: 300,
+					MaxRequestTimeoutSeconds:   3600,
+					ReputationSlashPercentage:  10,
+					StakeSlashPercentage:       5,
+					MinReputationScore:         101,
+				},
+			},
+			wantErr: true,
+			errMsg:  "min_reputation_score cannot exceed 100",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgUpdateParams.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgUpdateParams.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestMsgUpdateParams_GetSigners(t *testing.T) {
+	msg := MsgUpdateParams{
+		Authority: moduleAuthority,
+	}
+
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		t.Errorf("Expected 1 signer, got %d", len(signers))
+	}
+
+	if !signers[0].Equals(moduleAccAddr) {
+		t.Errorf("Expected signer %s, got %s", moduleAccAddr, signers[0])
+	}
+}
+
+// ============================================================================
+// MsgRegisterSigningKey Tests
+// ============================================================================
+
+func TestMsgRegisterSigningKey_ValidateBasic(t *testing.T) {
+	validPublicKey := make([]byte, 32)
+	for i := range validPublicKey {
+		validPublicKey[i] = byte(i + 1) // Non-zero key
+	}
+
+	tests := []struct {
+		name    string
+		msg     MsgRegisterSigningKey
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid message without old key signature",
+			msg: MsgRegisterSigningKey{
+				Provider:  validAddress,
+				PublicKey: validPublicKey,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid message with old key signature",
+			msg: MsgRegisterSigningKey{
+				Provider:        validAddress,
+				PublicKey:       validPublicKey,
+				OldKeySignature: make([]byte, 64),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid provider address",
+			msg: MsgRegisterSigningKey{
+				Provider:  invalidAddress,
+				PublicKey: validPublicKey,
+			},
+			wantErr: true,
+			errMsg:  "invalid provider address",
+		},
+		{
+			name: "public key too short",
+			msg: MsgRegisterSigningKey{
+				Provider:  validAddress,
+				PublicKey: make([]byte, 31),
+			},
+			wantErr: true,
+			errMsg:  "invalid public key size",
+		},
+		{
+			name: "public key too long",
+			msg: MsgRegisterSigningKey{
+				Provider:  validAddress,
+				PublicKey: make([]byte, 33),
+			},
+			wantErr: true,
+			errMsg:  "invalid public key size",
+		},
+		{
+			name: "all zeros public key",
+			msg: MsgRegisterSigningKey{
+				Provider:  validAddress,
+				PublicKey: make([]byte, 32), // All zeros
+			},
+			wantErr: true,
+			errMsg:  "invalid public key: all zeros",
+		},
+		{
+			name: "invalid old key signature size",
+			msg: MsgRegisterSigningKey{
+				Provider:        validAddress,
+				PublicKey:       validPublicKey,
+				OldKeySignature: make([]byte, 63), // Should be 64
+			},
+			wantErr: true,
+			errMsg:  "invalid old key signature size",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgRegisterSigningKey.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgRegisterSigningKey.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestMsgRegisterSigningKey_GetSigners(t *testing.T) {
+	msg := MsgRegisterSigningKey{
+		Provider: validAddress,
+	}
+
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		t.Errorf("Expected 1 signer, got %d", len(signers))
+	}
+
+	expected, _ := sdk.AccAddressFromBech32(validAddress)
+	if !signers[0].Equals(expected) {
+		t.Errorf("Expected signer %s, got %s", expected, signers[0])
+	}
+}
+
+func TestMsgRegisterSigningKey_ProtoMethods(t *testing.T) {
+	msg := MsgRegisterSigningKey{
+		Provider:  validAddress,
+		PublicKey: make([]byte, 32),
+	}
+
+	// Test Reset
+	msg.Reset()
+	if msg.Provider != "" || len(msg.PublicKey) != 0 {
+		t.Error("Reset() should clear all fields")
+	}
+
+	// Test String
+	msg = MsgRegisterSigningKey{
+		Provider:  validAddress,
+		PublicKey: []byte{0x01, 0x02, 0x03},
+	}
+	str := msg.String()
+	if str == "" {
+		t.Error("String() should return non-empty string")
+	}
+
+	// Test ProtoMessage (just ensure it doesn't panic)
+	msg.ProtoMessage()
+}
+
+func TestMsgRegisterSigningKeyResponse_ProtoMethods(t *testing.T) {
+	resp := MsgRegisterSigningKeyResponse{}
+
+	// Test Reset (should not panic)
+	resp.Reset()
+
+	// Test String
+	str := resp.String()
+	if str != "MsgRegisterSigningKeyResponse{}" {
+		t.Errorf("String() = %v, want 'MsgRegisterSigningKeyResponse{}'", str)
+	}
+
+	// Test ProtoMessage (just ensure it doesn't panic)
+	resp.ProtoMessage()
+}
+
+
+// ============================================================================
+// MsgUpdateProvider Additional Tests
+// ============================================================================
+
+func TestMsgUpdateProvider_WithSpecs(t *testing.T) {
+	validSpecs := ComputeSpec{
+		CpuCores:       4,
+		MemoryMb:       8192,
+		TimeoutSeconds: 3600,
+	}
+	invalidSpecs := ComputeSpec{
+		CpuCores:       0, // Invalid
+		MemoryMb:       8192,
+		TimeoutSeconds: 3600,
+	}
+
+	tests := []struct {
+		name    string
+		msg     MsgUpdateProvider
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid with specs",
+			msg: MsgUpdateProvider{
+				Provider:       validAddress,
+				AvailableSpecs: &validSpecs,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid specs",
+			msg: MsgUpdateProvider{
+				Provider:       validAddress,
+				AvailableSpecs: &invalidSpecs,
+			},
+			wantErr: true,
+			errMsg:  "cpu_cores must be greater than 0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgUpdateProvider.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgUpdateProvider.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+func TestMsgUpdateProvider_WithPricing(t *testing.T) {
+	validPricing := Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+		MemoryPricePerMbHour:  math.LegacyNewDec(10),
+		GpuPricePerHour:       math.LegacyNewDec(1000),
+		StoragePricePerGbHour: math.LegacyNewDec(5),
+	}
+	invalidPricing := Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(-100), // Invalid
+		MemoryPricePerMbHour:  math.LegacyNewDec(10),
+		GpuPricePerHour:       math.LegacyNewDec(1000),
+		StoragePricePerGbHour: math.LegacyNewDec(5),
+	}
+
+	tests := []struct {
+		name    string
+		msg     MsgUpdateProvider
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid with pricing",
+			msg: MsgUpdateProvider{
+				Provider: validAddress,
+				Pricing:  &validPricing,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid pricing",
+			msg: MsgUpdateProvider{
+				Provider: validAddress,
+				Pricing:  &invalidPricing,
+			},
+			wantErr: true,
+			errMsg:  "cannot be negative",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MsgUpdateProvider.ValidateBasic() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("MsgUpdateProvider.ValidateBasic() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+// ============================================================================
+// validatePricing Additional Tests
+// ============================================================================
+
+func TestValidatePricing(t *testing.T) {
+	tests := []struct {
+		name    string
+		pricing Pricing
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid pricing",
+			pricing: Pricing{
+				CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+				MemoryPricePerMbHour:  math.LegacyNewDec(10),
+				GpuPricePerHour:       math.LegacyNewDec(1000),
+				StoragePricePerGbHour: math.LegacyNewDec(5),
+			},
+			wantErr: false,
+		},
+		{
+			name: "zero pricing allowed",
+			pricing: Pricing{
+				CpuPricePerMcoreHour:  math.LegacyZeroDec(),
+				MemoryPricePerMbHour:  math.LegacyZeroDec(),
+				GpuPricePerHour:       math.LegacyZeroDec(),
+				StoragePricePerGbHour: math.LegacyZeroDec(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "negative memory price",
+			pricing: Pricing{
+				CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+				MemoryPricePerMbHour:  math.LegacyNewDec(-10),
+				GpuPricePerHour:       math.LegacyNewDec(1000),
+				StoragePricePerGbHour: math.LegacyNewDec(5),
+			},
+			wantErr: true,
+			errMsg:  "memory_price_per_mb_hour cannot be negative",
+		},
+		{
+			name: "negative GPU price",
+			pricing: Pricing{
+				CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+				MemoryPricePerMbHour:  math.LegacyNewDec(10),
+				GpuPricePerHour:       math.LegacyNewDec(-1000),
+				StoragePricePerGbHour: math.LegacyNewDec(5),
+			},
+			wantErr: true,
+			errMsg:  "gpu_price_per_hour cannot be negative",
+		},
+		{
+			name: "negative storage price",
+			pricing: Pricing{
+				CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+				MemoryPricePerMbHour:  math.LegacyNewDec(10),
+				GpuPricePerHour:       math.LegacyNewDec(1000),
+				StoragePricePerGbHour: math.LegacyNewDec(-5),
+			},
+			wantErr: true,
+			errMsg:  "storage_price_per_gb_hour cannot be negative",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := MsgRegisterProvider{
+				Provider: validAddress,
+				Moniker:  "test",
+				Endpoint: validEndpoint,
+				Stake:    math.NewInt(1000000),
+				AvailableSpecs: ComputeSpec{
+					CpuCores:       4,
+					MemoryMb:       8192,
+					TimeoutSeconds: 3600,
+				},
+				Pricing: tt.pricing,
+			}
+			err := msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validatePricing() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validatePricing() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+// ============================================================================
+// validateComputeSpec Additional Tests
+// ============================================================================
+
+func TestValidateComputeSpec(t *testing.T) {
+	tests := []struct {
+		name    string
+		specs   ComputeSpec
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid specs",
+			specs: ComputeSpec{
+				CpuCores:       4,
+				MemoryMb:       8192,
+				TimeoutSeconds: 3600,
+			},
+			wantErr: false,
+		},
+		{
+			name: "zero timeout",
+			specs: ComputeSpec{
+				CpuCores:       4,
+				MemoryMb:       8192,
+				TimeoutSeconds: 0,
+			},
+			wantErr: true,
+			errMsg:  "timeout_seconds must be greater than 0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := MsgSubmitRequest{
+				Requester:      validAddress,
+				Specs:          tt.specs,
+				ContainerImage: validContainer,
+				Command:        []string{"python", "script.py"},
+				MaxPayment:     math.NewInt(1000000),
+			}
+			err := msg.ValidateBasic()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateComputeSpec() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && err != nil && tt.errMsg != "" {
+				if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("validateComputeSpec() error = %v, want error containing %v", err, tt.errMsg)
+				}
+			}
+		})
+	}
+}
+
+// ============================================================================
+// MsgAppealSlashing Additional Tests
+// ============================================================================
+
+func TestMsgAppealSlashing_JustificationTooLong(t *testing.T) {
+	msg := MsgAppealSlashing{
+		Provider:      validAddress,
+		SlashId:       1,
+		Justification: strings.Repeat("a", maxAppealJustificationLength+1),
+		DepositAmount: math.NewInt(100000),
+	}
+
+	err := msg.ValidateBasic()
+	if err == nil {
+		t.Error("Expected error for justification too long")
+	}
+	if !strings.Contains(err.Error(), "justification exceeds max length") {
+		t.Errorf("Expected error about justification length, got: %v", err)
+	}
+}
