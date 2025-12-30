@@ -24,19 +24,19 @@ var _ types.MsgServer = msgServer{}
 func (ms msgServer) CreatePool(goCtx context.Context, msg *types.MsgCreatePool) (*types.MsgCreatePoolResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: validate: %w", err)
 	}
 
 	// Parse creator address
 	creator, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: invalid creator address: %w", err)
 	}
 
 	// Create pool using secure implementation
 	pool, err := ms.Keeper.CreatePool(goCtx, creator, msg.TokenA, msg.TokenB, msg.AmountA, msg.AmountB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: %w", err)
 	}
 
 	return &types.MsgCreatePoolResponse{
@@ -48,19 +48,19 @@ func (ms msgServer) CreatePool(goCtx context.Context, msg *types.MsgCreatePool) 
 func (ms msgServer) AddLiquidity(goCtx context.Context, msg *types.MsgAddLiquidity) (*types.MsgAddLiquidityResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("AddLiquidity: validate: %w", err)
 	}
 
 	// Parse provider address
 	provider, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("AddLiquidity: invalid provider address: %w", err)
 	}
 
 	// Add liquidity using secure implementation
 	shares, err := ms.Keeper.AddLiquidity(goCtx, provider, msg.PoolId, msg.AmountA, msg.AmountB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("AddLiquidity: %w", err)
 	}
 
 	return &types.MsgAddLiquidityResponse{
@@ -72,19 +72,19 @@ func (ms msgServer) AddLiquidity(goCtx context.Context, msg *types.MsgAddLiquidi
 func (ms msgServer) RemoveLiquidity(goCtx context.Context, msg *types.MsgRemoveLiquidity) (*types.MsgRemoveLiquidityResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RemoveLiquidity: validate: %w", err)
 	}
 
 	// Parse provider address
 	provider, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RemoveLiquidity: invalid provider address: %w", err)
 	}
 
 	// Remove liquidity using secure implementation
 	amountA, amountB, err := ms.Keeper.RemoveLiquidity(goCtx, provider, msg.PoolId, msg.Shares)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RemoveLiquidity: %w", err)
 	}
 
 	return &types.MsgRemoveLiquidityResponse{
@@ -97,7 +97,7 @@ func (ms msgServer) RemoveLiquidity(goCtx context.Context, msg *types.MsgRemoveL
 func (ms msgServer) Swap(goCtx context.Context, msg *types.MsgSwap) (*types.MsgSwapResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Swap: validate: %w", err)
 	}
 
 	// Check deadline - must be after current block time
@@ -109,13 +109,13 @@ func (ms msgServer) Swap(goCtx context.Context, msg *types.MsgSwap) (*types.MsgS
 	// Parse trader address
 	trader, err := sdk.AccAddressFromBech32(msg.Trader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Swap: invalid trader address: %w", err)
 	}
 
 	// Execute swap using secure implementation
 	amountOut, err := ms.Keeper.ExecuteSwap(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Swap: %w", err)
 	}
 
 	return &types.MsgSwapResponse{
@@ -127,13 +127,13 @@ func (ms msgServer) Swap(goCtx context.Context, msg *types.MsgSwap) (*types.MsgS
 func (ms msgServer) CommitSwap(goCtx context.Context, msg *types.MsgCommitSwap) (*types.MsgCommitSwapResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CommitSwap: validate: %w", err)
 	}
 
 	// Check if commit-reveal is enabled
 	params, err := ms.Keeper.GetParams(goCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CommitSwap: get params: %w", err)
 	}
 
 	if !params.EnableCommitReveal {
@@ -154,7 +154,7 @@ func (ms msgServer) CommitSwap(goCtx context.Context, msg *types.MsgCommitSwap) 
 	}
 
 	if err := ms.Keeper.SetSwapCommit(goCtx, commit); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CommitSwap: set commit: %w", err)
 	}
 
 	earliestReveal := ctx.BlockHeight() + int64(params.CommitRevealDelay)
@@ -182,13 +182,13 @@ func (ms msgServer) CommitSwap(goCtx context.Context, msg *types.MsgCommitSwap) 
 func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) (*types.MsgRevealSwapResponse, error) {
 	// Validate message
 	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RevealSwap: validate: %w", err)
 	}
 
 	// Check if commit-reveal is enabled
 	params, err := ms.Keeper.GetParams(goCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RevealSwap: get params: %w", err)
 	}
 
 	if !params.EnableCommitReveal {
@@ -204,7 +204,7 @@ func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) 
 	// Parse trader address
 	trader, err := sdk.AccAddressFromBech32(msg.Trader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RevealSwap: invalid trader address: %w", err)
 	}
 
 	// Compute the hash from revealed parameters
@@ -241,13 +241,13 @@ func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) 
 
 	// Delete the commitment now that it's being used
 	if err := ms.Keeper.DeleteSwapCommit(goCtx, revealedHash); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RevealSwap: delete commit: %w", err)
 	}
 
 	// Execute the swap using secure implementation
 	amountOut, err := ms.Keeper.ExecuteSwap(goCtx, trader, msg.PoolId, msg.TokenIn, msg.TokenOut, msg.AmountIn, msg.MinAmountOut)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RevealSwap: execute swap: %w", err)
 	}
 
 	// Emit reveal event

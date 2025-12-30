@@ -79,7 +79,7 @@ func (k Keeper) ExecuteMultiHopSwap(
 	// Get swap parameters
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ExecuteMultiHopSwap: get params: %w", err)
 	}
 
 	// Calculate all hops without committing state
@@ -129,7 +129,7 @@ func (k Keeper) ExecuteMultiHopSwap(
 
 		// Validate swap size
 		if err := k.ValidateSwapSize(currentAmount, reserveIn); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("ExecuteMultiHopSwap: validate swap size at hop %d: %w", i, err)
 		}
 
 		// Calculate fee and output
@@ -141,7 +141,7 @@ func (k Keeper) ExecuteMultiHopSwap(
 
 		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec(), params.MaxPoolDrainPercent)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("ExecuteMultiHopSwap: calculate swap output at hop %d: %w", i, err)
 		}
 
 		// Track reserve changes
@@ -295,7 +295,7 @@ func (k Keeper) SimulateMultiHopSwap(
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SimulateMultiHopSwap: get params: %w", err)
 	}
 
 	hopAmounts := make([]math.Int, len(hops)+1)
@@ -315,7 +315,7 @@ func (k Keeper) SimulateMultiHopSwap(
 		if !exists {
 			pool, err := k.GetPool(ctx, hop.PoolID)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("SimulateMultiHopSwap: get pool %d at hop %d: %w", hop.PoolID, i, err)
 			}
 			state.reserveA = pool.ReserveA
 			state.reserveB = pool.ReserveB
@@ -347,7 +347,7 @@ func (k Keeper) SimulateMultiHopSwap(
 
 		amountOut, err := k.CalculateSwapOutput(ctx, amountAfterFee, reserveIn, reserveOut, math.LegacyZeroDec(), params.MaxPoolDrainPercent)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("SimulateMultiHopSwap: calculate swap output at hop %d: %w", i, err)
 		}
 
 		// Update simulated state
@@ -425,7 +425,7 @@ func (k Keeper) buildTokenGraph(ctx context.Context) (*tokenGraph, error) {
 		return false
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("buildTokenGraph: iterate pools: %w", err)
 	}
 
 	return graph, nil
@@ -444,7 +444,7 @@ func (k *Keeper) getOrBuildTokenGraph(ctx context.Context) (*tokenGraph, error) 
 	// Cache is invalid or doesn't exist, build a new graph
 	graph, err := k.buildTokenGraph(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getOrBuildTokenGraph: build graph: %w", err)
 	}
 
 	// Update cache
@@ -499,7 +499,7 @@ func (k Keeper) FindBestRoute(
 	// Note: Cache only benefits pointer-receiver callers; value receivers rebuild each time
 	graph, err := k.buildTokenGraph(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FindBestRoute: build token graph: %w", err)
 	}
 
 	// Check if tokens exist in the graph
@@ -633,7 +633,7 @@ func (k Keeper) FindAllRoutes(
 
 	graph, err := k.buildTokenGraph(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FindAllRoutes: build token graph: %w", err)
 	}
 
 	routes := k.findRoutesWithBFS(graph, tokenIn, tokenOut, maxHops)

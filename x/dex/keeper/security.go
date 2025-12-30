@@ -124,14 +124,14 @@ func (k Keeper) WithReentrancyGuardAndLock(ctx context.Context, poolID uint64, o
 	// Use explicit guard parameter for in-memory locking (primarily for tests)
 	if guard != nil {
 		if err := guard.Lock(lockKey); err != nil {
-			return err
+			return fmt.Errorf("WithReentrancyGuardAndLock: memory lock %s: %w", lockKey, err)
 		}
 		defer guard.Unlock(lockKey)
 	}
 
 	// Acquire lock using KVStore
 	if err := k.acquireReentrancyLock(ctx, lockKey); err != nil {
-		return err
+		return fmt.Errorf("WithReentrancyGuardAndLock: kvstore lock %s: %w", lockKey, err)
 	}
 
 	// Ensure lock is released even if function panics
@@ -323,7 +323,7 @@ func (k Keeper) ValidatePoolState(pool *types.Pool) error {
 func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, operation string) error {
 	state, err := k.GetPoolCircuitBreakerState(ctx, pool.Id)
 	if err != nil {
-		return err
+		return fmt.Errorf("checkPoolPriceDeviation: get circuit breaker state for pool %d: %w", pool.Id, err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -348,7 +348,7 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 	if !state.LastPrice.IsZero() {
 		maxDeviation, err := math.LegacyNewDecFromStr(MaxPriceDeviation)
 		if err != nil {
-			return err
+			return fmt.Errorf("checkPoolPriceDeviation: parse max deviation: %w", err)
 		}
 
 		var deviation math.LegacyDec
@@ -373,7 +373,7 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 			state.TriggerReason = fmt.Sprintf("price deviation of %s%% during %s", deviation.Mul(math.LegacyNewDec(100)), operation)
 
 			if err := k.SetCircuitBreakerState(ctx, pool.Id, state); err != nil {
-				return err
+				return fmt.Errorf("checkPoolPriceDeviation: set circuit breaker state: %w", err)
 			}
 
 			// Emit event
@@ -398,7 +398,7 @@ func (k Keeper) checkPoolPriceDeviation(ctx context.Context, pool *types.Pool, o
 	// Update last known price
 	state.LastPrice = currentPrice
 	if err := k.SetCircuitBreakerState(ctx, pool.Id, state); err != nil {
-		return err
+		return fmt.Errorf("checkPoolPriceDeviation: update circuit breaker state: %w", err)
 	}
 
 	return nil
@@ -418,7 +418,7 @@ func (k Keeper) GetPoolCircuitBreakerState(ctx context.Context, poolID uint64) (
 
 	var state types.CircuitBreakerState
 	if err := k.cdc.Unmarshal(bz, &state); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetPoolCircuitBreakerState: unmarshal: %w", err)
 	}
 	return &state, nil
 }
@@ -428,7 +428,7 @@ func (k Keeper) SetCircuitBreakerState(ctx context.Context, poolID uint64, state
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(state)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetCircuitBreakerState: marshal: %w", err)
 	}
 	store.Set(CircuitBreakerKey(poolID), bz)
 	return nil
@@ -452,7 +452,7 @@ func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason st
 	}
 
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {
-		return err
+		return fmt.Errorf("EmergencyPausePool: set circuit breaker state: %w", err)
 	}
 
 	// Emit event
@@ -472,7 +472,7 @@ func (k Keeper) EmergencyPausePool(ctx context.Context, poolID uint64, reason st
 func (k Keeper) UnpausePool(ctx context.Context, poolID uint64) error {
 	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("UnpausePool: get circuit breaker state: %w", err)
 	}
 
 	state.Enabled = false
@@ -480,7 +480,7 @@ func (k Keeper) UnpausePool(ctx context.Context, poolID uint64) error {
 	state.TriggerReason = ""
 
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {
-		return err
+		return fmt.Errorf("UnpausePool: set circuit breaker state: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -501,7 +501,7 @@ func (k Keeper) SendCircuitBreakerNotification(ctx context.Context, poolID uint6
 	// Get current state to update notification tracking
 	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("SendCircuitBreakerNotification: get circuit breaker state: %w", err)
 	}
 
 	// Increment notification counter
@@ -510,7 +510,7 @@ func (k Keeper) SendCircuitBreakerNotification(ctx context.Context, poolID uint6
 
 	// Persist updated state
 	if err := k.SetCircuitBreakerState(ctx, poolID, state); err != nil {
-		return err
+		return fmt.Errorf("SendCircuitBreakerNotification: set circuit breaker state: %w", err)
 	}
 
 	// Emit detailed notification event for external monitoring systems
@@ -553,7 +553,7 @@ func (k Keeper) getNotificationSeverity(eventType string) string {
 func (k Keeper) PersistCircuitBreakerState(ctx context.Context, poolID uint64) error {
 	state, err := k.GetPoolCircuitBreakerState(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("PersistCircuitBreakerState: get circuit breaker state: %w", err)
 	}
 
 	// State is already persisted via SetCircuitBreakerState which uses KVStore

@@ -21,7 +21,7 @@ func (k Keeper) GetLiquidity(ctx context.Context, poolID uint64, provider sdk.Ac
 
 	var shares math.Int
 	if err := shares.Unmarshal(bz); err != nil {
-		return math.ZeroInt(), err
+		return math.ZeroInt(), fmt.Errorf("GetLiquidity: unmarshal shares: %w", err)
 	}
 	return shares, nil
 }
@@ -37,7 +37,7 @@ func (k Keeper) SetLiquidity(ctx context.Context, poolID uint64, provider sdk.Ac
 
 	bz, err := shares.Marshal()
 	if err != nil {
-		return err
+		return fmt.Errorf("SetLiquidity: marshal shares: %w", err)
 	}
 	store.Set(LiquidityKey(poolID, provider), bz)
 	return nil
@@ -514,7 +514,7 @@ func (k Keeper) IterateLiquidityByPool(ctx context.Context, poolID uint64, cb fu
 
 		var shares math.Int
 		if err := shares.Unmarshal(iterator.Value()); err != nil {
-			return err
+			return fmt.Errorf("IterateLiquidityByPool: unmarshal shares: %w", err)
 		}
 
 		// Extract provider address from key
@@ -588,7 +588,7 @@ func (k Keeper) IterateLiquidityByPoolPaginated(
 	for count := uint64(0); iterator.Valid() && count < limit; iterator.Next() {
 		var shares math.Int
 		if err := shares.Unmarshal(iterator.Value()); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("IterateLiquidityByPoolPaginated: unmarshal shares: %w", err)
 		}
 
 		// Extract provider address from key

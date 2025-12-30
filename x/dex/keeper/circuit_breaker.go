@@ -177,7 +177,7 @@ func (k Keeper) ClosePoolCircuitBreaker(ctx context.Context, poolID uint64, acto
 func (k Keeper) CheckPoolCircuitBreaker(ctx context.Context, poolID uint64) error {
 	// Check global circuit breaker first
 	if err := k.CheckCircuitBreaker(ctx); err != nil {
-		return err
+		return fmt.Errorf("CheckPoolCircuitBreaker: global breaker: %w", err)
 	}
 
 	// Check pool-specific circuit breaker

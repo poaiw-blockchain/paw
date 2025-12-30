@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,7 +24,7 @@ func (k *Keeper) GetCircuitParams(ctx context.Context, circuitID string) (*types
 
 	var params types.CircuitParams
 	if err := json.Unmarshal(bz, &params); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetCircuitParams: unmarshal: %w", err)
 	}
 
 	return &params, nil
@@ -36,7 +37,7 @@ func (k *Keeper) SetCircuitParams(ctx context.Context, params types.CircuitParam
 
 	bz, err := json.Marshal(&params)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetCircuitParams: marshal: %w", err)
 	}
 
 	store.Set(key, bz)
@@ -82,7 +83,7 @@ func (k *Keeper) GetZKMetrics(ctx context.Context) (*types.ZKMetrics, error) {
 
 	var metrics types.ZKMetrics
 	if err := json.Unmarshal(bz, &metrics); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetZKMetrics: unmarshal: %w", err)
 	}
 
 	return &metrics, nil
@@ -94,7 +95,7 @@ func (k *Keeper) SetZKMetrics(ctx context.Context, metrics types.ZKMetrics) erro
 
 	bz, err := json.Marshal(&metrics)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetZKMetrics: marshal: %w", err)
 	}
 
 	store.Set([]byte("zk_metrics"), bz)

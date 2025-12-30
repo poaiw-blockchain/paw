@@ -49,7 +49,7 @@ func (k Keeper) CheckRateLimit(ctx context.Context, account sdk.AccAddress) erro
 		// First request - create bucket
 		params, err := k.GetParams(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("CheckRateLimit: get params: %w", err)
 		}
 
 		config := k.GetDefaultRateLimitConfig(params)
@@ -87,7 +87,7 @@ func (k Keeper) CheckRateLimit(ctx context.Context, account sdk.AccAddress) erro
 	// Get rate limit config
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckRateLimit: get params: %w", err)
 	}
 	config := k.GetDefaultRateLimitConfig(params)
 
@@ -262,7 +262,7 @@ func (k Keeper) CheckProviderCapacity(ctx context.Context, provider sdk.AccAddre
 
 		params, err := k.GetParams(ctx)
 		if err != nil {
-			return err
+			return fmt.Errorf("CheckProviderLoad: get params: %w", err)
 		}
 		config := k.GetDefaultRateLimitConfig(params)
 
@@ -453,7 +453,7 @@ func (k Keeper) GetRateLimitBucket(ctx context.Context, account sdk.AccAddress) 
 
 	var bucket RateLimitBucket
 	if err := k.cdc.Unmarshal(bz, &bucket); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetRateLimitBucket: unmarshal: %w", err)
 	}
 
 	return &bucket, nil
@@ -463,12 +463,12 @@ func (k Keeper) SetRateLimitBucket(ctx context.Context, bucket RateLimitBucket) 
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&bucket)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetRateLimitBucket: marshal: %w", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(bucket.Account)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetRateLimitBucket: invalid account: %w", err)
 	}
 
 	store.Set(RateLimitBucketKey(addr), bz)
@@ -485,7 +485,7 @@ func (k Keeper) GetResourceQuota(ctx context.Context, account sdk.AccAddress) (*
 
 	var quota types.ResourceQuota
 	if err := k.cdc.Unmarshal(bz, &quota); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetResourceQuota: unmarshal: %w", err)
 	}
 
 	return &quota, nil
@@ -495,12 +495,12 @@ func (k Keeper) SetResourceQuota(ctx context.Context, quota types.ResourceQuota)
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&quota)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetResourceQuota: marshal: %w", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(quota.Account)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetResourceQuota: invalid account: %w", err)
 	}
 
 	store.Set(ResourceQuotaKey(addr), bz)
@@ -517,7 +517,7 @@ func (k Keeper) GetProviderLoadTracker(ctx context.Context, provider sdk.AccAddr
 
 	var tracker ProviderLoadTracker
 	if err := k.cdc.Unmarshal(bz, &tracker); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProviderLoadTracker: unmarshal: %w", err)
 	}
 
 	return &tracker, nil
@@ -527,12 +527,12 @@ func (k Keeper) SetProviderLoadTracker(ctx context.Context, tracker ProviderLoad
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&tracker)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProviderLoadTracker: marshal: %w", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(tracker.Provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProviderLoadTracker: invalid provider: %w", err)
 	}
 
 	store.Set(ProviderLoadKey(addr), bz)

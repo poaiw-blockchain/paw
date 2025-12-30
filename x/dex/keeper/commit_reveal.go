@@ -73,7 +73,7 @@ func SwapCommitmentByTraderKey(trader sdk.AccAddress, commitmentHash []byte) []b
 func (k Keeper) RequiresCommitReveal(ctx context.Context, poolID uint64, amountIn math.Int) (bool, error) {
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("RequiresCommitReveal: get pool: %w", err)
 	}
 
 	// Use the smaller reserve to calculate threshold
@@ -84,7 +84,7 @@ func (k Keeper) RequiresCommitReveal(ctx context.Context, poolID uint64, amountI
 
 	threshold, err := math.LegacyNewDecFromStr(LargeSwapThresholdPercent)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("RequiresCommitReveal: parse threshold: %w", err)
 	}
 
 	thresholdAmount := math.LegacyNewDecFromInt(smallerReserve).Mul(threshold).TruncateInt()
@@ -160,7 +160,7 @@ func (k Keeper) CommitSwap(
 	// Store commitment
 	bz, err := json.Marshal(commitment)
 	if err != nil {
-		return err
+		return fmt.Errorf("CommitSwap: marshal commitment: %w", err)
 	}
 	store.Set(key, bz)
 
@@ -211,7 +211,7 @@ func (k Keeper) RevealAndExecuteSwap(
 
 	var commitment SwapCommitment
 	if err := json.Unmarshal(bz, &commitment); err != nil {
-		return math.ZeroInt(), err
+		return math.ZeroInt(), fmt.Errorf("RevealAndExecuteSwap: unmarshal commitment: %w", err)
 	}
 
 	// Verify trader matches
@@ -257,7 +257,7 @@ func (k Keeper) RevealAndExecuteSwap(
 	// Execute the swap using the secure path
 	amountOut, err := k.ExecuteSwap(ctx, trader, poolID, tokenIn, tokenOut, amountIn, minAmountOut)
 	if err != nil {
-		return math.ZeroInt(), err
+		return math.ZeroInt(), fmt.Errorf("RevealAndExecuteSwap: execute swap: %w", err)
 	}
 
 	// Emit reveal event
@@ -369,7 +369,7 @@ func (k Keeper) GetSwapCommitment(ctx context.Context, commitmentHash []byte) (*
 
 	var commitment SwapCommitment
 	if err := json.Unmarshal(bz, &commitment); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetSwapCommitment: unmarshal: %w", err)
 	}
 
 	return &commitment, nil
@@ -415,7 +415,7 @@ func (k Keeper) CancelSwapCommitment(
 
 	var commitment SwapCommitment
 	if err := json.Unmarshal(bz, &commitment); err != nil {
-		return err
+		return fmt.Errorf("CancelSwapCommitment: unmarshal commitment: %w", err)
 	}
 
 	// Verify trader
@@ -432,7 +432,7 @@ func (k Keeper) CancelSwapCommitment(
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(
 		sdkCtx, types.ModuleName, trader, sdk.NewCoins(refundCoin),
 	); err != nil {
-		return err
+		return fmt.Errorf("CancelSwapCommitment: send refund: %w", err)
 	}
 
 	// Send fee to protocol

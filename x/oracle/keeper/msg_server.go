@@ -93,10 +93,10 @@ func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice
 	// Check if validator is active (bonded)
 	isActive, err := ms.IsActiveValidator(goCtx, validatorAddr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SubmitPrice: check validator status: %w", err)
 	}
 	if !isActive {
-		return nil, fmt.Errorf("validator %s is not bonded", validatorAddr.String())
+		return nil, fmt.Errorf("SubmitPrice: validator %s is not bonded", validatorAddr.String())
 	}
 
 	// Validate asset identifier
@@ -122,7 +122,7 @@ func (ms msgServer) SubmitPrice(goCtx context.Context, msg *types.MsgSubmitPrice
 	}
 
 	if err := ms.Keeper.SubmitPrice(goCtx, validatorAddr, msg.Asset, msg.Price, feederAddr); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SubmitPrice: %w", err)
 	}
 
 	return &types.MsgSubmitPriceResponse{}, nil
@@ -147,15 +147,15 @@ func (ms msgServer) DelegateFeedConsent(goCtx context.Context, msg *types.MsgDel
 	// Check if validator exists and is bonded
 	isActive, err := ms.IsActiveValidator(goCtx, validatorAddr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DelegateFeedConsent: check validator status: %w", err)
 	}
 	if !isActive {
-		return nil, fmt.Errorf("validator %s is not bonded", validatorAddr.String())
+		return nil, fmt.Errorf("DelegateFeedConsent: validator %s is not bonded", validatorAddr.String())
 	}
 
 	// Set feeder delegation
 	if err := ms.SetFeederDelegation(goCtx, validatorAddr, delegateAddr); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DelegateFeedConsent: set delegation: %w", err)
 	}
 
 	// Emit event
@@ -190,7 +190,7 @@ func (ms msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdatePara
 
 	// Set new parameters
 	if err := ms.SetParams(goCtx, msg.Params); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("UpdateParams: %w", err)
 	}
 
 	// Emit event
@@ -316,7 +316,7 @@ func (ms msgServer) EmergencyPauseOracle(goCtx context.Context, msg *types.MsgEm
 
 	// Trigger emergency pause
 	if err := ms.Keeper.EmergencyPauseOracle(goCtx, signerAddr.String(), msg.Reason); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("EmergencyPauseOracle: %w", err)
 	}
 
 	ctx.Logger().Info(
@@ -350,7 +350,7 @@ func (ms msgServer) ResumeOracle(goCtx context.Context, msg *types.MsgResumeOrac
 
 	// Resume oracle operations
 	if err := ms.Keeper.ResumeOracle(goCtx, msg.Authority, msg.Reason); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ResumeOracle: %w", err)
 	}
 
 	ctx.Logger().Info(

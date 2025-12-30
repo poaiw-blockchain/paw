@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cosmossdk.io/math"
@@ -21,7 +22,7 @@ func (k Keeper) GetPoolTWAP(ctx context.Context, poolID uint64) (*types.PoolTWAP
 
 	var record types.PoolTWAP
 	if err := k.cdc.Unmarshal(bz, &record); err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("GetPoolTWAP: unmarshal: %w", err)
 	}
 	return &record, true, nil
 }
@@ -31,7 +32,7 @@ func (k Keeper) SetPoolTWAP(ctx context.Context, record types.PoolTWAP) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&record)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetPoolTWAP: marshal: %w", err)
 	}
 	store.Set(PoolTWAPKey(record.PoolId), bz)
 	return nil
@@ -47,7 +48,7 @@ func (k Keeper) GetAllPoolTWAPs(ctx context.Context) ([]types.PoolTWAP, error) {
 	for ; iter.Valid(); iter.Next() {
 		var record types.PoolTWAP
 		if err := k.cdc.Unmarshal(iter.Value(), &record); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetAllPoolTWAPs: unmarshal: %w", err)
 		}
 		records = append(records, record)
 	}
@@ -144,7 +145,7 @@ func (k Keeper) GetTWAP(ctx context.Context, poolID uint64, startTime, endTime i
 	// A production implementation would store historical snapshots at regular intervals
 	record, found, err := k.GetPoolTWAP(ctx, poolID)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetTWAP: get pool TWAP: %w", err)
 	}
 
 	if !found {
@@ -169,7 +170,7 @@ func (k Keeper) GetTWAP(ctx context.Context, poolID uint64, startTime, endTime i
 func (k Keeper) GetCurrentTWAP(ctx context.Context, poolID uint64) (math.LegacyDec, error) {
 	record, found, err := k.GetPoolTWAP(ctx, poolID)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetCurrentTWAP: get pool TWAP: %w", err)
 	}
 
 	if !found {

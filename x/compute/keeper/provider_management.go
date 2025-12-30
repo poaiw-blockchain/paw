@@ -96,7 +96,7 @@ func (k Keeper) recordProviderSlash(
 
 	bz, err := json.Marshal(slashData)
 	if err != nil {
-		return err
+		return fmt.Errorf("recordSlashEvent: marshal: %w", err)
 	}
 
 	store.Set(slashKey, bz)
@@ -142,7 +142,7 @@ func (k Keeper) ApplyReputationDecayToAll(ctx context.Context) error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("ApplyReputationDecayToAll: iterate reputations: %w", err)
 	}
 
 	if decayedCount > 0 {
@@ -228,7 +228,7 @@ func (k Keeper) TrackProviderPerformance(
 
 	bz, err := json.Marshal(metricsData)
 	if err != nil {
-		return err
+		return fmt.Errorf("RecordProviderPerformance: marshal metrics: %w", err)
 	}
 
 	store.Set(metricsKey, bz)
@@ -292,7 +292,7 @@ func (k Keeper) MonitorProviderAvailability(ctx context.Context) error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("MonitorProviderAvailability: iterate providers: %w", err)
 	}
 
 	if unavailableProviders > 0 {
@@ -430,7 +430,7 @@ func (k Keeper) SelectProviderWithLoadBalancing(
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SelectProviderWithLoadBalancing: iterate providers: %w", err)
 	}
 
 	if bestProvider.Empty() {
@@ -567,7 +567,7 @@ func (k Keeper) EnqueuePrioritizedRequest(
 
 	bz, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("PrioritizeRequest: marshal: %w", err)
 	}
 
 	store.Set(priorityKey, bz)

@@ -334,7 +334,7 @@ func (k Keeper) CloseFeedCircuitBreaker(ctx context.Context, feedType, actor, re
 func (k Keeper) CheckFeedCircuitBreaker(ctx context.Context, feedType string) error {
 	// Check global circuit breaker first
 	if err := k.CheckCircuitBreaker(ctx); err != nil {
-		return err
+		return fmt.Errorf("CheckFeedCircuitBreaker: global circuit breaker check failed: %w", err)
 	}
 
 	// Check feed-specific circuit breaker

@@ -73,7 +73,7 @@ func (k Keeper) RefundOnChannelClose(ctx sdk.Context, op ChannelOperation) error
 	case PacketTypeSubmitJob:
 		if op.JobID != "" {
 			if err := k.refundJobOnChannelClose(ctx, op.JobID); err != nil {
-				return err
+				return fmt.Errorf("RefundOnChannelClose: refund job %s: %w", op.JobID, err)
 			}
 		}
 		k.removePendingJobSubmission(ctx, op.ChannelID, op.Sequence)
@@ -107,7 +107,7 @@ func (k Keeper) refundJobOnChannelClose(ctx sdk.Context, jobID string) error {
 	}
 
 	if err := k.RefundEscrowOnTimeout(ctx, jobID, "ibc_channel_closed"); err != nil {
-		return err
+		return fmt.Errorf("refundJobOnChannelClose: refund escrow for job %s: %w", jobID, err)
 	}
 
 	return nil

@@ -51,7 +51,7 @@ func (k Keeper) setDispute(ctx context.Context, dispute types.Dispute) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&dispute)
 	if err != nil {
-		return err
+		return fmt.Errorf("setDispute: marshal: %w", err)
 	}
 	store.Set(DisputeKey(dispute.Id), bz)
 
@@ -69,7 +69,7 @@ func (k Keeper) getDispute(ctx context.Context, id uint64) (*types.Dispute, erro
 	}
 	var dispute types.Dispute
 	if err := k.cdc.Unmarshal(bz, &dispute); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getDispute: unmarshal: %w", err)
 	}
 	return &dispute, nil
 }
@@ -93,7 +93,7 @@ func (k Keeper) appendEvidence(ctx context.Context, disputeID uint64, evidence t
 
 	bz, err := k.cdc.Marshal(&evidence)
 	if err != nil {
-		return err
+		return fmt.Errorf("appendEvidence: marshal: %w", err)
 	}
 	store.Set(EvidenceKey(disputeID, idx), bz)
 	return nil
@@ -120,7 +120,7 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 	// governance deposit requirement
 	govParams, err := k.GetGovernanceParams(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateDispute: get governance params: %w", err)
 	}
 	minDeposit := govParams.DisputeDeposit
 	if deposit.IsNil() || deposit.LT(minDeposit) {
@@ -136,7 +136,7 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 
 	disputeID, err := k.getNextDisputeID(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateDispute: get next dispute ID: %w", err)
 	}
 
 	now := sdkCtx.BlockTime()
@@ -156,7 +156,7 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 	}
 
 	if err := k.setDispute(ctx, dispute); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateDispute: set dispute: %w", err)
 	}
 
 	// store initial evidence if provided
@@ -170,7 +170,7 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 			SubmittedAt:  now,
 		}
 		if err := k.appendEvidence(ctx, disputeID, evidence); err != nil {
-			return 0, err
+			return 0, fmt.Errorf("CreateDispute: append evidence: %w", err)
 		}
 	}
 
@@ -190,7 +190,7 @@ func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, req
 func (k Keeper) VoteOnDispute(ctx context.Context, validator sdk.ValAddress, disputeID uint64, vote types.DisputeVoteOption, justification string) error {
 	dispute, err := k.getDispute(ctx, disputeID)
 	if err != nil {
-		return err
+		return fmt.Errorf("VoteOnDispute: %w", err)
 	}
 
 	if dispute.Status != types.DISPUTE_STATUS_EVIDENCE_SUBMISSION && dispute.Status != types.DISPUTE_STATUS_VOTING {
@@ -216,7 +216,10 @@ func (k Keeper) VoteOnDispute(ctx context.Context, validator sdk.ValAddress, dis
 	})
 	dispute.Status = types.DISPUTE_STATUS_VOTING
 
-	return k.setDispute(ctx, *dispute)
+	if err := k.setDispute(ctx, *dispute); err != nil {
+		return fmt.Errorf("VoteOnDispute: save dispute: %w", err)
+	}
+	return nil
 }
 
 // ResolveDispute tallies votes and applies resolution logic; authority-gated.
@@ -227,7 +230,7 @@ func (k Keeper) ResolveDispute(ctx context.Context, authority sdk.AccAddress, di
 
 	dispute, err := k.getDispute(ctx, disputeID)
 	if err != nil {
-		return types.DISPUTE_RESOLUTION_UNSPECIFIED, err
+		return types.DISPUTE_RESOLUTION_UNSPECIFIED, fmt.Errorf("ResolveDispute: %w", err)
 	}
 
 	// power-weighted tally
@@ -244,7 +247,7 @@ func (k Keeper) ResolveDispute(ctx context.Context, authority sdk.AccAddress, di
 	// quorum check (best effort, relative to total bonded if available)
 	gov, err := k.GetGovernanceParams(ctx)
 	if err != nil {
-		return types.DISPUTE_RESOLUTION_UNSPECIFIED, err
+		return types.DISPUTE_RESOLUTION_UNSPECIFIED, fmt.Errorf("ResolveDispute: get governance params: %w", err)
 	}
 	if totalPower.IsZero() {
 		return types.DISPUTE_RESOLUTION_UNSPECIFIED, fmt.Errorf("no votes submitted")
@@ -280,7 +283,7 @@ func (k Keeper) ResolveDispute(ctx context.Context, authority sdk.AccAddress, di
 	dispute.ResolvedAt = &now
 
 	if err := k.setDispute(ctx, *dispute); err != nil {
-		return types.DISPUTE_RESOLUTION_UNSPECIFIED, err
+		return types.DISPUTE_RESOLUTION_UNSPECIFIED, fmt.Errorf("ResolveDispute: save dispute: %w", err)
 	}
 
 	return resolution, nil
@@ -303,7 +306,7 @@ func (k Keeper) CreateAppeal(ctx context.Context, provider sdk.AccAddress, slash
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	govParams, err := k.GetGovernanceParams(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateAppeal: get governance params: %w", err)
 	}
 	if deposit.IsNil() {
 		return 0, fmt.Errorf("appeal deposit required")
@@ -331,7 +334,7 @@ func (k Keeper) CreateAppeal(ctx context.Context, provider sdk.AccAddress, slash
 
 	appealID, err := k.getNextAppealID(ctx)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateAppeal: get next appeal ID: %w", err)
 	}
 
 	now := sdkCtx.BlockTime()
@@ -348,7 +351,7 @@ func (k Keeper) CreateAppeal(ctx context.Context, provider sdk.AccAddress, slash
 	}
 
 	if err := k.setAppeal(ctx, appeal); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("CreateAppeal: set appeal: %w", err)
 	}
 
 	sdkCtx.EventManager().EmitEvent(
@@ -366,7 +369,7 @@ func (k Keeper) setAppeal(ctx context.Context, appeal types.Appeal) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&appeal)
 	if err != nil {
-		return err
+		return fmt.Errorf("setAppeal: marshal: %w", err)
 	}
 	store.Set(AppealKey(appeal.Id), bz)
 	store.Set(AppealByStatusKey(types.SaturateInt64ToUint32(int64(appeal.Status)), appeal.Id), []byte{})
@@ -381,7 +384,7 @@ func (k Keeper) getAppeal(ctx context.Context, id uint64) (*types.Appeal, error)
 	}
 	var appeal types.Appeal
 	if err := k.cdc.Unmarshal(bz, &appeal); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getAppeal: unmarshal: %w", err)
 	}
 	return &appeal, nil
 }
@@ -389,7 +392,7 @@ func (k Keeper) getAppeal(ctx context.Context, id uint64) (*types.Appeal, error)
 func (k Keeper) VoteOnAppeal(ctx context.Context, validator sdk.ValAddress, appealID uint64, approve bool, justification string) error {
 	appeal, err := k.getAppeal(ctx, appealID)
 	if err != nil {
-		return err
+		return fmt.Errorf("VoteOnAppeal: %w", err)
 	}
 	if appeal.Status != types.APPEAL_STATUS_PENDING && appeal.Status != types.APPEAL_STATUS_VOTING {
 		return fmt.Errorf("appeal %d not accepting votes", appealID)
@@ -409,7 +412,10 @@ func (k Keeper) VoteOnAppeal(ctx context.Context, validator sdk.ValAddress, appe
 		VotedAt:       sdk.UnwrapSDKContext(ctx).BlockTime(),
 	})
 	appeal.Status = types.APPEAL_STATUS_VOTING
-	return k.setAppeal(ctx, *appeal)
+	if err := k.setAppeal(ctx, *appeal); err != nil {
+		return fmt.Errorf("VoteOnAppeal: save appeal: %w", err)
+	}
+	return nil
 }
 
 func (k Keeper) ResolveAppeal(ctx context.Context, authority sdk.AccAddress, appealID uint64) (bool, error) {
@@ -419,7 +425,7 @@ func (k Keeper) ResolveAppeal(ctx context.Context, authority sdk.AccAddress, app
 
 	appeal, err := k.getAppeal(ctx, appealID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ResolveAppeal: %w", err)
 	}
 
 	approveCount := 0
@@ -435,7 +441,7 @@ func (k Keeper) ResolveAppeal(ctx context.Context, authority sdk.AccAddress, app
 	appeal.ResolvedAt = &now
 
 	if err := k.setAppeal(ctx, *appeal); err != nil {
-		return false, err
+		return false, fmt.Errorf("ResolveAppeal: save appeal: %w", err)
 	}
 
 	return approved, nil
@@ -445,19 +451,19 @@ func (k Keeper) ResolveAppeal(ctx context.Context, authority sdk.AccAddress, app
 func (k Keeper) ApplyAppealOutcome(ctx context.Context, appealID uint64, approved bool) error {
 	appeal, err := k.getAppeal(ctx, appealID)
 	if err != nil {
-		return err
+		return fmt.Errorf("ApplyAppealOutcome: get appeal: %w", err)
 	}
 
 	record, err := k.getSlashRecord(ctx, appeal.SlashId)
 	if err != nil {
-		return err
+		return fmt.Errorf("ApplyAppealOutcome: get slash record: %w", err)
 	}
 
 	// If approved, refund slash amount to provider; otherwise leave slash.
 	if approved && record.Amount.IsPositive() {
 		providerAddr, err := sdk.AccAddressFromBech32(record.Provider)
 		if err != nil {
-			return err
+			return fmt.Errorf("ApplyAppealOutcome: invalid provider address: %w", err)
 		}
 		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		coins := sdk.NewCoins(sdk.NewCoin("upaw", record.Amount))
@@ -468,14 +474,17 @@ func (k Keeper) ApplyAppealOutcome(ctx context.Context, appealID uint64, approve
 		if err == nil {
 			provider.Stake = provider.Stake.Add(record.Amount)
 			if err := k.SetProvider(ctx, *provider); err != nil {
-				return err
+				return fmt.Errorf("ApplyAppealOutcome: update provider stake: %w", err)
 			}
 		}
 	}
 
 	record.Appealed = true
 	record.AppealId = appeal.Id
-	return k.setSlashRecord(ctx, *record)
+	if err := k.setSlashRecord(ctx, *record); err != nil {
+		return fmt.Errorf("ApplyAppealOutcome: save slash record: %w", err)
+	}
+	return nil
 }
 
 // Governance params storage with defaults
@@ -487,7 +496,7 @@ func (k Keeper) GetGovernanceParams(ctx context.Context) (types.GovernanceParams
 	}
 	var params types.GovernanceParams
 	if err := k.cdc.Unmarshal(bz, &params); err != nil {
-		return types.GovernanceParams{}, err
+		return types.GovernanceParams{}, fmt.Errorf("GetGovernanceParams: unmarshal: %w", err)
 	}
 	return params, nil
 }
@@ -496,7 +505,7 @@ func (k Keeper) SetGovernanceParams(ctx context.Context, params types.Governance
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&params)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetGovernanceParams: marshal: %w", err)
 	}
 	store.Set(GovernanceParamsKey, bz)
 	return nil
@@ -511,13 +520,13 @@ func (k Keeper) ListEvidence(ctx context.Context, disputeID uint64, pageReq *que
 	pageRes, err := query.Paginate(evStore, pageReq, func(key []byte, value []byte) error {
 		var ev types.Evidence
 		if err := k.cdc.Unmarshal(value, &ev); err != nil {
-			return err
+			return fmt.Errorf("unmarshal evidence: %w", err)
 		}
 		evidence = append(evidence, ev)
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("ListEvidence: paginate: %w", err)
 	}
 
 	return evidence, pageRes, nil
@@ -526,11 +535,11 @@ func (k Keeper) ListEvidence(ctx context.Context, disputeID uint64, pageReq *que
 // SubmitEvidence attaches evidence to a dispute, enforcing size limits and windows.
 func (k Keeper) SubmitEvidence(ctx context.Context, submitter sdk.AccAddress, disputeID uint64, evidenceType string, data []byte, description string) error {
 	if len(data) == 0 {
-		return fmt.Errorf("evidence data cannot be empty")
+		return fmt.Errorf("SubmitEvidence: evidence data cannot be empty")
 	}
 	gov, err := k.GetGovernanceParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SubmitEvidence: get governance params: %w", err)
 	}
 	if gov.MaxEvidenceSize > 0 && uint64(len(data)) > gov.MaxEvidenceSize {
 		return fmt.Errorf("evidence size %d exceeds max %d", len(data), gov.MaxEvidenceSize)
@@ -538,10 +547,10 @@ func (k Keeper) SubmitEvidence(ctx context.Context, submitter sdk.AccAddress, di
 
 	dispute, err := k.getDispute(ctx, disputeID)
 	if err != nil {
-		return err
+		return fmt.Errorf("SubmitEvidence: %w", err)
 	}
 	if dispute.Status != types.DISPUTE_STATUS_EVIDENCE_SUBMISSION {
-		return fmt.Errorf("dispute not accepting evidence")
+		return fmt.Errorf("SubmitEvidence: dispute not accepting evidence")
 	}
 
 	now := sdk.UnwrapSDKContext(ctx).BlockTime()
@@ -558,7 +567,7 @@ func (k Keeper) SubmitEvidence(ctx context.Context, submitter sdk.AccAddress, di
 		SubmittedAt:  now,
 	}
 	if err := k.appendEvidence(ctx, disputeID, ev); err != nil {
-		return err
+		return fmt.Errorf("SubmitEvidence: %w", err)
 	}
 	return nil
 }
@@ -567,21 +576,21 @@ func (k Keeper) SubmitEvidence(ctx context.Context, submitter sdk.AccAddress, di
 func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, resolution types.DisputeResolution) error {
 	dispute, err := k.getDispute(ctx, disputeID)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: get dispute: %w", err)
 	}
 	request, err := k.GetRequest(ctx, dispute.RequestId)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: get request: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	providerAddr, err := sdk.AccAddressFromBech32(dispute.Provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: invalid provider address: %w", err)
 	}
 	requesterAddr, err := sdk.AccAddressFromBech32(dispute.Requester)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: invalid requester address: %w", err)
 	}
 
 	// helper to refund deposit
@@ -597,13 +606,13 @@ func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, reso
 
 	params, err := k.GetGovernanceParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: get governance params: %w", err)
 	}
 
 	escrowAmount := request.EscrowedAmount
 	providerRecord, err := k.GetProvider(ctx, providerAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("SettleDisputeOutcome: get provider: %w", err)
 	}
 	denom := k.bondDenom(ctx)
 
@@ -634,47 +643,47 @@ func (k Keeper) SettleDisputeOutcome(ctx context.Context, disputeID uint64, reso
 			}
 			providerRecord.Stake = providerRecord.Stake.Sub(slashAmt)
 			if err := k.SetProvider(ctx, *providerRecord); err != nil {
-				return err
+				return fmt.Errorf("SettleDisputeOutcome: update provider: %w", err)
 			}
 			if _, err := k.recordSlash(ctx, providerAddr, request.Id, dispute.Id, slashAmt, dispute.Reason); err != nil {
-				return err
+				return fmt.Errorf("SettleDisputeOutcome: record slash: %w", err)
 			}
 		}
 		if hasEscrow {
 			if err := k.RefundEscrow(ctx, request.Id, "provider_fault"); err != nil {
-				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+				return fmt.Errorf("SettleDisputeOutcome: refund escrow: %w", err)
 			}
 		}
 		if err := refundDeposit(); err != nil {
-			return err
+			return fmt.Errorf("SettleDisputeOutcome: refund deposit: %w", err)
 		}
 	case types.DISPUTE_RESOLUTION_NO_REFUND:
 		if hasEscrow {
 			if err := k.ReleaseEscrow(ctx, request.Id, true); err != nil {
-				return fmt.Errorf("failed to release escrow during dispute settlement: %w", err)
+				return fmt.Errorf("SettleDisputeOutcome: release escrow: %w", err)
 			}
 		}
 		if err := refundDeposit(); err != nil {
-			return err
+			return fmt.Errorf("SettleDisputeOutcome: refund deposit: %w", err)
 		}
 	case types.DISPUTE_RESOLUTION_PARTIAL_REFUND:
 		// conservative default: refund escrow; governance can adopt finer-grained policies later
 		if hasEscrow {
 			if err := k.RefundEscrow(ctx, request.Id, "dispute_partial_refund"); err != nil {
-				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+				return fmt.Errorf("SettleDisputeOutcome: refund escrow: %w", err)
 			}
 		}
 		if err := refundDeposit(); err != nil {
-			return err
+			return fmt.Errorf("SettleDisputeOutcome: refund deposit: %w", err)
 		}
 	default:
 		if hasEscrow {
 			if err := k.RefundEscrow(ctx, request.Id, "dispute_default_refund"); err != nil {
-				return fmt.Errorf("failed to refund escrow during dispute settlement: %w", err)
+				return fmt.Errorf("SettleDisputeOutcome: refund escrow: %w", err)
 			}
 		}
 		if err := refundDeposit(); err != nil {
-			return err
+			return fmt.Errorf("SettleDisputeOutcome: refund deposit: %w", err)
 		}
 	}
 

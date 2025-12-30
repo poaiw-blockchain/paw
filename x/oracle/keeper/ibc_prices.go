@@ -665,7 +665,7 @@ func (k Keeper) getCrossChainOracleSource(ctx sdk.Context, chainID string) (*Cro
 
 	var source CrossChainOracleSource
 	if err := json.Unmarshal(sourceBytes, &source); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getOracleSource: failed to unmarshal source for chain %s: %w", chainID, err)
 	}
 
 	return &source, nil

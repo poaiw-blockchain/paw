@@ -232,7 +232,7 @@ func (k Keeper) GetProvider(ctx context.Context, address sdk.AccAddress) (*types
 
 	var provider types.Provider
 	if err := k.cdc.Unmarshal(bz, &provider); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProvider: unmarshal: %w", err)
 	}
 
 	return &provider, nil
@@ -280,12 +280,12 @@ func (k Keeper) SetProvider(ctx context.Context, provider types.Provider) error 
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProvider: marshal: %w", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(provider.Address)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProvider: parse address: %w", err)
 	}
 
 	store.Set(ProviderKey(addr), bz)
@@ -301,12 +301,12 @@ func (k Keeper) IterateProviders(ctx context.Context, cb func(provider types.Pro
 	for ; iterator.Valid(); iterator.Next() {
 		var provider types.Provider
 		if err := k.cdc.Unmarshal(iterator.Value(), &provider); err != nil {
-			return err
+			return fmt.Errorf("IterateProviders: unmarshal: %w", err)
 		}
 
 		stop, err := cb(provider)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateProviders: callback: %w", err)
 		}
 		if stop {
 			break
@@ -332,7 +332,7 @@ func (k Keeper) IterateActiveProviders(ctx context.Context, cb func(provider typ
 
 		stop, err := cb(*provider)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateActiveProviders: callback: %w", err)
 		}
 		if stop {
 			break
@@ -346,12 +346,12 @@ func (k Keeper) IterateActiveProviders(ctx context.Context, cb func(provider typ
 func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAddress, success bool) error {
 	providerRecord, err := k.GetProvider(ctx, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("UpdateProviderReputation: get provider: %w", err)
 	}
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("UpdateProviderReputation: get params: %w", err)
 	}
 
 	oldReputation := providerRecord.Reputation
@@ -478,7 +478,7 @@ func (k Keeper) validatePricing(pricing types.Pricing) error {
 func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpec, preferredProvider string) (sdk.AccAddress, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FindSuitableProvider: get params: %w", err)
 	}
 
 	// If preferred provider is specified and valid, try to use it

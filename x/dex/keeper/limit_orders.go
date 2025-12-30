@@ -390,7 +390,7 @@ func (k Keeper) PlaceLimitOrder(
 	// Get next order ID
 	orderID, err := k.GetNextOrderID(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PlaceLimitOrder: get next order ID: %w", err)
 	}
 
 	// Lock tokens from user
@@ -424,7 +424,7 @@ func (k Keeper) PlaceLimitOrder(
 
 	// Store order
 	if err := k.SetLimitOrder(ctx, order); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PlaceLimitOrder: set limit order: %w", err)
 	}
 
 	// Emit event
@@ -486,7 +486,7 @@ func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orde
 
 	order, err := k.GetLimitOrder(ctx, orderID)
 	if err != nil {
-		return err
+		return fmt.Errorf("CancelLimitOrder: get limit order: %w", err)
 	}
 
 	// Verify ownership
@@ -513,7 +513,7 @@ func (k Keeper) CancelLimitOrder(ctx context.Context, owner sdk.AccAddress, orde
 	// Update order status
 	order.Status = OrderStatusCancelled
 	if err := k.SetLimitOrder(ctx, order); err != nil {
-		return err
+		return fmt.Errorf("CancelLimitOrder: set limit order: %w", err)
 	}
 
 	// Emit event
@@ -571,7 +571,7 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	// Get current pool state
 	pool, err := k.GetPool(ctx, order.PoolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("MatchLimitOrder: get pool: %w", err)
 	}
 
 	// DIVISION BY ZERO PROTECTION: Validate pool reserves before price calculation
@@ -630,7 +630,7 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 	// Transfer received tokens to owner
 	ownerAddr, err := sdk.AccAddressFromBech32(order.Owner)
 	if err != nil {
-		return err
+		return fmt.Errorf("MatchLimitOrder: parse owner address: %w", err)
 	}
 
 	receivedCoin := sdk.NewCoin(order.TokenOut, amountOut)
@@ -640,7 +640,7 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 
 	// Save updated order
 	if err := k.SetLimitOrder(ctx, order); err != nil {
-		return err
+		return fmt.Errorf("MatchLimitOrder: save updated order: %w", err)
 	}
 
 	// Emit event

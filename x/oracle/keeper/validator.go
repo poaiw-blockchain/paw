@@ -17,7 +17,7 @@ import (
 func (k *Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.ValidatorOracle) error {
 	valAddr, err := sdk.ValAddressFromBech32(validatorOracle.ValidatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetValidatorOracle: invalid validator address: %w", err)
 	}
 
 	store := k.getStore(ctx)
@@ -27,7 +27,7 @@ func (k *Keeper) SetValidatorOracle(ctx context.Context, validatorOracle types.V
 
 	bz, err := k.cdc.Marshal(&validatorOracle)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetValidatorOracle: failed to marshal: %w", err)
 	}
 	store.Set(GetValidatorOracleKey(valAddr), bz)
 	return nil
@@ -77,7 +77,7 @@ func (k *Keeper) IterateValidatorOracles(ctx context.Context, cb func(validatorO
 	for ; iterator.Valid(); iterator.Next() {
 		var validatorOracle types.ValidatorOracle
 		if err := k.cdc.Unmarshal(iterator.Value(), &validatorOracle); err != nil {
-			return err
+			return fmt.Errorf("IterateValidatorOracles: failed to unmarshal: %w", err)
 		}
 		if cb(validatorOracle) {
 			break
@@ -180,13 +180,13 @@ func (k *Keeper) SnapshotVotingPowers(ctx context.Context) error {
 
 	votePeriod, err := k.GetCurrentVotePeriod(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SnapshotVotingPowers: failed to get current vote period: %w", err)
 	}
 
 	// Get all bonded validators
 	bondedVals, err := k.GetBondedValidators(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SnapshotVotingPowers: failed to get bonded validators: %w", err)
 	}
 
 	powerReduction := k.stakingKeeper.PowerReduction(ctx)
@@ -292,7 +292,7 @@ func (k *Keeper) CleanupOldVotingPowerSnapshots(ctx context.Context, retentionPe
 
 	currentPeriod, err := k.GetCurrentVotePeriod(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CleanupOldVotingPowerSnapshots: failed to get current vote period: %w", err)
 	}
 
 	// Keep at least 2 periods for safety (current + previous)
@@ -337,7 +337,7 @@ func (k *Keeper) GetBondedValidators(ctx context.Context) ([]stakingtypes.Valida
 func (k *Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("IncrementMissCounter: failed to get validator oracle: %w", err)
 	}
 
 	validatorOracle.MissCounter++
@@ -356,7 +356,7 @@ func (k *Keeper) IncrementMissCounter(ctx context.Context, validatorAddr string)
 func (k *Keeper) ResetMissCounter(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("ResetMissCounter: failed to get validator oracle: %w", err)
 	}
 
 	validatorOracle.MissCounter = 0
@@ -367,7 +367,7 @@ func (k *Keeper) ResetMissCounter(ctx context.Context, validatorAddr string) err
 func (k *Keeper) IncrementSubmissionCount(ctx context.Context, validatorAddr string) error {
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("IncrementSubmissionCount: failed to get validator oracle: %w", err)
 	}
 
 	validatorOracle.TotalSubmissions++
@@ -387,7 +387,7 @@ func (k *Keeper) ValidateFeeder(ctx context.Context, validatorAddr sdk.ValAddres
 	// Check if there's a delegation
 	delegatedFeeder, err := k.GetFeederDelegation(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateFeeder: failed to get feeder delegation: %w", err)
 	}
 
 	if delegatedFeeder == nil {

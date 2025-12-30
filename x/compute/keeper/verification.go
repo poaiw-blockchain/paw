@@ -202,7 +202,7 @@ func (k Keeper) GetResult(ctx context.Context, requestID uint64) (*types.Result,
 
 	var result types.Result
 	if err := k.cdc.Unmarshal(bz, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetResult: unmarshal: %w", err)
 	}
 
 	return &result, nil
@@ -213,7 +213,7 @@ func (k Keeper) SetResult(ctx context.Context, result *types.Result) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(result)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetResult: marshal: %w", err)
 	}
 
 	store.Set(ResultKey(result.RequestId), bz)
@@ -934,7 +934,7 @@ func (k Keeper) slashProviderForInvalidProof(ctx context.Context, provider sdk.A
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("slashProviderForVerificationFailure: get params: %w", err)
 	}
 
 	slashPercentage := math.LegacyNewDec(int64(params.StakeSlashPercentage)).QuoInt64(100)
@@ -955,7 +955,7 @@ func (k Keeper) slashProviderForInvalidProof(ctx context.Context, provider sdk.A
 	if providerRecord.Stake.LT(params.MinProviderStake) {
 		providerRecord.Active = false
 		if err := k.setActiveProviderIndex(ctx, provider, false); err != nil {
-			return err
+			return fmt.Errorf("slashProviderForVerificationFailure: update index: %w", err)
 		}
 	}
 

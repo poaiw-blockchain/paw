@@ -58,7 +58,7 @@ func (qs queryServer) Price(goCtx context.Context, req *types.QueryPriceRequest)
 
 	price, err := qs.GetPrice(goCtx, req.Asset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Price: failed to get price for %s: %w", req.Asset, err)
 	}
 
 	return &types.QueryPriceResponse{Price: &price}, nil
@@ -80,13 +80,13 @@ func (qs queryServer) Prices(goCtx context.Context, req *types.QueryPricesReques
 	pageRes, err := query.Paginate(priceStore, sanitized, func(key []byte, value []byte) error {
 		var price types.Price
 		if err := qs.cdc.Unmarshal(value, &price); err != nil {
-			return err
+			return fmt.Errorf("Prices: failed to unmarshal price: %w", err)
 		}
 		prices = append(prices, price)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Prices: pagination failed: %w", err)
 	}
 
 	return &types.QueryPricesResponse{
@@ -112,7 +112,7 @@ func (qs queryServer) Validator(goCtx context.Context, req *types.QueryValidator
 
 	validatorOracle, err := qs.GetValidatorOracle(goCtx, validatorAddr.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Validator: failed to get validator oracle: %w", err)
 	}
 
 	return &types.QueryValidatorResponse{Validator: &validatorOracle}, nil
@@ -134,13 +134,13 @@ func (qs queryServer) Validators(goCtx context.Context, req *types.QueryValidato
 	pageRes, err := query.Paginate(validatorStore, sanitized, func(key []byte, value []byte) error {
 		var validator types.ValidatorOracle
 		if err := qs.cdc.Unmarshal(value, &validator); err != nil {
-			return err
+			return fmt.Errorf("Validators: failed to unmarshal validator: %w", err)
 		}
 		validators = append(validators, validator)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Validators: pagination failed: %w", err)
 	}
 
 	return &types.QueryValidatorsResponse{
@@ -170,7 +170,7 @@ func (qs queryServer) ValidatorPrice(goCtx context.Context, req *types.QueryVali
 
 	validatorPrice, err := qs.GetValidatorPrice(goCtx, validatorAddr, req.Asset)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ValidatorPrice: failed to get validator price: %w", err)
 	}
 
 	return &types.QueryValidatorPriceResponse{ValidatorPrice: &validatorPrice}, nil
@@ -184,7 +184,7 @@ func (qs queryServer) Params(goCtx context.Context, req *types.QueryParamsReques
 
 	params, err := qs.GetParams(goCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Params: failed to get params: %w", err)
 	}
 
 	return &types.QueryParamsResponse{Params: params}, nil

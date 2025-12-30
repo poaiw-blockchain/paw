@@ -27,7 +27,7 @@ func (k Keeper) CollectSwapFees(ctx context.Context, poolID uint64, tokenIn stri
 	// Get parameters
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("CollectSwapFees: get params: %w", err)
 	}
 	// Calculate total swap fee
 	totalFeeAmount := math.LegacyNewDecFromInt(amountIn).Mul(params.SwapFee).TruncateInt()
@@ -48,7 +48,7 @@ func (k Keeper) CollectSwapFees(ctx context.Context, poolID uint64, tokenIn stri
 
 	// Store fees for the pool
 	if err := k.accumulateFees(ctx, poolID, tokenIn, lpFee, protocolFee); err != nil {
-		return math.ZeroInt(), math.ZeroInt(), err
+		return math.ZeroInt(), math.ZeroInt(), fmt.Errorf("CollectSwapFees: accumulate fees: %w", err)
 	}
 
 	// Transfer collected fees to the fee collector module account
@@ -166,12 +166,12 @@ func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID
 	// CHECKS: Validate inputs and calculate fees without modifying state
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("ClaimLPFees: get pool: %w", err)
 	}
 
 	shares, err := k.GetLiquidityShares(ctx, poolID, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("ClaimLPFees: get liquidity shares: %w", err)
 	}
 
 	if shares.IsZero() {
@@ -194,7 +194,7 @@ func (k Keeper) ClaimLPFees(ctx context.Context, provider sdk.AccAddress, poolID
 	for _, token := range []string{pool.TokenA, pool.TokenB} {
 		totalLPFees, err := k.GetPoolLPFees(ctx, poolID, token)
 		if err != nil {
-			return err
+			return fmt.Errorf("ClaimLPFees: get pool LP fees for %s: %w", token, err)
 		}
 
 		if totalLPFees.IsZero() {
@@ -269,7 +269,7 @@ func (k Keeper) WithdrawProtocolFees(ctx context.Context, recipient sdk.AccAddre
 	// CHECKS: Validate inputs without modifying state
 	totalFees, err := k.GetProtocolFees(ctx, token)
 	if err != nil {
-		return err
+		return fmt.Errorf("WithdrawProtocolFees: get protocol fees for %s: %w", token, err)
 	}
 
 	if amount.GT(totalFees) {

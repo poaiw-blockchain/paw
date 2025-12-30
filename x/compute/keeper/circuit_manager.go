@@ -201,7 +201,7 @@ func initializeCircuit(ctx context.Context, k *Keeper, def circuitDef) error {
 	}
 
 	if err := k.SetCircuitParams(ctx, params); err != nil {
-		return err
+		return fmt.Errorf("initializeCircuit: set params for %s: %w", def.id, err)
 	}
 
 	// SECURITY: Compute and store circuit parameter hash

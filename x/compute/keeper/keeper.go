@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -121,7 +122,7 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 		if errors.Is(err, capabilitytypes.ErrOwnerClaimed) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("BindPort: claim capability: %w", err)
 	}
 	return nil
 }
@@ -131,7 +132,7 @@ func (k Keeper) BindPort(ctx sdk.Context) error {
 func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.AuthorizedChannel, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetAuthorizedChannels: get params: %w", err)
 	}
 
 	// Convert module-specific type to shared type
@@ -150,7 +151,7 @@ func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.Authorized
 func (k *Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.AuthorizedChannel) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetAuthorizedChannels: get params: %w", err)
 	}
 
 	// Convert shared type to module-specific type

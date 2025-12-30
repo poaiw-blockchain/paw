@@ -41,7 +41,7 @@ func (k Keeper) handleOutlierSlashing(ctx context.Context, asset string, outlier
 
 	valAddr, err := sdk.ValAddressFromBech32(outlier.ValidatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("handleOutlierSlashing: invalid validator address: %w", err)
 	}
 
 	// Check if validator should be slashed based on severity and history
@@ -61,7 +61,7 @@ func (k Keeper) handleOutlierSlashing(ctx context.Context, asset string, outlier
 
 	consAddr, err := validator.GetConsAddr()
 	if err != nil {
-		return err
+		return fmt.Errorf("handleOutlierSlashing: failed to get consensus address: %w", err)
 	}
 
 	// Slash the validator
@@ -78,7 +78,7 @@ func (k Keeper) handleOutlierSlashing(ctx context.Context, asset string, outlier
 	// Jail if severity is extreme or repeated offender
 	if shouldJail {
 		if err := k.JailValidator(ctx, valAddr); err != nil {
-			return err
+			return fmt.Errorf("handleOutlierSlashing: failed to jail validator: %w", err)
 		}
 	}
 
@@ -305,7 +305,7 @@ func (k Keeper) SlashMissVote(ctx context.Context, validatorAddrStr string) erro
 
 	valAddr, err := sdk.ValAddressFromBech32(validatorAddrStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("SlashMissVote: invalid validator address: %w", err)
 	}
 
 	validator, err := k.stakingKeeper.GetValidator(ctx, valAddr)
@@ -315,12 +315,12 @@ func (k Keeper) SlashMissVote(ctx context.Context, validatorAddrStr string) erro
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SlashMissVote: failed to get params: %w", err)
 	}
 
 	consAddr, err := validator.GetConsAddr()
 	if err != nil {
-		return err
+		return fmt.Errorf("SlashMissVote: failed to get consensus address: %w", err)
 	}
 
 	if _, err := k.stakingKeeper.Slash(
@@ -362,12 +362,12 @@ func (k Keeper) SlashBadData(ctx context.Context, validatorAddr sdk.ValAddress, 
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SlashBadData: failed to get params: %w", err)
 	}
 
 	consAddr, err := validator.GetConsAddr()
 	if err != nil {
-		return err
+		return fmt.Errorf("SlashBadData: failed to get consensus address: %w", err)
 	}
 
 	// Use higher slash fraction for bad data (2x the miss vote fraction)
@@ -418,7 +418,7 @@ func (k Keeper) JailValidator(ctx context.Context, validatorAddr sdk.ValAddress)
 
 	consAddr, err := validator.GetConsAddr()
 	if err != nil {
-		return err
+		return fmt.Errorf("JailValidator: failed to get consensus address: %w", err)
 	}
 
 	if err := k.slashingKeeper.Jail(ctx, consAddr); err != nil {
@@ -480,7 +480,7 @@ func (k Keeper) ValidatePriceSubmission(ctx context.Context, validatorAddr sdk.V
 func (k Keeper) HandleSlashWindow(ctx context.Context, asset string) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("HandleSlashWindow: failed to get params: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)

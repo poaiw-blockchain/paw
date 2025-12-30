@@ -60,7 +60,7 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	validatorPrices, err := k.GetValidatorPricesByAsset(ctx, asset)
 	if err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to get validator prices: %w", err)
 	}
 
 	if len(validatorPrices) == 0 {
@@ -69,7 +69,7 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to get params: %w", err)
 	}
 
 	// PERF-11: KV store iteration cost
@@ -77,7 +77,7 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	totalVotingPower, validPrices, err := k.calculateVotingPower(ctx, validatorPrices)
 	if err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to calculate voting power: %w", err)
 	}
 	// PERF-11: Voting power calculation involves staking keeper calls per validator
 	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*2500), "oracle_aggregate_voting_power")
@@ -101,7 +101,7 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*5000), "oracle_aggregate_outlier_detection")
 	filteredData, err := k.detectAndFilterOutliers(ctx, asset, validPrices)
 	if err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to detect outliers: %w", err)
 	}
 
 	// DATA-12: Tiered fallback when all prices are filtered as outliers
@@ -192,7 +192,7 @@ storePrice:
 	sdkCtx.GasMeter().ConsumeGas(uint64(len(filteredData.ValidPrices)*1500), "oracle_aggregate_median")
 	aggregatedPrice, err := k.calculateWeightedMedian(filteredData.ValidPrices)
 	if err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to calculate weighted median: %w", err)
 	}
 
 	price := types.Price{
@@ -206,7 +206,7 @@ storePrice:
 	// PERF-11: Price storage includes primary key, snapshot, and event emission
 	sdkCtx.GasMeter().ConsumeGas(20000, "oracle_aggregate_set_price")
 	if err := k.SetPrice(ctx, price); err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to set price: %w", err)
 	}
 
 	snapshot := types.PriceSnapshot{
@@ -216,12 +216,12 @@ storePrice:
 		BlockTime:   sdkCtx.BlockTime().Unix(),
 	}
 	if err := k.SetPriceSnapshot(ctx, snapshot); err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to set price snapshot: %w", err)
 	}
 
 	minHeight := sdkCtx.BlockHeight() - int64(params.TwapLookbackWindow)
 	if err := k.DeleteOldSnapshots(ctx, asset, minHeight); err != nil {
-		return err
+		return fmt.Errorf("AggregatePrices: failed to delete old snapshots: %w", err)
 	}
 
 	sdkCtx.EventManager().EmitEvent(
@@ -283,7 +283,7 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 		// However, we still need to check voting power threshold for security
 		params, err := k.GetParams(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("detectAndFilterOutliers: failed to get params: %w", err)
 		}
 
 		// Calculate total voting power from these prices
@@ -295,7 +295,7 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 		// Get total bonded voting power
 		bondedValidators, err := k.GetBondedValidators(ctx)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("detectAndFilterOutliers: failed to get bonded validators: %w", err)
 		}
 
 		totalBondedPower := int64(0)
@@ -383,7 +383,7 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 	// This prevents manipulation by multiple low-stake validators
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("detectAndFilterOutliers: failed to get params: %w", err)
 	}
 
 	totalVotingPower := sdkmath.LegacyZeroDec()
@@ -394,7 +394,7 @@ func (k Keeper) detectAndFilterOutliers(ctx context.Context, asset string, price
 	// Get total bonded voting power
 	bondedValidators, err := k.GetBondedValidators(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("detectAndFilterOutliers: failed to get bonded validators: %w", err)
 	}
 
 	totalBondedPower := int64(0)
@@ -924,11 +924,11 @@ func (k Keeper) CheckMissedVotes(ctx context.Context, asset string) error {
 
 	bondedValidators, err := k.GetBondedValidators(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckMissedVotes: failed to get bonded validators: %w", err)
 	}
 	validatorPrices, err := k.GetValidatorPricesByAsset(ctx, asset)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckMissedVotes: failed to get validator prices: %w", err)
 	}
 
 	submitted := make(map[string]bool)
@@ -938,7 +938,7 @@ func (k Keeper) CheckMissedVotes(ctx context.Context, asset string) error {
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckMissedVotes: failed to get params: %w", err)
 	}
 
 	for _, validator := range bondedValidators {
@@ -946,16 +946,16 @@ func (k Keeper) CheckMissedVotes(ctx context.Context, asset string) error {
 
 		if submitted[valAddr] {
 			if err := k.ResetMissCounter(ctx, valAddr); err != nil {
-				return err
+				return fmt.Errorf("CheckMissedVotes: failed to reset miss counter for %s: %w", valAddr, err)
 			}
 		} else {
 			if err := k.IncrementMissCounter(ctx, valAddr); err != nil {
-				return err
+				return fmt.Errorf("CheckMissedVotes: failed to increment miss counter for %s: %w", valAddr, err)
 			}
 
 			validatorOracle, err := k.GetValidatorOracle(ctx, valAddr)
 			if err != nil {
-				return err
+				return fmt.Errorf("CheckMissedVotes: failed to get validator oracle for %s: %w", valAddr, err)
 			}
 
 			if validatorOracle.MissCounter >= params.MinValidPerWindow {

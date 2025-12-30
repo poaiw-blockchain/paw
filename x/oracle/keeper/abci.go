@@ -684,17 +684,17 @@ func (k Keeper) applyAggregationResult(ctx context.Context, sdkCtx sdk.Context, 
 
 	// Write aggregated price
 	if err := k.SetPrice(ctx, result.Price); err != nil {
-		return err
+		return fmt.Errorf("processAggregationResult: failed to set price: %w", err)
 	}
 
 	// Write price snapshot
 	if err := k.SetPriceSnapshot(ctx, result.Snapshot); err != nil {
-		return err
+		return fmt.Errorf("processAggregationResult: failed to set price snapshot: %w", err)
 	}
 
 	// Delete old snapshots
 	if err := k.DeleteOldSnapshots(ctx, result.Asset, result.MinHeight); err != nil {
-		return err
+		return fmt.Errorf("processAggregationResult: failed to delete old snapshots: %w", err)
 	}
 
 	// Emit aggregation event

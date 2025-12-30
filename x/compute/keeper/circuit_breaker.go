@@ -180,7 +180,7 @@ func (k Keeper) CloseProviderCircuitBreaker(ctx context.Context, providerAddr, a
 func (k Keeper) CheckProviderCircuitBreaker(ctx context.Context, providerAddr string) error {
 	// Check global circuit breaker first
 	if err := k.CheckCircuitBreaker(ctx); err != nil {
-		return err
+		return fmt.Errorf("CheckProviderCircuitBreaker: global check: %w", err)
 	}
 
 	// Check provider-specific circuit breaker
@@ -210,7 +210,7 @@ func (k Keeper) CancelJob(ctx context.Context, jobID, actor, reason string) erro
 	// In production, this would use a proto message
 	bz, err := json.Marshal(metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("CancelJob: marshal metadata: %w", err)
 	}
 
 	key := append(JobCancellationPrefix, []byte(jobID)...)
@@ -282,7 +282,7 @@ func (k Keeper) SetReputationOverride(ctx context.Context, providerAddr string, 
 
 	bz, err := json.Marshal(metadata)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetReputationOverride: marshal metadata: %w", err)
 	}
 
 	key := append(ReputationOverridePrefix, []byte(providerAddr)...)

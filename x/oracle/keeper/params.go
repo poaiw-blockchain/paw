@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -26,7 +27,7 @@ func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&params)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetParams: failed to marshal params: %w", err)
 	}
 	store.Set(ParamsKey, bz)
 	return nil

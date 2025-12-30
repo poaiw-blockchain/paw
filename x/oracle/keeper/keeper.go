@@ -100,7 +100,7 @@ func (k Keeper) UpdateGeoIPCacheConfig(ctx context.Context) error {
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("UpdateGeoIPCacheConfig: failed to get params: %w", err)
 	}
 
 	// Update cache TTL if configured
@@ -168,7 +168,7 @@ func (k *Keeper) BindPort(ctx sdk.Context) error {
 
 	portCap := k.portKeeper.BindPort(ctx, types.PortID)
 	if err := k.scopedKeeper.ClaimCapability(ctx, portCap, host.PortPath(types.PortID)); err != nil {
-		return err
+		return fmt.Errorf("BindPort: failed to claim capability for port %s: %w", types.PortID, err)
 	}
 	k.portCapability = portCap
 	return nil
@@ -179,7 +179,7 @@ func (k *Keeper) BindPort(ctx sdk.Context) error {
 func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.AuthorizedChannel, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetAuthorizedChannels: failed to get params: %w", err)
 	}
 
 	// Convert module-specific type to shared type
@@ -198,7 +198,7 @@ func (k Keeper) GetAuthorizedChannels(ctx context.Context) ([]ibcutil.Authorized
 func (k Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.AuthorizedChannel) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetAuthorizedChannels: failed to get params: %w", err)
 	}
 
 	// Convert shared type to module-specific type

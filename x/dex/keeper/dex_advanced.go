@@ -266,13 +266,13 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CalculateImpermanentLoss: get pool: %w", err)
 	}
 
 	// Get provider's shares
 	shares, err := k.GetLiquidityShares(ctx, poolID, provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CalculateImpermanentLoss: get liquidity shares: %w", err)
 	}
 
 	if shares.IsZero() {
@@ -309,11 +309,11 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 	// Get accumulated fees
 	feesA, err := k.GetPoolLPFees(ctx, poolID, pool.TokenA)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CalculateImpermanentLoss: get LP fees for token A: %w", err)
 	}
 	feesB, err := k.GetPoolLPFees(ctx, poolID, pool.TokenB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CalculateImpermanentLoss: get LP fees for token B: %w", err)
 	}
 
 	// Calculate provider's share of fees
@@ -384,7 +384,7 @@ const (
 func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, provider sdk.AccAddress) error {
 	lastBlock, found, err := k.GetLastLiquidityActionBlock(ctx, poolID, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckFlashLoanProtection: get last liquidity action: %w", err)
 	}
 
 	if !found {
@@ -394,7 +394,7 @@ func (k Keeper) CheckFlashLoanProtection(ctx context.Context, poolID uint64, pro
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckFlashLoanProtection: get params: %w", err)
 	}
 
 	minBlocks := int64(params.FlashLoanProtectionBlocks)
@@ -525,7 +525,7 @@ func (k Keeper) DetectSandwichAttack(ctx context.Context, poolID uint64, trader 
 	// Get pool to calculate swap size relative to reserve
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("DetectSandwichAttack: get pool: %w", err)
 	}
 
 	// Calculate swap impact

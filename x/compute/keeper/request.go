@@ -353,7 +353,7 @@ func (k Keeper) GetRequest(ctx context.Context, requestID uint64) (*types.Reques
 
 	var request types.Request
 	if err := k.cdc.Unmarshal(bz, &request); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetRequest: unmarshal: %w", err)
 	}
 
 	return &request, nil
@@ -364,7 +364,7 @@ func (k Keeper) SetRequest(ctx context.Context, request types.Request) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&request)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetRequest: marshal: %w", err)
 	}
 
 	store.Set(RequestKey(request.Id), bz)
@@ -389,12 +389,12 @@ func (k Keeper) IterateRequests(ctx context.Context, cb func(request types.Reque
 
 		var request types.Request
 		if err := k.cdc.Unmarshal(iterator.Value(), &request); err != nil {
-			return err
+			return fmt.Errorf("IterateRequests: unmarshal: %w", err)
 		}
 
 		stop, err := cb(request)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateRequests: callback: %w", err)
 		}
 		if stop {
 			break
@@ -436,7 +436,7 @@ func (k Keeper) IterateRequestsByRequester(ctx context.Context, requester sdk.Ac
 
 		stop, err := cb(*request)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateRequestsByRequester: callback: %w", err)
 		}
 		if stop {
 			break
@@ -477,7 +477,7 @@ func (k Keeper) IterateRequestsByProvider(ctx context.Context, provider sdk.AccA
 
 		stop, err := cb(*request)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateRequestsByProvider: callback: %w", err)
 		}
 		if stop {
 			break
@@ -520,7 +520,7 @@ func (k Keeper) IterateRequestsByStatus(ctx context.Context, status types.Reques
 
 		stop, err := cb(*request)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateRequestsByStatus: callback: %w", err)
 		}
 		if stop {
 			break
@@ -555,7 +555,7 @@ func (k Keeper) setRequestIndexes(ctx context.Context, request types.Request) er
 	// Index by requester
 	requester, err := sdk.AccAddressFromBech32(request.Requester)
 	if err != nil {
-		return err
+		return fmt.Errorf("setRequestIndexes: parse requester: %w", err)
 	}
 	store.Set(RequestByRequesterKey(requester, request.Id), []byte{})
 
@@ -563,7 +563,7 @@ func (k Keeper) setRequestIndexes(ctx context.Context, request types.Request) er
 	if request.Provider != "" {
 		provider, err := sdk.AccAddressFromBech32(request.Provider)
 		if err != nil {
-			return err
+			return fmt.Errorf("setRequestIndexes: parse provider: %w", err)
 		}
 		store.Set(RequestByProviderKey(provider, request.Id), []byte{})
 	}

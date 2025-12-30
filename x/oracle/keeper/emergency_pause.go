@@ -31,7 +31,7 @@ func (k Keeper) EmergencyPauseOracle(ctx context.Context, pausedBy, reason strin
 	// Marshal and store
 	bz, err := k.cdc.Marshal(&pauseState)
 	if err != nil {
-		return err
+		return fmt.Errorf("PauseOracle: failed to marshal pause state: %w", err)
 	}
 
 	store.Set(types.EmergencyPauseStateKey, bz)
@@ -102,7 +102,7 @@ func (k Keeper) GetEmergencyPauseState(ctx context.Context) (*types.EmergencyPau
 
 	var pauseState types.EmergencyPauseState
 	if err := k.cdc.Unmarshal(bz, &pauseState); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetEmergencyPauseState: failed to unmarshal pause state: %w", err)
 	}
 
 	return &pauseState, nil

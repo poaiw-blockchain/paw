@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -36,7 +37,7 @@ func (qs queryServer) Params(goCtx context.Context, req *types.QueryParamsReques
 
 	params, err := qs.Keeper.GetParams(goCtx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Params: get params: %w", err)
 	}
 
 	return &types.QueryParamsResponse{
@@ -52,7 +53,7 @@ func (qs queryServer) Pool(goCtx context.Context, req *types.QueryPoolRequest) (
 
 	pool, err := qs.Keeper.GetPool(goCtx, req.PoolId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Pool: get pool %d: %w", req.PoolId, err)
 	}
 
 	return &types.QueryPoolResponse{
@@ -98,14 +99,14 @@ func (qs queryServer) Pools(goCtx context.Context, req *types.QueryPoolsRequest)
 	pageRes, err := query.Paginate(poolStore, req.Pagination, func(key []byte, value []byte) error {
 		var pool types.Pool
 		if err := qs.Keeper.cdc.Unmarshal(value, &pool); err != nil {
-			return err
+			return fmt.Errorf("unmarshal pool: %w", err)
 		}
 		pools = append(pools, pool)
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Pools: paginate: %w", err)
 	}
 
 	return &types.QueryPoolsResponse{
@@ -122,7 +123,7 @@ func (qs queryServer) PoolByTokens(goCtx context.Context, req *types.QueryPoolBy
 
 	pool, err := qs.Keeper.GetPoolByTokens(goCtx, req.TokenA, req.TokenB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PoolByTokens: get pool by tokens %s/%s: %w", req.TokenA, req.TokenB, err)
 	}
 
 	return &types.QueryPoolByTokensResponse{
@@ -138,12 +139,12 @@ func (qs queryServer) Liquidity(goCtx context.Context, req *types.QueryLiquidity
 
 	provider, err := sdk.AccAddressFromBech32(req.Provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Liquidity: parse provider address: %w", err)
 	}
 
 	shares, err := qs.Keeper.GetLiquidity(goCtx, req.PoolId, provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Liquidity: get liquidity for pool %d: %w", req.PoolId, err)
 	}
 
 	return &types.QueryLiquidityResponse{
@@ -159,7 +160,7 @@ func (qs queryServer) SimulateSwap(goCtx context.Context, req *types.QuerySimula
 
 	amountOut, err := qs.Keeper.SimulateSwap(goCtx, req.PoolId, req.TokenIn, req.TokenOut, req.AmountIn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SimulateSwap: simulate for pool %d: %w", req.PoolId, err)
 	}
 
 	return &types.QuerySimulateSwapResponse{
@@ -175,7 +176,7 @@ func (qs queryServer) LimitOrder(goCtx context.Context, req *types.QueryLimitOrd
 
 	order, err := qs.Keeper.GetLimitOrder(goCtx, req.OrderId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LimitOrder: get order %d: %w", req.OrderId, err)
 	}
 
 	// Convert internal LimitOrder to proto type
@@ -223,14 +224,14 @@ func (qs queryServer) LimitOrders(goCtx context.Context, req *types.QueryLimitOr
 	pageRes, err := query.Paginate(orderStore, req.Pagination, func(key []byte, value []byte) error {
 		var order LimitOrder
 		if err := json.Unmarshal(value, &order); err != nil {
-			return err
+			return fmt.Errorf("unmarshal order: %w", err)
 		}
 		orders = append(orders, convertToProtoLimitOrder(&order))
 		return nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LimitOrders: paginate: %w", err)
 	}
 
 	return &types.QueryLimitOrdersResponse{
@@ -263,7 +264,7 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 
 	owner, err := sdk.AccAddressFromBech32(req.Owner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LimitOrdersByOwner: parse owner address: %w", err)
 	}
 
 	// Extract pagination parameters
@@ -278,7 +279,7 @@ func (qs queryServer) LimitOrdersByOwner(goCtx context.Context, req *types.Query
 
 	internalOrders, nextKey, total, err := qs.Keeper.GetOrdersByOwnerPaginated(goCtx, owner, pageKey, limit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LimitOrdersByOwner: get orders: %w", err)
 	}
 
 	// P3-PERF-3: Pre-size with known capacity from internal orders
@@ -330,7 +331,7 @@ func (qs queryServer) LimitOrdersByPool(goCtx context.Context, req *types.QueryL
 
 	internalOrders, nextKey, total, err := qs.Keeper.GetOrdersByPoolPaginated(goCtx, req.PoolId, pageKey, limit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("LimitOrdersByPool: get orders for pool %d: %w", req.PoolId, err)
 	}
 
 	// P3-PERF-3: Pre-size with known capacity from internal orders
@@ -365,7 +366,7 @@ func (qs queryServer) OrderBook(goCtx context.Context, req *types.QueryOrderBook
 	// GetOrderBook now handles limits efficiently at the storage level
 	buyOrders, sellOrders, err := qs.Keeper.GetOrderBook(goCtx, req.PoolId, limit)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("OrderBook: get order book for pool %d: %w", req.PoolId, err)
 	}
 
 	var protoBuyOrders, protoSellOrders []types.LimitOrder

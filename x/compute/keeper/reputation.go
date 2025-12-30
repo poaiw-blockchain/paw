@@ -149,11 +149,11 @@ func (k Keeper) UpdateReputationAdvanced(ctx context.Context, provider sdk.AccAd
 	// Also update simple reputation for backward compatibility
 	providerRecord, err := k.GetProvider(ctx, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("UpdateProviderReputationAdvanced: get provider: %w", err)
 	}
 	providerRecord.Reputation = rep.OverallScore
 	if err := k.SetProvider(ctx, *providerRecord); err != nil {
-		return err
+		return fmt.Errorf("UpdateProviderReputationAdvanced: set provider: %w", err)
 	}
 
 	// Emit detailed reputation event
@@ -226,7 +226,7 @@ func decayTowardsNeutral(score float64, decayAmount float64) float64 {
 func (k Keeper) SelectProviderAdvanced(ctx context.Context, specs types.ComputeSpec, requestID uint64, preferredProvider string) (sdk.AccAddress, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SelectProviderAdvanced: get params: %w", err)
 	}
 
 	// Try preferred provider first if specified
@@ -270,7 +270,7 @@ func (k Keeper) SelectProviderAdvanced(ctx context.Context, specs types.ComputeS
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SelectProviderAdvanced: iterate providers: %w", err)
 	}
 
 	if len(candidates) == 0 {
@@ -285,7 +285,7 @@ func (k Keeper) SelectProviderAdvanced(ctx context.Context, specs types.ComputeS
 
 	addr, err := sdk.AccAddressFromBech32(selected.Provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SelectProviderAdvanced: parse selected provider: %w", err)
 	}
 
 	// Emit selection event for transparency
@@ -438,7 +438,7 @@ func (k Keeper) GetProviderReputation(ctx context.Context, provider sdk.AccAddre
 
 	var rep ProviderReputation
 	if err := k.cdc.Unmarshal(bz, &rep); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProviderReputation: unmarshal: %w", err)
 	}
 
 	return &rep, nil
@@ -448,12 +448,12 @@ func (k Keeper) SetProviderReputation(ctx context.Context, rep ProviderReputatio
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&rep)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProviderReputation: marshal: %w", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(rep.Provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetProviderReputation: parse address: %w", err)
 	}
 
 	store.Set(ProviderReputationKey(addr), bz)
@@ -469,12 +469,12 @@ func (k Keeper) IterateProviderReputations(ctx context.Context, cb func(rep Prov
 	for ; iterator.Valid(); iterator.Next() {
 		var rep ProviderReputation
 		if err := k.cdc.Unmarshal(iterator.Value(), &rep); err != nil {
-			return err
+			return fmt.Errorf("IterateProviderReputations: unmarshal: %w", err)
 		}
 
 		stop, err := cb(rep)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateProviderReputations: callback: %w", err)
 		}
 		if stop {
 			break

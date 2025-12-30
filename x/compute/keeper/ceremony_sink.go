@@ -37,7 +37,7 @@ func (s *ceremonyKeySink) StoreCeremonyKeys(ctx context.Context, circuitID strin
 	params.VerifyingKey.CreatedAt = sdkCtx.BlockTime()
 
 	if err := s.keeper.SetCircuitParams(ctx, *params); err != nil {
-		return err
+		return fmt.Errorf("StoreCeremonyKeys: set params for circuit %s: %w", circuitID, err)
 	}
 
 	store := sdkCtx.KVStore(s.keeper.storeKey)

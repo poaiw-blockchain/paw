@@ -68,17 +68,17 @@ func LastRequestBlockKey(user sdk.AccAddress) []byte {
 func (k Keeper) CheckRequestRateLimit(ctx context.Context, requester sdk.AccAddress) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckRequestRateLimit: get params: %w", err)
 	}
 
 	// Check cooldown between requests
 	if err := k.checkRequestCooldown(ctx, requester, params.RequestCooldownBlocks); err != nil {
-		return err
+		return fmt.Errorf("CheckRequestRateLimit: cooldown check: %w", err)
 	}
 
 	// Check daily request limit
 	if err := k.checkDailyRequestLimit(ctx, requester, params.MaxRequestsPerAddressPerDay); err != nil {
-		return err
+		return fmt.Errorf("CheckRequestRateLimit: daily limit check: %w", err)
 	}
 
 	return nil

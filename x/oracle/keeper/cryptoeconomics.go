@@ -479,7 +479,7 @@ func (k Keeper) CalculateSystemSecurityScore(ctx context.Context) (sdkmath.Legac
 func (k Keeper) ValidateCryptoeconomicSecurity(ctx context.Context) error {
 	score, err := k.CalculateSystemSecurityScore(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateCryptoeconomicSecurity: failed to calculate security score: %w", err)
 	}
 
 	// Require minimum security score

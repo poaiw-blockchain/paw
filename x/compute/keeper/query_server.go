@@ -103,7 +103,7 @@ func (qs queryServer) Providers(goCtx context.Context, req *types.QueryProviders
 	pageRes, err := query.Paginate(providerStore, sanitized, func(key []byte, value []byte) error {
 		var provider types.Provider
 		if err := qs.Keeper.cdc.Unmarshal(value, &provider); err != nil {
-			return err
+			return fmt.Errorf("unmarshal provider: %w", err)
 		}
 		providers = append(providers, provider)
 		return nil
@@ -147,7 +147,7 @@ func (qs queryServer) ActiveProviders(goCtx context.Context, req *types.QueryAct
 		providerAddr := sdk.AccAddress(key)
 		providerData, err := qs.Keeper.GetProvider(ctx, providerAddr)
 		if err != nil {
-			return err
+			return fmt.Errorf("get provider %s: %w", providerAddr, err)
 		}
 		providers = append(providers, *providerData)
 		return nil
@@ -195,7 +195,7 @@ func (qs queryServer) Requests(goCtx context.Context, req *types.QueryRequestsRe
 	pageRes, err := query.Paginate(requestStore, sanitized, func(key []byte, value []byte) error {
 		var request types.Request
 		if err := qs.Keeper.cdc.Unmarshal(value, &request); err != nil {
-			return err
+			return fmt.Errorf("unmarshal request: %w", err)
 		}
 		requests = append(requests, request)
 		return nil
@@ -240,7 +240,7 @@ func (qs queryServer) RequestsByRequester(goCtx context.Context, req *types.Quer
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get request %d: %w", requestID, err)
 		}
 		requests = append(requests, *request)
 		return nil
@@ -285,7 +285,7 @@ func (qs queryServer) RequestsByProvider(goCtx context.Context, req *types.Query
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get request %d: %w", requestID, err)
 		}
 		requests = append(requests, *request)
 		return nil
@@ -323,7 +323,7 @@ func (qs queryServer) RequestsByStatus(goCtx context.Context, req *types.QueryRe
 		requestID := sdk.BigEndianToUint64(key)
 		request, err := qs.Keeper.GetRequest(ctx, requestID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get request %d: %w", requestID, err)
 		}
 		requests = append(requests, *request)
 		return nil
@@ -428,7 +428,7 @@ func (qs queryServer) Disputes(goCtx context.Context, req *types.QueryDisputesRe
 	pageRes, err := query.Paginate(view, sanitized, func(key []byte, value []byte) error {
 		var dispute types.Dispute
 		if err := qs.Keeper.cdc.Unmarshal(value, &dispute); err != nil {
-			return err
+			return fmt.Errorf("unmarshal dispute: %w", err)
 		}
 		disputes = append(disputes, dispute)
 		return nil
@@ -460,7 +460,7 @@ func (qs queryServer) DisputesByRequest(goCtx context.Context, req *types.QueryD
 		disputeID := binary.BigEndian.Uint64(key[len(key)-8:])
 		dispute, err := qs.Keeper.getDispute(ctx, disputeID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get dispute %d: %w", disputeID, err)
 		}
 		disputes = append(disputes, *dispute)
 		return nil
@@ -492,7 +492,7 @@ func (qs queryServer) DisputesByStatus(goCtx context.Context, req *types.QueryDi
 		disputeID := binary.BigEndian.Uint64(key[len(key)-8:])
 		dispute, err := qs.Keeper.getDispute(ctx, disputeID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get dispute %d: %w", disputeID, err)
 		}
 		disputes = append(disputes, *dispute)
 		return nil
@@ -588,7 +588,7 @@ func (qs queryServer) Appeals(goCtx context.Context, req *types.QueryAppealsRequ
 	pageRes, err := query.Paginate(view, sanitized, func(key []byte, value []byte) error {
 		var appeal types.Appeal
 		if err := qs.Keeper.cdc.Unmarshal(value, &appeal); err != nil {
-			return err
+			return fmt.Errorf("unmarshal appeal: %w", err)
 		}
 		appeals = append(appeals, appeal)
 		return nil
@@ -620,7 +620,7 @@ func (qs queryServer) AppealsByStatus(goCtx context.Context, req *types.QueryApp
 		appealID := binary.BigEndian.Uint64(key[len(key)-8:])
 		appeal, err := qs.Keeper.getAppeal(ctx, appealID)
 		if err != nil {
-			return err
+			return fmt.Errorf("get appeal %d: %w", appealID, err)
 		}
 		appeals = append(appeals, *appeal)
 		return nil
@@ -661,7 +661,7 @@ func (qs queryServer) CatastrophicFailures(goCtx context.Context, req *types.Que
 	pageRes, err := query.Paginate(failureStore, sanitized, func(key []byte, value []byte) error {
 		var failure types.CatastrophicFailure
 		if err := qs.Keeper.cdc.Unmarshal(value, &failure); err != nil {
-			return err
+			return fmt.Errorf("unmarshal catastrophic failure: %w", err)
 		}
 
 		// Filter by resolved status if requested

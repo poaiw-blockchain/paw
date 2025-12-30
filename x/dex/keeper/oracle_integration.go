@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,7 +23,7 @@ func (k Keeper) GetPoolValueUSD(ctx context.Context, poolID uint64, oracleKeeper
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetPoolValueUSD: get pool: %w", err)
 	}
 
 	// Get price for token A
@@ -51,7 +52,7 @@ func (k Keeper) ValidatePoolPrice(ctx context.Context, poolID uint64, oracleKeep
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidatePoolPrice: get pool: %w", err)
 	}
 
 	// Get oracle prices
@@ -122,7 +123,7 @@ func (k Keeper) GetFairPoolPrice(ctx context.Context, poolID uint64, oracleKeepe
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetFairPoolPrice: get pool: %w", err)
 	}
 
 	// Get oracle prices
@@ -150,7 +151,7 @@ func (k Keeper) GetLPTokenValueUSD(ctx context.Context, poolID uint64, shares ma
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetLPTokenValueUSD: get pool: %w", err)
 	}
 
 	if pool.TotalShares.IsZero() {
@@ -160,7 +161,7 @@ func (k Keeper) GetLPTokenValueUSD(ctx context.Context, poolID uint64, shares ma
 	// Calculate total pool value
 	totalValue, err := k.GetPoolValueUSD(ctx, poolID, oracleKeeper)
 	if err != nil {
-		return math.LegacyZeroDec(), err
+		return math.LegacyZeroDec(), fmt.Errorf("GetLPTokenValueUSD: get pool value: %w", err)
 	}
 
 	// Calculate share of total value
@@ -175,13 +176,13 @@ func (k Keeper) DetectArbitrageOpportunity(ctx context.Context, poolID uint64, o
 	// Get pool
 	pool, err := k.GetPool(ctx, poolID)
 	if err != nil {
-		return false, math.LegacyZeroDec(), err
+		return false, math.LegacyZeroDec(), fmt.Errorf("DetectArbitrageOpportunity: get pool: %w", err)
 	}
 
 	// Get oracle-based fair price
 	fairPrice, err := k.GetFairPoolPrice(ctx, poolID, oracleKeeper)
 	if err != nil {
-		return false, math.LegacyZeroDec(), err
+		return false, math.LegacyZeroDec(), fmt.Errorf("DetectArbitrageOpportunity: get fair price: %w", err)
 	}
 
 	// DIVISION BY ZERO PROTECTION: Validate pool reserves before division

@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	v2 "github.com/paw-chain/paw/x/compute/migrations/v2"
@@ -31,7 +33,7 @@ func (m Migrator) Migrate1to2(ctx sdk.Context) error {
 	ctx.Logger().Info("Executing compute module migration from v1 to v2")
 	// Migrate to v2
 	if err := v2.Migrate(ctx, m.keeper.storeKey, m.keeper.cdc); err != nil {
-		return err
+		return fmt.Errorf("Migrate1to2: %w", err)
 	}
 	return nil
 }

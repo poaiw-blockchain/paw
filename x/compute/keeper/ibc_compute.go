@@ -684,7 +684,7 @@ func (k Keeper) refundEscrow(ctx sdk.Context, jobID string) error {
 
 	requester, err := sdk.AccAddressFromBech32(escrow.Requester)
 	if err != nil {
-		return err
+		return fmt.Errorf("refundEscrow: parse requester: %w", err)
 	}
 
 	// Transfer funds back to requester
@@ -692,7 +692,7 @@ func (k Keeper) refundEscrow(ctx sdk.Context, jobID string) error {
 	payment := sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))
 
 	if err := k.bankKeeper.SendCoins(ctx, escrowAddr, requester, payment); err != nil {
-		return err
+		return fmt.Errorf("refundEscrow: send coins: %w", err)
 	}
 
 	// Update escrow status
@@ -725,7 +725,7 @@ func (k Keeper) releaseEscrow(ctx sdk.Context, jobID string) error {
 
 	provider, err := sdk.AccAddressFromBech32(escrow.Provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("releaseEscrow: parse provider: %w", err)
 	}
 
 	// Transfer funds to provider
@@ -733,7 +733,7 @@ func (k Keeper) releaseEscrow(ctx sdk.Context, jobID string) error {
 	payment := sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))
 
 	if err := k.bankKeeper.SendCoins(ctx, escrowAddr, provider, payment); err != nil {
-		return err
+		return fmt.Errorf("releaseEscrow: send coins: %w", err)
 	}
 
 	// Update escrow status
@@ -1089,7 +1089,7 @@ func (k Keeper) verifyGroth16Pairing(ctx sdk.Context, proofBytes []byte, proof *
 	}
 
 	if err := groth16.Verify(gnarkProof, *vk, witness); err != nil {
-		return err
+		return fmt.Errorf("VerifyZKIBCProof: verify groth16: %w", err)
 	}
 
 	ctx.EventManager().EmitEvent(

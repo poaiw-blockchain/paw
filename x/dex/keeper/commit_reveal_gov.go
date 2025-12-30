@@ -30,7 +30,7 @@ func (k Keeper) SetSwapCommit(ctx context.Context, commit types.SwapCommit) erro
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&commit)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetSwapCommit: marshal: %w", err)
 	}
 	store.Set(SwapCommitKey(commit.SwapHash), bz)
 	return nil
@@ -46,7 +46,7 @@ func (k Keeper) GetSwapCommitByHash(ctx context.Context, swapHash string) (*type
 
 	var commit types.SwapCommit
 	if err := k.cdc.Unmarshal(bz, &commit); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetSwapCommitByHash: unmarshal: %w", err)
 	}
 
 	return &commit, nil

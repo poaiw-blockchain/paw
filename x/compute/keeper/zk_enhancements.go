@@ -227,7 +227,7 @@ func (k Keeper) GetTrustedSetup(ctx context.Context, circuitID string) (*Trusted
 
 	var setupData map[string]interface{}
 	if err := json.Unmarshal(bz, &setupData); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetTrustedSetup: unmarshal: %w", err)
 	}
 
 	setup := &TrustedSetup{
@@ -333,7 +333,7 @@ func (k Keeper) GetCachedProofVerification(ctx context.Context, proofHash string
 
 	var cacheData map[string]interface{}
 	if err := json.Unmarshal(bz, &cacheData); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetProofFromCache: unmarshal: %w", err)
 	}
 
 	entry := &ProofCacheEntry{
@@ -378,7 +378,7 @@ func (k Keeper) CacheProofVerification(
 
 	bz, err := json.Marshal(cacheData)
 	if err != nil {
-		return err
+		return fmt.Errorf("CacheProofVerification: marshal: %w", err)
 	}
 
 	store.Set(key, bz)
@@ -551,7 +551,7 @@ func (k Keeper) ScheduleKeyRotation(
 
 	bz, err := json.Marshal(scheduleData)
 	if err != nil {
-		return err
+		return fmt.Errorf("ScheduleKeyRotation: marshal: %w", err)
 	}
 
 	key := []byte(fmt.Sprintf("key_rotation_%s", circuitID))
@@ -676,7 +676,7 @@ func (k Keeper) InitializeMPCCeremony(
 	}
 
 	if err := k.storeMPCCeremony(ctx, ceremony); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("InitiateMPCCeremony: store ceremony: %w", err)
 	}
 
 	sdkCtx.EventManager().EmitEvent(
@@ -707,7 +707,7 @@ func (k Keeper) storeMPCCeremony(ctx context.Context, ceremony *MPCCeremony) err
 
 	bz, err := json.Marshal(ceremonyData)
 	if err != nil {
-		return err
+		return fmt.Errorf("storeMPCCeremony: marshal: %w", err)
 	}
 
 	key := []byte(fmt.Sprintf("mpc_ceremony_%s", ceremony.ID))

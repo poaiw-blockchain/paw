@@ -155,7 +155,7 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("ReleaseEscrow: get params: %w", err)
 	}
 
 	// Implement challenge period unless immediate release requested (governance override)
@@ -379,7 +379,7 @@ func (k Keeper) GetEscrowState(ctx context.Context, requestID uint64) (*EscrowSt
 
 	var state EscrowState
 	if err := k.cdc.Unmarshal(bz, &state); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetEscrowState: unmarshal: %w", err)
 	}
 
 	return &state, nil
@@ -390,7 +390,7 @@ func (k Keeper) SetEscrowState(ctx context.Context, state EscrowState) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&state)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetEscrowState: marshal: %w", err)
 	}
 
 	store.Set(EscrowStateKey(state.RequestId), bz)
@@ -413,7 +413,7 @@ func (k Keeper) SetEscrowStateIfNotExists(ctx context.Context, state EscrowState
 
 	bz, err := k.cdc.Marshal(&state)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetEscrowStateIfNotExists: marshal: %w", err)
 	}
 
 	store.Set(key, bz)
@@ -527,7 +527,7 @@ func (k Keeper) IterateEscrowTimeouts(ctx context.Context, beforeTime time.Time,
 
 		stop, err := cb(requestID, expiresAt)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateTimeoutEscrows: callback: %w", err)
 		}
 		if stop {
 			break
@@ -702,7 +702,7 @@ func (k Keeper) GetAllCatastrophicFailures(ctx context.Context) ([]*types.Catast
 func (k Keeper) GetUnresolvedCatastrophicFailures(ctx context.Context) ([]*types.CatastrophicFailure, error) {
 	allFailures, err := k.GetAllCatastrophicFailures(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetUnresolvedCatastrophicFailures: get all: %w", err)
 	}
 
 	var unresolved []*types.CatastrophicFailure

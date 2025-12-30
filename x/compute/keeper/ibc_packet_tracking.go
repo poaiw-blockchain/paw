@@ -199,7 +199,7 @@ func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason stri
 	// Phase 1: Refund escrow funds
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, sdk.MustAccAddressFromBech32(escrow.Requester), sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))); err != nil {
 		// Transfer failed - cache is automatically discarded
-		return err
+		return fmt.Errorf("RefundEscrowForFailedPacket: send coins: %w", err)
 	}
 
 	// Phase 2: Update escrow status to refunded
@@ -289,7 +289,7 @@ func (k Keeper) TrackCrossChainJobStatus(ctx sdk.Context, jobID string, status s
 
 	// Store status
 	if err := k.storeJobStatus(ctx, jobStatus); err != nil {
-		return err
+		return fmt.Errorf("UpdateJobStatus: store status: %w", err)
 	}
 
 	// Emit event
@@ -325,7 +325,7 @@ func (k Keeper) storeJobStatus(ctx sdk.Context, status JobStatus) error {
 
 	bz, err := json.Marshal(statusData)
 	if err != nil {
-		return err
+		return fmt.Errorf("storeJobStatus: marshal: %w", err)
 	}
 
 	store.Set(key, bz)
@@ -344,7 +344,7 @@ func (k Keeper) GetJobStatus(ctx sdk.Context, jobID string) (*JobStatus, error) 
 
 	var statusData map[string]interface{}
 	if err := json.Unmarshal(bz, &statusData); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetJobStatus: unmarshal: %w", err)
 	}
 
 	status := &JobStatus{

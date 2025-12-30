@@ -312,7 +312,7 @@ func (k Keeper) ShouldRefreshCache(ctx context.Context) (bool, error) {
 func (k Keeper) FindSuitableProviderFromCache(ctx context.Context, specs types.ComputeSpec) (sdk.AccAddress, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FindSuitableProviderFromCache: get params: %w", err)
 	}
 
 	// Check if cache is enabled
@@ -322,7 +322,7 @@ func (k Keeper) FindSuitableProviderFromCache(ctx context.Context, specs types.C
 
 	metadata, err := k.GetProviderCacheMetadata(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("FindSuitableProviderFromCache: get metadata: %w", err)
 	}
 
 	if !metadata.Enabled || metadata.CacheSize == 0 {
@@ -370,7 +370,7 @@ func (k Keeper) FindSuitableProviderFromCache(ctx context.Context, specs types.C
 func (k Keeper) IterateCachedProviders(ctx context.Context, cb func(index uint32, cached types.CachedProvider) (stop bool, err error)) error {
 	metadata, err := k.GetProviderCacheMetadata(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("IterateCachedProviders: get metadata: %w", err)
 	}
 
 	if !metadata.Enabled {
@@ -385,7 +385,7 @@ func (k Keeper) IterateCachedProviders(ctx context.Context, cb func(index uint32
 
 		stop, err := cb(i, *cached)
 		if err != nil {
-			return err
+			return fmt.Errorf("IterateCachedProviders: callback: %w", err)
 		}
 		if stop {
 			break
@@ -399,7 +399,7 @@ func (k Keeper) IterateCachedProviders(ctx context.Context, cb func(index uint32
 func (k Keeper) GetCacheStats(ctx context.Context) (map[string]interface{}, error) {
 	metadata, err := k.GetProviderCacheMetadata(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetCacheStats: get metadata: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)

@@ -43,7 +43,7 @@ func (k Keeper) OnTimeoutSwapPacket(ctx sdk.Context, packet channeltypes.Packet)
 					ctx, "dex", user, amount,
 				); err != nil {
 					ctx.Logger().Error("failed to refund swap", "error", err)
-					return err
+					return errorsmod.Wrap(err, "OnTimeoutSwapPacket: refund swap tokens")
 				}
 
 				ctx.EventManager().EmitEvent(

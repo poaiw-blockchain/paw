@@ -481,7 +481,7 @@ func (k Keeper) OnTimeoutPacket(
 	case PacketTypeExecuteSwap:
 		// Swap timeout - refund user
 		if err := k.refundSwap(ctx, packet.Sequence, "ibc_timeout"); err != nil {
-			return err
+			return fmt.Errorf("OnTimeoutPacket: refund swap for sequence %d: %w", packet.Sequence, err)
 		}
 		k.clearPendingOperation(ctx, packet.SourceChannel, packet.Sequence)
 		return nil

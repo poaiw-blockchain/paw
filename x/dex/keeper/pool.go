@@ -166,7 +166,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	// 5. Get and validate parameters
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: get params: %w", err)
 	}
 
 	// 6. Calculate initial shares using geometric mean (sqrt(x * y))
@@ -205,7 +205,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	// 9. Get next pool ID with reentrancy protection
 	poolID, err := k.GetNextPoolID(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: get next pool ID: %w", err)
 	}
 
 	// 10. Create pool structure
@@ -221,7 +221,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 
 	// 11. Validate pool state
 	if err := k.ValidatePoolState(pool); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: validate pool state: %w", err)
 	}
 
 	// 12. Transfer tokens FIRST (checks-effects-interactions)
@@ -254,7 +254,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 
 	// 13. Save pool to store AFTER receiving tokens
 	if err := k.SetPool(ctx, pool); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: save pool: %w", err)
 	}
 
 	// PERF-9: Increment pool count for O(1) count checks
@@ -265,17 +265,17 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 
 	// 14. Index pool by tokens
 	if err := k.SetPoolByTokens(ctx, tokenA, tokenB, poolID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: set pool by tokens index: %w", err)
 	}
 
 	// 15. Set initial liquidity position for creator
 	if err := k.SetLiquidity(ctx, poolID, creator, initialShares); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: set creator liquidity: %w", err)
 	}
 
 	// 16. Record liquidity action for flash loan protection
 	if err := k.SetLastLiquidityActionBlock(ctx, poolID, creator); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: set last liquidity action block: %w", err)
 	}
 
 	// 17. Initialize circuit breaker state
@@ -285,7 +285,7 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 		TriggerReason: "",
 	}
 	if err := k.SetCircuitBreakerState(ctx, poolID, cbState); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreatePool: set circuit breaker state: %w", err)
 	}
 
 	// 18. Emit comprehensive event
@@ -325,7 +325,7 @@ func (k Keeper) GetPool(ctx context.Context, poolID uint64) (*types.Pool, error)
 
 	var pool types.Pool
 	if err := k.cdc.Unmarshal(bz, &pool); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetPool: unmarshal pool %d: %w", poolID, err)
 	}
 	return &pool, nil
 }
@@ -335,7 +335,7 @@ func (k Keeper) SetPool(ctx context.Context, pool *types.Pool) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(pool)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetPool: marshal pool %d: %w", pool.Id, err)
 	}
 	store.Set(PoolKey(pool.Id), bz)
 	return nil
@@ -386,7 +386,7 @@ func (k Keeper) IteratePools(ctx context.Context, cb func(pool types.Pool) (stop
 	for ; iterator.Valid(); iterator.Next() {
 		var pool types.Pool
 		if err := k.cdc.Unmarshal(iterator.Value(), &pool); err != nil {
-			return err
+			return fmt.Errorf("IteratePools: unmarshal pool: %w", err)
 		}
 		if cb(pool) {
 			break

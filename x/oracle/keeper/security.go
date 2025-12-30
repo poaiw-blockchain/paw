@@ -144,7 +144,7 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 
 	bondedVals, err := k.GetBondedValidators(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckByzantineTolerance: failed to get bonded validators: %w", err)
 	}
 
 	if len(bondedVals) < MinValidatorsForSecurity {
@@ -178,7 +178,7 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckByzantineTolerance: failed to get params: %w", err)
 	}
 	allowedRegions := make(map[string]struct{}, len(params.AllowedRegions))
 	for _, r := range params.AllowedRegions {
@@ -196,11 +196,11 @@ func (k Keeper) CheckByzantineTolerance(ctx context.Context) error {
 
 		valAddr, err := sdk.ValAddressFromBech32(val.GetOperator())
 		if err != nil {
-			return err
+			return fmt.Errorf("CheckByzantineTolerance: invalid validator address: %w", err)
 		}
 		oracleInfo, err := k.GetValidatorOracle(ctx, valAddr.String())
 		if err != nil {
-			return err
+			return fmt.Errorf("CheckByzantineTolerance: failed to get validator oracle: %w", err)
 		}
 
 		region := strings.ToLower(strings.TrimSpace(oracleInfo.GeographicRegion))
@@ -288,7 +288,7 @@ func (k Keeper) ValidateFlashLoanResistance(ctx context.Context, asset string, p
 	if deviation.GT(circuitBreakerThreshold) {
 		// Trigger circuit breaker
 		if err := k.TriggerCircuitBreaker(ctx, asset, "extreme_price_deviation", deviation); err != nil {
-			return err
+			return fmt.Errorf("ValidatePriceManipulationResistance: failed to trigger circuit breaker: %w", err)
 		}
 		return fmt.Errorf("circuit breaker triggered: price deviation %s exceeds threshold %s",
 			deviation.String(), circuitBreakerThreshold.String())
@@ -311,7 +311,7 @@ func (k Keeper) TriggerCircuitBreaker(ctx context.Context, asset, reason string,
 
 	// Store circuit breaker state
 	if err := k.setCircuitBreakerState(ctx, state); err != nil {
-		return err
+		return fmt.Errorf("TriggerCircuitBreaker: failed to set state: %w", err)
 	}
 
 	// Emit critical event
@@ -441,7 +441,7 @@ func (k Keeper) CheckDataStaleness(ctx context.Context, asset string) error {
 func (k Keeper) CheckSybilAttackResistance(ctx context.Context, validatorAddr sdk.ValAddress) error {
 	validator, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("CheckSybilAttackResistance: failed to get validator: %w", err)
 	}
 
 	powerReduction := k.stakingKeeper.PowerReduction(ctx)
@@ -774,7 +774,7 @@ func (k Keeper) PerformSecurityAudit(ctx context.Context, asset string) error {
 func (k Keeper) TrackGeographicDiversity(ctx context.Context) (*GeographicDistribution, error) {
 	bondedVals, err := k.GetBondedValidators(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("TrackGeographicDiversity: failed to get bonded validators: %w", err)
 	}
 
 	distribution := &GeographicDistribution{
@@ -819,7 +819,7 @@ func (k Keeper) TrackGeographicDiversity(ctx context.Context) (*GeographicDistri
 func (k Keeper) ValidateGeographicDiversity(ctx context.Context) error {
 	distribution, err := k.TrackGeographicDiversity(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateGeographicDiversity: failed to track diversity: %w", err)
 	}
 
 	uniqueRegions := len(distribution.RegionCounts)
@@ -1411,7 +1411,7 @@ func (k Keeper) ImplementDataSourceAuthenticity(ctx context.Context, validatorAd
 
 	// Validate price bounds (already done in ValidateDataSourceAuthenticity)
 	if err := k.ValidateDataSourceAuthenticity(ctx, asset, price); err != nil {
-		return err
+		return fmt.Errorf("ValidatePriceSubmission: data source validation failed: %w", err)
 	}
 
 	// Check for data source diversity - validator shouldn't always submit identical prices
@@ -1496,12 +1496,12 @@ func (k Keeper) ImplementSybilResistance(ctx context.Context, validatorAddr stri
 	// Check 1: Minimum stake requirement
 	valAddr, err := sdk.ValAddressFromBech32(validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("ImplementSybilResistance: invalid validator address: %w", err)
 	}
 
 	validator, err := k.stakingKeeper.GetValidator(ctx, valAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("ImplementSybilResistance: failed to get validator: %w", err)
 	}
 
 	// Require meaningful stake
@@ -1591,13 +1591,13 @@ func (k Keeper) countValidatorsFromASN(ctx context.Context, asn uint64) int {
 func (k Keeper) ValidateIPAndASNDiversity(ctx context.Context, validatorAddr string) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateIPAndASNDiversity: failed to get params: %w", err)
 	}
 
 	// Get validator's IP and ASN
 	validatorOracle, err := k.GetValidatorOracle(ctx, validatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateIPAndASNDiversity: failed to get validator oracle: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -1693,7 +1693,7 @@ func (k Keeper) SetValidatorIPAndASN(ctx context.Context, validatorAddr string, 
 
 	// Store updated ValidatorOracle
 	if err := k.SetValidatorOracle(ctx, validatorOracle); err != nil {
-		return err
+		return fmt.Errorf("SetValidatorIPAndASN: failed to set validator oracle: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
@@ -1734,7 +1734,7 @@ func (k Keeper) ImplementOracleRateLimiting(ctx context.Context, validatorAddr s
 
 	// Record submission for rate limiting
 	if err := k.RecordSubmission(ctx, assetKey); err != nil {
-		return err
+		return fmt.Errorf("ImplementRateLimiting: failed to record submission: %w", err)
 	}
 
 	return nil
@@ -1747,7 +1747,7 @@ func (k Keeper) ImplementDataPoisoningPrevention(ctx context.Context, validatorA
 	// Check 1: Statistical outlier detection
 	allValidatorPrices, err := k.GetAllValidatorPrices(ctx, asset)
 	if err != nil {
-		return err
+		return fmt.Errorf("ImplementDataPoisoningPrevention: failed to get validator prices: %w", err)
 	}
 
 	if len(allValidatorPrices) >= 3 {

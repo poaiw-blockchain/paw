@@ -18,7 +18,7 @@ func (k Keeper) SetPrice(ctx context.Context, price types.Price) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&price)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetPrice: failed to marshal price for %s: %w", price.Asset, err)
 	}
 	store.Set(GetPriceKey(price.Asset), bz)
 
@@ -67,7 +67,7 @@ func (k Keeper) IteratePrices(ctx context.Context, cb func(price types.Price) (s
 	for ; iterator.Valid(); iterator.Next() {
 		var price types.Price
 		if err := k.cdc.Unmarshal(iterator.Value(), &price); err != nil {
-			return err
+			return fmt.Errorf("IteratePrices: failed to unmarshal price: %w", err)
 		}
 		if cb(price) {
 			break
@@ -92,13 +92,13 @@ func (k Keeper) GetAllPrices(ctx context.Context) ([]types.Price, error) {
 func (k Keeper) SetValidatorPrice(ctx context.Context, validatorPrice types.ValidatorPrice) error {
 	valAddr, err := sdk.ValAddressFromBech32(validatorPrice.ValidatorAddr)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetValidatorPrice: invalid validator address %s: %w", validatorPrice.ValidatorAddr, err)
 	}
 
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&validatorPrice)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetValidatorPrice: failed to marshal validator price: %w", err)
 	}
 	store.Set(GetValidatorPriceKey(valAddr, validatorPrice.Asset), bz)
 
@@ -133,20 +133,20 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 
 	isActive, err := k.IsActiveValidator(ctx, validator)
 	if err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: failed to check validator status: %w", err)
 	}
 	if !isActive {
 		return fmt.Errorf("validator %s is not bonded", validator.String())
 	}
 
 	if err := k.ValidatePriceSubmission(ctx, validator, asset, price); err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: validation failed: %w", err)
 	}
 
 	// DATA-8: Use snapshotted voting power for consistent weighting throughout vote period
 	votingPower, err := k.GetSnapshotVotingPower(ctx, validator)
 	if err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: failed to get snapshot voting power: %w", err)
 	}
 
 	validatorPrice := types.ValidatorPrice{
@@ -158,15 +158,15 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 	}
 
 	if err := k.SetValidatorPrice(ctx, validatorPrice); err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: failed to set validator price: %w", err)
 	}
 
 	if err := k.IncrementSubmissionCount(ctx, validator.String()); err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: failed to increment submission count: %w", err)
 	}
 
 	if err := k.ResetMissCounter(ctx, validator.String()); err != nil {
-		return err
+		return fmt.Errorf("SubmitPrice: failed to reset miss counter: %w", err)
 	}
 
 	if err := k.RecordSubmission(ctx, validator.String()); err != nil {
@@ -254,7 +254,7 @@ func (k Keeper) IterateValidatorPrices(ctx context.Context, asset string, cb fun
 	for ; iterator.Valid(); iterator.Next() {
 		var validatorPrice types.ValidatorPrice
 		if err := k.cdc.Unmarshal(iterator.Value(), &validatorPrice); err != nil {
-			return err
+			return fmt.Errorf("IterateValidatorPrices: failed to unmarshal validator price: %w", err)
 		}
 		if cb(validatorPrice) {
 			break
@@ -327,7 +327,7 @@ func (k Keeper) SetPriceSnapshot(ctx context.Context, snapshot types.PriceSnapsh
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&snapshot)
 	if err != nil {
-		return err
+		return fmt.Errorf("SetPriceSnapshot: failed to marshal snapshot for %s: %w", snapshot.Asset, err)
 	}
 	store.Set(GetPriceSnapshotKey(snapshot.Asset, snapshot.BlockHeight), bz)
 	return nil
@@ -358,7 +358,7 @@ func (k Keeper) IteratePriceSnapshots(ctx context.Context, asset string, cb func
 	for ; iterator.Valid(); iterator.Next() {
 		var snapshot types.PriceSnapshot
 		if err := k.cdc.Unmarshal(iterator.Value(), &snapshot); err != nil {
-			return err
+			return fmt.Errorf("IteratePriceSnapshots: failed to unmarshal snapshot: %w", err)
 		}
 		if cb(snapshot) {
 			break
@@ -379,7 +379,7 @@ func (k Keeper) DeleteOldSnapshots(ctx context.Context, asset string, minBlockHe
 	for ; iterator.Valid(); iterator.Next() {
 		var snapshot types.PriceSnapshot
 		if err := k.cdc.Unmarshal(iterator.Value(), &snapshot); err != nil {
-			return err
+			return fmt.Errorf("DeleteOldSnapshots: failed to unmarshal snapshot: %w", err)
 		}
 		if snapshot.BlockHeight < minBlockHeight {
 			keysToDelete = append(keysToDelete, iterator.Key())

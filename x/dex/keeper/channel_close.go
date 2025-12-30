@@ -79,7 +79,7 @@ func (k Keeper) RefundOnChannelClose(ctx sdk.Context, op ChannelOperation) error
 	switch op.PacketType {
 	case PacketTypeExecuteSwap:
 		if err := k.refundSwap(ctx, op.Sequence, "ibc_channel_closed"); err != nil {
-			return err
+			return fmt.Errorf("RefundOnChannelClose: refund swap for sequence %d: %w", op.Sequence, err)
 		}
 	case PacketTypeQueryPools:
 		k.removePendingQuery(ctx, op.ChannelID, op.Sequence)

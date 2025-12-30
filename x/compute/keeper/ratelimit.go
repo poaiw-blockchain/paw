@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -151,7 +152,7 @@ func (rlqs *RateLimitedQueryServer) checkRateLimit(ctx context.Context) error {
 // Params wraps the Params query with rate limiting
 func (rlqs *RateLimitedQueryServer) Params(ctx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Params: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Params(ctx, req)
 }
@@ -159,7 +160,7 @@ func (rlqs *RateLimitedQueryServer) Params(ctx context.Context, req *types.Query
 // Provider wraps the Provider query with rate limiting
 func (rlqs *RateLimitedQueryServer) Provider(ctx context.Context, req *types.QueryProviderRequest) (*types.QueryProviderResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Provider: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Provider(ctx, req)
 }
@@ -167,7 +168,7 @@ func (rlqs *RateLimitedQueryServer) Provider(ctx context.Context, req *types.Que
 // Providers wraps the Providers query with rate limiting
 func (rlqs *RateLimitedQueryServer) Providers(ctx context.Context, req *types.QueryProvidersRequest) (*types.QueryProvidersResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Providers: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Providers(ctx, req)
 }
@@ -175,7 +176,7 @@ func (rlqs *RateLimitedQueryServer) Providers(ctx context.Context, req *types.Qu
 // ActiveProviders wraps the ActiveProviders query with rate limiting
 func (rlqs *RateLimitedQueryServer) ActiveProviders(ctx context.Context, req *types.QueryActiveProvidersRequest) (*types.QueryActiveProvidersResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ActiveProviders: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.ActiveProviders(ctx, req)
 }
@@ -183,7 +184,7 @@ func (rlqs *RateLimitedQueryServer) ActiveProviders(ctx context.Context, req *ty
 // Request wraps the Request query with rate limiting
 func (rlqs *RateLimitedQueryServer) Request(ctx context.Context, req *types.QueryRequestRequest) (*types.QueryRequestResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Request: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Request(ctx, req)
 }
@@ -191,7 +192,7 @@ func (rlqs *RateLimitedQueryServer) Request(ctx context.Context, req *types.Quer
 // Requests wraps the Requests query with rate limiting
 func (rlqs *RateLimitedQueryServer) Requests(ctx context.Context, req *types.QueryRequestsRequest) (*types.QueryRequestsResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Requests: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Requests(ctx, req)
 }
@@ -199,7 +200,7 @@ func (rlqs *RateLimitedQueryServer) Requests(ctx context.Context, req *types.Que
 // RequestsByRequester wraps the RequestsByRequester query with rate limiting
 func (rlqs *RateLimitedQueryServer) RequestsByRequester(ctx context.Context, req *types.QueryRequestsByRequesterRequest) (*types.QueryRequestsByRequesterResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RequestsByRequester: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.RequestsByRequester(ctx, req)
 }
@@ -207,7 +208,7 @@ func (rlqs *RateLimitedQueryServer) RequestsByRequester(ctx context.Context, req
 // RequestsByProvider wraps the RequestsByProvider query with rate limiting
 func (rlqs *RateLimitedQueryServer) RequestsByProvider(ctx context.Context, req *types.QueryRequestsByProviderRequest) (*types.QueryRequestsByProviderResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RequestsByProvider: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.RequestsByProvider(ctx, req)
 }
@@ -215,7 +216,7 @@ func (rlqs *RateLimitedQueryServer) RequestsByProvider(ctx context.Context, req 
 // RequestsByStatus wraps the RequestsByStatus query with rate limiting
 func (rlqs *RateLimitedQueryServer) RequestsByStatus(ctx context.Context, req *types.QueryRequestsByStatusRequest) (*types.QueryRequestsByStatusResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("RequestsByStatus: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.RequestsByStatus(ctx, req)
 }
@@ -223,7 +224,7 @@ func (rlqs *RateLimitedQueryServer) RequestsByStatus(ctx context.Context, req *t
 // Result wraps the Result query with rate limiting
 func (rlqs *RateLimitedQueryServer) Result(ctx context.Context, req *types.QueryResultRequest) (*types.QueryResultResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Result: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.Result(ctx, req)
 }
@@ -231,7 +232,7 @@ func (rlqs *RateLimitedQueryServer) Result(ctx context.Context, req *types.Query
 // EstimateCost wraps the EstimateCost query with rate limiting
 func (rlqs *RateLimitedQueryServer) EstimateCost(ctx context.Context, req *types.QueryEstimateCostRequest) (*types.QueryEstimateCostResponse, error) {
 	if err := rlqs.checkRateLimit(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("EstimateCost: rate limit: %w", err)
 	}
 	return rlqs.QueryServer.EstimateCost(ctx, req)
 }

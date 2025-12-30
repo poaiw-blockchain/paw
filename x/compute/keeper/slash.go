@@ -30,14 +30,14 @@ func (k Keeper) setSlashRecord(ctx context.Context, record types.SlashRecord) er
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&record)
 	if err != nil {
-		return err
+		return fmt.Errorf("setSlashRecord: marshal: %w", err)
 	}
 	store.Set(SlashRecordKey(record.Id), bz)
 
 	// index by provider
 	provider, err := sdk.AccAddressFromBech32(record.Provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("setSlashRecord: parse provider: %w", err)
 	}
 	store.Set(SlashRecordByProviderKey(provider, record.Id), []byte{})
 	return nil
@@ -51,7 +51,7 @@ func (k Keeper) getSlashRecord(ctx context.Context, id uint64) (*types.SlashReco
 	}
 	var record types.SlashRecord
 	if err := k.cdc.Unmarshal(bz, &record); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getSlashRecord: unmarshal: %w", err)
 	}
 	return &record, nil
 }
@@ -92,7 +92,7 @@ func (k Keeper) listSlashRecords(ctx context.Context, provider sdk.AccAddress, p
 		pageRes, err = query.Paginate(view, pageReq, func(key []byte, value []byte) error {
 			var rec types.SlashRecord
 			if err := k.cdc.Unmarshal(value, &rec); err != nil {
-				return err
+				return fmt.Errorf("unmarshal slash record: %w", err)
 			}
 			records = append(records, rec)
 			return nil
@@ -107,7 +107,7 @@ func (k Keeper) listSlashRecords(ctx context.Context, provider sdk.AccAddress, p
 			slashID := binary.BigEndian.Uint64(key[len(key)-8:])
 			rec, err := k.getSlashRecord(ctx, slashID)
 			if err != nil {
-				return err
+				return fmt.Errorf("get slash record %d: %w", slashID, err)
 			}
 			records = append(records, *rec)
 			return nil

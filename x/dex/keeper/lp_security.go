@@ -55,22 +55,22 @@ func (k Keeper) ValidateLPMinting(ctx context.Context, pool *types.Pool, provide
 	// 3. Check for share supply manipulation
 	// Ensure shares don't exceed reasonable bounds relative to reserves
 	if err := k.validateShareSupply(pool, newTotalShares); err != nil {
-		return err
+		return fmt.Errorf("ValidateLPMinting: validate share supply: %w", err)
 	}
 
 	// 4. Check concentration risk - prevent single provider from dominating pool
 	if err := k.validateProviderConcentration(ctx, pool.Id, provider, sharesToMint, newTotalShares); err != nil {
-		return err
+		return fmt.Errorf("ValidateLPMinting: validate provider concentration: %w", err)
 	}
 
 	// 5. Validate price ratio hasn't been manipulated
 	if err := k.validatePriceRatio(pool); err != nil {
-		return err
+		return fmt.Errorf("ValidateLPMinting: validate price ratio: %w", err)
 	}
 
 	// 6. Check for suspicious liquidity patterns
 	if err := k.detectSuspiciousLiquidity(ctx, pool, provider, sharesToMint); err != nil {
-		return err
+		return fmt.Errorf("ValidateLPMinting: detect suspicious liquidity: %w", err)
 	}
 
 	return nil
@@ -117,7 +117,7 @@ func (k Keeper) validateProviderConcentration(ctx context.Context, poolID uint64
 	// Get provider's current shares
 	currentShares, err := k.GetLiquidityShares(ctx, poolID, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("validateProviderConcentration: get liquidity shares: %w", err)
 	}
 
 	// Calculate provider's new total shares
@@ -177,7 +177,7 @@ func (k Keeper) detectSuspiciousLiquidity(ctx context.Context, pool *types.Pool,
 	// 1. Check for rapid consecutive liquidity additions (potential flash loan attack)
 	lastBlock, found, err := k.GetLastLiquidityActionBlock(ctx, pool.Id, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("detectSuspiciousLiquidity: get last liquidity action block: %w", err)
 	}
 
 	currentHeight := sdkCtx.BlockHeight()
@@ -235,7 +235,7 @@ func (k Keeper) ValidateLPBurning(ctx context.Context, pool *types.Pool, provide
 	// 2. Get provider's shares
 	providerShares, err := k.GetLiquidityShares(ctx, pool.Id, provider)
 	if err != nil {
-		return err
+		return fmt.Errorf("ValidateLPBurning: get liquidity shares: %w", err)
 	}
 
 	// 3. Validate sufficient balance
@@ -280,7 +280,7 @@ func (k Keeper) LockInitialLiquidity(ctx context.Context, poolID uint64) error {
 	lockedShares := math.NewInt(MinimumLiquidity)
 
 	if err := k.SetLiquidityShares(ctx, poolID, burnAddr, lockedShares); err != nil {
-		return err
+		return fmt.Errorf("LockInitialLiquidity: set liquidity shares: %w", err)
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
