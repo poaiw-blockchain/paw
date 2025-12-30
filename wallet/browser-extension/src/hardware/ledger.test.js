@@ -1,5 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { toBech32 } from '@cosmjs/encoding';
+
+// Create persistent mock functions before importing the module
+const mockGetAddress = vi.fn();
+const mockSign = vi.fn();
+
+vi.mock('@ledgerhq/hw-transport-webhid', () => ({
+  default: {
+    create: vi.fn(async () => ({
+      setExchangeTimeout: vi.fn(),
+      close: vi.fn().mockResolvedValue(undefined),
+      device: { manufacturerName: 'Ledger', productName: 'Nano X' },
+    })),
+    isSupported: vi.fn(async () => true),
+  },
+}));
+
+vi.mock('@ledgerhq/hw-transport-webusb', () => ({
+  default: {
+    create: vi.fn(async () => ({
+      setExchangeTimeout: vi.fn(),
+      close: vi.fn().mockResolvedValue(undefined),
+      device: { manufacturerName: 'Ledger', productName: 'Nano X' },
+    })),
+    isSupported: vi.fn(async () => true),
+  },
+}));
+
+vi.mock('@ledgerhq/hw-app-cosmos', () => ({
+  default: class MockCosmosApp {
+    constructor() {
+      this.getAddress = mockGetAddress;
+      this.sign = mockSign;
+    }
+  },
+}));
+
+// Now import the module under test
 import {
   normalizePath,
   assertBech32Prefix,
@@ -8,47 +45,19 @@ import {
   signAmino,
 } from './ledger';
 
-const mockTransport = () => {
-  const t = {
-    setExchangeTimeout: vi.fn(),
-    close: vi.fn().mockResolvedValue(undefined),
-    device: { manufacturerName: 'Ledger', productName: 'Nano X' },
-  };
-  return t;
-};
-
-const mockApp = () => {
-  const addr = toBech32('paw', new Uint8Array(20).fill(1));
-  return {
-    getAddress: vi.fn().mockResolvedValue({
-      address: addr,
-      publicKey: '02'.repeat(33),
-    }),
-    sign: vi.fn().mockResolvedValue({ signature: Buffer.from('deadbeef', 'hex').toString('base64') }),
-  };
-};
-
-vi.mock('@ledgerhq/hw-transport-webhid', () => ({
-  default: {
-    create: vi.fn(async () => mockTransport()),
-    isSupported: vi.fn(async () => true),
-  },
-}));
-
-vi.mock('@ledgerhq/hw-transport-webusb', () => ({
-  default: {
-    create: vi.fn(async () => mockTransport()),
-    isSupported: vi.fn(async () => true),
-  },
-}));
-
-vi.mock('@ledgerhq/hw-app-cosmos', () => ({
-  default: vi.fn().mockImplementation(() => mockApp()),
-}));
-
 describe('ledger hardware helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Set up mock return values
+    const mockAddr = toBech32('paw', new Uint8Array(20).fill(1));
+    mockGetAddress.mockResolvedValue({
+      address: mockAddr,
+      publicKey: '02'.repeat(33),
+    });
+    mockSign.mockResolvedValue({
+      signature: Buffer.from('deadbeef', 'hex').toString('base64'),
+    });
   });
 
   it('normalizes valid paths and rejects out-of-range accounts', () => {

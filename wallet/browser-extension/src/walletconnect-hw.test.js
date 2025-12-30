@@ -1,18 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { bech32 } from 'bech32';
+
+// Use vi.hoisted to ensure the mock is created before hoisting
+const { mockSignAmino } = vi.hoisted(() => ({
+  mockSignAmino: vi.fn(),
+}));
+
+vi.mock('./hardware/ledger.js', () => ({
+  signAmino: mockSignAmino,
+}));
+
 import {
   normalizeAddress,
   shouldUseHardware,
   signAminoRequest,
 } from './walletconnect-hw.js';
-import { bech32 } from 'bech32';
-
-vi.mock('./hardware/ledger.js', () => ({
-  signAmino: vi.fn().mockResolvedValue({
-    signature: new Uint8Array([1, 2, 3]),
-    publicKey: new Uint8Array([4, 5, 6]),
-    transportType: 'webhid',
-  }),
-}));
 
 describe('walletconnect hardware helpers', () => {
 const hwAddress = bech32.encode('paw', bech32.toWords(new Uint8Array(20).fill(1)));
@@ -20,6 +22,11 @@ const hw = { address: hwAddress, transport: 'webhid' };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSignAmino.mockResolvedValue({
+      signature: new Uint8Array([1, 2, 3]),
+      publicKey: new Uint8Array([4, 5, 6]),
+      transportType: 'webhid',
+    });
   });
 
   it('normalizes bech32 address', () => {
