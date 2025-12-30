@@ -522,12 +522,11 @@
   - circuitManager, moduleAddressCache patterns are consistent within modules
   - getStore() standardization addressed in CODE-10
 
-- [ ] **CODE-9: Missing Error Wrapping Context** (DEFERRED - incremental improvement)
-  - 248+ instances of bare `return err` and `return nil, err` across keepers
-  - **Pattern to apply:** `return nil, fmt.Errorf("function_name: operation: %w", err)`
-  - Risk: Bulk changes may cause redundant wrapping or change error behavior
-  - *Recommendation:* Apply incrementally during feature development
-  - Priority files: msg_server.go (transaction entry points)
+- [x] **CODE-9: Missing Error Wrapping Context**
+  - ✅ FIXED: All keeper files now have proper error wrapping context
+  - Pattern applied: `return nil, fmt.Errorf("function_name: operation: %w", err)`
+  - Priority files (msg_server.go) completed first
+  - All x/dex/keeper, x/compute/keeper, x/oracle/keeper files verified clean
 
 - [x] **CODE-10: Inconsistent getStore() Implementations**
   - ✅ FIXED: DEX keeper now uses defensive approach consistent with Compute
@@ -560,9 +559,9 @@
 
 #### Documentation
 
-- [ ] **DOC-10: Missing Module Interaction Diagrams**
-  - No sequence diagrams for DEX-Oracle flow
-  - *Recommendation:* Add to docs/architecture/
+- [x] **DOC-10: Missing Module Interaction Diagrams**
+  - ✅ FIXED: Created `docs/architecture/MODULE_INTERACTIONS.md` with Mermaid sequence diagrams
+  - DEX-Oracle Price Flow, Compute Job Flow, Oracle Aggregation Flow, IBC Cross-Chain Swap Flow
 
 - [ ] **DOC-11: Missing Keeper Dependency Graph**
   - *Recommendation:* Document compile-time + runtime deps
@@ -639,7 +638,7 @@
 |----------|-------|--------|
 | P0 Critical | 4 | ✅ Complete |
 | P1 High | 16 | ✅ Complete |
-| P2 Medium | 16 | ✅ Complete (15/16, CODE-9 deferred) |
+| P2 Medium | 16 | ✅ Complete |
 | P3 Low | 10 | Partial (4/10) |
 
 **All P0 Blocking Issues RESOLVED (2025-12-29):**
@@ -684,8 +683,7 @@
 - ✅ DATA-11-13: LP shares validation, oracle fallback, reverse index backfill - COMPLETE
 - ✅ AGENT-1-2: Batch operations, simulation - COMPLETE
 - ✅ AGENT-3: Multi-hop route query - COMPLETE (prior session)
-- ✅ CODE-8/10/11: Naming conventions, getStore(), encoding - COMPLETE
-- CODE-9: Error wrapping (deferred, incremental improvement)
+- ✅ CODE-8/9/10/11: Naming conventions, error wrapping, getStore(), encoding - COMPLETE
 
 **Remaining P3 Items:**
 - ARCH-5-7: Module docs, circuit breaker coordination, API versioning
@@ -698,7 +696,7 @@
 - ✅ DATA-12: Added tiered oracle fallback (unfiltered median → stale price)
 - ✅ DATA-13: Verified reverse index backfill already in v2 migration
 - ✅ AGENT-3: Added FindBestRoute gRPC query endpoint for multi-hop routing
-- ✅ CODE-9: Documented as incremental improvement task (248+ instances)
+- ✅ CODE-9: All keeper error wrapping complete (verified 0 bare returns in keeper/*.go)
 - ✅ Fixed SEC-18 test (FlashLoanProtectionBlocks 10→100)
 - ✅ Fixed SEC-11 tests (added block height past bootstrap grace period)
 - All oracle, compute, and DEX tests pass
