@@ -39,6 +39,9 @@ type Keeper struct {
 	circuitManager *CircuitManager
 
 	metrics *ComputeMetrics
+
+	// ARCH-2: Hooks for cross-module notifications
+	hooks computetypes.ComputeHooks
 }
 
 type kvStoreProvider interface {
@@ -81,6 +84,20 @@ func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
 
 	unwrapped := sdk.UnwrapSDKContext(ctx)
 	return unwrapped.KVStore(k.storeKey)
+}
+
+// SetHooks sets the compute hooks.
+// ARCH-2: Enables cross-module notifications for compute events.
+func (k *Keeper) SetHooks(hooks computetypes.ComputeHooks) {
+	if k.hooks != nil {
+		panic("cannot set compute hooks twice")
+	}
+	k.hooks = hooks
+}
+
+// GetHooks returns the compute hooks.
+func (k Keeper) GetHooks() computetypes.ComputeHooks {
+	return k.hooks
 }
 
 // ClaimCapability claims a channel capability for the compute module.

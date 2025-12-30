@@ -378,8 +378,11 @@ func (k Keeper) GenerateSecureRandomness(ctx context.Context, seed []byte) *big.
 }
 
 // GenerateSecureRandomnessLegacy generates randomness using only on-chain data.
-// DEPRECATED: Use GenerateSecureRandomness which uses the commit-reveal scheme.
-// This function is kept for backward compatibility and fallback scenarios.
+//
+// Deprecated: Use GenerateSecureRandomness which uses the commit-reveal scheme.
+// This function is kept for backward compatibility and fallback scenarios only.
+// CODE-12: Will be removed in v2.0.0. All callers should migrate to GenerateSecureRandomness.
+// Removal scheduled for Q3 2025 (post-mainnet launch).
 func (k Keeper) GenerateSecureRandomnessLegacy(ctx context.Context, seed []byte) *big.Int {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 

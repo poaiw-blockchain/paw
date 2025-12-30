@@ -135,6 +135,13 @@ service Query {
   rpc CatastrophicFailure(QueryCatastrophicFailureRequest) returns (QueryCatastrophicFailureResponse) {
     option (google.api.http).get = "/paw/compute/v1/catastrophic_failures/{failure_id}";
   }
+
+  // SimulateRequest simulates a compute request without executing it
+  // AGENT-2: Enables agents to preview gas/cost before submitting
+  rpc SimulateRequest(QuerySimulateRequestRequest) returns (QuerySimulateRequestResponse) {
+    option (google.api.http).post = "/paw/compute/v1/simulate";
+    option (google.api.http).body = "*";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -414,4 +421,48 @@ message QueryCatastrophicFailureRequest {
 // QueryCatastrophicFailureResponse is the response type for the Query/CatastrophicFailure RPC method.
 message QueryCatastrophicFailureResponse {
   CatastrophicFailure failure = 1;
+}
+
+// QuerySimulateRequestRequest is the request type for the Query/SimulateRequest RPC method.
+// AGENT-2: Enables agents to preview gas/cost before submitting compute requests.
+message QuerySimulateRequestRequest {
+  // specs defines the required compute resources
+  ComputeSpec specs = 1 [(gogoproto.nullable) = false];
+
+  // container_image is the Docker image to execute
+  string container_image = 2;
+
+  // command is the command to run in the container
+  repeated string command = 3;
+
+  // preferred_provider is an optional preferred provider address
+  string preferred_provider = 4;
+}
+
+// QuerySimulateRequestResponse is the response type for the Query/SimulateRequest RPC method.
+// Provides agents with cost estimates and execution details before submitting.
+message QuerySimulateRequestResponse {
+  // estimated_gas is the estimated gas for this request
+  uint64 estimated_gas = 1;
+
+  // estimated_cost is the estimated cost in base denomination
+  string estimated_cost = 2 [
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // available_providers lists providers capable of handling this request
+  repeated string available_providers = 3;
+
+  // estimated_wait_time_seconds estimates queue wait time
+  uint64 estimated_wait_time_seconds = 4;
+
+  // will_queue indicates if request will queue due to provider capacity
+  bool will_queue = 5;
+
+  // matching_provider is the best matching provider (if any)
+  string matching_provider = 6;
+
+  // validation_errors contains any validation issues with the request
+  repeated string validation_errors = 7;
 }

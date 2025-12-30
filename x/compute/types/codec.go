@@ -26,6 +26,7 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgVoteOnAppeal{}, "paw/compute/MsgVoteOnAppeal", nil)
 	cdc.RegisterConcrete(&MsgResolveAppeal{}, "paw/compute/MsgResolveAppeal", nil)
 	cdc.RegisterConcrete(&MsgUpdateGovernanceParams{}, "paw/compute/MsgUpdateGovernanceParams", nil)
+	cdc.RegisterConcrete(&MsgSubmitBatchRequests{}, "paw/compute/MsgSubmitBatchRequests", nil)
 }
 
 // RegisterInterfaces registers the x/compute interfaces types with the interface registry
@@ -46,6 +47,7 @@ func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
 		&MsgVoteOnAppeal{},
 		&MsgResolveAppeal{},
 		&MsgUpdateGovernanceParams{},
+		&MsgSubmitBatchRequests{},
 	)
 
 	registry.RegisterImplementations((*txtypes.MsgResponse)(nil),
@@ -64,6 +66,7 @@ func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
 		&MsgVoteOnAppealResponse{},
 		&MsgResolveAppealResponse{},
 		&MsgUpdateGovernanceParamsResponse{},
+		&MsgSubmitBatchRequestsResponse{},
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

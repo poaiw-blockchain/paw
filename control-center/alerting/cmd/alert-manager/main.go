@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/paw/control-center/alerting"
+	"github.com/paw/control-center/alerting/app"
 	"github.com/paw/control-center/alerting/engine"
 )
 
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	// Create and start server
-	server, err := alerting.NewServer(config, metricsProvider)
+	server, err := app.NewServer(config, metricsProvider)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}

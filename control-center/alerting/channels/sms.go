@@ -1,7 +1,6 @@
 package channels
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/compute/types"
@@ -121,6 +122,12 @@ func (ms msgServer) SubmitRequest(goCtx context.Context, msg *types.MsgSubmitReq
 
 	// Check rate limits before processing request
 	if err := ms.Keeper.CheckRequestRateLimit(ctx, requesterAddr); err != nil {
+		return nil, err
+	}
+
+	// SEC-12: Validate requester has sufficient balance BEFORE accepting request
+	// This prevents requests from being accepted when the requester cannot pay
+	if err := ms.Keeper.ValidateRequesterBalance(ctx, requesterAddr, msg.MaxPayment); err != nil {
 		return nil, err
 	}
 
@@ -424,4 +431,84 @@ func (ms msgServer) RegisterSigningKey(goCtx context.Context, msg *types.MsgRegi
 	}
 
 	return &types.MsgRegisterSigningKeyResponse{}, nil
+}
+
+// SubmitBatchRequests handles submission of multiple compute requests in a single transaction
+// AGENT-1: Enables batch compute request submission for agents with reduced gas overhead
+func (ms msgServer) SubmitBatchRequests(goCtx context.Context, msg *types.MsgSubmitBatchRequests) (*types.MsgSubmitBatchRequestsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Validate message
+	if msg == nil {
+		return nil, types.ErrInvalidRequest.Wrap("nil message")
+	}
+
+	// Validate batch size (max 20 requests per batch)
+	const maxBatchSize = 20
+	if len(msg.Requests) == 0 {
+		return nil, types.ErrInvalidRequest.Wrap("empty request batch")
+	}
+	if len(msg.Requests) > maxBatchSize {
+		return nil, types.ErrInvalidRequest.Wrapf("batch size %d exceeds maximum %d", len(msg.Requests), maxBatchSize)
+	}
+
+	// Validate requester address
+	if _, err := sdk.AccAddressFromBech32(msg.Requester); err != nil {
+		return nil, types.ErrInvalidRequest.Wrapf("invalid requester address: %v", err)
+	}
+
+	results := make([]types.BatchRequestResult, 0, len(msg.Requests))
+	var successCount uint64
+	totalDeposit := math.ZeroInt()
+
+	// Process each request
+	for _, reqItem := range msg.Requests {
+		result := types.BatchRequestResult{
+			Success: false,
+		}
+
+		// Build a single request message
+		singleReq := &types.MsgSubmitRequest{
+			Requester:         msg.Requester,
+			Specs:             reqItem.Specs,
+			ContainerImage:    reqItem.ContainerImage,
+			Command:           reqItem.Command,
+			EnvVars:           reqItem.EnvVars,
+			MaxPayment:        reqItem.MaxPayment,
+			PreferredProvider: reqItem.PreferredProvider,
+		}
+
+		// Submit the request
+		resp, reqErr := ms.SubmitRequest(goCtx, singleReq)
+		if reqErr != nil {
+			result.Error = reqErr.Error()
+			results = append(results, result)
+			// Continue with next request - batch is not atomic for requests
+			continue
+		}
+
+		result.RequestId = resp.RequestId
+		result.Success = true
+		successCount++
+		totalDeposit = totalDeposit.Add(reqItem.MaxPayment)
+		results = append(results, result)
+	}
+
+	// Emit batch request event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"batch_compute_requests",
+			sdk.NewAttribute("requester", msg.Requester),
+			sdk.NewAttribute("total_requests", fmt.Sprintf("%d", len(msg.Requests))),
+			sdk.NewAttribute("successful_requests", fmt.Sprintf("%d", successCount)),
+			sdk.NewAttribute("total_deposit", totalDeposit.String()),
+		),
+	)
+
+	return &types.MsgSubmitBatchRequestsResponse{
+		Results:            results,
+		TotalRequests:      uint64(len(msg.Requests)),
+		SuccessfulRequests: successCount,
+		TotalDeposit:       totalDeposit,
+	}, nil
 }

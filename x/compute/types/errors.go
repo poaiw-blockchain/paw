@@ -21,6 +21,7 @@ var (
 	ErrProviderOverloaded = sdkerrors.Register(ModuleName, 12, "provider overloaded")
 	ErrInsufficientStake  = sdkerrors.Register(ModuleName, 13, "insufficient provider stake")
 	ErrProviderSlashed    = sdkerrors.Register(ModuleName, 14, "provider has been slashed")
+	ErrMaxProvidersReached = sdkerrors.Register(ModuleName, 15, "maximum provider limit reached")
 
 	// Request lifecycle errors
 	ErrRequestNotFound         = sdkerrors.Register(ModuleName, 20, "compute request not found")
@@ -102,7 +103,8 @@ var RecoverySuggestions = map[error]string{
 	ErrProviderNotActive:  "Provider must activate registration. Check if provider was deactivated due to poor performance. Verify sufficient stake and no active slashing.",
 	ErrProviderOverloaded: "Provider is at capacity. Wait for current jobs to complete or select a different provider. Check provider's available resources.",
 	ErrInsufficientStake:  "Increase provider stake using MsgStakeProvider. Minimum stake requirement can be queried from params. Ensure tokens are available in account.",
-	ErrProviderSlashed:    "Provider was slashed for misbehavior. Cannot submit new requests until penalty period expires. Check slashing status and wait for recovery period.",
+	ErrProviderSlashed:     "Provider was slashed for misbehavior. Cannot submit new requests until penalty period expires. Check slashing status and wait for recovery period.",
+	ErrMaxProvidersReached: "Maximum provider registration limit has been reached. The network limits providers to prevent state bloat. Wait for existing providers to deactivate or contact governance.",
 
 	ErrRequestNotFound:         "Verify request ID is correct. Check if request was cancelled or expired. Query request status using gRPC/REST API.",
 	ErrRequestExpired:          "Request exceeded timeout period. Submit a new request with longer timeout. Check network delays and provider availability.",

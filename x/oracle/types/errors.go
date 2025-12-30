@@ -41,6 +41,11 @@ var (
 	ErrFlashLoanDetected    = sdkerrors.Register(ModuleName, 23, "flash loan attack detected")
 	ErrDataPoisoning        = sdkerrors.Register(ModuleName, 24, "data poisoning attempt detected")
 
+	// SEC-14: Signature verification errors
+	ErrInvalidSignature        = sdkerrors.Register(ModuleName, 25, "invalid price data signature")
+	ErrMissingSignature        = sdkerrors.Register(ModuleName, 26, "missing required price data signature")
+	ErrSignatureVerifyFailed   = sdkerrors.Register(ModuleName, 27, "signature verification failed")
+
 	// Aggregation errors
 	ErrInsufficientDataSources     = sdkerrors.Register(ModuleName, 30, "insufficient data sources")
 	ErrOutlierDetected             = sdkerrors.Register(ModuleName, 31, "price outlier detected")
@@ -64,8 +69,9 @@ var (
 	ErrLocationProofRequired     = sdkerrors.Register(ModuleName, 47, "location proof required")
 	ErrLocationProofInvalid      = sdkerrors.Register(ModuleName, 48, "location proof invalid or expired")
 	ErrInsufficientGeoDiversity  = sdkerrors.Register(ModuleName, 49, "insufficient geographic diversity")
-	ErrGeoIPDatabaseUnavailable  = sdkerrors.Register(ModuleName, 51, "GeoIP database unavailable")
+	ErrGeoIPDatabaseUnavailable    = sdkerrors.Register(ModuleName, 51, "GeoIP database unavailable")
 	ErrTooManyValidatorsFromSameIP = sdkerrors.Register(ModuleName, 52, "too many validators from same IP address")
+	ErrGeoIPVerificationRequired   = sdkerrors.Register(ModuleName, 61, "GeoIP verification required but unavailable")
 
 	// Circuit breaker errors
 	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 53, "circuit breaker already open")
@@ -136,8 +142,9 @@ var RecoverySuggestions = map[error]string{
 	ErrLocationProofRequired:     "Geographic location proof required for validator registration. Provide verifiable location evidence. This ensures geographic diversity.",
 	ErrLocationProofInvalid:      "Location proof verification failed or expired. Renew location proof with current timestamp. Ensure proof is cryptographically signed and valid.",
 	ErrInsufficientGeoDiversity:  "SECURITY: Insufficient geographic diversity among validators. Need minimum 3 distinct regions. This is critical for decentralization and resilience.",
-	ErrGeoIPDatabaseUnavailable:  "GeoIP database not available for location verification. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable.",
+	ErrGeoIPDatabaseUnavailable:    "GeoIP database not available for location verification. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable.",
 	ErrTooManyValidatorsFromSameIP: "SECURITY: Too many validators sharing same IP address (max 2). This indicates centralization risk or Sybil attack. Ensure validators are independently operated.",
+	ErrGeoIPVerificationRequired:   "SECURITY: GeoIP verification is required (RequireGeographicDiversity=true) but the GeoIP database is not configured. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable, or disable RequireGeographicDiversity for testnet.",
 
 	ErrOraclePaused:          "Oracle module is currently paused due to emergency. Price submissions are rejected. Existing prices can still be read but may be stale. Wait for governance to resume operations or check pause reason.",
 	ErrOracleNotPaused:       "Oracle is not currently paused. Cannot resume operations that are already running. Check oracle status before retrying.",

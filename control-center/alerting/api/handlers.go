@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -462,17 +461,18 @@ func (h *Handler) UpdateChannel(c *gin.Context) {
 func (h *Handler) DeleteChannel(c *gin.Context) {
 	id := c.Param("id")
 
-	// Note: Should check if channel is in use by any rules before deleting
-	// For now, just delete
-
-	query := "DELETE FROM notification_channels WHERE id = $1"
+	// Check if channel exists
 	if _, err := h.storage.GetChannel(id); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Channel not found"})
 		return
 	}
 
-	// Execute delete via storage (need to add method)
-	// For now, return success
+	// Delete channel via storage
+	if err := h.storage.DeleteChannel(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Channel deleted"})
 }
 

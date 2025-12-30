@@ -79,7 +79,7 @@ func (p *PrometheusProvider) GetMetric(name string, labels map[string]string) (*
 			Labels:    convertLabels(sample.Metric),
 		}, nil
 
-	case model.Scalar:
+	case *model.Scalar:
 		return &alerting.MetricValue{
 			Name:      name,
 			Value:     float64(v.Value),

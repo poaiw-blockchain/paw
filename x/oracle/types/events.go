@@ -7,6 +7,7 @@ const (
 	EventTypeOraclePriceUpdate     = "oracle_price_update"
 	EventTypeOraclePriceSubmitted  = "oracle_price_submitted"
 	EventTypeOraclePriceAggregated = "oracle_price_aggregated"
+	EventTypeOracleFallback        = "oracle_fallback" // DATA-12: Tiered fallback when all prices filtered
 
 	// Voting events
 	EventTypeOracleVote            = "oracle_vote"

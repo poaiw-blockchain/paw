@@ -32,6 +32,10 @@ service Msg {
   // RevealSwap defines a method for revealing and executing a committed swap
   // This is the second phase of the commit-reveal MEV protection scheme
   rpc RevealSwap(MsgRevealSwap) returns (MsgRevealSwapResponse);
+
+  // BatchSwap defines a method for executing multiple swaps in a single transaction
+  // AGENT-1: Enables agents to submit multiple swaps atomically with reduced gas
+  rpc BatchSwap(MsgBatchSwap) returns (MsgBatchSwapResponse);
 }
 
 // MsgCreatePool defines the message for creating a new liquidity pool
@@ -270,4 +274,65 @@ message MsgRevealSwapResponse {
     (gogoproto.customtype) = "cosmossdk.io/math.Int",
     (gogoproto.nullable) = false
   ];
+}
+
+// SwapRequest defines a single swap within a batch operation
+// AGENT-1: Individual swap parameters for batch processing
+message SwapRequest {
+  uint64 pool_id = 1;
+  string token_in = 2;
+  string token_out = 3;
+  string amount_in = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string min_amount_out = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// MsgBatchSwap defines the message for executing multiple swaps atomically
+// AGENT-1: Enables agents to submit batch swap requests with lower gas overhead
+//
+// BENEFITS:
+// - Reduced gas cost per swap due to shared transaction overhead
+// - Atomic execution (all succeed or all fail)
+// - MEV protection through batching (harder to sandwich individual swaps)
+//
+// LIMITS:
+// - Maximum 10 swaps per batch (gas metering constraint)
+// - All swaps share the same deadline
+// - Each swap is validated independently
+message MsgBatchSwap {
+  option (cosmos.msg.v1.signer) = "trader";
+  option (amino.name) = "paw/dex/MsgBatchSwap";
+
+  string trader = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  repeated SwapRequest swaps = 2 [(gogoproto.nullable) = false];
+  // deadline applies to all swaps in the batch
+  int64 deadline = 3;
+}
+
+// BatchSwapResult defines the result of a single swap in a batch
+message BatchSwapResult {
+  uint64 pool_id = 1;
+  string amount_out = 2 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  bool success = 3;
+  string error = 4; // Empty if success=true
+}
+
+// MsgBatchSwapResponse defines the response for MsgBatchSwap
+message MsgBatchSwapResponse {
+  repeated BatchSwapResult results = 1 [(gogoproto.nullable) = false];
+  // total_swaps is the number of swaps attempted
+  uint64 total_swaps = 2;
+  // successful_swaps is the number of swaps that succeeded
+  uint64 successful_swaps = 3;
 }

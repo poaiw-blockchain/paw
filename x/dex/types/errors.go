@@ -123,6 +123,12 @@ var (
 	// SEC-6: Minimum reserves error for pool drainage protection
 	ErrMinimumReserves = sdkerrors.Register(ModuleName, 48, "minimum reserves requirement not met")
 
+	// ErrSwapFailed is returned when a swap fails during batch execution
+	ErrSwapFailed = sdkerrors.Register(ModuleName, 93, "swap failed")
+
+	// ErrSwapExpired is returned when swap deadline has passed
+	ErrSwapExpired = sdkerrors.Register(ModuleName, 94, "swap deadline expired")
+
 	// Commit-reveal errors for large swap protection
 	ErrCommitRequired = sdkerrors.Register(ModuleName, 40, "commit-reveal required for large swap")
 	ErrCommitmentNotFound   = sdkerrors.Register(ModuleName, 41, "swap commitment not found")
@@ -193,8 +199,8 @@ var RecoverySuggestions = map[error]string{
 	ErrCommitmentExpired:   "Commitment expired after 50 blocks without reveal. Deposit was forfeited. Create a new commitment with a fresh hash.",
 	ErrInsufficientDeposit: "Insufficient funds for commitment deposit (1 UPAW required). Ensure account has enough balance for the deposit.",
 
-	// SEC-6: Minimum reserves protection
-	ErrMinimumReserves: "Pool must maintain minimum reserves to prevent full drainage. Reduce withdrawal amount or leave at least 100 units of each token in the pool.",
+	// SEC-6/SEC-17: Minimum reserves protection
+	ErrMinimumReserves: "Pool must maintain minimum reserves to prevent full drainage. Reduce withdrawal amount or leave at least 1,000,000 base units (1 token) of each asset in the pool.",
 }
 
 // WrapWithRecovery wraps an error with recovery suggestion

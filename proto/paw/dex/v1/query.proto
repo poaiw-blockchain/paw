@@ -65,6 +65,11 @@ service Query {
   rpc OrderBook(QueryOrderBookRequest) returns (QueryOrderBookResponse) {
     option (google.api.http).get = "/paw/dex/v1/order-book/{pool_id}";
   }
+
+  // FindBestRoute finds the optimal multi-hop route between two tokens (AGENT-3)
+  rpc FindBestRoute(QueryFindBestRouteRequest) returns (QueryFindBestRouteResponse) {
+    option (google.api.http).get = "/paw/dex/v1/routes/find";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -198,4 +203,50 @@ message QueryOrderBookRequest {
 message QueryOrderBookResponse {
   repeated LimitOrder buy_orders = 1 [(gogoproto.nullable) = false];
   repeated LimitOrder sell_orders = 2 [(gogoproto.nullable) = false];
+}
+
+// QueryFindBestRouteRequest is the request type for the Query/FindBestRoute RPC method.
+// AGENT-3: Exposes multi-hop route finding for agents and clients.
+message QueryFindBestRouteRequest {
+  string token_in = 1;   // Source token denom
+  string token_out = 2;  // Destination token denom
+  string amount_in = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  uint32 max_hops = 4;   // Maximum number of hops (default 3, max 5)
+}
+
+// RouteHop represents a single hop in a multi-hop route.
+message RouteHop {
+  uint64 pool_id = 1;
+  string token_in = 2;
+  string token_out = 3;
+  string amount_in = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string amount_out = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// QueryFindBestRouteResponse is the response type for the Query/FindBestRoute RPC method.
+message QueryFindBestRouteResponse {
+  repeated RouteHop route = 1 [(gogoproto.nullable) = false];
+  string total_amount_out = 2 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  string total_fee = 3 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+  bool found = 4;  // Whether a valid route was found
 }

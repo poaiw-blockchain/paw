@@ -13,7 +13,7 @@ import (
 )
 
 // TestFlashLoanProtection_BasicScenarios tests the core flash loan protection mechanism
-// Note: Default FlashLoanProtectionBlocks parameter is 10 blocks
+// Note: Default FlashLoanProtectionBlocks parameter is 100 blocks (SEC-18)
 func TestFlashLoanProtection_BasicScenarios(t *testing.T) {
 	t.Parallel()
 
@@ -29,32 +29,32 @@ func TestFlashLoanProtection_BasicScenarios(t *testing.T) {
 			lastActionBlock:   100,
 			currentBlock:      100,
 			expectError:       true,
-			expectErrorString: "must wait 10 blocks",
+			expectErrorString: "must wait 100 blocks",
 		},
 		{
-			name:              "one block later - should fail (need 10)",
+			name:              "one block later - should fail (need 100)",
 			lastActionBlock:   100,
 			currentBlock:      101,
 			expectError:       true,
-			expectErrorString: "must wait 10 blocks",
+			expectErrorString: "must wait 100 blocks",
 		},
 		{
-			name:              "9 blocks later - should fail (need 10)",
+			name:              "99 blocks later - should fail (need 100)",
 			lastActionBlock:   100,
-			currentBlock:      109,
+			currentBlock:      199,
 			expectError:       true,
-			expectErrorString: "must wait 10 blocks",
+			expectErrorString: "must wait 100 blocks",
 		},
 		{
-			name:            "exact 10 blocks - should pass",
+			name:            "exact 100 blocks - should pass",
 			lastActionBlock: 100,
-			currentBlock:    110,
+			currentBlock:    200,
 			expectError:     false,
 		},
 		{
 			name:            "many blocks later - should pass",
 			lastActionBlock: 100,
-			currentBlock:    200,
+			currentBlock:    500,
 			expectError:     false,
 		},
 	}
@@ -97,7 +97,9 @@ func TestFlashLoanProtection_FirstAction(t *testing.T) {
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 	provider := types.TestAddr()
 
-	ctx = ctx.WithBlockHeight(100)
+	// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
+	// Pool was created at default block height (1), so we need to be at block 102+ for actions
+	ctx = ctx.WithBlockHeight(200)
 
 	// First action should always be allowed (no previous action recorded)
 	err := k.CheckFlashLoanProtection(ctx, poolID, provider)
@@ -124,7 +126,9 @@ func TestFlashLoanProtection_AddAndRemoveSameBlock(t *testing.T) {
 		))
 
 	// Move to a later block for the attack attempt
-	ctx = ctx.WithBlockHeight(100)
+	// Note: FlashLoanProtectionBlocks is 100 (SEC-18), pool created at block 10
+	// First action needs to be at block 110+ (100 blocks after pool creation)
+	ctx = ctx.WithBlockHeight(200)
 
 	// Attacker adds liquidity
 	sharesAdded, err := k.AddLiquidity(ctx, provider, poolID,
@@ -140,6 +144,7 @@ func TestFlashLoanProtection_AddAndRemoveSameBlock(t *testing.T) {
 }
 
 // TestFlashLoanProtection_AddAndRemoveNextBlock tests legitimate LP behavior
+// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
 func TestFlashLoanProtection_AddAndRemoveNextBlock(t *testing.T) {
 	t.Parallel()
 
@@ -151,16 +156,16 @@ func TestFlashLoanProtection_AddAndRemoveNextBlock(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	// Add liquidity at block 100
-	ctx = ctx.WithBlockHeight(100)
+	// Add liquidity at block 200 (well past pool creation)
+	ctx = ctx.WithBlockHeight(200)
 	sharesAdded, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 	require.True(t, sharesAdded.GT(math.ZeroInt()))
 
-	// Block 110 (10 blocks later): Remove liquidity
-	// With FlashLoanProtectionBlocks=10, this should SUCCEED
-	ctx = ctx.WithBlockHeight(110)
+	// Block 300 (100 blocks later): Remove liquidity
+	// With FlashLoanProtectionBlocks=100, this should SUCCEED
+	ctx = ctx.WithBlockHeight(300)
 	amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, sharesAdded)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
@@ -168,6 +173,7 @@ func TestFlashLoanProtection_AddAndRemoveNextBlock(t *testing.T) {
 }
 
 // TestFlashLoanProtection_MultipleProviders tests that protection is per-provider
+// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
 func TestFlashLoanProtection_MultipleProviders(t *testing.T) {
 	t.Parallel()
 
@@ -182,7 +188,8 @@ func TestFlashLoanProtection_MultipleProviders(t *testing.T) {
 	provider1 := sdk.AccAddress([]byte("provider1_address_"))
 	provider2 := sdk.AccAddress([]byte("provider2_address_"))
 
-	ctx = ctx.WithBlockHeight(100)
+	// Move well past pool creation (100+ blocks)
+	ctx = ctx.WithBlockHeight(200)
 
 	// Provider 1 adds liquidity
 	shares1, err := k.AddLiquidity(ctx, provider1, poolID,
@@ -204,8 +211,8 @@ func TestFlashLoanProtection_MultipleProviders(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-	// Block 110 (10 blocks later): both providers can remove
-	ctx = ctx.WithBlockHeight(110)
+	// Block 300 (100 blocks later): both providers can remove
+	ctx = ctx.WithBlockHeight(300)
 
 	amountA1, amountB1, err := k.RemoveLiquidity(ctx, provider1, poolID, shares1)
 	require.NoError(t, err)
@@ -219,6 +226,7 @@ func TestFlashLoanProtection_MultipleProviders(t *testing.T) {
 }
 
 // TestFlashLoanProtection_MultipleAddRemoveCycles tests repeated operations
+// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
 func TestFlashLoanProtection_MultipleAddRemoveCycles(t *testing.T) {
 	t.Parallel()
 
@@ -230,8 +238,8 @@ func TestFlashLoanProtection_MultipleAddRemoveCycles(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	// Cycle 1: Add at block 100
-	ctx = ctx.WithBlockHeight(100)
+	// Cycle 1: Add at block 200 (well past pool creation)
+	ctx = ctx.WithBlockHeight(200)
 	shares1, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
@@ -240,13 +248,13 @@ func TestFlashLoanProtection_MultipleAddRemoveCycles(t *testing.T) {
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares1)
 	require.Error(t, err)
 
-	// Cycle 1: Remove at block 101
-	ctx = ctx.WithBlockHeight(110)
+	// Cycle 1: Remove at block 300 (100 blocks after add)
+	ctx = ctx.WithBlockHeight(300)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares1)
 	require.NoError(t, err)
 
-	// Cycle 2: Add at block 102
-	ctx = ctx.WithBlockHeight(120)
+	// Cycle 2: Add at block 400 (100 blocks after remove)
+	ctx = ctx.WithBlockHeight(400)
 	shares2, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(80_000), math.NewInt(80_000))
 	require.NoError(t, err)
@@ -255,13 +263,14 @@ func TestFlashLoanProtection_MultipleAddRemoveCycles(t *testing.T) {
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares2)
 	require.Error(t, err)
 
-	// Cycle 2: Remove at block 103
-	ctx = ctx.WithBlockHeight(130)
+	// Cycle 2: Remove at block 500 (100 blocks after add)
+	ctx = ctx.WithBlockHeight(500)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares2)
 	require.NoError(t, err)
 }
 
 // TestFlashLoanProtection_PartialRemoval tests removing liquidity in multiple steps
+// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
 func TestFlashLoanProtection_PartialRemoval(t *testing.T) {
 	t.Parallel()
 
@@ -273,27 +282,27 @@ func TestFlashLoanProtection_PartialRemoval(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	// Add liquidity at block 100
-	ctx = ctx.WithBlockHeight(100)
+	// Add liquidity at block 200 (well past pool creation)
+	ctx = ctx.WithBlockHeight(200)
 	totalShares, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
 	require.NoError(t, err)
 
-	// Block 110 (10 blocks after add): Remove 50% of shares
-	ctx = ctx.WithBlockHeight(110)
+	// Block 300 (100 blocks after add): Remove 50% of shares
+	ctx = ctx.WithBlockHeight(300)
 	halfShares := totalShares.QuoRaw(2)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, halfShares)
 	require.NoError(t, err)
 
-	// SAME BLOCK 110: Try to remove remaining 50%
+	// SAME BLOCK 300: Try to remove remaining 50%
 	// This should FAIL because we just performed a liquidity action
 	remainingShares := totalShares.Sub(halfShares)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, remainingShares)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-	// Block 120 (10 blocks after previous remove): Can now remove the rest
-	ctx = ctx.WithBlockHeight(120)
+	// Block 400 (100 blocks after previous remove): Can now remove the rest
+	ctx = ctx.WithBlockHeight(400)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, remainingShares)
 	require.NoError(t, err)
 }
@@ -310,28 +319,29 @@ func TestFlashLoanProtection_AddMultipleThenRemove(t *testing.T) {
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 		math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-	// Add liquidity at block 100
-	ctx = ctx.WithBlockHeight(100)
+	// Note: FlashLoanProtectionBlocks is 100 (SEC-18)
+	// Add liquidity at block 200 (well past pool creation at block 10)
+	ctx = ctx.WithBlockHeight(200)
 	shares1, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(50_000), math.NewInt(50_000))
 	require.NoError(t, err)
 
-	// Add MORE liquidity at block 101 (different block)
-	ctx = ctx.WithBlockHeight(110)
+	// Add MORE liquidity at block 300 (100 blocks later)
+	ctx = ctx.WithBlockHeight(300)
 	shares2, err := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(50_000), math.NewInt(50_000))
 	require.NoError(t, err)
 
 	totalShares := shares1.Add(shares2)
 
-	// Try to remove ALL at block 110 (same block as last add)
+	// Try to remove ALL at block 300 (same block as last add)
 	// This should FAIL
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, totalShares)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-	// Block 120 (10 blocks after previous remove): Can remove all
-	ctx = ctx.WithBlockHeight(120)
+	// Block 400 (100 blocks after last action at 300): Can remove all
+	ctx = ctx.WithBlockHeight(400)
 	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, totalShares)
 	require.NoError(t, err)
 }
@@ -365,15 +375,15 @@ func TestFlashLoanProtection_SimulatedAttackScenario(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 	require.Contains(t, err.Error(), "must wait", "error should explain the waiting period")
 
-	// Attack FAILED - attacker is forced to hold position for at least 1 block
+	// Attack FAILED - attacker is forced to hold position for at least 100 blocks (SEC-18)
 	// In reality, this exposes them to:
 	// - Price risk
 	// - Arbitrageur competition
 	// - Gas costs
-	// - Capital lock-up cost
+	// - Capital lock-up cost (~10 minutes at 6s blocks)
 
-	// Block 1010 (10 blocks later): Attacker can now remove, but the atomic attack is broken
-	ctx = ctx.WithBlockHeight(1010)
+	// Block 1100 (100 blocks later): Attacker can now remove, but the atomic attack is broken
+	ctx = ctx.WithBlockHeight(1100)
 	amountA, amountB, err := k.RemoveLiquidity(ctx, attacker, poolID, attackShares)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
@@ -428,13 +438,14 @@ func TestFlashLoanProtection_EdgeCases(t *testing.T) {
 		k, ctx := keepertest.DexKeeper(t)
 		provider := types.TestAddr()
 
-		// Create two pools
+		// Create two pools (pool creation may record action at current block)
 		pool1 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
 			math.NewInt(1_000_000), math.NewInt(1_000_000))
 		pool2 := keepertest.CreateTestPool(t, k, ctx, "upaw", "uosmo",
 			math.NewInt(1_000_000), math.NewInt(1_000_000))
 
-		ctx = ctx.WithBlockHeight(100)
+		// Move well past the flash loan protection window (100+ blocks from pool creation)
+		ctx = ctx.WithBlockHeight(200)
 
 		// Set action for pool1
 		require.NoError(t, k.SetLastLiquidityActionBlock(ctx, pool1, provider))
@@ -443,7 +454,7 @@ func TestFlashLoanProtection_EdgeCases(t *testing.T) {
 		err := k.CheckFlashLoanProtection(ctx, pool1, provider)
 		require.Error(t, err)
 
-		// Check pool2 at same block - should succeed (no previous action)
+		// Check pool2 at same block - should succeed (no previous action for this provider)
 		err = k.CheckFlashLoanProtection(ctx, pool2, provider)
 		require.NoError(t, err)
 	})

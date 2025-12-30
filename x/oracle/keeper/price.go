@@ -143,7 +143,8 @@ func (k Keeper) SubmitPrice(ctx context.Context, validator sdk.ValAddress, asset
 		return err
 	}
 
-	votingPower, err := k.GetValidatorVotingPower(ctx, validator)
+	// DATA-8: Use snapshotted voting power for consistent weighting throughout vote period
+	votingPower, err := k.GetSnapshotVotingPower(ctx, validator)
 	if err != nil {
 		return err
 	}

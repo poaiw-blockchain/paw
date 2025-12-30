@@ -1,4 +1,4 @@
-package alerting
+package app
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/paw/control-center/alerting"
 	"github.com/paw/control-center/alerting/api"
 	"github.com/paw/control-center/alerting/channels"
 	"github.com/paw/control-center/alerting/engine"
@@ -20,7 +21,7 @@ import (
 
 // Server represents the alerting server
 type Server struct {
-	config          *Config
+	config          *alerting.Config
 	storage         *storage.PostgresStorage
 	rulesEngine     *engine.RulesEngine
 	evaluator       *engine.Evaluator
@@ -30,7 +31,7 @@ type Server struct {
 }
 
 // NewServer creates a new alerting server
-func NewServer(config *Config, metricsProvider engine.MetricsProvider) (*Server, error) {
+func NewServer(config *alerting.Config, metricsProvider engine.MetricsProvider) (*Server, error) {
 	// Initialize storage
 	storage, err := storage.NewPostgresStorage(config.DatabaseURL, config.RedisURL)
 	if err != nil {
@@ -47,7 +48,7 @@ func NewServer(config *Config, metricsProvider engine.MetricsProvider) (*Server,
 	notificationMgr := channels.NewManager(storage, config)
 
 	// Register alert handler to send notifications
-	rulesEngine.RegisterAlertHandler(func(alert *Alert) error {
+	rulesEngine.RegisterAlertHandler(func(alert *alerting.Alert) error {
 		return notificationMgr.SendAlert(alert)
 	})
 

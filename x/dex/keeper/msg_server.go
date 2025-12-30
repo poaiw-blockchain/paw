@@ -267,3 +267,82 @@ func (ms msgServer) RevealSwap(goCtx context.Context, msg *types.MsgRevealSwap) 
 		AmountOut: amountOut,
 	}, nil
 }
+
+// BatchSwap handles multiple swaps in a single atomic transaction
+// AGENT-1: Enables batch swap operations for agents with reduced gas overhead
+func (ms msgServer) BatchSwap(goCtx context.Context, msg *types.MsgBatchSwap) (*types.MsgBatchSwapResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Validate message
+	if msg == nil {
+		return nil, types.ErrInvalidInput.Wrap("nil message")
+	}
+
+	// Validate batch size (max 10 swaps per batch)
+	const maxBatchSize = 10
+	if len(msg.Swaps) == 0 {
+		return nil, types.ErrInvalidInput.Wrap("empty swap batch")
+	}
+	if len(msg.Swaps) > maxBatchSize {
+		return nil, types.ErrInvalidInput.Wrapf("batch size %d exceeds maximum %d", len(msg.Swaps), maxBatchSize)
+	}
+
+	// Parse trader address
+	trader, err := sdk.AccAddressFromBech32(msg.Trader)
+	if err != nil {
+		return nil, types.ErrInvalidInput.Wrapf("invalid trader address: %v", err)
+	}
+
+	// Check deadline for all swaps
+	if msg.Deadline > 0 && ctx.BlockTime().Unix() > msg.Deadline {
+		return nil, types.ErrSwapExpired.Wrapf("deadline %d expired at block time %d", msg.Deadline, ctx.BlockTime().Unix())
+	}
+
+	results := make([]types.BatchSwapResult, 0, len(msg.Swaps))
+	var successCount uint64
+
+	// Execute each swap atomically - all must succeed or all fail
+	for i, swapReq := range msg.Swaps {
+		result := types.BatchSwapResult{
+			PoolId:  swapReq.PoolId,
+			Success: false,
+		}
+
+		// Execute the swap
+		amountOut, swapErr := ms.Keeper.ExecuteSwap(
+			goCtx,
+			trader,
+			swapReq.PoolId,
+			swapReq.TokenIn,
+			swapReq.TokenOut,
+			swapReq.AmountIn,
+			swapReq.MinAmountOut,
+		)
+
+		if swapErr != nil {
+			// Return error - batch is atomic, all fail if one fails
+			return nil, types.ErrSwapFailed.Wrapf("swap %d failed: %v", i, swapErr)
+		}
+
+		result.AmountOut = amountOut
+		result.Success = true
+		successCount++
+		results = append(results, result)
+	}
+
+	// Emit batch swap event
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"batch_swap",
+			sdk.NewAttribute("trader", msg.Trader),
+			sdk.NewAttribute("total_swaps", fmt.Sprintf("%d", len(msg.Swaps))),
+			sdk.NewAttribute("successful_swaps", fmt.Sprintf("%d", successCount)),
+		),
+	)
+
+	return &types.MsgBatchSwapResponse{
+		Results:         results,
+		TotalSwaps:      uint64(len(msg.Swaps)),
+		SuccessfulSwaps: successCount,
+	}, nil
+}

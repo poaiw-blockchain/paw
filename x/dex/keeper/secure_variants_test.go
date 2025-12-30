@@ -505,8 +505,8 @@ func TestRemoveLiquidity(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, shares.GT(math.ZeroInt()))
 
-	// Advance blocks for flash loan protection
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
+	// Advance blocks for flash loan protection (SEC-18: 100 blocks)
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
 
 	tests := []struct {
 		name       string
@@ -587,8 +587,8 @@ func TestRemoveLiquidity_FlashLoanProtection(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "flash loan")
 
-	// Wait sufficient blocks
-	ctx = ctx.WithBlockHeight(120)
+	// Wait sufficient blocks (SEC-18: 100 blocks required)
+	ctx = ctx.WithBlockHeight(200)
 	amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, shares)
 	require.NoError(t, err)
 	require.True(t, amountA.GT(math.ZeroInt()))
@@ -1414,8 +1414,8 @@ func TestDeletePool(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, creatorShares.GT(math.ZeroInt()))
 
-	// Advance blocks for flash loan protection
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
+	// Advance blocks for flash loan protection (SEC-18: 100 blocks)
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
 
 	// Test 3: Verify minimum reserves check prevents full drain
 	_, _, err = k.RemoveLiquidity(ctx, creator, poolID, creatorShares)
@@ -1630,8 +1630,8 @@ func TestRemoveLiquidity_InsufficientShares(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, userShares.GT(math.ZeroInt()))
 
-	// Advance blocks for flash loan protection
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 20)
+	// Advance blocks for flash loan protection (SEC-18: 100 blocks)
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 100)
 
 	// Try to remove more shares than owned (10x the actual shares)
 	excessiveShares := userShares.Mul(math.NewInt(10))

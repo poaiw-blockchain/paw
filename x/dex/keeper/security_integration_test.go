@@ -147,8 +147,8 @@ func (suite *SecurityIntegrationSuite) TestReentrancyAttack_WithdrawDuringSwap()
 
 // TestFlashLoanAttack_PriceManipulation tests that same-block liquidity manipulation is prevented
 func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PriceManipulation() {
-	// Setup: Create pool
-	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
+	// Setup: Create pool (SEC-17: MinimumReserves is 1,000,000)
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
 
 	// Attack scenario: Try to add liquidity and immediately remove it in same block
 	// to manipulate pool price without risk
@@ -175,9 +175,9 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PriceManipulation() {
 
 // TestFlashLoanAttack_MultiplePools tests flash loan protection across multiple pools
 func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_MultiplePools() {
-	// Setup: Create two pools
-	pool1 := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
-	pool2 := suite.createTestPool("atom", "osmo", math.NewInt(100000), math.NewInt(200000))
+	// Setup: Create two pools (SEC-17: MinimumReserves is 1,000,000)
+	pool1 := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
+	pool2 := suite.createTestPool("atom", "osmo", math.NewInt(10_000_000), math.NewInt(20_000_000))
 
 	// Attack scenario: Try to manipulate prices across pools using flash loans
 
@@ -219,8 +219,8 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	suite.fundAccount(suite.attacker, "atom", math.NewInt(1000000))
 	suite.fundAccount(suite.attacker, "usdc", math.NewInt(1000000))
 
-	// Setup: Create pool with moderate liquidity
-	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
+	// Setup: Create pool with moderate liquidity (SEC-17: MinimumReserves is 1,000,000)
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
 
 	// Attack scenario: Add→Swap→Remove in same block
 	// Step 1: Attacker adds huge liquidity (becomes dominant LP)
@@ -231,7 +231,7 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 
 	// Step 2: Execute large swap to manipulate price (still same block)
 	// This would normally move the price, creating arbitrage opportunity
-	swapAmount := math.NewInt(50000) // 10% of reserves after addition
+	swapAmount := math.NewInt(50000) // small % of reserves after addition
 	if _, swapErr := suite.keeper.ExecuteSwap(suite.ctx, suite.attacker, poolID,
 		"atom", "usdc", swapAmount, math.NewInt(1)); swapErr != nil {
 		suite.T().Logf("swap prevented by MEV protections: %v", swapErr)
@@ -247,15 +247,15 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_AddSwapRemove() {
 	suite.Require().Contains(err.Error(), "flash loan",
 		"Error must indicate flash loan protection triggered")
 
-	// Verify protection persists for insufficient block gap
-	suite.advanceBlock(5) // Advance only 5 blocks (less than 10 block minimum)
+	// Verify protection persists for insufficient block gap (SEC-18: need 100 blocks)
+	suite.advanceBlock(50) // Advance only 50 blocks (less than 100 block minimum)
 	_, _, err = suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().Error(err, "Protection must persist for minimum lock period")
 	suite.Require().Contains(err.Error(), "flash loan",
 		"Error must indicate flash loan protection still active")
 
 	// Verify removal succeeds after full lock period
-	suite.advanceBlock(5) // Now total 10 blocks have passed
+	suite.advanceBlock(50) // Now total 100 blocks have passed
 	amountA, amountB, err := suite.keeper.RemoveLiquidity(suite.ctx, suite.attacker, poolID, shares)
 	suite.Require().NoError(err, "Removal should succeed after full lock period")
 	suite.Require().True(amountA.GT(math.ZeroInt()), "Should receive non-zero amount A")
@@ -268,8 +268,8 @@ func (suite *SecurityIntegrationSuite) TestFlashLoanAttack_PartialRemovalBlocked
 	suite.fundAccount(suite.attacker, "atom", math.NewInt(500000))
 	suite.fundAccount(suite.attacker, "usdc", math.NewInt(500000))
 
-	// Setup: Create pool
-	poolID := suite.createTestPool("atom", "usdc", math.NewInt(100000), math.NewInt(100000))
+	// Setup: Create pool (SEC-17: MinimumReserves is 1,000,000)
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
 
 	// Add liquidity
 	shares, err := suite.keeper.AddLiquidity(suite.ctx, suite.attacker, poolID,
@@ -697,8 +697,8 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_MultipleAttackV
 
 // TestComprehensiveSecurity_AllSecurityFeatures tests all security features together
 func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeatures() {
-	// Create pool
-	poolID := suite.createTestPool("atom", "usdc", math.NewInt(1000000), math.NewInt(1000000))
+	// Create pool (SEC-17: MinimumReserves is 1,000,000)
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
 
 	// Test 1: Pool state validation
 	pool, err := suite.keeper.GetPool(suite.ctx, poolID)
@@ -709,11 +709,11 @@ func (suite *SecurityIntegrationSuite) TestComprehensiveSecurity_AllSecurityFeat
 	totalReserves := pool.ReserveA.Add(pool.ReserveB)
 	suite.Require().True(totalReserves.GT(pool.ReserveA), "Addition should work correctly")
 
-	// Test 3: Swap size validation
-	err = suite.keeper.ValidateSwapSize(math.NewInt(50000), pool.ReserveA)
+	// Test 3: Swap size validation (pool has 10M reserves)
+	err = suite.keeper.ValidateSwapSize(math.NewInt(500000), pool.ReserveA)
 	suite.Require().NoError(err, "5% swap should be valid")
 
-	err = suite.keeper.ValidateSwapSize(math.NewInt(150000), pool.ReserveA)
+	err = suite.keeper.ValidateSwapSize(math.NewInt(1500000), pool.ReserveA)
 	suite.Require().Error(err, "15% swap should be invalid")
 
 	// Test 4: Price impact validation
@@ -763,7 +763,8 @@ func (suite *SecurityIntegrationSuite) TestSecurityIntegration_RealWorldScenario
 	// Scenario: Multiple users interacting with pool, one attacker trying various exploits
 
 	// Setup: Create pool with market maker
-	poolID := suite.createTestPool("atom", "usdc", math.NewInt(1000000), math.NewInt(1000000))
+	// SEC-17: MinimumReserves is 1,000,000, so we need much larger pool to allow withdrawals
+	poolID := suite.createTestPool("atom", "usdc", math.NewInt(10_000_000), math.NewInt(10_000_000))
 
 	// Regular user 1 adds liquidity
 	user1 := sdk.AccAddress([]byte("regular_user_1_____"))

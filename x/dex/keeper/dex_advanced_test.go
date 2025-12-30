@@ -451,7 +451,7 @@ func TestFeeTierValues(t *testing.T) {
 	}
 }
 
-// TestCheckFlashLoanProtection tests flash loan protection
+// TestCheckFlashLoanProtection tests flash loan protection with 100-block window (SEC-18)
 func TestCheckFlashLoanProtection(t *testing.T) {
 	t.Parallel()
 
@@ -463,21 +463,21 @@ func TestCheckFlashLoanProtection(t *testing.T) {
 
 	provider := sdk.AccAddress([]byte("provider1__________"))
 
-	// First action should be allowed
-	ctx = ctx.WithBlockHeight(100)
+	// First action should be allowed (at block 200, well after pool creation)
+	ctx = ctx.WithBlockHeight(200)
 	err := k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.NoError(t, err)
 
-	// Record liquidity action at block 100
+	// Record liquidity action at block 200
 	require.NoError(t, k.SetLastLiquidityActionBlock(ctx, poolID, provider))
 
-	// Next block within protection window should be rejected
-	ctx = ctx.WithBlockHeight(105)
+	// Next block within 100-block protection window should be rejected
+	ctx = ctx.WithBlockHeight(205)
 	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-	// After waiting sufficient blocks, protection should allow action again
-	ctx = ctx.WithBlockHeight(112)
+	// After waiting 100 blocks, protection should allow action again
+	ctx = ctx.WithBlockHeight(300)
 	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.NoError(t, err)
 }

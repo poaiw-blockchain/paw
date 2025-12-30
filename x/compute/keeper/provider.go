@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 
 	"cosmossdk.io/math"
@@ -27,6 +28,12 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	existing, err := k.GetProvider(ctx, provider)
 	if err == nil && existing != nil {
 		return fmt.Errorf("provider %s already registered", provider.String())
+	}
+
+	// SEC-20: Check maximum providers limit to prevent state bloat attacks
+	currentCount := k.GetTotalProviderCount(ctx)
+	if currentCount >= MaxProviders {
+		return types.ErrMaxProvidersReached.Wrapf("limit is %d providers", MaxProviders)
 	}
 
 	// Validate specs
@@ -80,6 +87,9 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	if err := k.setReputationIndex(ctx, provider, initialRep); err != nil {
 		return fmt.Errorf("failed to set reputation index: %w", err)
 	}
+
+	// SEC-20: Increment total provider count
+	k.incrementTotalProviderCount(ctx)
 
 	// Invalidate provider cache when new provider is registered
 	if err := k.InvalidateProviderCache(ctx); err != nil {
@@ -574,4 +584,40 @@ func (k Keeper) EstimateCost(ctx context.Context, providerAddr sdk.AccAddress, s
 	totalCostInt := totalCost.Ceil().TruncateInt()
 
 	return totalCostInt, costPerHour, nil
+}
+
+// SEC-20: MaxProviders is the maximum number of registered providers allowed
+// This prevents state bloat attacks through unlimited registrations
+const MaxProviders = 10000
+
+// GetTotalProviderCount returns the total number of registered providers
+// This is an O(1) operation using a counter key
+func (k Keeper) GetTotalProviderCount(ctx context.Context) uint64 {
+	store := k.getStore(ctx)
+	bz := store.Get(TotalProvidersKey)
+	if bz == nil {
+		return 0
+	}
+	return binary.BigEndian.Uint64(bz)
+}
+
+// incrementTotalProviderCount increments the total provider count by 1
+func (k Keeper) incrementTotalProviderCount(ctx context.Context) {
+	store := k.getStore(ctx)
+	count := k.GetTotalProviderCount(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, count+1)
+	store.Set(TotalProvidersKey, bz)
+}
+
+// decrementTotalProviderCount decrements the total provider count by 1
+func (k Keeper) decrementTotalProviderCount(ctx context.Context) {
+	store := k.getStore(ctx)
+	count := k.GetTotalProviderCount(ctx)
+	if count == 0 {
+		return // Don't underflow
+	}
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, count-1)
+	store.Set(TotalProvidersKey, bz)
 }

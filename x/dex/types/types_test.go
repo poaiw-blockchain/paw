@@ -222,7 +222,8 @@ func TestDefaultParams_GasValues(t *testing.T) {
 func TestDefaultParams_FlashLoanProtection(t *testing.T) {
 	params := DefaultParams()
 
-	expectedFlashLoanBlocks := uint64(10)
+	// SEC-18: Flash loan protection increased to 100 blocks (~10 min at 6s blocks)
+	expectedFlashLoanBlocks := uint64(100)
 	if params.FlashLoanProtectionBlocks != expectedFlashLoanBlocks {
 		t.Errorf("Expected flash loan protection blocks %d, got %d", expectedFlashLoanBlocks, params.FlashLoanProtectionBlocks)
 	}

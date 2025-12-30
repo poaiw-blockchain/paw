@@ -35,6 +35,9 @@ type Keeper struct {
 	portCapability *capabilitytypes.Capability
 	metrics        *OracleMetrics
 	geoIPManager   *GeoIPManager
+
+	// ARCH-2: Hooks for cross-module notifications
+	hooks types.OracleHooks
 }
 
 // NewKeeper creates a new oracle Keeper instance
@@ -128,6 +131,20 @@ func (k Keeper) GetStoreKey() storetypes.StoreKey {
 // GetAuthority returns the authority address for governance
 func (k Keeper) GetAuthority() string {
 	return k.authority
+}
+
+// SetHooks sets the oracle hooks.
+// ARCH-2: Enables cross-module notifications for price updates.
+func (k *Keeper) SetHooks(hooks types.OracleHooks) {
+	if k.hooks != nil {
+		panic("cannot set oracle hooks twice")
+	}
+	k.hooks = hooks
+}
+
+// GetHooks returns the oracle hooks.
+func (k Keeper) GetHooks() types.OracleHooks {
+	return k.hooks
 }
 
 // ClaimCapability claims a channel capability for the oracle module.

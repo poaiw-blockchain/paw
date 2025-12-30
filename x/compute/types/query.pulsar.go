@@ -24078,6 +24078,1575 @@ func (x *fastReflection_QueryCatastrophicFailureResponse) ProtoMethods() *protoi
 	}
 }
 
+var _ protoreflect.List = (*_QuerySimulateRequestRequest_3_list)(nil)
+
+type _QuerySimulateRequestRequest_3_list struct {
+	list *[]string
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfString((*x.list)[i])
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) AppendMutable() protoreflect.Value {
+	panic(fmt.Errorf("AppendMutable can not be called on message QuerySimulateRequestRequest at list field Command as it is not of Message kind"))
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) Truncate(n int) {
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) NewElement() protoreflect.Value {
+	v := ""
+	return protoreflect.ValueOfString(v)
+}
+
+func (x *_QuerySimulateRequestRequest_3_list) IsValid() bool {
+	return x.list != nil
+}
+
+var (
+	md_QuerySimulateRequestRequest                    protoreflect.MessageDescriptor
+	fd_QuerySimulateRequestRequest_specs              protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestRequest_container_image    protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestRequest_command            protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestRequest_preferred_provider protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QuerySimulateRequestRequest = File_paw_compute_v1_query_proto.Messages().ByName("QuerySimulateRequestRequest")
+	fd_QuerySimulateRequestRequest_specs = md_QuerySimulateRequestRequest.Fields().ByName("specs")
+	fd_QuerySimulateRequestRequest_container_image = md_QuerySimulateRequestRequest.Fields().ByName("container_image")
+	fd_QuerySimulateRequestRequest_command = md_QuerySimulateRequestRequest.Fields().ByName("command")
+	fd_QuerySimulateRequestRequest_preferred_provider = md_QuerySimulateRequestRequest.Fields().ByName("preferred_provider")
+}
+
+var _ protoreflect.Message = (*fastReflection_QuerySimulateRequestRequest)(nil)
+
+type fastReflection_QuerySimulateRequestRequest QuerySimulateRequestRequest
+
+func (x *QuerySimulateRequestRequest) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QuerySimulateRequestRequest)(x)
+}
+
+func (x *QuerySimulateRequestRequest) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[50]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QuerySimulateRequestRequest_messageType fastReflection_QuerySimulateRequestRequest_messageType
+var _ protoreflect.MessageType = fastReflection_QuerySimulateRequestRequest_messageType{}
+
+type fastReflection_QuerySimulateRequestRequest_messageType struct{}
+
+func (x fastReflection_QuerySimulateRequestRequest_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QuerySimulateRequestRequest)(nil)
+}
+func (x fastReflection_QuerySimulateRequestRequest_messageType) New() protoreflect.Message {
+	return new(fastReflection_QuerySimulateRequestRequest)
+}
+func (x fastReflection_QuerySimulateRequestRequest_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QuerySimulateRequestRequest
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QuerySimulateRequestRequest) Descriptor() protoreflect.MessageDescriptor {
+	return md_QuerySimulateRequestRequest
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QuerySimulateRequestRequest) Type() protoreflect.MessageType {
+	return _fastReflection_QuerySimulateRequestRequest_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QuerySimulateRequestRequest) New() protoreflect.Message {
+	return new(fastReflection_QuerySimulateRequestRequest)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QuerySimulateRequestRequest) Interface() protoreflect.ProtoMessage {
+	return (*QuerySimulateRequestRequest)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QuerySimulateRequestRequest) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.Specs != nil {
+		value := protoreflect.ValueOfMessage(x.Specs.ProtoReflect())
+		if !f(fd_QuerySimulateRequestRequest_specs, value) {
+			return
+		}
+	}
+	if x.ContainerImage != "" {
+		value := protoreflect.ValueOfString(x.ContainerImage)
+		if !f(fd_QuerySimulateRequestRequest_container_image, value) {
+			return
+		}
+	}
+	if len(x.Command) != 0 {
+		value := protoreflect.ValueOfList(&_QuerySimulateRequestRequest_3_list{list: &x.Command})
+		if !f(fd_QuerySimulateRequestRequest_command, value) {
+			return
+		}
+	}
+	if x.PreferredProvider != "" {
+		value := protoreflect.ValueOfString(x.PreferredProvider)
+		if !f(fd_QuerySimulateRequestRequest_preferred_provider, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QuerySimulateRequestRequest) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		return x.Specs != nil
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		return x.ContainerImage != ""
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		return len(x.Command) != 0
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		return x.PreferredProvider != ""
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestRequest) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		x.Specs = nil
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		x.ContainerImage = ""
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		x.Command = nil
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		x.PreferredProvider = ""
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QuerySimulateRequestRequest) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		value := x.Specs
+		return protoreflect.ValueOfMessage(value.ProtoReflect())
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		value := x.ContainerImage
+		return protoreflect.ValueOfString(value)
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		if len(x.Command) == 0 {
+			return protoreflect.ValueOfList(&_QuerySimulateRequestRequest_3_list{})
+		}
+		listValue := &_QuerySimulateRequestRequest_3_list{list: &x.Command}
+		return protoreflect.ValueOfList(listValue)
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		value := x.PreferredProvider
+		return protoreflect.ValueOfString(value)
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestRequest) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		x.Specs = value.Message().Interface().(*ComputeSpec)
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		x.ContainerImage = value.Interface().(string)
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		lv := value.List()
+		clv := lv.(*_QuerySimulateRequestRequest_3_list)
+		x.Command = *clv.list
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		x.PreferredProvider = value.Interface().(string)
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestRequest) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		if x.Specs == nil {
+			x.Specs = new(ComputeSpec)
+		}
+		return protoreflect.ValueOfMessage(x.Specs.ProtoReflect())
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		if x.Command == nil {
+			x.Command = []string{}
+		}
+		value := &_QuerySimulateRequestRequest_3_list{list: &x.Command}
+		return protoreflect.ValueOfList(value)
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		panic(fmt.Errorf("field container_image of message paw.compute.v1.QuerySimulateRequestRequest is not mutable"))
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		panic(fmt.Errorf("field preferred_provider of message paw.compute.v1.QuerySimulateRequestRequest is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QuerySimulateRequestRequest) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestRequest.specs":
+		m := new(ComputeSpec)
+		return protoreflect.ValueOfMessage(m.ProtoReflect())
+	case "paw.compute.v1.QuerySimulateRequestRequest.container_image":
+		return protoreflect.ValueOfString("")
+	case "paw.compute.v1.QuerySimulateRequestRequest.command":
+		list := []string{}
+		return protoreflect.ValueOfList(&_QuerySimulateRequestRequest_3_list{list: &list})
+	case "paw.compute.v1.QuerySimulateRequestRequest.preferred_provider":
+		return protoreflect.ValueOfString("")
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestRequest"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestRequest does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QuerySimulateRequestRequest) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QuerySimulateRequestRequest", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QuerySimulateRequestRequest) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestRequest) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QuerySimulateRequestRequest) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QuerySimulateRequestRequest) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QuerySimulateRequestRequest)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.Specs != nil {
+			l = options.Size(x.Specs)
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		l = len(x.ContainerImage)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if len(x.Command) > 0 {
+			for _, s := range x.Command {
+				l = len(s)
+				n += 1 + l + runtime.Sov(uint64(l))
+			}
+		}
+		l = len(x.PreferredProvider)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QuerySimulateRequestRequest)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if len(x.PreferredProvider) > 0 {
+			i -= len(x.PreferredProvider)
+			copy(dAtA[i:], x.PreferredProvider)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.PreferredProvider)))
+			i--
+			dAtA[i] = 0x22
+		}
+		if len(x.Command) > 0 {
+			for iNdEx := len(x.Command) - 1; iNdEx >= 0; iNdEx-- {
+				i -= len(x.Command[iNdEx])
+				copy(dAtA[i:], x.Command[iNdEx])
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(x.Command[iNdEx])))
+				i--
+				dAtA[i] = 0x1a
+			}
+		}
+		if len(x.ContainerImage) > 0 {
+			i -= len(x.ContainerImage)
+			copy(dAtA[i:], x.ContainerImage)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.ContainerImage)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if x.Specs != nil {
+			encoded, err := options.Marshal(x.Specs)
+			if err != nil {
+				return protoiface.MarshalOutput{
+					NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+					Buf:               input.Buf,
+				}, err
+			}
+			i -= len(encoded)
+			copy(dAtA[i:], encoded)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(encoded)))
+			i--
+			dAtA[i] = 0xa
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QuerySimulateRequestRequest)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QuerySimulateRequestRequest: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QuerySimulateRequestRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Specs", wireType)
+				}
+				var msglen int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					msglen |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				if msglen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + msglen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if x.Specs == nil {
+					x.Specs = &ComputeSpec{}
+				}
+				if err := options.Unmarshal(dAtA[iNdEx:postIndex], x.Specs); err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				iNdEx = postIndex
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field ContainerImage", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.ContainerImage = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			case 3:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field Command", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.Command = append(x.Command, string(dAtA[iNdEx:postIndex]))
+				iNdEx = postIndex
+			case 4:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field PreferredProvider", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.PreferredProvider = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
+var _ protoreflect.List = (*_QuerySimulateRequestResponse_3_list)(nil)
+
+type _QuerySimulateRequestResponse_3_list struct {
+	list *[]string
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfString((*x.list)[i])
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) AppendMutable() protoreflect.Value {
+	panic(fmt.Errorf("AppendMutable can not be called on message QuerySimulateRequestResponse at list field AvailableProviders as it is not of Message kind"))
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) Truncate(n int) {
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) NewElement() protoreflect.Value {
+	v := ""
+	return protoreflect.ValueOfString(v)
+}
+
+func (x *_QuerySimulateRequestResponse_3_list) IsValid() bool {
+	return x.list != nil
+}
+
+var _ protoreflect.List = (*_QuerySimulateRequestResponse_7_list)(nil)
+
+type _QuerySimulateRequestResponse_7_list struct {
+	list *[]string
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) Len() int {
+	if x.list == nil {
+		return 0
+	}
+	return len(*x.list)
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) Get(i int) protoreflect.Value {
+	return protoreflect.ValueOfString((*x.list)[i])
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) Set(i int, value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	(*x.list)[i] = concreteValue
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) Append(value protoreflect.Value) {
+	valueUnwrapped := value.String()
+	concreteValue := valueUnwrapped
+	*x.list = append(*x.list, concreteValue)
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) AppendMutable() protoreflect.Value {
+	panic(fmt.Errorf("AppendMutable can not be called on message QuerySimulateRequestResponse at list field ValidationErrors as it is not of Message kind"))
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) Truncate(n int) {
+	*x.list = (*x.list)[:n]
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) NewElement() protoreflect.Value {
+	v := ""
+	return protoreflect.ValueOfString(v)
+}
+
+func (x *_QuerySimulateRequestResponse_7_list) IsValid() bool {
+	return x.list != nil
+}
+
+var (
+	md_QuerySimulateRequestResponse                             protoreflect.MessageDescriptor
+	fd_QuerySimulateRequestResponse_estimated_gas               protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_estimated_cost              protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_available_providers         protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_estimated_wait_time_seconds protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_will_queue                  protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_matching_provider           protoreflect.FieldDescriptor
+	fd_QuerySimulateRequestResponse_validation_errors           protoreflect.FieldDescriptor
+)
+
+func init() {
+	file_paw_compute_v1_query_proto_init()
+	md_QuerySimulateRequestResponse = File_paw_compute_v1_query_proto.Messages().ByName("QuerySimulateRequestResponse")
+	fd_QuerySimulateRequestResponse_estimated_gas = md_QuerySimulateRequestResponse.Fields().ByName("estimated_gas")
+	fd_QuerySimulateRequestResponse_estimated_cost = md_QuerySimulateRequestResponse.Fields().ByName("estimated_cost")
+	fd_QuerySimulateRequestResponse_available_providers = md_QuerySimulateRequestResponse.Fields().ByName("available_providers")
+	fd_QuerySimulateRequestResponse_estimated_wait_time_seconds = md_QuerySimulateRequestResponse.Fields().ByName("estimated_wait_time_seconds")
+	fd_QuerySimulateRequestResponse_will_queue = md_QuerySimulateRequestResponse.Fields().ByName("will_queue")
+	fd_QuerySimulateRequestResponse_matching_provider = md_QuerySimulateRequestResponse.Fields().ByName("matching_provider")
+	fd_QuerySimulateRequestResponse_validation_errors = md_QuerySimulateRequestResponse.Fields().ByName("validation_errors")
+}
+
+var _ protoreflect.Message = (*fastReflection_QuerySimulateRequestResponse)(nil)
+
+type fastReflection_QuerySimulateRequestResponse QuerySimulateRequestResponse
+
+func (x *QuerySimulateRequestResponse) ProtoReflect() protoreflect.Message {
+	return (*fastReflection_QuerySimulateRequestResponse)(x)
+}
+
+func (x *QuerySimulateRequestResponse) slowProtoReflect() protoreflect.Message {
+	mi := &file_paw_compute_v1_query_proto_msgTypes[51]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+var _fastReflection_QuerySimulateRequestResponse_messageType fastReflection_QuerySimulateRequestResponse_messageType
+var _ protoreflect.MessageType = fastReflection_QuerySimulateRequestResponse_messageType{}
+
+type fastReflection_QuerySimulateRequestResponse_messageType struct{}
+
+func (x fastReflection_QuerySimulateRequestResponse_messageType) Zero() protoreflect.Message {
+	return (*fastReflection_QuerySimulateRequestResponse)(nil)
+}
+func (x fastReflection_QuerySimulateRequestResponse_messageType) New() protoreflect.Message {
+	return new(fastReflection_QuerySimulateRequestResponse)
+}
+func (x fastReflection_QuerySimulateRequestResponse_messageType) Descriptor() protoreflect.MessageDescriptor {
+	return md_QuerySimulateRequestResponse
+}
+
+// Descriptor returns message descriptor, which contains only the protobuf
+// type information for the message.
+func (x *fastReflection_QuerySimulateRequestResponse) Descriptor() protoreflect.MessageDescriptor {
+	return md_QuerySimulateRequestResponse
+}
+
+// Type returns the message type, which encapsulates both Go and protobuf
+// type information. If the Go type information is not needed,
+// it is recommended that the message descriptor be used instead.
+func (x *fastReflection_QuerySimulateRequestResponse) Type() protoreflect.MessageType {
+	return _fastReflection_QuerySimulateRequestResponse_messageType
+}
+
+// New returns a newly allocated and mutable empty message.
+func (x *fastReflection_QuerySimulateRequestResponse) New() protoreflect.Message {
+	return new(fastReflection_QuerySimulateRequestResponse)
+}
+
+// Interface unwraps the message reflection interface and
+// returns the underlying ProtoMessage interface.
+func (x *fastReflection_QuerySimulateRequestResponse) Interface() protoreflect.ProtoMessage {
+	return (*QuerySimulateRequestResponse)(x)
+}
+
+// Range iterates over every populated field in an undefined order,
+// calling f for each field descriptor and value encountered.
+// Range returns immediately if f returns false.
+// While iterating, mutating operations may only be performed
+// on the current field descriptor.
+func (x *fastReflection_QuerySimulateRequestResponse) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	if x.EstimatedGas != uint64(0) {
+		value := protoreflect.ValueOfUint64(x.EstimatedGas)
+		if !f(fd_QuerySimulateRequestResponse_estimated_gas, value) {
+			return
+		}
+	}
+	if x.EstimatedCost != "" {
+		value := protoreflect.ValueOfString(x.EstimatedCost)
+		if !f(fd_QuerySimulateRequestResponse_estimated_cost, value) {
+			return
+		}
+	}
+	if len(x.AvailableProviders) != 0 {
+		value := protoreflect.ValueOfList(&_QuerySimulateRequestResponse_3_list{list: &x.AvailableProviders})
+		if !f(fd_QuerySimulateRequestResponse_available_providers, value) {
+			return
+		}
+	}
+	if x.EstimatedWaitTimeSeconds != uint64(0) {
+		value := protoreflect.ValueOfUint64(x.EstimatedWaitTimeSeconds)
+		if !f(fd_QuerySimulateRequestResponse_estimated_wait_time_seconds, value) {
+			return
+		}
+	}
+	if x.WillQueue != false {
+		value := protoreflect.ValueOfBool(x.WillQueue)
+		if !f(fd_QuerySimulateRequestResponse_will_queue, value) {
+			return
+		}
+	}
+	if x.MatchingProvider != "" {
+		value := protoreflect.ValueOfString(x.MatchingProvider)
+		if !f(fd_QuerySimulateRequestResponse_matching_provider, value) {
+			return
+		}
+	}
+	if len(x.ValidationErrors) != 0 {
+		value := protoreflect.ValueOfList(&_QuerySimulateRequestResponse_7_list{list: &x.ValidationErrors})
+		if !f(fd_QuerySimulateRequestResponse_validation_errors, value) {
+			return
+		}
+	}
+}
+
+// Has reports whether a field is populated.
+//
+// Some fields have the property of nullability where it is possible to
+// distinguish between the default value of a field and whether the field
+// was explicitly populated with the default value. Singular message fields,
+// member fields of a oneof, and proto2 scalar fields are nullable. Such
+// fields are populated only if explicitly set.
+//
+// In other cases (aside from the nullable cases above),
+// a proto3 scalar field is populated if it contains a non-zero value, and
+// a repeated field is populated if it is non-empty.
+func (x *fastReflection_QuerySimulateRequestResponse) Has(fd protoreflect.FieldDescriptor) bool {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		return x.EstimatedGas != uint64(0)
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		return x.EstimatedCost != ""
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		return len(x.AvailableProviders) != 0
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		return x.EstimatedWaitTimeSeconds != uint64(0)
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		return x.WillQueue != false
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		return x.MatchingProvider != ""
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		return len(x.ValidationErrors) != 0
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Clear clears the field such that a subsequent Has call reports false.
+//
+// Clearing an extension field clears both the extension type and value
+// associated with the given field number.
+//
+// Clear is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestResponse) Clear(fd protoreflect.FieldDescriptor) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		x.EstimatedGas = uint64(0)
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		x.EstimatedCost = ""
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		x.AvailableProviders = nil
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		x.EstimatedWaitTimeSeconds = uint64(0)
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		x.WillQueue = false
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		x.MatchingProvider = ""
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		x.ValidationErrors = nil
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Get retrieves the value for a field.
+//
+// For unpopulated scalars, it returns the default value, where
+// the default value of a bytes scalar is guaranteed to be a copy.
+// For unpopulated composite types, it returns an empty, read-only view
+// of the value; to obtain a mutable reference, use Mutable.
+func (x *fastReflection_QuerySimulateRequestResponse) Get(descriptor protoreflect.FieldDescriptor) protoreflect.Value {
+	switch descriptor.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		value := x.EstimatedGas
+		return protoreflect.ValueOfUint64(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		value := x.EstimatedCost
+		return protoreflect.ValueOfString(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		if len(x.AvailableProviders) == 0 {
+			return protoreflect.ValueOfList(&_QuerySimulateRequestResponse_3_list{})
+		}
+		listValue := &_QuerySimulateRequestResponse_3_list{list: &x.AvailableProviders}
+		return protoreflect.ValueOfList(listValue)
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		value := x.EstimatedWaitTimeSeconds
+		return protoreflect.ValueOfUint64(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		value := x.WillQueue
+		return protoreflect.ValueOfBool(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		value := x.MatchingProvider
+		return protoreflect.ValueOfString(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		if len(x.ValidationErrors) == 0 {
+			return protoreflect.ValueOfList(&_QuerySimulateRequestResponse_7_list{})
+		}
+		listValue := &_QuerySimulateRequestResponse_7_list{list: &x.ValidationErrors}
+		return protoreflect.ValueOfList(listValue)
+	default:
+		if descriptor.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", descriptor.FullName()))
+	}
+}
+
+// Set stores the value for a field.
+//
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType.
+// When setting a composite type, it is unspecified whether the stored value
+// aliases the source's memory in any way. If the composite value is an
+// empty, read-only value, then it panics.
+//
+// Set is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestResponse) Set(fd protoreflect.FieldDescriptor, value protoreflect.Value) {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		x.EstimatedGas = value.Uint()
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		x.EstimatedCost = value.Interface().(string)
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		lv := value.List()
+		clv := lv.(*_QuerySimulateRequestResponse_3_list)
+		x.AvailableProviders = *clv.list
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		x.EstimatedWaitTimeSeconds = value.Uint()
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		x.WillQueue = value.Bool()
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		x.MatchingProvider = value.Interface().(string)
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		lv := value.List()
+		clv := lv.(*_QuerySimulateRequestResponse_7_list)
+		x.ValidationErrors = *clv.list
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// Mutable returns a mutable reference to a composite type.
+//
+// If the field is unpopulated, it may allocate a composite value.
+// For a field belonging to a oneof, it implicitly clears any other field
+// that may be currently set within the same oneof.
+// For extension fields, it implicitly stores the provided ExtensionType
+// if not already stored.
+// It panics if the field does not contain a composite type.
+//
+// Mutable is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestResponse) Mutable(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		if x.AvailableProviders == nil {
+			x.AvailableProviders = []string{}
+		}
+		value := &_QuerySimulateRequestResponse_3_list{list: &x.AvailableProviders}
+		return protoreflect.ValueOfList(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		if x.ValidationErrors == nil {
+			x.ValidationErrors = []string{}
+		}
+		value := &_QuerySimulateRequestResponse_7_list{list: &x.ValidationErrors}
+		return protoreflect.ValueOfList(value)
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		panic(fmt.Errorf("field estimated_gas of message paw.compute.v1.QuerySimulateRequestResponse is not mutable"))
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		panic(fmt.Errorf("field estimated_cost of message paw.compute.v1.QuerySimulateRequestResponse is not mutable"))
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		panic(fmt.Errorf("field estimated_wait_time_seconds of message paw.compute.v1.QuerySimulateRequestResponse is not mutable"))
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		panic(fmt.Errorf("field will_queue of message paw.compute.v1.QuerySimulateRequestResponse is not mutable"))
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		panic(fmt.Errorf("field matching_provider of message paw.compute.v1.QuerySimulateRequestResponse is not mutable"))
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// NewField returns a new value that is assignable to the field
+// for the given descriptor. For scalars, this returns the default value.
+// For lists, maps, and messages, this returns a new, empty, mutable value.
+func (x *fastReflection_QuerySimulateRequestResponse) NewField(fd protoreflect.FieldDescriptor) protoreflect.Value {
+	switch fd.FullName() {
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_gas":
+		return protoreflect.ValueOfUint64(uint64(0))
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_cost":
+		return protoreflect.ValueOfString("")
+	case "paw.compute.v1.QuerySimulateRequestResponse.available_providers":
+		list := []string{}
+		return protoreflect.ValueOfList(&_QuerySimulateRequestResponse_3_list{list: &list})
+	case "paw.compute.v1.QuerySimulateRequestResponse.estimated_wait_time_seconds":
+		return protoreflect.ValueOfUint64(uint64(0))
+	case "paw.compute.v1.QuerySimulateRequestResponse.will_queue":
+		return protoreflect.ValueOfBool(false)
+	case "paw.compute.v1.QuerySimulateRequestResponse.matching_provider":
+		return protoreflect.ValueOfString("")
+	case "paw.compute.v1.QuerySimulateRequestResponse.validation_errors":
+		list := []string{}
+		return protoreflect.ValueOfList(&_QuerySimulateRequestResponse_7_list{list: &list})
+	default:
+		if fd.IsExtension() {
+			panic(fmt.Errorf("proto3 declared messages do not support extensions: paw.compute.v1.QuerySimulateRequestResponse"))
+		}
+		panic(fmt.Errorf("message paw.compute.v1.QuerySimulateRequestResponse does not contain field %s", fd.FullName()))
+	}
+}
+
+// WhichOneof reports which field within the oneof is populated,
+// returning nil if none are populated.
+// It panics if the oneof descriptor does not belong to this message.
+func (x *fastReflection_QuerySimulateRequestResponse) WhichOneof(d protoreflect.OneofDescriptor) protoreflect.FieldDescriptor {
+	switch d.FullName() {
+	default:
+		panic(fmt.Errorf("%s is not a oneof field in paw.compute.v1.QuerySimulateRequestResponse", d.FullName()))
+	}
+	panic("unreachable")
+}
+
+// GetUnknown retrieves the entire list of unknown fields.
+// The caller may only mutate the contents of the RawFields
+// if the mutated bytes are stored back into the message with SetUnknown.
+func (x *fastReflection_QuerySimulateRequestResponse) GetUnknown() protoreflect.RawFields {
+	return x.unknownFields
+}
+
+// SetUnknown stores an entire list of unknown fields.
+// The raw fields must be syntactically valid according to the wire format.
+// An implementation may panic if this is not the case.
+// Once stored, the caller must not mutate the content of the RawFields.
+// An empty RawFields may be passed to clear the fields.
+//
+// SetUnknown is a mutating operation and unsafe for concurrent use.
+func (x *fastReflection_QuerySimulateRequestResponse) SetUnknown(fields protoreflect.RawFields) {
+	x.unknownFields = fields
+}
+
+// IsValid reports whether the message is valid.
+//
+// An invalid message is an empty, read-only value.
+//
+// An invalid message often corresponds to a nil pointer of the concrete
+// message type, but the details are implementation dependent.
+// Validity is not part of the protobuf data model, and may not
+// be preserved in marshaling or other operations.
+func (x *fastReflection_QuerySimulateRequestResponse) IsValid() bool {
+	return x != nil
+}
+
+// ProtoMethods returns optional fastReflectionFeature-path implementations of various operations.
+// This method may return nil.
+//
+// The returned methods type is identical to
+// "google.golang.org/protobuf/runtime/protoiface".Methods.
+// Consult the protoiface package documentation for details.
+func (x *fastReflection_QuerySimulateRequestResponse) ProtoMethods() *protoiface.Methods {
+	size := func(input protoiface.SizeInput) protoiface.SizeOutput {
+		x := input.Message.Interface().(*QuerySimulateRequestResponse)
+		if x == nil {
+			return protoiface.SizeOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Size:              0,
+			}
+		}
+		options := runtime.SizeInputToOptions(input)
+		_ = options
+		var n int
+		var l int
+		_ = l
+		if x.EstimatedGas != 0 {
+			n += 1 + runtime.Sov(uint64(x.EstimatedGas))
+		}
+		l = len(x.EstimatedCost)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if len(x.AvailableProviders) > 0 {
+			for _, s := range x.AvailableProviders {
+				l = len(s)
+				n += 1 + l + runtime.Sov(uint64(l))
+			}
+		}
+		if x.EstimatedWaitTimeSeconds != 0 {
+			n += 1 + runtime.Sov(uint64(x.EstimatedWaitTimeSeconds))
+		}
+		if x.WillQueue {
+			n += 2
+		}
+		l = len(x.MatchingProvider)
+		if l > 0 {
+			n += 1 + l + runtime.Sov(uint64(l))
+		}
+		if len(x.ValidationErrors) > 0 {
+			for _, s := range x.ValidationErrors {
+				l = len(s)
+				n += 1 + l + runtime.Sov(uint64(l))
+			}
+		}
+		if x.unknownFields != nil {
+			n += len(x.unknownFields)
+		}
+		return protoiface.SizeOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Size:              n,
+		}
+	}
+
+	marshal := func(input protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
+		x := input.Message.Interface().(*QuerySimulateRequestResponse)
+		if x == nil {
+			return protoiface.MarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Buf:               input.Buf,
+			}, nil
+		}
+		options := runtime.MarshalInputToOptions(input)
+		_ = options
+		size := options.Size(x)
+		dAtA := make([]byte, size)
+		i := len(dAtA)
+		_ = i
+		var l int
+		_ = l
+		if x.unknownFields != nil {
+			i -= len(x.unknownFields)
+			copy(dAtA[i:], x.unknownFields)
+		}
+		if len(x.ValidationErrors) > 0 {
+			for iNdEx := len(x.ValidationErrors) - 1; iNdEx >= 0; iNdEx-- {
+				i -= len(x.ValidationErrors[iNdEx])
+				copy(dAtA[i:], x.ValidationErrors[iNdEx])
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(x.ValidationErrors[iNdEx])))
+				i--
+				dAtA[i] = 0x3a
+			}
+		}
+		if len(x.MatchingProvider) > 0 {
+			i -= len(x.MatchingProvider)
+			copy(dAtA[i:], x.MatchingProvider)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.MatchingProvider)))
+			i--
+			dAtA[i] = 0x32
+		}
+		if x.WillQueue {
+			i--
+			if x.WillQueue {
+				dAtA[i] = 1
+			} else {
+				dAtA[i] = 0
+			}
+			i--
+			dAtA[i] = 0x28
+		}
+		if x.EstimatedWaitTimeSeconds != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.EstimatedWaitTimeSeconds))
+			i--
+			dAtA[i] = 0x20
+		}
+		if len(x.AvailableProviders) > 0 {
+			for iNdEx := len(x.AvailableProviders) - 1; iNdEx >= 0; iNdEx-- {
+				i -= len(x.AvailableProviders[iNdEx])
+				copy(dAtA[i:], x.AvailableProviders[iNdEx])
+				i = runtime.EncodeVarint(dAtA, i, uint64(len(x.AvailableProviders[iNdEx])))
+				i--
+				dAtA[i] = 0x1a
+			}
+		}
+		if len(x.EstimatedCost) > 0 {
+			i -= len(x.EstimatedCost)
+			copy(dAtA[i:], x.EstimatedCost)
+			i = runtime.EncodeVarint(dAtA, i, uint64(len(x.EstimatedCost)))
+			i--
+			dAtA[i] = 0x12
+		}
+		if x.EstimatedGas != 0 {
+			i = runtime.EncodeVarint(dAtA, i, uint64(x.EstimatedGas))
+			i--
+			dAtA[i] = 0x8
+		}
+		if input.Buf != nil {
+			input.Buf = append(input.Buf, dAtA...)
+		} else {
+			input.Buf = dAtA
+		}
+		return protoiface.MarshalOutput{
+			NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+			Buf:               input.Buf,
+		}, nil
+	}
+	unmarshal := func(input protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
+		x := input.Message.Interface().(*QuerySimulateRequestResponse)
+		if x == nil {
+			return protoiface.UnmarshalOutput{
+				NoUnkeyedLiterals: input.NoUnkeyedLiterals,
+				Flags:             input.Flags,
+			}, nil
+		}
+		options := runtime.UnmarshalInputToOptions(input)
+		_ = options
+		dAtA := input.Buf
+		l := len(dAtA)
+		iNdEx := 0
+		for iNdEx < l {
+			preIndex := iNdEx
+			var wire uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				wire |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			fieldNum := int32(wire >> 3)
+			wireType := int(wire & 0x7)
+			if wireType == 4 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QuerySimulateRequestResponse: wiretype end group for non-group")
+			}
+			if fieldNum <= 0 {
+				return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: QuerySimulateRequestResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+			}
+			switch fieldNum {
+			case 1:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field EstimatedGas", wireType)
+				}
+				x.EstimatedGas = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.EstimatedGas |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 2:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field EstimatedCost", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.EstimatedCost = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			case 3:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field AvailableProviders", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.AvailableProviders = append(x.AvailableProviders, string(dAtA[iNdEx:postIndex]))
+				iNdEx = postIndex
+			case 4:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field EstimatedWaitTimeSeconds", wireType)
+				}
+				x.EstimatedWaitTimeSeconds = 0
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					x.EstimatedWaitTimeSeconds |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+			case 5:
+				if wireType != 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field WillQueue", wireType)
+				}
+				var v int
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					v |= int(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				x.WillQueue = bool(v != 0)
+			case 6:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field MatchingProvider", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.MatchingProvider = string(dAtA[iNdEx:postIndex])
+				iNdEx = postIndex
+			case 7:
+				if wireType != 2 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, fmt.Errorf("proto: wrong wireType = %d for field ValidationErrors", wireType)
+				}
+				var stringLen uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrIntOverflow
+					}
+					if iNdEx >= l {
+						return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLen |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLen := int(stringLen)
+				if intStringLen < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				postIndex := iNdEx + intStringLen
+				if postIndex < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if postIndex > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				x.ValidationErrors = append(x.ValidationErrors, string(dAtA[iNdEx:postIndex]))
+				iNdEx = postIndex
+			default:
+				iNdEx = preIndex
+				skippy, err := runtime.Skip(dAtA[iNdEx:])
+				if err != nil {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, err
+				}
+				if (skippy < 0) || (iNdEx+skippy) < 0 {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, runtime.ErrInvalidLength
+				}
+				if (iNdEx + skippy) > l {
+					return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+				}
+				if !options.DiscardUnknown {
+					x.unknownFields = append(x.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+				}
+				iNdEx += skippy
+			}
+		}
+
+		if iNdEx > l {
+			return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, io.ErrUnexpectedEOF
+		}
+		return protoiface.UnmarshalOutput{NoUnkeyedLiterals: input.NoUnkeyedLiterals, Flags: input.Flags}, nil
+	}
+	return &protoiface.Methods{
+		NoUnkeyedLiterals: struct{}{},
+		Flags:             protoiface.SupportMarshalDeterministic | protoiface.SupportUnmarshalDiscardUnknown,
+		Size:              size,
+		Marshal:           marshal,
+		Unmarshal:         unmarshal,
+		Merge:             nil,
+		CheckInitialized:  nil,
+	}
+}
+
 // Code generated by protoc-gen-go. DO NOT EDIT.
 // versions:
 // 	protoc-gen-go v1.27.0
@@ -26082,6 +27651,163 @@ func (x *QueryCatastrophicFailureResponse) GetFailure() *CatastrophicFailure {
 	return nil
 }
 
+// QuerySimulateRequestRequest is the request type for the Query/SimulateRequest RPC method.
+// AGENT-2: Enables agents to preview gas/cost before submitting compute requests.
+type QuerySimulateRequestRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// specs defines the required compute resources
+	Specs *ComputeSpec `protobuf:"bytes,1,opt,name=specs,proto3" json:"specs,omitempty"`
+	// container_image is the Docker image to execute
+	ContainerImage string `protobuf:"bytes,2,opt,name=container_image,json=containerImage,proto3" json:"container_image,omitempty"`
+	// command is the command to run in the container
+	Command []string `protobuf:"bytes,3,rep,name=command,proto3" json:"command,omitempty"`
+	// preferred_provider is an optional preferred provider address
+	PreferredProvider string `protobuf:"bytes,4,opt,name=preferred_provider,json=preferredProvider,proto3" json:"preferred_provider,omitempty"`
+}
+
+func (x *QuerySimulateRequestRequest) Reset() {
+	*x = QuerySimulateRequestRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[50]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QuerySimulateRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuerySimulateRequestRequest) ProtoMessage() {}
+
+// Deprecated: Use QuerySimulateRequestRequest.ProtoReflect.Descriptor instead.
+func (*QuerySimulateRequestRequest) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *QuerySimulateRequestRequest) GetSpecs() *ComputeSpec {
+	if x != nil {
+		return x.Specs
+	}
+	return nil
+}
+
+func (x *QuerySimulateRequestRequest) GetContainerImage() string {
+	if x != nil {
+		return x.ContainerImage
+	}
+	return ""
+}
+
+func (x *QuerySimulateRequestRequest) GetCommand() []string {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+func (x *QuerySimulateRequestRequest) GetPreferredProvider() string {
+	if x != nil {
+		return x.PreferredProvider
+	}
+	return ""
+}
+
+// QuerySimulateRequestResponse is the response type for the Query/SimulateRequest RPC method.
+// Provides agents with cost estimates and execution details before submitting.
+type QuerySimulateRequestResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// estimated_gas is the estimated gas for this request
+	EstimatedGas uint64 `protobuf:"varint,1,opt,name=estimated_gas,json=estimatedGas,proto3" json:"estimated_gas,omitempty"`
+	// estimated_cost is the estimated cost in base denomination
+	EstimatedCost string `protobuf:"bytes,2,opt,name=estimated_cost,json=estimatedCost,proto3" json:"estimated_cost,omitempty"`
+	// available_providers lists providers capable of handling this request
+	AvailableProviders []string `protobuf:"bytes,3,rep,name=available_providers,json=availableProviders,proto3" json:"available_providers,omitempty"`
+	// estimated_wait_time_seconds estimates queue wait time
+	EstimatedWaitTimeSeconds uint64 `protobuf:"varint,4,opt,name=estimated_wait_time_seconds,json=estimatedWaitTimeSeconds,proto3" json:"estimated_wait_time_seconds,omitempty"`
+	// will_queue indicates if request will queue due to provider capacity
+	WillQueue bool `protobuf:"varint,5,opt,name=will_queue,json=willQueue,proto3" json:"will_queue,omitempty"`
+	// matching_provider is the best matching provider (if any)
+	MatchingProvider string `protobuf:"bytes,6,opt,name=matching_provider,json=matchingProvider,proto3" json:"matching_provider,omitempty"`
+	// validation_errors contains any validation issues with the request
+	ValidationErrors []string `protobuf:"bytes,7,rep,name=validation_errors,json=validationErrors,proto3" json:"validation_errors,omitempty"`
+}
+
+func (x *QuerySimulateRequestResponse) Reset() {
+	*x = QuerySimulateRequestResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_paw_compute_v1_query_proto_msgTypes[51]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *QuerySimulateRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuerySimulateRequestResponse) ProtoMessage() {}
+
+// Deprecated: Use QuerySimulateRequestResponse.ProtoReflect.Descriptor instead.
+func (*QuerySimulateRequestResponse) Descriptor() ([]byte, []int) {
+	return file_paw_compute_v1_query_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *QuerySimulateRequestResponse) GetEstimatedGas() uint64 {
+	if x != nil {
+		return x.EstimatedGas
+	}
+	return 0
+}
+
+func (x *QuerySimulateRequestResponse) GetEstimatedCost() string {
+	if x != nil {
+		return x.EstimatedCost
+	}
+	return ""
+}
+
+func (x *QuerySimulateRequestResponse) GetAvailableProviders() []string {
+	if x != nil {
+		return x.AvailableProviders
+	}
+	return nil
+}
+
+func (x *QuerySimulateRequestResponse) GetEstimatedWaitTimeSeconds() uint64 {
+	if x != nil {
+		return x.EstimatedWaitTimeSeconds
+	}
+	return 0
+}
+
+func (x *QuerySimulateRequestResponse) GetWillQueue() bool {
+	if x != nil {
+		return x.WillQueue
+	}
+	return false
+}
+
+func (x *QuerySimulateRequestResponse) GetMatchingProvider() string {
+	if x != nil {
+		return x.MatchingProvider
+	}
+	return ""
+}
+
+func (x *QuerySimulateRequestResponse) GetValidationErrors() []string {
+	if x != nil {
+		return x.ValidationErrors
+	}
+	return nil
+}
+
 var File_paw_compute_v1_query_proto protoreflect.FileDescriptor
 
 var file_paw_compute_v1_query_proto_rawDesc = []byte{
@@ -26461,7 +28187,43 @@ var file_paw_compute_v1_query_proto_rawDesc = []byte{
 	0x28, 0x0b, 0x32, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65,
 	0x2e, 0x76, 0x31, 0x2e, 0x43, 0x61, 0x74, 0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63,
 	0x46, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x52, 0x07, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65,
-	0x32, 0xec, 0x1c, 0x0a, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x71, 0x0a, 0x06, 0x50, 0x61,
+	0x22, 0xc8, 0x01, 0x0a, 0x1b, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x69, 0x6d, 0x75, 0x6c, 0x61,
+	0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x37, 0x0a, 0x05, 0x73, 0x70, 0x65, 0x63, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x1b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76, 0x31,
+	0x2e, 0x43, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x53, 0x70, 0x65, 0x63, 0x42, 0x04, 0xc8, 0xde,
+	0x1f, 0x00, 0x52, 0x05, 0x73, 0x70, 0x65, 0x63, 0x73, 0x12, 0x27, 0x0a, 0x0f, 0x63, 0x6f, 0x6e,
+	0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x5f, 0x69, 0x6d, 0x61, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x0e, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x49, 0x6d, 0x61,
+	0x67, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x18, 0x03, 0x20,
+	0x03, 0x28, 0x09, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x2d, 0x0a, 0x12,
+	0x70, 0x72, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x64, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x11, 0x70, 0x72, 0x65, 0x66, 0x65, 0x72,
+	0x72, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x22, 0xf2, 0x02, 0x0a, 0x1c,
+	0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x69, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x23, 0x0a, 0x0d,
+	0x65, 0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x67, 0x61, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x04, 0x52, 0x0c, 0x65, 0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x64, 0x47, 0x61,
+	0x73, 0x12, 0x44, 0x0a, 0x0e, 0x65, 0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x63,
+	0x6f, 0x73, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x1d, 0xc8, 0xde, 0x1f, 0x00, 0xda,
+	0xde, 0x1f, 0x15, 0x63, 0x6f, 0x73, 0x6d, 0x6f, 0x73, 0x73, 0x64, 0x6b, 0x2e, 0x69, 0x6f, 0x2f,
+	0x6d, 0x61, 0x74, 0x68, 0x2e, 0x49, 0x6e, 0x74, 0x52, 0x0d, 0x65, 0x73, 0x74, 0x69, 0x6d, 0x61,
+	0x74, 0x65, 0x64, 0x43, 0x6f, 0x73, 0x74, 0x12, 0x2f, 0x0a, 0x13, 0x61, 0x76, 0x61, 0x69, 0x6c,
+	0x61, 0x62, 0x6c, 0x65, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x18, 0x03,
+	0x20, 0x03, 0x28, 0x09, 0x52, 0x12, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x6c, 0x65, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x3d, 0x0a, 0x1b, 0x65, 0x73, 0x74, 0x69,
+	0x6d, 0x61, 0x74, 0x65, 0x64, 0x5f, 0x77, 0x61, 0x69, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x5f,
+	0x73, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x04, 0x52, 0x18, 0x65,
+	0x73, 0x74, 0x69, 0x6d, 0x61, 0x74, 0x65, 0x64, 0x57, 0x61, 0x69, 0x74, 0x54, 0x69, 0x6d, 0x65,
+	0x53, 0x65, 0x63, 0x6f, 0x6e, 0x64, 0x73, 0x12, 0x1d, 0x0a, 0x0a, 0x77, 0x69, 0x6c, 0x6c, 0x5f,
+	0x71, 0x75, 0x65, 0x75, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x09, 0x77, 0x69, 0x6c,
+	0x6c, 0x51, 0x75, 0x65, 0x75, 0x65, 0x12, 0x2b, 0x0a, 0x11, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x69,
+	0x6e, 0x67, 0x5f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x18, 0x06, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x10, 0x6d, 0x61, 0x74, 0x63, 0x68, 0x69, 0x6e, 0x67, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x12, 0x2b, 0x0a, 0x11, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x5f, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x73, 0x18, 0x07, 0x20, 0x03, 0x28, 0x09, 0x52, 0x10,
+	0x76, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x45, 0x72, 0x72, 0x6f, 0x72, 0x73,
+	0x32, 0x80, 0x1e, 0x0a, 0x05, 0x51, 0x75, 0x65, 0x72, 0x79, 0x12, 0x71, 0x0a, 0x06, 0x50, 0x61,
 	0x72, 0x61, 0x6d, 0x73, 0x12, 0x22, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75,
 	0x74, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x50, 0x61, 0x72, 0x61, 0x6d,
 	0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63,
@@ -26691,11 +28453,20 @@ var file_paw_compute_v1_query_proto_rawDesc = []byte{
 	0x6e, 0x73, 0x65, 0x22, 0x3a, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x34, 0x12, 0x32, 0x2f, 0x70, 0x61,
 	0x77, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x63, 0x61, 0x74,
 	0x61, 0x73, 0x74, 0x72, 0x6f, 0x70, 0x68, 0x69, 0x63, 0x5f, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72,
-	0x65, 0x73, 0x2f, 0x7b, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x42,
-	0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x61,
-	0x77, 0x2d, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77, 0x2f, 0x78, 0x2f, 0x63, 0x6f,
-	0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x65, 0x73, 0x2f, 0x7b, 0x66, 0x61, 0x69, 0x6c, 0x75, 0x72, 0x65, 0x5f, 0x69, 0x64, 0x7d, 0x12,
+	0x91, 0x01, 0x0a, 0x0f, 0x53, 0x69, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x2b, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74,
+	0x65, 0x2e, 0x76, 0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x69, 0x6d, 0x75, 0x6c, 0x61,
+	0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x2c, 0x2e, 0x70, 0x61, 0x77, 0x2e, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2e, 0x76,
+	0x31, 0x2e, 0x51, 0x75, 0x65, 0x72, 0x79, 0x53, 0x69, 0x6d, 0x75, 0x6c, 0x61, 0x74, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x23,
+	0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1d, 0x3a, 0x01, 0x2a, 0x22, 0x18, 0x2f, 0x70, 0x61, 0x77, 0x2f,
+	0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x69, 0x6d, 0x75, 0x6c,
+	0x61, 0x74, 0x65, 0x42, 0x2a, 0x5a, 0x28, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x70, 0x61, 0x77, 0x2d, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x2f, 0x70, 0x61, 0x77, 0x2f,
+	0x78, 0x2f, 0x63, 0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -26710,7 +28481,7 @@ func file_paw_compute_v1_query_proto_rawDescGZIP() []byte {
 	return file_paw_compute_v1_query_proto_rawDescData
 }
 
-var file_paw_compute_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
+var file_paw_compute_v1_query_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
 var file_paw_compute_v1_query_proto_goTypes = []interface{}{
 	(*QueryParamsRequest)(nil),                  // 0: paw.compute.v1.QueryParamsRequest
 	(*QueryParamsResponse)(nil),                 // 1: paw.compute.v1.QueryParamsResponse
@@ -26762,137 +28533,142 @@ var file_paw_compute_v1_query_proto_goTypes = []interface{}{
 	(*QueryCatastrophicFailuresResponse)(nil),   // 47: paw.compute.v1.QueryCatastrophicFailuresResponse
 	(*QueryCatastrophicFailureRequest)(nil),     // 48: paw.compute.v1.QueryCatastrophicFailureRequest
 	(*QueryCatastrophicFailureResponse)(nil),    // 49: paw.compute.v1.QueryCatastrophicFailureResponse
-	(*Params)(nil),                              // 50: paw.compute.v1.Params
-	(*Provider)(nil),                            // 51: paw.compute.v1.Provider
-	(*query.PageRequest)(nil),                   // 52: cosmos.base.query.v1beta1.PageRequest
-	(*query.PageResponse)(nil),                  // 53: cosmos.base.query.v1beta1.PageResponse
-	(*Request)(nil),                             // 54: paw.compute.v1.Request
-	(RequestStatus)(0),                          // 55: paw.compute.v1.RequestStatus
-	(*Result)(nil),                              // 56: paw.compute.v1.Result
-	(*ComputeSpec)(nil),                         // 57: paw.compute.v1.ComputeSpec
-	(*Dispute)(nil),                             // 58: paw.compute.v1.Dispute
-	(DisputeStatus)(0),                          // 59: paw.compute.v1.DisputeStatus
-	(*Evidence)(nil),                            // 60: paw.compute.v1.Evidence
-	(*SlashRecord)(nil),                         // 61: paw.compute.v1.SlashRecord
-	(*Appeal)(nil),                              // 62: paw.compute.v1.Appeal
-	(AppealStatus)(0),                           // 63: paw.compute.v1.AppealStatus
-	(*GovernanceParams)(nil),                    // 64: paw.compute.v1.GovernanceParams
-	(*CatastrophicFailure)(nil),                 // 65: paw.compute.v1.CatastrophicFailure
+	(*QuerySimulateRequestRequest)(nil),         // 50: paw.compute.v1.QuerySimulateRequestRequest
+	(*QuerySimulateRequestResponse)(nil),        // 51: paw.compute.v1.QuerySimulateRequestResponse
+	(*Params)(nil),                              // 52: paw.compute.v1.Params
+	(*Provider)(nil),                            // 53: paw.compute.v1.Provider
+	(*query.PageRequest)(nil),                   // 54: cosmos.base.query.v1beta1.PageRequest
+	(*query.PageResponse)(nil),                  // 55: cosmos.base.query.v1beta1.PageResponse
+	(*Request)(nil),                             // 56: paw.compute.v1.Request
+	(RequestStatus)(0),                          // 57: paw.compute.v1.RequestStatus
+	(*Result)(nil),                              // 58: paw.compute.v1.Result
+	(*ComputeSpec)(nil),                         // 59: paw.compute.v1.ComputeSpec
+	(*Dispute)(nil),                             // 60: paw.compute.v1.Dispute
+	(DisputeStatus)(0),                          // 61: paw.compute.v1.DisputeStatus
+	(*Evidence)(nil),                            // 62: paw.compute.v1.Evidence
+	(*SlashRecord)(nil),                         // 63: paw.compute.v1.SlashRecord
+	(*Appeal)(nil),                              // 64: paw.compute.v1.Appeal
+	(AppealStatus)(0),                           // 65: paw.compute.v1.AppealStatus
+	(*GovernanceParams)(nil),                    // 66: paw.compute.v1.GovernanceParams
+	(*CatastrophicFailure)(nil),                 // 67: paw.compute.v1.CatastrophicFailure
 }
 var file_paw_compute_v1_query_proto_depIdxs = []int32{
-	50, // 0: paw.compute.v1.QueryParamsResponse.params:type_name -> paw.compute.v1.Params
-	51, // 1: paw.compute.v1.QueryProviderResponse.provider:type_name -> paw.compute.v1.Provider
-	52, // 2: paw.compute.v1.QueryProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	51, // 3: paw.compute.v1.QueryProvidersResponse.providers:type_name -> paw.compute.v1.Provider
-	53, // 4: paw.compute.v1.QueryProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 5: paw.compute.v1.QueryActiveProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	51, // 6: paw.compute.v1.QueryActiveProvidersResponse.providers:type_name -> paw.compute.v1.Provider
-	53, // 7: paw.compute.v1.QueryActiveProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	54, // 8: paw.compute.v1.QueryRequestResponse.request:type_name -> paw.compute.v1.Request
-	52, // 9: paw.compute.v1.QueryRequestsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 10: paw.compute.v1.QueryRequestsResponse.requests:type_name -> paw.compute.v1.Request
-	53, // 11: paw.compute.v1.QueryRequestsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 12: paw.compute.v1.QueryRequestsByRequesterRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 13: paw.compute.v1.QueryRequestsByRequesterResponse.requests:type_name -> paw.compute.v1.Request
-	53, // 14: paw.compute.v1.QueryRequestsByRequesterResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 15: paw.compute.v1.QueryRequestsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 16: paw.compute.v1.QueryRequestsByProviderResponse.requests:type_name -> paw.compute.v1.Request
-	53, // 17: paw.compute.v1.QueryRequestsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	55, // 18: paw.compute.v1.QueryRequestsByStatusRequest.status:type_name -> paw.compute.v1.RequestStatus
-	52, // 19: paw.compute.v1.QueryRequestsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	54, // 20: paw.compute.v1.QueryRequestsByStatusResponse.requests:type_name -> paw.compute.v1.Request
-	53, // 21: paw.compute.v1.QueryRequestsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	56, // 22: paw.compute.v1.QueryResultResponse.result:type_name -> paw.compute.v1.Result
-	57, // 23: paw.compute.v1.QueryEstimateCostRequest.specs:type_name -> paw.compute.v1.ComputeSpec
-	58, // 24: paw.compute.v1.QueryDisputeResponse.dispute:type_name -> paw.compute.v1.Dispute
-	52, // 25: paw.compute.v1.QueryDisputesRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	58, // 26: paw.compute.v1.QueryDisputesResponse.disputes:type_name -> paw.compute.v1.Dispute
-	53, // 27: paw.compute.v1.QueryDisputesResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 28: paw.compute.v1.QueryDisputesByRequestRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	58, // 29: paw.compute.v1.QueryDisputesByRequestResponse.disputes:type_name -> paw.compute.v1.Dispute
-	53, // 30: paw.compute.v1.QueryDisputesByRequestResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	59, // 31: paw.compute.v1.QueryDisputesByStatusRequest.status:type_name -> paw.compute.v1.DisputeStatus
-	52, // 32: paw.compute.v1.QueryDisputesByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	58, // 33: paw.compute.v1.QueryDisputesByStatusResponse.disputes:type_name -> paw.compute.v1.Dispute
-	53, // 34: paw.compute.v1.QueryDisputesByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 35: paw.compute.v1.QueryEvidenceRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	60, // 36: paw.compute.v1.QueryEvidenceResponse.evidence:type_name -> paw.compute.v1.Evidence
-	53, // 37: paw.compute.v1.QueryEvidenceResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	61, // 38: paw.compute.v1.QuerySlashRecordResponse.slash_record:type_name -> paw.compute.v1.SlashRecord
-	52, // 39: paw.compute.v1.QuerySlashRecordsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	61, // 40: paw.compute.v1.QuerySlashRecordsResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
-	53, // 41: paw.compute.v1.QuerySlashRecordsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	52, // 42: paw.compute.v1.QuerySlashRecordsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	61, // 43: paw.compute.v1.QuerySlashRecordsByProviderResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
-	53, // 44: paw.compute.v1.QuerySlashRecordsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	62, // 45: paw.compute.v1.QueryAppealResponse.appeal:type_name -> paw.compute.v1.Appeal
-	52, // 46: paw.compute.v1.QueryAppealsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	62, // 47: paw.compute.v1.QueryAppealsResponse.appeals:type_name -> paw.compute.v1.Appeal
-	53, // 48: paw.compute.v1.QueryAppealsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	63, // 49: paw.compute.v1.QueryAppealsByStatusRequest.status:type_name -> paw.compute.v1.AppealStatus
-	52, // 50: paw.compute.v1.QueryAppealsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	62, // 51: paw.compute.v1.QueryAppealsByStatusResponse.appeals:type_name -> paw.compute.v1.Appeal
-	53, // 52: paw.compute.v1.QueryAppealsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	64, // 53: paw.compute.v1.QueryGovernanceParamsResponse.params:type_name -> paw.compute.v1.GovernanceParams
-	52, // 54: paw.compute.v1.QueryCatastrophicFailuresRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
-	65, // 55: paw.compute.v1.QueryCatastrophicFailuresResponse.failures:type_name -> paw.compute.v1.CatastrophicFailure
-	53, // 56: paw.compute.v1.QueryCatastrophicFailuresResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
-	65, // 57: paw.compute.v1.QueryCatastrophicFailureResponse.failure:type_name -> paw.compute.v1.CatastrophicFailure
-	0,  // 58: paw.compute.v1.Query.Params:input_type -> paw.compute.v1.QueryParamsRequest
-	2,  // 59: paw.compute.v1.Query.Provider:input_type -> paw.compute.v1.QueryProviderRequest
-	4,  // 60: paw.compute.v1.Query.Providers:input_type -> paw.compute.v1.QueryProvidersRequest
-	6,  // 61: paw.compute.v1.Query.ActiveProviders:input_type -> paw.compute.v1.QueryActiveProvidersRequest
-	8,  // 62: paw.compute.v1.Query.Request:input_type -> paw.compute.v1.QueryRequestRequest
-	10, // 63: paw.compute.v1.Query.Requests:input_type -> paw.compute.v1.QueryRequestsRequest
-	12, // 64: paw.compute.v1.Query.RequestsByRequester:input_type -> paw.compute.v1.QueryRequestsByRequesterRequest
-	14, // 65: paw.compute.v1.Query.RequestsByProvider:input_type -> paw.compute.v1.QueryRequestsByProviderRequest
-	16, // 66: paw.compute.v1.Query.RequestsByStatus:input_type -> paw.compute.v1.QueryRequestsByStatusRequest
-	18, // 67: paw.compute.v1.Query.Result:input_type -> paw.compute.v1.QueryResultRequest
-	20, // 68: paw.compute.v1.Query.EstimateCost:input_type -> paw.compute.v1.QueryEstimateCostRequest
-	22, // 69: paw.compute.v1.Query.Dispute:input_type -> paw.compute.v1.QueryDisputeRequest
-	24, // 70: paw.compute.v1.Query.Disputes:input_type -> paw.compute.v1.QueryDisputesRequest
-	26, // 71: paw.compute.v1.Query.DisputesByRequest:input_type -> paw.compute.v1.QueryDisputesByRequestRequest
-	28, // 72: paw.compute.v1.Query.DisputesByStatus:input_type -> paw.compute.v1.QueryDisputesByStatusRequest
-	30, // 73: paw.compute.v1.Query.Evidence:input_type -> paw.compute.v1.QueryEvidenceRequest
-	32, // 74: paw.compute.v1.Query.SlashRecord:input_type -> paw.compute.v1.QuerySlashRecordRequest
-	34, // 75: paw.compute.v1.Query.SlashRecords:input_type -> paw.compute.v1.QuerySlashRecordsRequest
-	36, // 76: paw.compute.v1.Query.SlashRecordsByProvider:input_type -> paw.compute.v1.QuerySlashRecordsByProviderRequest
-	38, // 77: paw.compute.v1.Query.Appeal:input_type -> paw.compute.v1.QueryAppealRequest
-	40, // 78: paw.compute.v1.Query.Appeals:input_type -> paw.compute.v1.QueryAppealsRequest
-	42, // 79: paw.compute.v1.Query.AppealsByStatus:input_type -> paw.compute.v1.QueryAppealsByStatusRequest
-	44, // 80: paw.compute.v1.Query.GovernanceParams:input_type -> paw.compute.v1.QueryGovernanceParamsRequest
-	46, // 81: paw.compute.v1.Query.CatastrophicFailures:input_type -> paw.compute.v1.QueryCatastrophicFailuresRequest
-	48, // 82: paw.compute.v1.Query.CatastrophicFailure:input_type -> paw.compute.v1.QueryCatastrophicFailureRequest
-	1,  // 83: paw.compute.v1.Query.Params:output_type -> paw.compute.v1.QueryParamsResponse
-	3,  // 84: paw.compute.v1.Query.Provider:output_type -> paw.compute.v1.QueryProviderResponse
-	5,  // 85: paw.compute.v1.Query.Providers:output_type -> paw.compute.v1.QueryProvidersResponse
-	7,  // 86: paw.compute.v1.Query.ActiveProviders:output_type -> paw.compute.v1.QueryActiveProvidersResponse
-	9,  // 87: paw.compute.v1.Query.Request:output_type -> paw.compute.v1.QueryRequestResponse
-	11, // 88: paw.compute.v1.Query.Requests:output_type -> paw.compute.v1.QueryRequestsResponse
-	13, // 89: paw.compute.v1.Query.RequestsByRequester:output_type -> paw.compute.v1.QueryRequestsByRequesterResponse
-	15, // 90: paw.compute.v1.Query.RequestsByProvider:output_type -> paw.compute.v1.QueryRequestsByProviderResponse
-	17, // 91: paw.compute.v1.Query.RequestsByStatus:output_type -> paw.compute.v1.QueryRequestsByStatusResponse
-	19, // 92: paw.compute.v1.Query.Result:output_type -> paw.compute.v1.QueryResultResponse
-	21, // 93: paw.compute.v1.Query.EstimateCost:output_type -> paw.compute.v1.QueryEstimateCostResponse
-	23, // 94: paw.compute.v1.Query.Dispute:output_type -> paw.compute.v1.QueryDisputeResponse
-	25, // 95: paw.compute.v1.Query.Disputes:output_type -> paw.compute.v1.QueryDisputesResponse
-	27, // 96: paw.compute.v1.Query.DisputesByRequest:output_type -> paw.compute.v1.QueryDisputesByRequestResponse
-	29, // 97: paw.compute.v1.Query.DisputesByStatus:output_type -> paw.compute.v1.QueryDisputesByStatusResponse
-	31, // 98: paw.compute.v1.Query.Evidence:output_type -> paw.compute.v1.QueryEvidenceResponse
-	33, // 99: paw.compute.v1.Query.SlashRecord:output_type -> paw.compute.v1.QuerySlashRecordResponse
-	35, // 100: paw.compute.v1.Query.SlashRecords:output_type -> paw.compute.v1.QuerySlashRecordsResponse
-	37, // 101: paw.compute.v1.Query.SlashRecordsByProvider:output_type -> paw.compute.v1.QuerySlashRecordsByProviderResponse
-	39, // 102: paw.compute.v1.Query.Appeal:output_type -> paw.compute.v1.QueryAppealResponse
-	41, // 103: paw.compute.v1.Query.Appeals:output_type -> paw.compute.v1.QueryAppealsResponse
-	43, // 104: paw.compute.v1.Query.AppealsByStatus:output_type -> paw.compute.v1.QueryAppealsByStatusResponse
-	45, // 105: paw.compute.v1.Query.GovernanceParams:output_type -> paw.compute.v1.QueryGovernanceParamsResponse
-	47, // 106: paw.compute.v1.Query.CatastrophicFailures:output_type -> paw.compute.v1.QueryCatastrophicFailuresResponse
-	49, // 107: paw.compute.v1.Query.CatastrophicFailure:output_type -> paw.compute.v1.QueryCatastrophicFailureResponse
-	83, // [83:108] is the sub-list for method output_type
-	58, // [58:83] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	52, // 0: paw.compute.v1.QueryParamsResponse.params:type_name -> paw.compute.v1.Params
+	53, // 1: paw.compute.v1.QueryProviderResponse.provider:type_name -> paw.compute.v1.Provider
+	54, // 2: paw.compute.v1.QueryProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	53, // 3: paw.compute.v1.QueryProvidersResponse.providers:type_name -> paw.compute.v1.Provider
+	55, // 4: paw.compute.v1.QueryProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 5: paw.compute.v1.QueryActiveProvidersRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	53, // 6: paw.compute.v1.QueryActiveProvidersResponse.providers:type_name -> paw.compute.v1.Provider
+	55, // 7: paw.compute.v1.QueryActiveProvidersResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	56, // 8: paw.compute.v1.QueryRequestResponse.request:type_name -> paw.compute.v1.Request
+	54, // 9: paw.compute.v1.QueryRequestsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	56, // 10: paw.compute.v1.QueryRequestsResponse.requests:type_name -> paw.compute.v1.Request
+	55, // 11: paw.compute.v1.QueryRequestsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 12: paw.compute.v1.QueryRequestsByRequesterRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	56, // 13: paw.compute.v1.QueryRequestsByRequesterResponse.requests:type_name -> paw.compute.v1.Request
+	55, // 14: paw.compute.v1.QueryRequestsByRequesterResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 15: paw.compute.v1.QueryRequestsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	56, // 16: paw.compute.v1.QueryRequestsByProviderResponse.requests:type_name -> paw.compute.v1.Request
+	55, // 17: paw.compute.v1.QueryRequestsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	57, // 18: paw.compute.v1.QueryRequestsByStatusRequest.status:type_name -> paw.compute.v1.RequestStatus
+	54, // 19: paw.compute.v1.QueryRequestsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	56, // 20: paw.compute.v1.QueryRequestsByStatusResponse.requests:type_name -> paw.compute.v1.Request
+	55, // 21: paw.compute.v1.QueryRequestsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	58, // 22: paw.compute.v1.QueryResultResponse.result:type_name -> paw.compute.v1.Result
+	59, // 23: paw.compute.v1.QueryEstimateCostRequest.specs:type_name -> paw.compute.v1.ComputeSpec
+	60, // 24: paw.compute.v1.QueryDisputeResponse.dispute:type_name -> paw.compute.v1.Dispute
+	54, // 25: paw.compute.v1.QueryDisputesRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	60, // 26: paw.compute.v1.QueryDisputesResponse.disputes:type_name -> paw.compute.v1.Dispute
+	55, // 27: paw.compute.v1.QueryDisputesResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 28: paw.compute.v1.QueryDisputesByRequestRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	60, // 29: paw.compute.v1.QueryDisputesByRequestResponse.disputes:type_name -> paw.compute.v1.Dispute
+	55, // 30: paw.compute.v1.QueryDisputesByRequestResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	61, // 31: paw.compute.v1.QueryDisputesByStatusRequest.status:type_name -> paw.compute.v1.DisputeStatus
+	54, // 32: paw.compute.v1.QueryDisputesByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	60, // 33: paw.compute.v1.QueryDisputesByStatusResponse.disputes:type_name -> paw.compute.v1.Dispute
+	55, // 34: paw.compute.v1.QueryDisputesByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 35: paw.compute.v1.QueryEvidenceRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	62, // 36: paw.compute.v1.QueryEvidenceResponse.evidence:type_name -> paw.compute.v1.Evidence
+	55, // 37: paw.compute.v1.QueryEvidenceResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	63, // 38: paw.compute.v1.QuerySlashRecordResponse.slash_record:type_name -> paw.compute.v1.SlashRecord
+	54, // 39: paw.compute.v1.QuerySlashRecordsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	63, // 40: paw.compute.v1.QuerySlashRecordsResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
+	55, // 41: paw.compute.v1.QuerySlashRecordsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	54, // 42: paw.compute.v1.QuerySlashRecordsByProviderRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	63, // 43: paw.compute.v1.QuerySlashRecordsByProviderResponse.slash_records:type_name -> paw.compute.v1.SlashRecord
+	55, // 44: paw.compute.v1.QuerySlashRecordsByProviderResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	64, // 45: paw.compute.v1.QueryAppealResponse.appeal:type_name -> paw.compute.v1.Appeal
+	54, // 46: paw.compute.v1.QueryAppealsRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	64, // 47: paw.compute.v1.QueryAppealsResponse.appeals:type_name -> paw.compute.v1.Appeal
+	55, // 48: paw.compute.v1.QueryAppealsResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	65, // 49: paw.compute.v1.QueryAppealsByStatusRequest.status:type_name -> paw.compute.v1.AppealStatus
+	54, // 50: paw.compute.v1.QueryAppealsByStatusRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	64, // 51: paw.compute.v1.QueryAppealsByStatusResponse.appeals:type_name -> paw.compute.v1.Appeal
+	55, // 52: paw.compute.v1.QueryAppealsByStatusResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	66, // 53: paw.compute.v1.QueryGovernanceParamsResponse.params:type_name -> paw.compute.v1.GovernanceParams
+	54, // 54: paw.compute.v1.QueryCatastrophicFailuresRequest.pagination:type_name -> cosmos.base.query.v1beta1.PageRequest
+	67, // 55: paw.compute.v1.QueryCatastrophicFailuresResponse.failures:type_name -> paw.compute.v1.CatastrophicFailure
+	55, // 56: paw.compute.v1.QueryCatastrophicFailuresResponse.pagination:type_name -> cosmos.base.query.v1beta1.PageResponse
+	67, // 57: paw.compute.v1.QueryCatastrophicFailureResponse.failure:type_name -> paw.compute.v1.CatastrophicFailure
+	59, // 58: paw.compute.v1.QuerySimulateRequestRequest.specs:type_name -> paw.compute.v1.ComputeSpec
+	0,  // 59: paw.compute.v1.Query.Params:input_type -> paw.compute.v1.QueryParamsRequest
+	2,  // 60: paw.compute.v1.Query.Provider:input_type -> paw.compute.v1.QueryProviderRequest
+	4,  // 61: paw.compute.v1.Query.Providers:input_type -> paw.compute.v1.QueryProvidersRequest
+	6,  // 62: paw.compute.v1.Query.ActiveProviders:input_type -> paw.compute.v1.QueryActiveProvidersRequest
+	8,  // 63: paw.compute.v1.Query.Request:input_type -> paw.compute.v1.QueryRequestRequest
+	10, // 64: paw.compute.v1.Query.Requests:input_type -> paw.compute.v1.QueryRequestsRequest
+	12, // 65: paw.compute.v1.Query.RequestsByRequester:input_type -> paw.compute.v1.QueryRequestsByRequesterRequest
+	14, // 66: paw.compute.v1.Query.RequestsByProvider:input_type -> paw.compute.v1.QueryRequestsByProviderRequest
+	16, // 67: paw.compute.v1.Query.RequestsByStatus:input_type -> paw.compute.v1.QueryRequestsByStatusRequest
+	18, // 68: paw.compute.v1.Query.Result:input_type -> paw.compute.v1.QueryResultRequest
+	20, // 69: paw.compute.v1.Query.EstimateCost:input_type -> paw.compute.v1.QueryEstimateCostRequest
+	22, // 70: paw.compute.v1.Query.Dispute:input_type -> paw.compute.v1.QueryDisputeRequest
+	24, // 71: paw.compute.v1.Query.Disputes:input_type -> paw.compute.v1.QueryDisputesRequest
+	26, // 72: paw.compute.v1.Query.DisputesByRequest:input_type -> paw.compute.v1.QueryDisputesByRequestRequest
+	28, // 73: paw.compute.v1.Query.DisputesByStatus:input_type -> paw.compute.v1.QueryDisputesByStatusRequest
+	30, // 74: paw.compute.v1.Query.Evidence:input_type -> paw.compute.v1.QueryEvidenceRequest
+	32, // 75: paw.compute.v1.Query.SlashRecord:input_type -> paw.compute.v1.QuerySlashRecordRequest
+	34, // 76: paw.compute.v1.Query.SlashRecords:input_type -> paw.compute.v1.QuerySlashRecordsRequest
+	36, // 77: paw.compute.v1.Query.SlashRecordsByProvider:input_type -> paw.compute.v1.QuerySlashRecordsByProviderRequest
+	38, // 78: paw.compute.v1.Query.Appeal:input_type -> paw.compute.v1.QueryAppealRequest
+	40, // 79: paw.compute.v1.Query.Appeals:input_type -> paw.compute.v1.QueryAppealsRequest
+	42, // 80: paw.compute.v1.Query.AppealsByStatus:input_type -> paw.compute.v1.QueryAppealsByStatusRequest
+	44, // 81: paw.compute.v1.Query.GovernanceParams:input_type -> paw.compute.v1.QueryGovernanceParamsRequest
+	46, // 82: paw.compute.v1.Query.CatastrophicFailures:input_type -> paw.compute.v1.QueryCatastrophicFailuresRequest
+	48, // 83: paw.compute.v1.Query.CatastrophicFailure:input_type -> paw.compute.v1.QueryCatastrophicFailureRequest
+	50, // 84: paw.compute.v1.Query.SimulateRequest:input_type -> paw.compute.v1.QuerySimulateRequestRequest
+	1,  // 85: paw.compute.v1.Query.Params:output_type -> paw.compute.v1.QueryParamsResponse
+	3,  // 86: paw.compute.v1.Query.Provider:output_type -> paw.compute.v1.QueryProviderResponse
+	5,  // 87: paw.compute.v1.Query.Providers:output_type -> paw.compute.v1.QueryProvidersResponse
+	7,  // 88: paw.compute.v1.Query.ActiveProviders:output_type -> paw.compute.v1.QueryActiveProvidersResponse
+	9,  // 89: paw.compute.v1.Query.Request:output_type -> paw.compute.v1.QueryRequestResponse
+	11, // 90: paw.compute.v1.Query.Requests:output_type -> paw.compute.v1.QueryRequestsResponse
+	13, // 91: paw.compute.v1.Query.RequestsByRequester:output_type -> paw.compute.v1.QueryRequestsByRequesterResponse
+	15, // 92: paw.compute.v1.Query.RequestsByProvider:output_type -> paw.compute.v1.QueryRequestsByProviderResponse
+	17, // 93: paw.compute.v1.Query.RequestsByStatus:output_type -> paw.compute.v1.QueryRequestsByStatusResponse
+	19, // 94: paw.compute.v1.Query.Result:output_type -> paw.compute.v1.QueryResultResponse
+	21, // 95: paw.compute.v1.Query.EstimateCost:output_type -> paw.compute.v1.QueryEstimateCostResponse
+	23, // 96: paw.compute.v1.Query.Dispute:output_type -> paw.compute.v1.QueryDisputeResponse
+	25, // 97: paw.compute.v1.Query.Disputes:output_type -> paw.compute.v1.QueryDisputesResponse
+	27, // 98: paw.compute.v1.Query.DisputesByRequest:output_type -> paw.compute.v1.QueryDisputesByRequestResponse
+	29, // 99: paw.compute.v1.Query.DisputesByStatus:output_type -> paw.compute.v1.QueryDisputesByStatusResponse
+	31, // 100: paw.compute.v1.Query.Evidence:output_type -> paw.compute.v1.QueryEvidenceResponse
+	33, // 101: paw.compute.v1.Query.SlashRecord:output_type -> paw.compute.v1.QuerySlashRecordResponse
+	35, // 102: paw.compute.v1.Query.SlashRecords:output_type -> paw.compute.v1.QuerySlashRecordsResponse
+	37, // 103: paw.compute.v1.Query.SlashRecordsByProvider:output_type -> paw.compute.v1.QuerySlashRecordsByProviderResponse
+	39, // 104: paw.compute.v1.Query.Appeal:output_type -> paw.compute.v1.QueryAppealResponse
+	41, // 105: paw.compute.v1.Query.Appeals:output_type -> paw.compute.v1.QueryAppealsResponse
+	43, // 106: paw.compute.v1.Query.AppealsByStatus:output_type -> paw.compute.v1.QueryAppealsByStatusResponse
+	45, // 107: paw.compute.v1.Query.GovernanceParams:output_type -> paw.compute.v1.QueryGovernanceParamsResponse
+	47, // 108: paw.compute.v1.Query.CatastrophicFailures:output_type -> paw.compute.v1.QueryCatastrophicFailuresResponse
+	49, // 109: paw.compute.v1.Query.CatastrophicFailure:output_type -> paw.compute.v1.QueryCatastrophicFailureResponse
+	51, // 110: paw.compute.v1.Query.SimulateRequest:output_type -> paw.compute.v1.QuerySimulateRequestResponse
+	85, // [85:111] is the sub-list for method output_type
+	59, // [59:85] is the sub-list for method input_type
+	59, // [59:59] is the sub-list for extension type_name
+	59, // [59:59] is the sub-list for extension extendee
+	0,  // [0:59] is the sub-list for field type_name
 }
 
 func init() { file_paw_compute_v1_query_proto_init() }
@@ -27502,6 +29278,30 @@ func file_paw_compute_v1_query_proto_init() {
 				return nil
 			}
 		}
+		file_paw_compute_v1_query_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QuerySimulateRequestRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_paw_compute_v1_query_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*QuerySimulateRequestResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -27509,7 +29309,7 @@ func file_paw_compute_v1_query_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_paw_compute_v1_query_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   50,
+			NumMessages:   52,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

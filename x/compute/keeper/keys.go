@@ -134,6 +134,11 @@ var (
 	// Moved from types/keys.go - now properly namespaced
 	IBCPacketNonceKeyPrefix = []byte{0x01, 0x28}
 
+	// SEC-15: EscrowLockedHeightPrefix stores the block height when escrow was locked
+	// Key: prefix + requestID -> locked_height (8 bytes)
+	// Used for block-height-based timeout verification to prevent BlockTime manipulation
+	EscrowLockedHeightPrefix = []byte{0x01, 0x2C}
+
 	// RandomnessCommitmentKeyPrefix is the prefix for randomness commitment storage
 	// Key: prefix + validator_address -> RandomnessCommitment
 	RandomnessCommitmentKeyPrefix = []byte{0x01, 0x29}
@@ -146,6 +151,10 @@ var (
 	// AggregatedRandomnessKey is the key for storing the combined randomness from revealed values
 	// This randomness is used for the NEXT block's provider selection
 	AggregatedRandomnessKey = []byte{0x01, 0x2B}
+
+	// SEC-20: TotalProvidersKey stores the total number of registered providers
+	// Used to enforce MaxProviders limit and prevent state bloat attacks
+	TotalProvidersKey = []byte{0x01, 0x2D}
 )
 
 // ProviderKey returns the store key for a provider
@@ -409,4 +418,11 @@ func RandomnessCommitmentByHeightPrefixForHeight(height int64) []byte {
 	heightBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(heightBz, types.SaturateInt64ToUint64(height))
 	return append(RandomnessCommitmentByHeightPrefix, heightBz...)
+}
+
+// SEC-15: EscrowLockedHeightKey returns the store key for escrow locked height
+func EscrowLockedHeightKey(requestID uint64) []byte {
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, requestID)
+	return append(EscrowLockedHeightPrefix, bz...)
 }

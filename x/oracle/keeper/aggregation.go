@@ -54,8 +54,9 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Gas metering: Base price aggregation cost
-	sdkCtx.GasMeter().ConsumeGas(30000, "oracle_aggregate_base")
+	// PERF-11: Gas metering with accurate costs for computational work
+	// Base cost covers param reads, setup, and event emission overhead
+	sdkCtx.GasMeter().ConsumeGas(50000, "oracle_aggregate_base")
 
 	validatorPrices, err := k.GetValidatorPricesByAsset(ctx, asset)
 	if err != nil {
@@ -71,13 +72,15 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 		return err
 	}
 
-	sdkCtx.GasMeter().ConsumeGas(5000, "oracle_aggregate_get_prices")
+	// PERF-11: KV store iteration cost
+	sdkCtx.GasMeter().ConsumeGas(10000, "oracle_aggregate_get_prices")
 
 	totalVotingPower, validPrices, err := k.calculateVotingPower(ctx, validatorPrices)
 	if err != nil {
 		return err
 	}
-	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*1000), "oracle_aggregate_voting_power")
+	// PERF-11: Voting power calculation involves staking keeper calls per validator
+	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*2500), "oracle_aggregate_voting_power")
 
 	if len(validPrices) == 0 {
 		return fmt.Errorf("no valid price submissions for asset: %s", asset)
@@ -93,16 +96,70 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 		return fmt.Errorf("insufficient voting power: %s < %s", votePercentage.String(), params.VoteThreshold.String())
 	}
 
-	// Multi-stage statistical outlier detection
-	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*2000), "oracle_aggregate_outlier_detection")
+	// PERF-11: Multi-stage statistical outlier detection (sorting, MAD, IQR calculations)
+	// Higher gas cost reflects O(n log n) sorting and multiple statistical passes
+	sdkCtx.GasMeter().ConsumeGas(uint64(len(validPrices)*5000), "oracle_aggregate_outlier_detection")
 	filteredData, err := k.detectAndFilterOutliers(ctx, asset, validPrices)
 	if err != nil {
 		return err
 	}
 
+	// DATA-12: Tiered fallback when all prices are filtered as outliers
+	// Tier 1: Use unfiltered median (still uses valid voting power prices)
+	// Tier 2: Fall back to last known good price (stale price)
 	if len(filteredData.ValidPrices) == 0 {
-		return fmt.Errorf("all prices filtered as outliers for asset: %s", asset)
+		sdkCtx.Logger().Warn("all prices filtered as outliers, attempting fallback",
+			"asset", asset,
+			"filtered_count", len(filteredData.FilteredOutliers),
+			"valid_prices_before_filter", len(validPrices))
+
+		// Tier 1: Try unfiltered median from valid prices (before outlier filtering)
+		if len(validPrices) > 0 {
+			unfilteredPrice, err := k.calculateWeightedMedian(validPrices)
+			if err == nil {
+				sdkCtx.Logger().Info("using unfiltered median as fallback",
+					"asset", asset, "price", unfilteredPrice.String())
+				sdkCtx.EventManager().EmitEvent(
+					sdk.NewEvent(
+						types.EventTypeOracleFallback,
+						sdk.NewAttribute(types.AttributeKeyAsset, asset),
+						sdk.NewAttribute("fallback_type", "unfiltered_median"),
+						sdk.NewAttribute(types.AttributeKeyPrice, unfilteredPrice.String()),
+					),
+				)
+				// Use unfiltered data for price storage
+				filteredData.ValidPrices = validPrices
+				filteredData.Median = unfilteredPrice
+				// Continue to normal price storage below
+				goto storePrice
+			}
+		}
+
+		// Tier 2: Fall back to last known good price (stale)
+		lastPrice, err := k.GetPrice(ctx, asset)
+		if err == nil {
+			sdkCtx.Logger().Warn("using stale price as fallback",
+				"asset", asset,
+				"stale_price", lastPrice.Price.String(),
+				"stale_block", lastPrice.BlockHeight)
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					types.EventTypeOracleFallback,
+					sdk.NewAttribute(types.AttributeKeyAsset, asset),
+					sdk.NewAttribute("fallback_type", "stale_price"),
+					sdk.NewAttribute(types.AttributeKeyPrice, lastPrice.Price.String()),
+					sdk.NewAttribute("stale_block_height", fmt.Sprintf("%d", lastPrice.BlockHeight)),
+				),
+			)
+			// Don't update price - keep the stale one
+			return nil
+		}
+
+		// No fallback available - this is truly an error
+		return fmt.Errorf("all prices filtered as outliers and no fallback available for asset: %s", asset)
 	}
+
+storePrice:
 
 	// Slash validators with detected outliers
 	for _, outlier := range filteredData.FilteredOutliers {
@@ -130,8 +187,9 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 		)
 	}
 
-	// Calculate weighted median from filtered prices
-	sdkCtx.GasMeter().ConsumeGas(uint64(len(filteredData.ValidPrices)*500), "oracle_aggregate_median")
+	// PERF-11: Calculate weighted median from filtered prices
+	// Weighted median requires sorting and iterating through cumulative weights
+	sdkCtx.GasMeter().ConsumeGas(uint64(len(filteredData.ValidPrices)*1500), "oracle_aggregate_median")
 	aggregatedPrice, err := k.calculateWeightedMedian(filteredData.ValidPrices)
 	if err != nil {
 		return err
@@ -145,7 +203,8 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 		NumValidators: uint32(len(filteredData.ValidPrices)),
 	}
 
-	sdkCtx.GasMeter().ConsumeGas(8000, "oracle_aggregate_set_price")
+	// PERF-11: Price storage includes primary key, snapshot, and event emission
+	sdkCtx.GasMeter().ConsumeGas(20000, "oracle_aggregate_set_price")
 	if err := k.SetPrice(ctx, price); err != nil {
 		return err
 	}
@@ -689,15 +748,15 @@ func (k Keeper) getOutlierReason(severity OutlierSeverity) string {
 	}
 }
 
-// calculateVotingPower retrieves cached total voting power and filters valid prices.
-// PERF-2: Uses cached total voting power from BeginBlocker instead of iterating
-// all bonded validators. This reduces complexity from O(n*m) to O(m) where:
-// - n = number of validators (cached once per block)
+// calculateVotingPower retrieves snapshotted total voting power and filters valid prices.
+// DATA-8: Uses snapshotted total voting power from vote period start instead of live values.
+// PERF-2: This reduces complexity from O(n*m) to O(m) where:
+// - n = number of validators (snapshotted once per vote period)
 // - m = number of assets (price aggregations per block)
 // With 100+ validators and 20+ assets, this eliminates ~2000+ validator iterations per block.
 func (k Keeper) calculateVotingPower(ctx context.Context, validatorPrices []types.ValidatorPrice) (int64, []types.ValidatorPrice, error) {
-	// PERF-2: Use cached total voting power instead of iterating all validators
-	totalVotingPower := k.GetCachedTotalVotingPower(ctx)
+	// DATA-8: Use snapshotted total voting power for consistent weighting throughout vote period
+	totalVotingPower := k.GetSnapshotTotalVotingPower(ctx)
 
 	// P3-PERF-3: Pre-size with input length capacity
 	validPrices := make([]types.ValidatorPrice, 0, len(validatorPrices))
@@ -780,8 +839,8 @@ func (k Keeper) calculateWeightedMedian(validatorPrices []types.ValidatorPrice) 
 func (k Keeper) CalculateTWAP(ctx context.Context, asset string) (sdkmath.LegacyDec, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Gas metering: TWAP calculation base cost
-	sdkCtx.GasMeter().ConsumeGas(20000, "oracle_twap_base")
+	// PERF-11: TWAP calculation base cost (param reads, iteration setup)
+	sdkCtx.GasMeter().ConsumeGas(30000, "oracle_twap_base")
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
@@ -812,8 +871,8 @@ func (k Keeper) CalculateTWAP(ctx context.Context, asset string) (sdkmath.Legacy
 		return sdkmath.LegacyDec{}, fmt.Errorf("no snapshots available for TWAP calculation")
 	}
 
-	// Gas per snapshot processed
-	sdkCtx.GasMeter().ConsumeGas(uint64(len(snapshots)*1000), "oracle_twap_snapshots")
+	// PERF-11: Gas per snapshot (sorting + time-weighted averaging)
+	sdkCtx.GasMeter().ConsumeGas(uint64(len(snapshots)*1500), "oracle_twap_snapshots")
 
 	sort.Slice(snapshots, func(i, j int) bool {
 		return snapshots[i].BlockHeight < snapshots[j].BlockHeight

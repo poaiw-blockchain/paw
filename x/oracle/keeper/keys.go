@@ -51,6 +51,18 @@ var (
 	// PERF-6: Enables O(v) iteration for asset-specific price lookups instead of O(V) full scan
 	// Key format: prefix + asset + 0x00 + validator
 	ValidatorPriceByAssetKeyPrefix = []byte{0x03, 0x0F}
+
+	// DATA-8: VotingPowerSnapshotPrefix stores validator voting power snapshots per vote period
+	// This ensures consistent voting power is used throughout a vote period, preventing manipulation
+	// Key format: prefix + vote_period_number (8 bytes) + 0x00 + validator_addr
+	VotingPowerSnapshotPrefix = []byte{0x03, 0x10}
+
+	// DATA-8: VotingPowerSnapshotTotalKey stores total voting power snapshot per vote period
+	// Key format: prefix + vote_period_number (8 bytes)
+	VotingPowerSnapshotTotalKey = []byte{0x03, 0x11}
+
+	// DATA-8: CurrentVotePeriodKey stores the current vote period number for snapshot lookups
+	CurrentVotePeriodKey = []byte{0x03, 0x12}
 )
 
 // GetPriceKey returns the store key for a price by asset
@@ -130,4 +142,26 @@ func GetSubmissionByHeightPrefixForHeight(height int64) []byte {
 // Used for replay attack prevention by tracking nonce per channel/sender pair
 func IBCPacketNonceKey(channelID, sender string) []byte {
 	return sharedibc.GetIBCPacketNonceKey(IBCPacketNonceKeyPrefix, channelID, sender)
+}
+
+// DATA-8: GetVotingPowerSnapshotKey returns the key for a validator's voting power snapshot
+func GetVotingPowerSnapshotKey(votePeriod uint64, validatorAddr sdk.ValAddress) []byte {
+	key := append(VotingPowerSnapshotPrefix, make([]byte, 8)...)
+	binary.BigEndian.PutUint64(key[len(VotingPowerSnapshotPrefix):], votePeriod)
+	key = append(key, byte(0x00)) // separator
+	return append(key, []byte(validatorAddr.String())...)
+}
+
+// DATA-8: GetVotingPowerSnapshotTotalKey returns the key for total voting power snapshot
+func GetVotingPowerSnapshotTotalKey(votePeriod uint64) []byte {
+	key := append(VotingPowerSnapshotTotalKey, make([]byte, 8)...)
+	binary.BigEndian.PutUint64(key[len(VotingPowerSnapshotTotalKey):], votePeriod)
+	return key
+}
+
+// DATA-8: GetVotingPowerSnapshotPrefixForPeriod returns the prefix for all snapshots in a vote period
+func GetVotingPowerSnapshotPrefixForPeriod(votePeriod uint64) []byte {
+	key := append(VotingPowerSnapshotPrefix, make([]byte, 8)...)
+	binary.BigEndian.PutUint64(key[len(VotingPowerSnapshotPrefix):], votePeriod)
+	return append(key, byte(0x00)) // separator
 }

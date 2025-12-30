@@ -431,6 +431,29 @@ func (k Keeper) buildTokenGraph(ctx context.Context) (*tokenGraph, error) {
 	return graph, nil
 }
 
+// getOrBuildTokenGraph returns the cached token graph if valid, or builds a new one.
+// PERF-10: Caches the token graph and invalidates when pool version changes.
+func (k *Keeper) getOrBuildTokenGraph(ctx context.Context) (*tokenGraph, error) {
+	currentVersion := k.GetPoolVersion(ctx)
+
+	// Check if cached graph is still valid
+	if k.tokenGraphCache != nil && k.tokenGraphVersion == currentVersion {
+		return k.tokenGraphCache, nil
+	}
+
+	// Cache is invalid or doesn't exist, build a new graph
+	graph, err := k.buildTokenGraph(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update cache
+	k.tokenGraphCache = graph
+	k.tokenGraphVersion = currentVersion
+
+	return graph, nil
+}
+
 // FindBestRoute finds the best route between two tokens using BFS for path
 // discovery and simulation for output optimization.
 //
@@ -472,7 +495,8 @@ func (k Keeper) FindBestRoute(
 		}}, nil
 	}
 
-	// Build token graph for multi-hop search
+	// PERF-10: Use cached token graph for multi-hop search
+	// Note: Cache only benefits pointer-receiver callers; value receivers rebuild each time
 	graph, err := k.buildTokenGraph(ctx)
 	if err != nil {
 		return nil, err

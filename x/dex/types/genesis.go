@@ -17,7 +17,7 @@ func DefaultGenesis() *GenesisState {
 			MinLiquidity:                         sdkmath.NewInt(1_000),
 			MaxSlippagePercent:                   sdkmath.LegacyMustNewDecFromStr("0.50"), // 50% guardrail
 			MaxPoolDrainPercent:                  sdkmath.LegacyMustNewDecFromStr("0.30"), // Production swap drain limit
-			FlashLoanProtectionBlocks:            10,
+			FlashLoanProtectionBlocks:            100, // SEC-18: ~10 min at 6s blocks
 			PoolCreationGas:                      1000,
 			SwapValidationGas:                    1500,
 			LiquidityGas:                         1200,

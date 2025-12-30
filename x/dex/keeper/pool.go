@@ -41,6 +41,63 @@ func (k Keeper) SetNextPoolId(ctx context.Context, poolID uint64) {
 	store.Set(PoolCountKey, bz)
 }
 
+// GetTotalPoolsCount returns the total number of active pools in O(1) time.
+// PERF-9: This avoids O(n) iteration through all pools for count checks.
+func (k Keeper) GetTotalPoolsCount(ctx context.Context) uint64 {
+	store := k.getStore(ctx)
+	bz := store.Get(TotalPoolsCountKey)
+	if bz == nil {
+		return 0
+	}
+	return binary.BigEndian.Uint64(bz)
+}
+
+// SetTotalPoolsCount sets the total pools count.
+// PERF-9: Called when pools are created or deleted.
+func (k Keeper) SetTotalPoolsCount(ctx context.Context, count uint64) {
+	store := k.getStore(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, count)
+	store.Set(TotalPoolsCountKey, bz)
+}
+
+// IncrementTotalPoolsCount increments the pool count by 1.
+// PERF-9: Called when a new pool is created.
+func (k Keeper) IncrementTotalPoolsCount(ctx context.Context) {
+	count := k.GetTotalPoolsCount(ctx)
+	k.SetTotalPoolsCount(ctx, count+1)
+}
+
+// DecrementTotalPoolsCount decrements the pool count by 1.
+// PERF-9: Called when a pool is deleted.
+func (k Keeper) DecrementTotalPoolsCount(ctx context.Context) {
+	count := k.GetTotalPoolsCount(ctx)
+	if count > 0 {
+		k.SetTotalPoolsCount(ctx, count-1)
+	}
+}
+
+// GetPoolVersion returns the current pool version for graph cache invalidation.
+// PERF-10: Incremented when pools are created or deleted.
+func (k Keeper) GetPoolVersion(ctx context.Context) uint64 {
+	store := k.getStore(ctx)
+	bz := store.Get(PoolVersionKey)
+	if bz == nil {
+		return 0
+	}
+	return binary.BigEndian.Uint64(bz)
+}
+
+// IncrementPoolVersion increments the pool version to invalidate the token graph cache.
+// PERF-10: Called when pools are created or deleted.
+func (k Keeper) IncrementPoolVersion(ctx context.Context) {
+	store := k.getStore(ctx)
+	version := k.GetPoolVersion(ctx)
+	bz := make([]byte, 8)
+	binary.BigEndian.PutUint64(bz, version+1)
+	store.Set(PoolVersionKey, bz)
+}
+
 // CreatePool creates a new liquidity pool with comprehensive security checks.
 // Tokens are ordered lexicographically. Returns ErrPoolAlreadyExists if the pair exists,
 // ErrInsufficientLiquidity if amounts are below minimum, ErrMaxPoolsReached at limit.
@@ -91,19 +148,17 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	}
 
 	// 4. Check maximum pools limit (DoS prevention)
-	pools, err := k.GetAllPools(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// PERF-9: Use O(1) pool count instead of O(n) GetAllPools iteration
+	poolCount := k.GetTotalPoolsCount(ctx)
 
-	if uint64(len(pools)) >= MaxPools {
+	if poolCount >= MaxPools {
 		return nil, types.ErrMaxPoolsReached.Wrapf("maximum number of pools (%d) reached", MaxPools)
 	}
 
-	if uint64(len(pools)) > MaxPools*9/10 {
+	if poolCount > MaxPools*9/10 {
 		sdk.UnwrapSDKContext(ctx).Logger().Info(
 			"dex pool count approaching limit",
-			"current", len(pools),
+			"current", poolCount,
 			"max", MaxPools,
 		)
 	}
@@ -180,10 +235,33 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 		return nil, types.ErrInsufficientLiquidity.Wrapf("failed to transfer tokens: %v", err)
 	}
 
+	// DATA-9: Validate module balance after transfer
+	// This ensures the transfer was successful and the module holds the expected reserves
+	moduleBalanceA := k.bankKeeper.GetBalance(sdkCtx, moduleAddr, tokenA)
+	moduleBalanceB := k.bankKeeper.GetBalance(sdkCtx, moduleAddr, tokenB)
+	if moduleBalanceA.Amount.LT(amountA) {
+		return nil, types.ErrInvariantViolation.Wrapf(
+			"module balance mismatch: expected at least %s %s, got %s",
+			amountA.String(), tokenA, moduleBalanceA.Amount.String(),
+		)
+	}
+	if moduleBalanceB.Amount.LT(amountB) {
+		return nil, types.ErrInvariantViolation.Wrapf(
+			"module balance mismatch: expected at least %s %s, got %s",
+			amountB.String(), tokenB, moduleBalanceB.Amount.String(),
+		)
+	}
+
 	// 13. Save pool to store AFTER receiving tokens
 	if err := k.SetPool(ctx, pool); err != nil {
 		return nil, err
 	}
+
+	// PERF-9: Increment pool count for O(1) count checks
+	k.IncrementTotalPoolsCount(ctx)
+
+	// PERF-10: Increment pool version to invalidate token graph cache
+	k.IncrementPoolVersion(ctx)
 
 	// 14. Index pool by tokens
 	if err := k.SetPoolByTokens(ctx, tokenA, tokenB, poolID); err != nil {
@@ -363,6 +441,12 @@ func (k Keeper) DeletePool(ctx context.Context, poolID uint64, authority string)
 
 	// Delete pool
 	store.Delete(PoolKey(poolID))
+
+	// PERF-9: Decrement pool count for O(1) count checks
+	k.DecrementTotalPoolsCount(ctx)
+
+	// PERF-10: Increment pool version to invalidate token graph cache
+	k.IncrementPoolVersion(ctx)
 
 	// Delete token index
 	store.Delete(PoolByTokensKey(pool.TokenA, pool.TokenB))

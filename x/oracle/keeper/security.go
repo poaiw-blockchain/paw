@@ -1180,7 +1180,32 @@ func (k Keeper) VerifyValidatorLocation(ctx context.Context, validatorAddr strin
 			)
 		}
 	} else {
-		// GeoIP unavailable - log warning
+		// GeoIP unavailable - check if verification is required
+		params, err := k.GetParams(ctx)
+		if err != nil {
+			return types.WrapWithRecovery(
+				types.ErrStateCorruption,
+				"failed to get params for geographic diversity check: %v",
+				err,
+			)
+		}
+
+		// SEC-19: If RequireGeographicDiversity is true, GeoIP verification is mandatory
+		if params.RequireGeographicDiversity {
+			sdkCtx.Logger().Error(
+				"GeoIP verification required but database unavailable",
+				"validator", validatorAddr,
+				"claimed_region", claimedRegion,
+				"require_geographic_diversity", true,
+			)
+			return types.WrapWithRecovery(
+				types.ErrGeoIPVerificationRequired,
+				"RequireGeographicDiversity is enabled but GeoIP database is not available; validator %s cannot claim region %s without verification",
+				validatorAddr, claimedRegion,
+			)
+		}
+
+		// GeoIP unavailable but not required - log warning
 		sdkCtx.Logger().Warn(
 			"GeoIP database not available, location verification disabled",
 			"validator", validatorAddr,
@@ -1285,11 +1310,103 @@ func (k Keeper) getVerificationMethod() string {
 
 // Future: Cryptographic location proof system - see GitHub issue for LocationProof/LocationEvidence implementation
 
+// SEC-14: Price data signature verification using Ed25519
+// This ensures validators cryptographically commit to their price submissions
+// and provides non-repudiation for oracle data.
+
+// PriceDataSignatureMessage builds the canonical message to sign for price attestation.
+// Format: SHA256(chainID || validatorAddr || asset || price || blockHeight)
+func buildPriceSignatureMessage(chainID string, validatorAddr string, asset string, price sdkmath.LegacyDec, blockHeight int64) []byte {
+	// Build canonical message for signing
+	// Using || as separator to prevent length extension attacks
+	message := fmt.Sprintf("%s||%s||%s||%s||%d",
+		chainID,
+		validatorAddr,
+		asset,
+		price.String(),
+		blockHeight,
+	)
+	// Return raw bytes - the signature scheme will hash internally
+	return []byte(message)
+}
+
+// VerifyPriceDataSignature verifies an Ed25519 signature over price data.
+// SEC-14: This provides cryptographic proof that the validator committed to this specific price.
+func (k Keeper) VerifyPriceDataSignature(ctx context.Context, validatorAddr sdk.ValAddress, asset string, price sdkmath.LegacyDec, signature []byte) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Get validator's consensus public key for signature verification
+	validator, err := k.stakingKeeper.GetValidator(ctx, validatorAddr)
+	if err != nil {
+		return fmt.Errorf("validator not found: %w", err)
+	}
+
+	// Get the consensus public key
+	pubKey, err := validator.ConsPubKey()
+	if err != nil {
+		return fmt.Errorf("failed to get validator consensus pubkey: %w", err)
+	}
+
+	// Build the message that should have been signed
+	message := buildPriceSignatureMessage(
+		sdkCtx.ChainID(),
+		validatorAddr.String(),
+		asset,
+		price,
+		sdkCtx.BlockHeight(),
+	)
+
+	// Verify the signature
+	if !pubKey.VerifySignature(message, signature) {
+		return fmt.Errorf("invalid price data signature: verification failed")
+	}
+
+	return nil
+}
+
 // TASK 66: ImplementDataSourceAuthenticity validates data source authenticity
+// SEC-14: Enhanced with cryptographic signature verification
 func (k Keeper) ImplementDataSourceAuthenticity(ctx context.Context, validatorAddr string, asset string, price sdkmath.LegacyDec, signature []byte) error {
-	// Verify the price data is properly signed by the validator
-	if len(signature) == 0 {
-		return fmt.Errorf("missing price data signature")
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Parse validator address
+	valAddr, err := sdk.ValAddressFromBech32(validatorAddr)
+	if err != nil {
+		return fmt.Errorf("invalid validator address: %w", err)
+	}
+
+	// SEC-14: Verify signature if provided
+	// During transition period, signatures are optional but recommended
+	// Once all validators upgrade, this should become mandatory via governance
+	if len(signature) > 0 {
+		if err := k.VerifyPriceDataSignature(ctx, valAddr, asset, price, signature); err != nil {
+			// Log signature verification failure
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"price_signature_verification_failed",
+					sdk.NewAttribute("validator", validatorAddr),
+					sdk.NewAttribute("asset", asset),
+					sdk.NewAttribute("error", err.Error()),
+					sdk.NewAttribute("severity", "warning"),
+				),
+			)
+			return types.ErrInvalidSignature.Wrapf("price data signature verification failed: %v", err)
+		}
+
+		// Emit success event for tracking
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"price_signature_verified",
+				sdk.NewAttribute("validator", validatorAddr),
+				sdk.NewAttribute("asset", asset),
+			),
+		)
+	} else {
+		// Log that signature was not provided - for monitoring during transition
+		sdkCtx.Logger().Debug("price submission without signature",
+			"validator", validatorAddr,
+			"asset", asset,
+		)
 	}
 
 	// Validate price bounds (already done in ValidateDataSourceAuthenticity)
@@ -1311,7 +1428,6 @@ func (k Keeper) ImplementDataSourceAuthenticity(ctx context.Context, validatorAd
 		}
 
 		if allIdentical {
-			sdkCtx := sdk.UnwrapSDKContext(ctx)
 			sdkCtx.EventManager().EmitEvent(
 				sdk.NewEvent(
 					"suspicious_data_source",

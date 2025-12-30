@@ -362,14 +362,15 @@ func (k Keeper) CalculateImpermanentLoss(ctx context.Context, poolID uint64, pro
 // - CheckFlashLoanProtection: Validates minimum blocks elapsed before removal
 // - RemoveLiquidity: Calls CheckFlashLoanProtection before allowing removal
 const (
-	// DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset.
-	// Value of 10 blocks (~1 minute at 6s blocks) provides security while not overly restricting LPs.
-	// This prevents same-block or near-block attacks while allowing normal liquidity management.
-	DefaultFlashLoanProtectionBlocks = int64(10)
+	// SEC-18: DefaultFlashLoanProtectionBlocks enforces the minimum wait between LP actions when params unset.
+	// Value of 100 blocks (~10 minutes at 6s blocks) provides strong security against flash loan attacks.
+	// This prevents same-block or near-block attacks while still allowing normal liquidity management.
+	// Higher value prevents attackers from quickly exiting positions after price manipulation.
+	DefaultFlashLoanProtectionBlocks = int64(100)
 
 	// FlashLoanDetectionWindow is the number of blocks to analyze for flash loan attack patterns.
 	// Monitors recent liquidity actions to detect suspicious add-swap-remove sequences.
-	FlashLoanDetectionWindow = 10
+	FlashLoanDetectionWindow = 100
 )
 
 // CheckFlashLoanProtection validates that liquidity operations aren't flash loan attacks.

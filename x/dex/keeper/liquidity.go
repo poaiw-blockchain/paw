@@ -374,7 +374,7 @@ func (k Keeper) removeLiquidityInternal(ctx context.Context, provider sdk.AccAdd
 	minReserves := math.NewInt(MinimumReserves)
 
 	// Always enforce minimum reserves - full draining is NOT allowed
-	// Pools must maintain at least MinimumReserves (1000 base units) in each token
+	// SEC-17: Pools must maintain at least MinimumReserves (1,000,000 base units = 1 token) in each asset
 	if remainingReserveA.LT(minReserves) {
 		return math.ZeroInt(), math.ZeroInt(), types.ErrMinimumReserves.Wrapf(
 			"withdrawal would leave reserve A at %s, minimum required is %s",

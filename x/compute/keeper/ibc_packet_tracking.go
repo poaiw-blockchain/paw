@@ -173,6 +173,7 @@ type EscrowRefund struct {
 }
 
 // RefundEscrowOnTimeout handles escrow refund when IBC packet times out
+// DATA-10: Uses atomic CacheContext to ensure bank transfer and state update are consistent
 func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason string) error {
 	// Get escrow info
 	escrow := k.getEscrow(ctx, jobID)
@@ -180,16 +181,39 @@ func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason stri
 		return fmt.Errorf("escrow not found for job %s", jobID)
 	}
 
-	// Refund escrow
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sdk.MustAccAddressFromBech32(escrow.Requester), sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))); err != nil {
+	// DATA-10: Check if escrow is already refunded or released (idempotency)
+	if escrow.Status == "refunded" || escrow.Status == "released" {
+		// Already processed, return success without doing anything
+		return nil
+	}
+
+	// Validate escrow is in locked state
+	if escrow.Status != "locked" {
+		return fmt.Errorf("escrow cannot be refunded in status %s", escrow.Status)
+	}
+
+	// DATA-10: Use CacheContext for atomic bank transfer + state update
+	// This prevents the catastrophic case where funds are transferred but escrow state is not updated
+	cacheCtx, writeFn := ctx.CacheContext()
+
+	// Phase 1: Refund escrow funds
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, sdk.MustAccAddressFromBech32(escrow.Requester), sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))); err != nil {
+		// Transfer failed - cache is automatically discarded
 		return err
 	}
 
-	// k.deleteEscrow(ctx, jobID) // Assuming deleteEscrow doesn't exist or is named differently.
-	// If there is no delete function, we might just leave it or set it to empty/nil if possible.
-	// For now, let's comment it out to fix the build.
+	// Phase 2: Update escrow status to refunded
+	now := ctx.BlockTime()
+	escrow.Status = "refunded"
+	escrow.ReleasedAt = &now // Reuse ReleasedAt for refund timestamp
 
-	// Record refund
+	// Store the updated escrow state
+	k.storeEscrow(cacheCtx, jobID, escrow)
+
+	// Phase 3: Commit all changes atomically
+	writeFn()
+
+	// Record refund for audit trail
 	refund := EscrowRefund{
 		JobID:      jobID,
 		Requester:  sdk.MustAccAddressFromBech32(escrow.Requester),
@@ -201,9 +225,6 @@ func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason stri
 	if err := k.recordEscrowRefund(ctx, refund); err != nil {
 		ctx.Logger().Error("failed to record escrow refund", "error", err)
 	}
-
-	// Delete escrow
-	// k.DeleteEscrow(ctx, jobID)
 
 	// Emit event
 	ctx.EventManager().EmitEvent(

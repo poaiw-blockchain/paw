@@ -13,6 +13,8 @@ import (
 
 func TestCheckByzantineToleranceGeography(t *testing.T) {
 	k, _, ctx := keepertest.OracleKeeper(t)
+	// SEC-11: Use block height past bootstrap grace period (10000) for error testing
+	ctx = ctx.WithBlockHeight(10001)
 	params := types.DefaultParams()
 	params.MinGeographicRegions = 2
 	params.AllowedRegions = []string{"na", "eu", "apac"}

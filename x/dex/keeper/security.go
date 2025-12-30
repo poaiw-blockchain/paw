@@ -148,11 +148,18 @@ const LockExpirationBlocks = int64(2)
 
 // acquireReentrancyLock attempts to acquire a reentrancy lock from the KVStore.
 // SEC-4 FIX: Now includes block height to allow expiration of stale locks.
+// SEC-13 FIX: Uses CacheContext for atomic check-and-set to prevent race conditions.
 func (k Keeper) acquireReentrancyLock(ctx context.Context, lockKey string) error {
-	store := k.getStore(ctx)
-	key := ReentrancyLockKey(lockKey)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	currentHeight := sdkCtx.BlockHeight()
+
+	// SEC-13 FIX: Use CacheContext for atomic check-and-set
+	// This ensures the lock check and set happen atomically, preventing
+	// race conditions where two concurrent transactions both read "no lock"
+	// before either writes their lock.
+	cacheCtx, writeFn := sdkCtx.CacheContext()
+	store := cacheCtx.KVStore(k.storeKey)
+	key := ReentrancyLockKey(lockKey)
 
 	// Check if lock already exists
 	if existingData := store.Get(key); existingData != nil {
@@ -171,7 +178,7 @@ func (k Keeper) acquireReentrancyLock(ctx context.Context, lockKey string) error
 					),
 				)
 			} else {
-				// Lock is still valid
+				// Lock is still valid - do NOT call writeFn, cache is discarded
 				return types.ErrReentrancy.Wrapf("operation %s is already locked (since block %d)", lockKey, lockHeight)
 			}
 		} else {
@@ -186,6 +193,9 @@ func (k Keeper) acquireReentrancyLock(ctx context.Context, lockKey string) error
 	binary.BigEndian.PutUint64(lockData[:8], uint64(currentHeight))
 	lockData[8] = 0x01 // Lock marker
 	store.Set(key, lockData)
+
+	// SEC-13 FIX: Commit the atomic check-and-set operation
+	writeFn()
 	return nil
 }
 

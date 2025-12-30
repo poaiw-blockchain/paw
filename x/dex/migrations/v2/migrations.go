@@ -221,35 +221,44 @@ func validateLiquidityPositions(ctx sdk.Context, store storetypes.KVStore, cdc c
 		}
 	}
 
-	// Validate that sum of LP shares matches pool total shares
+	// Validate that sum of LP shares matches pool total shares (strict equality)
+	// NOTE: During migration, we log discrepancies but don't fail because the data
+	// already exists. For genesis, strict equality is enforced (see keeper/genesis.go).
+	// Post-migration, the invariant (keeper/invariants.go) enforces strict equality.
 	poolIterator := storetypes.KVStorePrefixIterator(store, PoolKeyPrefix)
 	defer poolIterator.Close()
 
+	var poolsChecked, poolsWithMismatch int
 	for ; poolIterator.Valid(); poolIterator.Next() {
 		var pool types.Pool
 		if err := cdc.Unmarshal(poolIterator.Value(), &pool); err != nil {
 			continue
 		}
 
+		poolsChecked++
+
 		lpTotal, exists := poolTotalShares[pool.Id]
 		if !exists {
 			lpTotal = math.ZeroInt()
 		}
 
-		// Allow small discrepancies due to rounding
-		diff := pool.TotalShares.Sub(lpTotal).Abs()
-		maxDiff := math.NewInt(100)
-
-		if diff.GT(maxDiff) {
-			ctx.Logger().Warn("liquidity position mismatch",
+		// Strict equality check (consistent with genesis validation)
+		if !lpTotal.Equal(pool.TotalShares) {
+			poolsWithMismatch++
+			diff := pool.TotalShares.Sub(lpTotal).Abs()
+			ctx.Logger().Error("CRITICAL: liquidity position shares mismatch detected during migration",
 				"pool_id", pool.Id,
 				"pool_total_shares", pool.TotalShares,
 				"lp_total_shares", lpTotal,
-				"difference", diff)
+				"difference", diff,
+				"action", "manual investigation required post-migration")
 		}
 	}
 
-	ctx.Logger().Info("Liquidity positions validated", "fixed", fixed)
+	ctx.Logger().Info("Liquidity positions validated",
+		"fixed", fixed,
+		"pools_checked", poolsChecked,
+		"pools_with_mismatch", poolsWithMismatch)
 	return nil
 }
 

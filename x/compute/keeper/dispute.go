@@ -14,6 +14,11 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
+// SEC-16: Maximum evidence size in bytes (1MB)
+// This prevents state bloat attacks where malicious actors submit
+// arbitrarily large evidence data to consume storage and gas.
+const MaxEvidenceSizeBytes = 1024 * 1024 // 1MB
+
 // dispute storage helpers
 func (k Keeper) getNextDisputeID(ctx context.Context) (uint64, error) {
 	store := k.getStore(ctx)
@@ -70,6 +75,11 @@ func (k Keeper) getDispute(ctx context.Context, id uint64) (*types.Dispute, erro
 }
 
 func (k Keeper) appendEvidence(ctx context.Context, disputeID uint64, evidence types.Evidence) error {
+	// SEC-16: Validate evidence size
+	if len(evidence.Data) > MaxEvidenceSizeBytes {
+		return fmt.Errorf("evidence data too large: %d bytes exceeds maximum %d bytes", len(evidence.Data), MaxEvidenceSizeBytes)
+	}
+
 	store := k.getStore(ctx)
 
 	// find next index
@@ -92,6 +102,11 @@ func (k Keeper) appendEvidence(ctx context.Context, disputeID uint64, evidence t
 // CreateDispute locks deposit, indexes dispute, and opens evidence period.
 func (k Keeper) CreateDispute(ctx context.Context, requester sdk.AccAddress, requestID uint64, reason string, evidenceData []byte, deposit math.Int) (uint64, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// SEC-16: Validate evidence size to prevent state bloat attacks
+	if len(evidenceData) > MaxEvidenceSizeBytes {
+		return 0, fmt.Errorf("evidence data too large: %d bytes exceeds maximum %d bytes", len(evidenceData), MaxEvidenceSizeBytes)
+	}
 
 	// validate request exists
 	request, err := k.GetRequest(ctx, requestID)

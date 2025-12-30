@@ -80,6 +80,20 @@ var (
 	// SwapCommitmentKeyPrefix      = []byte{0x02, 0x1D} - Swap commitments (unified)
 	// SwapCommitmentByExpiryPrefix = []byte{0x02, 0x1E} - Index by expiry
 	// SwapCommitmentByTraderPrefix = []byte{0x02, 0x1F} - Index by trader
+
+	// ============================================================================
+	// PERF-9: Pool Count Optimization (0x20)
+	// ============================================================================
+	// TotalPoolsCountKey tracks the total number of active pools.
+	// This enables O(1) pool count checks instead of O(n) GetAllPools iteration.
+	TotalPoolsCountKey = []byte{0x02, 0x20}
+
+	// ============================================================================
+	// PERF-10: Pool Version for Graph Cache Invalidation (0x21)
+	// ============================================================================
+	// PoolVersionKey tracks a monotonic version number that increments when
+	// pools are created or deleted. Used to invalidate the token graph cache.
+	PoolVersionKey = []byte{0x02, 0x21}
 )
 
 // PoolKey returns the store key for a pool by ID

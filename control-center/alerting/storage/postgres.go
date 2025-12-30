@@ -587,6 +587,12 @@ func (s *PostgresStorage) ListChannels() ([]*alerting.Channel, error) {
 	return channels, nil
 }
 
+// DeleteChannel deletes a notification channel
+func (s *PostgresStorage) DeleteChannel(id string) error {
+	_, err := s.db.Exec("DELETE FROM notification_channels WHERE id = $1", id)
+	return err
+}
+
 // SaveNotification saves a notification record
 func (s *PostgresStorage) SaveNotification(notification *alerting.Notification) error {
 	query := `

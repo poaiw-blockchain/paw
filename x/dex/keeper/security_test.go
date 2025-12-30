@@ -383,6 +383,7 @@ func TestCalculateSwapOutputSecurity(t *testing.T) {
 }
 
 // TestFlashLoanProtection tests minimum lock period enforcement
+// SEC-18: FlashLoanProtectionBlocks is 100
 func TestFlashLoanProtection(t *testing.T) {
 	k, ctx := keepertest.DexKeeper(t)
 	poolID := keepertest.CreateTestPool(t, k, ctx, "upaw", "uatom",
@@ -392,11 +393,11 @@ func TestFlashLoanProtection(t *testing.T) {
 	ctx = ctx.WithBlockHeight(50)
 	require.NoError(t, k.SetLastLiquidityActionBlock(ctx, poolID, provider))
 
-	ctx = ctx.WithBlockHeight(55) // Only 5 blocks elapsed; default is 10
+	ctx = ctx.WithBlockHeight(55) // Only 5 blocks elapsed; need 100 (SEC-18)
 	err := k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-	ctx = ctx.WithBlockHeight(65)
+	ctx = ctx.WithBlockHeight(150) // 100 blocks elapsed - should succeed
 	err = k.CheckFlashLoanProtection(ctx, poolID, provider)
 	require.NoError(t, err)
 }

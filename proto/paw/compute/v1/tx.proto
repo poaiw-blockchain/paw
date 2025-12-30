@@ -58,6 +58,10 @@ service Msg {
 
   // UpdateGovernanceParams updates governance parameters
   rpc UpdateGovernanceParams(MsgUpdateGovernanceParams) returns (MsgUpdateGovernanceParamsResponse);
+
+  // SubmitBatchRequests submits multiple compute requests in a single transaction
+  // AGENT-1: Enables agents to submit batch requests with reduced gas
+  rpc SubmitBatchRequests(MsgSubmitBatchRequests) returns (MsgSubmitBatchRequestsResponse);
 }
 
 // MsgRegisterProvider registers a new compute provider.
@@ -384,3 +388,85 @@ message MsgUpdateGovernanceParams {
 }
 
 message MsgUpdateGovernanceParamsResponse {}
+
+// BatchRequestItem defines a single compute request in a batch
+// AGENT-1: Individual request parameters for batch processing
+message BatchRequestItem {
+  // specs defines the required compute resources
+  ComputeSpec specs = 1 [(gogoproto.nullable) = false];
+
+  // container_image is the Docker image to execute
+  string container_image = 2;
+
+  // command is the command to run in the container
+  repeated string command = 3;
+
+  // env_vars are environment variables to set in the container
+  map<string, string> env_vars = 4;
+
+  // max_payment is the maximum amount the requester is willing to pay for this request
+  string max_payment = 5 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // preferred_provider is an optional preferred provider address
+  string preferred_provider = 6 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+}
+
+// MsgSubmitBatchRequests submits multiple compute requests in a single transaction
+// AGENT-1: Enables agents to submit batch compute requests with lower gas overhead
+//
+// BENEFITS:
+// - Reduced gas cost per request due to shared transaction overhead
+// - All requests are validated atomically (fail together or succeed together)
+// - Simpler agent logic - single transaction for multiple compute tasks
+//
+// LIMITS:
+// - Maximum 20 requests per batch (gas metering constraint)
+// - All requests use the same requester and deposit denom
+message MsgSubmitBatchRequests {
+  option (cosmos.msg.v1.signer) = "requester";
+  option (amino.name) = "paw/compute/MsgSubmitBatchRequests";
+
+  // requester is the address submitting the batch
+  string requester = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+
+  // requests contains the individual compute requests
+  repeated BatchRequestItem requests = 2 [(gogoproto.nullable) = false];
+
+  // timeout_blocks is the number of blocks before unprocessed requests expire
+  uint64 timeout_blocks = 3;
+}
+
+// BatchRequestResult defines the result of a single request in a batch
+message BatchRequestResult {
+  // request_id is the assigned request ID
+  uint64 request_id = 1;
+
+  // success indicates whether the request was accepted
+  bool success = 2;
+
+  // error contains error message if success=false
+  string error = 3;
+}
+
+// MsgSubmitBatchRequestsResponse defines the response for MsgSubmitBatchRequests
+message MsgSubmitBatchRequestsResponse {
+  // results contains the result for each request in order
+  repeated BatchRequestResult results = 1 [(gogoproto.nullable) = false];
+
+  // total_requests is the number of requests submitted
+  uint64 total_requests = 2;
+
+  // successful_requests is the number of requests accepted
+  uint64 successful_requests = 3;
+
+  // total_deposit is the total deposit amount escrowed
+  string total_deposit = 4 [
+    (cosmos_proto.scalar) = "cosmos.Int",
+    (gogoproto.customtype) = "cosmossdk.io/math.Int",
+    (gogoproto.nullable) = false
+  ];
+}

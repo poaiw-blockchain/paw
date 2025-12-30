@@ -133,13 +133,23 @@ func (qs queryServer) ActiveProviders(goCtx context.Context, req *types.QueryAct
 	sanitized := sanitizePagination(req.Pagination)
 	providers := make([]types.Provider, 0, sanitized.Limit)
 	pageRes, err := query.Paginate(activeProviderStore, sanitized, func(key []byte, value []byte) error {
-		// The active provider index stores addresses, need to fetch full provider
+		// PERF-12: Try to unmarshal full provider from cached value first
+		// Falls back to GetProvider if value is just an address (legacy format)
+		var provider types.Provider
+		if len(value) > 32 { // Full provider data is larger than just an address
+			if err := qs.Keeper.cdc.Unmarshal(value, &provider); err == nil {
+				providers = append(providers, provider)
+				return nil
+			}
+		}
+
+		// Fallback: value is just address bytes (legacy format), fetch full provider
 		providerAddr := sdk.AccAddress(key)
-		provider, err := qs.Keeper.GetProvider(ctx, providerAddr)
+		providerData, err := qs.Keeper.GetProvider(ctx, providerAddr)
 		if err != nil {
 			return err
 		}
-		providers = append(providers, *provider)
+		providers = append(providers, *providerData)
 		return nil
 	})
 
@@ -686,4 +696,142 @@ func (qs queryServer) CatastrophicFailure(goCtx context.Context, req *types.Quer
 	}
 
 	return &types.QueryCatastrophicFailureResponse{Failure: failure}, nil
+}
+
+// SimulateRequest simulates a compute request without executing it
+// AGENT-2: Enables agents to preview gas/cost/providers before submitting
+func (qs queryServer) SimulateRequest(goCtx context.Context, req *types.QuerySimulateRequestRequest) (*types.QuerySimulateRequestResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	// Initialize response
+	resp := &types.QuerySimulateRequestResponse{
+		ValidationErrors:    make([]string, 0),
+		AvailableProviders:  make([]string, 0),
+		WillQueue:           false,
+		EstimatedWaitTimeSeconds: 0,
+	}
+
+	// Validate specs
+	if req.Specs.CpuCores == 0 {
+		resp.ValidationErrors = append(resp.ValidationErrors, "cpu_cores must be greater than 0")
+	}
+	if req.Specs.MemoryMb == 0 {
+		resp.ValidationErrors = append(resp.ValidationErrors, "memory_mb must be greater than 0")
+	}
+	if req.ContainerImage == "" {
+		resp.ValidationErrors = append(resp.ValidationErrors, "container_image is required")
+	}
+
+	// If validation errors, return early
+	if len(resp.ValidationErrors) > 0 {
+		return resp, nil
+	}
+
+	// Find available providers matching specs
+	store := qs.Keeper.getStore(ctx)
+	activeProviderStore := storeprefix.NewStore(store, ActiveProvidersPrefix)
+
+	iterator := activeProviderStore.Iterator(nil, nil)
+	defer iterator.Close()
+
+	var matchingProviders []string
+	var bestProvider *types.Provider
+
+	for ; iterator.Valid(); iterator.Next() {
+		providerAddr := sdk.AccAddress(iterator.Key())
+		provider, err := qs.Keeper.GetProvider(ctx, providerAddr)
+		if err != nil {
+			continue
+		}
+
+		// Check if provider can handle the specs
+		if provider.AvailableSpecs.CpuCores >= req.Specs.CpuCores &&
+			provider.AvailableSpecs.MemoryMb >= req.Specs.MemoryMb &&
+			provider.AvailableSpecs.StorageGb >= req.Specs.StorageGb {
+
+			matchingProviders = append(matchingProviders, provider.Address)
+
+			// Track best provider (first match or preferred)
+			if bestProvider == nil {
+				bestProvider = provider
+			}
+			if req.PreferredProvider != "" && provider.Address == req.PreferredProvider {
+				bestProvider = provider
+			}
+		}
+	}
+
+	resp.AvailableProviders = matchingProviders
+
+	if len(matchingProviders) == 0 {
+		resp.ValidationErrors = append(resp.ValidationErrors, "no providers available with matching specs")
+		return resp, nil
+	}
+
+	// Set matching provider
+	if bestProvider != nil {
+		resp.MatchingProvider = bestProvider.Address
+
+		// Estimate cost using the matching provider
+		estimatedCost, _, err := qs.Keeper.EstimateCost(ctx, sdk.MustAccAddressFromBech32(bestProvider.Address), req.Specs)
+		if err == nil {
+			resp.EstimatedCost = estimatedCost
+		}
+	}
+
+	// Estimate gas (base gas + compute-specific overhead)
+	// Base tx gas is around 100k, compute request adds overhead based on specs
+	baseGas := uint64(100000)
+	cpuGas := req.Specs.CpuCores * 10              // ~10 gas per cpu core unit
+	memGas := req.Specs.MemoryMb * 5               // ~5 gas per MB
+	storageGas := req.Specs.StorageGb * 1000       // ~1000 gas per GB
+	resp.EstimatedGas = baseGas + cpuGas + memGas + storageGas
+
+	// Estimate queue wait time based on pending requests
+	pendingRequests := qs.countPendingRequestsForProvider(ctx, resp.MatchingProvider)
+	if pendingRequests > 0 {
+		resp.WillQueue = true
+		// Estimate ~60 seconds per pending request
+		resp.EstimatedWaitTimeSeconds = pendingRequests * 60
+	}
+
+	return resp, nil
+}
+
+// countPendingRequestsForProvider counts pending requests for a provider
+func (qs queryServer) countPendingRequestsForProvider(ctx sdk.Context, providerAddr string) uint64 {
+	if providerAddr == "" {
+		return 0
+	}
+
+	addr, err := sdk.AccAddressFromBech32(providerAddr)
+	if err != nil {
+		return 0
+	}
+
+	store := qs.Keeper.getStore(ctx)
+	providerPrefix := append(RequestsByProviderPrefix, addr.Bytes()...)
+	providerStore := storeprefix.NewStore(store, providerPrefix)
+
+	var count uint64
+	iterator := providerStore.Iterator(nil, nil)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		requestID := sdk.BigEndianToUint64(iterator.Key())
+		request, err := qs.Keeper.GetRequest(ctx, requestID)
+		if err != nil {
+			continue
+		}
+		if request.Status == types.REQUEST_STATUS_PENDING ||
+			request.Status == types.REQUEST_STATUS_ASSIGNED {
+			count++
+		}
+	}
+
+	return count
 }

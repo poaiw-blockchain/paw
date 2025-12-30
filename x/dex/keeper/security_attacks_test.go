@@ -207,8 +207,8 @@ func TestSecurity_FlashLoanAttack(t *testing.T) {
 		_, _, err = k.RemoveLiquidity(ctx, provider, poolID, shares)
 		require.Error(t, err)
 
-		// Advance by sufficient blocks - should succeed
-		ctx = ctx.WithBlockHeight(1020)
+		// Advance by sufficient blocks (100 blocks, SEC-18) - should succeed
+		ctx = ctx.WithBlockHeight(1100)
 		amountA, amountB, err := k.RemoveLiquidity(ctx, provider, poolID, shares)
 		require.NoError(t, err)
 		require.True(t, amountA.IsPositive())

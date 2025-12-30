@@ -29,6 +29,20 @@ type Keeper struct {
 	authority          string
 	metrics            *DEXMetrics
 	moduleAddressCache sdk.AccAddress // Cached module address to avoid repeated allocations
+
+	// PERF-10: Token graph cache to avoid rebuilding on every route search
+	// The cache is invalidated when pools are created or deleted by incrementing poolVersion
+	tokenGraphCache   *tokenGraph // Cached token graph for route finding
+	tokenGraphVersion uint64      // Version when cache was built
+
+	// ARCH-2: Hooks for cross-module notifications
+	hooks dextypes.DexHooks
+}
+
+// kvStoreProvider is an interface for types that can provide a KVStore.
+// CODE-10: This allows getStore() to work with both sdk.Context and direct store providers.
+type kvStoreProvider interface {
+	KVStore(key storetypes.StoreKey) storetypes.KVStore
 }
 
 // NewKeeper creates a new dex Keeper instance
@@ -54,10 +68,15 @@ func NewKeeper(
 	}
 }
 
-// getStore returns the KVStore for the dex module
+// getStore returns the KVStore for the dex module.
+// CODE-10: Uses defensive pattern to handle both sdk.Context and direct kvStoreProvider.
 func (k Keeper) getStore(ctx context.Context) storetypes.KVStore {
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	return sdkCtx.KVStore(k.storeKey)
+	if provider, ok := ctx.(kvStoreProvider); ok {
+		return provider.KVStore(k.storeKey)
+	}
+
+	unwrapped := sdk.UnwrapSDKContext(ctx)
+	return unwrapped.KVStore(k.storeKey)
 }
 
 // GetStoreKey returns the store key for testing purposes
@@ -68,6 +87,20 @@ func (k Keeper) GetStoreKey() storetypes.StoreKey {
 // GetAuthority returns the module authority for testing purposes
 func (k Keeper) GetAuthority() string {
 	return k.authority
+}
+
+// SetHooks sets the DEX hooks.
+// ARCH-2: Enables cross-module notifications for DEX events.
+func (k *Keeper) SetHooks(hooks dextypes.DexHooks) {
+	if k.hooks != nil {
+		panic("cannot set dex hooks twice")
+	}
+	k.hooks = hooks
+}
+
+// GetHooks returns the DEX hooks.
+func (k Keeper) GetHooks() dextypes.DexHooks {
+	return k.hooks
 }
 
 // ClaimCapability claims a channel capability for later authentication.

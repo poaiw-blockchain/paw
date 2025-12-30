@@ -22,10 +22,11 @@ const (
 	// Prevents pools with dust amounts that are vulnerable to manipulation
 	MinimumInitialLiquidity = 1000
 
-	// SEC-6: MinimumReserves is the minimum reserve amount that must remain in a pool
-	// after withdrawal. Prevents full pool drainage attacks.
-	// Set to 1000 base units to prevent dust pools and price manipulation.
-	MinimumReserves = 1000
+	// SEC-6/SEC-17: MinimumReserves is the minimum reserve amount that must remain in a pool
+	// after withdrawal. Prevents full pool drainage and griefing attacks.
+	// Set to 1,000,000 base units (1 full token with 6 decimals) to prevent
+	// dust pools, price manipulation, and pool griefing with small amounts.
+	MinimumReserves = 1000000
 )
 
 var (

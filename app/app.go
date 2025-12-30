@@ -537,10 +537,10 @@ func NewPAWApp(
 		// IBC modules (after capability)
 		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
-		// PAW custom modules
+		// PAW custom modules - Oracle first, then DEX (uses prices), then Compute
+		oracletypes.ModuleName,
 		dextypes.ModuleName,
 		computetypes.ModuleName,
-		oracletypes.ModuleName,
 	)
 
 	// Set begin blockers order
@@ -554,10 +554,10 @@ func NewPAWApp(
 		// IBC modules
 		capabilitytypes.ModuleName,
 		ibcexported.ModuleName,
-		// PAW custom modules
+		// PAW custom modules - Oracle first for fresh prices, then DEX uses them
+		oracletypes.ModuleName,
 		dextypes.ModuleName,
 		computetypes.ModuleName,
-		oracletypes.ModuleName,
 	)
 
 	// Set end blockers order
@@ -569,10 +569,10 @@ func NewPAWApp(
 		// IBC modules
 		capabilitytypes.ModuleName,
 		ibcexported.ModuleName,
-		// PAW custom modules
+		// PAW custom modules - Oracle finalizes first, then DEX cleanup, then Compute
+		oracletypes.ModuleName,
 		dextypes.ModuleName,
 		computetypes.ModuleName,
-		oracletypes.ModuleName,
 	)
 
 	app.sm = module.NewSimulationManager(

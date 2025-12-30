@@ -55,7 +55,7 @@ func DefaultParams() Params {
 		MinLiquidity:                       math.NewInt(1000),                // Minimum initial liquidity
 		MaxSlippagePercent:                 math.LegacyNewDecWithPrec(5, 2),  // 5%
 		MaxPoolDrainPercent:                math.LegacyNewDecWithPrec(30, 2), // 30% of reserves
-		FlashLoanProtectionBlocks:          10,
+		FlashLoanProtectionBlocks:          100, // SEC-18: ~10 min at 6s blocks
 		PoolCreationGas:                    1000,
 		SwapValidationGas:                  1500,
 		LiquidityGas:                       1200,

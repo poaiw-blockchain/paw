@@ -50,13 +50,6 @@ func (e *Evaluator) Evaluate(rule *alerting.AlertRule) (*alerting.EvaluationResu
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	result := &alerting.EvaluationResult{
-		RuleID:    rule.ID,
-		Triggered: false,
-		Timestamp: time.Now(),
-		Metadata:  make(map[string]interface{}),
-	}
-
 	switch rule.RuleType {
 	case alerting.RuleTypeThreshold:
 		return e.evaluateThreshold(rule)

@@ -51,6 +51,9 @@ func (k Keeper) InitGenesis(ctx context.Context, genState types.GenesisState) er
 		}
 	}
 
+	// PERF-9: Initialize total pools count for O(1) count checks
+	k.SetTotalPoolsCount(ctx, uint64(len(genState.Pools)))
+
 	for _, twap := range genState.PoolTwapRecords {
 		if err := k.SetPoolTWAP(ctx, twap); err != nil {
 			return fmt.Errorf("failed to set pool TWAP for pool %d: %w", twap.PoolId, err)

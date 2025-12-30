@@ -48,6 +48,9 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryAppeals(),
 		GetCmdQueryAppealsByStatus(),
 		GetCmdQueryGovernanceParams(),
+		// AGENT-4: Catastrophic failure queries
+		GetCmdQueryCatastrophicFailures(),
+		GetCmdQueryCatastrophicFailure(),
 	)
 
 	return computeQueryCmd
@@ -971,6 +974,91 @@ Example:
 
 			queryClient := types.NewQueryClient(clientCtx)
 			res, err := queryClient.GovernanceParams(context.Background(), &types.QueryGovernanceParamsRequest{})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryCatastrophicFailures returns the command to query all catastrophic failures
+func GetCmdQueryCatastrophicFailures() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "catastrophic-failures",
+		Short: "Query all catastrophic failure records",
+		Long: `Query all catastrophic failure records with optional filtering.
+
+Use --unresolved to show only failures that haven't been resolved yet.
+
+Example:
+  $ pawd query compute catastrophic-failures
+  $ pawd query compute catastrophic-failures --unresolved`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			onlyUnresolved, err := cmd.Flags().GetBool("unresolved")
+			if err != nil {
+				return err
+			}
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
+			if err != nil {
+				return err
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.CatastrophicFailures(context.Background(), &types.QueryCatastrophicFailuresRequest{
+				OnlyUnresolved: onlyUnresolved,
+				Pagination:     pageReq,
+			})
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+	}
+
+	cmd.Flags().Bool("unresolved", false, "Only show unresolved failures")
+	flags.AddQueryFlagsToCmd(cmd)
+	flags.AddPaginationFlagsToCmd(cmd, "catastrophic-failures")
+	return cmd
+}
+
+// GetCmdQueryCatastrophicFailure returns the command to query a single catastrophic failure
+func GetCmdQueryCatastrophicFailure() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "catastrophic-failure [failure-id]",
+		Short: "Query a catastrophic failure by ID",
+		Long: `Query detailed information about a specific catastrophic failure.
+
+Example:
+  $ pawd query compute catastrophic-failure 1`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			failureID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid failure ID: %w", err)
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.CatastrophicFailure(context.Background(), &types.QueryCatastrophicFailureRequest{
+				FailureId: failureID,
+			})
 			if err != nil {
 				return err
 			}

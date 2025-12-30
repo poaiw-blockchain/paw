@@ -17,6 +17,8 @@ import (
 // are detected and handled properly at runtime when validators register from the same region.
 func TestGeographicDiversityViolationAtRuntime(t *testing.T) {
 	k, stakingKeeper, ctx := keepertest.OracleKeeper(t)
+	// SEC-11: Use block height past bootstrap grace period (10000) for error testing
+	ctx = ctx.WithBlockHeight(10001)
 
 	// Configure params to require geographic diversity
 	params := types.DefaultParams()

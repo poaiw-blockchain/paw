@@ -423,3 +423,64 @@ func convertToProtoLimitOrder(order *LimitOrder) types.LimitOrder {
 		CreatedAtHeight: order.CreatedAtHeight,
 	}
 }
+
+// FindBestRoute finds the optimal multi-hop route between two tokens (AGENT-3)
+func (qs queryServer) FindBestRoute(goCtx context.Context, req *types.QueryFindBestRouteRequest) (*types.QueryFindBestRouteResponse, error) {
+	if req == nil {
+		return nil, sdkerrors.ErrInvalidRequest
+	}
+
+	// Default and bound max_hops
+	maxHops := int(req.MaxHops)
+	if maxHops <= 0 {
+		maxHops = 3 // Default to 3 hops
+	}
+	if maxHops > 5 {
+		maxHops = 5 // Cap at 5 hops
+	}
+
+	// Find best route using existing keeper function
+	route, err := qs.Keeper.FindBestRoute(goCtx, req.TokenIn, req.TokenOut, req.AmountIn, maxHops)
+	if err != nil {
+		// No route found is a valid response, not an error
+		return &types.QueryFindBestRouteResponse{
+			Route: []types.RouteHop{},
+			Found: false,
+		}, nil
+	}
+
+	// Simulate the route to get actual amounts
+	result, err := qs.Keeper.SimulateMultiHopSwap(goCtx, route, req.AmountIn)
+	if err != nil {
+		return &types.QueryFindBestRouteResponse{
+			Route: []types.RouteHop{},
+			Found: false,
+		}, nil
+	}
+
+	// Convert internal route to proto response
+	protoRoute := make([]types.RouteHop, len(route))
+	currentAmount := req.AmountIn
+	for i, hop := range route {
+		var hopAmountOut = currentAmount
+		if i < len(result.HopAmounts) {
+			hopAmountOut = result.HopAmounts[i]
+		}
+
+		protoRoute[i] = types.RouteHop{
+			PoolId:    hop.PoolID,
+			TokenIn:   hop.TokenIn,
+			TokenOut:  hop.TokenOut,
+			AmountIn:  currentAmount,
+			AmountOut: hopAmountOut,
+		}
+		currentAmount = hopAmountOut
+	}
+
+	return &types.QueryFindBestRouteResponse{
+		Route:          protoRoute,
+		TotalAmountOut: result.AmountOut,
+		TotalFee:       result.TotalFees,
+		Found:          true,
+	}, nil
+}

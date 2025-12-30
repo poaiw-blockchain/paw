@@ -46,6 +46,15 @@ func (k Keeper) BeginBlocker(ctx context.Context) error {
 		// Don't return error - log and continue
 	}
 
+	// DATA-8: Snapshot voting powers at the start of each vote period
+	// This ensures consistent voting power throughout the vote period
+	if isStart, _ := k.IsVotePeriodStart(ctx); isStart {
+		if err := k.SnapshotVotingPowers(ctx); err != nil {
+			sdkCtx.Logger().Error("failed to snapshot voting powers", "error", err)
+			// Don't return error - log and continue
+		}
+	}
+
 	// Check geographic diversity periodically (P2-SEC-2 mitigation)
 	params, err := k.GetParams(ctx)
 	if err == nil && params.DiversityCheckInterval > 0 {
@@ -127,6 +136,13 @@ func (k Keeper) EndBlocker(ctx context.Context) error {
 				sdk.NewAttribute("height", fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 			),
 		)
+	}
+
+	// DATA-8: Cleanup old voting power snapshots to prevent unbounded state growth
+	// Retain 5 vote periods worth of snapshots for historical queries
+	if err := k.CleanupOldVotingPowerSnapshots(ctx, 5); err != nil {
+		sdkCtx.Logger().Error("failed to cleanup old voting power snapshots", "error", err)
+		// Don't return error - log and continue
 	}
 
 	// Emit end block event for monitoring
