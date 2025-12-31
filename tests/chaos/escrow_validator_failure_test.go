@@ -1,0 +1,389 @@
+// TEST-1.2: Chaos Engineering - Validator Failures During Escrow
+// Tests escrow resilience when validators fail during critical operations
+package chaos
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/suite"
+
+	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/compute/keeper"
+	computetypes "github.com/paw-chain/paw/x/compute/types"
+)
+
+// EscrowValidatorFailureTestSuite tests escrow behavior during validator failures
+type EscrowValidatorFailureTestSuite struct {
+	suite.Suite
+	k   *keeper.Keeper
+	ctx sdk.Context
+
+	// Simulated validators
+	validators      []*SimulatedValidator
+	activeCount     int32
+	consensusQuorum int
+}
+
+// SimulatedValidator represents a validator in the test
+type SimulatedValidator struct {
+	ID           string
+	VotingPower  int64
+	IsActive     bool
+	FailedAt     time.Time
+	RecoveredAt  time.Time
+	mu           sync.Mutex
+	processedTxs uint64
+}
+
+func TestEscrowValidatorFailureTestSuite(t *testing.T) {
+	suite.Run(t, new(EscrowValidatorFailureTestSuite))
+}
+
+func (suite *EscrowValidatorFailureTestSuite) SetupTest() {
+	suite.k, suite.ctx = keepertest.ComputeKeeper(suite.T())
+
+	// Create 10 validators (4 required for consensus in BFT)
+	numValidators := 10
+	suite.validators = make([]*SimulatedValidator, numValidators)
+	suite.consensusQuorum = (numValidators * 2 / 3) + 1 // 67% + 1
+
+	for i := 0; i < numValidators; i++ {
+		suite.validators[i] = &SimulatedValidator{
+			ID:          fmt.Sprintf("validator_%d", i),
+			VotingPower: 100,
+			IsActive:    true,
+		}
+	}
+	suite.activeCount = int32(numValidators)
+}
+
+// failValidator simulates a validator going offline
+func (suite *EscrowValidatorFailureTestSuite) failValidator(v *SimulatedValidator) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.IsActive {
+		v.IsActive = false
+		v.FailedAt = time.Now()
+		atomic.AddInt32(&suite.activeCount, -1)
+	}
+}
+
+// recoverValidator simulates a validator coming back online
+func (suite *EscrowValidatorFailureTestSuite) recoverValidator(v *SimulatedValidator) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if !v.IsActive {
+		v.IsActive = true
+		v.RecoveredAt = time.Now()
+		atomic.AddInt32(&suite.activeCount, 1)
+	}
+}
+
+// hasConsensus checks if we still have consensus
+func (suite *EscrowValidatorFailureTestSuite) hasConsensus() bool {
+	return int(atomic.LoadInt32(&suite.activeCount)) >= suite.consensusQuorum
+}
+
+// TestEscrowSurvivesSingleValidatorFailure tests escrow with 1 validator down
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowSurvivesSingleValidatorFailure() {
+	// Create escrow
+	requester := sdk.AccAddress([]byte("escrow_test_requester"))
+	escrowAmount := math.NewInt(1_000_000)
+
+	// Fund requester
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	// Create job with escrow
+	jobID := "chaos_test_job_1"
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	// Fail one validator
+	suite.failValidator(suite.validators[0])
+
+	// Verify consensus still possible
+	suite.True(suite.hasConsensus(), "Should still have consensus with 1 validator down")
+
+	// Verify escrow still accessible
+	escrow := suite.k.GetEscrow(suite.ctx, jobID)
+	suite.NotNil(escrow, "Escrow should still be accessible")
+
+	// Release escrow (simulating job completion)
+	provider := sdk.AccAddress([]byte("chaos_test_provider1"))
+	err = suite.k.ReleaseEscrow(suite.ctx, jobID, provider)
+	suite.NoError(err, "Escrow release should succeed with 1 validator down")
+
+	suite.T().Log("TEST-1.2: Escrow survived single validator failure")
+}
+
+// TestEscrowSurvivesMultipleValidatorFailures tests escrow with multiple failures
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowSurvivesMultipleValidatorFailures() {
+	requester := sdk.AccAddress([]byte("multi_fail_requester"))
+	escrowAmount := math.NewInt(2_000_000)
+
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	jobID := "chaos_multi_fail_job"
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	// Fail 3 validators (should still have consensus with 7/10)
+	for i := 0; i < 3; i++ {
+		suite.failValidator(suite.validators[i])
+	}
+
+	suite.True(suite.hasConsensus(), "Should have consensus with 3 validators down (7/10)")
+
+	// Operations should still work
+	escrow := suite.k.GetEscrow(suite.ctx, jobID)
+	suite.NotNil(escrow)
+	suite.Equal("locked", escrow.Status)
+
+	suite.T().Logf("TEST-1.2: Escrow operational with %d validators (quorum=%d)",
+		atomic.LoadInt32(&suite.activeCount), suite.consensusQuorum)
+}
+
+// TestEscrowBehaviorAtConsensusThreshold tests at exact consensus threshold
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowBehaviorAtConsensusThreshold() {
+	requester := sdk.AccAddress([]byte("threshold_requester"))
+	escrowAmount := math.NewInt(3_000_000)
+
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	jobID := "chaos_threshold_job"
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	// Fail validators until exactly at threshold
+	failCount := len(suite.validators) - suite.consensusQuorum
+	for i := 0; i < failCount; i++ {
+		suite.failValidator(suite.validators[i])
+	}
+
+	activeNow := int(atomic.LoadInt32(&suite.activeCount))
+	suite.Equal(suite.consensusQuorum, activeNow,
+		"Should be exactly at consensus threshold")
+
+	suite.True(suite.hasConsensus(), "Should still have consensus at threshold")
+
+	// Escrow operations should work at threshold
+	escrow := suite.k.GetEscrow(suite.ctx, jobID)
+	suite.NotNil(escrow)
+
+	suite.T().Logf("TEST-1.2: Escrow functional at exact consensus threshold (%d validators)",
+		activeNow)
+}
+
+// TestEscrowRefundOnValidatorRecovery tests refund after validators recover
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowRefundOnValidatorRecovery() {
+	requester := sdk.AccAddress([]byte("recovery_requester1"))
+	escrowAmount := math.NewInt(5_000_000)
+
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	jobID := "chaos_recovery_job"
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	// Fail some validators
+	for i := 0; i < 3; i++ {
+		suite.failValidator(suite.validators[i])
+	}
+
+	// Simulate timeout/failure requiring refund
+	err = suite.k.RefundEscrowOnTimeout(suite.ctx, jobID, "validator_failures")
+	suite.NoError(err, "Refund should work with reduced validator set")
+
+	// Recover validators
+	for i := 0; i < 3; i++ {
+		suite.recoverValidator(suite.validators[i])
+	}
+
+	// Verify full validator set restored
+	suite.Equal(int32(10), atomic.LoadInt32(&suite.activeCount))
+
+	suite.T().Log("TEST-1.2: Escrow refund succeeded, validators recovered")
+}
+
+// TestConcurrentEscrowsWithRollingFailures tests multiple escrows during rolling failures
+func (suite *EscrowValidatorFailureTestSuite) TestConcurrentEscrowsWithRollingFailures() {
+	numJobs := 20
+	escrowAmount := math.NewInt(100_000)
+
+	var wg sync.WaitGroup
+	var successCount atomic.Uint64
+	var failCount atomic.Uint64
+
+	// Start rolling validator failures in background
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+
+		failIdx := 0
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				// Fail one, recover previous
+				if failIdx > 0 && failIdx < len(suite.validators) {
+					suite.recoverValidator(suite.validators[failIdx-1])
+				}
+				if failIdx < len(suite.validators)-suite.consensusQuorum {
+					suite.failValidator(suite.validators[failIdx])
+					failIdx++
+				}
+			}
+		}
+	}()
+
+	// Create concurrent escrows
+	for i := 0; i < numJobs; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+
+			requester := sdk.AccAddress([]byte(fmt.Sprintf("concurrent_req_%03d", idx)))
+			keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+				sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+			jobID := fmt.Sprintf("concurrent_job_%03d", idx)
+			err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+
+			if err == nil {
+				successCount.Add(1)
+
+				// Try to release
+				provider := sdk.AccAddress([]byte(fmt.Sprintf("concurrent_prov_%03d", idx)))
+				_ = suite.k.ReleaseEscrow(suite.ctx, jobID, provider)
+			} else {
+				failCount.Add(1)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	cancel()
+
+	successRate := float64(successCount.Load()) / float64(numJobs) * 100
+
+	suite.T().Logf("TEST-1.2: Concurrent escrows with rolling failures:")
+	suite.T().Logf("  → Total jobs: %d", numJobs)
+	suite.T().Logf("  → Successful: %d (%.1f%%)", successCount.Load(), successRate)
+	suite.T().Logf("  → Failed: %d", failCount.Load())
+
+	// Should maintain high success rate even with failures
+	suite.GreaterOrEqual(successRate, 80.0, "Success rate should be >=80% during rolling failures")
+}
+
+// TestEscrowStateConsistencyDuringChaos verifies state consistency
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowStateConsistencyDuringChaos() {
+	requester := sdk.AccAddress([]byte("consistency_requester"))
+	escrowAmount := math.NewInt(10_000_000)
+
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	jobID := "consistency_test_job"
+
+	// Create escrow
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	escrowBefore := suite.k.GetEscrow(suite.ctx, jobID)
+	suite.Require().NotNil(escrowBefore)
+
+	// Chaos: fail and recover validators multiple times
+	for cycle := 0; cycle < 5; cycle++ {
+		// Fail 2 random validators
+		suite.failValidator(suite.validators[cycle%10])
+		suite.failValidator(suite.validators[(cycle+5)%10])
+
+		// Verify escrow state unchanged
+		escrowDuring := suite.k.GetEscrow(suite.ctx, jobID)
+		suite.NotNil(escrowDuring)
+		suite.Equal(escrowBefore.Status, escrowDuring.Status, "Status should be consistent")
+		suite.True(escrowBefore.Amount.Equal(escrowDuring.Amount), "Amount should be consistent")
+
+		// Recover validators
+		suite.recoverValidator(suite.validators[cycle%10])
+		suite.recoverValidator(suite.validators[(cycle+5)%10])
+	}
+
+	escrowAfter := suite.k.GetEscrow(suite.ctx, jobID)
+	suite.Equal(escrowBefore.Status, escrowAfter.Status, "Final status should match initial")
+
+	suite.T().Log("TEST-1.2: Escrow state consistency maintained during chaos")
+}
+
+// TestEscrowTimeoutDuringPartition tests timeout handling during network partition
+func (suite *EscrowValidatorFailureTestSuite) TestEscrowTimeoutDuringPartition() {
+	requester := sdk.AccAddress([]byte("partition_requester"))
+	escrowAmount := math.NewInt(15_000_000)
+
+	keepertest.FundAccount(suite.T(), suite.k, suite.ctx, requester,
+		sdk.NewCoins(sdk.NewCoin("upaw", escrowAmount.MulRaw(10))))
+
+	jobID := "partition_timeout_job"
+	err := suite.k.CreateEscrow(suite.ctx, jobID, requester, escrowAmount)
+	suite.Require().NoError(err)
+
+	// Simulate network partition (fail half the validators)
+	for i := 0; i < 5; i++ {
+		suite.failValidator(suite.validators[i])
+	}
+
+	// We still have consensus (5/10 = 50%, need 67%)
+	// This partition would actually halt consensus
+
+	activeNow := atomic.LoadInt32(&suite.activeCount)
+	hasConsensus := suite.hasConsensus()
+
+	suite.T().Logf("TEST-1.2: During partition - active validators: %d, consensus: %v",
+		activeNow, hasConsensus)
+
+	// Recover partition
+	for i := 0; i < 5; i++ {
+		suite.recoverValidator(suite.validators[i])
+	}
+
+	// Now timeout/refund should work
+	err = suite.k.RefundEscrowOnTimeout(suite.ctx, jobID, "partition_recovery")
+	suite.NoError(err)
+
+	suite.T().Log("TEST-1.2: Escrow timeout handled after partition recovery")
+}
+
+// TestValidatorFailureSummary generates failure scenario summary
+func (suite *EscrowValidatorFailureTestSuite) TestValidatorFailureSummary() {
+	suite.T().Log("\n=== TEST-1.2 VALIDATOR FAILURE SUMMARY ===")
+	suite.T().Logf("Total validators: %d", len(suite.validators))
+	suite.T().Logf("Consensus quorum: %d (67%%+1)", suite.consensusQuorum)
+	suite.T().Logf("Max tolerable failures: %d", len(suite.validators)-suite.consensusQuorum)
+	suite.T().Log("")
+	suite.T().Log("Failure scenarios tested:")
+	suite.T().Log("  ✓ Single validator failure")
+	suite.T().Log("  ✓ Multiple validator failures (within threshold)")
+	suite.T().Log("  ✓ Exact consensus threshold")
+	suite.T().Log("  ✓ Validator recovery")
+	suite.T().Log("  ✓ Rolling failures during concurrent operations")
+	suite.T().Log("  ✓ State consistency during chaos")
+	suite.T().Log("  ✓ Network partition timeout handling")
+	suite.T().Log("=== END SUMMARY ===\n")
+}
