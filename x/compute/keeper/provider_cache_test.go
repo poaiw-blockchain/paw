@@ -718,3 +718,63 @@ func BenchmarkProviderSelectionNoCache(b *testing.B) {
 		_, _ = k.FindSuitableProvider(ctx, requestSpecs, "")
 	}
 }
+
+// TestCacheStalenessCheck tests SEC-2.2: cache staleness rejection
+func TestCacheStalenessCheck(t *testing.T) {
+	k, ctx := keepertest.ComputeKeeper(t)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Register a provider
+	providerAddr := sdk.AccAddress([]byte("provider1"))
+	fundTestAccount(t, k, sdkCtx, providerAddr, "upaw", math.NewInt(2000000))
+
+	specs := types.ComputeSpec{
+		CpuCores:       4000,
+		MemoryMb:       8192,
+		StorageGb:      100,
+		TimeoutSeconds: 3600,
+	}
+	pricing := types.Pricing{
+		CpuPricePerMcoreHour:  math.LegacyNewDec(100),
+		MemoryPricePerMbHour:  math.LegacyNewDec(10),
+		GpuPricePerHour:       math.LegacyNewDec(1000),
+		StoragePricePerGbHour: math.LegacyNewDec(5),
+	}
+
+	err := k.RegisterProvider(ctx, providerAddr, "Provider 1", "http://localhost:8080", specs, pricing, math.NewInt(1000000))
+	require.NoError(t, err)
+
+	// Enable cache with refresh interval of 100 blocks
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	params.UseProviderCache = true
+	params.ProviderCacheSize = 10
+	params.ProviderCacheRefreshInterval = 100
+	err = k.SetParams(ctx, params)
+	require.NoError(t, err)
+
+	// Refresh cache
+	err = k.RefreshProviderCache(ctx)
+	require.NoError(t, err)
+
+	requestSpecs := types.ComputeSpec{
+		CpuCores:       2000,
+		MemoryMb:       4096,
+		StorageGb:      50,
+		TimeoutSeconds: 3600,
+	}
+
+	// Cache should work at current block
+	_, err = k.FindSuitableProviderFromCache(ctx, requestSpecs)
+	require.NoError(t, err)
+
+	// Advance block height past 2x refresh interval (staleness threshold)
+	// With refresh interval of 100, max cache age is 200 blocks
+	staleSdkCtx := sdkCtx.WithBlockHeight(sdkCtx.BlockHeight() + 250)
+	staleCtx := sdk.WrapSDKContext(staleSdkCtx)
+
+	// Cache should be rejected as stale
+	_, err = k.FindSuitableProviderFromCache(staleCtx, requestSpecs)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "stale")
+}

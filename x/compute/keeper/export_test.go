@@ -46,3 +46,9 @@ func (k Keeper) GetValidatorPublicKeysForTest(ctx sdk.Context, chainID string) (
 func GetStoreKeyForTesting(k *Keeper) storetypes.StoreKey {
 	return k.storeKey
 }
+
+// SafeAddUint64ForTest exposes the safeAddUint64 function for SEC-1.3 testing.
+// Only accessible within keeper package tests.
+func SafeAddUint64ForTest(a, b uint64) (uint64, error) {
+	return safeAddUint64(a, b)
+}

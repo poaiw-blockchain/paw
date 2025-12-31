@@ -101,6 +101,29 @@ func (k Keeper) GetHooks() computetypes.ComputeHooks {
 	return k.hooks
 }
 
+// SEC-2.7: EmitCrossModuleError emits a standardized error event for cross-module failures.
+// This enables monitoring and alerting for issues in module interactions.
+func (k Keeper) EmitCrossModuleError(ctx sdk.Context, targetModule, operation, errorMsg string) {
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"cross_module_error",
+			sdk.NewAttribute("source_module", computetypes.ModuleName),
+			sdk.NewAttribute("target_module", targetModule),
+			sdk.NewAttribute("operation", operation),
+			sdk.NewAttribute("error", errorMsg),
+			sdk.NewAttribute("height", fmt.Sprintf("%d", ctx.BlockHeight())),
+		),
+	)
+
+	// Also log for operator visibility
+	ctx.Logger().Error("cross-module operation failed",
+		"source", computetypes.ModuleName,
+		"target", targetModule,
+		"operation", operation,
+		"error", errorMsg,
+	)
+}
+
 // ClaimCapability claims a channel capability for the compute module.
 func (k Keeper) ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error {
 	return k.scopedKeeper.ClaimCapability(ctx, cap, name)

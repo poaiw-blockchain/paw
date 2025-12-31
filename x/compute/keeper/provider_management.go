@@ -275,7 +275,11 @@ func (k Keeper) MonitorProviderAvailability(ctx context.Context) error {
 						unavailableProviders++
 
 						// Update availability score in reputation
-						if rep, err := k.GetProviderReputation(ctx, sdk.MustAccAddressFromBech32(provider.Address)); err == nil {
+						// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+						providerAddr, addrErr := sdk.AccAddressFromBech32(provider.Address)
+						if addrErr != nil {
+							sdkCtx.Logger().Error("invalid provider address in state", "provider", provider.Address, "error", addrErr)
+						} else if rep, err := k.GetProviderReputation(ctx, providerAddr); err == nil {
 							rep.AvailabilityScore *= 0.95 // Reduce availability score by 5%
 							if err := k.SetProviderReputation(ctx, *rep); err != nil {
 								sdkCtx.Logger().Error("failed to persist availability score adjustment", "provider", provider.Address, "error", err)
@@ -407,7 +411,12 @@ func (k Keeper) SelectProviderWithLoadBalancing(
 	var minLoad uint64 = ^uint64(0) // Max uint64
 
 	err := k.IterateProviders(ctx, func(provider types.Provider) (bool, error) {
-		providerAddr := sdk.MustAccAddressFromBech32(provider.Address)
+		// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+		providerAddr, addrErr := sdk.AccAddressFromBech32(provider.Address)
+		if addrErr != nil {
+			// Skip invalid addresses in state (shouldn't happen but handle gracefully)
+			return false, nil
+		}
 
 		// Check if provider meets requirements
 		if !provider.Active {

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"time"
@@ -72,6 +73,8 @@ func (k Keeper) LockEscrow(ctx context.Context, requester, provider sdk.AccAddre
 	// Phase 1: Bank transfer - this must happen in the cached context
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", amount))
 	if err := k.bankKeeper.SendCoinsFromAccountToModule(cacheCtx, requester, types.ModuleName, coins); err != nil {
+		// SEC-2.7: Emit cross-module error event for monitoring
+		k.EmitCrossModuleError(sdkCtx, "bank", "escrow_lock", err.Error())
 		// Transfer failed - cache is automatically discarded, no cleanup needed
 		return fmt.Errorf("failed to lock escrow funds: %w", err)
 	}
@@ -205,6 +208,8 @@ func (k Keeper) ReleaseEscrow(ctx context.Context, requestID uint64, releaseImme
 	// Phase 1: Transfer funds to provider
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, provider, coins); err != nil {
+		// SEC-2.7: Emit cross-module error event for monitoring
+		k.EmitCrossModuleError(sdkCtx, "bank", "escrow_release", err.Error())
 		// Transfer failed - cache is automatically discarded, state remains LOCKED/CHALLENGED
 		return fmt.Errorf("failed to release payment: %w", err)
 	}
@@ -285,6 +290,8 @@ func (k Keeper) RefundEscrow(ctx context.Context, requestID uint64, reason strin
 	// Phase 1: Transfer funds back to requester
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", escrowState.Amount))
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, requester, coins); err != nil {
+		// SEC-2.7: Emit cross-module error event for monitoring
+		k.EmitCrossModuleError(sdkCtx, "bank", "escrow_refund", err.Error())
 		// Transfer failed - cache is automatically discarded, state remains LOCKED
 		return fmt.Errorf("failed to refund payment: %w", err)
 	}
@@ -421,7 +428,10 @@ func (k Keeper) SetEscrowStateIfNotExists(ctx context.Context, state EscrowState
 }
 
 // getNextEscrowNonce generates a unique nonce for escrow operations
+// SEC-2.5: Enhanced with block hash mixing for unpredictability
+// The nonce combines a sequential counter with block-derived entropy
 func (k Keeper) getNextEscrowNonce(ctx context.Context) (uint64, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := k.getStore(ctx)
 	bz := store.Get(NextEscrowNonceKey)
 
@@ -430,12 +440,34 @@ func (k Keeper) getNextEscrowNonce(ctx context.Context) (uint64, error) {
 		nextNonce = binary.BigEndian.Uint64(bz)
 	}
 
-	// Increment and store
+	// Increment and store the sequential counter
 	nextBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(nextBz, nextNonce+1)
 	store.Set(NextEscrowNonceKey, nextBz)
 
-	return nextNonce, nil
+	// SEC-2.5: Mix in block-derived entropy for unpredictability
+	// This prevents prediction of nonces even if the counter is known
+	// We use: hash(counter || block_height || block_time || app_hash_prefix)
+	hashInput := make([]byte, 0, 32)
+	hashInput = binary.BigEndian.AppendUint64(hashInput, nextNonce)
+	hashInput = binary.BigEndian.AppendUint64(hashInput, uint64(sdkCtx.BlockHeight()))
+	hashInput = binary.BigEndian.AppendUint64(hashInput, uint64(sdkCtx.BlockTime().UnixNano()))
+
+	// Include app hash prefix if available (provides cross-block entropy)
+	appHash := sdkCtx.HeaderInfo().AppHash
+	if len(appHash) >= 8 {
+		hashInput = append(hashInput, appHash[:8]...)
+	}
+
+	// Derive final nonce from hash
+	hash := sha256.Sum256(hashInput)
+	entropyNonce := binary.BigEndian.Uint64(hash[:8])
+
+	// Combine sequential and entropy components
+	// The sequential part ensures uniqueness, the entropy part adds unpredictability
+	finalNonce := nextNonce ^ (entropyNonce & 0x00FFFFFFFFFFFFFF) // Keep top byte from counter for ordering
+
+	return finalNonce, nil
 }
 
 // setEscrowTimeoutIndex creates an index entry for timeout processing

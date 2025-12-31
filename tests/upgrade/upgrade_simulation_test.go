@@ -514,10 +514,10 @@ func (suite *UpgradeSimulationSuite) verifyModuleFunctionality() {
 	})
 	suite.Require().Greater(len(pools), 0)
 
-	// Verify compute still works
+	// Verify compute still works - use correct provider key prefix (0x01, 0x02)
 	providerCount := 0
 	store := suite.ctx.KVStore(suite.app.GetKey(computetypes.StoreKey))
-	iter := storetypes.KVStorePrefixIterator(store, []byte{0x02})
+	iter := storetypes.KVStorePrefixIterator(store, []byte{0x01, 0x02})
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		providerCount++

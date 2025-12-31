@@ -230,17 +230,21 @@ func TestGetEscrowState_NotFound(t *testing.T) {
 func TestGetNextEscrowNonce(t *testing.T) {
 	k, ctx := setupKeeperForTest(t)
 
+	// SEC-2.5: Nonces now include entropy mixing, so we test uniqueness instead of sequential values
 	nonce1, err := k.getNextEscrowNonce(ctx)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), nonce1)
+	require.NotZero(t, nonce1)
 
 	nonce2, err := k.getNextEscrowNonce(ctx)
 	require.NoError(t, err)
-	require.Equal(t, uint64(2), nonce2)
+	require.NotZero(t, nonce2)
+	require.NotEqual(t, nonce1, nonce2, "nonces should be unique")
 
 	nonce3, err := k.getNextEscrowNonce(ctx)
 	require.NoError(t, err)
-	require.Equal(t, uint64(3), nonce3)
+	require.NotZero(t, nonce3)
+	require.NotEqual(t, nonce1, nonce3, "nonces should be unique")
+	require.NotEqual(t, nonce2, nonce3, "nonces should be unique")
 }
 
 func TestSetEscrowTimeoutIndex(t *testing.T) {

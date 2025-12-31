@@ -17,6 +17,8 @@ const (
 	SendNoncePrefix = "nonce_send"
 	// NonceTimestampPrefix is the prefix for nonce creation timestamps
 	NonceTimestampPrefix = "nonce_ts"
+	// NonceEpochPrefix is the prefix for nonce epoch tracking
+	NonceEpochPrefix = "nonce_epoch"
 
 	// MaxTimestampAge is the maximum age of a packet timestamp (24 hours in seconds)
 	MaxTimestampAge = int64(86400)
@@ -24,6 +26,13 @@ const (
 	MaxFutureDrift = int64(300)
 	// DefaultNonceTTLSeconds is the default TTL for nonces (7 days)
 	DefaultNonceTTLSeconds = int64(604800)
+
+	// SEC-1.5 FIX: Nonce overflow protection constants
+	// NonceRotationThreshold is the threshold at which we rotate to a new epoch
+	// Set to 90% of max uint64 to provide margin before overflow
+	NonceRotationThreshold = uint64(16602069666338596454) // ~90% of MaxUint64
+	// MaxNonceValue is the maximum value a nonce can reach before epoch rotation
+	MaxNonceValue = ^uint64(0) // MaxUint64
 )
 
 // ErrorProvider allows modules to provide their own error types while using shared nonce logic.
@@ -84,6 +93,42 @@ func (m *Manager) sendNonceKey(channel, sender string) []byte {
 // nonceTimestampKey generates the store key for nonce creation timestamps
 func (m *Manager) nonceTimestampKey(channel, sender string) []byte {
 	return []byte(fmt.Sprintf("%s/%s/%s", NonceTimestampPrefix, channel, m.normalizeSender(sender)))
+}
+
+// nonceEpochKey generates the store key for nonce epoch tracking
+// SEC-1.5 FIX: Epoch key allows tracking nonce version for overflow prevention
+func (m *Manager) nonceEpochKey(channel, sender string) []byte {
+	return []byte(fmt.Sprintf("%s/%s/%s", NonceEpochPrefix, channel, m.normalizeSender(sender)))
+}
+
+// getEpoch retrieves the current epoch for a channel/sender pair
+// SEC-1.5 FIX: Epochs increment when nonces approach overflow threshold
+func (m *Manager) getEpoch(ctx sdk.Context, channel, sender string) uint64 {
+	store := ctx.KVStore(m.storeKey)
+	key := m.nonceEpochKey(channel, sender)
+	bz := store.Get(key)
+	if len(bz) != 8 {
+		return 0
+	}
+	return decodeNonce(bz)
+}
+
+// setEpoch stores the epoch for a channel/sender pair
+func (m *Manager) setEpoch(ctx sdk.Context, channel, sender string, epoch uint64) {
+	store := ctx.KVStore(m.storeKey)
+	key := m.nonceEpochKey(channel, sender)
+	store.Set(key, encodeNonce(epoch))
+}
+
+// rotateEpoch increments the epoch and resets the nonce counter
+// SEC-1.5 FIX: Called when nonce approaches overflow threshold
+func (m *Manager) rotateEpoch(ctx sdk.Context, channel, sender string) uint64 {
+	currentEpoch := m.getEpoch(ctx, channel, sender)
+	newEpoch := currentEpoch + 1
+	m.setEpoch(ctx, channel, sender, newEpoch)
+	// Reset the nonce counter for the new epoch
+	m.setSendNonce(ctx, channel, sender, 0)
+	return newEpoch
 }
 
 // normalizeSender ensures sender is never empty (uses module name as default)
@@ -195,14 +240,63 @@ func (m *Manager) setSendNonce(ctx sdk.Context, channel, sender string, nonce ui
 
 // NextOutboundNonce generates the next monotonically increasing nonce for outgoing packets.
 // It atomically increments and returns the next nonce for the given channel/sender pair.
+//
+// SEC-1.5 FIX: Includes overflow protection via epoch rotation. When the nonce
+// approaches the uint64 maximum (at 90% threshold), the epoch is incremented
+// and the nonce counter resets to 1. The combined (epoch, nonce) pair provides
+// unique identification without risk of overflow.
 func (m *Manager) NextOutboundNonce(ctx sdk.Context, channel, sender string) uint64 {
 	if channel == "" {
 		channel = "unknown"
 	}
 	current := m.getSendNonce(ctx, channel, sender)
+
+	// SEC-1.5 FIX: Check for approaching overflow and rotate epoch if needed
+	if current >= NonceRotationThreshold {
+		// Rotate to new epoch and reset nonce
+		newEpoch := m.rotateEpoch(ctx, channel, sender)
+		// Log the epoch rotation for monitoring
+		if logger := ctx.Logger(); logger != nil {
+			logger.Info("nonce epoch rotated due to approaching overflow",
+				"channel", channel,
+				"sender", sender,
+				"new_epoch", newEpoch,
+				"previous_nonce", current,
+			)
+		}
+		// Return 1 as the first nonce in the new epoch
+		m.setSendNonce(ctx, channel, sender, 1)
+		return 1
+	}
+
 	next := current + 1
 	m.setSendNonce(ctx, channel, sender, next)
 	return next
+}
+
+// GetCurrentEpoch returns the current epoch for a channel/sender pair.
+// SEC-1.5 FIX: Allows callers to include epoch in packet data for cross-epoch validation.
+func (m *Manager) GetCurrentEpoch(ctx sdk.Context, channel, sender string) uint64 {
+	return m.getEpoch(ctx, channel, sender)
+}
+
+// VersionedNonce represents a nonce with its epoch for cross-chain communication.
+// SEC-1.5 FIX: This structure should be included in IBC packets to ensure
+// unique identification even after epoch rotations.
+type VersionedNonce struct {
+	Epoch uint64 // The epoch number (increments on overflow)
+	Nonce uint64 // The nonce within this epoch
+}
+
+// NextVersionedNonce returns both the epoch and nonce for use in IBC packets.
+// SEC-1.5 FIX: This is the recommended function for getting nonces to include in packets.
+func (m *Manager) NextVersionedNonce(ctx sdk.Context, channel, sender string) VersionedNonce {
+	nonce := m.NextOutboundNonce(ctx, channel, sender)
+	epoch := m.getEpoch(ctx, channel, sender)
+	return VersionedNonce{
+		Epoch: epoch,
+		Nonce: nonce,
+	}
 }
 
 // PruneExpiredNonces removes nonces older than the specified TTL.

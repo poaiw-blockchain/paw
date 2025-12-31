@@ -284,39 +284,44 @@ func PriceAggregationInvariant(k Keeper) sdk.Invariant {
 				continue
 			}
 
-			// Get all validator submissions for this asset
-			var submissions []math.LegacyDec
-			var totalPower int64
+			// Get all validator submissions for this asset using IIFE pattern
+			// to ensure iterator is closed at end of each loop iteration.
+			// FIXED CODE-1.2: defer inside loop caused resource accumulation
+			// because defer only executes when the enclosing function returns.
+			submissions, totalPower := func() ([]math.LegacyDec, int64) {
+				valIter := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
+				defer valIter.Close() // Now properly closes at end of IIFE, not outer function
 
-			valIter := storetypes.KVStorePrefixIterator(store, ValidatorPriceKeyPrefix)
-			defer valIter.Close()
+				var subs []math.LegacyDec
+				var power int64
 
-			for ; valIter.Valid(); valIter.Next() {
-				var valPrice types.ValidatorPrice
-				if err := k.cdc.Unmarshal(valIter.Value(), &valPrice); err != nil {
-					continue
+				for ; valIter.Valid(); valIter.Next() {
+					var valPrice types.ValidatorPrice
+					if err := k.cdc.Unmarshal(valIter.Value(), &valPrice); err != nil {
+						continue
+					}
+
+					if valPrice.Asset != price.Asset {
+						continue
+					}
+
+					// Get validator power
+					valAddr, err := sdk.ValAddressFromBech32(valPrice.ValidatorAddr)
+					if err != nil {
+						continue
+					}
+
+					validator, err := k.stakingKeeper.GetValidator(ctx, valAddr)
+					if err != nil {
+						continue
+					}
+
+					power += validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx))
+					subs = append(subs, valPrice.Price)
 				}
-
-				if valPrice.Asset != price.Asset {
-					continue
-				}
-
-				// Get validator power
-				valAddr, err := sdk.ValAddressFromBech32(valPrice.ValidatorAddr)
-				if err != nil {
-					continue
-				}
-
-				validator, err := k.stakingKeeper.GetValidator(ctx, valAddr)
-				if err != nil {
-					continue
-				}
-
-				power := validator.GetConsensusPower(k.stakingKeeper.PowerReduction(ctx))
-				totalPower += power
-
-				submissions = append(submissions, valPrice.Price)
-			}
+				return subs, power
+			}()
+			_ = totalPower // Used for potential future weighted median calculation
 
 			// If we have submissions, check that aggregated price is reasonable
 			if len(submissions) > 0 {

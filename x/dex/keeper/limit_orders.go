@@ -611,7 +611,11 @@ func (k Keeper) MatchLimitOrder(ctx context.Context, order *LimitOrder) error {
 
 	// Execute the swap - using the module account as the trader since tokens are already locked
 	// Get module address from authtypes
-	moduleAddr := sdk.MustAccAddressFromBech32(getModuleAccountAddress())
+	// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+	moduleAddr, err := sdk.AccAddressFromBech32(getModuleAccountAddress())
+	if err != nil {
+		return fmt.Errorf("MatchLimitOrder: parse module address: %w", err)
+	}
 	amountOut, err := k.ExecuteSwap(ctx, moduleAddr, order.PoolID, order.TokenIn, order.TokenOut, remainingAmount, order.MinAmountOut)
 	if err != nil {
 		return types.ErrInvalidSwapAmount.Wrapf("swap execution failed: %v", err)

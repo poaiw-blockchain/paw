@@ -196,8 +196,14 @@ func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason stri
 	// This prevents the catastrophic case where funds are transferred but escrow state is not updated
 	cacheCtx, writeFn := ctx.CacheContext()
 
+	// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+	requesterAddr, err := sdk.AccAddressFromBech32(escrow.Requester)
+	if err != nil {
+		return fmt.Errorf("RefundEscrowForFailedPacket: invalid requester address %s: %w", escrow.Requester, err)
+	}
+
 	// Phase 1: Refund escrow funds
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, sdk.MustAccAddressFromBech32(escrow.Requester), sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))); err != nil {
+	if err := k.bankKeeper.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, requesterAddr, sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount))); err != nil {
 		// Transfer failed - cache is automatically discarded
 		return fmt.Errorf("RefundEscrowForFailedPacket: send coins: %w", err)
 	}
@@ -214,9 +220,10 @@ func (k Keeper) RefundEscrowOnTimeout(ctx sdk.Context, jobID string, reason stri
 	writeFn()
 
 	// Record refund for audit trail
+	// Note: requesterAddr was already validated above (line 200)
 	refund := EscrowRefund{
 		JobID:      jobID,
-		Requester:  sdk.MustAccAddressFromBech32(escrow.Requester),
+		Requester:  requesterAddr,
 		Amount:     sdk.NewCoins(sdk.NewCoin("upaw", escrow.Amount)),
 		RefundedAt: ctx.BlockHeight(),
 		Reason:     reason,

@@ -2,9 +2,7 @@ package v2
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -25,17 +23,6 @@ var (
 	CircuitBreakerKeyPrefix   = []byte{0x02, 0x06}
 	LastLiquidityActionPrefix = []byte{0x02, 0x07}
 )
-
-type circuitBreakerState struct {
-	Enabled           bool           `json:"enabled"`
-	PausedUntil       time.Time      `json:"paused_until"`
-	LastPrice         math.LegacyDec `json:"last_price"`
-	TriggeredBy       string         `json:"triggered_by"`
-	TriggerReason     string         `json:"trigger_reason"`
-	NotificationsSent int            `json:"notifications_sent"`
-	LastNotification  time.Time      `json:"last_notification"`
-	PersistenceKey    string         `json:"persistence_key"`
-}
 
 // Migrate implements store migrations from v1 to v2 for the DEX module.
 // This migration performs the following operations:
@@ -282,18 +269,22 @@ func initializeCircuitBreakers(ctx sdk.Context, store storetypes.KVStore, cdc co
 			continue
 		}
 
-		state := circuitBreakerState{
+		// Calculate initial price from reserves
+		lastPrice := math.LegacyZeroDec()
+		if !pool.ReserveA.IsZero() && !pool.ReserveB.IsZero() {
+			lastPrice = math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+		}
+
+		state := &types.CircuitBreakerState{
 			Enabled:        false,
-			PausedUntil:    time.Time{},
-			LastPrice:      math.LegacyZeroDec(),
-			TriggeredBy:    "migration_init",
+			PausedUntil:    0,
+			LastPrice:      lastPrice,
+			TriggeredBy:    "",
 			TriggerReason:  "",
 			PersistenceKey: fmt.Sprintf("pool_%d", pool.Id),
 		}
-		if !pool.ReserveA.IsZero() && !pool.ReserveB.IsZero() {
-			state.LastPrice = math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
-		}
-		cbData, err := json.Marshal(state)
+
+		cbData, err := cdc.Marshal(state)
 		if err != nil {
 			return fmt.Errorf("failed to marshal circuit breaker state for pool %d: %w", pool.Id, err)
 		}

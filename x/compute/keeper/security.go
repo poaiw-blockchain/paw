@@ -91,13 +91,13 @@ func (k Keeper) CheckRateLimit(ctx context.Context, account sdk.AccAddress) erro
 	}
 	config := k.GetDefaultRateLimitConfig(params)
 
-	// Reserve a token immediately to avoid race conditions
-	bucket.Tokens--
-	if bucket.Tokens > bucket.MaxTokens {
-		// Underflow occurred (no tokens available)
-		bucket.Tokens = 0
+	// SEC-1.2 FIX: Explicit zero check before decrement to prevent underflow
+	// Previously relied on unsigned integer wrap-around detection which was confusing.
+	// Now we check explicitly for zero tokens before attempting to decrement.
+	if bucket.Tokens == 0 {
 		return errorsmod.Wrapf(types.ErrRateLimitExceeded, "burst capacity depleted, wait %d seconds", bucket.RefillRate)
 	}
+	bucket.Tokens--
 
 	if bucket.RequestsThisHour >= config.MaxRequestsPerHour {
 		bucket.Tokens++
@@ -132,6 +132,15 @@ func (k Keeper) CheckRateLimit(ctx context.Context, account sdk.AccAddress) erro
 	return nil
 }
 
+// safeAddUint64 adds two uint64 values with overflow protection.
+// SEC-1.3 FIX: Returns an error if the addition would overflow.
+func safeAddUint64(a, b uint64) (uint64, error) {
+	if b > 0 && a > (^uint64(0))-b {
+		return 0, fmt.Errorf("uint64 overflow: %d + %d", a, b)
+	}
+	return a + b, nil
+}
+
 // CheckResourceQuota verifies if an account has sufficient quota for a request
 func (k Keeper) CheckResourceQuota(ctx context.Context, account sdk.AccAddress, specs types.ComputeSpec) error {
 	// Get or create quota
@@ -146,25 +155,38 @@ func (k Keeper) CheckResourceQuota(ctx context.Context, account sdk.AccAddress, 
 		return fmt.Errorf("concurrent request limit reached: %d/%d", quota.CurrentRequests, quota.MaxConcurrentRequests)
 	}
 
+	// SEC-1.3 FIX: Use safe arithmetic for quota calculations to prevent overflow
 	// Check if adding this request would exceed quotas
-	totalCPU := quota.CurrentCpu + specs.CpuCores
+	totalCPU, err := safeAddUint64(quota.CurrentCpu, specs.CpuCores)
+	if err != nil {
+		return fmt.Errorf("CPU quota calculation overflow: %w", err)
+	}
 	if totalCPU > quota.MaxTotalCpuCores {
 		return fmt.Errorf("CPU quota exceeded: requesting %d cores would exceed limit of %d", specs.CpuCores, quota.MaxTotalCpuCores)
 	}
 
-	totalMemory := quota.CurrentMemory + specs.MemoryMb
+	totalMemory, err := safeAddUint64(quota.CurrentMemory, specs.MemoryMb)
+	if err != nil {
+		return fmt.Errorf("memory quota calculation overflow: %w", err)
+	}
 	if totalMemory > quota.MaxTotalMemoryMb {
 		return fmt.Errorf("memory quota exceeded: requesting %d MB would exceed limit of %d MB", specs.MemoryMb, quota.MaxTotalMemoryMb)
 	}
 
 	if specs.GpuCount > 0 {
-		totalGPUs := quota.CurrentGpus + uint64(specs.GpuCount)
+		totalGPUs, err := safeAddUint64(quota.CurrentGpus, uint64(specs.GpuCount))
+		if err != nil {
+			return fmt.Errorf("GPU quota calculation overflow: %w", err)
+		}
 		if totalGPUs > quota.MaxTotalGpus {
 			return fmt.Errorf("GPU quota exceeded: requesting %d GPUs would exceed limit of %d", specs.GpuCount, quota.MaxTotalGpus)
 		}
 	}
 
-	totalStorage := quota.CurrentStorage + uint64(specs.StorageGb)
+	totalStorage, err := safeAddUint64(quota.CurrentStorage, specs.StorageGb)
+	if err != nil {
+		return fmt.Errorf("storage quota calculation overflow: %w", err)
+	}
 	if totalStorage > quota.MaxTotalStorageGb {
 		return fmt.Errorf("storage quota exceeded: requesting %d GB would exceed limit of %d GB", specs.StorageGb, quota.MaxTotalStorageGb)
 	}

@@ -777,9 +777,13 @@ func (qs queryServer) SimulateRequest(goCtx context.Context, req *types.QuerySim
 		resp.MatchingProvider = bestProvider.Address
 
 		// Estimate cost using the matching provider
-		estimatedCost, _, err := qs.Keeper.EstimateCost(ctx, sdk.MustAccAddressFromBech32(bestProvider.Address), req.Specs)
-		if err == nil {
-			resp.EstimatedCost = estimatedCost
+		// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+		providerAddr, addrErr := sdk.AccAddressFromBech32(bestProvider.Address)
+		if addrErr == nil {
+			estimatedCost, _, err := qs.Keeper.EstimateCost(ctx, providerAddr, req.Specs)
+			if err == nil {
+				resp.EstimatedCost = estimatedCost
+			}
 		}
 	}
 

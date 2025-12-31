@@ -352,8 +352,14 @@ func (k Keeper) calculateSelectionScore(ctx context.Context, provider types.Prov
 	}
 
 	// Load factor (inverted - lower load is better)
-	tracker, err := k.GetProviderLoadTracker(ctx, sdk.MustAccAddressFromBech32(provider.Address))
+	// FIXED CODE-1.1: Replace MustAccAddressFromBech32 with error-handling variant
+	providerAddr, addrErr := sdk.AccAddressFromBech32(provider.Address)
 	var loadFactor float64 = 1.0
+	if addrErr != nil {
+		// If address is invalid, use default load factor
+		loadFactor = 0.5 // Penalize invalid addresses
+	}
+	tracker, err := k.GetProviderLoadTracker(ctx, providerAddr)
 	if err == nil && tracker.MaxConcurrentRequests > 0 {
 		utilization := float64(tracker.CurrentRequests) / float64(tracker.MaxConcurrentRequests)
 		loadFactor = 1.0 - utilization

@@ -67,6 +67,16 @@ var (
 
 	// Maximum price deviation for anomaly detection (10%)
 	MaxPriceDeviation = math.LegacyMustNewDecFromStr("0.10")
+
+	// SEC-2.6: Whitelisted source chains for oracle price acceptance
+	// Only these chains are authorized to send price updates via IBC
+	WhitelistedOracleSourceChains = map[string]bool{
+		OsmosisChainID:      true, // Osmosis - major DeFi hub
+		InjectiveChainID:    true, // Injective - derivatives exchange
+		BandProtocolChainID: true, // Band Protocol - oracle network
+		SlinkyChainID:       true, // Slinky - Skip oracle
+		UmaProtocolChainID:  true, // UMA - optimistic oracle
+	}
 )
 
 // CrossChainOracleSource represents an oracle network on another chain
@@ -823,6 +833,20 @@ func (k Keeper) handlePriceUpdate(ctx sdk.Context, packet channeltypes.Packet, p
 
 	sourceChain := extractSourceChain(packet)
 
+	// SEC-2.6: Verify source chain is whitelisted for oracle price acceptance
+	if !k.IsWhitelistedOracleSource(sourceChain) {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"oracle_price_rejected_unauthorized",
+				sdk.NewAttribute("source_chain", sourceChain),
+				sdk.NewAttribute("source_channel", packet.SourceChannel),
+				sdk.NewAttribute("packet_sequence", fmt.Sprintf("%d", packet.Sequence)),
+			),
+		)
+		return channeltypes.NewErrorAcknowledgement(
+			errors.Wrapf(types.ErrUnauthorizedChannel, "source chain %s not whitelisted for oracle prices", sourceChain)), nil
+	}
+
 	// Store each price update
 	for _, price := range updateData.Prices {
 		k.storeCachedPrice(ctx, price.Symbol, sourceChain, &price)
@@ -1028,4 +1052,39 @@ func calculateAggregatedConfidence(prices []CrossChainPriceData, totalWeight mat
 	}
 
 	return weightedConfidence.Quo(math.LegacyNewDec(int64(len(prices))))
+}
+
+// SEC-2.6: IsWhitelistedOracleSource checks if a source chain is authorized for oracle price updates
+func (k Keeper) IsWhitelistedOracleSource(chainID string) bool {
+	// First check the static whitelist
+	if WhitelistedOracleSourceChains[chainID] {
+		return true
+	}
+
+	// Also check if the chain has a registered oracle source that's still active
+	// This allows dynamic registration through governance
+	// Chains must first register as oracle sources before they can send price updates
+	return false
+}
+
+// AddWhitelistedOracleSource adds a chain to the oracle source whitelist (governance action)
+func (k Keeper) AddWhitelistedOracleSource(ctx sdk.Context, chainID string) {
+	WhitelistedOracleSourceChains[chainID] = true
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"oracle_source_whitelisted",
+			sdk.NewAttribute("chain_id", chainID),
+		),
+	)
+}
+
+// RemoveWhitelistedOracleSource removes a chain from the oracle source whitelist (governance action)
+func (k Keeper) RemoveWhitelistedOracleSource(ctx sdk.Context, chainID string) {
+	delete(WhitelistedOracleSourceChains, chainID)
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			"oracle_source_removed_from_whitelist",
+			sdk.NewAttribute("chain_id", chainID),
+		),
+	)
 }

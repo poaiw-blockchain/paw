@@ -310,6 +310,9 @@ func (k Keeper) ShouldRefreshCache(ctx context.Context) (bool, error) {
 // FindSuitableProviderFromCache attempts to find a suitable provider from the cache
 // Returns nil if no suitable cached provider found (caller should fall back to full iteration)
 func (k Keeper) FindSuitableProviderFromCache(ctx context.Context, specs types.ComputeSpec) (sdk.AccAddress, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	currentHeight := sdkCtx.BlockHeight()
+
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("FindSuitableProviderFromCache: get params: %w", err)
@@ -327,6 +330,26 @@ func (k Keeper) FindSuitableProviderFromCache(ctx context.Context, specs types.C
 
 	if !metadata.Enabled || metadata.CacheSize == 0 {
 		return nil, fmt.Errorf("cache not initialized")
+	}
+
+	// SEC-2.2: Check cache staleness - reject cache if too old
+	// This prevents using stale cache data if BeginBlocker refresh didn't run
+	refreshInterval := params.ProviderCacheRefreshInterval
+	if refreshInterval <= 0 {
+		refreshInterval = 100 // Default
+	}
+	maxCacheAge := refreshInterval * 2 // Allow 2x refresh interval before considering stale
+	cacheAge := currentHeight - metadata.LastRefreshBlock
+	if cacheAge > maxCacheAge {
+		sdkCtx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"provider_cache_stale",
+				sdk.NewAttribute("cache_age_blocks", fmt.Sprintf("%d", cacheAge)),
+				sdk.NewAttribute("max_age_blocks", fmt.Sprintf("%d", maxCacheAge)),
+				sdk.NewAttribute("last_refresh", fmt.Sprintf("%d", metadata.LastRefreshBlock)),
+			),
+		)
+		return nil, fmt.Errorf("cache stale: age %d blocks exceeds max %d", cacheAge, maxCacheAge)
 	}
 
 	// Iterate through cached providers (already sorted by reputation descending)

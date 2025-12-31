@@ -13,14 +13,14 @@ import (
 )
 
 var (
-	// Key prefixes - must match the keeper
-	RequestKeyPrefix        = []byte{0x01, 0x03}
-	ProviderKeyPrefix       = []byte{0x01, 0x02}
-	ParamsKey               = []byte{0x01, 0x00}
-	RequestCounterKey       = []byte{0x01, 0x04}
-	ActiveProvidersPrefix   = []byte{0x01, 0x10}
-	RequestByStatusPrefix   = []byte{0x01, 0x11}
-	RequestByProviderPrefix = []byte{0x01, 0x12}
+	// Key prefixes - MUST match the keeper (see keeper/keys.go)
+	RequestKeyPrefix          = []byte{0x01, 0x03}
+	ProviderKeyPrefix         = []byte{0x01, 0x02}
+	ParamsKey                 = []byte{0x01, 0x01}
+	NextRequestIDKey          = []byte{0x01, 0x05}
+	RequestsByProviderPrefix  = []byte{0x01, 0x07}
+	RequestsByStatusPrefix    = []byte{0x01, 0x08}
+	ActiveProvidersPrefix     = []byte{0x01, 0x09}
 )
 
 // Additional key prefixes for escrow migration (must match keeper keys)
@@ -82,8 +82,8 @@ func rebuildRequestIndexes(ctx sdk.Context, store storetypes.KVStore, cdc codec.
 	ctx.Logger().Info("Rebuilding request indexes")
 
 	// Clear existing indexes
-	clearPrefix(store, RequestByStatusPrefix)
-	clearPrefix(store, RequestByProviderPrefix)
+	clearPrefix(store, RequestsByStatusPrefix)
+	clearPrefix(store, RequestsByProviderPrefix)
 
 	// Iterate through all requests and rebuild indexes
 	iterator := storetypes.KVStorePrefixIterator(store, RequestKeyPrefix)
@@ -96,9 +96,10 @@ func rebuildRequestIndexes(ctx sdk.Context, store storetypes.KVStore, cdc codec.
 			return fmt.Errorf("failed to unmarshal request: %w", err)
 		}
 
-		// Rebuild status index
-		statusKey := append(RequestByStatusPrefix, byte(request.Status))
-		statusKey = append(statusKey, getRequestIDBytes(request.Id)...)
+		// Rebuild status index - uses 4 bytes for status (uint32) to match keeper
+		statusBz := make([]byte, 4)
+		binary.BigEndian.PutUint32(statusBz, uint32(request.Status))
+		statusKey := append(append(RequestsByStatusPrefix, statusBz...), getRequestIDBytes(request.Id)...)
 		store.Set(statusKey, []byte{})
 
 		// Rebuild provider index
@@ -107,8 +108,7 @@ func rebuildRequestIndexes(ctx sdk.Context, store storetypes.KVStore, cdc codec.
 			ctx.Logger().Error("invalid provider address in request", "request_id", request.Id, "provider", request.Provider)
 			continue
 		}
-		providerKey := append(RequestByProviderPrefix, providerAddr.Bytes()...)
-		providerKey = append(providerKey, getRequestIDBytes(request.Id)...)
+		providerKey := append(append(RequestsByProviderPrefix, providerAddr.Bytes()...), getRequestIDBytes(request.Id)...)
 		store.Set(providerKey, []byte{})
 
 		count++
@@ -282,7 +282,7 @@ func validateRequestCounter(ctx sdk.Context, store storetypes.KVStore, cdc codec
 	}
 
 	// Get current counter
-	counterBz := store.Get(RequestCounterKey)
+	counterBz := store.Get(NextRequestIDKey)
 	currentCounter := uint64(0)
 	if counterBz != nil {
 		currentCounter = binary.BigEndian.Uint64(counterBz)
@@ -293,7 +293,7 @@ func validateRequestCounter(ctx sdk.Context, store storetypes.KVStore, cdc codec
 		newCounter := maxID + 1
 		counterBz := make([]byte, 8)
 		binary.BigEndian.PutUint64(counterBz, newCounter)
-		store.Set(RequestCounterKey, counterBz)
+		store.Set(NextRequestIDKey, counterBz)
 		ctx.Logger().Info("Updated request counter", "old", currentCounter, "new", newCounter, "max_id", maxID)
 	}
 

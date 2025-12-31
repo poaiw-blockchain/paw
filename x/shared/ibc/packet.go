@@ -24,6 +24,62 @@ type PacketData interface {
 	GetType() string
 }
 
+// SEC-1.4 FIX: ValidPacketTypes is a whitelist of allowed IBC packet types.
+// This prevents processing of unknown or malicious packet types.
+// Each module must register its packet types here.
+var ValidPacketTypes = map[string]bool{
+	// Compute module packet types
+	"compute_request":  true,
+	"compute_result":   true,
+	"compute_cancel":   true,
+	"compute_status":   true,
+	"compute_ack":      true,
+	"compute_timeout":  true,
+
+	// Oracle module packet types
+	"oracle_price":       true,
+	"oracle_price_feed":  true,
+	"oracle_price_batch": true,
+	"oracle_subscribe":   true,
+	"oracle_unsubscribe": true,
+	"oracle_ack":         true,
+
+	// DEX module packet types
+	"dex_swap":       true,
+	"dex_liquidity":  true,
+	"dex_order":      true,
+	"dex_cancel":     true,
+	"dex_settlement": true,
+	"dex_ack":        true,
+
+	// Shared/generic packet types
+	"heartbeat": true,
+	"ping":      true,
+	"pong":      true,
+}
+
+// ValidatePacketType checks if a packet type is in the whitelist.
+// SEC-1.4 FIX: Returns an error for unknown packet types to prevent
+// processing of potentially malicious or unexpected packets.
+func ValidatePacketType(packetType string) error {
+	if packetType == "" {
+		return fmt.Errorf("packet type cannot be empty")
+	}
+	if !ValidPacketTypes[packetType] {
+		return fmt.Errorf("unknown packet type: %s", packetType)
+	}
+	return nil
+}
+
+// RegisterPacketType adds a new packet type to the whitelist.
+// This should only be called during module initialization.
+// SEC-1.4: Allows modules to register custom packet types at startup.
+func RegisterPacketType(packetType string) {
+	if packetType != "" {
+		ValidPacketTypes[packetType] = true
+	}
+}
+
 // NonceValidator defines the interface for validating packet nonces.
 // Each module must implement this to validate incoming packet nonces.
 type NonceValidator interface {
@@ -99,6 +155,7 @@ func NewPacketValidator(nonceValidator NonceValidator, authorizer ChannelAuthori
 //   - Nonce validation prevents replay attacks
 //   - Timestamp validation prevents time-based attacks
 //   - Basic packet validation prevents malformed data
+//   - SEC-1.4: Packet type whitelist prevents unknown packet types
 func (pv *PacketValidator) ValidateIncomingPacket(
 	ctx sdk.Context,
 	packet channeltypes.Packet,
@@ -107,6 +164,15 @@ func (pv *PacketValidator) ValidateIncomingPacket(
 	timestamp int64,
 	sender string,
 ) error {
+	// SEC-1.4 FIX: Validate packet type against whitelist FIRST
+	// This prevents processing of unknown or potentially malicious packet types
+	// before any other validation occurs.
+	packetType := packetData.GetType()
+	if err := ValidatePacketType(packetType); err != nil {
+		emitValidationFailure(ctx, packet.SourcePort, packet.SourceChannel, err.Error())
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidRequest, "invalid packet type: %s", err.Error())
+	}
+
 	// Validate channel authorization
 	if err := pv.authorizer.IsAuthorizedChannel(ctx, packet.SourcePort, packet.SourceChannel); err != nil {
 		if logger := ctx.Logger(); logger != nil {

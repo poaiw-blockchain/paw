@@ -457,6 +457,28 @@ func (ms msgServer) SubmitBatchRequests(goCtx context.Context, msg *types.MsgSub
 		return nil, types.ErrInvalidRequest.Wrapf("invalid requester address: %v", err)
 	}
 
+	// SEC-2.4: Pre-check gas limit for batch requests to prevent DoS
+	// Each request consumes approximately 10,000 gas (validation + provider search + escrow + storage)
+	// We check upfront if the batch would exceed safe limits
+	const gasPerRequest = uint64(10000)
+	const maxBatchGas = uint64(150000) // Safe limit for batch operations
+	estimatedGas := gasPerRequest * uint64(len(msg.Requests))
+	remainingGas := ctx.GasMeter().Limit() - ctx.GasMeter().GasConsumed()
+	if estimatedGas > maxBatchGas {
+		return nil, types.ErrInvalidRequest.Wrapf("batch estimated gas %d exceeds max batch gas %d", estimatedGas, maxBatchGas)
+	}
+	if estimatedGas > remainingGas {
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				"batch_request_gas_exceeded",
+				sdk.NewAttribute("estimated_gas", fmt.Sprintf("%d", estimatedGas)),
+				sdk.NewAttribute("remaining_gas", fmt.Sprintf("%d", remainingGas)),
+				sdk.NewAttribute("batch_size", fmt.Sprintf("%d", len(msg.Requests))),
+			),
+		)
+		return nil, types.ErrInvalidRequest.Wrapf("batch estimated gas %d exceeds remaining gas %d", estimatedGas, remainingGas)
+	}
+
 	results := make([]types.BatchRequestResult, 0, len(msg.Requests))
 	var successCount uint64
 	totalDeposit := math.ZeroInt()
