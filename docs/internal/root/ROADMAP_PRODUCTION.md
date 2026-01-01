@@ -74,10 +74,10 @@
 ### SEC-3: Low Priority (Post-Mainnet Enhancement)
 
 - [x] **SEC-3.1**: Create `ValidateAuthority()` helper for consistent auth checks *(x/shared/keeper/authority.go + updated oracle/compute modules)*
-- [ ] **SEC-3.2**: Add upper bounds to ComputeSpec validation (MaxCPU=256, MaxMem=512GB, MaxStorage=10TB)
+- [x] **SEC-3.2**: Add upper bounds to ComputeSpec validation *(MaxCPU=256000mcore, MaxMem=512GB, MaxStorage=10TB, MaxGPU=16, MaxTimeout=7d in x/compute/types/msgs.go - Jan 1, 2026)*
 - [ ] **SEC-3.3**: Add overflow check for batch deposit accumulation
 - [ ] **SEC-3.4**: Add hash algorithm version field to VerificationProof proto
-- [ ] **SEC-3.5**: Add tolerance margin for constant product invariant check (0.1%)
+- [x] **SEC-3.5**: Add tolerance margin for constant product invariant check *(Already implemented: 99.9%-110% in x/dex/keeper/invariants.go:302-307)*
 - [ ] **SEC-3.6**: Use LTE instead of GT for swap size boundary validation
 - [ ] **SEC-3.7**: Document GeoIP database requirement for geographic diversity
 - [ ] **SEC-3.8**: Document TWAP method fallback priority order
