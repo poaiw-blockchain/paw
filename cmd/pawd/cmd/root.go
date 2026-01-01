@@ -268,6 +268,12 @@ func initAppConfig() (configTemplate string, cfg interface{}) {
 	// In PAW, we set the min gas prices to 0.001upaw
 	srvCfg.MinGasPrices = app.DefaultMinGasPrice.String()
 
+	// Enable API and gRPC by default for full nodes and query endpoints.
+	// Validators running dedicated sentry nodes may disable API in their config.
+	srvCfg.API.Enable = true
+	srvCfg.API.Swagger = false
+	srvCfg.GRPC.Enable = true
+
 	customAppConfig := CustomAppConfig{
 		Config: *srvCfg,
 	}
