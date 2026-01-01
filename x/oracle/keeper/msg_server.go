@@ -7,9 +7,9 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/paw-chain/paw/x/oracle/types"
+	sharedkeeper "github.com/paw-chain/paw/x/shared/keeper"
 )
 
 type msgServer struct {
@@ -175,12 +175,8 @@ func (ms msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdatePara
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Validate authority
-	if ms.authority != msg.Authority {
-		return nil, govtypes.ErrInvalidSigner.Wrapf(
-			"invalid authority; expected %s, got %s",
-			ms.authority,
-			msg.Authority,
-		)
+	if err := sharedkeeper.ValidateAuthority(ms.authority, msg.Authority); err != nil {
+		return nil, err
 	}
 
 	// Validate parameters
@@ -335,12 +331,8 @@ func (ms msgServer) ResumeOracle(goCtx context.Context, msg *types.MsgResumeOrac
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Validate authority (only governance can resume)
-	if ms.authority != msg.Authority {
-		return nil, govtypes.ErrInvalidSigner.Wrapf(
-			"invalid authority; expected %s, got %s",
-			ms.authority,
-			msg.Authority,
-		)
+	if err := sharedkeeper.ValidateAuthority(ms.authority, msg.Authority); err != nil {
+		return nil, err
 	}
 
 	// Validate reason is not empty

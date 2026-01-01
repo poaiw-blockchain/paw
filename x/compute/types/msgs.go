@@ -334,7 +334,18 @@ func (msg *MsgUpdateParams) ValidateBasic() error {
 
 // Helper validation functions
 
+// ComputeSpec validation constants
+// SEC-3.2: Upper bounds prevent resource abuse and unrealistic requests
+const (
+	MaxCPUMillicores    = 256000         // 256 cores in millicores
+	MaxMemoryMB         = 512 * 1024     // 512 GB in MB
+	MaxStorageGB        = 10 * 1024      // 10 TB in GB
+	MaxGPUCount         = 16             // 16 GPUs maximum
+	MaxTimeoutSeconds   = 7 * 24 * 3600  // 7 days maximum timeout
+)
+
 func validateComputeSpec(spec ComputeSpec) error {
+	// Minimum validation
 	if spec.CpuCores == 0 {
 		return fmt.Errorf("cpu_cores must be greater than 0")
 	}
@@ -345,6 +356,27 @@ func validateComputeSpec(spec ComputeSpec) error {
 
 	if spec.TimeoutSeconds == 0 {
 		return fmt.Errorf("timeout_seconds must be greater than 0")
+	}
+
+	// SEC-3.2: Upper bounds validation
+	if spec.CpuCores > MaxCPUMillicores {
+		return fmt.Errorf("cpu_cores exceeds maximum (%d millicores)", MaxCPUMillicores)
+	}
+
+	if spec.MemoryMb > MaxMemoryMB {
+		return fmt.Errorf("memory_mb exceeds maximum (%d MB = 512 GB)", MaxMemoryMB)
+	}
+
+	if spec.StorageGb > MaxStorageGB {
+		return fmt.Errorf("storage_gb exceeds maximum (%d GB = 10 TB)", MaxStorageGB)
+	}
+
+	if spec.GpuCount > MaxGPUCount {
+		return fmt.Errorf("gpu_count exceeds maximum (%d)", MaxGPUCount)
+	}
+
+	if spec.TimeoutSeconds > MaxTimeoutSeconds {
+		return fmt.Errorf("timeout_seconds exceeds maximum (%d seconds = 7 days)", MaxTimeoutSeconds)
 	}
 
 	return nil

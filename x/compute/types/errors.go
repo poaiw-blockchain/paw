@@ -76,6 +76,54 @@ var (
 	// Circuit breaker errors
 	ErrCircuitBreakerAlreadyOpen   = sdkerrors.Register(ModuleName, 86, "circuit breaker already open")
 	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 87, "circuit breaker already closed")
+
+	// Serialization errors
+	ErrMarshalFailed   = sdkerrors.Register(ModuleName, 90, "failed to marshal data")
+	ErrUnmarshalFailed = sdkerrors.Register(ModuleName, 91, "failed to unmarshal data")
+
+	// Validation errors
+	ErrInvalidAddress      = sdkerrors.Register(ModuleName, 95, "invalid address")
+	ErrInvalidParameters   = sdkerrors.Register(ModuleName, 96, "invalid parameters")
+	ErrValidationFailed    = sdkerrors.Register(ModuleName, 97, "validation failed")
+	ErrInsufficientBalance = sdkerrors.Register(ModuleName, 98, "insufficient balance")
+
+	// State errors
+	ErrStateCorruption = sdkerrors.Register(ModuleName, 100, "state corruption detected")
+	ErrCacheMiss       = sdkerrors.Register(ModuleName, 101, "cache miss")
+	ErrCacheDisabled   = sdkerrors.Register(ModuleName, 102, "cache is disabled")
+	ErrCacheStale      = sdkerrors.Register(ModuleName, 103, "cache is stale")
+
+	// Appeal errors
+	ErrAppealNotFound          = sdkerrors.Register(ModuleName, 110, "appeal not found")
+	ErrAppealNotAcceptingVotes = sdkerrors.Register(ModuleName, 111, "appeal not accepting votes")
+	ErrInsufficientAppealDeposit = sdkerrors.Register(ModuleName, 112, "insufficient appeal deposit")
+
+	// Dispute errors
+	ErrDisputeNotFound            = sdkerrors.Register(ModuleName, 115, "dispute not found")
+	ErrDisputeNotAcceptingVotes   = sdkerrors.Register(ModuleName, 116, "dispute not accepting votes")
+	ErrInsufficientDisputeDeposit = sdkerrors.Register(ModuleName, 117, "insufficient dispute deposit")
+	ErrChallengePeriodActive      = sdkerrors.Register(ModuleName, 118, "challenge period is still active")
+	ErrConsensusThresholdNotMet   = sdkerrors.Register(ModuleName, 119, "consensus threshold not met")
+
+	// Resource limit errors
+	ErrConcurrentRequestLimit = sdkerrors.Register(ModuleName, 120, "concurrent request limit reached")
+	ErrCircuitTooComplex      = sdkerrors.Register(ModuleName, 121, "circuit too complex")
+	ErrCircuitNotInitialized  = sdkerrors.Register(ModuleName, 122, "circuit not initialized")
+
+	// Provider state errors
+	ErrProviderAlreadyRegistered = sdkerrors.Register(ModuleName, 125, "provider already registered")
+	ErrProviderAlreadyInactive   = sdkerrors.Register(ModuleName, 126, "provider already inactive")
+
+	// Randomness errors
+	ErrCommitmentNotFound      = sdkerrors.Register(ModuleName, 130, "randomness commitment not found")
+	ErrCommitmentAlreadyRevealed = sdkerrors.Register(ModuleName, 131, "commitment already revealed")
+	ErrCommitmentExpired       = sdkerrors.Register(ModuleName, 132, "commitment has expired")
+	ErrRevealVerificationFailed = sdkerrors.Register(ModuleName, 133, "reveal verification failed")
+	ErrMaxParticipantsReached  = sdkerrors.Register(ModuleName, 134, "maximum participants reached")
+
+	// Generic operation errors
+	ErrOperationFailed = sdkerrors.Register(ModuleName, 140, "operation failed")
+	ErrStorageFailed   = sdkerrors.Register(ModuleName, 141, "storage operation failed")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions

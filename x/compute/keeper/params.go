@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"fmt"
 
 	"cosmossdk.io/math"
 
@@ -20,7 +19,7 @@ func (k Keeper) GetParams(ctx context.Context) (types.Params, error) {
 
 	var params types.Params
 	if err := k.cdc.Unmarshal(bz, &params); err != nil {
-		return types.Params{}, fmt.Errorf("GetParams: unmarshal: %w", err)
+		return types.Params{}, types.ErrUnmarshalFailed.Wrapf("failed to unmarshal params: %v", err)
 	}
 
 	return params, nil
@@ -34,7 +33,7 @@ func (k Keeper) SetParams(ctx context.Context, params types.Params) error {
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&params)
 	if err != nil {
-		return fmt.Errorf("SetParams: marshal: %w", err)
+		return types.ErrMarshalFailed.Wrapf("failed to marshal params: %v", err)
 	}
 
 	store.Set(ParamsKey, bz)

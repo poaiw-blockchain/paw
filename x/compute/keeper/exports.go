@@ -37,16 +37,6 @@ func (k *Keeper) AuthorizeComputeChannelForTest(ctx sdk.Context, channelID strin
 	_ = k.SetAuthorizedChannels(ctx, channels)
 }
 
-// GetOrCreateCrossChainJobForTest gets or creates a job for testing.
-// Accessible from external test packages.
-func (k *Keeper) GetOrCreateCrossChainJobForTest(ctx sdk.Context, jobID string) *CrossChainComputeJob {
-	job := k.GetCrossChainJob(ctx, jobID)
-	if job == nil {
-		return &CrossChainComputeJob{JobID: jobID}
-	}
-	return job
-}
-
 // GetAuthority returns the authority address for testing.
 // Accessible from external test packages.
 func (k Keeper) GetAuthority() string {

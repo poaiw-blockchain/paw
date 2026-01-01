@@ -29,7 +29,6 @@ Functions needed by external test packages:
 - `RecordNonceUsageForTesting()` - Record nonce usage
 - `CheckReplayAttackForTesting()` - Check replay attacks
 - `AuthorizeComputeChannelForTest()` - Authorize IBC channels
-- `GetOrCreateCrossChainJobForTest()` - Get/create jobs
 - `GetAuthority()` - Get module authority
 - `GetDisputeForTesting()` - Get disputes
 - `GetBankKeeper()` - Access bank keeper

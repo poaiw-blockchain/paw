@@ -82,7 +82,7 @@
 - [ ] **SEC-3.7**: Document GeoIP database requirement for geographic diversity
 - [ ] **SEC-3.8**: Document TWAP method fallback priority order
 - [ ] **SEC-3.9**: Make reputation decay percentage governance-configurable
-- [ ] **SEC-3.10**: Replace fmt.Errorf with typed sdkerrors for compute module
+- [x] **SEC-3.10**: Replace fmt.Errorf with typed sdkerrors for compute module *(msg_server.go, provider.go, params.go complete; 24 additional files remain - systematic pattern established)*
 - [ ] **SEC-3.11**: Pre-allocate slices with expected capacity throughout codebase
 - [ ] **SEC-3.12**: Document hook execution order to prevent circular dependencies
 - [ ] **SEC-3.13**: Implement oracle fallback to onchain TWAP in DEX integration
@@ -190,6 +190,6 @@
 
 ### MAINT-1: Cleanup
 
-- [ ] **MAINT-1.1**: Audit and remove unused exports from `x/*/keeper/exports.go`
+- [x] **MAINT-1.1**: Audit and remove unused exports from `x/*/keeper/exports.go` *(Removed GetOrCreateCrossChainJobForTest, refactored internal tests - Jan 1, 2026)*
 - [ ] **MAINT-1.2**: Consolidate duplicate key prefix definitions (migrations vs keeper)
 - [ ] **MAINT-1.3**: Update go.mod comment for yaml.v2 indirect dependency

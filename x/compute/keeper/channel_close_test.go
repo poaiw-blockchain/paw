@@ -21,7 +21,7 @@ func TestTrackAndClearPendingOperation(t *testing.T) {
 		PacketType: PacketTypeSubmitJob,
 		JobID:      "job-track",
 	}
-	TrackPendingOperationForTest(k, sdkCtx, op)
+	k.trackPendingOperation(sdkCtx, op)
 
 	pending := k.GetPendingOperations(sdkCtx, "channel-0")
 	require.Len(t, pending, 1)
@@ -64,7 +64,7 @@ func TestRefundOnChannelCloseSubmitJob(t *testing.T) {
 		PacketType: PacketTypeSubmitJob,
 		JobID:      job.JobID,
 	}
-	TrackPendingOperationForTest(k, sdkCtx, op)
+	k.trackPendingOperation(sdkCtx, op)
 
 	balBefore := k.bankKeeper.GetBalance(sdkCtx, requester, "upaw").Amount
 	require.NoError(t, k.RefundOnChannelClose(sdkCtx, op))
@@ -115,7 +115,7 @@ func TestRefundOnChannelClosePropagatesRefundError(t *testing.T) {
 		PacketType: PacketTypeSubmitJob,
 		JobID:      jobID,
 	}
-	TrackPendingOperationForTest(k, sdkCtx, op)
+	k.trackPendingOperation(sdkCtx, op)
 
 	err := k.RefundOnChannelClose(sdkCtx, op)
 	require.Error(t, err)

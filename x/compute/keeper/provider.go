@@ -3,7 +3,6 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -17,17 +16,17 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	// Validate parameters
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
+		return types.ErrOperationFailed.Wrapf("failed to get params: %v", err)
 	}
 
 	if stake.LT(params.MinProviderStake) {
-		return fmt.Errorf("stake %s is less than minimum required %s", stake.String(), params.MinProviderStake.String())
+		return types.ErrInsufficientStake.Wrapf("stake %s is less than minimum required %s", stake.String(), params.MinProviderStake.String())
 	}
 
 	// Check if provider already exists
 	existing, err := k.GetProvider(ctx, provider)
 	if err == nil && existing != nil {
-		return fmt.Errorf("provider %s already registered", provider.String())
+		return types.ErrProviderAlreadyRegistered.Wrapf("provider %s", provider.String())
 	}
 
 	// SEC-20: Check maximum providers limit to prevent state bloat attacks
@@ -39,19 +38,19 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	// Validate specs
 	specs, err = k.validateComputeSpec(specs, params, true)
 	if err != nil {
-		return fmt.Errorf("invalid compute specs: %w", err)
+		return err
 	}
 
 	// Validate pricing
 	if err := k.validatePricing(pricing); err != nil {
-		return fmt.Errorf("invalid pricing: %w", err)
+		return err
 	}
 
 	// Transfer stake from provider to module account
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", stake))
 	if err := k.bankKeeper.SendCoinsFromAccountToModule(sdkCtx, provider, types.ModuleName, coins); err != nil {
-		return fmt.Errorf("failed to escrow stake: %w", err)
+		return types.ErrInsufficientBalance.Wrapf("failed to escrow stake: %v", err)
 	}
 
 	// Create provider record
@@ -75,17 +74,17 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 
 	// Store provider
 	if err := k.SetProvider(ctx, providerRecord); err != nil {
-		return fmt.Errorf("failed to store provider: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to store provider: %v", err)
 	}
 
 	// Add to active providers index
 	if err := k.setActiveProviderIndex(ctx, provider, true); err != nil {
-		return fmt.Errorf("failed to set active provider index: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to set active provider index: %v", err)
 	}
 
 	// Add to reputation index
 	if err := k.setReputationIndex(ctx, provider, initialRep); err != nil {
-		return fmt.Errorf("failed to set reputation index: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to set reputation index: %v", err)
 	}
 
 	// SEC-20: Increment total provider count
@@ -116,12 +115,12 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 	// Get existing provider
 	existing, err := k.GetProvider(ctx, provider)
 	if err != nil {
-		return fmt.Errorf("provider not found: %w", err)
+		return types.ErrProviderNotFound.Wrap(err.Error())
 	}
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get params: %w", err)
+		return types.ErrOperationFailed.Wrapf("failed to get params: %v", err)
 	}
 
 	// Update fields if provided
@@ -134,13 +133,13 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 	if specs != nil {
 		updatedSpecs, err := k.validateComputeSpec(*specs, params, true)
 		if err != nil {
-			return fmt.Errorf("invalid compute specs: %w", err)
+			return err
 		}
 		existing.AvailableSpecs = updatedSpecs
 	}
 	if pricing != nil {
 		if err := k.validatePricing(*pricing); err != nil {
-			return fmt.Errorf("invalid pricing: %w", err)
+			return err
 		}
 		existing.Pricing = *pricing
 	}
@@ -151,7 +150,7 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 
 	// Store updated provider
 	if err := k.SetProvider(ctx, *existing); err != nil {
-		return fmt.Errorf("failed to update provider: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to update provider: %v", err)
 	}
 
 	// Emit event
@@ -170,11 +169,11 @@ func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress)
 	// Get existing provider
 	existing, err := k.GetProvider(ctx, provider)
 	if err != nil {
-		return fmt.Errorf("provider not found: %w", err)
+		return types.ErrProviderNotFound.Wrap(err.Error())
 	}
 
 	if !existing.Active {
-		return fmt.Errorf("provider already inactive")
+		return types.ErrProviderAlreadyInactive
 	}
 
 	// Mark as inactive
@@ -182,17 +181,17 @@ func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress)
 
 	// Store updated provider
 	if err := k.SetProvider(ctx, *existing); err != nil {
-		return fmt.Errorf("failed to deactivate provider: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to deactivate provider: %v", err)
 	}
 
 	// Remove from active providers index
 	if err := k.setActiveProviderIndex(ctx, provider, false); err != nil {
-		return fmt.Errorf("failed to update active provider index: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to update active provider index: %v", err)
 	}
 
 	// Remove from reputation index
 	if err := k.deleteReputationIndex(ctx, provider, existing.Reputation); err != nil {
-		return fmt.Errorf("failed to delete reputation index: %w", err)
+		return types.ErrStorageFailed.Wrapf("failed to delete reputation index: %v", err)
 	}
 
 	// Invalidate provider cache when provider is deactivated
@@ -206,7 +205,7 @@ func (k Keeper) DeactivateProvider(ctx context.Context, provider sdk.AccAddress)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	coins := sdk.NewCoins(sdk.NewCoin("upaw", existing.Stake))
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(sdkCtx, types.ModuleName, provider, coins); err != nil {
-		return fmt.Errorf("failed to return stake: %w", err)
+		return types.ErrOperationFailed.Wrapf("failed to return stake: %v", err)
 	}
 
 	// Emit event
@@ -227,12 +226,12 @@ func (k Keeper) GetProvider(ctx context.Context, address sdk.AccAddress) (*types
 	bz := store.Get(ProviderKey(address))
 
 	if bz == nil {
-		return nil, fmt.Errorf("provider not found")
+		return nil, types.ErrProviderNotFound
 	}
 
 	var provider types.Provider
 	if err := k.cdc.Unmarshal(bz, &provider); err != nil {
-		return nil, fmt.Errorf("GetProvider: unmarshal: %w", err)
+		return nil, types.ErrUnmarshalFailed.Wrapf("failed to unmarshal provider: %v", err)
 	}
 
 	return &provider, nil
@@ -280,12 +279,12 @@ func (k Keeper) SetProvider(ctx context.Context, provider types.Provider) error 
 	store := k.getStore(ctx)
 	bz, err := k.cdc.Marshal(&provider)
 	if err != nil {
-		return fmt.Errorf("SetProvider: marshal: %w", err)
+		return types.ErrMarshalFailed.Wrapf("failed to marshal provider: %v", err)
 	}
 
 	addr, err := sdk.AccAddressFromBech32(provider.Address)
 	if err != nil {
-		return fmt.Errorf("SetProvider: parse address: %w", err)
+		return types.ErrInvalidAddress.Wrapf("failed to parse address: %v", err)
 	}
 
 	store.Set(ProviderKey(addr), bz)
@@ -301,12 +300,12 @@ func (k Keeper) IterateProviders(ctx context.Context, cb func(provider types.Pro
 	for ; iterator.Valid(); iterator.Next() {
 		var provider types.Provider
 		if err := k.cdc.Unmarshal(iterator.Value(), &provider); err != nil {
-			return fmt.Errorf("IterateProviders: unmarshal: %w", err)
+			return types.ErrUnmarshalFailed.Wrapf("failed to unmarshal provider: %v", err)
 		}
 
 		stop, err := cb(provider)
 		if err != nil {
-			return fmt.Errorf("IterateProviders: callback: %w", err)
+			return types.ErrOperationFailed.Wrapf("callback error: %v", err)
 		}
 		if stop {
 			break
@@ -332,7 +331,7 @@ func (k Keeper) IterateActiveProviders(ctx context.Context, cb func(provider typ
 
 		stop, err := cb(*provider)
 		if err != nil {
-			return fmt.Errorf("IterateActiveProviders: callback: %w", err)
+			return types.ErrOperationFailed.Wrapf("callback error: %v", err)
 		}
 		if stop {
 			break
@@ -346,12 +345,12 @@ func (k Keeper) IterateActiveProviders(ctx context.Context, cb func(provider typ
 func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAddress, success bool) error {
 	providerRecord, err := k.GetProvider(ctx, provider)
 	if err != nil {
-		return fmt.Errorf("UpdateProviderReputation: get provider: %w", err)
+		return err
 	}
 
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return fmt.Errorf("UpdateProviderReputation: get params: %w", err)
+		return types.ErrOperationFailed.Wrapf("failed to get params: %v", err)
 	}
 
 	oldReputation := providerRecord.Reputation
@@ -381,11 +380,11 @@ func (k Keeper) UpdateProviderReputation(ctx context.Context, provider sdk.AccAd
 	if oldReputation != providerRecord.Reputation && providerRecord.Active {
 		// Remove old index entry
 		if err := k.deleteReputationIndex(ctx, provider, oldReputation); err != nil {
-			return fmt.Errorf("failed to delete old reputation index: %w", err)
+			return types.ErrStorageFailed.Wrapf("failed to delete old reputation index: %v", err)
 		}
 		// Add new index entry
 		if err := k.setReputationIndex(ctx, provider, providerRecord.Reputation); err != nil {
-			return fmt.Errorf("failed to set new reputation index: %w", err)
+			return types.ErrStorageFailed.Wrapf("failed to set new reputation index: %v", err)
 		}
 
 		// Invalidate provider cache when reputation changes
@@ -432,24 +431,24 @@ func (k Keeper) deleteReputationIndex(ctx context.Context, provider sdk.AccAddre
 // validateComputeSpec validates compute specifications using module parameters for bounds.
 func (k Keeper) validateComputeSpec(spec types.ComputeSpec, params types.Params, applyDefaultTimeout bool) (types.ComputeSpec, error) {
 	if spec.CpuCores == 0 {
-		return spec, fmt.Errorf("cpu_cores must be greater than 0")
+		return spec, types.ErrInvalidResourceSpec.Wrap("cpu_cores must be greater than 0")
 	}
 	if spec.MemoryMb == 0 {
-		return spec, fmt.Errorf("memory_mb must be greater than 0")
+		return spec, types.ErrInvalidResourceSpec.Wrap("memory_mb must be greater than 0")
 	}
 	if spec.StorageGb == 0 {
-		return spec, fmt.Errorf("storage_gb must be greater than 0")
+		return spec, types.ErrInvalidResourceSpec.Wrap("storage_gb must be greater than 0")
 	}
 	if spec.TimeoutSeconds == 0 {
 		if applyDefaultTimeout {
 			spec.TimeoutSeconds = params.MaxRequestTimeoutSeconds
 		} else {
-			return spec, fmt.Errorf("timeout_seconds must be greater than 0")
+			return spec, types.ErrInvalidResourceSpec.Wrap("timeout_seconds must be greater than 0")
 		}
 	}
 
 	if spec.TimeoutSeconds > params.MaxRequestTimeoutSeconds {
-		return spec, fmt.Errorf("timeout_seconds %d exceeds maximum %d", spec.TimeoutSeconds, params.MaxRequestTimeoutSeconds)
+		return spec, types.ErrInvalidResourceSpec.Wrapf("timeout_seconds %d exceeds maximum %d", spec.TimeoutSeconds, params.MaxRequestTimeoutSeconds)
 	}
 
 	return spec, nil
@@ -458,16 +457,16 @@ func (k Keeper) validateComputeSpec(spec types.ComputeSpec, params types.Params,
 // validatePricing validates pricing structure
 func (k Keeper) validatePricing(pricing types.Pricing) error {
 	if !pricing.CpuPricePerMcoreHour.IsPositive() {
-		return fmt.Errorf("cpu_price_per_mcore_hour must be positive")
+		return types.ErrInvalidParameters.Wrap("cpu_price_per_mcore_hour must be positive")
 	}
 	if !pricing.MemoryPricePerMbHour.IsPositive() {
-		return fmt.Errorf("memory_price_per_mb_hour must be positive")
+		return types.ErrInvalidParameters.Wrap("memory_price_per_mb_hour must be positive")
 	}
 	if !pricing.GpuPricePerHour.IsPositive() {
-		return fmt.Errorf("gpu_price_per_hour must be positive")
+		return types.ErrInvalidParameters.Wrap("gpu_price_per_hour must be positive")
 	}
 	if !pricing.StoragePricePerGbHour.IsPositive() {
-		return fmt.Errorf("storage_price_per_gb_hour must be positive")
+		return types.ErrInvalidParameters.Wrap("storage_price_per_gb_hour must be positive")
 	}
 
 	return nil
@@ -478,7 +477,7 @@ func (k Keeper) validatePricing(pricing types.Pricing) error {
 func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpec, preferredProvider string) (sdk.AccAddress, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("FindSuitableProvider: get params: %w", err)
+		return nil, types.ErrOperationFailed.Wrapf("failed to get params: %v", err)
 	}
 
 	// If preferred provider is specified and valid, try to use it
@@ -535,7 +534,7 @@ func (k Keeper) FindSuitableProvider(ctx context.Context, specs types.ComputeSpe
 		}
 	}
 
-	return nil, fmt.Errorf("no suitable provider found for requested specs")
+	return nil, types.ErrProviderNotFound.Wrap("no suitable provider found for requested specs")
 }
 
 // canProviderHandleSpecs checks if a provider can handle the requested specs
