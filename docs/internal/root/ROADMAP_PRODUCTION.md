@@ -4,6 +4,21 @@
 
 ---
 
+## Next AI Agent Tasks
+
+**Priority Order** (pick from top):
+
+1. **Commit pending changes**: `tests/performance/gas_baseline_test.go` has PlaceLimitOrder signature update - commit and push to main
+2. **SEC-3 items**: Low priority security enhancements (see SEC-3 section below)
+3. **CODE-3 items**: Code quality improvements (CONTRIBUTING.md, CODEOWNERS, etc.)
+4. **MAINT-1 items**: Cleanup tasks (unused exports, duplicate prefixes)
+
+**Verified Working** (Dec 31, 2025):
+- DEX benchmarks (`x/dex/keeper/benchmark_test.go`) - all 43 benchmarks pass
+- DEX fuzz tests (`tests/fuzz/dex_fuzz_test.go`) - all 9 fuzz tests pass
+
+---
+
 ## Blocked/External Items
 
 - [ ] Add branch protection rules for `main` [BLOCKED: requires GitHub Pro or public repo]
@@ -125,8 +140,8 @@
 
 ### CODE-3: Low Priority (Nice to Have)
 
-- [ ] **CODE-3.1**: Add CONTRIBUTING.md with PR template and style guide
-- [ ] **CODE-3.2**: Add CODEOWNERS file for automated review assignment
+- [x] **CODE-3.1**: Add CONTRIBUTING.md with PR template and style guide
+- [x] **CODE-3.2**: Add CODEOWNERS file for automated review assignment
 - [ ] **CODE-3.3**: Generate OpenAPI/Swagger documentation from proto files
 - [ ] **CODE-3.4**: Add API versioning headers to proto files for deprecation tracking
 - [ ] **CODE-3.5**: Expand CHANGELOG.md with pre-release history

@@ -1,121 +1,101 @@
 # Contributing to PAW
 
-Thank you for your interest in contributing to PAW! This document provides guidelines and instructions for contributing.
+Thank you for contributing to PAW! This guide covers our development workflow and standards.
 
 ## Code of Conduct
 
-By participating in this project, you agree to maintain a respectful and inclusive environment.
+By participating, you agree to maintain a respectful and inclusive environment.
 
-## How to Contribute
-
-### Reporting Bugs
+## Reporting Bugs
 
 - Check existing issues to avoid duplicates
-- Use the bug report template
-- Include steps to reproduce
-- Provide system information (OS, Go version, etc.)
+- Include steps to reproduce and system information (OS, Go version)
 
-### Suggesting Features
+## Submitting Pull Requests
 
-- Check existing issues and discussions
-- Clearly describe the feature and its use case
-- Consider implementation complexity
-
-### Submitting Code
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Make your changes**
-4. **Run tests locally**
-   ```bash
-   go test ./...
-   pre-commit run --all-files
-   ```
-5. **Commit with clear messages**
-   ```bash
-   git commit -m "feat: add new feature description"
-   ```
-6. **Push and create a Pull Request**
+1. Fork and create a feature branch: `git checkout -b feature/your-feature`
+2. Make changes following code style guidelines
+3. Run tests: `go test ./... && pre-commit run --all-files && golangci-lint run`
+4. Commit with conventional format (see below)
+5. Push and create PR, address review feedback
 
 ## Development Setup
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/paw.git
-cd paw
-
-# Install Go dependencies
-go mod download
-
-# Install pre-commit hooks
-pre-commit install
-
-# Build the daemon
+git clone https://github.com/YOUR_USERNAME/paw.git && cd paw
+go mod download && pre-commit install
 go build -o pawd ./cmd/...
 ```
 
-## Code Standards
+## Code Style
 
-### Go Style
+### Go
+- Follow [Effective Go](https://golang.org/doc/effective_go) and [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
+- Use `gofmt`, `goimports`, and `golangci-lint`
+- Avoid `panic()` in production; return errors
+- Never use `sdk.MustAccAddressFromBech32` in production paths
 
-- Follow [Effective Go](https://golang.org/doc/effective_go)
-- Use `gofmt` for formatting
-- Follow [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- Use meaningful variable and function names
+### Protobuf
+- Include comprehensive field documentation
+- Run `make proto-gen` or `buf generate` after changes
+- Follow Cosmos SDK proto conventions
 
-### Commit Messages
+## Commit Message Format
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation only
-- `style:` - Formatting, no code change
-- `refactor:` - Code change that neither fixes a bug nor adds a feature
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
+```
+<type>(<scope>): <description>
+```
 
-### Testing
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `security`
 
-- Write tests for new features
-- Use table-driven tests where appropriate
-- All tests must pass before merge
-- Include integration tests for module changes
+**Examples**:
+- `feat(dex): add multi-hop swap routing`
+- `fix(oracle): prevent price manipulation`
+- `test(compute): add fuzz tests for verification`
 
-### Security
+## Testing Requirements
 
-- Never commit secrets or private keys
-- Run `gosec` security scanner
+### Required for All PRs
+- Unit tests for new functions
+- Integration tests for module changes
+- Table-driven tests where appropriate
+- Fuzz tests for input validation
+
+### Module Development
+1. Update protobuf definitions in `proto/`
+2. Regenerate: `make proto-gen`
+3. Implement keeper methods with error handling
+4. Add/update genesis import/export
+5. Write comprehensive tests (unit + integration)
+6. Update documentation in `docs/`
+
+### Coverage Standards
+- Minimum 80% for new code
+- 100% for security-critical paths
+
+## Security
+
+- Never commit secrets or credentials
+- Run `gosec ./...` before submitting
 - Follow Cosmos SDK security best practices
 - Report vulnerabilities privately (see SECURITY.md)
 
-### Module Development
-
-When modifying Cosmos SDK modules:
-1. Update protobuf definitions
-2. Regenerate proto files (`make proto-gen`)
-3. Implement keeper methods
-4. Add genesis import/export
-5. Write comprehensive tests
-6. Update documentation
-
 ## Pull Request Process
 
-1. Update documentation if needed
-2. Add tests for new functionality
-3. Ensure all checks pass
-4. Request review from maintainers
-5. Address review feedback
-6. Squash commits if requested
+1. Ensure tests pass and linters are clean
+2. Update documentation for user-facing changes
+3. Add changelog entry if applicable
+4. Request review from code owners (auto-assigned via CODEOWNERS)
+5. Address feedback and squash commits if requested
 
 ## Questions?
 
-- Open a GitHub Discussion
-- Check existing documentation
+- GitHub Discussions for general questions
+- Documentation in `docs/`
+- SECURITY.md for security-related questions
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the same license as the project (see LICENSE file).
+Contributions are licensed under the project license (see LICENSE file).

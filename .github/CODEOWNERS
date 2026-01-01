@@ -1,25 +1,32 @@
 # PAW Blockchain CODEOWNERS
+#
+# This file defines code ownership for automated review assignment.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# Default owners
+# Global owners - all files require approval from core team
 * @poaiw-blockchain/core-team
 
 # Module-specific ownership
+/x/compute/ @poaiw-blockchain/compute-team @poaiw-blockchain/core-team
 /x/dex/ @poaiw-blockchain/dex-team @poaiw-blockchain/core-team
-/x/compute/ @poaiw-blockchain/core-team
 /x/oracle/ @poaiw-blockchain/oracle-team @poaiw-blockchain/core-team
 
-# Security-critical
+# Security-critical paths
 /app/ @poaiw-blockchain/security @poaiw-blockchain/core-team
+/x/*/keeper/security.go @poaiw-blockchain/security
+SECURITY.md @poaiw-blockchain/security @poaiw-blockchain/core-team
 
-# Infrastructure
-/.github/ @poaiw-blockchain/devops
+# Infrastructure and deployment
+/.github/ @poaiw-blockchain/devops @poaiw-blockchain/core-team
 /docker/ @poaiw-blockchain/devops
 /k8s/ @poaiw-blockchain/devops
+/infra/ @poaiw-blockchain/devops
+Dockerfile @poaiw-blockchain/devops
 
 # Documentation
 /docs/ @poaiw-blockchain/docs-team
 README.md @poaiw-blockchain/core-team
-SECURITY.md @poaiw-blockchain/security
+CONTRIBUTING.md @poaiw-blockchain/core-team
 
-# Protect CODEOWNERS
+# Protect critical configuration files
 /.github/CODEOWNERS @poaiw-blockchain/admin
