@@ -186,10 +186,16 @@ func TestValidateSwapSize(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:      "large swap - 10%",
-			amountIn:  math.NewInt(1000),
+			name:      "large swap - 9.9%",
+			amountIn:  math.NewInt(990),
 			reserveIn: math.NewInt(10000),
 			expectErr: false,
+		},
+		{
+			name:      "boundary swap - exactly 10%",
+			amountIn:  math.NewInt(1000),
+			reserveIn: math.NewInt(10000),
+			expectErr: true, // SEC-3.6: GTE rejects swaps AT the boundary
 		},
 		{
 			name:      "excessive swap - 15%",

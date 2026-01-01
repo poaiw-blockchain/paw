@@ -508,6 +508,16 @@ func (k Keeper) parseVerificationProof(proofBytes []byte) (*types.VerificationPr
 		return nil, fmt.Errorf("proof truncated at timestamp")
 	}
 	proof.Timestamp = types.SaturateUint64ToInt64(binary.BigEndian.Uint64(proofBytes[offset : offset+8]))
+	offset += 8
+
+	// SEC-3.4: Parse hash algorithm version if present.
+	// For backwards compatibility, if the field is not present, default to version 1 (SHA256).
+	if offset+4 <= len(proofBytes) {
+		proof.HashAlgorithmVersion = binary.BigEndian.Uint32(proofBytes[offset : offset+4])
+	} else {
+		// Default to SHA256 for older proofs without version field
+		proof.HashAlgorithmVersion = types.HashAlgorithmSHA256
+	}
 
 	return proof, nil
 }

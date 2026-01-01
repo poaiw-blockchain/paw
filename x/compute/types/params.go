@@ -22,6 +22,7 @@ func DefaultParams() Params {
 		UseProviderCache:                true,           // Enable cache by default
 		MaxRequestsPerAddressPerDay:     100,            // Maximum compute requests per address per day
 		RequestCooldownBlocks:           10,             // Minimum blocks between requests (~50 seconds at 5s blocks)
+		ReputationDecayPercent:          100,            // 100 basis points = 1% decay per day
 	}
 }
 

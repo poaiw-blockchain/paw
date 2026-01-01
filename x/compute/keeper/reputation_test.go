@@ -54,8 +54,13 @@ func TestApplyReputationDecay(t *testing.T) {
 		LastDecayTimestamp: now.Add(-48 * time.Hour),
 	}
 
-	k, _ := setupKeeperForTest(t)
-	err := k.applyReputationDecay(rep, now)
+	k, ctx := setupKeeperForTest(t)
+
+	// Initialize default params including ReputationDecayPercent
+	err := k.SetParams(ctx, types.DefaultParams())
+	require.NoError(t, err)
+
+	err = k.applyReputationDecay(ctx, rep, now)
 	require.NoError(t, err)
 	require.Less(t, rep.ReliabilityScore, 0.9)
 	require.Equal(t, now, rep.LastDecayTimestamp)

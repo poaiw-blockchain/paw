@@ -511,7 +511,16 @@ func (ms msgServer) SubmitBatchRequests(goCtx context.Context, msg *types.MsgSub
 		result.RequestId = resp.RequestId
 		result.Success = true
 		successCount++
-		totalDeposit = totalDeposit.Add(reqItem.MaxPayment)
+		// SEC-3.3: Use SafeAdd to prevent overflow when accumulating batch deposits
+		// While math.Int uses big integers and is generally overflow-safe, explicit SafeAdd
+		// provides defense-in-depth and clearer error messages if overflow occurs
+		newTotalDeposit, err := totalDeposit.SafeAdd(reqItem.MaxPayment)
+		if err != nil {
+			// Overflow detected - fail the batch request to prevent unexpected behavior
+			return nil, types.ErrInvalidRequest.Wrapf("batch deposit overflow: totalDeposit=%s + payment=%s: %v",
+				totalDeposit.String(), reqItem.MaxPayment.String(), err)
+		}
+		totalDeposit = newTotalDeposit
 		results = append(results, result)
 	}
 

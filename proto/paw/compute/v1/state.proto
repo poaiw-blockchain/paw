@@ -333,6 +333,12 @@ message Params {
   // Set to 0 to disable cooldown rate limiting
   // Default: 10 blocks (~50 seconds at 5s block time)
   uint64 request_cooldown_blocks = 15;
+
+  // reputation_decay_percent is the daily decay percentage for provider reputation scores
+  // Expressed in basis points (100 = 1%, 500 = 5%, etc.)
+  // Reputation decays towards neutral (0.5) by this percentage per day
+  // Default: 100 basis points (1% per day)
+  uint32 reputation_decay_percent = 16;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets
@@ -906,6 +912,59 @@ enum RandomnessCommitmentStatus {
   RANDOMNESS_COMMITMENT_STATUS_COMMITTED = 1;   // Commitment hash submitted
   RANDOMNESS_COMMITMENT_STATUS_REVEALED = 2;    // Reveal value submitted and verified
   RANDOMNESS_COMMITMENT_STATUS_EXPIRED = 3;     // Commitment expired without reveal
+}
+
+// HashAlgorithm defines supported hash algorithms for verification proofs.
+// SEC-3.4: Hash algorithm versioning for forward compatibility.
+enum HashAlgorithm {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  // HASH_ALGORITHM_UNSPECIFIED defaults to SHA256 for backwards compatibility
+  HASH_ALGORITHM_UNSPECIFIED = 0;
+  // HASH_ALGORITHM_SHA256 is the default and currently only supported algorithm (version 1)
+  HASH_ALGORITHM_SHA256 = 1;
+  // HASH_ALGORITHM_SHA3_256 reserved for future use (version 2)
+  HASH_ALGORITHM_SHA3_256 = 2;
+  // HASH_ALGORITHM_BLAKE3 reserved for future use (version 3)
+  HASH_ALGORITHM_BLAKE3 = 3;
+}
+
+// VerificationProof represents a cryptographic proof of correct computation execution.
+// This structure enables multi-layer verification including signatures, merkle proofs,
+// and state transition validation.
+// SEC-3.4: Added hash_algorithm_version for algorithm agility.
+message VerificationProof {
+  // signature is the Ed25519 signature over the result hash
+  bytes signature = 1;
+
+  // public_key is the provider's public key for signature verification
+  bytes public_key = 2;
+
+  // merkle_root is the root hash of the execution trace merkle tree
+  bytes merkle_root = 3;
+
+  // merkle_proof is the merkle inclusion proof path
+  repeated bytes merkle_proof = 4;
+
+  // state_commitment is the commitment to final computation state
+  bytes state_commitment = 5;
+
+  // execution_trace is the deterministic execution log hash
+  bytes execution_trace = 6;
+
+  // nonce is used for replay attack prevention
+  uint64 nonce = 7;
+
+  // timestamp is the proof generation timestamp (Unix seconds)
+  int64 timestamp = 8;
+
+  // hash_algorithm_version identifies which hash algorithm was used for this proof.
+  // SEC-3.4: Enables forward compatibility when upgrading hash algorithms.
+  // Version 0/1: SHA-256 (default, current algorithm)
+  // Version 2: SHA3-256 (reserved for future use)
+  // Version 3: BLAKE3 (reserved for future use)
+  // Verifiers MUST reject proofs with unsupported algorithm versions.
+  uint32 hash_algorithm_version = 9;
 }
 
 // RandomnessCommitment stores a validator's commitment for the commit-reveal scheme.

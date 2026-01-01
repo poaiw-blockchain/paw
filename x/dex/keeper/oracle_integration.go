@@ -217,6 +217,82 @@ func (k Keeper) DetectArbitrageOpportunity(ctx context.Context, poolID uint64, o
 	return hasOpportunity, profitPercent, nil
 }
 
+// SEC-3.13: GetPriceWithTWAPFallback returns the price for a token pair from oracle,
+// falling back to onchain DEX TWAP if the oracle is unavailable.
+//
+// Fallback Priority:
+//  1. Oracle price (preferred, external source)
+//  2. DEX TWAP (fallback, onchain source from pool trading history)
+//
+// This provides price resilience during oracle downtime or for new assets
+// that don't yet have oracle coverage.
+func (k Keeper) GetPriceWithTWAPFallback(
+	ctx context.Context,
+	poolID uint64,
+	oracleKeeper OracleKeeper,
+) (price math.LegacyDec, source string, err error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Get pool to determine token pair
+	pool, err := k.GetPool(ctx, poolID)
+	if err != nil {
+		return math.LegacyZeroDec(), "", fmt.Errorf("GetPriceWithTWAPFallback: get pool: %w", err)
+	}
+
+	// Try oracle price first (tokenA/tokenB ratio)
+	priceA, errA := oracleKeeper.GetPrice(ctx, pool.TokenA)
+	priceB, errB := oracleKeeper.GetPrice(ctx, pool.TokenB)
+
+	if errA == nil && errB == nil && !priceB.IsZero() {
+		// Oracle prices available for both tokens
+		oraclePrice := priceA.Quo(priceB)
+		sdkCtx.Logger().Debug("using oracle price",
+			"pool_id", poolID,
+			"price", oraclePrice.String(),
+			"token_a", pool.TokenA,
+			"token_b", pool.TokenB,
+		)
+		return oraclePrice, "oracle", nil
+	}
+
+	// SEC-3.13: Fallback to DEX TWAP if oracle is unavailable
+	twapPrice, twapErr := k.GetCurrentTWAP(ctx, poolID)
+	if twapErr == nil && !twapPrice.IsZero() {
+		sdkCtx.Logger().Debug("oracle unavailable, using DEX TWAP fallback",
+			"pool_id", poolID,
+			"twap_price", twapPrice.String(),
+			"oracle_error_a", errA,
+			"oracle_error_b", errB,
+		)
+		return twapPrice, "twap", nil
+	}
+
+	// If TWAP also unavailable, try to calculate spot price from reserves
+	if !pool.ReserveA.IsZero() && !pool.ReserveB.IsZero() {
+		spotPrice := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+		sdkCtx.Logger().Debug("oracle and TWAP unavailable, using spot price",
+			"pool_id", poolID,
+			"spot_price", spotPrice.String(),
+		)
+		return spotPrice, "spot", nil
+	}
+
+	return math.LegacyZeroDec(), "", types.ErrOraclePrice.Wrapf(
+		"no price source available for pool %d: oracle_err_a=%v, oracle_err_b=%v, twap_err=%v",
+		poolID, errA, errB, twapErr,
+	)
+}
+
+// SEC-3.13: GetFairPoolPriceWithFallback returns the fair price for the pool,
+// using oracle prices when available or falling back to DEX TWAP.
+func (k Keeper) GetFairPoolPriceWithFallback(
+	ctx context.Context,
+	poolID uint64,
+	oracleKeeper OracleKeeper,
+) (price math.LegacyDec, source string, err error) {
+	return k.GetPriceWithTWAPFallback(ctx, poolID, oracleKeeper)
+}
+
 // ValidateSwapWithOracle validates a swap against oracle prices
 func (k Keeper) ValidateSwapWithOracle(ctx context.Context, poolID uint64, tokenIn, tokenOut string, amountIn, expectedOut math.Int, oracleKeeper OracleKeeper) error {
 	// Get oracle prices
@@ -253,6 +329,77 @@ func (k Keeper) ValidateSwapWithOracle(ctx context.Context, poolID uint64, token
 		return types.ErrPriceDeviation.Wrapf(
 			"swap output %s deviates from oracle-expected %s (range: %s to %s)",
 			expectedOut, oracleExpectedOut, minAcceptable, maxAcceptable,
+		)
+	}
+
+	return nil
+}
+
+// SEC-3.13: ValidatePoolPriceWithFallback validates pool price against oracle,
+// with fallback to TWAP if oracle is unavailable.
+func (k Keeper) ValidatePoolPriceWithFallback(
+	ctx context.Context,
+	poolID uint64,
+	oracleKeeper OracleKeeper,
+	maxDeviationPercent math.LegacyDec,
+) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	// Get pool
+	pool, err := k.GetPool(ctx, poolID)
+	if err != nil {
+		return fmt.Errorf("ValidatePoolPriceWithFallback: get pool: %w", err)
+	}
+
+	// DIVISION BY ZERO PROTECTION: Validate pool reserves before division
+	if pool.ReserveA.IsZero() || pool.ReserveB.IsZero() {
+		return types.ErrInsufficientLiquidity.Wrap("pool has zero reserves")
+	}
+
+	// Get reference price (oracle with TWAP fallback)
+	refPrice, source, err := k.GetPriceWithTWAPFallback(ctx, poolID, oracleKeeper)
+	if err != nil {
+		// If no price source is available, skip validation with warning
+		sdkCtx.Logger().Warn("no price source available for validation, skipping",
+			"pool_id", poolID,
+			"error", err,
+		)
+		return nil
+	}
+
+	// Calculate pool-based price ratio
+	poolRatio := math.LegacyNewDecFromInt(pool.ReserveB).Quo(math.LegacyNewDecFromInt(pool.ReserveA))
+
+	// Calculate deviation
+	var deviation math.LegacyDec
+	if refPrice.GT(poolRatio) {
+		if refPrice.IsZero() {
+			return types.ErrOraclePrice.Wrap("reference price is zero")
+		}
+		deviation = refPrice.Sub(poolRatio).Quo(refPrice)
+	} else {
+		if poolRatio.IsZero() {
+			return types.ErrInvalidPoolState.Wrap("pool ratio is zero")
+		}
+		deviation = poolRatio.Sub(refPrice).Quo(poolRatio)
+	}
+
+	// Log the source used
+	sdkCtx.Logger().Debug("pool price validation",
+		"pool_id", poolID,
+		"price_source", source,
+		"ref_price", refPrice.String(),
+		"pool_ratio", poolRatio.String(),
+		"deviation", deviation.String(),
+	)
+
+	// Check if deviation exceeds threshold
+	if deviation.GT(maxDeviationPercent) {
+		return types.ErrPriceDeviation.Wrapf(
+			"pool price deviates %s%% from %s price, exceeds max %s%%",
+			deviation.Mul(math.LegacyNewDec(100)),
+			source,
+			maxDeviationPercent.Mul(math.LegacyNewDec(100)),
 		)
 	}
 

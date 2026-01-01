@@ -80,13 +80,14 @@ func buildVerificationProofWithKey(t *testing.T, requestID uint64, outputHash, c
 	stateCommitment := stateHasher.Sum(nil)
 
 	proof := types.VerificationProof{
-		PublicKey:       pubKey,
-		MerkleRoot:      merkleRoot,
-		MerkleProof:     merkleProof,
-		StateCommitment: stateCommitment,
-		ExecutionTrace:  execTrace,
-		Nonce:           1,
-		Timestamp:       time.Now().Unix(),
+		PublicKey:            pubKey,
+		MerkleRoot:           merkleRoot,
+		MerkleProof:          merkleProof,
+		StateCommitment:      stateCommitment,
+		ExecutionTrace:       execTrace,
+		Nonce:                1,
+		Timestamp:            time.Now().Unix(),
+		HashAlgorithmVersion: types.HashAlgorithmSHA256, // SEC-3.4: Explicitly set hash algorithm version
 	}
 
 	message := proof.ComputeMessageHash(requestID, outputHash)
@@ -110,6 +111,11 @@ func buildVerificationProofWithKey(t *testing.T, requestID uint64, outputHash, c
 	tsBz := make([]byte, 8)
 	binary.BigEndian.PutUint64(tsBz, uint64(proof.Timestamp))
 	buf.Write(tsBz)
+
+	// SEC-3.4: Include hash algorithm version in serialized proof
+	hashAlgBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(hashAlgBz, proof.HashAlgorithmVersion)
+	buf.Write(hashAlgBz)
 
 	return buf.Bytes()
 }

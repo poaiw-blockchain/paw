@@ -12,18 +12,26 @@ import (
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
+// Key prefixes for v1->v2 migration.
+// NOTE: These are intentionally duplicated from keeper/keys.go rather than imported.
+// Migrations must use the key prefixes as they existed at the version being migrated FROM.
+// If keeper/keys.go changes in future versions, old migrations must still work with
+// the original key layout. Importing from keeper would create import cycles and could
+// break migrations if keys are ever modified.
+// See keeper/keys.go for the canonical current key definitions.
 var (
-	// Key prefixes - MUST match the keeper (see keeper/keys.go)
-	RequestKeyPrefix          = []byte{0x01, 0x03}
-	ProviderKeyPrefix         = []byte{0x01, 0x02}
-	ParamsKey                 = []byte{0x01, 0x01}
-	NextRequestIDKey          = []byte{0x01, 0x05}
-	RequestsByProviderPrefix  = []byte{0x01, 0x07}
-	RequestsByStatusPrefix    = []byte{0x01, 0x08}
-	ActiveProvidersPrefix     = []byte{0x01, 0x09}
+	RequestKeyPrefix         = []byte{0x01, 0x03}
+	ProviderKeyPrefix        = []byte{0x01, 0x02}
+	ParamsKey                = []byte{0x01, 0x01}
+	NextRequestIDKey         = []byte{0x01, 0x05}
+	RequestsByProviderPrefix = []byte{0x01, 0x07}
+	RequestsByStatusPrefix   = []byte{0x01, 0x08}
+	ActiveProvidersPrefix    = []byte{0x01, 0x09}
 )
 
-// Additional key prefixes for escrow migration (must match keeper keys)
+// Escrow key prefixes for migration.
+// EscrowStateKeyPrefix and EscrowTimeoutPrefix are legacy keys from v1.
+// EscrowTimeoutReversePrefix matches keeper/keys.go (0x01, 0x1D).
 var (
 	EscrowStateKeyPrefix       = []byte{0x20}
 	EscrowTimeoutPrefix        = []byte{0x21}

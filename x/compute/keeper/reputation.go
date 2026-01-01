@@ -78,7 +78,7 @@ func (k Keeper) UpdateReputationAdvanced(ctx context.Context, provider sdk.AccAd
 	now := sdkCtx.BlockTime()
 
 	// Apply time-based decay before updating
-	if err := k.applyReputationDecay(rep, now); err != nil {
+	if err := k.applyReputationDecay(ctx, rep, now); err != nil {
 		return fmt.Errorf("failed to apply reputation decay: %w", err)
 	}
 
@@ -175,15 +175,22 @@ func (k Keeper) UpdateReputationAdvanced(ctx context.Context, provider sdk.AccAd
 
 // applyReputationDecay applies time-based decay to reputation scores
 // This ensures old good behavior doesn't protect against new bad behavior
-func (k Keeper) applyReputationDecay(rep *ProviderReputation, currentTime time.Time) error {
+// The decay rate is governance-configurable via the ReputationDecayPercent parameter
+func (k Keeper) applyReputationDecay(ctx context.Context, rep *ProviderReputation, currentTime time.Time) error {
 	// Calculate time elapsed since last decay
 	elapsed := currentTime.Sub(rep.LastDecayTimestamp)
 	if elapsed < 24*time.Hour {
 		return nil // Decay once per day
 	}
 
-	// Decay factor: 1% per day towards neutral (0.5)
-	decayRate := 0.01
+	// Get decay rate from governance parameters (in basis points, 100 = 1%)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return fmt.Errorf("applyReputationDecay: failed to get params: %w", err)
+	}
+
+	// Convert basis points to decimal (100 basis points = 1% = 0.01)
+	decayRate := float64(params.ReputationDecayPercent) / 10000.0
 	daysElapsed := elapsed.Hours() / 24.0
 
 	// Decay each dimension towards 0.5 (neutral)

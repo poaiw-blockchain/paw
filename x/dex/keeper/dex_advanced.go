@@ -461,11 +461,16 @@ func (k Keeper) ValidatePriceImpact(amountIn, reserveIn, reserveOut, amountOut m
 }
 
 // ValidateSwapSize checks that swap size isn't too large (MEV protection)
+// SEC-3.6: Uses GTE (>=) instead of GT (>) for proper boundary validation.
+// This ensures that swaps exactly at the boundary limit are also rejected,
+// providing consistent protection at the configured threshold.
 func (k Keeper) ValidateSwapSize(amountIn, reserveIn math.Int) error {
 	swapPercentage := math.LegacyNewDecFromInt(amountIn).
 		Quo(math.LegacyNewDecFromInt(reserveIn))
 
-	if swapPercentage.GT(defaultMEVConfig.MaxSwapPercentage) {
+	// SEC-3.6: Use GTE (>=) to reject swaps AT or ABOVE the max percentage
+	// Previously used GT (>), which allowed swaps exactly at the boundary
+	if swapPercentage.GTE(defaultMEVConfig.MaxSwapPercentage) {
 		return types.ErrSwapTooLarge.Wrapf(
 			"swap size %s%% of reserve exceeds maximum %s%%",
 			swapPercentage.Mul(math.LegacyNewDec(100)),

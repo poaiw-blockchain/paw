@@ -12,15 +12,22 @@ import (
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 
+// Key prefixes for v1->v2 migration.
+// NOTE: These are intentionally duplicated from keeper/keys.go rather than imported.
+// Migrations must use the key prefixes as they existed at the version being migrated FROM.
+// If keeper/keys.go changes in future versions, old migrations must still work with
+// the original key layout. Importing from keeper would create import cycles and could
+// break migrations if keys are ever modified.
+// See keeper/keys.go for the canonical current key definitions.
 var (
-	// Key prefixes - must match the keeper (with module namespace 0x03)
 	PriceKeyPrefix           = []byte{0x03, 0x02}
 	ValidatorOracleKeyPrefix = []byte{0x03, 0x04}
 	ValidatorPriceKeyPrefix  = []byte{0x03, 0x03}
 	ParamsKey                = []byte{0x03, 0x01}
 	PriceSnapshotKeyPrefix   = []byte{0x03, 0x05}
-	MissCounterKeyPrefix     = []byte{0x03, 0x10}
-	AssetListKey             = []byte{0x03, 0x11}
+	// Migration-specific keys (not in current keeper/keys.go)
+	MissCounterKeyPrefix = []byte{0x03, 0x10}
+	AssetListKey         = []byte{0x03, 0x11}
 )
 
 // Migrate implements store migrations from v1 to v2 for the Oracle module.

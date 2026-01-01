@@ -40,19 +40,20 @@ const (
 	AttributeKeyPendingOperations     = "pending_operations"
 )
 
-// VerificationProof represents a cryptographic proof of correct computation execution.
-// This structure enables multi-layer verification including signatures, merkle proofs,
-// and state transition validation.
-type VerificationProof struct {
-	Signature       []byte   // Ed25519 signature over the result hash
-	PublicKey       []byte   // Provider's public key for signature verification
-	MerkleRoot      []byte   // Root hash of execution trace merkle tree
-	MerkleProof     [][]byte // Merkle inclusion proof path
-	StateCommitment []byte   // Commitment to final computation state
-	ExecutionTrace  []byte   // Deterministic execution log hash
-	Nonce           uint64   // Replay attack prevention nonce
-	Timestamp       int64    // Proof generation timestamp
-}
+// Hash algorithm version constants for VerificationProof.
+// SEC-3.4: These match the HashAlgorithm enum in state.proto.
+const (
+	// HashAlgorithmSHA256 is the default hash algorithm (version 1).
+	HashAlgorithmSHA256 uint32 = 1
+	// HashAlgorithmSHA3_256 is reserved for future use (version 2).
+	HashAlgorithmSHA3_256 uint32 = 2
+	// HashAlgorithmBLAKE3 is reserved for future use (version 3).
+	HashAlgorithmBLAKE3 uint32 = 3
+)
+
+// NOTE: VerificationProof struct is now generated from proto in state.pb.go
+// The struct definition was moved to proto/paw/compute/v1/state.proto
+// for proper serialization support. The methods below extend the generated type.
 
 // Validate performs structural validation of the verification proof.
 func (vp *VerificationProof) Validate() error {
@@ -92,6 +93,13 @@ func (vp *VerificationProof) Validate() error {
 
 	if vp.Timestamp <= 0 {
 		return fmt.Errorf("timestamp must be positive")
+	}
+
+	// SEC-3.4: Validate hash algorithm version.
+	// Version 0 is treated as version 1 (SHA256) for backwards compatibility.
+	// Currently only SHA256 (version 0 or 1) is supported.
+	if vp.HashAlgorithmVersion > HashAlgorithmSHA256 {
+		return fmt.Errorf("unsupported hash algorithm version: %d (only version 0 or 1 supported)", vp.HashAlgorithmVersion)
 	}
 
 	return nil

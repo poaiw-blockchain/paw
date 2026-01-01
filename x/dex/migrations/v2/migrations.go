@@ -12,9 +12,14 @@ import (
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
+// Key prefixes for v1->v2 migration.
+// NOTE: These are intentionally duplicated from keeper/keys.go rather than imported.
+// Migrations must use the key prefixes as they existed at the version being migrated FROM.
+// If keeper/keys.go changes in future versions, old migrations must still work with
+// the original key layout. Importing from keeper would create import cycles and could
+// break migrations if keys are ever modified.
+// See keeper/keys.go for the canonical current key definitions.
 var (
-	// Key prefixes - MUST match current namespaced prefixes in keeper/keys.go
-	// All DEX module keys use 0x02 namespace prefix
 	PoolKeyPrefix             = []byte{0x02, 0x01}
 	PoolCounterKey            = []byte{0x02, 0x02}
 	ParamsKey                 = []byte{0x02, 0x05}
