@@ -393,12 +393,10 @@ func (ms msgServer) UpdateGovernanceParams(goCtx context.Context, msg *types.Msg
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, types.ErrValidationFailed.Wrap(err.Error())
 	}
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		return nil, types.ErrInvalidAddress.Wrapf("invalid authority: %v", err)
-	}
-	if authority.String() != ms.Keeper.authority {
-		return nil, types.ErrUnauthorized.Wrapf("expected %s", ms.Keeper.authority)
+
+	// Validate authority
+	if err := sharedkeeper.ValidateAuthority(ms.Keeper.authority, msg.Authority); err != nil {
+		return nil, err
 	}
 
 	if err := ms.Keeper.SetGovernanceParams(ctx, msg.Params); err != nil {

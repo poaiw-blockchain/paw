@@ -73,7 +73,7 @@
 
 ### SEC-3: Low Priority (Post-Mainnet Enhancement)
 
-- [ ] **SEC-3.1**: Create `ValidateAuthority()` helper for consistent auth checks
+- [x] **SEC-3.1**: Create `ValidateAuthority()` helper for consistent auth checks *(x/shared/keeper/authority.go + updated oracle/compute modules)*
 - [ ] **SEC-3.2**: Add upper bounds to ComputeSpec validation (MaxCPU=256, MaxMem=512GB, MaxStorage=10TB)
 - [ ] **SEC-3.3**: Add overflow check for batch deposit accumulation
 - [ ] **SEC-3.4**: Add hash algorithm version field to VerificationProof proto
