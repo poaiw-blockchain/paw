@@ -130,7 +130,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 
 // ConsensusVersion implements AppModule/ConsensusVersion.
 // It returns the current consensus version of the module.
-func (AppModule) ConsensusVersion() uint64 { return 2 }
+func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // GenerateGenesisState performs the compute module's genesis initialization.
 func (am AppModule) GenerateGenesisState(simState *module.SimulationState) {
