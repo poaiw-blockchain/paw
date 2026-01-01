@@ -1,0 +1,36 @@
+PAW Blockchain
+Copyright 2024-2025 Aequitas Foundation
+
+This product includes software developed by the Aequitas Foundation
+(https://poaiw.org).
+
+Licensed under the Apache License, Version 2.0.
+
+--------------------------------------------------------------------------------
+
+PAW (Proof of AI Work) is a decentralized AI compute marketplace built on
+the Cosmos SDK, featuring IBC interoperability, a native DEX, and oracle
+infrastructure for AI workload verification.
+
+Project Maintainer: Jeff DeCristofaro <info@poaiw.org>
+
+--------------------------------------------------------------------------------
+
+Third-Party Components:
+
+This software includes the following third-party components:
+
+- Cosmos SDK (https://github.com/cosmos/cosmos-sdk)
+  Licensed under the Apache License, Version 2.0
+
+- CometBFT (https://github.com/cometbft/cometbft)
+  Licensed under the Apache License, Version 2.0
+
+- IBC-Go (https://github.com/cosmos/ibc-go)
+  Licensed under the Apache License, Version 2.0
+
+- IAVL (https://github.com/cosmos/iavl)
+  Licensed under the Apache License, Version 2.0
+
+For complete license information for all dependencies, see the LICENSE
+files in the vendor/ directory or the go.mod file.
