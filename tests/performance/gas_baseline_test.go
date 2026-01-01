@@ -5,6 +5,7 @@ package performance
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -214,9 +215,12 @@ func (suite *GasBaselineTestSuite) TestLimitOrderGasBaseline() {
 	orderCounter := 0
 	result := suite.measureGas("PlaceLimitOrder", 50, 90000, func(ctx sdk.Context) error {
 		orderCounter++
-		_, err := suite.k.PlaceLimitOrder(ctx, owner, pool.Id, "upaw", "uusdt",
+		_, err := suite.k.PlaceLimitOrder(ctx, owner, pool.Id,
+			keeper.OrderTypeBuy, // Order type
+			"upaw", "uusdt",
 			math.NewInt(10000),
 			math.LegacyNewDecWithPrec(11, 1), // 1.1 price
+			24*time.Hour,                     // Expiry duration
 		)
 		return err
 	})
