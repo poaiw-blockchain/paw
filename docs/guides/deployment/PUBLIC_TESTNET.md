@@ -65,13 +65,13 @@ The script:
 
 **Recommended public endpoints (update DNS after deployment):**
 
-| Role  | Endpoint                   | Notes                        |
-|-------|----------------------------|------------------------------|
-| RPC   | `https://rpc1.paw-testnet.io` | Reverse proxy to node1:26657 |
-| RPC   | `https://rpc2.paw-testnet.io` | Reverse proxy to node2:26657 |
-| gRPC  | `https://grpc.paw-testnet.io:443` | Proxy to node1:9090          |
-| REST  | `https://api.paw-testnet.io` | Proxy to node1:1317          |
-| Faucet| `https://faucet.paw-testnet.io` | Wraps `scripts/faucet.sh`     |
+| Role  | Endpoint placeholder | Notes                        |
+|-------|----------------------|------------------------------|
+| RPC   | `<rpc-endpoint-1>`   | Reverse proxy to node1:26657 |
+| RPC   | `<rpc-endpoint-2>`   | Reverse proxy to node2:26657 |
+| gRPC  | `<grpc-endpoint>`    | Proxy to node1:9090          |
+| REST  | `<api-endpoint>`     | Proxy to node1:1317          |
+| Faucet| `<faucet-endpoint>`  | Wraps `scripts/faucet.sh`     |
 
 Expose the endpoints via load balancers/Cloud Armor as appropriate before inviting external validators.
 
@@ -116,8 +116,8 @@ Validate the repo copy before distribution:
 Populate `paw-testnet-1-peer-metadata.txt` with the canonical set:
 
 ```
-seeds = "seed1@seed1.paw-testnet.io:26656,seed2@seed2.paw-testnet.io:26656"
-persistent_peers = "node1id@rpc1.paw-testnet.io:26656,node2id@rpc2.paw-testnet.io:26656"
+seeds = "seed1@<seed-host-1>:26656,seed2@<seed-host-2>:26656"
+persistent_peers = "node1id@<rpc-endpoint-1>:26656,node2id@<rpc-endpoint-2>:26656"
 ```
 
 Keep this file updated when adding new sentry nodes so validators can bootstrap quickly.
@@ -130,13 +130,13 @@ Share the following links (update hosts if you use a different domain):
 
 | Artifact | Location |
 |----------|----------|
-| Genesis JSON | `https://networks.paw.xyz/paw-testnet-1/genesis.json` *(publish real file only—placeholder content in repo for automation)* |
-| Genesis SHA | `https://networks.paw.xyz/paw-testnet-1/genesis.sha256` *(update checksum after uploading final genesis)* |
-| Seed/Peer List | `https://networks.paw.xyz/paw-testnet-1/peers.txt` *(replace placeholders with live sentry peers before distribution)* |
-| Faucet | `https://faucet.paw-testnet.io` |
-| Explorer | `https://explorer.paw-testnet.io` |
-| Docs | `https://docs.paw.xyz/paw-testnet` |
-| Discord/Support | `https://discord.gg/paw` |
+| Genesis JSON | `networks/paw-testnet-1/genesis.json` (host via your CDN) |
+| Genesis SHA | `networks/paw-testnet-1/genesis.sha256` |
+| Seed/Peer List | `networks/paw-testnet-1/peers.txt` |
+| Faucet | `<faucet-endpoint>` |
+| Explorer | `<explorer-endpoint>` |
+| Docs | `docs/TESTNET_QUICK_REFERENCE.md` |
+| Support | https://github.com/paw-chain/paw/issues |
 
 ---
 
@@ -155,19 +155,20 @@ Operators can follow these steps (also link to `docs/guides/VALIDATOR_QUICKSTART
    ```
 3. **Download & verify genesis**
    ```bash
-   curl -o ~/.paw/config/genesis.json https://networks.paw.xyz/paw-testnet-1/genesis.json
-   shasum -a 256 ~/.paw/config/genesis.json  # compare to published checksum
+   curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json
+   curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256
+   (cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)
    ```
 4. **Configure seeds/persistent peers**
    ```bash
-   PEERS="node1id@rpc1.paw-testnet.io:26656,node2id@rpc2.paw-testnet.io:26656"
-   SEEDS="seed1@seed1.paw-testnet.io:26656,seed2@seed2.paw-testnet.io:26656"
+   PEERS="node1id@<rpc-endpoint-1>:26656,node2id@<rpc-endpoint-2>:26656"
+   SEEDS="seed1@<seed-host-1>:26656,seed2@<seed-host-2>:26656"
    sed -i "s/^persistent_peers = .*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
    sed -i "s/^seeds = .*/seeds = \"$SEEDS\"/" ~/.paw/config/config.toml
    ```
 5. **Set minimum gas price**
    ```bash
-   sed -i 's/^minimum-gas-prices =.*/minimum-gas-prices = "0.025upaw"/' ~/.paw/config/app.toml
+   sed -i 's/^minimum-gas-prices =.*/minimum-gas-prices = "0.001upaw"/' ~/.paw/config/app.toml
    ```
 6. **Start the node**
    ```bash

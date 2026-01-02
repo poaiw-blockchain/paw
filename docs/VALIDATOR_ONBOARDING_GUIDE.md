@@ -1,7 +1,7 @@
 # PAW Blockchain - External Validator Onboarding Guide
 
-**Version:** 1.0
-**Last Updated:** 2025-12-14
+**Version:** 1.1
+**Last Updated:** 2026-01-12
 **Network:** paw-testnet-1
 **Status:** Public Testnet Open for External Validators
 
@@ -74,7 +74,7 @@ Network: 1 Gbps symmetric, <50ms latency, DDoS protection
 
 ### Software Requirements
 
-- Go 1.23+ (for building `pawd`)
+- Go 1.24+ (for building `pawd`)
 - Git
 - Make
 - jq (JSON processor)
@@ -128,11 +128,11 @@ sudo apt update && sudo apt upgrade -y
 # Install build dependencies
 sudo apt install -y build-essential git curl jq unzip systemd wget
 
-# Install Go 1.23.5
+# Install Go 1.24.11
 cd /tmp
-wget https://go.dev/dl/go1.23.5.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.24.11.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.23.5.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.11.linux-amd64.tar.gz
 
 # Add Go to PATH
 cat <<'EOF' >> ~/.bashrc
@@ -144,7 +144,7 @@ source ~/.bashrc
 
 # Verify Go installation
 go version
-# Expected: go version go1.23.5 linux/amd64
+# Expected: go version go1.24.11 linux/amd64
 ```
 
 ### Step 3: Build PAW Binary
@@ -152,7 +152,7 @@ go version
 ```bash
 # Clone repository
 cd ~
-git clone https://github.com/decristofaroj/paw.git
+git clone https://github.com/paw-chain/paw.git
 cd paw
 
 # Checkout latest stable release (or specific version)
@@ -193,11 +193,11 @@ pawd init "$MONIKER" --chain-id $CHAIN_ID
 
 ```bash
 # Download official genesis file
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.json \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
   > ~/.paw/config/genesis.json
 
 # Download genesis checksum for verification
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.sha256 \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 \
   > /tmp/genesis.sha256
 
 # Verify genesis integrity
@@ -206,7 +206,7 @@ sha256sum -c /tmp/genesis.sha256
 # Expected: genesis.json: OK
 
 # Download persistent peers list
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/peers.txt \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt \
   > /tmp/peers.txt
 
 # Extract peer list (format: node-id@ip:port,node-id@ip:port,...)
@@ -361,17 +361,21 @@ pawd status | jq '.SyncInfo'
 
 **Option B: State Sync (Fast - Recommended)**
 
-Contact PAW team for state sync configuration or use public RPC endpoints:
+Use RPC endpoints listed in `docs/TESTNET_QUICK_REFERENCE.md`:
 
 ```bash
+# Set RPC endpoints from the quick reference
+RPC_1="https://<rpc-endpoint-1>"
+RPC_2="https://<rpc-endpoint-2>"
+
 # Get latest block height and trust hash
-LATEST_HEIGHT=$(curl -s https://rpc.paw-testnet.io/block | jq -r .result.block.header.height)
+LATEST_HEIGHT=$(curl -s ${RPC_1}/block | jq -r .result.block.header.height)
 BLOCK_HEIGHT=$((LATEST_HEIGHT - 2000))
-TRUST_HASH=$(curl -s "https://rpc.paw-testnet.io/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
+TRUST_HASH=$(curl -s "${RPC_1}/block?height=$BLOCK_HEIGHT" | jq -r .result.block_id.hash)
 
 # Update config.toml
 sed -i.bak -E "s|^(enable[[:space:]]+=[[:space:]]+).*$|\1true| ; \
-s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"https://rpc.paw-testnet.io:443,https://rpc2.paw-testnet.io:443\"| ; \
+s|^(rpc_servers[[:space:]]+=[[:space:]]+).*$|\1\"${RPC_1},${RPC_2}\"| ; \
 s|^(trust_height[[:space:]]+=[[:space:]]+).*$|\1$BLOCK_HEIGHT| ; \
 s|^(trust_hash[[:space:]]+=[[:space:]]+).*$|\1\"$TRUST_HASH\"|" ~/.paw/config/config.toml
 
@@ -381,24 +385,7 @@ pawd start --home ~/.paw
 
 **Option C: Snapshot Restore (Fastest)**
 
-If PAW team provides snapshots:
-
-```bash
-# Download snapshot
-wget https://snapshots.paw-testnet.io/paw-testnet-1-latest.tar.gz
-
-# Stop node if running
-sudo systemctl stop pawd
-
-# Reset data (keeps address book)
-pawd tendermint unsafe-reset-all --home ~/.paw --keep-addr-book
-
-# Extract snapshot
-tar -xzf paw-testnet-1-latest.tar.gz -C ~/.paw/data
-
-# Start node
-sudo systemctl start pawd
-```
+If a snapshot is published (see `networks/paw-testnet-1/STATUS.md`), follow the provided download and extraction instructions before restarting the node.
 
 ### Step 9: Create systemd Service
 
@@ -481,8 +468,9 @@ pawd status | jq '.SyncInfo.catching_up'
 # Check current block height
 pawd status | jq '.SyncInfo.latest_block_height'
 
-# Compare with network height (via RPC)
-curl -s https://rpc.paw-testnet.io/status | jq '.result.sync_info.latest_block_height'
+# Compare with network height (use RPC endpoint from quick reference)
+RPC_1="https://<rpc-endpoint>"
+curl -s ${RPC_1}/status | jq '.result.sync_info.latest_block_height'
 ```
 
 **Sync is complete when:**
@@ -494,42 +482,10 @@ curl -s https://rpc.paw-testnet.io/status | jq '.result.sync_info.latest_block_h
 
 ## Network Information
 
-### Chain Details
-
-```yaml
-Chain ID: paw-testnet-1
-Genesis Time: 2025-12-13T00:00:00Z
-Block Time: ~3 seconds
-Consensus: CometBFT (Tendermint)
-Denom: upaw (micro-PAW)
-```
-
-### Public Endpoints
-
-| Service | URL | Purpose |
-|---------|-----|---------|
-| RPC | https://rpc.paw-testnet.io | Query blockchain, submit transactions |
-| REST | https://api.paw-testnet.io | REST API queries |
-| gRPC | https://grpc.paw-testnet.io:443 | gRPC queries |
-| Explorer | https://explorer.paw-testnet.io | Block explorer |
-| Faucet | https://faucet.paw-testnet.io | Request testnet tokens |
-
-### Persistent Peers
-
-See `networks/paw-testnet-1/peers.txt` for current list.
-
-```bash
-# Example format (actual peers in repository)
-node-id@ip:26656
-node-id@ip:26656
-```
-
-### Genesis File
-
-```bash
-URL: https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.json
-SHA256: <see genesis.sha256 file>
-```
+- Chain ID: `paw-testnet-1`
+- Denomination: `upaw`
+- Artifacts: `networks/paw-testnet-1/` (`genesis.json`, `genesis.sha256`, `peers.txt`, templates, STATUS.md)
+- Live endpoints and faucet: see `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-testnet-1/STATUS.md`.
 
 ---
 
@@ -651,14 +607,14 @@ pawd query staking validator $VALOPER_ADDR | jq '.tokens'
 - [ ] Log aggregation setup (Loki, ELK, or CloudWatch)
 - [ ] Daily automated backups of keys
 
-See [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md) for complete setup.
+See [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md) for complete setup.
 
 ### Operational Readiness
 
 - [ ] Documentation of node IP, ports, and credentials
 - [ ] Emergency contact list documented
 - [ ] Runbook for common scenarios (restart, upgrade, unjail)
-- [ ] Discord/Telegram joined for validator announcements
+- [ ] Communication channel documented for validator announcements and incident coordination
 - [ ] GitHub watch enabled for PAW repository (releases/upgrades)
 - [ ] Calendar reminders for governance voting
 
@@ -674,46 +630,7 @@ See [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md) for complete setup.
 
 ## Getting Testnet Tokens
 
-### Faucet Request Process
-
-**Option 1: Web Faucet**
-
-```
-URL: https://faucet.paw-testnet.io
-Amount: 10,000,000 upaw (10 PAW) per request
-Rate Limit: 1 request per address per 24 hours
-```
-
-Steps:
-1. Navigate to faucet URL
-2. Enter your operator address
-3. Complete CAPTCHA
-4. Submit request
-5. Tokens arrive within 1-2 minutes
-
-**Option 2: Discord Faucet Bot**
-
-```
-Server: https://discord.gg/paw-blockchain
-Channel: #testnet-faucet
-Command: !faucet <your-address>
-```
-
-**Option 3: Manual Request (For Large Amounts)**
-
-For validators needing more than faucet limit:
-
-```
-Email: testnet-faucet@paw.network
-Subject: Testnet Validator Token Request
-
-Body:
-- Validator moniker: <your-moniker>
-- Operator address: <paw1...>
-- Amount requested: <amount> upaw
-- Purpose: Validator self-delegation
-- Node status: <systemctl status pawd output>
-```
+Use the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md` (and `networks/paw-testnet-1/STATUS.md` when available). Request only what you need for validator creation and fees.
 
 ### Verify Token Receipt
 
@@ -781,7 +698,7 @@ pawd tx gov vote <proposal-id> yes \
 
 When a chain upgrade is announced:
 
-1. **Join validator Discord/Telegram** for real-time coordination
+1. **Monitor release announcements** (GitHub releases and `networks/paw-testnet-1/STATUS.md`) for coordination details
 2. **Read upgrade proposal** carefully
 3. **Download new binary** or build from source (new version tag)
 4. **Test on separate testnet** if possible
@@ -939,50 +856,18 @@ sudo systemctl restart pawd
 
 ## Support and Community
 
-### Official Channels
-
-| Platform | Link | Purpose |
-|----------|------|---------|
-| **Discord** | https://discord.gg/paw-blockchain | Real-time support, announcements |
-| **Telegram** | https://t.me/pawvalidators | Validator-specific channel |
-| **Forum** | https://forum.paw.network | Technical discussions |
-| **GitHub** | https://github.com/decristofaroj/paw | Code, issues, releases |
-| **Twitter** | https://twitter.com/PAWBlockchain | Network status, updates |
-
-### Getting Help
-
-**Before asking for help:**
-1. Check this documentation
-2. Search Discord/Telegram history
-3. Review GitHub issues
-4. Check logs: `sudo journalctl -u pawd -n 200`
-
-**When asking for help, provide:**
-- Node version: `pawd version`
-- Chain ID: `paw-testnet-1`
-- Sync status: `pawd status | jq '.SyncInfo'`
-- Error logs: `sudo journalctl -u pawd -n 50 | grep -i error`
-- Configuration (redact sensitive info)
+- Issues and operational questions: https://github.com/paw-chain/paw/issues
+- Security reports: follow `SECURITY.md` for responsible disclosure.
+- When requesting help, include `pawd version`, sync status (`pawd status | jq '.SyncInfo'`), and recent logs (`journalctl -u pawd -n 200`).
 
 ### Validator Resources
 
-- **Documentation:** https://docs.paw.network
-- **Hardware Guide:** [VALIDATOR_HARDWARE_REQUIREMENTS.md](./VALIDATOR_HARDWARE_REQUIREMENTS.md)
+- **Hardware:** [VALIDATOR_HARDWARE_REQUIREMENTS.md](./VALIDATOR_HARDWARE_REQUIREMENTS.md)
 - **Key Management:** [VALIDATOR_KEY_MANAGEMENT.md](./VALIDATOR_KEY_MANAGEMENT.md)
-- **Security Best Practices:** [VALIDATOR_SECURITY.md](./VALIDATOR_SECURITY.md)
 - **Economics:** [VALIDATOR_ECONOMICS.md](./VALIDATOR_ECONOMICS.md)
-- **Monitoring:** [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md)
-- **Operator Guide:** [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md)
-
-### Emergency Contacts
-
-**Critical infrastructure issues:**
-- Email: validators@paw.network
-- Emergency hotline: (Available for top validators)
-
-**Security issues:**
-- Email: security@paw.network
-- PGP Key: https://paw.network/security-pgp-key.txt
+- **Observability:** [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md)
+- **Operations:** [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md)
+- **Sentry Topology:** [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md)
 
 ---
 
@@ -990,14 +875,11 @@ sudo systemctl restart pawd
 
 Now that your validator is set up:
 
-1. **Join the community:** Discord, Telegram
-2. **Complete monitoring setup:** [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md)
-3. **Harden security:** [VALIDATOR_SECURITY.md](./VALIDATOR_SECURITY.md)
-4. **Learn economics:** [VALIDATOR_ECONOMICS.md](./VALIDATOR_ECONOMICS.md)
-5. **Participate in governance:** Vote on active proposals
-6. **Share your moniker:** Announce on Discord/Twitter
-7. **Attract delegators:** Create validator website, social presence
-8. **Prepare for mainnet:** Review mainnet checklist when available
+1. Complete observability setup: [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md).
+2. Review operational runbooks: [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md) and [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md) if exposing public endpoints.
+3. Keep peers and templates current from `networks/paw-testnet-1/`.
+4. Participate in governance once proposals are live.
+5. Test backups and key recovery quarterly.
 
 ---
 
@@ -1005,15 +887,15 @@ Now that your validator is set up:
 
 We're constantly improving this documentation. If you found errors, have suggestions, or want to contribute:
 
-- **Open an issue:** https://github.com/decristofaroj/paw/issues
-- **Submit a PR:** https://github.com/decristofaroj/paw/pulls
+- **Open an issue:** https://github.com/paw-chain/paw/issues
+- **Submit a PR:** https://github.com/paw-chain/paw/pulls
 - **Email feedback:** docs@paw.network
 
-Thank you for becoming a PAW validator! Together we're building a secure, decentralized network.
+Thank you for becoming a PAW validator.
 
 ---
 
-**Last Updated:** 2025-12-14
-**Version:** 1.0
-**Maintainer:** PAW Blockchain Validator Operations Team
+**Last Updated:** 2026-01-12
+**Version:** 1.1
+**Maintainer:** PAW Validator Operations Team
 **License:** Apache 2.0

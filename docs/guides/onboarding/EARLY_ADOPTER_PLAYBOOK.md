@@ -3,8 +3,8 @@
 Actions and links for new users, operators, and contributors to get productive immediately on `paw-testnet-1`.
 
 ## 1) Get Funded & Connect
-- Faucet: `https://faucet.paw-testnet.io` (or `./scripts/faucet.sh --check https://rpc1.paw-testnet.io <addr> 1000000upaw`).
-- Status: `https://status.paw-testnet.io` (RPC/REST/gRPC/Explorer/Faucet/metrics health).
+- Faucet: see `docs/TESTNET_QUICK_REFERENCE.md` (or `./scripts/faucet.sh --check <rpc-endpoint> <addr> 1000000upaw` using the published RPC endpoints).
+- Status/endpoints: tracked in `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-testnet-1/STATUS.md`.
 - Wallets: desktop + browser extension + mobile (`wallet/mobile/ONBOARDING_GUIDE.md`).
 - Light RPC endpoints (wallet-friendly): use a local light profile per `docs/guides/onboarding/LIGHT_CLIENT_PROFILE.md` or the published RPCs in `networks/paw-testnet-1/paw-testnet-1-manifest.json`.
 
@@ -29,7 +29,7 @@ Actions and links for new users, operators, and contributors to get productive i
 ## 5) Support Channels
 - Discord: `#validator-tech` (operators), `#wallet-help` (end users).
 - Forum: https://forum.paw.network for proposals/RCAs.
-- Incident updates: `https://status.paw-testnet.io` + Discord `#announcements`.
+- Incident updates: monitor `networks/paw-testnet-1/STATUS.md` and repository releases.
 
 ## 6) Next Steps After Testnet
 - Rotate to mainnet by swapping chain ID + artifact URLs (same onboarding scripts).

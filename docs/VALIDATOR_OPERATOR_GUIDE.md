@@ -183,7 +183,7 @@ go version
 ```bash
 # Clone repository
 cd ~
-git clone https://github.com/decristofaroj/paw.git
+git clone https://github.com/paw-chain/paw.git
 cd paw
 
 # Checkout latest stable release
@@ -203,20 +203,18 @@ pawd version
 #### Step 3: Initialize Node
 
 ```bash
-# Set chain ID (mainnet or testnet)
-CHAIN_ID="paw-mainnet-1"  # or "paw-testnet-1"
+# Set chain ID (testnet)
+CHAIN_ID="paw-testnet-1"
 
 # Initialize node with unique moniker
 pawd init "<your-validator-name>" --chain-id $CHAIN_ID
 
-# Download genesis file
-# Mainnet:
-curl https://raw.githubusercontent.com/decristofaroj/paw/main/genesis.json \
+# Download genesis file (testnet)
+curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
   > ~/.paw/config/genesis.json
-
-# Testnet:
-curl https://rpc.testnet.paw.network/genesis | jq -r '.result.genesis' \
-  > ~/.paw/config/genesis.json
+curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 \
+  > /tmp/genesis.sha256
+cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256
 
 # Verify genesis checksum
 sha256sum ~/.paw/config/genesis.json

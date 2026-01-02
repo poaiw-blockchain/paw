@@ -3,26 +3,26 @@
 Purpose-built instructions for joining PAW as either a lightweight state-sync node or a full archival node. These steps cover artifact retrieval, pruning/state-sync settings, metrics, and faucet readiness with one-line bootstrap commands.
 
 ## Quick Start (One-Liners)
-- **Full node (testnet)**: `curl -sL https://raw.githubusercontent.com/decristofaroj/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode full --chain-id paw-testnet-1 --start`
-- **Light node (testnet, wallet RPC)**: `curl -sL https://raw.githubusercontent.com/decristofaroj/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode light --chain-id paw-testnet-1 --rpc https://rpc1.paw-testnet.io --start`
-- Swap `paw-testnet-1` + `networks.paw-testnet.io` with `paw-mainnet-1` + `networks.paw-mainnet.io` once mainnet artifacts are published.
+- **Full node (testnet)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode full --chain-id paw-testnet-1 --start`
+- **Light node (testnet, wallet RPC)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode light --chain-id paw-testnet-1 --rpc <rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md> --start`
+- Swap `paw-testnet-1` with `paw-mainnet-1` when mainnet artifacts are published.
 
 ## Artifact Sources
-- Manifest: `https://networks.paw-testnet.io/paw-testnet-1/paw-testnet-1-manifest.json` (chain_id, checksums, peers, endpoints).
-- Genesis: `https://networks.paw-testnet.io/paw-testnet-1/genesis.json` (verify against manifest `genesis_sha256`).
-- Peers: `https://networks.paw-testnet.io/paw-testnet-1/peers.txt` (persistent peers); seeds currently empty until sentries go live.
-- Bundle: `https://networks.paw-testnet.io/paw-testnet-1-artifacts.tar.gz` (checksum in `paw-testnet-1-artifacts.sha256`).
+- Manifest: `networks/paw-testnet-1/paw-testnet-1-manifest.json` (chain_id, checksums, peers, endpoints).
+- Genesis: `networks/paw-testnet-1/genesis.json` (verify against `genesis.sha256`).
+- Peers: `networks/paw-testnet-1/peers.txt` (persistent peers); seeds currently empty until sentries go live.
+- Bundle: `networks/paw-testnet-1/paw-testnet-1-artifacts.tar.gz` (checksum in `paw-testnet-1-artifacts.sha256`).
 
 ## Manual Install (Full or Light)
-1. **Install binary**: `GO111MODULE=on go install github.com/decristofaroj/paw/cmd/pawd@main` (or `make build && mv build/pawd ~/go/bin/`).
+1. **Install binary**: `GO111MODULE=on go install github.com/paw-chain/paw/cmd/pawd@main` (or `make build && mv build/pawd ~/go/bin/`).
 2. **Init home**: `pawd init <moniker> --chain-id paw-testnet-1 --home ~/.paw`.
 3. **Fetch artifacts**:
    ```bash
-   BASE=https://networks.paw-testnet.io/paw-testnet-1
-   curl -fsSL $BASE/paw-testnet-1-manifest.json -o /tmp/paw-manifest.json
-   curl -fsSL $BASE/genesis.json -o ~/.paw/config/genesis.json
-   sha256sum ~/.paw/config/genesis.json  # compare to manifest.genesis_sha256
-   curl -fsSL $BASE/peers.txt -o ~/.paw/config/peers.txt
+   BASE=networks/paw-testnet-1
+   cp $BASE/paw-testnet-1-manifest.json /tmp/paw-manifest.json
+   cp $BASE/genesis.json ~/.paw/config/genesis.json
+   sha256sum ~/.paw/config/genesis.json && cat $BASE/genesis.sha256
+   cp $BASE/peers.txt ~/.paw/config/peers.txt
    ```
 4. **Wire peers**:
    ```bash
@@ -36,10 +36,10 @@ Purpose-built instructions for joining PAW as either a lightweight state-sync no
    - Light node: `pruning = "custom"`, `pruning-keep-recent = "1000"`, `pruning-interval = "50"`, `snapshot-interval = 0`.
 6. **State sync (light profile)**:
    ```bash
-   RPC=https://rpc1.paw-testnet.io
-   LATEST=$(curl -fsSL $RPC/status | jq -r '.result.sync_info.latest_block_height')
+   RPC="https://<rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md>"
+   LATEST=$(curl -fsSL ${RPC}/status | jq -r '.result.sync_info.latest_block_height')
    TRUST_HEIGHT=$((LATEST-2000)); ((TRUST_HEIGHT>1)) || TRUST_HEIGHT=1
-   TRUST_HASH=$(curl -fsSL "$RPC/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
+   TRUST_HASH=$(curl -fsSL "${RPC}/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
    sed -i '/^\[statesync\]/,/^\[/{s/^enable = .*/enable = true/}' ~/.paw/config/config.toml
    sed -i "/^\[statesync\]/,/^\[/{s|^rpc_servers = .*|rpc_servers = \"$RPC,$RPC\"|}" ~/.paw/config/config.toml
    sed -i "/^\[statesync\]/,/^\[/{s/^trust_height = .*/trust_height = $TRUST_HEIGHT/}" ~/.paw/config/config.toml
@@ -48,7 +48,7 @@ Purpose-built instructions for joining PAW as either a lightweight state-sync no
    ```
 7. **Gas price & APIs**:
    ```bash
-   sed -i 's/^minimum-gas-prices =.*/minimum-gas-prices = "0.025upaw"/' ~/.paw/config/app.toml
+   sed -i 's/^minimum-gas-prices =.*/minimum-gas-prices = "0.001upaw"/' ~/.paw/config/app.toml
    sed -i '/^\[api\]/,/^\[/{s/^enable = .*/enable = true/}' ~/.paw/config/app.toml
    sed -i '/^\[rpc\]/,/^\[/{s/^laddr = .*/laddr = "tcp:\\/\\/0.0.0.0:26657"/}' ~/.paw/config/config.toml
    ```
@@ -57,7 +57,7 @@ Purpose-built instructions for joining PAW as either a lightweight state-sync no
 ## Metrics, Snapshots, Faucet
 - Enable Prometheus + telemetry: `./scripts/enable-node-metrics.sh` then restart the node.
 - Snapshot serving: set `snapshot-interval = 1000`, `snapshot-keep-recent = 10` (full nodes only) to feed state sync peers.
-- Faucet: run `./scripts/faucet.sh --check https://rpc1.paw-testnet.io` before exposing the faucet endpoint; CLI requests use `pawd tx bank send ... --fees 5000upaw`.
+- Faucet: use RPC endpoints from `docs/TESTNET_QUICK_REFERENCE.md` when running `./scripts/faucet.sh --check <rpc-endpoint>`; CLI requests use `pawd tx bank send ... --fees 5000upaw`.
 
 ## Operational Notes
 - Keep `networks/paw-testnet-1/peers.txt` in sync with published sentries; update `config.toml` on rotation.

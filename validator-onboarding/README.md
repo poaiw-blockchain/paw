@@ -1,7 +1,7 @@
 # PAW Blockchain - Validator Onboarding Bundle
 
-**Version:** 1.0
-**Release Date:** 2025-12-14
+**Version:** 1.1
+**Release Date:** 2026-01-12
 **Network:** paw-testnet-1
 
 ---
@@ -22,8 +22,8 @@ Thank you for your interest in becoming a PAW blockchain validator! This bundle 
 | **VALIDATOR_ECONOMICS.md** | Staking, rewards, commission mechanics | All validators |
 | **VALIDATOR_KEY_MANAGEMENT.md** | Comprehensive key security guide | All validators |
 | **VALIDATOR_OPERATOR_GUIDE.md** | Day-to-day operations manual | Validator operators |
-| **VALIDATOR_MONITORING.md** | Monitoring setup with Prometheus/Grafana | DevOps engineers |
-| **VALIDATOR_SECURITY.md** | Security best practices and hardening | Security engineers |
+| **DASHBOARDS_GUIDE.md** | Monitoring dashboards and alerting | DevOps engineers |
+| **OBSERVABILITY.md** | Metrics/logging/alerting overview | DevOps engineers |
 | **SENTRY_ARCHITECTURE.md** | Sentry node setup for DDoS protection | Infrastructure team |
 | **QUICKSTART_PACK.md** | Systemd + Docker Compose bring-up with health checks | Operators |
 
@@ -85,7 +85,7 @@ cat docs/VALIDATOR_QUICK_START.md
 
 ```bash
 # Download genesis
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.json \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
   > ~/.paw/config/genesis.json
 
 # Verify checksum
@@ -127,53 +127,27 @@ cp networks/paw-testnet-1/validator-app.toml.template ~/.paw/config/app.toml
 2. **VALIDATOR_ONBOARDING_GUIDE.md** - Complete setup process
 3. **VALIDATOR_KEY_MANAGEMENT.md** - Secure your keys
 4. **VALIDATOR_ECONOMICS.md** - Understand rewards and commission
-5. **VALIDATOR_MONITORING.md** - Setup monitoring
-6. **VALIDATOR_SECURITY.md** - Harden security
-7. **SENTRY_ARCHITECTURE.md** - (Optional) Advanced DDoS protection
+5. **OBSERVABILITY.md** - Metrics, logging, and alerting
+6. **DASHBOARDS_GUIDE.md** - Prometheus/Grafana dashboards
+7. **VALIDATOR_OPERATOR_GUIDE.md** - Day-to-day operations
+8. **SENTRY_ARCHITECTURE.md** - (Optional) Advanced DDoS protection
 
 ### For Experienced Validators
 
 1. **VALIDATOR_QUICK_START.md** - One-page setup
 2. **VALIDATOR_ECONOMICS.md** - PAW-specific economics
-3. **VALIDATOR_MONITORING.md** - Prometheus/Grafana setup
-4. **VALIDATOR_OPERATOR_GUIDE.md** - Reference manual
+3. **DASHBOARDS_GUIDE.md** - Prometheus/Grafana setup
+4. **OBSERVABILITY.md** - Metrics/logging expectations
+5. **VALIDATOR_OPERATOR_GUIDE.md** - Reference manual
 
 ---
 
 ## Support and Community
 
-### Official Channels
-
-| Platform | Link | Purpose |
-|----------|------|---------|
-| **Discord** | https://discord.gg/paw-blockchain | Real-time support, announcements |
-| **Telegram** | https://t.me/pawvalidators | Validator-specific discussions |
-| **Forum** | https://forum.paw.network | Technical discussions |
-| **GitHub** | https://github.com/decristofaroj/paw | Code, issues, releases |
-| **Twitter** | https://twitter.com/PAWBlockchain | Network status, updates |
-
-### Getting Help
-
-**Before asking:**
-1. Check documentation in this bundle
-2. Search Discord/Telegram history
-3. Review GitHub issues
-
-**When asking, provide:**
-- Node version: `pawd version`
-- Sync status: `pawd status | jq '.SyncInfo'`
-- Error logs: `sudo journalctl -u pawd -n 50`
-
-### Validator Communication
-
-**Subscribe to announcements:**
-- GitHub: Watch repository for releases
-- Discord: #validator-announcements channel
-- Email: validators@paw.network (for critical updates)
-
-**Coordination channels:**
-- Discord: #validator-tech (upgrades, issues)
-- Telegram: @pawvalidators (real-time coordination)
+- Issues and questions: https://github.com/paw-chain/paw/issues
+- Security reports: follow `SECURITY.md` for responsible disclosure.
+- Release notices: watch the GitHub repository for tagged releases.
+- When filing an issue, include `pawd version`, sync status (`pawd status | jq '.SyncInfo'`), and recent logs (`journalctl -u pawd -n 100`).
 
 ---
 
@@ -181,23 +155,15 @@ cp networks/paw-testnet-1/validator-app.toml.template ~/.paw/config/app.toml
 
 ### PAW Testnet-1
 
-```yaml
-Chain ID: paw-testnet-1
-Genesis Time: 2025-12-13T00:00:00Z
-Block Time: ~3 seconds
-Consensus: CometBFT (Tendermint)
-Denomination: upaw (1 PAW = 1,000,000 upaw)
-```
+Key parameters:
+- Chain ID: `paw-testnet-1`
+- Denomination: `upaw`
+- Consensus: CometBFT (Tendermint)
+- Config templates and artifacts: `networks/paw-testnet-1/`
 
 ### Public Endpoints
 
-| Service | URL |
-|---------|-----|
-| RPC | https://rpc.paw-testnet.io |
-| REST | https://api.paw-testnet.io |
-| gRPC | https://grpc.paw-testnet.io:443 |
-| Explorer | https://explorer.paw-testnet.io |
-| Faucet | https://faucet.paw-testnet.io |
+See `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-testnet-1/STATUS.md` for current RPC, API, explorer, and faucet endpoints.
 
 ### Key Dates
 
@@ -236,7 +202,7 @@ Denomination: upaw (1 PAW = 1,000,000 upaw)
 - [ ] Security hardened (firewall, SSH keys, fail2ban)
 - [ ] Backup procedures documented
 - [ ] Emergency contact list created
-- [ ] Joined Discord and Telegram
+- [ ] Communication channel documented for validator announcements
 
 ### Mainnet Preparation
 
@@ -324,13 +290,11 @@ Total: ~$530/month or $6,360/year
 
 After setting up your validator:
 
-1. **Announce yourself:** Discord #validator-introductions
-2. **Create website/identity:** Attract delegators with professional presence
-3. **Participate in governance:** Vote on all proposals
-4. **Engage community:** Twitter, blog posts, educational content
-5. **Optimize performance:** Fine-tune configuration, monitor metrics
-6. **Plan for mainnet:** Upgrade infrastructure, implement HSM
-7. **Build relationships:** Network with other validators
+1. Enable metrics, logging, and alerting from `OBSERVABILITY.md` and `DASHBOARDS_GUIDE.md`.
+2. Keep `peers.txt` and config templates from `networks/paw-testnet-1/` up to date.
+3. Test backups and key recovery quarterly.
+4. Follow governance discussions and vote using `VALIDATOR_OPERATOR_GUIDE.md`.
+5. Review `SENTRY_ARCHITECTURE.md` before exposing public endpoints.
 
 ---
 
@@ -348,9 +312,9 @@ After setting up your validator:
 
 ## Feedback and Contributions
 
-**Found an error?** Open an issue: https://github.com/decristofaroj/paw/issues
+**Found an error?** Open an issue: https://github.com/paw-chain/paw/issues
 
-**Want to improve docs?** Submit a PR: https://github.com/decristofaroj/paw/pulls
+**Want to improve docs?** Submit a PR: https://github.com/paw-chain/paw/pulls
 
 **Questions?** Email: validators@paw.network
 
@@ -363,11 +327,5 @@ Code and scripts: Apache 2.0
 
 ---
 
-**Welcome to the PAW validator community! 🐾**
-
-Together we're building a secure, decentralized blockchain network.
-
----
-
-**Last Updated:** 2025-12-14
-**Maintained by:** PAW Blockchain Validator Operations Team
+**Last Updated:** 2026-01-12
+**Maintained by:** PAW Validator Operations Team

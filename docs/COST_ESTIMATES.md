@@ -546,7 +546,7 @@ Notes:          - Not recommended for mainnet validators (uptime risk)
 3 × API Nodes (mid-range)            = $9,000 ($3,000 × 3)
 1 × Monitoring Server (low-end)      = $2,000
                                        ─────────
-Total Hardware:                        $22,000 one-time investment
+Total Hardware:                        $22,000 one-time cost
 ```
 
 **Monthly Colocation Costs:**

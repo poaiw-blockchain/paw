@@ -100,7 +100,7 @@ sudo ufw enable
 
 ```bash
 # Clone PAW blockchain repository
-git clone https://github.com/decristofaroj/paw.git
+git clone https://github.com/paw-chain/paw.git
 cd paw
 
 # Verify you're on the latest stable release
@@ -355,7 +355,7 @@ MONIKER="my-testnet-node"
 
 ```bash
 # Download verified genesis file from official source
-wget https://raw.githubusercontent.com/decristofaroj/paw/main/networks/testnet/genesis.json \
+wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
   -O ~/.paw/config/genesis.json
 
 # Verify genesis checksum (published on GitHub)
@@ -388,7 +388,7 @@ sed -i "s/^seeds = .*/seeds = \"$SEEDS\"/" ~/.paw/config/config.toml
 
 **Finding Peers:**
 - Official documentation: https://docs.paw.network/testnet/peers
-- GitHub: https://github.com/decristofaroj/paw/tree/main/networks/testnet
+- GitHub: https://github.com/paw-chain/paw/tree/main/networks/paw-testnet-1
 - Community Discord: #testnet-peers channel
 
 #### 4. Configure State Sync (Recommended)
@@ -812,7 +812,7 @@ sed -i 's/max_num_outbound_peers = .*/max_num_outbound_peers = 20/' ~/.paw/confi
    - Oracle: Query price feeds
 
 3. **Report Issues**
-   - GitHub: https://github.com/decristofaroj/paw/issues
+   - GitHub: https://github.com/paw-chain/paw/issues
    - Discord: #testnet-support
 
 ---
@@ -820,7 +820,7 @@ sed -i 's/max_num_outbound_peers = .*/max_num_outbound_peers = 20/' ~/.paw/confi
 ## Additional Resources
 
 - **Official Documentation:** https://docs.paw.network
-- **GitHub Repository:** https://github.com/decristofaroj/paw
+- **GitHub Repository:** https://github.com/paw-chain/paw
 - **Technical Specification:** `docs/TECHNICAL_SPECIFICATION.md`
 - **Whitepaper:** `docs/WHITEPAPER.md`
 - **Cosmos SDK Docs:** https://docs.cosmos.network
@@ -830,7 +830,7 @@ sed -i 's/max_num_outbound_peers = .*/max_num_outbound_peers = 20/' ~/.paw/confi
 
 **Questions or Issues?**
 
-- GitHub Issues: https://github.com/decristofaroj/paw/issues
+- GitHub Issues: https://github.com/paw-chain/paw/issues
 - Discord Community: https://discord.gg/paw-blockchain
 - Developer Forum: https://forum.paw.network
 

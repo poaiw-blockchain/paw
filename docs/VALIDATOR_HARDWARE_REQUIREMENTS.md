@@ -1,7 +1,7 @@
 # PAW Blockchain - Validator Hardware Requirements
 
-**Version:** 1.0
-**Last Updated:** 2025-12-14
+**Version:** 1.1
+**Last Updated:** 2026-01-12
 **Target:** External Validators
 
 ---
@@ -539,10 +539,10 @@ Total: ~$6,000
 | **Mainnet** | $530 | $6,360 | $19,080 |
 | **Enterprise** | $950 | $11,400 | $34,200 |
 
-**ROI Considerations:**
-- Mainnet validator earning 15% APR on 100,000 PAW stake
-- At $1/PAW: $15,000/year revenue - $6,360 cost = $8,640 profit
-- Break-even: ~42% APR needed at current costs
+**Budget Notes:**
+- Revisit cloud pricing quarterly; reserved/committed discounts can reduce totals.
+- Keep budget buffer for hardware replacements, HSMs, and bandwidth spikes.
+- Scale infrastructure based on measured load; do not assume protocol rewards will cover operating costs without verification.
 
 ---
 
@@ -714,12 +714,12 @@ After reviewing hardware requirements:
 2. **Choose infrastructure:** Cloud vs bare metal
 3. **Provision resources:** Order/launch instance
 4. **Follow setup guide:** [VALIDATOR_ONBOARDING_GUIDE.md](./VALIDATOR_ONBOARDING_GUIDE.md)
-5. **Setup monitoring:** [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md)
-6. **Harden security:** [VALIDATOR_SECURITY.md](./VALIDATOR_SECURITY.md)
+5. **Setup monitoring:** [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md)
+6. **Harden security:** [VALIDATOR_KEY_MANAGEMENT.md](./VALIDATOR_KEY_MANAGEMENT.md) and [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md)
 
 ---
 
-**Questions?** Join our Discord: https://discord.gg/paw-blockchain
+**Questions?** Open an issue: https://github.com/paw-chain/paw/issues
 
-**Last Updated:** 2025-12-14
-**Maintained by:** PAW Blockchain Infrastructure Team
+**Last Updated:** 2026-01-12
+**Maintained by:** PAW Infrastructure Team

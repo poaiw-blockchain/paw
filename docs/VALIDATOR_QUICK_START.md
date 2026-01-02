@@ -7,7 +7,7 @@ One-page reference for experienced Cosmos validator operators.
 ## Prerequisites
 
 - Ubuntu 22.04 LTS, 8 cores, 32 GB RAM, 500 GB NVMe SSD
-- Go 1.23+, Git, Make, jq
+- Go 1.24+, Git, Make, jq
 - Static IP, ports 26656 (P2P) open
 
 ---
@@ -15,27 +15,27 @@ One-page reference for experienced Cosmos validator operators.
 ## Installation (5 minutes)
 
 ```bash
-# Install Go 1.23.5
-wget https://go.dev/dl/go1.23.5.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.5.linux-amd64.tar.gz
+# Install Go 1.24.11
+wget https://go.dev/dl/go1.24.11.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.24.11.linux-amd64.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
 source ~/.bashrc
 
 # Build pawd
-git clone https://github.com/decristofaroj/paw.git && cd paw
-git checkout $(git describe --tags `git rev-list --tags --max-count=1`)
+git clone https://github.com/paw-chain/paw.git && cd paw
+git checkout main
 make build && sudo install -m 0755 build/pawd /usr/local/bin/pawd
 
 # Initialize
 pawd init <moniker> --chain-id paw-testnet-1
 
 # Download genesis and peers
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.json > ~/.paw/config/genesis.json
-curl -L https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.sha256 > /tmp/genesis.sha256
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json > ~/.paw/config/genesis.json
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 > /tmp/genesis.sha256
 cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256
 
 # Configure peers
-PEERS=$(curl -s https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/peers.txt | tr '\n' ',' | sed 's/,$//')
+PEERS=$(curl -s https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt | tr '\n' ',' | sed 's/,$//')
 sed -i "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
 
 # Set minimum gas price
@@ -103,12 +103,10 @@ sudo systemctl start pawd
 
 ## Get Testnet Tokens
 
+Request small amounts from the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md`, then verify:
+```bash
+pawd query bank balances <address> --node tcp://localhost:26657
 ```
-Faucet: https://faucet.paw-testnet.io
-Amount: 10,000,000 upaw (10 PAW)
-```
-
-Or Discord: `!faucet <address>` in #testnet-faucet
 
 ---
 
@@ -200,19 +198,18 @@ pawd tx gov vote <id> yes --from validator-operator --chain-id paw-testnet-1 --g
 |------|-------|
 | **Chain ID** | paw-testnet-1 |
 | **Denom** | upaw |
-| **Block Time** | ~3s |
-| **RPC** | https://rpc.paw-testnet.io |
-| **Explorer** | https://explorer.paw-testnet.io |
-| **Genesis** | https://raw.githubusercontent.com/decristofaroj/paw/main/networks/paw-testnet-1/genesis.json |
+| **Genesis** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json |
+| **Genesis checksum** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 |
+| **Peers** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt |
 
 ---
 
 ## Next Steps
 
-1. Setup monitoring: [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md)
-2. Harden security: [VALIDATOR_SECURITY.md](./VALIDATOR_SECURITY.md)
-3. Configure sentry: [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md)
-4. Join Discord: https://discord.gg/paw-blockchain
+1. Operations: [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md)
+2. Key management and security: [VALIDATOR_KEY_MANAGEMENT.md](./VALIDATOR_KEY_MANAGEMENT.md)
+3. Sentry topology: [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md) and [SENTRY_TESTING_GUIDE.md](./SENTRY_TESTING_GUIDE.md)
+4. Observability: [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md)
 
 ---
 

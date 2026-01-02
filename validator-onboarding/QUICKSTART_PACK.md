@@ -14,7 +14,7 @@ sudo useradd -m -s /bin/bash paw || true
 sudo mkdir -p /var/lib/paw && sudo chown -R paw:paw /var/lib/paw
 sudo cp validator-onboarding/quickstart-pack/pawd.service /etc/systemd/system/pawd.service
 sudo systemctl daemon-reload
-curl -sL https://raw.githubusercontent.com/decristofaroj/paw/main/scripts/onboarding/node-onboard.sh \
+curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh \
   | sudo -u paw bash -s -- --mode full --chain-id paw-testnet-1 --home /var/lib/paw
 sudo systemctl enable --now pawd
 ```
@@ -30,7 +30,7 @@ docker compose -f docker-compose.validator.yml up -d --build
 
 ## Join Checklist
 - [ ] Fetch genesis + checksum + peers from `networks/paw-testnet-1/` (verify SHA256).
-- [ ] Set `minimum-gas-prices = "0.025upaw"`; open P2P port 26656 to trusted sentries.
+- [ ] Set `minimum-gas-prices = "0.001upaw"`; open P2P port 26656 to trusted sentries.
 - [ ] Enable metrics (`scripts/enable-node-metrics.sh`) and restart.
 - [ ] Run `scripts/onboarding/validator-healthcheck.sh --rpc http://localhost:26657 --home /var/lib/paw`.
 - [ ] Register validator (after faucet funding) via `scripts/register-validator.sh` or manual `pawd tx staking create-validator`.

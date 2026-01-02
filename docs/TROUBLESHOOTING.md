@@ -100,7 +100,7 @@ jq . ~/.paw/config/genesis.json
    cp ~/.paw/config/genesis.json ~/.paw/config/genesis.json.backup
 
    # Download official genesis
-   wget https://raw.githubusercontent.com/decristofaroj/paw/main/networks/testnet/genesis.json \
+   wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
      -O ~/.paw/config/genesis.json
 
    # Verify checksum (get from official docs)
@@ -1499,7 +1499,7 @@ ERR Validator slashed for downtime
 ### Community Resources
 
 - **Discord:** #node-support, #validator-support channels
-- **GitHub Issues:** https://github.com/decristofaroj/paw/issues
+- **GitHub Issues:** https://github.com/paw-chain/paw/issues
 - **Forum:** https://forum.paw.network
 - **Documentation:** https://docs.paw.network
 

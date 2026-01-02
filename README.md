@@ -1,6 +1,6 @@
 # PAW Blockchain
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://golang.org/dl/) [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289da.svg)](https://discord.gg/paw) [![Twitter](https://img.shields.io/badge/Twitter-@PAWNetwork-1DA1F2.svg)](https://twitter.com/PAWNetwork)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8.svg)](https://golang.org/dl/)
 
 Cosmos SDK–based Layer‑1 for verifiable AI compute with integrated DEX and Oracle.
 
@@ -10,13 +10,13 @@ What’s included
 - Oracle: price reporting, aggregation, slashing hooks, IBC queries
 
 Quick start
-- Prerequisites: Go 1.23+, buf CLI, Docker (optional)
+- Prerequisites: Go 1.24+, buf CLI, Docker (optional)
 - Build: `make build` (produces `./build/pawd`)
 - Verify binary: `./build/pawd version`
 - Strict single-node boot (canonical genesis, conflict-free ports):
-  - `./build/pawd init validator --chain-id paw-test-1 --home ./localnode`
+  - `./build/pawd init validator --chain-id paw-testnet-1 --home ./localnode`
   - `./build/pawd add-genesis-account <addr> 1000000000upaw --home ./localnode --keyring-backend test`
-  - `./build/pawd gentx validator 700000000upaw --chain-id paw-test-1 --home ./localnode --keyring-backend test`
+  - `./build/pawd gentx validator 700000000upaw --chain-id paw-testnet-1 --home ./localnode --keyring-backend test`
   - `./build/pawd collect-gentxs --home ./localnode`
   - `./build/pawd start --home ./localnode --minimum-gas-prices 0.001upaw --grpc.address 127.0.0.1:19090 --api.address tcp://127.0.0.1:1318 --rpc.laddr tcp://127.0.0.1:26658`
 - Docker localnet: `docker compose up -d`
@@ -41,18 +41,18 @@ Multi-validator testnet
   ```
 
 Build from source
-1. Install Go 1.23+, ensure `$GOBIN` is on your PATH.
+1. Install Go 1.24+, ensure `$GOBIN` is on your PATH.
 2. Install buf and protoc plugins (`make proto-tools` or follow `scripts/protocgen.sh`).
 3. Generate protobufs when `.proto` changes land: `make proto-gen`.
 4. Compile the daemon: `make build` or `go build -o pawd ./cmd/...`.
-5. Run unit tests: `make test-unit` (security suites for compute/oracle remain skipped until validator/staking wiring is finalized).
+5. Run tests: `make test` for the full suite or `make test-unit` for faster module checks.
 
 Node initialization
 - Default home: `~/.paw` (override via `PAW_HOME` or `--home`).
 - Bootstrap a fresh validator on canonical genesis (no lenient JSON accepted):
-  1. `./build/pawd init <moniker> --chain-id paw-test-1 --home <home>`
+  1. `./build/pawd init <moniker> --chain-id paw-testnet-1 --home <home>`
   2. `./build/pawd add-genesis-account <addr> 1000000000upaw --home <home> --keyring-backend test`
-  3. `./build/pawd gentx <moniker> 700000000upaw --chain-id paw-test-1 --home <home> --keyring-backend test`
+  3. `./build/pawd gentx <moniker> 700000000upaw --chain-id paw-testnet-1 --home <home> --keyring-backend test`
   4. `./build/pawd collect-gentxs --home <home>`
   5. Start with strict ports and min-gas-price:  
      `./build/pawd start --home <home> --minimum-gas-prices 0.001upaw --grpc.address 127.0.0.1:19090 --api.address tcp://127.0.0.1:1318 --rpc.laddr tcp://127.0.0.1:26658`
@@ -97,8 +97,9 @@ Testing
 Documentation
 - Whitepaper: `docs/WHITEPAPER.md`
 - Technical spec: `docs/TECHNICAL_SPECIFICATION.md`
+- Testnet quick reference: `docs/TESTNET_QUICK_REFERENCE.md`
+- Validator quickstart: `docs/VALIDATOR_QUICK_START.md`
 - CLI reference: `docs/guides/CLI_QUICK_REFERENCE.md`
-- Validator quickstart: `docs/guides/VALIDATOR_QUICKSTART.md`
 - DEX trading: `docs/guides/DEX_TRADING.md`
 
 References
@@ -108,34 +109,25 @@ References
 
 Public Testnet Participation
 - Chain ID: `paw-testnet-1`
-- RPC Endpoint: https://testnet-rpc.poaiw.org
-- REST API: https://testnet-api.poaiw.org
-- Block Explorer: https://testnet-explorer.poaiw.org
-- Faucet: https://testnet-faucet.poaiw.org
-- Monitoring: https://monitoring.poaiw.org
+- Genesis, checksums, peers: `networks/paw-testnet-1/` (use `genesis.json`, `genesis.sha256`, and `peers.txt`)
+- Default ports: P2P 26656, RPC 26657, gRPC 9090, API 1317 (override in `config.toml`/`app.toml`)
+- Reference guide: `docs/TESTNET_QUICK_REFERENCE.md`
 
-Direct Server Access (Development):
-- Server IP: 54.39.103.49
-- VPN IP: 10.10.0.2
-- RPC: http://54.39.103.49:26657
-- REST: http://54.39.103.49:1317
-- gRPC: 54.39.103.49:9090
-
-Join as a Validator:
+Join as a validator:
 1. Build the binary: `make build`
 2. Initialize node: `./build/pawd init <moniker> --chain-id paw-testnet-1`
-3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/testnet/genesis.json`
-4. Configure persistent peers in `~/.paw/config/config.toml`
+3. Download genesis:  
+   `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json`  
+   `curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 && (cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)`
+4. Configure persistent peers from `networks/paw-testnet-1/peers.txt` in `~/.paw/config/config.toml`
 5. Start node: `./build/pawd start --minimum-gas-prices 0.001upaw`
 6. Create validator after sync: `pawd tx staking create-validator ...`
 
-See `docs/guides/VALIDATOR_QUICKSTART.md` for detailed instructions.
-
-Get Testnet Tokens:
+Get testnet tokens:
 1. Create a wallet: `./build/pawd keys add <name>`
-2. Request tokens from faucet (when available)
+2. Request tokens from the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md`
 3. Check balance: `./build/pawd query bank balances <address>`
 
 Status
-- Latest update: Dec 2025
+- Latest update: Jan 2026
 - Chain status: Public testnet ready

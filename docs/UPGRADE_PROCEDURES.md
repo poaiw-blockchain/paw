@@ -80,7 +80,7 @@ Developer Release → Validator Notification → Gradual Rollout → Monitoring
 **Upgrade Procedure:**
 ```bash
 # Download new binary
-wget https://github.com/decristofaroj/paw/releases/download/v1.0.1/pawd
+wget https://github.com/paw-chain/paw/releases/download/v1.0.1/pawd
 
 # Verify checksum
 sha256sum pawd
@@ -252,10 +252,10 @@ func (m Migrator) Migrate1to2(ctx sdk.Context) error {
 - [ ] **Download new binary from official release**
   ```bash
   # Download from GitHub releases
-  wget https://github.com/decristofaroj/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64
+  wget https://github.com/paw-chain/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64
 
   # Download checksum
-  wget https://github.com/decristofaroj/paw/releases/download/v1.1.0/SHA256SUMS
+  wget https://github.com/paw-chain/paw/releases/download/v1.1.0/SHA256SUMS
   ```
 
 - [ ] **Verify binary checksum**
@@ -395,9 +395,9 @@ func (m Migrator) Migrate1to2(ctx sdk.Context) error {
 cat > upgrade-info.json <<EOF
 {
   "binaries": {
-    "linux/amd64": "https://github.com/decristofaroj/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64?checksum=sha256:CHECKSUM_HERE",
-    "linux/arm64": "https://github.com/decristofaroj/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-arm64?checksum=sha256:CHECKSUM_HERE",
-    "darwin/amd64": "https://github.com/decristofaroj/paw/releases/download/v1.1.0/pawd-v1.1.0-darwin-amd64?checksum=sha256:CHECKSUM_HERE"
+    "linux/amd64": "https://github.com/paw-chain/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64?checksum=sha256:CHECKSUM_HERE",
+    "linux/arm64": "https://github.com/paw-chain/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-arm64?checksum=sha256:CHECKSUM_HERE",
+    "darwin/amd64": "https://github.com/paw-chain/paw/releases/download/v1.1.0/pawd-v1.1.0-darwin-amd64?checksum=sha256:CHECKSUM_HERE"
   }
 }
 EOF
@@ -440,7 +440,7 @@ This proposal seeks approval for the v1.1.0 upgrade of the PAW blockchain, intro
 
 ## Documentation
 - Upgrade Guide: https://docs.paw.com/upgrades/v1.1.0
-- Testing Results: https://github.com/decristofaroj/paw/releases/tag/v1.1.0
+- Testing Results: https://github.com/paw-chain/paw/releases/tag/v1.1.0
 - Rollback Procedure: https://docs.paw.com/upgrades/ROLLBACK.md
 
 ## Timeline
@@ -941,7 +941,7 @@ mkdir -p $DAEMON_HOME/cosmovisor/upgrades/v1.1.0/bin
 
 ```bash
 # Download new binary
-wget https://github.com/decristofaroj/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64
+wget https://github.com/paw-chain/paw/releases/download/v1.1.0/pawd-v1.1.0-linux-amd64
 
 # Verify checksum
 sha256sum pawd-v1.1.0-linux-amd64
@@ -2083,7 +2083,7 @@ If issues persist after troubleshooting:
 - **Telegram**: https://t.me/paw_validators
 - **Forum**: https://forum.paw-chain.org/c/governance
 - **Twitter**: [@paw_chain](https://twitter.com/paw_chain)
-- **GitHub**: https://github.com/decristofaroj/paw
+- **GitHub**: https://github.com/paw-chain/paw
 
 ### Support
 

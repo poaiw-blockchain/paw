@@ -378,7 +378,7 @@ echo "CRITICAL: Store the encryption password separately and securely"
    ```bash
    # Clone repository
    cd ~
-   git clone git@github.com:decristofaroj/paw.git
+   git clone git@github.com:paw-chain/paw.git
    cd paw
 
    # Checkout specific version (production should use tagged releases)
@@ -1290,10 +1290,11 @@ State sync allows a node to quickly sync to the current chain state without repl
 
 #### Step 1: Find State Sync RPC Endpoints
 
+Use RPC endpoints from `docs/TESTNET_QUICK_REFERENCE.md`:
+
 ```bash
-# Public RPC endpoints (example - replace with actual PAW endpoints)
-RPC1="https://rpc1.paw-testnet.io:443"
-RPC2="https://rpc2.paw-testnet.io:443"
+RPC1="https://<rpc-endpoint-1>"
+RPC2="https://<rpc-endpoint-2>"
 ```
 
 #### Step 2: Get Trust Height and Hash
@@ -1322,7 +1323,7 @@ Update the `[statesync]` section:
 enable = true
 
 # RPC servers to fetch snapshots from
-rpc_servers = "https://rpc1.paw-testnet.io:443,https://rpc2.paw-testnet.io:443"
+rpc_servers = "https://<rpc-endpoint-1>,https://<rpc-endpoint-2>"
 
 # Trust height and hash from Step 2
 trust_height = 12345000  # Replace with actual TRUST_HEIGHT
@@ -1960,7 +1961,7 @@ pawd tendermint unsafe-reset-all --keep-addr-book
 
 - [Cosmos SDK Documentation](https://docs.cosmos.network/)
 - [CometBFT Operator Guide](https://docs.cometbft.com/v0.37/operator/)
-- [PAW GitHub Repository](https://github.com/decristofaroj/paw)
+- [PAW GitHub Repository](https://github.com/paw-chain/paw)
 - [PAW Production Monitoring](docs/PROD_MONITORING.md)
 
 ---

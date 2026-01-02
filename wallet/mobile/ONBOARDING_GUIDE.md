@@ -51,5 +51,5 @@ Step-by-step onboarding for end-users and QA, including platform compatibility, 
 
 ## Support & Reporting
 - Status page: `https://status.paw-testnet.io` (RPC/REST/gRPC/Explorer/Faucet health).
-- Submit issues: GitHub `decristofaroj/paw` (tag `mobile`), or Discord `#wallet-mobile`.
+- Submit issues: GitHub `paw-chain/paw` (tag `mobile`).
 - Security reports: security@paw.network.

@@ -38,6 +38,9 @@ docker compose -f compose/docker-compose.4nodes.yml down -v
 ## Check Status
 
 ```bash
+# Verify latest block height
+curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height'
+
 # Current block height
 curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height'
 
@@ -47,6 +50,23 @@ curl -s http://localhost:26657/validators | jq '.result.total'
 # Container status
 docker ps --filter "name=paw-node"
 ```
+
+## Public Artifacts (paw-testnet-1)
+
+- Genesis and checksum: `networks/paw-testnet-1/genesis.json`, `networks/paw-testnet-1/genesis.sha256`
+- Peers: `networks/paw-testnet-1/peers.txt`
+- Manifest and bundle: `networks/paw-testnet-1/paw-testnet-1-manifest.json`, `paw-testnet-1-artifacts.tar.gz`
+- Status: `networks/paw-testnet-1/STATUS.md`
+
+Fetch locally:
+```bash
+curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json
+curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256
+(cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)
+curl -o ~/.paw/config/peers.txt https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt
+```
+
+Minimum gas price: `0.001upaw`.
 
 ## Validator Counts
 
@@ -135,3 +155,4 @@ sudo lsof -i :26657  # Check what's using the port
 - [MULTI_VALIDATOR_TESTNET.md](MULTI_VALIDATOR_TESTNET.md) - Complete validator guide
 - [SENTRY_ARCHITECTURE.md](SENTRY_ARCHITECTURE.md) - Production-like testing with sentries
 - [TESTNET_DOCUMENTATION_INDEX.md](TESTNET_DOCUMENTATION_INDEX.md) - All documentation
+- [VALIDATOR_QUICK_START.md](../VALIDATOR_QUICK_START.md) - External validator quick start

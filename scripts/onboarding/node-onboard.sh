@@ -52,7 +52,7 @@ if command -v pawd >/dev/null; then
   PAWD_BIN="$(command -v pawd)"
 elif command -v go >/dev/null; then
   log "pawd not found, installing from source (go install ./cmd/pawd@main)"
-  GO111MODULE=on go install github.com/decristofaroj/paw/cmd/pawd@main
+  GO111MODULE=on go install github.com/paw-chain/paw/cmd/pawd@main
   PAWD_BIN="$(command -v pawd)"
 else
   fail "pawd binary not found and Go is unavailable"

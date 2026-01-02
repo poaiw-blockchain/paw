@@ -1,7 +1,7 @@
 # PAW Blockchain - Validator Economics Guide
 
-**Version:** 1.0
-**Last Updated:** 2025-12-14
+**Version:** 1.1
+**Last Updated:** 2026-01-12
 
 ---
 
@@ -11,11 +11,12 @@
 2. [Staking Requirements](#staking-requirements)
 3. [Reward Structure](#reward-structure)
 4. [Commission Rates](#commission-rates)
-5. [Expected Returns](#expected-returns)
+5. [Reward Calculation Notes](#reward-calculation-notes)
 6. [Slashing Penalties](#slashing-penalties)
 7. [Delegation Mechanics](#delegation-mechanics)
 8. [Claiming and Compounding Rewards](#claiming-and-compounding-rewards)
-9. [Economic Examples](#economic-examples)
+9. [Delegator Selection Criteria](#delegator-selection-criteria)
+10. [Next Steps](#next-steps)
 
 ---
 
@@ -186,75 +187,18 @@ pawd tx staking edit-validator \
 
 ---
 
-## Expected Returns
+## Reward Calculation Notes
 
-### Annual Percentage Rate (APR) Calculation
-
-```
-Validator APR = (Inflation Rate / Bonded Ratio) × (1 - Community Tax)
-
-Example:
-  Inflation: 10%
-  Bonded Ratio: 67% (67% of supply staked)
-  Community Tax: 2%
-
-  Validator APR = (0.10 / 0.67) × 0.98 = 14.6%
-```
-
-### Delegator Returns
-
-```
-Delegator APR = Validator APR × (1 - Commission)
-
-Example:
-  Validator APR: 14.6%
-  Commission: 10%
-
-  Delegator APR = 14.6% × 0.90 = 13.14%
-```
-
-### Validator Earnings Breakdown
-
-**Scenario:** Validator with 100,000 PAW total stake
-- Self-delegation: 10,000 PAW (10%)
-- Delegations: 90,000 PAW (90%)
-- Commission: 10%
-- Validator APR: 15%
-
-```
-Total annual rewards: 100,000 × 0.15 = 15,000 PAW
-
-Commission earnings:
-  - Delegator rewards: 90,000 × 0.15 = 13,500 PAW
-  - Commission (10%): 13,500 × 0.10 = 1,350 PAW
-
-Self-delegation earnings:
-  - Self rewards: 10,000 × 0.15 = 1,500 PAW
-
-Total validator earnings: 1,350 + 1,500 = 2,850 PAW/year
-APR for validator: 2,850 / 10,000 = 28.5%
-```
-
-### ROI Calculation
-
-**Mainnet Validator Investment:**
-- Infrastructure: $530/month = $6,360/year
-- Self-stake: 10,000 PAW
-- Total delegations: 100,000 PAW
-- Commission: 10%
-- APR: 15%
-
-```
-Annual earnings: 2,850 PAW
-Annual costs: $6,360
-Break-even PAW price: $6,360 / 2,850 = $2.23/PAW
-
-If PAW = $5:
-  Revenue: 2,850 × $5 = $14,250
-  Costs: $6,360
-  Profit: $7,890
-  ROI: 157%
-```
+- Rewards depend on on-chain parameters (inflation, bonded ratio, community tax) and validator commission.
+- To estimate emissions, fetch current parameters instead of using static examples:
+  ```bash
+  pawd q mint params
+  pawd q distribution params
+  pawd q staking params | jq '.params.bond_denom'
+  ```
+- Validator reward rate ≈ `(inflation / bonded_ratio) × (1 - community_tax)`.
+- Delegator share = `validator_reward_rate × (1 - commission)`.
+- Recalculate periodically; values change through governance and network conditions.
 
 ---
 
@@ -445,95 +389,6 @@ fi
 
 ---
 
-## Economic Examples
-
-### Example 1: Small Validator (Testnet)
-
-```yaml
-Stake:
-  Self-delegation: 10 PAW
-  Delegations: 90 PAW
-  Total: 100 PAW
-
-Commission: 10%
-Network APR: 15%
-
-Annual Rewards:
-  Total: 100 × 0.15 = 15 PAW
-  Commission: 90 × 0.15 × 0.10 = 1.35 PAW
-  Self-delegation: 10 × 0.15 = 1.5 PAW
-  Validator total: 1.35 + 1.5 = 2.85 PAW
-
-Costs:
-  Infrastructure: $180/year (testnet minimum)
-
-Break-even PAW price: $180 / 2.85 = $63/PAW
-```
-
-### Example 2: Medium Validator (Mainnet)
-
-```yaml
-Stake:
-  Self-delegation: 10,000 PAW
-  Delegations: 490,000 PAW
-  Total: 500,000 PAW (Rank ~50 validator)
-
-Commission: 10%
-Network APR: 12%
-
-Annual Rewards:
-  Total: 500,000 × 0.12 = 60,000 PAW
-  Commission: 490,000 × 0.12 × 0.10 = 5,880 PAW
-  Self-delegation: 10,000 × 0.12 = 1,200 PAW
-  Validator total: 5,880 + 1,200 = 7,080 PAW
-
-Costs:
-  Infrastructure: $6,360/year (mainnet recommended)
-  HSM: $650 (one-time)
-  Monitoring: $600/year
-  Total annual: $6,960
-
-Break-even PAW price: $6,960 / 7,080 = $0.98/PAW
-
-At $5/PAW:
-  Revenue: 7,080 × $5 = $35,400
-  Profit: $35,400 - $6,960 = $28,440
-  ROI: 408%
-```
-
-### Example 3: Large Validator (Top 10)
-
-```yaml
-Stake:
-  Self-delegation: 100,000 PAW
-  Delegations: 9,900,000 PAW
-  Total: 10,000,000 PAW (Top 10 validator)
-
-Commission: 8%
-Network APR: 12%
-
-Annual Rewards:
-  Total: 10,000,000 × 0.12 = 1,200,000 PAW
-  Commission: 9,900,000 × 0.12 × 0.08 = 95,040 PAW
-  Self-delegation: 100,000 × 0.12 = 12,000 PAW
-  Validator total: 95,040 + 12,000 = 107,040 PAW
-
-Costs:
-  Infrastructure: $11,400/year (enterprise)
-  Security: $5,000/year
-  Personnel: $50,000/year (devops engineer)
-  Total annual: $66,400
-
-Break-even PAW price: $66,400 / 107,040 = $0.62/PAW
-
-At $5/PAW:
-  Revenue: 107,040 × $5 = $535,200
-  Profit: $535,200 - $66,400 = $468,800
-  ROI: 468%
-```
-
----
-
 ## Delegator Selection Criteria
 
 Delegators choose validators based on:
@@ -556,12 +411,11 @@ Delegators choose validators based on:
 
 ## Next Steps
 
-- **Start validating:** [VALIDATOR_ONBOARDING_GUIDE.md](./VALIDATOR_ONBOARDING_GUIDE.md)
-- **Monitor performance:** [VALIDATOR_MONITORING.md](./VALIDATOR_MONITORING.md)
-- **Optimize security:** [VALIDATOR_SECURITY.md](./VALIDATOR_SECURITY.md)
-- **Join community:** https://discord.gg/paw-blockchain
+- **Operations:** [VALIDATOR_ONBOARDING_GUIDE.md](./VALIDATOR_ONBOARDING_GUIDE.md) and [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md)
+- **Key management and hardening:** [VALIDATOR_KEY_MANAGEMENT.md](./VALIDATOR_KEY_MANAGEMENT.md) and [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md)
+- **Observability:** [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md) and [OBSERVABILITY.md](./OBSERVABILITY.md)
 
 ---
 
-**Last Updated:** 2025-12-14
-**Maintained by:** PAW Blockchain Economics Team
+**Last Updated:** 2026-01-12
+**Maintained by:** PAW Protocol Team

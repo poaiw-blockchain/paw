@@ -18,8 +18,8 @@ Additional requirements:
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y build-essential git curl jq unzip systemd
 
-# Install Go 1.23+ (example uses 1.23.5)
-curl -L https://go.dev/dl/go1.23.5.linux-amd64.tar.gz -o /tmp/go.tar.gz
+# Install Go 1.24+ (example uses 1.24.11)
+curl -L https://go.dev/dl/go1.24.11.linux-amd64.tar.gz -o /tmp/go.tar.gz
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf /tmp/go.tar.gz
 cat <<'EOP' >> ~/.bashrc
 export GOROOT=/usr/local/go
