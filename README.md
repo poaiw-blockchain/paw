@@ -108,10 +108,18 @@ References
 
 Public Testnet Participation
 - Chain ID: `paw-testnet-1`
-- RPC Endpoint: `https://rpc.testnet.paw.network` (coming soon)
-- REST API: `https://api.testnet.paw.network` (coming soon)
-- Block Explorer: `https://explorer.testnet.paw.network` (coming soon)
-- Faucet: `https://faucet.testnet.paw.network` (coming soon)
+- RPC Endpoint: https://testnet-rpc.poaiw.org
+- REST API: https://testnet-api.poaiw.org
+- Block Explorer: https://testnet-explorer.poaiw.org
+- Faucet: https://testnet-faucet.poaiw.org
+- Monitoring: https://monitoring.poaiw.org
+
+Direct Server Access (Development):
+- Server IP: 54.39.103.49
+- VPN IP: 10.10.0.2
+- RPC: http://54.39.103.49:26657
+- REST: http://54.39.103.49:1317
+- gRPC: 54.39.103.49:9090
 
 Join as a Validator:
 1. Build the binary: `make build`
