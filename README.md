@@ -107,13 +107,13 @@ References
 - CometBFT: https://cometbft.com/
 - IBC: https://ibcprotocol.org/
 
-Public Testnet
+Devnet
 
-To join the PAW public testnet, see the [testnets repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
+To join the PAW devnet, see the [networks repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
 
 | Network | Chain ID | Status |
 |---------|----------|--------|
-| [paw-testnet-1](https://github.com/poaiw-blockchain/testnets/tree/main/paw-testnet-1) | `paw-testnet-1` | Active |
+| [paw-testnet-1](https://github.com/poaiw-blockchain/testnets/tree/main/paw-testnet-1) | `paw-testnet-1` | Devnet |
 
 **Quick join:**
 1. Build: `make build`
