@@ -5,6 +5,8 @@ secrets/
 *.secret
 *.key
 *.pem
+.ssh_testnet_key
+.ssh_*_key
 *.crt
 *.p12
 *.pfx

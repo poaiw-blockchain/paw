@@ -24,3 +24,13 @@ pawd query dex pools --home ~/.paw
 ```
 
 **Full docs**: See `TESTNET_INFRASTRUCTURE.md`
+
+## Testnet SSH Access
+
+Use the pre-configured SSH alias:
+
+```bash
+ssh paw-testnet  # 54.39.103.49
+```
+
+The SSH config is in `~/.ssh/config`. Never store SSH keys in repositories.
