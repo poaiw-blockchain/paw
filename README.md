@@ -107,27 +107,17 @@ References
 - CometBFT: https://cometbft.com/
 - IBC: https://ibcprotocol.org/
 
-Public Testnet Participation
-- Chain ID: `paw-testnet-1`
-- Genesis, checksums, peers: `networks/paw-testnet-1/` (use `genesis.json`, `genesis.sha256`, and `peers.txt`)
-- Default ports: P2P 26656, RPC 26657, gRPC 9090, API 1317 (override in `config.toml`/`app.toml`)
-- Reference guide: `docs/TESTNET_QUICK_REFERENCE.md`
+Public Testnet
 
-Join as a validator:
-1. Build the binary: `make build`
-2. Initialize node: `./build/pawd init <moniker> --chain-id paw-testnet-1`
-3. Download genesis:  
-   `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json`  
-   `curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 && (cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)`
-4. Configure persistent peers from `networks/paw-testnet-1/peers.txt` in `~/.paw/config/config.toml`
-5. Start node: `./build/pawd start --minimum-gas-prices 0.001upaw`
-6. Create validator after sync: `pawd tx staking create-validator ...`
+To join the PAW public testnet, see the [testnets repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
 
-Get testnet tokens:
-1. Create a wallet: `./build/pawd keys add <name>`
-2. Request tokens from the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md`
-3. Check balance: `./build/pawd query bank balances <address>`
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| [paw-testnet-1](https://github.com/poaiw-blockchain/testnets/tree/main/paw-testnet-1) | `paw-testnet-1` | Active |
 
-Status
-- Latest update: Jan 2026
-- Chain status: Public testnet ready
+**Quick join:**
+1. Build: `make build`
+2. Initialize: `./build/pawd init <moniker> --chain-id paw-testnet-1`
+3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/poaiw-blockchain/testnets/main/paw-testnet-1/genesis.json`
+4. Set peers in `~/.paw/config/config.toml` from [peers.txt](https://github.com/poaiw-blockchain/testnets/blob/main/paw-testnet-1/peers.txt)
+5. Start: `./build/pawd start --minimum-gas-prices 0.001upaw`
