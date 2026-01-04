@@ -37,6 +37,7 @@ func setupTestRouter(t *testing.T) *gin.Engine {
 	{
 		v1.GET("/health", handler.Health)
 		v1.GET("/faucet/info", handler.GetFaucetInfo)
+		v1.POST("/faucet/request", handler.RequestTokens)
 	}
 
 	return router

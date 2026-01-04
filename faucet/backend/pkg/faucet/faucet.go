@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -296,7 +297,7 @@ func (s *Service) ValidateAddress(address string) error {
 		return fmt.Errorf("invalid address length")
 	}
 
-	if address[:4] != "paw1" {
+	if !strings.HasPrefix(address, "paw1") {
 		return fmt.Errorf("address must start with paw1")
 	}
 

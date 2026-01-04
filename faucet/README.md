@@ -6,7 +6,7 @@ A production-ready testnet faucet for the PAW blockchain with rate limiting, cap
 
 - **Modern Web UI**: Clean, responsive interface built with vanilla JavaScript
 - **Rate Limiting**: Per-IP and per-address rate limiting using Redis
-- **Captcha Protection**: hCaptcha integration to prevent abuse
+- **Captcha Protection**: Turnstile integration to prevent abuse
 - **Database Tracking**: PostgreSQL database for request history and statistics
 - **Real-time Statistics**: Live faucet balance and distribution metrics
 - **Docker Support**: Complete Docker Compose setup for easy deployment
@@ -26,7 +26,7 @@ A production-ready testnet faucet for the PAW blockchain with rate limiting, cap
 - Gin web framework
 - PostgreSQL for data persistence
 - Redis for rate limiting
-- hCaptcha for bot protection
+- Turnstile for bot protection
 
 ## Prerequisites
 
@@ -102,13 +102,13 @@ go run main.go
 | `RATE_LIMIT_PER_IP` | Max requests per IP per window | `10` |
 | `RATE_LIMIT_PER_ADDRESS` | Max requests per address per window | `1` |
 | `RATE_LIMIT_WINDOW_HOURS` | Rate limit window in hours | `24` |
-| `HCAPTCHA_SECRET` | hCaptcha secret key | Required in production |
+| `TURNSTILE_SECRET` | Turnstile secret key | Required in production |
 
 ### Frontend Configuration
 
-Update the hCaptcha site key in `frontend/index.html`:
+Update the Turnstile site key in `frontend/index.html`:
 ```html
-<div class="h-captcha" data-sitekey="YOUR_HCAPTCHA_SITE_KEY"></div>
+<div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
 ```
 
 ## API Documentation
@@ -159,7 +159,7 @@ Request tokens from the faucet.
 ```json
 {
   "address": "paw1...",
-  "captcha_token": "hcaptcha-token"
+  "captcha_token": "turnstile-token"
 }
 ```
 
@@ -253,7 +253,7 @@ Rate limits are enforced using Redis with sliding window algorithm.
 
 ## Security Features
 
-- hCaptcha verification (production mode)
+- Turnstile verification (production mode)
 - Rate limiting (IP and address-based)
 - Request validation and sanitization
 - Database transaction logging
@@ -297,8 +297,8 @@ Structured JSON logging with different log levels:
    - Check faucet mnemonic/address configuration
 
 4. **Captcha not working**
-   - Verify hCaptcha site key in frontend
-   - Check HCAPTCHA_SECRET in backend
+   - Verify Turnstile site key in frontend
+   - Check TURNSTILE_SECRET in backend
    - Ensure production mode is set
 
 ## Production Deployment
@@ -325,7 +325,7 @@ docker-compose --profile production up -d
 ### Security Checklist
 
 - [ ] Update database password
-- [ ] Configure hCaptcha keys
+- [ ] Configure Turnstile keys
 - [ ] Set up SSL/TLS certificates
 - [ ] Configure firewall rules
 - [ ] Set up monitoring and alerts

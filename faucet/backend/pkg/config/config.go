@@ -39,9 +39,14 @@ type Config struct {
 	AllowedIPs          []string
 	AllowedAddresses    []string
 
+	// Balance monitoring / auto-refill configuration
+	LowBalanceThreshold int64
+	AutoRefillAmount    int64
+	EnableAutoRefill    bool
+
 	// Captcha configuration
-	HCaptchaSecret string
-	RequireCaptcha bool
+	TurnstileSecret string
+	RequireCaptcha  bool
 
 	// Transaction configuration
 	GasLimit        uint64
@@ -71,12 +76,16 @@ func Load() (*Config, error) {
 		RateLimitPerAddress: getEnvAsInt("RATE_LIMIT_PER_ADDRESS", 1),
 		RateLimitWindow:     time.Duration(getEnvAsInt("RATE_LIMIT_WINDOW_HOURS", 24)) * time.Hour,
 
-		HCaptchaSecret: getEnv("HCAPTCHA_SECRET", ""),
-		RequireCaptcha: getEnvAsBool("HCAPTCHA_REQUIRED", strings.ToLower(environment) == "production"),
+		TurnstileSecret: getEnv("TURNSTILE_SECRET", ""),
+		RequireCaptcha:  getEnvAsBool("TURNSTILE_REQUIRED", strings.ToLower(environment) == "production"),
 
 		MaxRecipientBalance: getEnvAsInt64("MAX_RECIPIENT_BALANCE", 0),
 		AllowedIPs:          splitCSV(getEnv("FAUCET_ALLOWED_IPS", "")),
 		AllowedAddresses:    splitCSV(getEnv("FAUCET_ALLOWED_ADDRESSES", "")),
+
+		LowBalanceThreshold: getEnvAsInt64("LOW_BALANCE_THRESHOLD", 0),
+		AutoRefillAmount:    getEnvAsInt64("AUTO_REFILL_AMOUNT", 0),
+		EnableAutoRefill:    getEnvAsBool("ENABLE_AUTO_REFILL", false),
 
 		GasLimit:        uint64(getEnvAsInt("GAS_LIMIT", 200000)),
 		GasPrice:        getEnv("GAS_PRICE", "0.025upaw"),
@@ -112,8 +121,8 @@ func (c *Config) Validate() error {
 		return errors.New("AMOUNT_PER_REQUEST must be positive")
 	}
 
-	if c.RequireCaptcha && c.HCaptchaSecret == "" {
-		return errors.New("HCAPTCHA_SECRET is required when captcha is enabled")
+	if c.RequireCaptcha && c.TurnstileSecret == "" {
+		return errors.New("TURNSTILE_SECRET is required when captcha is enabled")
 	}
 
 	if c.MaxRecipientBalance < 0 {

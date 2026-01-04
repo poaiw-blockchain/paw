@@ -210,6 +210,122 @@ export interface NetworkStats {
   activeAccounts24h: number
 }
 
+// Rich List types
+export interface RichListEntry {
+  rank: number
+  address: string
+  balance: string
+  percentage: number
+}
+
+// Governance types
+export interface Proposal {
+  proposal_id: string
+  content: {
+    '@type': string
+    title: string
+    description: string
+  }
+  status: string
+  status_label: string
+  final_tally_result: {
+    yes: string
+    abstain: string
+    no: string
+    no_with_veto: string
+  }
+  submit_time: string
+  deposit_end_time: string
+  total_deposit: Array<{ denom: string; amount: string }>
+  voting_start_time: string
+  voting_end_time: string
+}
+
+export interface ProposalTally {
+  yes: string
+  abstain: string
+  no: string
+  no_with_veto: string
+}
+
+export interface ProposalVote {
+  proposal_id: string
+  voter: string
+  option: string
+  options: Array<{
+    option: string
+    option_label: string
+    weight: string
+  }>
+}
+
+// Staking types
+export interface StakingPool {
+  not_bonded_tokens: string
+  bonded_tokens: string
+}
+
+export interface StakingParams {
+  unbonding_time: string
+  max_validators: number
+  max_entries: number
+  historical_entries: number
+  bond_denom: string
+}
+
+export interface Delegation {
+  delegation: {
+    delegator_address: string
+    validator_address: string
+    shares: string
+  }
+  balance: {
+    denom: string
+    amount: string
+  }
+}
+
+export interface UnbondingDelegation {
+  delegator_address: string
+  validator_address: string
+  entries: Array<{
+    creation_height: string
+    completion_time: string
+    initial_balance: string
+    balance: string
+  }>
+}
+
+export interface DelegationReward {
+  validator_address: string
+  reward: Array<{ denom: string; amount: string }>
+}
+
+// Validator types (enhanced)
+export interface ValidatorDetail {
+  operator_address: string
+  consensus_pubkey: any
+  jailed: boolean
+  status: string
+  status_label: string
+  tokens: string
+  delegator_shares: string
+  voting_power: number
+  voting_power_formatted: number
+  rank: number
+  moniker: string
+  identity: string
+  website: string
+  security_contact: string
+  details: string
+  commission_rate: number
+  commission_max_rate: number
+  commission_max_change_rate: number
+  min_self_delegation: string
+  unbonding_height: string
+  unbonding_time: string
+}
+
 export interface PaginatedResponse<T> {
   data: T[]
   page: number
@@ -631,6 +747,102 @@ class APIClient {
     })
   }
 
+  // Governance API (uses Flask endpoints)
+  async getProposals(status?: string): Promise<{ proposals: Proposal[]; total: number }> {
+    // Note: Flask API uses different base URL pattern
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/governance/proposals`, {
+      params: status ? { status } : undefined,
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  async getProposal(proposalId: number): Promise<{
+    proposal: Proposal
+    tally: ProposalTally
+    voting_params: any
+    tallying_params: any
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/governance/proposals/${proposalId}`, {
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  async getProposalVotes(proposalId: number, paginationKey?: string): Promise<{
+    votes: ProposalVote[]
+    total: number
+    next_key: string | null
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/governance/proposals/${proposalId}/votes`, {
+      params: paginationKey ? { pagination_key: paginationKey } : undefined,
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  // Staking API (uses Flask endpoints)
+  async getStakingPool(): Promise<{ pool: StakingPool; params: StakingParams }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/staking/pool`, {
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  async getStakingDelegations(address: string): Promise<{
+    delegations: Delegation[]
+    unbonding: UnbondingDelegation[]
+    total: number
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/staking/delegations/${address}`, {
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  async getStakingRewards(address: string): Promise<{
+    rewards: DelegationReward[]
+    total: Array<{ denom: string; amount: string }>
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/staking/rewards/${address}`, {
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  // Validators API (uses Flask endpoints for enhanced data)
+  async getValidatorsList(options?: {
+    status?: string
+    sort?: string
+    order?: string
+  }): Promise<{ validators: ValidatorDetail[]; total: number }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/validators`, {
+      params: options,
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  async getValidatorDetail(address: string): Promise<{
+    validator: ValidatorDetail
+    commission_earned: any
+    delegations: Delegation[]
+    delegator_count: number
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/validators/${address}`, {
+      timeout: 30000,
+    })
+    return response.data
+  }
+
   // Statistics API
   async getNetworkStats(): Promise<NetworkStats> {
     const response = await this.request<{ stats: any }>({
@@ -759,6 +971,43 @@ class APIClient {
         },
       }
     )
+    return response.data
+  }
+
+  // Rich List API
+  async getRichList(limit = 100, denom = 'upaw'): Promise<{
+    richlist: RichListEntry[]
+    total_supply: string
+    total_holders: number
+    denom: string
+    last_updated: string
+  }> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/v1/richlist`, {
+      params: { limit, denom },
+      timeout: 30000,
+    })
+    return response.data
+  }
+
+  // Export API
+  async exportTransactions(address: string, format: 'csv' | 'json' = 'csv', limit = 1000): Promise<Blob> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/v1/export/transactions/${address}`, {
+      params: { format, limit },
+      responseType: 'blob',
+      timeout: 60000,
+    })
+    return response.data
+  }
+
+  async exportAccount(address: string, format: 'csv' | 'json' = 'csv'): Promise<Blob> {
+    const baseUrl = process.env.NEXT_PUBLIC_FLASK_URL || 'http://localhost:5000'
+    const response = await axios.get(`${baseUrl}/api/v1/export/account/${address}`, {
+      params: { format },
+      responseType: 'blob',
+      timeout: 60000,
+    })
     return response.data
   }
 }

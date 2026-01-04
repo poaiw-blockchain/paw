@@ -35,8 +35,8 @@ type TokenRequest struct {
 	PowSolution  *pow.Solution `json:"pow_solution,omitempty"` // Optional PoW solution for additional spam protection
 }
 
-// HCaptchaResponse represents hCaptcha verification response
-type HCaptchaResponse struct {
+// TurnstileResponse represents Turnstile verification response
+type TurnstileResponse struct {
 	Success     bool     `json:"success"`
 	ChallengeTS string   `json:"challenge_ts"`
 	Hostname    string   `json:"hostname"`
@@ -106,6 +106,13 @@ func (h *Handler) GetFaucetInfo(c *gin.Context) {
 		balance = 0 // Continue with 0 balance
 	}
 
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Database not configured",
+		})
+		return
+	}
+
 	// Get statistics
 	stats, err := h.db.GetStatistics()
 	if err != nil {
@@ -130,6 +137,13 @@ func (h *Handler) GetFaucetInfo(c *gin.Context) {
 
 // GetRecentTransactions returns recent faucet transactions
 func (h *Handler) GetRecentTransactions(c *gin.Context) {
+	if h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Database not configured",
+		})
+		return
+	}
+
 	requests, err := h.db.GetRecentRequests(50)
 	if err != nil {
 		log.WithError(err).Error("Failed to get recent transactions")
@@ -256,6 +270,13 @@ func (h *Handler) RequestTokens(c *gin.Context) {
 		}
 	}
 
+	if h.rateLimiter == nil || h.db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Service dependencies not configured",
+		})
+		return
+	}
+
 	// Check IP rate limit
 	ipLimited, err := h.rateLimiter.CheckIPLimit(ctx, clientIP)
 	if err != nil {
@@ -367,17 +388,17 @@ func (h *Handler) GetStatistics(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
-// verifyCaptcha verifies hCaptcha token
+// verifyCaptcha verifies Turnstile token
 func (h *Handler) verifyCaptcha(token, remoteIP string) bool {
-	if h.cfg.HCaptchaSecret == "" {
-		log.Warn("HCaptcha secret not configured, skipping verification")
+	if h.cfg.TurnstileSecret == "" {
+		log.Warn("Turnstile secret not configured, skipping verification")
 		return true
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	resp, err := client.PostForm("https://hcaptcha.com/siteverify", map[string][]string{
-		"secret":   {h.cfg.HCaptchaSecret},
+	resp, err := client.PostForm("https://challenges.cloudflare.com/turnstile/v0/siteverify", map[string][]string{
+		"secret":   {h.cfg.TurnstileSecret},
 		"response": {token},
 		"remoteip": {remoteIP},
 	})
@@ -394,7 +415,7 @@ func (h *Handler) verifyCaptcha(token, remoteIP string) bool {
 		return false
 	}
 
-	var captchaResp HCaptchaResponse
+	var captchaResp TurnstileResponse
 	if err := json.Unmarshal(body, &captchaResp); err != nil {
 		log.WithError(err).Error("Failed to parse captcha response")
 		return false

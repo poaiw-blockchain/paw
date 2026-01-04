@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Moon, Sun, Menu, X, Globe } from 'lucide-react'
+import { Moon, Sun, Menu, X, Globe, ExternalLink, Trophy, FileText } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { SearchBar } from '@/components/search/search-bar'
@@ -14,10 +14,17 @@ const navigation = [
   { name: 'Blocks', href: '/blocks' },
   { name: 'Transactions', href: '/transactions' },
   { name: 'Validators', href: '/validators' },
+  { name: 'Governance', href: '/governance' },
+  { name: 'Staking', href: '/staking' },
   { name: 'DEX', href: '/dex' },
+  { name: 'Rich List', href: '/richlist' },
   { name: 'Oracle', href: '/oracle' },
   { name: 'Compute', href: '/compute' },
 ]
+
+const API_DOCS_URL = process.env.NEXT_PUBLIC_FLASK_URL
+  ? `${process.env.NEXT_PUBLIC_FLASK_URL}/api/docs`
+  : 'http://localhost:5000/api/docs'
 
 export function Header() {
   const pathname = usePathname()
@@ -55,8 +62,21 @@ export function Header() {
             <SearchBar placeholder="Search..." />
           </div>
 
-          {/* Theme Toggle & Mobile Menu */}
+          {/* Theme Toggle, API Docs & Mobile Menu */}
           <div className="flex items-center gap-2">
+            <a
+              href={API_DOCS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex"
+            >
+              <Button variant="ghost" size="sm">
+                <FileText className="h-4 w-4 mr-1" />
+                API
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
+            </a>
+
             <Button
               variant="ghost"
               size="icon"
@@ -96,6 +116,18 @@ export function Header() {
                 </Button>
               </Link>
             ))}
+            <a
+              href={API_DOCS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <Button variant="ghost" className="w-full justify-start">
+                <FileText className="h-4 w-4 mr-2" />
+                API Documentation
+                <ExternalLink className="h-3 w-3 ml-2" />
+              </Button>
+            </a>
           </div>
         )}
       </div>

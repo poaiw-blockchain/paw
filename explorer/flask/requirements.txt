@@ -4,6 +4,9 @@ Flask-Caching==2.1.0
 Flask-CORS==4.0.0
 Werkzeug==3.0.1
 
+# API Documentation
+flasgger==0.9.7.1
+
 # WSGI server
 gunicorn==21.2.0
 

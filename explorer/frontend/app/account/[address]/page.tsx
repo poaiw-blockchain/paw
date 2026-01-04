@@ -17,6 +17,7 @@ import {
   Coins,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { api, Transaction } from '@/lib/api'
+import { api, Transaction, downloadFile } from '@/lib/api'
 import { formatNumber, formatHash, formatGas, formatToken, cn, getStatusVariant } from '@/lib/utils'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
@@ -36,7 +37,21 @@ export default function AccountPage({ params }: PageProps) {
   const { address } = use(params)
   const { copy, isCopied } = useCopyToClipboard()
   const [txPage, setTxPage] = useState(1)
+  const [isExporting, setIsExporting] = useState(false)
   const txLimit = 20
+
+  const handleExportCSV = async () => {
+    setIsExporting(true)
+    try {
+      const blob = await api.exportTransactions(address, 'csv', 1000)
+      const filename = `paw_transactions_${address.slice(0, 10)}_${new Date().toISOString().split('T')[0]}.csv`
+      downloadFile(blob, filename)
+    } catch (error) {
+      console.error('Export failed:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const { data: accountData, isLoading, isError, error } = useQuery({
     queryKey: ['account', address],
@@ -120,6 +135,14 @@ export default function AccountPage({ params }: PageProps) {
             </Button>
           </div>
         </div>
+        <Button
+          variant="outline"
+          onClick={handleExportCSV}
+          disabled={isExporting}
+        >
+          <Download className={`h-4 w-4 mr-2 ${isExporting ? 'animate-bounce' : ''}`} />
+          {isExporting ? 'Exporting...' : 'Export CSV'}
+        </Button>
       </div>
 
       {/* Account Overview */}

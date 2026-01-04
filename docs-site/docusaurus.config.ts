@@ -86,8 +86,36 @@ const config: Config = {
           label: 'Validators',
         },
         {
+          type: 'dropdown',
+          label: 'Testnet',
+          position: 'left',
+          items: [
+            {
+              label: 'Artifacts & Binaries',
+              href: 'https://artifacts.poaiw.org',
+            },
+            {
+              label: 'Block Explorer',
+              href: 'https://explorer.poaiw.org',
+            },
+            {
+              label: 'Network Status',
+              href: 'https://grafana.poaiw.org',
+            },
+            {
+              label: 'Faucet',
+              to: '/faucet',
+            },
+          ],
+        },
+        {
           href: 'https://github.com/poaiw-blockchain/paw',
           label: 'GitHub',
+          position: 'right',
+        },
+        {
+          href: 'https://discord.gg/DBHTc2QV',
+          label: 'Discord',
           position: 'right',
         },
       ],
@@ -113,6 +141,27 @@ const config: Config = {
           ],
         },
         {
+          title: 'Devnet',
+          items: [
+            {
+              label: 'Artifacts & Binaries',
+              href: 'https://artifacts.poaiw.org',
+            },
+            {
+              label: 'Block Explorer',
+              href: 'https://explorer.poaiw.org',
+            },
+            {
+              label: 'Network Status',
+              href: 'https://grafana.poaiw.org',
+            },
+            {
+              label: 'Testnet Repo',
+              href: 'https://github.com/poaiw-blockchain/paw-testnets',
+            },
+          ],
+        },
+        {
           title: 'Community',
           items: [
             {
@@ -123,11 +172,6 @@ const config: Config = {
               label: 'Twitter',
               href: 'https://twitter.com/PAWNetwork',
             },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
             {
               label: 'GitHub',
               href: 'https://github.com/poaiw-blockchain/paw',
@@ -135,7 +179,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} PAW Blockchain. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} PAW Blockchain | Chain ID: paw-testnet-1 | Network: Devnet`,
     },
     prism: {
       theme: prismThemes.github,

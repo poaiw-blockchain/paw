@@ -169,8 +169,8 @@ async function handleFormSubmit(e) {
             captchaToken = null;
 
             // Reset captcha
-            if (window.hcaptcha) {
-                hcaptcha.reset();
+            if (window.turnstile) {
+                turnstile.reset();
             }
 
             // Reload data
@@ -180,8 +180,8 @@ async function handleFormSubmit(e) {
             showError(data.error || 'Request failed. Please try again.');
 
             // Reset captcha on error
-            if (window.hcaptcha) {
-                hcaptcha.reset();
+            if (window.turnstile) {
+                turnstile.reset();
             }
             captchaToken = null;
         }
@@ -190,8 +190,8 @@ async function handleFormSubmit(e) {
         showError('Network error. Please check your connection and try again.');
 
         // Reset captcha on error
-        if (window.hcaptcha) {
-            hcaptcha.reset();
+        if (window.turnstile) {
+            turnstile.reset();
         }
         captchaToken = null;
     } finally {

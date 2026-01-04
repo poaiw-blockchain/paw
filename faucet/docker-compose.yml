@@ -69,7 +69,8 @@ services:
       RATE_LIMIT_WINDOW_HOURS: "${RATE_LIMIT_WINDOW_HOURS:-24}"
 
       # Captcha
-      HCAPTCHA_SECRET: "${HCAPTCHA_SECRET}"
+      TURNSTILE_SECRET: "${TURNSTILE_SECRET}"
+      TURNSTILE_REQUIRED: "${TURNSTILE_REQUIRED:-}"
 
       # Transaction settings
       GAS_LIMIT: "${GAS_LIMIT:-200000}"
