@@ -3,16 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAW Testnet Faucet</title>
+    <title>PAW Devnet Faucet</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
+    <!-- Devnet Banner -->
+    <div class="devnet-banner">
+        <span class="devnet-badge">DEVNET</span>
+        <span>This is an invite-only development network. Tokens have no real value.</span>
+        <a href="https://discord.gg/RwQ8pma6" target="_blank" class="devnet-link">Apply via Discord</a>
+    </div>
+
     <div class="container">
         <header>
             <div class="logo">
-                <h1>PAW Testnet Faucet</h1>
+                <h1>PAW Devnet Faucet <span class="network-tag">paw-testnet-1</span></h1>
                 <p class="subtitle">Get test tokens for PAW blockchain development</p>
+            </div>
+            <div class="header-links">
+                <a href="https://artifacts.poaiw.org" target="_blank" class="header-link">Artifacts</a>
+                <a href="https://monitoring.poaiw.org" target="_blank" class="header-link">Network Status</a>
             </div>
             <div class="network-status" id="networkStatus">
                 <span class="status-dot"></span>
@@ -53,8 +64,8 @@
                     </div>
 
                     <div class="form-group">
-                        <div class="h-captcha"
-                             data-sitekey="YOUR_HCAPTCHA_SITE_KEY"
+                        <div class="cf-turnstile"
+                             data-sitekey="0x4AAAAAACKf5aYPanzectB5"
                              data-callback="onCaptchaSuccess"
                              data-expired-callback="onCaptchaExpired">
                         </div>
@@ -76,7 +87,7 @@
                             <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
                             <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
                         </svg>
-                        <span>Rate limit: 1 request per address every 24 hours</span>
+                        <span>Limits: 2 requests per address / 24h, 5 requests per IP / 24h</span>
                     </div>
                 </form>
 
@@ -103,9 +114,11 @@
                     <h2>Important</h2>
                 </div>
                 <ul class="notice-list">
-                    <li>Testnet only. Do not reuse mainnet keys.</li>
-                    <li>Rate limits apply per address and per IP.</li>
-                    <li>Testnet balances may reset without notice.</li>
+                    <li>Devnet only. Tokens have no real value. Do not reuse mainnet keys.</li>
+                    <li>Limits: 2 requests per address / 24h, 5 requests per IP / 24h.</li>
+                    <li>Daily faucet cap is 40,000 tokens and resets at 12:00am EST.</li>
+                    <li>Allowlist required for access.</li>
+                    <li>Devnet balances may reset without notice.</li>
                 </ul>
             </div>
 
@@ -151,12 +164,13 @@
 
         <footer>
             <div class="footer-links">
-                <a href="https://example.com/paw-chain/paw" target="_blank"></a>
-                <a href="https://docs.paw-chain.com" target="_blank">Documentation</a>
-                <a href="https://discord.gg/DBHTc2QV" target="_blank">Discord</a>
-                <a href="https://explorer.paw-chain.com" target="_blank">Block Explorer</a>
+                <a href="https://github.com/poaiw-blockchain" target="_blank">GitHub</a>
+                <a href="https://github.com/poaiw-blockchain/paw-testnets" target="_blank">Testnet Docs</a>
+                <a href="https://discord.gg/RwQ8pma6" target="_blank">Discord</a>
+                <a href="/explorer" target="_blank">Block Explorer</a>
+                <a href="https://artifacts.poaiw.org" target="_blank">Artifacts</a>
             </div>
-            <p class="footer-text">PAW Testnet Faucet - For Development Use Only</p>
+            <p class="footer-text">PAW Devnet Faucet | Chain ID: paw-testnet-1 | For Development Use Only</p>
         </footer>
     </div>
 
