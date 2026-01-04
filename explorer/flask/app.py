@@ -58,9 +58,9 @@ swagger_config = {
     "headers": [],
     "specs": [
         {
-            "endpoint": "apispec_1",
-            "route": "/api/docs/apispec_1.json",
-            "rule_filter": lambda rule: rule.endpoint.startswith('api_'),
+            "endpoint": "apispec",
+            "route": "/apispec.json",
+            "rule_filter": lambda rule: True,
             "model_filter": lambda tag: True,
         }
     ],
@@ -73,23 +73,31 @@ swagger_template = {
     "swagger": "2.0",
     "info": {
         "title": "PAW Blockchain Explorer API",
-        "description": "REST API for the PAW Blockchain Explorer. Provides access to blocks, transactions, accounts, validators, DEX data, and more.",
+        "description": "API for exploring the PAW blockchain - blocks, transactions, accounts, staking, governance, IBC, DEX, and validators",
         "version": "1.0.0",
         "contact": {
-            "name": "PAW Development Team"
+            "name": "PAW Blockchain",
+            "url": "https://poaiw.org"
         },
         "license": {
             "name": "MIT"
         }
     },
-    "basePath": "/api/v1",
-    "schemes": ["http", "https"],
+    "host": "explorer.poaiw.org",
+    "basePath": "/",
+    "schemes": ["https", "http"],
     "tags": [
-        {"name": "Blocks", "description": "Block-related endpoints"},
-        {"name": "Transactions", "description": "Transaction-related endpoints"},
-        {"name": "Accounts", "description": "Account-related endpoints"},
-        {"name": "Rich List", "description": "Top token holders"},
+        {"name": "Health", "description": "Health check endpoints"},
+        {"name": "Blocks", "description": "Block data endpoints"},
+        {"name": "Transactions", "description": "Transaction endpoints"},
+        {"name": "Accounts", "description": "Account/address endpoints"},
+        {"name": "Staking", "description": "Staking and delegation endpoints"},
+        {"name": "Governance", "description": "Governance proposal endpoints"},
+        {"name": "Validators", "description": "Validator endpoints"},
+        {"name": "IBC", "description": "Inter-Blockchain Communication endpoints"},
         {"name": "Export", "description": "Data export endpoints"},
+        {"name": "Supply", "description": "Token supply endpoints"},
+        {"name": "Rich List", "description": "Top token holders"},
         {"name": "Statistics", "description": "Network statistics"},
         {"name": "Search", "description": "Search functionality"},
     ]
@@ -764,7 +772,27 @@ def handle_exception(e):
 @app.route('/health')
 @track_metrics
 def health():
-    """Basic health check."""
+    """
+    Basic health check
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service is healthy
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: healthy
+            timestamp:
+              type: string
+              format: date-time
+            version:
+              type: string
+              example: "1.0.0"
+    """
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.utcnow().isoformat(),
@@ -775,7 +803,38 @@ def health():
 @app.route('/health/ready')
 @track_metrics
 def health_ready():
-    """Readiness check."""
+    """
+    Readiness check with dependency status
+    ---
+    tags:
+      - Health
+    responses:
+      200:
+        description: Service is ready
+        schema:
+          type: object
+          properties:
+            ready:
+              type: boolean
+              example: true
+            checks:
+              type: object
+              properties:
+                indexer:
+                  type: boolean
+                rpc:
+                  type: boolean
+      503:
+        description: Service not ready
+        schema:
+          type: object
+          properties:
+            ready:
+              type: boolean
+              example: false
+            checks:
+              type: object
+    """
     # Check if indexer is accessible
     try:
         response = requests.get(
@@ -1005,7 +1064,43 @@ def search_page():
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_blocks():
-    """Get blocks."""
+    """
+    Get latest blocks
+    ---
+    tags:
+      - Blocks
+    parameters:
+      - name: limit
+        in: query
+        type: integer
+        default: 20
+        description: Number of blocks to return (max 100)
+    responses:
+      200:
+        description: List of recent blocks
+        schema:
+          type: object
+          properties:
+            blocks:
+              type: array
+              items:
+                type: object
+                properties:
+                  height:
+                    type: integer
+                  hash:
+                    type: string
+                  time:
+                    type: string
+                  proposer:
+                    type: string
+                  num_txs:
+                    type: integer
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     limit = min(
         request.args.get('limit', 20, type=int),
         app.config['MAX_ITEMS_PER_PAGE']
@@ -1023,7 +1118,40 @@ def api_blocks():
 @track_metrics
 @cache.cached(timeout=300, query_string=True)
 def api_block(height):
-    """Get block by height."""
+    """
+    Get block by height
+    ---
+    tags:
+      - Blocks
+    parameters:
+      - name: height
+        in: path
+        type: integer
+        required: true
+        description: Block height
+    responses:
+      200:
+        description: Block details
+        schema:
+          type: object
+          properties:
+            height:
+              type: integer
+            hash:
+              type: string
+            time:
+              type: string
+            proposer:
+              type: string
+            num_txs:
+              type: integer
+            txs:
+              type: array
+              items:
+                type: string
+      404:
+        description: Block not found
+    """
     block = rpc_client.get_block(height)
     if block is None:
         return jsonify({'error': 'Block not found'}), 404
@@ -1036,7 +1164,43 @@ def api_block(height):
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_transactions():
-    """Get transactions."""
+    """
+    Get latest transactions
+    ---
+    tags:
+      - Transactions
+    parameters:
+      - name: limit
+        in: query
+        type: integer
+        default: 20
+        description: Number of transactions to return (max 100)
+    responses:
+      200:
+        description: List of recent transactions
+        schema:
+          type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  hash:
+                    type: string
+                  height:
+                    type: integer
+                  code:
+                    type: integer
+                  gas_used:
+                    type: string
+                  gas_wanted:
+                    type: string
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     limit = min(
         request.args.get('limit', 20, type=int),
         app.config['MAX_ITEMS_PER_PAGE']
@@ -1054,7 +1218,40 @@ def api_transactions():
 @track_metrics
 @cache.cached(timeout=300, query_string=True)
 def api_transaction(tx_hash):
-    """Get transaction by hash."""
+    """
+    Get transaction by hash
+    ---
+    tags:
+      - Transactions
+    parameters:
+      - name: tx_hash
+        in: path
+        type: string
+        required: true
+        description: Transaction hash (64 hex characters)
+    responses:
+      200:
+        description: Transaction details
+        schema:
+          type: object
+          properties:
+            hash:
+              type: string
+            height:
+              type: integer
+            code:
+              type: integer
+            gas_used:
+              type: string
+            gas_wanted:
+              type: string
+            log:
+              type: string
+            tx:
+              type: string
+      404:
+        description: Transaction not found
+    """
     transaction = rpc_client.get_transaction(tx_hash)
     if transaction is None:
         return jsonify({'error': 'Transaction not found'}), 404
@@ -1067,7 +1264,36 @@ def api_transaction(tx_hash):
 @track_metrics
 @cache.cached(timeout=60)
 def api_stats():
-    """Get network statistics."""
+    """
+    Get network statistics
+    ---
+    tags:
+      - Statistics
+    responses:
+      200:
+        description: Network statistics
+        schema:
+          type: object
+          properties:
+            latest_block_height:
+              type: integer
+            latest_block_time:
+              type: string
+            catching_up:
+              type: boolean
+            chain_id:
+              type: string
+            moniker:
+              type: string
+            validator_count:
+              type: integer
+            bonded_tokens:
+              type: string
+            total_supply:
+              type: string
+      500:
+        description: Server error
+    """
     stats = rpc_client.get_network_stats()
     if stats is None:
         return jsonify({'error': 'Failed to fetch stats'}), 500
@@ -1079,7 +1305,35 @@ def api_stats():
 @app.route('/api/v1/search')
 @track_metrics
 def api_search():
-    """Search endpoint."""
+    """
+    Search for blocks, transactions, or accounts
+    ---
+    tags:
+      - Search
+    parameters:
+      - name: q
+        in: query
+        type: string
+        required: true
+        description: Search query (block height, tx hash, or address)
+    responses:
+      200:
+        description: Search results
+        schema:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [block, transaction, account, not_found]
+            result:
+              type: object
+            query:
+              type: string
+      400:
+        description: Query parameter required
+      500:
+        description: Search failed
+    """
     query = request.args.get('q', '').strip()
 
     if not query:
@@ -1097,7 +1351,52 @@ def api_search():
 @track_metrics
 @cache.cached(timeout=60, query_string=True)
 def api_governance_proposals():
-    """Get all governance proposals."""
+    """
+    Get all governance proposals
+    ---
+    tags:
+      - Governance
+    parameters:
+      - name: status
+        in: query
+        type: string
+        required: false
+        enum: [voting, passed, rejected, failed, deposit]
+        description: Filter proposals by status
+    responses:
+      200:
+        description: List of governance proposals
+        schema:
+          type: object
+          properties:
+            proposals:
+              type: array
+              items:
+                type: object
+                properties:
+                  proposal_id:
+                    type: string
+                  content:
+                    type: object
+                  status:
+                    type: string
+                  status_label:
+                    type: string
+                  final_tally_result:
+                    type: object
+                  submit_time:
+                    type: string
+                  deposit_end_time:
+                    type: string
+                  voting_start_time:
+                    type: string
+                  voting_end_time:
+                    type: string
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     status = request.args.get('status')
     status_map = {
         'voting': 'PROPOSAL_STATUS_VOTING_PERIOD',
@@ -1138,7 +1437,52 @@ def api_governance_proposals():
 @track_metrics
 @cache.cached(timeout=60, query_string=True)
 def api_governance_proposal(proposal_id):
-    """Get proposal details."""
+    """
+    Get proposal details by ID
+    ---
+    tags:
+      - Governance
+    parameters:
+      - name: proposal_id
+        in: path
+        type: integer
+        required: true
+        description: Proposal ID
+    responses:
+      200:
+        description: Proposal details with tally
+        schema:
+          type: object
+          properties:
+            proposal:
+              type: object
+              properties:
+                proposal_id:
+                  type: string
+                content:
+                  type: object
+                status:
+                  type: string
+                status_label:
+                  type: string
+            tally:
+              type: object
+              properties:
+                yes:
+                  type: string
+                abstain:
+                  type: string
+                no:
+                  type: string
+                no_with_veto:
+                  type: string
+            voting_params:
+              type: object
+            tallying_params:
+              type: object
+      404:
+        description: Proposal not found
+    """
     proposal_data = rpc_client.get_proposal(proposal_id)
     if proposal_data is None:
         return jsonify({'error': 'Proposal not found'}), 404
@@ -1178,7 +1522,55 @@ def api_governance_proposal(proposal_id):
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_governance_proposal_votes(proposal_id):
-    """Get votes for a proposal."""
+    """
+    Get votes for a proposal
+    ---
+    tags:
+      - Governance
+    parameters:
+      - name: proposal_id
+        in: path
+        type: integer
+        required: true
+        description: Proposal ID
+      - name: pagination_key
+        in: query
+        type: string
+        required: false
+        description: Pagination key for next page
+    responses:
+      200:
+        description: List of votes
+        schema:
+          type: object
+          properties:
+            votes:
+              type: array
+              items:
+                type: object
+                properties:
+                  voter:
+                    type: string
+                  proposal_id:
+                    type: string
+                  options:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        option:
+                          type: string
+                        option_label:
+                          type: string
+                        weight:
+                          type: string
+            total:
+              type: integer
+            next_key:
+              type: string
+      500:
+        description: Server error
+    """
     pagination_key = request.args.get('pagination_key')
     votes_data = rpc_client.get_proposal_votes(proposal_id, pagination_key)
     if votes_data is None:
@@ -1211,7 +1603,36 @@ def api_governance_proposal_votes(proposal_id):
 @track_metrics
 @cache.cached(timeout=60)
 def api_staking_pool():
-    """Get staking pool info."""
+    """
+    Get staking pool information
+    ---
+    tags:
+      - Staking
+    responses:
+      200:
+        description: Staking pool info
+        schema:
+          type: object
+          properties:
+            pool:
+              type: object
+              properties:
+                bonded_tokens:
+                  type: string
+                not_bonded_tokens:
+                  type: string
+            params:
+              type: object
+              properties:
+                unbonding_time:
+                  type: string
+                max_validators:
+                  type: integer
+                bond_denom:
+                  type: string
+      500:
+        description: Server error
+    """
     pool_data = rpc_client.get_staking_pool()
     if pool_data is None:
         return jsonify({'error': 'Failed to fetch staking pool'}), 500
@@ -1231,7 +1652,51 @@ def api_staking_pool():
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_staking_delegations(address):
-    """Get delegations for an address."""
+    """
+    Get delegations for an address
+    ---
+    tags:
+      - Staking
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Delegator address (paw1...)
+    responses:
+      200:
+        description: Delegation information
+        schema:
+          type: object
+          properties:
+            delegations:
+              type: array
+              items:
+                type: object
+                properties:
+                  delegation:
+                    type: object
+                    properties:
+                      delegator_address:
+                        type: string
+                      validator_address:
+                        type: string
+                      shares:
+                        type: string
+                  balance:
+                    type: object
+                    properties:
+                      denom:
+                        type: string
+                      amount:
+                        type: string
+            unbonding:
+              type: array
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     delegations_data = rpc_client.get_delegations(address)
     if delegations_data is None:
         return jsonify({'error': 'Failed to fetch delegations'}), 500
@@ -1252,7 +1717,51 @@ def api_staking_delegations(address):
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_staking_rewards(address):
-    """Get pending rewards for an address."""
+    """
+    Get pending staking rewards for an address
+    ---
+    tags:
+      - Staking
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Delegator address (paw1...)
+    responses:
+      200:
+        description: Pending rewards
+        schema:
+          type: object
+          properties:
+            rewards:
+              type: array
+              items:
+                type: object
+                properties:
+                  validator_address:
+                    type: string
+                  reward:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        denom:
+                          type: string
+                        amount:
+                          type: string
+            total:
+              type: array
+              items:
+                type: object
+                properties:
+                  denom:
+                    type: string
+                  amount:
+                    type: string
+      500:
+        description: Server error
+    """
     rewards_data = rpc_client.get_delegation_rewards(address)
     if rewards_data is None:
         return jsonify({'error': 'Failed to fetch rewards'}), 500
@@ -1270,7 +1779,50 @@ def api_staking_rewards(address):
 @track_metrics
 @cache.cached(timeout=30, query_string=True)
 def api_staking_unbonding(address):
-    """Get unbonding delegations for an address."""
+    """
+    Get unbonding delegations for an address
+    ---
+    tags:
+      - Staking
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Delegator address (paw1...)
+    responses:
+      200:
+        description: Unbonding delegations
+        schema:
+          type: object
+          properties:
+            unbonding_delegations:
+              type: array
+              items:
+                type: object
+                properties:
+                  delegator_address:
+                    type: string
+                  validator_address:
+                    type: string
+                  entries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        creation_height:
+                          type: string
+                        completion_time:
+                          type: string
+                        initial_balance:
+                          type: string
+                        balance:
+                          type: string
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     unbonding_data = rpc_client.get_unbonding_delegations(address)
     if unbonding_data is None:
         return jsonify({'error': 'Failed to fetch unbonding delegations'}), 500
@@ -1288,7 +1840,60 @@ def api_staking_unbonding(address):
 @track_metrics
 @cache.cached(timeout=60, query_string=True)
 def api_validators_list():
-    """Get all validators with sorting."""
+    """
+    Get all validators with sorting
+    ---
+    tags:
+      - Validators
+    parameters:
+      - name: status
+        in: query
+        type: string
+        required: false
+        enum: [bonded, unbonded, unbonding]
+        description: Filter by validator status
+      - name: sort
+        in: query
+        type: string
+        default: voting_power
+        enum: [voting_power, commission, moniker]
+        description: Sort field
+      - name: order
+        in: query
+        type: string
+        default: desc
+        enum: [asc, desc]
+        description: Sort order
+    responses:
+      200:
+        description: List of validators
+        schema:
+          type: object
+          properties:
+            validators:
+              type: array
+              items:
+                type: object
+                properties:
+                  operator_address:
+                    type: string
+                  moniker:
+                    type: string
+                  status_label:
+                    type: string
+                  voting_power:
+                    type: integer
+                  voting_power_formatted:
+                    type: number
+                  commission_rate:
+                    type: number
+                  rank:
+                    type: integer
+            total:
+              type: integer
+      500:
+        description: Server error
+    """
     status = request.args.get('status')
     sort_by = request.args.get('sort', 'voting_power')
     order = request.args.get('order', 'desc')
@@ -1355,7 +1960,51 @@ def api_validators_list():
 @track_metrics
 @cache.cached(timeout=60, query_string=True)
 def api_validator_detail(address):
-    """Get validator details."""
+    """
+    Get validator details by address
+    ---
+    tags:
+      - Validators
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Validator operator address (pawvaloper1...)
+    responses:
+      200:
+        description: Validator details
+        schema:
+          type: object
+          properties:
+            validator:
+              type: object
+              properties:
+                operator_address:
+                  type: string
+                moniker:
+                  type: string
+                status_label:
+                  type: string
+                voting_power:
+                  type: integer
+                voting_power_formatted:
+                  type: number
+                commission_rate:
+                  type: number
+                website:
+                  type: string
+                details:
+                  type: string
+            commission_earned:
+              type: object
+            delegations:
+              type: array
+            delegator_count:
+              type: integer
+      404:
+        description: Validator not found
+    """
     validator_data = rpc_client.get_validator_rest(address)
     if validator_data is None:
         return jsonify({'error': 'Validator not found'}), 404
@@ -2060,7 +2709,7 @@ def api_supply():
     Get token supply info
     ---
     tags:
-      - Statistics
+      - Supply
     responses:
       200:
         description: Token supply information
