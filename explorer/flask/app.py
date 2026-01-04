@@ -304,7 +304,7 @@ class RPCClient:
     def __init__(self):
         self.indexer_url = app.config['INDEXER_API_URL']
         self.rpc_url = app.config['RPC_URL']
-        self.rest_url = os.getenv('REST_URL', 'http://paw-node:1317')
+        self.rest_url = os.getenv('REST_URL', 'http://paw-node:1327')
         self.timeout = app.config['REQUEST_TIMEOUT']
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
@@ -1722,6 +1722,482 @@ def format_number(value):
         return f"{int(value):,}"
     except (ValueError, TypeError):
         return value
+
+
+# HIGH PRIORITY: Account Details API
+@app.route('/api/v1/account/<address>')
+@track_metrics
+@cache.cached(timeout=30, query_string=True)
+def api_account_details(address):
+    """
+    Get account details including balances
+    ---
+    tags:
+      - Accounts
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Account address (paw1...)
+    responses:
+      200:
+        description: Account details
+        schema:
+          type: object
+          properties:
+            address:
+              type: string
+            balances:
+              type: array
+            account_number:
+              type: string
+            sequence:
+              type: string
+            account_type:
+              type: string
+      404:
+        description: Account not found
+    """
+    # Get account info from REST API
+    auth_url = f"{rpc_client.rest_url}/cosmos/auth/v1beta1/accounts/{address}"
+    account_data = rpc_client._make_request(auth_url)
+
+    # Get balances from REST API
+    balance_url = f"{rpc_client.rest_url}/cosmos/bank/v1beta1/balances/{address}"
+    balance_data = rpc_client._make_request(balance_url)
+
+    if not account_data and not balance_data:
+        return jsonify({'error': 'Account not found'}), 404
+
+    account = account_data.get('account', {}) if account_data else {}
+    balances = balance_data.get('balances', []) if balance_data else []
+
+    # Determine account type from @type field
+    account_type = account.get('@type', '').split('.')[-1] if account.get('@type') else 'Unknown'
+
+    CACHE_HITS.labels(endpoint='account_details').inc()
+    return jsonify({
+        'address': address,
+        'balances': balances,
+        'account_number': account.get('account_number', ''),
+        'sequence': account.get('sequence', ''),
+        'account_type': account_type,
+        'pub_key': account.get('pub_key'),
+    })
+
+
+# HIGH PRIORITY: Account Transaction History API
+@app.route('/api/v1/account/<address>/transactions')
+@track_metrics
+@cache.cached(timeout=30, query_string=True)
+def api_account_transactions(address):
+    """
+    Get transaction history for an account
+    ---
+    tags:
+      - Accounts
+    parameters:
+      - name: address
+        in: path
+        type: string
+        required: true
+        description: Account address (paw1...)
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Page number
+      - name: limit
+        in: query
+        type: integer
+        default: 20
+        description: Items per page (max 100)
+    responses:
+      200:
+        description: Transaction history
+        schema:
+          type: object
+          properties:
+            transactions:
+              type: array
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+    """
+    page = max(request.args.get('page', 1, type=int), 1)
+    limit = min(request.args.get('limit', 20, type=int), 100)
+
+    # Search for transactions where this address is the sender
+    result = rpc_client._make_request(
+        f"{rpc_client.rpc_url}/tx_search",
+        params={
+            'query': f'"message.sender=\'{address}\'"',
+            'prove': 'false',
+            'page': str(page),
+            'per_page': str(limit),
+            'order_by': '"desc"'
+        }
+    )
+
+    if not result or 'result' not in result:
+        return jsonify({
+            'transactions': [],
+            'total': 0,
+            'page': page,
+            'limit': limit
+        })
+
+    txs = result['result'].get('txs', [])
+    total = int(result['result'].get('total_count', 0))
+
+    transactions = []
+    for tx in txs:
+        tx_result = tx.get('tx_result', {})
+        tx_hash = tx.get('hash', '')
+        height = int(tx.get('height', 0))
+
+        # Try to extract message type from events
+        msg_type = 'unknown'
+        events = tx_result.get('events', [])
+        for event in events:
+            if event.get('type') == 'message':
+                for attr in event.get('attributes', []):
+                    if attr.get('key') == 'action':
+                        msg_type = attr.get('value', 'unknown')
+                        break
+
+        transactions.append({
+            'hash': tx_hash,
+            'height': height,
+            'timestamp': '',  # RPC doesn't provide timestamp directly
+            'type': msg_type,
+            'status': 'success' if tx_result.get('code', 0) == 0 else 'failed',
+            'gas_used': tx_result.get('gas_used', '0'),
+            'gas_wanted': tx_result.get('gas_wanted', '0'),
+        })
+
+    CACHE_HITS.labels(endpoint='account_transactions').inc()
+    return jsonify({
+        'transactions': transactions,
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'total_pages': math.ceil(total / limit) if limit > 0 else 0
+    })
+
+
+# MEDIUM PRIORITY: IBC Transfers API
+@app.route('/api/ibc/transfers')
+@track_metrics
+@cache.cached(timeout=60, query_string=True)
+def api_ibc_transfers():
+    """
+    Get IBC transfer history
+    ---
+    tags:
+      - IBC
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+        description: Page number
+      - name: limit
+        in: query
+        type: integer
+        default: 20
+        description: Items per page (max 100)
+    responses:
+      200:
+        description: IBC transfers
+        schema:
+          type: object
+          properties:
+            transfers:
+              type: array
+            total:
+              type: integer
+    """
+    page = max(request.args.get('page', 1, type=int), 1)
+    limit = min(request.args.get('limit', 20, type=int), 100)
+
+    # Search for IBC transfer transactions
+    result = rpc_client._make_request(
+        f"{rpc_client.rpc_url}/tx_search",
+        params={
+            'query': '"message.action=\'/ibc.applications.transfer.v1.MsgTransfer\'"',
+            'prove': 'false',
+            'page': str(page),
+            'per_page': str(limit),
+            'order_by': '"desc"'
+        }
+    )
+
+    if not result or 'result' not in result:
+        return jsonify({
+            'transfers': [],
+            'total': 0,
+            'page': page,
+            'limit': limit
+        })
+
+    txs = result['result'].get('txs', [])
+    total = int(result['result'].get('total_count', 0))
+
+    transfers = []
+    for tx in txs:
+        tx_result = tx.get('tx_result', {})
+        tx_hash = tx.get('hash', '')
+        height = int(tx.get('height', 0))
+
+        # Extract IBC transfer details from events
+        sender = ''
+        receiver = ''
+        amount = ''
+        channel = ''
+
+        events = tx_result.get('events', [])
+        for event in events:
+            if event.get('type') == 'send_packet':
+                for attr in event.get('attributes', []):
+                    key = attr.get('key', '')
+                    value = attr.get('value', '')
+                    if key == 'packet_src_channel':
+                        channel = value
+            elif event.get('type') == 'transfer':
+                for attr in event.get('attributes', []):
+                    key = attr.get('key', '')
+                    value = attr.get('value', '')
+                    if key == 'sender':
+                        sender = value
+                    elif key == 'recipient':
+                        receiver = value
+                    elif key == 'amount':
+                        amount = value
+
+        transfers.append({
+            'hash': tx_hash,
+            'height': height,
+            'sender': sender,
+            'receiver': receiver,
+            'amount': amount,
+            'channel': channel,
+            'status': 'success' if tx_result.get('code', 0) == 0 else 'failed',
+        })
+
+    CACHE_HITS.labels(endpoint='ibc_transfers').inc()
+    return jsonify({
+        'transfers': transfers,
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'total_pages': math.ceil(total / limit) if limit > 0 else 0
+    })
+
+
+# MEDIUM PRIORITY: IBC Channels API
+@app.route('/api/ibc/channels')
+@track_metrics
+@cache.cached(timeout=120, query_string=True)
+def api_ibc_channels():
+    """
+    Get IBC channel status
+    ---
+    tags:
+      - IBC
+    responses:
+      200:
+        description: IBC channels
+        schema:
+          type: object
+          properties:
+            channels:
+              type: array
+            total:
+              type: integer
+    """
+    # Get IBC channels from REST API
+    channels_url = f"{rpc_client.rest_url}/ibc/core/channel/v1/channels"
+    channels_data = rpc_client._make_request(channels_url)
+
+    if not channels_data:
+        return jsonify({
+            'channels': [],
+            'total': 0
+        })
+
+    raw_channels = channels_data.get('channels', [])
+
+    channels = []
+    for ch in raw_channels:
+        channels.append({
+            'channel_id': ch.get('channel_id', ''),
+            'state': ch.get('state', ''),
+            'ordering': ch.get('ordering', ''),
+            'counterparty': ch.get('counterparty', {}),
+            'connection_hops': ch.get('connection_hops', []),
+            'version': ch.get('version', ''),
+            'port_id': ch.get('port_id', ''),
+        })
+
+    CACHE_HITS.labels(endpoint='ibc_channels').inc()
+    return jsonify({
+        'channels': channels,
+        'total': len(channels)
+    })
+
+
+# MEDIUM PRIORITY: Token Supply API
+@app.route('/api/v1/supply')
+@track_metrics
+@cache.cached(timeout=120)
+def api_supply():
+    """
+    Get token supply info
+    ---
+    tags:
+      - Statistics
+    responses:
+      200:
+        description: Token supply information
+        schema:
+          type: object
+          properties:
+            total_supply:
+              type: array
+            supply_by_denom:
+              type: object
+    """
+    # Get total supply from REST API
+    supply_url = f"{rpc_client.rest_url}/cosmos/bank/v1beta1/supply"
+    supply_data = rpc_client._make_request(supply_url)
+
+    if not supply_data:
+        return jsonify({'error': 'Failed to fetch supply'}), 500
+
+    supplies = supply_data.get('supply', [])
+
+    # Build supply by denom lookup
+    supply_by_denom = {}
+    for coin in supplies:
+        denom = coin.get('denom', '')
+        amount = coin.get('amount', '0')
+        supply_by_denom[denom] = amount
+
+    CACHE_HITS.labels(endpoint='supply').inc()
+    return jsonify({
+        'total_supply': supplies,
+        'supply_by_denom': supply_by_denom,
+        'primary_denom': 'upaw',
+        'primary_supply': supply_by_denom.get('upaw', '0'),
+    })
+
+
+# MEDIUM PRIORITY: Governance Parameters API
+@app.route('/api/governance/params')
+@track_metrics
+@cache.cached(timeout=300)
+def api_governance_params():
+    """
+    Get governance parameters
+    ---
+    tags:
+      - Governance
+    responses:
+      200:
+        description: Governance parameters
+        schema:
+          type: object
+          properties:
+            voting_period:
+              type: string
+            min_deposit:
+              type: array
+            quorum:
+              type: string
+            threshold:
+              type: string
+            veto_threshold:
+              type: string
+    """
+    # Get voting params
+    voting_data = rpc_client._make_request(
+        f"{rpc_client.rest_url}/cosmos/gov/v1beta1/params/voting"
+    )
+    # Get deposit params
+    deposit_data = rpc_client._make_request(
+        f"{rpc_client.rest_url}/cosmos/gov/v1beta1/params/deposit"
+    )
+    # Get tallying params
+    tallying_data = rpc_client._make_request(
+        f"{rpc_client.rest_url}/cosmos/gov/v1beta1/params/tallying"
+    )
+
+    voting_params = voting_data.get('voting_params', {}) if voting_data else {}
+    deposit_params = deposit_data.get('deposit_params', {}) if deposit_data else {}
+    tallying_params = tallying_data.get('tally_params', {}) if tallying_data else {}
+
+    CACHE_HITS.labels(endpoint='governance_params').inc()
+    return jsonify({
+        'voting_period': voting_params.get('voting_period', ''),
+        'min_deposit': deposit_params.get('min_deposit', []),
+        'max_deposit_period': deposit_params.get('max_deposit_period', ''),
+        'quorum': tallying_params.get('quorum', ''),
+        'threshold': tallying_params.get('threshold', ''),
+        'veto_threshold': tallying_params.get('veto_threshold', ''),
+    })
+
+
+# MEDIUM PRIORITY: Staking Parameters API
+@app.route('/api/staking/params')
+@track_metrics
+@cache.cached(timeout=300)
+def api_staking_params():
+    """
+    Get staking parameters
+    ---
+    tags:
+      - Staking
+    responses:
+      200:
+        description: Staking parameters
+        schema:
+          type: object
+          properties:
+            unbonding_time:
+              type: string
+            max_validators:
+              type: integer
+            max_entries:
+              type: integer
+            historical_entries:
+              type: integer
+            bond_denom:
+              type: string
+    """
+    # Get staking params from REST API
+    params_data = rpc_client._make_request(
+        f"{rpc_client.rest_url}/cosmos/staking/v1beta1/params"
+    )
+
+    if not params_data:
+        return jsonify({'error': 'Failed to fetch staking params'}), 500
+
+    params = params_data.get('params', {})
+
+    CACHE_HITS.labels(endpoint='staking_params').inc()
+    return jsonify({
+        'unbonding_time': params.get('unbonding_time', ''),
+        'max_validators': int(params.get('max_validators', 0)),
+        'max_entries': int(params.get('max_entries', 0)),
+        'historical_entries': int(params.get('historical_entries', 0)),
+        'bond_denom': params.get('bond_denom', ''),
+        'min_commission_rate': params.get('min_commission_rate', ''),
+    })
 
 
 if __name__ == '__main__':
