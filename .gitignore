@@ -163,3 +163,31 @@ QUICK_TEST_SUMMARY.txt
 *ANALYSIS*.md
 *FINDINGS*.txt
 !docs/**
+
+# ============================================================================
+# Claude/AI Assistant Files - Not for Public Repo
+# ============================================================================
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# ============================================================================
+# Internal Infrastructure Docs - Not for Public Repo
+# ============================================================================
+TESTNET_INFRASTRUCTURE.md
+ROADMAP_PRODUCTION.md
+infra/testnet/README.md
+docs/INCIDENT_RESPONSE_RUNBOOK.md
+scripts/backup/validator-backup.sh
+
+# ============================================================================
+# Internal Issue Tracking Docs - Not for Public Repo
+# ============================================================================
+HIGH-*.md
+P2-*.md
+ESCROW_*.md
+
+# ============================================================================
+# Temporary/Working Directories
+# ============================================================================
+.tmp/
