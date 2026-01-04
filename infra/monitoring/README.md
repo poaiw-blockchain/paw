@@ -387,4 +387,4 @@ For issues or questions:
 
 - Documentation: https://docs.paw.network
 -  Issues: https://github.com/paw/paw
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV

@@ -301,6 +301,6 @@ Transaction took too long. Increase `--deadline` parameter or retry.
 
 ## Getting Help
 
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 - Documentation: https://docs.paw-chain.com/dex
 - GitHub Issues: https://github.com/paw-chain/paw

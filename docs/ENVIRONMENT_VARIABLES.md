@@ -791,6 +791,27 @@ export PAW_PROMETHEUS_LISTEN_ADDR=":9091"
 
 ---
 
+### PAW_TELEMETRY_HEALTH_PORT
+
+**Description:** Port for the bundled health check endpoints
+
+**Type:** Integer
+**Default:** `36661`
+**Required:** No
+
+**Purpose:**
+- Hosts `/health`, `/health/ready`, `/health/detailed`, and `/health/startup`
+- Allows validator and archive instances to use unique telemetry ports
+
+**Example:**
+
+```bash
+# Run health server on 36671 to avoid collisions
+export PAW_TELEMETRY_HEALTH_PORT=36671
+```
+
+---
+
 ## Security and Cryptography
 
 ### PAW_KEYRING_BACKEND
@@ -1082,6 +1103,7 @@ export PAW_STATESYNC_SNAPSHOT_CONTAINER="snapshots"
 | `PAW_TELEMETRY_PROMETHEUS_RETENTION` | integer | `600` | Metrics retention (seconds) |
 | `PAW_TELEMETRY_GLOBAL_LABELS` | string | `[]` | Global metric labels |
 | `PAW_PROMETHEUS_LISTEN_ADDR` | string | `:26660` | Prometheus endpoint |
+| `PAW_TELEMETRY_HEALTH_PORT` | integer | `36661` | Health check endpoint port |
 | **Security** |
 | `PAW_KEYRING_BACKEND` | string | `os` | Keyring backend |
 | `PAW_KEYRING_DIR` | string | `$PAW_HOME` | Keyring directory |

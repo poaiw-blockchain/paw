@@ -239,7 +239,7 @@ func (s *Server) searchAddresses(ctx context.Context, query string, page, limit 
 	results := make([]SearchResult, 0)
 
 	// Try exact address match
-	account, err := s.db.GetAccount(query)
+	_, err := s.db.GetAccount(query)
 	if err == nil {
 		results = append(results, SearchResult{
 			Type:        "address",

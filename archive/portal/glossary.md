@@ -233,4 +233,4 @@ A protocol for real-time, bi-directional communication, used for live blockchain
 
 ---
 
-**Still confused?** Check the [FAQ](/faq) or ask in [Discord](https://discord.gg/pawblockchain)
+**Still confused?** Check the [FAQ](/faq) or ask in [Discord](https://discord.gg/DBHTc2QV)

@@ -831,7 +831,7 @@ sed -i 's/max_num_outbound_peers = .*/max_num_outbound_peers = 20/' ~/.paw/confi
 **Questions or Issues?**
 
 - GitHub Issues: https://github.com/paw-chain/paw/issues
-- Discord Community: https://discord.gg/paw-blockchain
+- Discord Community: https://discord.gg/DBHTc2QV
 - Developer Forum: https://forum.paw.network
 
 ---

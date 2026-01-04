@@ -156,7 +156,16 @@ func (s *Service) SendTokens(req *SendRequest) (*SendResponse, error) {
 
 // GetBalance returns the faucet account balance
 func (s *Service) GetBalance() (int64, error) {
-	url := fmt.Sprintf("%s/cosmos/bank/v1beta1/balances/%s", s.cfg.NodeRPC, s.cfg.FaucetAddress)
+	return s.getBalanceForAddress(s.cfg.FaucetAddress)
+}
+
+// GetAddressBalance returns the balance for a specific address
+func (s *Service) GetAddressBalance(address string) (int64, error) {
+	return s.getBalanceForAddress(address)
+}
+
+func (s *Service) getBalanceForAddress(address string) (int64, error) {
+	url := fmt.Sprintf("%s/cosmos/bank/v1beta1/balances/%s", s.cfg.NodeRPC, address)
 
 	resp, err := s.client.Get(url)
 	if err != nil {

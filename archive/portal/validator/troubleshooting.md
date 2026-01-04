@@ -88,7 +88,7 @@ pawd compact-db
 
 ## Getting Help
 
-- Discord: [discord.gg/pawblockchain](https://discord.gg/pawblockchain)
+- Discord: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 - Validator Chat: `#validator-support`
 
 ---

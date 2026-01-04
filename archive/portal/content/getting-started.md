@@ -246,7 +246,7 @@ If you need assistance:
 
 1. **Documentation**: Search this documentation site
 2. **FAQ**: Check our [Frequently Asked Questions](#faq)
-3. **Discord**: Join our [Discord community](https://discord.gg/pawchain)
+3. **Discord**: Join our [Discord community](https://discord.gg/DBHTc2QV)
 4. **Telegram**: Chat on [Telegram](https://t.me/pawchain)
 5. **Forum**: Ask on our [community forum](https://forum.pawchain.io)
 6. ****: Report issues on [](https://github.com/paw-chain/paw)

@@ -51,7 +51,7 @@ We chose dedicated bare-metal servers over cloud instances for several reasons:
         ┌────────────────────┼────────────────────┐
         │                    │                    │
 ┌───────▼───────┐   ┌───────▼───────┐   ┌───────▼───────┐
-│   RPC (26657) │   │  REST (1317)  │   │  gRPC (9090)  │
+│   RPC (26657) │   │  REST (1317)  │   │  gRPC (9091)  │
 └───────────────┘   └───────────────┘   └───────────────┘
 ```
 
@@ -61,11 +61,13 @@ We chose dedicated bare-metal servers over cloud instances for several reasons:
 |---------|-----|------|
 | RPC | https://testnet-rpc.poaiw.org | 443 |
 | REST API | https://testnet-api.poaiw.org | 443 |
-| gRPC | testnet-rpc.poaiw.org | 9090 |
+| gRPC | testnet-rpc.poaiw.org | 9091 |
 | Explorer | https://testnet-explorer.poaiw.org | 443 |
 | Faucet | https://testnet-faucet.poaiw.org | 443 |
 | Monitoring | https://monitoring.poaiw.org | 443 |
 | Snapshots | https://snapshots.poaiw.org | 443 |
+
+Note: REST endpoints may be degraded; see `docs/TESTNET_ENDPOINTS.md` for current status.
 
 ### Security Measures
 
@@ -140,7 +142,7 @@ For running AI compute workloads on PAW:
 
 For infrastructure-related inquiries:
 - Email: info@poaiw.org
-- Discord: [Join our community](https://discord.gg/paw)
+- Discord: [Join our community](https://discord.gg/DBHTc2QV)
 - GitHub: [poaiw-blockchain/paw](https://github.com/poaiw-blockchain/paw)
 
 ## Changelog

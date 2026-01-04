@@ -646,6 +646,6 @@ Submit your own tutorials! Visit [](https://github.com/paw-chain/paw) to contrib
 ## Support
 
 Need help with tutorials?
-- **Discord**: [discord.gg/pawchain](https://discord.gg/pawchain)
+- **Discord**: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 - **Forum**: [forum.pawchain.io](https://forum.pawchain.io)
 - **Documentation**: [Full docs](#)

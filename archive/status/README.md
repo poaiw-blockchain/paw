@@ -465,7 +465,7 @@ Copyright (c) 2025 PAW Blockchain
 
 For issues and questions:
 - Email: support@pawchain.io
-- Discord: https://discord.gg/pawchain
+- Discord: https://discord.gg/DBHTc2QV
 
 ## Changelog
 

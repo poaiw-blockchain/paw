@@ -28,6 +28,9 @@ prometheus-enabled = true
 # Default: "36660" (already set in main.go)
 metrics-port = "36660"
 
+# Health check port for the built-in /health endpoints
+health-port = "36661"
+
 # Trace sampling rate (0.0 to 1.0)
 # 0.1 = sample 10% of traces
 # 1.0 = sample all traces (use for development/testing only)

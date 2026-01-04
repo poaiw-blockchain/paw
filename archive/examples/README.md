@@ -171,7 +171,7 @@ Each example includes:
 ## Support
 
 - Documentation: https://docs.paw-chain.network
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 -  Issues: https://github.com/paw-chain/paw/issues
 
 ## Security

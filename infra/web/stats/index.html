@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Testnet Stats</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <h1>PAW Testnet Network Stats</h1>
+            <p>Live block time, TPS, and validator count.</p>
+            <div class="status" id="status">Loading stats...</div>
+        </header>
+
+        <section class="grid">
+            <div class="card">
+                <h2>Latest Height</h2>
+                <p id="latestHeight" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>Average Block Time</h2>
+                <p id="blockTime" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>TPS (1m)</h2>
+                <p id="tps" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>Validators</h2>
+                <p id="validators" class="value">-</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Recent Blocks</h2>
+            <div id="blocks" class="blocks">Loading...</div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

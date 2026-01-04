@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Testnet Explorer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <h1>PAW Testnet Explorer</h1>
+            <p>Quick status panel for the PAW testnet node.</p>
+            <div class="status" id="status">Checking node status...</div>
+            <div class="links">
+                <a href="/stats/">Network Stats →</a>
+            </div>
+        </header>
+
+        <section class="grid">
+            <div class="card">
+                <h2>Chain ID</h2>
+                <p id="chainId" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>Latest Height</h2>
+                <p id="latestHeight" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>Latest Block Time</h2>
+                <p id="latestTime" class="value">-</p>
+            </div>
+            <div class="card">
+                <h2>Catching Up</h2>
+                <p id="catchingUp" class="value">-</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Recent Blocks</h2>
+            <div id="blocks" class="blocks">Loading...</div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

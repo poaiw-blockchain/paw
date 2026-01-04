@@ -13,31 +13,33 @@ This directory hosts the canonical files and metadata for the PAW public testnet
 | `artifacts/` (tarball) | Use `scripts/devnet/bundle-testnet-artifacts.sh` to produce `artifacts/paw-testnet-1-artifacts.tar.gz` for CDN upload; validate CDN copy with `scripts/devnet/validate-remote-artifacts.sh <cdn-url>` |
 | `checkpoints/` | (Optional) state sync snapshots or metadata |
 
-## Recommended Endpoints
+## Current Public Endpoints (Status as of 2026-01-03)
 
-Fill these with live hosts once infrastructure is deployed:
-
-| Service | Endpoint | Notes |
-|---------|----------|-------|
-| RPC     | `https://rpc1.paw-testnet.io` | Reverse proxy to canonical validator RPC |
-| RPC     | `https://rpc2.paw-testnet.io` | Secondary RPC endpoint |
-| REST    | `https://api.paw-testnet.io`  | REST gateway |
-| gRPC    | `https://grpc.paw-testnet.io:443` | Envoy/ingress to gRPC port |
-| Faucet  | `https://faucet.paw-testnet.io` | Backed by `scripts/faucet.sh` |
-| Explorer| `https://explorer.paw-testnet.io` | Flask explorer or external service |
-| Status  | `https://status.paw-testnet.io` | Served by `status-page/` (live RPC/REST/gRPC/Explorer/Faucet/Metrics probes) |
-| Bundle  | `https://networks.paw-testnet.io/paw-testnet-1-artifacts.tar.gz` | Tarball (sha256=78b27d1c02196531b7907773874520447e0be2bee4b95b781085c9e11b6a90de; also see `paw-testnet-1-artifacts.sha256`) |
+| Service | Endpoint | Status | Notes |
+|---------|----------|--------|-------|
+| RPC     | `https://testnet-rpc.poaiw.org` | OK | Reverse proxy to validator RPC |
+| REST    | `https://testnet-api.poaiw.org`  | Degraded | REST port not responding on primary |
+| gRPC    | `testnet-rpc.poaiw.org:9091` | Degraded | Public gRPC host currently misrouted |
+| Faucet  | `https://testnet-faucet.poaiw.org` | OK | Public faucet UI + API |
+| Explorer| `https://testnet-explorer.poaiw.org` | OK | Static UI + API |
+| Status  | `https://status.poaiw.org` | OK | Status page (RPC/REST/gRPC/Explorer/Faucet/Metrics probes) |
+| Stats  | `https://testnet-explorer.poaiw.org/stats/` | OK | Network stats dashboard |
+| GraphQL | `https://testnet-graphql.poaiw.org` | OK | GraphQL gateway |
+| GraphQL (via API) | `https://testnet-api.poaiw.org/graphql` | OK | GraphQL proxy |
+| Chain Registry | `https://testnet-explorer.poaiw.org/chain-registry/chain.json` | OK | Chain registry JSON |
+| SDK | `https://testnet-explorer.poaiw.org/sdk/` | OK | Python SDK artifacts |
 
 ## Validator Bootstrapping Cheatsheet
 
 ```bash
 # 1. Download artifacts
-curl -L -o ~/.paw/config/genesis.json https://networks.paw.xyz/paw-testnet-1/genesis.json
-curl -L https://networks.paw.xyz/paw-testnet-1/genesis.sha256
+curl -L -o ~/.paw/config/genesis.json https://testnet-explorer.poaiw.org/genesis.json
+curl -L https://testnet-explorer.poaiw.org/genesis.json.sha256
+sha256sum ~/.paw/config/genesis.json
 sha256sum ~/.paw/config/genesis.json  # compare to published checksum
 
 # 2. Configure peers
-curl -L -o ~/.paw/config/peers.txt https://networks.paw.xyz/paw-testnet-1/peers.txt
+curl -L -o ~/.paw/config/peers.txt https://testnet-explorer.poaiw.org/peers.txt
 # Update config.toml to use the published seeds/persistent peers
 # (seeds are intentionally blank until public sentries go live)
 ```

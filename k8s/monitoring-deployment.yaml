@@ -212,67 +212,68 @@ spec:
           persistentVolumeClaim:
             claimName: alertmanager-data
 
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loki
-  namespace: paw-blockchain
-  labels:
-    app: loki
-    component: monitoring
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: loki
-  template:
-    metadata:
-      labels:
-        app: loki
-        component: monitoring
-    spec:
-      serviceAccountName: loki
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 10001
-        fsGroup: 10001
-      containers:
-        - name: loki
-          image: grafana/loki:2.9.3
-          args:
-            - '-config.file=/etc/loki/local-config.yaml'
-          ports:
-            - name: http
-              containerPort: 3100
-          resources:
-            requests:
-              cpu: '250m'
-              memory: '512Mi'
-            limits:
-              cpu: '1'
-              memory: '2Gi'
-          volumeMounts:
-            - name: config
-              mountPath: /etc/loki
-            - name: data
-              mountPath: /loki
-          livenessProbe:
-            httpGet:
-              path: /ready
-              port: 3100
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 3100
-            initialDelaySeconds: 10
-            periodSeconds: 5
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
-        - name: data
-          persistentVolumeClaim:
-            claimName: loki-data
+# ---
+# Loki disabled - not deployed
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: loki
+#   namespace: paw-blockchain
+#   labels:
+#     app: loki
+#     component: monitoring
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: loki
+#   template:
+#     metadata:
+#       labels:
+#         app: loki
+#         component: monitoring
+#     spec:
+#       serviceAccountName: loki
+#       securityContext:
+#         runAsNonRoot: true
+#         runAsUser: 10001
+#         fsGroup: 10001
+#       containers:
+#         - name: loki
+#           image: grafana/loki:2.9.3
+#           args:
+#             - '-config.file=/etc/loki/local-config.yaml'
+#           ports:
+#             - name: http
+#               containerPort: 3100
+#           resources:
+#             requests:
+#               cpu: '250m'
+#               memory: '512Mi'
+#             limits:
+#               cpu: '1'
+#               memory: '2Gi'
+#           volumeMounts:
+#             - name: config
+#               mountPath: /etc/loki
+#             - name: data
+#               mountPath: /loki
+#           livenessProbe:
+#             httpGet:
+#               path: /ready
+#               port: 3100
+#             initialDelaySeconds: 30
+#             periodSeconds: 10
+#           readinessProbe:
+#             httpGet:
+#               path: /ready
+#               port: 3100
+#             initialDelaySeconds: 10
+#             periodSeconds: 5
+#       volumes:
+#         - name: config
+#           configMap:
+#             name: loki-config
+#         - name: data
+#           persistentVolumeClaim:
+#             claimName: loki-data

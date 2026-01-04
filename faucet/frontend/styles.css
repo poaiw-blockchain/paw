@@ -501,6 +501,16 @@ footer {
     margin: 1rem 0;
 }
 
+.notice-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.notice-list li {
+    margin: 0.5rem 0;
+}
+
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
     width: 8px;

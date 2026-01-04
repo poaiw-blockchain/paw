@@ -433,7 +433,7 @@ go test -v -run TestP2PSecurityHandshake
 ## Support
 
 For issues or questions:
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 - Security: security@paw-chain.org
 
 **For security vulnerabilities, please email security@paw-chain.org directly. Do not create public issues.**

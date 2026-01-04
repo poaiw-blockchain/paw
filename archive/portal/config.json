@@ -76,7 +76,7 @@
         "title": "Community",
         "items": [
           { "text": "", "link": "https://example.com/paw-chain" },
-          { "text": "Discord", "link": "https://discord.gg/pawchain" },
+          { "text": "Discord", "link": "https://discord.gg/DBHTc2QV" },
           { "text": "Twitter", "link": "https://twitter.com/pawchain" },
           { "text": "Forum", "link": "https://forum.pawchain.io" }
         ]
@@ -100,7 +100,7 @@
   },
   "social": {
     "twitter": "https://twitter.com/pawchain",
-    "discord": "https://discord.gg/pawchain",
+    "discord": "https://discord.gg/DBHTc2QV",
     "telegram": "https://t.me/pawchain",
     "medium": "https://medium.com/pawchain"
   },

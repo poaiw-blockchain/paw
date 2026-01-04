@@ -1,0 +1,17 @@
+[Unit]
+Description=PAW Testnet Block Explorer
+After=network-online.target pawd.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+Environment="PATH=/home/ubuntu/explorer-venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="RPC_URL=http://localhost:26657"
+Environment="API_URL=http://localhost:1317"
+ExecStart=/home/ubuntu/explorer-venv/bin/python3 /home/ubuntu/paw-explorer.py
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

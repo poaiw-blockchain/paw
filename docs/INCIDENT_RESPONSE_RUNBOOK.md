@@ -1,6 +1,6 @@
 # PAW Testnet Incident Response & Upgrade Runbook
 
-**Chain ID:** `paw-testnet-1` | **Primary:** `54.39.103.49` | **Secondary:** `139.99.149.160` | **VPN:** `10.10.0.2`
+**Chain ID:** `paw-testnet-1` | **Primary:** `54.39.103.49` | **Secondary:** `139.99.149.160` | **VPN:** `10.10.0.2` (secondary 10.10.0.4)
 
 ---
 
@@ -24,20 +24,20 @@ pkill -f pawd
 nohup ~/.paw/cosmovisor/genesis/bin/pawd start --home ~/.paw > ~/.paw/logs/node.log 2>&1 &
 
 # Verify it's running
-sleep 5 && curl -s localhost:11657/status | jq '.result.sync_info'
+sleep 5 && curl -s http://127.0.0.1:26657/status | jq '.result.sync_info'
 ```
 
 ## 2. Missed Blocks Recovery
 
 ```bash
 # Check current signing status
-curl -s localhost:11657/status | jq '.result.validator_info'
+curl -s http://127.0.0.1:26657/status | jq '.result.validator_info'
 
 # Check if syncing (should be false)
-curl -s localhost:11657/status | jq '.result.sync_info.catching_up'
+curl -s http://127.0.0.1:26657/status | jq '.result.sync_info.catching_up'
 
 # If behind, check peer count
-curl -s localhost:11657/net_info | jq '.result.n_peers'
+curl -s http://127.0.0.1:26657/net_info | jq '.result.n_peers'
 
 # Add persistent peers if needed
 sed -i 's/persistent_peers = ""/persistent_peers = "PEER_ID@IP:PORT"/' ~/.paw/config/config.toml
@@ -52,10 +52,10 @@ tail -f ~/.paw/logs/node.log | grep -i "committed\|signed"
 
 ```bash
 # Confirm halt - no new blocks
-watch -n 5 'curl -s localhost:11657/status | jq ".result.sync_info.latest_block_height"'
+watch -n 5 'curl -s http://127.0.0.1:26657/status | jq \".result.sync_info.latest_block_height\"'
 
 # Check consensus state
-curl -s localhost:11657/dump_consensus_state | jq '.result.round_state.height_vote_set'
+curl -s http://127.0.0.1:26657/dump_consensus_state | jq '.result.round_state.height_vote_set'
 
 # Coordinate with other validators (check Discord/Telegram)
 # If >2/3 validators agree, may need coordinated restart:
@@ -176,7 +176,7 @@ rm ~/.paw/config/node_key.json
 
 ```bash
 # Check your chain vs canonical
-curl -s localhost:11657/status | jq '.result.sync_info.latest_block_hash'
+curl -s http://127.0.0.1:26657/status | jq '.result.sync_info.latest_block_hash'
 # Compare with other validators
 
 # If on wrong fork:
@@ -210,7 +210,7 @@ nohup ~/.paw/cosmovisor/genesis/bin/pawd start --home ~/.paw > ~/.paw/logs/node.
 
 | Service | URL |
 |---------|-----|
-| Node Status | `curl localhost:11657/status` |
+| Node Status | `curl http://127.0.0.1:26657/status` |
 | Prometheus | `http://10.10.0.2:11660/metrics` |
 | Block Explorer | https://explorer.poaiw.org |
 | Netdata (bcpc) | http://192.168.100.2:19999 |
@@ -219,7 +219,7 @@ nohup ~/.paw/cosmovisor/genesis/bin/pawd start --home ~/.paw > ~/.paw/logs/node.
 **Quick Health Check:**
 ```bash
 # One-liner status
-curl -s localhost:11657/status | jq '{catching_up:.result.sync_info.catching_up,height:.result.sync_info.latest_block_height,peers:.result.n_peers}'
+curl -s http://127.0.0.1:26657/status | jq '{catching_up:.result.sync_info.catching_up,height:.result.sync_info.latest_block_height,peers:.result.n_peers}'
 ```
 
 ---

@@ -139,6 +139,104 @@ CREATE INDEX IF NOT EXISTS idx_swaps_pool ON dex_swaps (pool_id);
 CREATE INDEX IF NOT EXISTS idx_swaps_sender ON dex_swaps (sender);
 CREATE INDEX IF NOT EXISTS idx_swaps_time ON dex_swaps (time DESC);
 
+-- DEX pool price history table
+CREATE TABLE IF NOT EXISTS dex_pool_price_history (
+    id BIGSERIAL PRIMARY KEY,
+    pool_id VARCHAR(64) NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    block_height BIGINT NOT NULL,
+    open VARCHAR(64) NOT NULL,
+    high VARCHAR(64) NOT NULL,
+    low VARCHAR(64) NOT NULL,
+    close VARCHAR(64) NOT NULL,
+    volume VARCHAR(64) NOT NULL,
+    liquidity_a VARCHAR(64) NOT NULL,
+    liquidity_b VARCHAR(64) NOT NULL,
+    price_a_to_b VARCHAR(64) NOT NULL,
+    price_b_to_a VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (pool_id, timestamp)
+);
+
+CREATE INDEX IF NOT EXISTS idx_price_history_pool ON dex_pool_price_history (pool_id);
+CREATE INDEX IF NOT EXISTS idx_price_history_time ON dex_pool_price_history (timestamp DESC);
+
+-- DEX pool statistics table
+CREATE TABLE IF NOT EXISTS dex_pool_statistics (
+    id BIGSERIAL PRIMARY KEY,
+    pool_id VARCHAR(64) NOT NULL,
+    period VARCHAR(20) NOT NULL,
+    period_start TIMESTAMP NOT NULL,
+    period_end TIMESTAMP NOT NULL,
+    volume_token_a VARCHAR(64) NOT NULL,
+    volume_token_b VARCHAR(64) NOT NULL,
+    volume_usd VARCHAR(64) NOT NULL,
+    trade_count INTEGER NOT NULL DEFAULT 0,
+    avg_liquidity_a VARCHAR(64) NOT NULL,
+    avg_liquidity_b VARCHAR(64) NOT NULL,
+    min_liquidity VARCHAR(64) NOT NULL,
+    max_liquidity VARCHAR(64) NOT NULL,
+    fees_collected_a VARCHAR(64) NOT NULL,
+    fees_collected_b VARCHAR(64) NOT NULL,
+    fees_usd VARCHAR(64) NOT NULL,
+    avg_price VARCHAR(64) NOT NULL,
+    high_price VARCHAR(64) NOT NULL,
+    low_price VARCHAR(64) NOT NULL,
+    price_change_percent VARCHAR(64) NOT NULL,
+    apr VARCHAR(64) NOT NULL,
+    unique_traders INTEGER NOT NULL DEFAULT 0,
+    unique_liquidity_providers INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (pool_id, period, period_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pool_stats_pool ON dex_pool_statistics (pool_id);
+CREATE INDEX IF NOT EXISTS idx_pool_stats_period ON dex_pool_statistics (period, period_start DESC);
+
+-- DEX user positions table
+CREATE TABLE IF NOT EXISTS dex_user_positions (
+    id BIGSERIAL PRIMARY KEY,
+    address VARCHAR(64) NOT NULL,
+    pool_id VARCHAR(64) NOT NULL,
+    shares VARCHAR(64) NOT NULL,
+    initial_amount_a VARCHAR(64) NOT NULL,
+    initial_amount_b VARCHAR(64) NOT NULL,
+    current_amount_a VARCHAR(64) NOT NULL,
+    current_amount_b VARCHAR(64) NOT NULL,
+    entry_price VARCHAR(64) NOT NULL,
+    entry_height BIGINT NOT NULL,
+    entry_timestamp TIMESTAMP NOT NULL,
+    entry_tx_hash VARCHAR(64) NOT NULL,
+    exit_height BIGINT,
+    exit_timestamp TIMESTAMP,
+    exit_tx_hash VARCHAR(64),
+    fees_earned_a VARCHAR(64) NOT NULL,
+    fees_earned_b VARCHAR(64) NOT NULL,
+    fees_earned_usd VARCHAR(64) NOT NULL,
+    impermanent_loss VARCHAR(64) NOT NULL,
+    total_return_percent VARCHAR(64) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (address, pool_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_positions_address ON dex_user_positions (address);
+CREATE INDEX IF NOT EXISTS idx_user_positions_pool ON dex_user_positions (pool_id);
+CREATE INDEX IF NOT EXISTS idx_user_positions_status ON dex_user_positions (status);
+
+-- DEX analytics cache table
+CREATE TABLE IF NOT EXISTS dex_analytics_cache (
+    id BIGSERIAL PRIMARY KEY,
+    cache_key VARCHAR(200) UNIQUE NOT NULL,
+    cache_type VARCHAR(50) NOT NULL,
+    data JSONB NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cache_expires ON dex_analytics_cache (expires_at);
+
 -- DEX Liquidity events table
 CREATE TABLE IF NOT EXISTS dex_liquidity_events (
     id BIGSERIAL PRIMARY KEY,
@@ -241,6 +339,164 @@ CREATE INDEX IF NOT EXISTS idx_events_tx ON events (tx_hash);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events (event_type);
 CREATE INDEX IF NOT EXISTS idx_events_module ON events (module);
 CREATE INDEX IF NOT EXISTS idx_events_height ON events (block_height);
+
+-- Account balances table
+CREATE TABLE IF NOT EXISTS account_balances (
+    id BIGSERIAL PRIMARY KEY,
+    address VARCHAR(64) NOT NULL,
+    denom VARCHAR(64) NOT NULL,
+    amount VARCHAR(100) NOT NULL,
+    last_updated_height BIGINT NOT NULL,
+    last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (address, denom)
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_balances_address ON account_balances (address);
+
+-- Account tokens table
+CREATE TABLE IF NOT EXISTS account_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    address VARCHAR(64) NOT NULL,
+    token_denom VARCHAR(64) NOT NULL,
+    token_name VARCHAR(100),
+    token_symbol VARCHAR(50),
+    amount VARCHAR(100) NOT NULL,
+    ibc_trace JSONB,
+    last_updated_height BIGINT NOT NULL,
+    last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (address, token_denom)
+);
+
+CREATE INDEX IF NOT EXISTS idx_account_tokens_address ON account_tokens (address);
+
+-- Validator rewards table
+CREATE TABLE IF NOT EXISTS validator_rewards (
+    id BIGSERIAL PRIMARY KEY,
+    validator_address VARCHAR(64) NOT NULL,
+    amount VARCHAR(100) NOT NULL,
+    denom VARCHAR(64) NOT NULL,
+    height BIGINT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rewards_validator ON validator_rewards (validator_address);
+CREATE INDEX IF NOT EXISTS idx_rewards_height ON validator_rewards (height DESC);
+
+-- Oracle slashes table
+CREATE TABLE IF NOT EXISTS oracle_slashes (
+    id BIGSERIAL PRIMARY KEY,
+    validator_address VARCHAR(64) NOT NULL,
+    slash_amount VARCHAR(100) NOT NULL,
+    reason VARCHAR(200) NOT NULL,
+    height BIGINT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_oracle_slashes_validator ON oracle_slashes (validator_address);
+CREATE INDEX IF NOT EXISTS idx_oracle_slashes_height ON oracle_slashes (height DESC);
+
+-- Compute request results table
+CREATE TABLE IF NOT EXISTS compute_results (
+    id BIGSERIAL PRIMARY KEY,
+    request_id VARCHAR(64) NOT NULL,
+    provider VARCHAR(64) NOT NULL,
+    result_hash VARCHAR(64) NOT NULL,
+    output_data_hash VARCHAR(64),
+    status VARCHAR(20) NOT NULL,
+    height BIGINT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_compute_results_request ON compute_results (request_id);
+
+-- Compute verifications table
+CREATE TABLE IF NOT EXISTS compute_verifications (
+    id BIGSERIAL PRIMARY KEY,
+    request_id VARCHAR(64) NOT NULL,
+    verifier VARCHAR(64) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    score VARCHAR(64),
+    height BIGINT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_compute_verifications_request ON compute_verifications (request_id);
+
+-- Compute providers table
+CREATE TABLE IF NOT EXISTS compute_providers (
+    id BIGSERIAL PRIMARY KEY,
+    address VARCHAR(64) UNIQUE NOT NULL,
+    stake VARCHAR(100) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    reputation INTEGER NOT NULL DEFAULT 0,
+    total_jobs BIGINT NOT NULL DEFAULT 0,
+    completed_jobs BIGINT NOT NULL DEFAULT 0,
+    failed_jobs BIGINT NOT NULL DEFAULT 0,
+    uptime_30d DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    avg_completion_time DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    slash_count BIGINT NOT NULL DEFAULT 0,
+    updated_height BIGINT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_compute_providers_active ON compute_providers (active);
+
+-- Indexing progress table
+CREATE TABLE IF NOT EXISTS indexing_progress (
+    id BIGSERIAL PRIMARY KEY,
+    last_indexed_height BIGINT NOT NULL,
+    total_blocks_indexed BIGINT NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL,
+    start_height BIGINT,
+    target_height BIGINT,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexing metrics table
+CREATE TABLE IF NOT EXISTS indexing_metrics (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    value DOUBLE PRECISION NOT NULL,
+    start_height BIGINT,
+    end_height BIGINT,
+    blocks_processed BIGINT,
+    duration_seconds DOUBLE PRECISION,
+    blocks_per_second DOUBLE PRECISION,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexing checkpoints table
+CREATE TABLE IF NOT EXISTS indexing_checkpoints (
+    id BIGSERIAL PRIMARY KEY,
+    height BIGINT NOT NULL,
+    block_hash VARCHAR(64) NOT NULL,
+    blocks_since_last_checkpoint INTEGER NOT NULL,
+    time_since_last_checkpoint INTERVAL NOT NULL,
+    avg_blocks_per_second DOUBLE PRECISION NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_indexing_checkpoints_height ON indexing_checkpoints (height DESC);
+
+-- Failed blocks table
+CREATE TABLE IF NOT EXISTS failed_blocks (
+    id BIGSERIAL PRIMARY KEY,
+    height BIGINT NOT NULL,
+    error_message TEXT NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    last_retry_at TIMESTAMP,
+    resolved BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_failed_blocks_height ON failed_blocks (height DESC);
 
 -- Indexer state (track indexing progress)
 CREATE TABLE IF NOT EXISTS indexer_state (

@@ -756,7 +756,7 @@ PAW has a bug bounty program:
 ### Where can I get support?
 
 **Documentation**: [docs.pawchain.io](https://docs.pawchain.io)
-**Discord**: [discord.gg/pawchain](https://discord.gg/pawchain)
+**Discord**: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 **Telegram**: [t.me/pawchain](https://t.me/pawchain)
 **Forum**: [forum.pawchain.io](https://forum.pawchain.io)
 **Email**: support@pawchain.io
@@ -790,4 +790,4 @@ Yes! This documentation site:
 
 ---
 
-*Can't find your question? Ask on [Discord](https://discord.gg/pawchain) or [Forum](https://forum.pawchain.io)*
+*Can't find your question? Ask on [Discord](https://discord.gg/DBHTc2QV) or [Forum](https://forum.pawchain.io)*

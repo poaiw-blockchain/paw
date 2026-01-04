@@ -421,5 +421,5 @@ fmt.Printf("Progress: %.1f%% (%d/%d chunks)\n", progress, downloaded, total)
 
 For issues or questions:
 -  Issues: https://github.com/paw-chain/paw/issues
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV
 - Documentation: https://docs.paw.network

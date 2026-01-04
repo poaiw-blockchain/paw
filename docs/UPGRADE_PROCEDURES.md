@@ -2079,7 +2079,7 @@ If issues persist after troubleshooting:
 
 ### Community
 
-- **Discord**: https://discord.gg/paw-chain (Validator channel)
+- **Discord**: https://discord.gg/DBHTc2QV (Validator channel)
 - **Telegram**: https://t.me/paw_validators
 - **Forum**: https://forum.paw-chain.org/c/governance
 - **Twitter**: [@paw_chain](https://twitter.com/paw_chain)

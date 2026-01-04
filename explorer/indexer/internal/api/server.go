@@ -421,9 +421,9 @@ func (s *Server) handleHealthDetailed(c *gin.Context) {
 			"status": "healthy",
 			"checks": checks,
 			"metrics": gin.H{
-				"total_blocks":       stats.TotalBlocks,
-				"total_transactions": stats.TotalTransactions,
-				"active_accounts":    stats.ActiveAccounts,
+				"total_blocks":       stats["total_blocks"],
+				"total_transactions": stats["total_transactions"],
+				"active_accounts":    stats["active_accounts"],
 			},
 		})
 		return
@@ -1048,7 +1048,7 @@ func (s *Server) handleGetDEXTrades(c *gin.Context) {
 func (s *Server) handleGetLatestDEXTrades(c *gin.Context) {
 	limit := parseQueryInt(c, "limit", 10)
 
-	trades, _, err := s.db.GetDEXTrades(0, limit)
+	trades, err := s.db.GetLatestDEXTrades(limit)
 	if err != nil {
 		s.log.Error("Failed to get latest DEX trades", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

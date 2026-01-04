@@ -351,5 +351,5 @@ done
 
 - Documentation: https://docs.paw-chain.io
 - Issues: https://github.com/paw-chain/paw/issues
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 - Email: support@paw-chain.io

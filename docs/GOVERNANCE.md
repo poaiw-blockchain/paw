@@ -97,5 +97,5 @@ For critical security issues, the following mechanisms exist:
 ## Resources
 
 - [Cosmos SDK Governance](https://docs.cosmos.network/main/modules/gov)
-- [PAW Discord](https://discord.gg/paw) - #governance channel
+- [PAW Discord](https://discord.gg/DBHTc2QV) - #governance channel
 - [Forum](https://forum.paw.network) - Long-form discussions

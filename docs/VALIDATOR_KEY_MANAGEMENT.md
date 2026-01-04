@@ -1518,7 +1518,7 @@ hsm_provider:
     - "9876543211"  # backup device
 
 chain_governance:
-  discord: "https://discord.gg/paw-blockchain"
+  discord: "https://discord.gg/DBHTc2QV"
   telegram: "https://t.me/pawvalidators"
   email: "security@paw.network"
 

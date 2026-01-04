@@ -215,5 +215,5 @@ cache_size = 5000
 
 For more information:
 - Documentation: https://docs.paw.network
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV
 - : https://github.com/paw-chain/paw

@@ -663,7 +663,7 @@ npm test -- hardware
 
 ### Community
 
-- [Discord](https://discord.gg/pawchain)
+- [Discord](https://discord.gg/DBHTc2QV)
 - [Twitter](https://twitter.com/pawchain)
 - [Forum](https://forum.pawchain.network)
 

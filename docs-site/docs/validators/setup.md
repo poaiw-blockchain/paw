@@ -492,4 +492,4 @@ Consider increasing disk size or enabling more aggressive pruning.
 
 - [Monitoring Guide](monitoring.md) - Set up monitoring and alerts
 - [Validator Best Practices](https://docs.cosmos.network/main/validators/validator-faq)
-- [Join Discord](https://discord.gg/paw-chain) - Connect with other validators
+- [Join Discord](https://discord.gg/DBHTc2QV) - Connect with other validators

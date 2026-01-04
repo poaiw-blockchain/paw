@@ -27,15 +27,16 @@ metadata:
     app: grafana
     component: monitoring
 
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: loki
-  namespace: paw-blockchain
-  labels:
-    app: loki
-    component: monitoring
+# ---
+# Loki disabled - not deployed
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: loki
+#   namespace: paw-blockchain
+#   labels:
+#     app: loki
+#     component: monitoring
 
 ---
 apiVersion: v1
@@ -269,41 +270,41 @@ subjects:
     name: promtail
     namespace: paw-blockchain
 
----
-# Role for Loki - ConfigMap and Secret access
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: loki
-  namespace: paw-blockchain
-  labels:
-    app: loki
-    component: monitoring
-rules:
-  - apiGroups: ['']
-    resources:
-      - configmaps
-      - secrets
-    verbs: ['get', 'list', 'watch']
+# ---
+# Role for Loki - ConfigMap and Secret access (Loki disabled - not deployed)
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: loki
+#   namespace: paw-blockchain
+#   labels:
+#     app: loki
+#     component: monitoring
+# rules:
+#   - apiGroups: ['']
+#     resources:
+#       - configmaps
+#       - secrets
+#     verbs: ['get', 'list', 'watch']
 
----
-# RoleBinding for Loki
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: loki
-  namespace: paw-blockchain
-  labels:
-    app: loki
-    component: monitoring
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: loki
-subjects:
-  - kind: ServiceAccount
-    name: loki
-    namespace: paw-blockchain
+# ---
+# RoleBinding for Loki (Loki disabled - not deployed)
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: loki
+#   namespace: paw-blockchain
+#   labels:
+#     app: loki
+#     component: monitoring
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: Role
+#   name: loki
+# subjects:
+#   - kind: ServiceAccount
+#     name: loki
+#     namespace: paw-blockchain
 
 ---
 # ServiceAccount for PAW blockchain nodes
@@ -468,21 +469,21 @@ subjects:
     name: alertmanager
     namespace: paw-blockchain
 
----
-# RoleBinding for PSP - Loki
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: loki-use-psp
-  namespace: paw-blockchain
-  labels:
-    app: loki
-    component: monitoring
-roleRef:
-  kind: Role
-  name: use-monitoring-psp
-  apiGroup: rbac.authorization.k8s.io
-subjects:
-  - kind: ServiceAccount
-    name: loki
-    namespace: paw-blockchain
+# ---
+# RoleBinding for PSP - Loki (Loki disabled - not deployed)
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: loki-use-psp
+#   namespace: paw-blockchain
+#   labels:
+#     app: loki
+#     component: monitoring
+# roleRef:
+#   kind: Role
+#   name: use-monitoring-psp
+#   apiGroup: rbac.authorization.k8s.io
+# subjects:
+#   - kind: ServiceAccount
+#     name: loki
+#     namespace: paw-blockchain

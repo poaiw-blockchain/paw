@@ -511,7 +511,7 @@ Create an issue in the PAW repository with:
 - [Developer Guide](https://docs.paw.network/developers)
 
 ### Community
-- Discord: [PAW Community](https://discord.gg/paw)
+- Discord: [PAW Community](https://discord.gg/DBHTc2QV)
 - Forum: [PAW Forum](https://forum.paw.network)
 - Twitter: [@PAWNetwork](https://twitter.com/PAWNetwork)
 

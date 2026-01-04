@@ -55,19 +55,24 @@ type ChainConfig struct {
 
 // IndexerConfig holds indexer-specific configuration
 type IndexerConfig struct {
-	StartHeight       int64         `yaml:"start_height"`
-	BatchSize         int           `yaml:"batch_size"`
-	Workers           int           `yaml:"workers"`
-	BlockBuffer       int           `yaml:"block_buffer"`
-	IndexBlocks       bool          `yaml:"index_blocks"`
-	IndexTransactions bool          `yaml:"index_transactions"`
-	IndexEvents       bool          `yaml:"index_events"`
-	IndexAccounts     bool          `yaml:"index_accounts"`
-	IndexValidators   bool          `yaml:"index_validators"`
-	IndexDEX          bool          `yaml:"index_dex"`
-	IndexOracle       bool          `yaml:"index_oracle"`
-	IndexCompute      bool          `yaml:"index_compute"`
-	SyncInterval      time.Duration `yaml:"sync_interval"`
+	StartHeight              int64         `yaml:"start_height"`
+	BatchSize                int           `yaml:"batch_size"`
+	Workers                  int           `yaml:"workers"`
+	BlockBuffer              int           `yaml:"block_buffer"`
+	IndexBlocks              bool          `yaml:"index_blocks"`
+	IndexTransactions        bool          `yaml:"index_transactions"`
+	IndexEvents              bool          `yaml:"index_events"`
+	IndexAccounts            bool          `yaml:"index_accounts"`
+	IndexValidators          bool          `yaml:"index_validators"`
+	IndexDEX                 bool          `yaml:"index_dex"`
+	IndexOracle              bool          `yaml:"index_oracle"`
+	IndexCompute             bool          `yaml:"index_compute"`
+	SyncInterval             time.Duration `yaml:"sync_interval"`
+	EnableHistoricalIndexing bool          `yaml:"enable_historical_indexing"`
+	HistoricalBatchSize      int           `yaml:"historical_batch_size"`
+	ParallelFetches          int           `yaml:"parallel_fetches"`
+	MaxRetries               int           `yaml:"max_retries"`
+	RetryDelay               time.Duration `yaml:"retry_delay"`
 }
 
 // APIConfig holds API server configuration

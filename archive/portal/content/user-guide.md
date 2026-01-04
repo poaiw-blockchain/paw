@@ -392,7 +392,7 @@ Process:
 
 - **Documentation**: [docs.pawchain.io](#)
 - **FAQ**: [#faq](#faq)
-- **Discord**: [discord.gg/pawchain](https://discord.gg/pawchain)
+- **Discord**: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 - **Telegram**: [t.me/pawchain](https://t.me/pawchain)
 - **Forum**: [forum.pawchain.io](https://forum.pawchain.io)
 - **Email**: support@pawchain.io

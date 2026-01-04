@@ -373,7 +373,7 @@ During upgrades, coordinate through:
 - [Chain Registry](https://github.com/cosmos/chain-registry)
 
 ### Support
-- **Discord**: https://discord.gg/paw-chain
+- **Discord**: https://discord.gg/DBHTc2QV
 - **Telegram**: https://t.me/paw_chain
 - **Email**: support@paw-chain.org
 

@@ -660,4 +660,4 @@ func (p *Provider) DebugProof(proof []byte) {
 - Documentation: https://docs.paw.chain/compute/verification
 - Example Provider: https://github.com/paw-chain/provider-reference
 - Security Audits: https://audits.paw.chain/verification
-- Community: https://discord.gg/paw-chain
+- Community: https://discord.gg/DBHTc2QV

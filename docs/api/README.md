@@ -277,7 +277,7 @@ npx @redocly/cli lint openapi.yaml
 ## Support
 
 - **Documentation**: https://docs.paw.network
-- **Discord**: https://discord.gg/paw
+- **Discord**: https://discord.gg/DBHTc2QV
 - ****: https://github.com/paw-chain/paw
 
 ## License

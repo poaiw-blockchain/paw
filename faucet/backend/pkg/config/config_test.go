@@ -39,6 +39,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, "8080", cfg.Port)
 	assert.Equal(t, "development", cfg.Environment)
 	assert.Equal(t, int64(100000000), cfg.AmountPerRequest)
+	assert.False(t, cfg.RequireCaptcha)
 }
 
 func TestValidate(t *testing.T) {
@@ -57,6 +58,7 @@ func TestValidate(t *testing.T) {
 				RedisURL:         "redis://test",
 				AmountPerRequest: 100,
 				Environment:      "development",
+				RequireCaptcha:   false,
 			},
 			wantErr: false,
 		},
@@ -115,6 +117,7 @@ func TestValidate(t *testing.T) {
 				RedisURL:         "redis://test",
 				AmountPerRequest: 100,
 				Environment:      "production",
+				RequireCaptcha:   true,
 			},
 			wantErr: true,
 		},

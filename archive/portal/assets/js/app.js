@@ -284,7 +284,7 @@ pawd tx bank send <from> <to> <amount>upaw --chain-id paw-1
 ## Need Help?
 
 - Check our [FAQ](#faq)
-- Join our [Discord community](https://discord.gg/pawchain)
+- Join our [Discord community](https://discord.gg/DBHTc2QV)
 - Read the [User Guide](#user-guide)`,
 
         'user-guide': `# User Guide
@@ -822,7 +822,7 @@ See our [Bug Bounty Program](https://docs.pawchain.io/bug-bounty) for details on
 
 - Check this FAQ
 - Read the documentation
-- Join our [Discord](https://discord.gg/pawchain)
+- Join our [Discord](https://discord.gg/DBHTc2QV)
 - Visit our [forum](https://forum.pawchain.io)
 
 ### Is there customer support?

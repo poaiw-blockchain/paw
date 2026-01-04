@@ -623,6 +623,6 @@ result, err := c.Bank.Send(ctx, &client.SendRequest{
 ## Support
 
 - **Documentation**: [docs.pawchain.io](https://docs.pawchain.io)
-- **Discord**: [discord.gg/pawchain](https://discord.gg/pawchain)
+- **Discord**: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 - ****: [github.com/paw-chain/paw](https://github.com/paw-chain/paw)
 - **Status**: [status.pawchain.io](https://status.pawchain.io)

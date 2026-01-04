@@ -349,7 +349,7 @@ Apache 2.0 - See LICENSE file for details
 ## Support
 
 - Documentation: https://docs.paw.network
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV
 -  Issues: https://github.com/paw-network/paw/issues
 
 ## Roadmap

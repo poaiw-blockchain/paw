@@ -1,0 +1,56 @@
+{
+  "chain_name": "paw",
+  "chain_id": "paw-testnet-1",
+  "pretty_name": "PAW Testnet",
+  "network_type": "testnet",
+  "status": "live",
+  "bech32_prefix": "paw",
+  "daemon_name": "pawd",
+  "node_home": "$HOME/.paw",
+  "slip44": 118,
+  "fees": {
+    "fee_tokens": [
+      {
+        "denom": "upaw",
+        "fixed_min_gas_price": 0.001,
+        "low_gas_price": 0.001,
+        "average_gas_price": 0.01,
+        "high_gas_price": 0.1
+      }
+    ]
+  },
+  "staking": {
+    "staking_tokens": [
+      {
+        "denom": "upaw"
+      }
+    ]
+  },
+  "apis": {
+    "rpc": [
+      {
+        "address": "https://testnet-rpc.poaiw.org",
+        "provider": "PAW Foundation"
+      }
+    ],
+    "rest": [
+      {
+        "address": "https://testnet-api.poaiw.org",
+        "provider": "PAW Foundation"
+      }
+    ],
+    "grpc": [
+      {
+        "address": "testnet-rpc.poaiw.org:9091",
+        "provider": "PAW Foundation"
+      }
+    ]
+  },
+  "explorers": [
+    {
+      "kind": "PAW Explorer",
+      "url": "https://testnet-explorer.poaiw.org",
+      "tx_page": "https://testnet-explorer.poaiw.org/tx/{txHash}"
+    }
+  ]
+}

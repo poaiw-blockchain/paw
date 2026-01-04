@@ -249,7 +249,7 @@ If due to double-signing, you cannot unjail (create new validator).
 
 ### How do I get help?
 
-- **Discord**: [discord.gg/pawblockchain](https://discord.gg/pawblockchain)
+- **Discord**: [discord.gg/DBHTc2QV](https://discord.gg/DBHTc2QV)
 - **Documentation**: [docs.paw.network](/)
 - **Email**: support@pawblockchain.io
 
@@ -302,4 +302,4 @@ Only through governance. Any changes require:
 
 ---
 
-**Didn't find your answer?** Ask in [Discord](https://discord.gg/pawblockchain) or check the [Glossary](/glossary)
+**Didn't find your answer?** Ask in [Discord](https://discord.gg/DBHTc2QV) or check the [Glossary](/glossary)

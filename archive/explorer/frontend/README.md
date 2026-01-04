@@ -277,4 +277,4 @@ Copyright (c) 2024 PAW Chain. All rights reserved.
 For issues and questions:
 -  Issues: https://github.com/pawchain/explorer/issues
 - Documentation: https://docs.pawchain.io
-- Discord: https://discord.gg/pawchain
+- Discord: https://discord.gg/DBHTc2QV

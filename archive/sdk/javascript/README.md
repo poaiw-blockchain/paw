@@ -407,7 +407,7 @@ MIT License - see [LICENSE](../../LICENSE) for details.
 
 - Documentation: https://docs.paw.network
 - : https://github.com/paw-chain/paw
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV
 
 ## Changelog
 

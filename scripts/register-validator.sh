@@ -272,7 +272,7 @@ show_next_steps() {
     info ""
     info "4. Harden security: docs/VALIDATOR_KEY_MANAGEMENT.md and docs/SENTRY_ARCHITECTURE.md"
     info ""
-    info "5. Join Discord: https://discord.gg/paw-blockchain"
+    info "5. Join Discord: https://discord.gg/DBHTc2QV"
     info ""
     success "Validator registration complete!"
 }

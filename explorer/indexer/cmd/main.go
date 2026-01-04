@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,6 +15,7 @@ import (
 	"github.com/paw-chain/paw/explorer/indexer/internal/database"
 	"github.com/paw-chain/paw/explorer/indexer/internal/indexer"
 	"github.com/paw-chain/paw/explorer/indexer/internal/metrics"
+	"github.com/paw-chain/paw/explorer/indexer/internal/rpc"
 	"github.com/paw-chain/paw/explorer/indexer/internal/subscriber"
 	"github.com/paw-chain/paw/explorer/indexer/internal/websocket/hub"
 	"github.com/paw-chain/paw/explorer/indexer/pkg/logger"
@@ -77,24 +79,51 @@ func main() {
 
 	// Initialize Redis cache
 	log.Info("Connecting to Redis", "host", cfg.Redis.Host, "port", cfg.Redis.Port)
-	redisCache, err := cache.NewRedisCache(cfg.Redis)
+	redisCache, err := cache.NewRedisCache(cache.Config{
+		Address:  fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+		Prefix:   "explorer:",
+	})
 	if err != nil {
 		log.Error("Failed to connect to Redis", "error", err)
 		os.Exit(1)
 	}
 	defer redisCache.Close()
 
-	// Initialize blockchain subscriber
-	log.Info("Initializing blockchain subscriber", "rpc_url", cfg.Chain.RPCURL)
-	sub, err := subscriber.NewSubscriber(cfg.Chain, db, redisCache, log)
+	// Initialize RPC client
+	rpcClient, err := rpc.NewClient(rpc.Config{
+		RPCURL:     cfg.Chain.RPCURL,
+		Timeout:    cfg.Chain.Timeout,
+		MaxRetries: cfg.Chain.RetryAttempts,
+	})
 	if err != nil {
-		log.Error("Failed to initialize subscriber", "error", err)
+		log.Error("Failed to initialize RPC client", "error", err)
 		os.Exit(1)
 	}
 
+	// Initialize blockchain subscriber
+	log.Info("Initializing blockchain subscriber", "ws_url", cfg.Chain.WSUrl)
+	sub := subscriber.NewSubscriber(cfg.Chain.WSUrl, cfg.Indexer.BlockBuffer)
+	if err := sub.Start(); err != nil {
+		log.Error("Failed to start subscriber", "error", err)
+		os.Exit(1)
+	}
+	defer sub.Stop()
+
 	// Initialize indexer
 	log.Info("Initializing blockchain indexer")
-	idx := indexer.NewIndexer(db, redisCache, sub, cfg.Indexer, log)
+	idxConfig := indexer.Config{
+		StartHeight:              cfg.Indexer.StartHeight,
+		BatchSize:                cfg.Indexer.BatchSize,
+		Workers:                  cfg.Indexer.Workers,
+		RetryAttempts:            cfg.Indexer.MaxRetries,
+		RetryDelay:               cfg.Indexer.RetryDelay,
+		EnableHistoricalIndexing: cfg.Indexer.EnableHistoricalIndexing,
+		HistoricalBatchSize:      cfg.Indexer.HistoricalBatchSize,
+		ParallelFetches:          cfg.Indexer.ParallelFetches,
+	}
+	idx := indexer.New(db, sub, rpcClient, idxConfig)
 
 	// Initialize WebSocket hub
 	wsHub := hub.NewHub(log)
@@ -107,7 +136,7 @@ func main() {
 	// Start indexer
 	log.Info("Starting blockchain indexer")
 	go func() {
-		if err := idx.Start(ctx); err != nil {
+		if err := idx.Start(); err != nil {
 			log.Error("Indexer failed", "error", err)
 			cancel()
 		}
@@ -118,14 +147,6 @@ func main() {
 	go func() {
 		if err := apiServer.Start(); err != nil {
 			log.Error("API server failed", "error", err)
-			cancel()
-		}
-	}()
-
-	// Subscribe to new blocks
-	go func() {
-		if err := sub.SubscribeToBlocks(ctx, wsHub); err != nil {
-			log.Error("Block subscription failed", "error", err)
 			cancel()
 		}
 	}()

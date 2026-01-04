@@ -82,7 +82,7 @@ func (s *Server) handleGetTransactionTrace(c *gin.Context) {
 	}
 
 	// Build transaction trace
-	trace, err := s.buildTransactionTrace(c.Request.Context(), tx)
+	trace, err := s.buildTransactionTrace(c.Request.Context(), *tx)
 	if err != nil {
 		s.log.Error("Failed to build transaction trace", "hash", txHash, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

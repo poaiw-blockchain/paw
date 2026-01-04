@@ -578,5 +578,5 @@ pawd tx wasm store contract.wasm \
 - **API Reference**: [Full API documentation](#api-reference)
 - **SDK Documentation**: [Complete SDK guides](#sdk-usage)
 - **Examples**: [Code examples repository](https://github.com/paw-chain/paw/tree/master/examples)
-- **Discord**: [Developer community](https://discord.gg/pawchain)
+- **Discord**: [Developer community](https://discord.gg/DBHTc2QV)
 - ****: [Source code](https://github.com/paw-chain/paw)

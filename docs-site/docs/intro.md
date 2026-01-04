@@ -62,7 +62,7 @@ Ready to start using PAW? Check out our guides:
 
 ## Community
 
-- **Discord**: https://discord.gg/paw-chain
+- **Discord**: https://discord.gg/DBHTc2QV
 - **Twitter**: https://twitter.com/PAWNetwork
 - **GitHub**: https://github.com/poaiw-blockchain/paw
 

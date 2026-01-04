@@ -1,0 +1,79 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #0c1019;
+    color: #eef1f6;
+}
+
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 20px 64px;
+}
+
+.hero {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.hero h1 {
+    margin-bottom: 8px;
+    font-size: 2.25rem;
+}
+
+.hero p {
+    margin: 0 0 16px;
+    color: #a7afc2;
+}
+
+.status {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(94, 205, 255, 0.16);
+    color: #5ec7ff;
+    font-size: 0.9rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: #141826;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 12px 30px rgba(4, 6, 12, 0.4);
+}
+
+.value {
+    font-size: 1.3rem;
+    margin: 0;
+    color: #7ee39a;
+}
+
+.blocks {
+    display: grid;
+    gap: 12px;
+}
+
+.block-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #0f1320;
+    color: #c9d2e3;
+    font-size: 0.95rem;
+}
+
+.block-item span {
+    display: inline-block;
+}

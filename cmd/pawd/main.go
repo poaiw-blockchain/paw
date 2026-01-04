@@ -10,14 +10,16 @@ import (
 )
 
 func main() {
-	// Start Prometheus metrics server on port 36660
-	// This runs in background goroutine
-	StartPrometheusServer(36660)
+	home := resolveNodeHome(os.Args[1:])
+	metricsPort, healthPort := loadTelemetryPorts(home)
+	rpcEndpoint := resolveRPCAddress(home)
 
-	// Start health check server on port 36661
-	// This provides /health, /health/ready, /health/detailed endpoints
-	nodeChecker := NewSimpleNodeChecker("http://localhost:26657")
-	StartHealthCheckServer(36661, nodeChecker)
+	// Start Prometheus metrics server on the configured port.
+	StartPrometheusServer(metricsPort)
+
+	// Start health check server with the configured port + RPC endpoint.
+	nodeChecker := NewSimpleNodeChecker(rpcEndpoint)
+	StartHealthCheckServer(healthPort, nodeChecker)
 
 	rootCmd := cmd.NewRootCmd(false)
 

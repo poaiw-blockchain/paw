@@ -495,7 +495,7 @@ MIT License - see [LICENSE](../LICENSE) for details
 ## Support
 
 - Documentation: https://docs.paw.zone
-- Discord: https://discord.gg/paw
+- Discord: https://discord.gg/DBHTc2QV
 - Forum: https://forum.paw.zone
 - Email: support@paw.zone
 

@@ -104,7 +104,7 @@ npm install
 
 Join our growing community of developers, validators, and blockchain enthusiasts:
 
-- 💬 [Discord Server](https://discord.gg/pawblockchain) - Chat with the community
+- 💬 [Discord Server](https://discord.gg/DBHTc2QV) - Chat with the community
 - 🐦 [Twitter](https://twitter.com/pawblockchain) - Latest updates and announcements
 - 📝 [Blog](https://blog.pawblockchain.io) - Tutorials and deep dives
 

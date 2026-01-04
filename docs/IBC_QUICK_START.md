@@ -547,7 +547,7 @@ pawd query ibc connection end connection-0
 
 ## Getting Help
 
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 - Documentation: https://docs.paw-chain.com/ibc
 - IBC Protocol Docs: https://ibcprotocol.org/
 - Hermes Docs: https://hermes.informal.systems/

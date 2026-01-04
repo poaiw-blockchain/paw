@@ -487,5 +487,5 @@ hermes clear packets --chain paw-1 --port transfer --channel channel-0
 ## Support
 
 For issues and questions:
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 - Documentation: https://docs.paw-chain.com/ibc

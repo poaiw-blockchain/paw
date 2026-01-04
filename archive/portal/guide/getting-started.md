@@ -204,7 +204,7 @@ curl -X POST https://faucet-api.paw.network/request \
 
 ### Option 3: Discord Bot
 
-Join our [Discord server](https://discord.gg/pawblockchain) and use:
+Join our [Discord server](https://discord.gg/DBHTc2QV) and use:
 
 ```
 !faucet paw1xxxxxxxxxxxxx
@@ -312,7 +312,7 @@ If your balance doesn't appear:
 
 Need assistance? We're here to help:
 
-- 💬 [Discord Support](https://discord.gg/pawblockchain)
+- 💬 [Discord Support](https://discord.gg/DBHTc2QV)
 - 📧 Email: support@pawblockchain.io
 - 📖 [Full Documentation](/)
 

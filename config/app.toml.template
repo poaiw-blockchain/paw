@@ -118,6 +118,12 @@ global-labels = [
 # MetricsSink defines the type of metrics sink to use.
 metrics-sink = ""
 
+# Prometheus metrics port for the bundled /metrics endpoint.
+metrics-port = "36660"
+
+# Health check port for the standalone /health endpoint server.
+health-port = "36661"
+
 # StatsdAddr defines the address of a statsd server to send metrics to.
 # Only utilized if MetricsSink is set to "statsd" or "dogstatsd".
 statsd-addr = ""

@@ -117,7 +117,7 @@ const config: Config = {
           items: [
             {
               label: 'Discord',
-              href: 'https://discord.gg/paw-chain',
+              href: 'https://discord.gg/DBHTc2QV',
             },
             {
               label: 'Twitter',

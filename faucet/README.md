@@ -365,5 +365,5 @@ This project is licensed under the MIT License - see the [LICENSE](../LICENSE) f
 ## Support
 
 - Documentation: https://docs.paw-chain.com
-- Discord: https://discord.gg/paw-chain
+- Discord: https://discord.gg/DBHTc2QV
 -  Issues: https://github.com/paw-chain/paw/issues

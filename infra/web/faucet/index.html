@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW Testnet Faucet</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <h1>PAW Testnet Faucet</h1>
+            <p>Request 100 PAW testnet tokens once per address every 24 hours.</p>
+            <div class="status" id="status">Checking faucet status...</div>
+        </header>
+
+        <section class="card">
+            <h2>Request Tokens</h2>
+            <form id="faucet-form">
+                <label for="address">PAW Address</label>
+                <input
+                    id="address"
+                    name="address"
+                    type="text"
+                    placeholder="paw1..."
+                    pattern="^paw1[a-z0-9]{38}$"
+                    required
+                >
+                <button type="submit" id="submit-btn">Send 100 PAW</button>
+            </form>
+            <div class="message" id="message"></div>
+        </section>
+
+        <section class="card secondary">
+            <h2>Notes</h2>
+            <ul>
+                <li>Rate limit is enforced per address on the server.</li>
+                <li>Transactions are sent from the testnet faucet account.</li>
+                <li>Use the explorer to verify your transaction hash.</li>
+            </ul>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

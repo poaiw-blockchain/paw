@@ -524,7 +524,7 @@ MIT License - see LICENSE file for details
 ## Support
 
 - Documentation: https://docs.pawchain.io/explorer
-- Discord: https://discord.gg/pawchain
+- Discord: https://discord.gg/DBHTc2QV
 -  Issues: https://github.com/paw-chain/paw/issues
 
 ## Roadmap

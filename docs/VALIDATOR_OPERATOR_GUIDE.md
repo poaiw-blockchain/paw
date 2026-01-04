@@ -1779,7 +1779,7 @@ pawd tx gov vote <proposal-id> yes --from validator-operator --chain-id paw-main
 ### Support Resources
 
 - **Official Documentation**: https://docs.paw-chain.org
-- **Validator Discord**: https://discord.gg/paw-validators
+- **Validator Discord**: https://discord.gg/DBHTc2QV
 - **Technical Support**: validators@paw-chain.org
 - **Security Issues**: security@paw-chain.org
 - **Governance Forum**: https://forum.paw-chain.org
