@@ -191,3 +191,4 @@ ESCROW_*.md
 # Temporary/Working Directories
 # ============================================================================
 .tmp/
+AGENTS.md
