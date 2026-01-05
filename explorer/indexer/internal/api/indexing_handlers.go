@@ -111,5 +111,38 @@ func (s *Server) SetupIndexingRoutes(v1 *gin.RouterGroup, indexer *indexer.Index
 		indexing.GET("/progress", s.handleGetIndexingProgress)
 		indexing.GET("/failed-blocks", s.handleGetFailedBlocks)
 		indexing.GET("/statistics", s.handleGetIndexingStatistics)
+		indexing.GET("/gaps", s.handleGetGaps)
+		indexing.POST("/fill-gaps", s.handleFillGaps)
 	}
+}
+
+// handleGetGaps handles GET /api/v1/indexing/gaps requests
+func (s *Server) handleGetGaps(c *gin.Context) {
+	status, err := s.indexer.GetGapStatus()
+	if err != nil {
+		s.log.Error("Failed to get gap status", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to fetch gap status",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
+}
+
+// handleFillGaps handles POST /api/v1/indexing/fill-gaps requests
+func (s *Server) handleFillGaps(c *gin.Context) {
+	if err := s.indexer.StartGapFilling(); err != nil {
+		s.log.Error("Failed to start gap filling", "error", err)
+		c.JSON(http.StatusConflict, gin.H{
+			"error":   "failed to start gap filling",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message": "Gap filling started in background",
+		"status":  "started",
+	})
 }

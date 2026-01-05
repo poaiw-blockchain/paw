@@ -825,6 +825,141 @@ func (idx *Indexer) Stop() {
 	log.Info().Msg("Indexer stopped")
 }
 
+// FillGaps detects and fills gaps in indexed blocks
+func (idx *Indexer) FillGaps() error {
+	if idx.historicalIndexingActive.Load() {
+		return fmt.Errorf("gap filling already in progress")
+	}
+
+	gaps, err := idx.db.FindBlockGaps()
+	if err != nil {
+		return fmt.Errorf("failed to find gaps: %w", err)
+	}
+
+	if len(gaps) == 0 {
+		log.Info().Msg("No gaps found in indexed blocks")
+		return nil
+	}
+
+	var totalMissing int64
+	for _, gap := range gaps {
+		totalMissing += gap.GapSize
+	}
+
+	log.Info().
+		Int("gap_count", len(gaps)).
+		Int64("total_missing_blocks", totalMissing).
+		Msg("Found gaps in indexed blocks, starting gap filling")
+
+	idx.historicalIndexingActive.Store(true)
+	defer idx.historicalIndexingActive.Store(false)
+
+	startTime := time.Now()
+	processedBlocks := int64(0)
+
+	for i, gap := range gaps {
+		select {
+		case <-idx.ctx.Done():
+			return fmt.Errorf("gap filling cancelled: %w", idx.ctx.Err())
+		default:
+		}
+
+		log.Info().
+			Int("gap_number", i+1).
+			Int("total_gaps", len(gaps)).
+			Int64("start_height", gap.StartHeight).
+			Int64("end_height", gap.EndHeight).
+			Int64("gap_size", gap.GapSize).
+			Msg("Filling gap")
+
+		// Fill this gap in batches
+		for height := gap.StartHeight; height <= gap.EndHeight; {
+			select {
+			case <-idx.ctx.Done():
+				return fmt.Errorf("gap filling cancelled: %w", idx.ctx.Err())
+			default:
+			}
+
+			endHeight := minInt64(height+int64(idx.config.HistoricalBatchSize)-1, gap.EndHeight)
+
+			batchStart := time.Now()
+			if err := idx.indexBlockBatch(height, endHeight); err != nil {
+				log.Error().
+					Err(err).
+					Int64("start", height).
+					Int64("end", endHeight).
+					Msg("Failed to fill gap batch")
+				failedBlocksTotal.Inc()
+			} else {
+				batchSize := endHeight - height + 1
+				processedBlocks += batchSize
+				batchDuration := time.Since(batchStart)
+
+				// Calculate progress
+				progress := float64(processedBlocks) / float64(totalMissing) * 100
+				bps := float64(processedBlocks) / time.Since(startTime).Seconds()
+
+				log.Info().
+					Int64("height", endHeight).
+					Int64("batch_size", batchSize).
+					Dur("batch_duration", batchDuration).
+					Float64("progress_pct", progress).
+					Float64("blocks_per_sec", bps).
+					Msg("Gap batch filled successfully")
+
+				historicalBlocksIndexed.Add(float64(batchSize))
+				historicalIndexingProgress.Set(progress)
+				blocksPerSecond.Set(bps)
+			}
+
+			height = endHeight + 1
+
+			// Brief pause to avoid overwhelming the RPC node
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	totalDuration := time.Since(startTime)
+	avgBlocksPerSec := float64(processedBlocks) / totalDuration.Seconds()
+
+	log.Info().
+		Int64("total_blocks_filled", processedBlocks).
+		Dur("total_duration", totalDuration).
+		Float64("avg_blocks_per_sec", avgBlocksPerSec).
+		Msg("Gap filling completed successfully")
+
+	return nil
+}
+
+// GetGapStatus returns current gap status
+func (idx *Indexer) GetGapStatus() (map[string]interface{}, error) {
+	summary, err := idx.db.GetBlockGapSummary()
+	if err != nil {
+		return nil, err
+	}
+
+	summary["is_filling"] = idx.historicalIndexingActive.Load()
+
+	return summary, nil
+}
+
+// StartGapFilling starts gap filling in the background
+func (idx *Indexer) StartGapFilling() error {
+	if idx.historicalIndexingActive.Load() {
+		return fmt.Errorf("gap filling already in progress")
+	}
+
+	idx.wg.Add(1)
+	go func() {
+		defer idx.wg.Done()
+		if err := idx.FillGaps(); err != nil {
+			log.Error().Err(err).Msg("Gap filling failed")
+		}
+	}()
+
+	return nil
+}
+
 // Helper functions
 
 func extractModule(eventType string) string {

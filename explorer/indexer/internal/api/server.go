@@ -303,6 +303,9 @@ func (s *Server) setupRoutes() {
 		// Export routes
 		v1.GET("/export/transactions", s.handleExportTransactions)
 		v1.GET("/export/trades", s.handleExportTrades)
+
+		// Indexing routes
+		s.SetupIndexingRoutes(v1, s.indexer)
 	}
 
 	// WebSocket route

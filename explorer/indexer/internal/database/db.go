@@ -407,3 +407,90 @@ func (db *Database) Close() error {
 	log.Info().Msg("Closing database connection")
 	return db.DB.Close()
 }
+
+// BlockGap represents a gap in indexed blocks
+type BlockGap struct {
+	StartHeight int64 `json:"start_height"`
+	EndHeight   int64 `json:"end_height"`
+	GapSize     int64 `json:"gap_size"`
+}
+
+// FindBlockGaps detects gaps in indexed blocks
+func (db *Database) FindBlockGaps() ([]BlockGap, error) {
+	rows, err := db.Query(`
+		WITH gap_check AS (
+			SELECT
+				height,
+				LEAD(height) OVER (ORDER BY height) as next_height,
+				LEAD(height) OVER (ORDER BY height) - height - 1 as gap_size
+			FROM blocks
+		)
+		SELECT height + 1 as start_height, next_height - 1 as end_height, gap_size
+		FROM gap_check
+		WHERE gap_size > 0
+		ORDER BY height ASC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query block gaps: %w", err)
+	}
+	defer rows.Close()
+
+	var gaps []BlockGap
+	for rows.Next() {
+		var gap BlockGap
+		if err := rows.Scan(&gap.StartHeight, &gap.EndHeight, &gap.GapSize); err != nil {
+			return nil, fmt.Errorf("failed to scan gap: %w", err)
+		}
+		gaps = append(gaps, gap)
+	}
+
+	return gaps, rows.Err()
+}
+
+// GetBlockGapSummary returns a summary of all gaps
+func (db *Database) GetBlockGapSummary() (map[string]interface{}, error) {
+	var totalBlocks, indexedBlocks, minHeight, maxHeight int64
+
+	err := db.QueryRow(`
+		SELECT
+			COUNT(*) as indexed_blocks,
+			COALESCE(MIN(height), 0) as min_height,
+			COALESCE(MAX(height), 0) as max_height
+		FROM blocks
+	`).Scan(&indexedBlocks, &minHeight, &maxHeight)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get block summary: %w", err)
+	}
+
+	if maxHeight > 0 && minHeight > 0 {
+		totalBlocks = maxHeight - minHeight + 1
+	}
+
+	gaps, err := db.FindBlockGaps()
+	if err != nil {
+		return nil, err
+	}
+
+	var totalGapSize int64
+	for _, gap := range gaps {
+		totalGapSize += gap.GapSize
+	}
+
+	return map[string]interface{}{
+		"min_height":      minHeight,
+		"max_height":      maxHeight,
+		"total_blocks":    totalBlocks,
+		"indexed_blocks":  indexedBlocks,
+		"missing_blocks":  totalGapSize,
+		"gap_count":       len(gaps),
+		"gaps":            gaps,
+		"sync_percentage": float64(indexedBlocks) / float64(totalBlocks) * 100,
+	}, nil
+}
+
+// BlockExists checks if a block at the given height exists
+func (db *Database) BlockExists(height int64) (bool, error) {
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM blocks WHERE height = $1)", height).Scan(&exists)
+	return exists, err
+}

@@ -183,6 +183,12 @@ func (s *Subscriber) parseBlockEvent(data map[string]interface{}) *BlockEvent {
 		return nil
 	}
 
+	// Extract block hash from block_id
+	var blockHash string
+	if blockID, ok := blockValue["block_id"].(map[string]interface{}); ok {
+		blockHash, _ = blockID["hash"].(string)
+	}
+
 	// Extract basic block info
 	height, _ := header["height"].(string)
 	blockTime, _ := header["time"].(string)
@@ -200,6 +206,7 @@ func (s *Subscriber) parseBlockEvent(data map[string]interface{}) *BlockEvent {
 
 	event := &BlockEvent{
 		Height:   heightInt,
+		Hash:     blockHash,
 		Time:     parsedTime,
 		Proposer: proposer,
 		RawBlock: block,
