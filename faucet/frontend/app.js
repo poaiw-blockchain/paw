@@ -18,6 +18,7 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     setupEventListeners();
+    prefillAddressFromQuery();
 });
 
 async function initializeApp() {
@@ -38,6 +39,18 @@ function setupEventListeners() {
 
     form.addEventListener('submit', handleFormSubmit);
     addressInput.addEventListener('input', validateAddress);
+}
+
+function prefillAddressFromQuery() {
+    const addressInput = document.getElementById('address');
+    if (!addressInput) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const address = params.get('address');
+    if (address) {
+        addressInput.value = address.trim();
+        validateAddress();
+    }
 }
 
 // Network status check
@@ -288,11 +301,14 @@ function hideAlerts() {
 }
 
 // Utility functions
+const BASE_DENOM_FACTOR = 1_000_000;
+
 function formatAmount(amount) {
     if (typeof amount === 'string') {
         amount = parseFloat(amount);
     }
-    return amount.toLocaleString('en-US', {
+    const normalized = Number.isFinite(amount) ? amount / BASE_DENOM_FACTOR : 0;
+    return normalized.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 6
     });

@@ -143,8 +143,10 @@ func main() {
 	// Serve static frontend files
 	router.Static("/assets", "./frontend/assets")
 	router.StaticFile("/", "./frontend/index.html")
+	router.StaticFile("/wallet.html", "./frontend/wallet.html")
 	router.StaticFile("/styles.css", "./frontend/styles.css")
 	router.StaticFile("/app.js", "./frontend/app.js")
+	router.StaticFile("/wallet.js", "./frontend/wallet.js")
 
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {
