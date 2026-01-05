@@ -1,0 +1,64 @@
+name: Testnet Access Request
+description: Request access to PAW testnet resources
+labels: ["testnet", "access-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## PAW Testnet Access Request
+        Use this form to request testnet tokens or validator access.
+
+  - type: dropdown
+    id: request-type
+    attributes:
+      label: Request Type
+      description: What type of access do you need?
+      options:
+        - Testnet tokens (faucet not working)
+        - Validator setup assistance
+        - IBC relayer access
+        - API endpoint access
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: address
+    attributes:
+      label: PAW Testnet Address
+      description: Your pawtest1... address
+      placeholder: pawtest1...
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose
+      description: What will you use the testnet access for?
+      placeholder: Testing smart contracts, validator operation, dApp development, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: amount
+    attributes:
+      label: Amount Requested (if tokens)
+      description: How many PAW tokens do you need?
+      placeholder: "1000"
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional Information
+      description: Any other relevant details (GitHub, project links, etc.)
+
+  - type: checkboxes
+    id: acknowledgment
+    attributes:
+      label: Acknowledgment
+      options:
+        - label: I understand these are testnet tokens with no monetary value
+          required: true
+        - label: I have tried the public faucet at https://faucet.poaiw.org first
+          required: true

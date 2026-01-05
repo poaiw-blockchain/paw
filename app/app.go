@@ -137,9 +137,12 @@ import (
 )
 
 const (
-	AccountAddressPrefix = "paw"
-	Name                 = "paw"
+	// AccountAddressPrefix is defined in params.go as Bech32PrefixAccAddr
+	Name = "paw"
 )
+
+// AccountAddressPrefix re-exports the bech32 prefix from params for backward compatibility
+const AccountAddressPrefix = Bech32PrefixAccAddr
 
 var (
 	// DefaultNodeHome is the default home directory for the application daemon.
@@ -767,8 +770,16 @@ func (app *PAWApp) Configurator() module.Configurator {
 func (app *PAWApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
 	clientCtx := apiSvr.ClientCtx
 
-	// Register gRPC Gateway routes for all modules
+	// Register new tx routes from grpc-gateway
 	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// Register CometBFT queries routes from grpc-gateway (node_info, syncing, blocks, validators)
+	cmtservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// Register node gRPC service for grpc-gateway (node config, status)
+	node.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// Register grpc-gateway routes for all modules
 	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 
 	// Register legacy REST routes (if needed)
