@@ -19,7 +19,7 @@ PASSPHRASE_FILE="$HOME/.validator-backups/.backup-passphrase"
 RETENTION_DAYS=30
 
 # Default chains to backup
-CHAINS="${BACKUP_CHAINS:-aura paw}"
+CHAINS="${BACKUP_CHAINS:-paw}"
 
 log() {
     local level="$1"
@@ -161,7 +161,7 @@ main() {
             echo "  --uninstall - Remove cron job"
             echo ""
             echo "Environment Variables:"
-            echo "  BACKUP_CHAINS     - Space-separated chains (default: aura paw)"
+            echo "  BACKUP_CHAINS     - Space-separated chains (default: paw)"
             echo "  SLACK_WEBHOOK_URL - Slack webhook for notifications"
             exit 0
             ;;

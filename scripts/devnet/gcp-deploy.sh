@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Configuration (overridable via env vars)
-PROJECT_ID="${PROJECT_ID:-aixn-node-1}"
+PROJECT_ID="${PROJECT_ID:-paw-testnet-1}"
 ZONE="${ZONE:-us-central1-a}"
 CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
 KEYRING_BACKEND="${KEYRING_BACKEND:-test}"
@@ -20,9 +20,9 @@ if [[ -n "${NODES_SPEC:-}" ]]; then
     IFS=',' read -r -a NODES <<< "${NODES_SPEC}"
 else
     NODES=(
-        "xai-testnode-1:34.29.163.145"
-        "xai-testnode-2:108.59.86.86"
-        "xai-testnode-3:35.184.167.38"
+        "paw-testnode-1:34.29.163.145"
+        "paw-testnode-2:108.59.86.86"
+        "paw-testnode-3:35.184.167.38"
     )
 fi
 
@@ -116,7 +116,7 @@ copy_binary() {
 
 # Initialize node1 (genesis node)
 init_node1() {
-    local node_name="xai-testnode-1"
+    local node_name="paw-testnode-1"
 
     log_step "Initializing $node_name as genesis node..."
 
@@ -187,7 +187,7 @@ init_node1() {
 init_follower_node() {
     local node_name=$1
     local node_num=$2
-    local node1_ip="${NODE_IPS["xai-testnode-1"]}"
+    local node1_ip="${NODE_IPS["paw-testnode-1"]}"
     local node1_id=$(cat "$TMP_DIR/node1.id")
 
     log_step "Initializing $node_name as follower node..."
@@ -365,19 +365,19 @@ main() {
     init_node1
 
     # Step 4: Initialize node2 and node3
-    init_follower_node "xai-testnode-2" 2
-    init_follower_node "xai-testnode-3" 3
+    init_follower_node "paw-testnode-2" 2
+    init_follower_node "paw-testnode-3" 3
 
     # Step 5: Create systemd services
-    create_service "xai-testnode-1" 1
-    create_service "xai-testnode-2" 2
-    create_service "xai-testnode-3" 3
+    create_service "paw-testnode-1" 1
+    create_service "paw-testnode-2" 2
+    create_service "paw-testnode-3" 3
 
     # Step 6: Start all nodes
-    start_node "xai-testnode-1"
+    start_node "paw-testnode-1"
     sleep 5  # Give node1 time to start
-    start_node "xai-testnode-2"
-    start_node "xai-testnode-3"
+    start_node "paw-testnode-2"
+    start_node "paw-testnode-3"
 
     # Step 7: Check status
     log_info "Waiting for nodes to start (15 seconds)..."

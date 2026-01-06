@@ -1,6 +1,6 @@
 # PAW Testnet Prelaunch Runbook (Parallel-Safe, Extensive)
 
-This runbook is designed to catch rookie errors before a public testnet launch. It is split into local (pre-testnet) tests and testnet validation. Parallel-safe steps can be run by separate agents in parallel across Aura/PAW/XAI.
+This runbook is designed to catch rookie errors before a public testnet launch. It is split into local (pre-testnet) tests and testnet validation. Parallel-safe steps can be run by separate agents in parallel across PAW roles.
 
 ## Goals
 
@@ -56,7 +56,7 @@ go test ./... -timeout 30m
 
 ## Phase 1: Parallel-Safe Testnet Suite
 
-These steps are safe to run in parallel with Aura and XAI. They are read-only or minimal-impact.
+These steps are safe to run in parallel across multiple PAW agents. They are read-only or minimal-impact.
 
 ### 1.1 Smoke checks
 

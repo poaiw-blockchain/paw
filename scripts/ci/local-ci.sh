@@ -176,42 +176,6 @@ if [ "$SKIP_TESTS" != true ] && [ "$SECURITY_ONLY" != true ]; then
 
     echo -e "${YELLOW}Installing test dependencies...${NC}"
     pip install -q pytest pytest-cov pytest-xdist pytest-timeout pytest-benchmark hypothesis 2>/dev/null || true
-    [ -f "src/aixn/requirements.txt" ] && pip install -q -r src/aixn/requirements.txt 2>/dev/null || true
-    [ -f "tests/aixn_tests/requirements_test.txt" ] && pip install -q -r tests/aixn_tests/requirements_test.txt 2>/dev/null || true
-
-    # Unit Tests
-    echo -e "\n${YELLOW}Running Unit Tests...${NC}"
-    if pytest tests/aixn_tests/unit/ -v --cov=src/aixn/core --cov-report=xml --cov-report=html --cov-report=term-missing -n auto; then
-        print_success "Unit tests"
-    else
-        print_failure "Unit tests"
-    fi
-
-    if [ "$QUICK" != true ]; then
-        # Integration Tests
-        echo -e "${YELLOW}Running Integration Tests...${NC}"
-        if pytest tests/aixn_tests/integration/ -v --cov=src/aixn --cov-report=term-missing --timeout=300; then
-            print_success "Integration tests"
-        else
-            print_failure "Integration tests"
-        fi
-
-        # Security Tests
-        echo -e "${YELLOW}Running Security Tests...${NC}"
-        if pytest tests/aixn_tests/security/ -v --cov=src/aixn --cov-report=term-missing; then
-            print_success "Security tests"
-        else
-            print_failure "Security tests"
-        fi
-
-        # Performance Tests
-        echo -e "${YELLOW}Running Performance Tests...${NC}"
-        if pytest tests/aixn_tests/performance/ -v --benchmark-only --benchmark-json=benchmark.json; then
-            print_success "Performance tests"
-        else
-            print_failure "Performance tests"
-        fi
-    fi
 fi
 
 # ============================================================================

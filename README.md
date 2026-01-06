@@ -4,6 +4,8 @@
 
 Cosmos SDK–based Layer‑1 for verifiable AI compute with integrated DEX and Oracle.
 
+Release artifacts policy: see `RELEASE_ARTIFACTS.md`.
+
 What’s included
 - DEX: AMM pools, swaps, liquidity accounting, IBC transfer support
 - Compute: job escrow, assignment, verification hooks, IBC port for cross‑chain requests
@@ -75,6 +77,7 @@ Wallet suite
 - `wallet/desktop` — Electron + React desktop wallet with integrated DEX tooling. Build with `npm install && npm run build` (per-platform bundles via `electron-builder`).
 - `wallet/mobile` — React Native wallet for iOS and Android. Install deps with `npm install` and bundle per-platform via `npm run android` / `npm run ios` (add a `build` script for CI artifacts if desired).
 - `wallet/browser-extension` — Chromium/Firefox extension for swaps + miner controls. Build with `npm install && npm run build`.
+- Shared multi-chain wallet (cross-chain compatibility only): `/home/hudson/blockchain-projects/shared/wallet/multi-chain-wallet`
 
 Configuration
 - Node home: `~/.paw` with Bech32 prefix `paw`

@@ -3,7 +3,7 @@
 
 ## CURRENT STATE
 - **Status**: VMs created but NOT configured with PAW blockchain yet
-- **GCP Project**: `aixn-node-1`
+- **GCP Project**: `paw-testnet-1` (update for your environment)
 - **Account**: `jeff@moproinsure.com`
 - **Region/Zone**: `us-central1-a`
 - **Nodes**: 3x e2-medium VMs running Ubuntu 22.04
@@ -13,10 +13,9 @@
 ### Node Details
 | Node | Internal IP | External IP | Status |
 |------|-------------|-------------|--------|
-| xai-testnode-1 | 10.128.0.5 | 34.29.163.145 | RUNNING |
-| xai-testnode-2 | 10.128.0.3 | 108.59.86.86 | RUNNING |
-| xai-testnode-3 | 10.128.0.4 | 35.184.167.38 | RUNNING |
-| aixn-1 | 10.128.0.2 | 136.115.51.215 | RUNNING (unused) |
+| paw-testnode-1 | 10.128.0.5 | 34.29.163.145 | RUNNING |
+| paw-testnode-2 | 10.128.0.3 | 108.59.86.86 | RUNNING |
+| paw-testnode-3 | 10.128.0.4 | 35.184.167.38 | RUNNING |
 
 ### Cost Management
 - **Running**: ~$0.10/hour ($2.40/day for 3 nodes)
@@ -52,16 +51,16 @@
 ### GCloud Direct Commands
 ```bash
 # List instances
-gcloud compute instances list --project=aixn-node-1
+gcloud compute instances list --project=paw-testnet-1
 
 # SSH to node
-gcloud compute ssh xai-testnode-1 --zone=us-central1-a --project=aixn-node-1
+gcloud compute ssh paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
 
 # Stop specific node
-gcloud compute instances stop xai-testnode-1 --zone=us-central1-a --project=aixn-node-1
+gcloud compute instances stop paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
 
 # Start specific node
-gcloud compute instances start xai-testnode-1 --zone=us-central1-a --project=aixn-node-1
+gcloud compute instances start paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
 ```
 
 ## DEPLOYMENT STATUS
@@ -149,11 +148,11 @@ Purpose: Find holes in code through thorough multi-node testing
 ## NETWORK ARCHITECTURE
 
 ```
-xai-testnode-1 (Genesis/Validator)
+paw-testnode-1 (Genesis/Validator)
     ↓ peer
-xai-testnode-2 (Full Node)
+paw-testnode-2 (Full Node)
     ↓ peer
-xai-testnode-3 (Full Node)
+paw-testnode-3 (Full Node)
 ```
 
 ### Connectivity
@@ -165,8 +164,8 @@ xai-testnode-3 (Full Node)
 
 ### VMs not accessible
 ```bash
-gcloud compute instances list --project=aixn-node-1
-gcloud compute ssh xai-testnode-1 --zone=us-central1-a
+gcloud compute instances list --project=paw-testnet-1
+gcloud compute ssh paw-testnode-1 --zone=us-central1-a
 ```
 
 ### Blockchain not starting
@@ -195,6 +194,6 @@ curl http://localhost:26657/status
 
 ## REFERENCES
 
-- GCP Console: https://console.cloud.google.com/compute/instances?project=aixn-node-1
+- GCP Console: https://console.cloud.google.com/compute/instances?project=paw-testnet-1
 - Cosmos SDK Docs: https://docs.cosmos.network
 - Local devnet: `docker-compose -f docker-compose.devnet.yml up`

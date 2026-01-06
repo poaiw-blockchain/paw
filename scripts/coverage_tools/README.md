@@ -388,23 +388,22 @@ go_test_generator x/keeper/keeper.go \
 # Implement test cases in x/keeper/keeper_test.go
 ```
 
-### Example 2: Compare Coverage Across Projects
+### Example 2: Compare Go + Python Coverage (Optional)
 
 ```bash
 # From PAW project
 go test -coverprofile=coverage.out ./...
 
-# Compare with XAI project
+# Optional: compare Go coverage with a Python coverage.json if you have Python services
 python scripts/coverage_tools/coverage_diff.py \
   --go-coverage coverage.out \
-  --py-coverage ../Crypto/coverage.json \
+  --py-coverage coverage.json \
   --show-gaps \
   --threshold 95
 
 # Output shows:
 # - Go modules below 95%
-# - Python modules below 95%
-# - Coverage comparison
+# - Coverage comparison (Go vs Python, if present)
 # - Priority gaps to address
 ```
 

@@ -4,9 +4,9 @@
 
 set -euo pipefail
 
-PROJECT_ID="aixn-node-1"
+PROJECT_ID="${PROJECT_ID:-paw-testnet-1}"
 ZONE="us-central1-a"
-NODES=("xai-testnode-1" "xai-testnode-2" "xai-testnode-3")
+NODES=("paw-testnode-1" "paw-testnode-2" "paw-testnode-3")
 
 # Colors
 GREEN='\033[0;32m'
@@ -72,11 +72,11 @@ stop_nodes() {
 show_status() {
     log_info "Current status of test nodes:"
     echo ""
-    gcloud compute instances list --filter="name:xai-testnode-*" --project="$PROJECT_ID" --format="table(name,zone,machineType,status,networkInterfaces[0].accessConfigs[0].natIP:label=EXTERNAL_IP)"
+    gcloud compute instances list --filter="name:paw-testnode-*" --project="$PROJECT_ID" --format="table(name,zone,machineType,status,networkInterfaces[0].accessConfigs[0].natIP:label=EXTERNAL_IP)"
     echo ""
 
     # Count running nodes
-    running_count=$(gcloud compute instances list --filter="name:xai-testnode-* AND status:RUNNING" --project="$PROJECT_ID" --format="value(name)" | wc -l)
+    running_count=$(gcloud compute instances list --filter="name:paw-testnode-* AND status:RUNNING" --project="$PROJECT_ID" --format="value(name)" | wc -l)
 
     if [ "$running_count" -gt 0 ]; then
         log_cost "💰 $running_count nodes running - Estimated cost: \$$(echo "$running_count * $COST_PER_HOUR_E2_MEDIUM" | bc)/hour"
@@ -95,7 +95,7 @@ ssh_node() {
 
 # Show node logs
 show_logs() {
-    local node_name="${1:-xai-testnode-1}"
+    local node_name="${1:-paw-testnode-1}"
     log_info "Fetching logs from $node_name..."
     gcloud compute ssh "$node_name" --zone="$ZONE" --project="$PROJECT_ID" --command="tail -n 100 /root/.paw/*/pawd.log 2>/dev/null || journalctl -u pawd -n 100"
 }
@@ -131,7 +131,7 @@ ${YELLOW}Commands:${NC}
 ${YELLOW}Examples:${NC}
     $0 start                    # Start all nodes
     $0 status                   # Check status
-    $0 ssh xai-testnode-1       # SSH to node 1
+    $0 ssh paw-testnode-1       # SSH to node 1
     $0 ssh 1                    # SSH to node 1 (shorthand)
     $0 logs 2                   # Show logs from node 2
     $0 stop                     # Stop all nodes to save costs
@@ -176,7 +176,7 @@ case "${1:-}" in
     ssh)
         node_arg="${2:-1}"
         if [[ "$node_arg" =~ ^[1-3]$ ]]; then
-            ssh_node "xai-testnode-${node_arg}"
+            ssh_node "paw-testnode-${node_arg}"
         else
             ssh_node "$node_arg"
         fi
@@ -184,7 +184,7 @@ case "${1:-}" in
     logs)
         node_arg="${2:-1}"
         if [[ "$node_arg" =~ ^[1-3]$ ]]; then
-            show_logs "xai-testnode-${node_arg}"
+            show_logs "paw-testnode-${node_arg}"
         else
             show_logs "$node_arg"
         fi

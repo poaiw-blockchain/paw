@@ -135,34 +135,6 @@ if (!$SkipTests -and !$SecurityOnly) {
 
     Write-Host "Installing test dependencies..." -ForegroundColor Yellow
     pip install -q pytest pytest-cov pytest-xdist pytest-timeout pytest-benchmark hypothesis 2>$null
-    if (Test-Path "src/aixn/requirements.txt") { pip install -q -r src/aixn/requirements.txt 2>$null }
-    if (Test-Path "tests/aixn_tests/requirements_test.txt") { pip install -q -r tests/aixn_tests/requirements_test.txt 2>$null }
-
-    # Unit Tests
-    Write-Host "`nRunning Unit Tests..." -ForegroundColor Yellow
-    pytest tests/aixn_tests/unit/ -v --cov=src/aixn/core --cov-report=xml --cov-report=html --cov-report=term-missing -n auto
-    if ($LASTEXITCODE -eq 0) { Write-Success "Unit tests" }
-    else { Write-Failure "Unit tests" }
-
-    if (!$Quick) {
-        # Integration Tests
-        Write-Host "Running Integration Tests..." -ForegroundColor Yellow
-        pytest tests/aixn_tests/integration/ -v --cov=src/aixn --cov-report=term-missing --timeout=300
-        if ($LASTEXITCODE -eq 0) { Write-Success "Integration tests" }
-        else { Write-Failure "Integration tests" }
-
-        # Security Tests
-        Write-Host "Running Security Tests..." -ForegroundColor Yellow
-        pytest tests/aixn_tests/security/ -v --cov=src/aixn --cov-report=term-missing
-        if ($LASTEXITCODE -eq 0) { Write-Success "Security tests" }
-        else { Write-Failure "Security tests" }
-
-        # Performance Tests
-        Write-Host "Running Performance Tests..." -ForegroundColor Yellow
-        pytest tests/aixn_tests/performance/ -v --benchmark-only --benchmark-json=benchmark.json
-        if ($LASTEXITCODE -eq 0) { Write-Success "Performance tests" }
-        else { Write-Failure "Performance tests" }
-    }
 }
 
 # ============================================================================

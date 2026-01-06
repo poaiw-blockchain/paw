@@ -2,10 +2,14 @@
 
 ## Overview
 
-PAW is the DEX hub of a three-chain ecosystem alongside Aura and XAI:
+PAW is the DEX hub for interoperability with external chains such as Aura and XAI:
 - **Native IBC** with full transfer and DEX packet support
 - **Cross-chain swaps** via PAW DEX
-- **Unified wallet** experience across all three chains
+- **Unified wallet** experience across compatible chains
+
+## Scope (Cross-Chain Only)
+
+This guide documents cross-chain compatibility. PAW’s repo does not include other chains’ code or infra. The shared multi-chain wallet lives in `~/blockchain-projects/shared/wallet/multi-chain-wallet/`.
 
 ## Chain Architecture
 
@@ -60,7 +64,7 @@ PAW uses whitelist-based channel authorization (SEC-10):
 
 ## Unified Wallet
 
-The shared wallet library (`wallet/shared/`) enables:
+The shared wallet library (`~/blockchain-projects/shared/wallet/multi-chain-wallet/`) enables:
 - Single mnemonic for all chains
 - Linked addresses for Aura and PAW
 - IBC transfer message building
@@ -89,7 +93,7 @@ PAW DEX supports cross-chain packets:
 ## Testing
 
 ```bash
-cd wallet/shared
+cd ~/blockchain-projects/shared/wallet/multi-chain-wallet
 npm test
 ```
 

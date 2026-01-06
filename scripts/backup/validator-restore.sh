@@ -6,7 +6,7 @@
 #
 # Usage:
 #   ./validator-restore.sh [r2-bucket] [backup-filename]
-#   ./validator-restore.sh aura-testnet-artifacts validator-keys-aura-20240101-120000.tar.gz.gpg
+#   ./validator-restore.sh paw-testnet-artifacts validator-keys-paw-20240101-120000.tar.gz.gpg
 #
 # Environment Variables:
 #   BACKUP_PASSPHRASE - GPG passphrase (optional, will prompt if not set)
@@ -66,15 +66,15 @@ usage() {
     echo "Usage: $0 <r2-bucket> <backup-filename>"
     echo ""
     echo "Arguments:"
-    echo "  r2-bucket       - R2 bucket name (e.g., aura-testnet-artifacts)"
+    echo "  r2-bucket       - R2 bucket name (e.g., paw-testnet-artifacts)"
     echo "  backup-filename - Encrypted backup file name"
     echo ""
     echo "Options:"
     echo "  --list          - List available backups in the bucket"
     echo ""
     echo "Examples:"
-    echo "  $0 aura-testnet-artifacts validator-keys-aura-20240101-120000.tar.gz.gpg"
-    echo "  $0 --list aura-testnet-artifacts"
+    echo "  $0 paw-testnet-artifacts validator-keys-paw-20240101-120000.tar.gz.gpg"
+    echo "  $0 --list paw-testnet-artifacts"
     exit 1
 }
 

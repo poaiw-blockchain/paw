@@ -102,5 +102,3 @@ curl http://localhost:11050/api/v1/controls/health
 ## Port Allocation
 
 - PAW Control Center: 11050
-- Aura Control Center: 10050
-- XAI Control Center: 12050

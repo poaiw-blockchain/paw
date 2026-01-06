@@ -165,7 +165,7 @@ show_passphrase_info() {
     echo "   - Consider encrypting the disk/volume"
     echo ""
     echo "3. TEST RESTORE PROCEDURE:"
-    echo "   - Run a test backup: ./validator-backup.sh aura aura-testnet-artifacts"
+    echo "   - Run a test backup: ./validator-backup.sh paw paw-testnet-artifacts"
     echo "   - Run a test restore: DRY_RUN=1 ./validator-restore.sh ..."
     echo ""
     echo "============================================================================"

@@ -24,7 +24,6 @@ cd ~/blockchain-projects/paw/scripts/backup
 ./setup-backup-passphrase.sh
 
 # 2. Run manual backup
-./validator-backup.sh aura aura-testnet-artifacts
 ./validator-backup.sh paw paw-testnet-artifacts
 
 # 3. Install daily cron (optional)
@@ -61,13 +60,13 @@ cd ~/blockchain-projects/paw/scripts/backup
 
 ```bash
 # List available backups
-./validator-restore.sh --list aura-testnet-artifacts
+./validator-restore.sh --list paw-testnet-artifacts
 
 # Restore (interactive)
-./validator-restore.sh aura-testnet-artifacts validator-keys-aura-20240101-120000.tar.gz.gpg
+./validator-restore.sh paw-testnet-artifacts validator-keys-paw-20240101-120000.tar.gz.gpg
 
 # Dry run (preview only)
-DRY_RUN=1 ./validator-restore.sh aura-testnet-artifacts <backup-file>
+DRY_RUN=1 ./validator-restore.sh paw-testnet-artifacts <backup-file>
 ```
 
 ## R2 Bucket Structure

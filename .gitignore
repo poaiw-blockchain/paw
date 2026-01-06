@@ -10,6 +10,8 @@ secrets/
 *.crt
 *.p12
 *.pfx
+*.jks
+*.mnemonic
 !secrets/README.txt
 
 # Environment files
@@ -18,7 +20,9 @@ secrets/
 .env.local
 .env*.local
 !.env.example
+!.env.*.example
 !.env.template
+!.env.*.template
 
 # Credentials
 credentials.json
@@ -41,6 +45,9 @@ wallets/
 *.dll
 *.so
 *.dylib
+*.a
+*.o
+*.bin
 /build/
 /bin/
 pawd

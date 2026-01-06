@@ -29,10 +29,10 @@ Once the script completes, `networks/${CHAIN_ID}/` contains the canonical artifa
 Use the hardened GCP automation to deploy three validators + supporting accounts:
 
 ```bash
-export PROJECT_ID="aixn-node-1"            # Override with your GCP project
+export PROJECT_ID="paw-testnet-1"          # Override with your GCP project
 export ZONE="us-central1-a"
 export CHAIN_ID="paw-testnet-1"
-export NODES_SPEC="xai-testnode-1:34.29.163.145,xai-testnode-2:108.59.86.86,xai-testnode-3:35.184.167.38"
+export NODES_SPEC="paw-testnode-1:34.29.163.145,paw-testnode-2:108.59.86.86,paw-testnode-3:35.184.167.38"
 cd /home/hudson/blockchain-projects/paw
 ./scripts/devnet/gcp-deploy.sh
 ```
@@ -47,7 +47,7 @@ Environment overrides:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `PROJECT_ID` | GCP project containing the validator instances | `aixn-node-1` |
+| `PROJECT_ID` | GCP project containing the validator instances | `paw-testnet-1` |
 | `ZONE` | GCP zone for the nodes | `us-central1-a` |
 | `CHAIN_ID` | Chain ID used during init (should be `paw-testnet-1`) | `paw-testnet-1` |
 | `NODES_SPEC` | Comma-separated `name:ip` list for the target VMs | script defaults |
@@ -56,7 +56,7 @@ Environment overrides:
 
 The script:
 1. Builds a fresh `pawd` binary locally
-2. Installs dependencies on `xai-testnode-1..3` (edit hostnames in the script if needed)
+2. Installs dependencies on `paw-testnode-1..3` (edit hostnames in the script if needed)
 3. Initializes node1, creates validator + faucet accounts, and captures node IDs
 4. Distributes the canonical `genesis.json` and config patches to node2/node3
 5. Configures `minimum-gas-prices`, gRPC/REST exposure, and persistent peers pointing at node1
