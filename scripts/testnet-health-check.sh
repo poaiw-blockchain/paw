@@ -1,185 +1,104 @@
-#!/bin/bash
-# ============================================================================
-# PAW Testnet Health Check
-# ============================================================================
-# Checks both PAW testnet nodes (primary on paw-testnet, secondary on
-# services-testnet) and verifies they are peered and synchronized.
-#
-# Usage: ./testnet-health-check.sh [--json] [--quiet]
-#
-# Run from any machine with SSH access to testnet servers.
-# ============================================================================
+#!/usr/bin/env bash
+# Aggregated health check for PAW testnet (validators + public endpoints).
 
-set -uo pipefail
+set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-BOLD='\033[1m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VALIDATOR_CHECK="${SCRIPT_DIR}/testnet/health-validators.sh"
+PUBLIC_CHECK="${SCRIPT_DIR}/testnet/health-public.sh"
 
-# Options
 JSON_OUTPUT=false
 QUIET=false
-for arg in "$@"; do
-    case $arg in
-        --json) JSON_OUTPUT=true ;;
-        --quiet|-q) QUIET=true ;;
-    esac
+
+usage() {
+  cat <<'USAGE'
+Usage: testnet-health-check.sh [options]
+
+Options:
+  --json        JSON output (aggregates validator + public checks)
+  --quiet       Suppress non-JSON output
+  -h, --help    Show this help
+
+For advanced options, run the underlying scripts directly:
+  scripts/testnet/health-validators.sh
+  scripts/testnet/health-public.sh
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --json) JSON_OUTPUT=true; shift;;
+    --quiet|-q) QUIET=true; shift;;
+    -h|--help) usage; exit 0;;
+    *) echo "error: unknown argument: $1" >&2; usage; exit 1;;
+  esac
 done
 
-log() {
-    if [ "$QUIET" = false ] && [ "$JSON_OUTPUT" = false ]; then
-        echo -e "$@"
-    fi
-}
+if [[ ! -x "$VALIDATOR_CHECK" ]]; then
+  echo "error: validator check script not found: $VALIDATOR_CHECK" >&2
+  exit 1
+fi
+if [[ ! -x "$PUBLIC_CHECK" ]]; then
+  echo "error: public check script not found: $PUBLIC_CHECK" >&2
+  exit 1
+fi
 
-# Results
-PRIMARY_OK=false
-SECONDARY_OK=false
-PEERED=false
-PRIMARY_HEIGHT=0
-SECONDARY_HEIGHT=0
-PRIMARY_PEERS=0
-SECONDARY_PEERS=0
+overall_state="HEALTHY"
 
-# ============================================================================
-# Check Primary Node (paw-testnet:26657)
-# ============================================================================
-check_primary() {
-    log "${BLUE}Primary Node (paw-testnet)${NC}"
+if [[ "$JSON_OUTPUT" == true ]]; then
+  set +e
+  validator_json=$($VALIDATOR_CHECK --json)
+  validator_rc=$?
+  public_json=$($PUBLIC_CHECK --json)
+  public_rc=$?
+  set -e
 
-    local status
-    status=$(ssh -o ConnectTimeout=5 paw-testnet "curl -s http://127.0.0.1:26657/status" 2>/dev/null)
+  if [[ $validator_rc -eq 1 || $public_rc -eq 1 ]]; then
+    overall_state="UNHEALTHY"
+  elif [[ $validator_rc -eq 2 || $public_rc -eq 2 ]]; then
+    overall_state="DEGRADED"
+  fi
 
-    if [ -z "$status" ]; then
-        log "${RED}✗${NC} Not responding"
-        return 1
-    fi
+  jq -n \
+    --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg state "$overall_state" \
+    --argjson validators "$validator_json" \
+    --argjson public "$public_json" \
+    '{timestamp: $timestamp, state: $state, validators: $validators, public: $public}'
+else
+  set +e
+  if [[ "$QUIET" == true ]]; then
+    $VALIDATOR_CHECK --quiet
+    validator_rc=$?
+    $PUBLIC_CHECK --quiet
+    public_rc=$?
+  else
+    echo "PAW Testnet Health Check"
+    echo "=========================="
+    echo ""
+    $VALIDATOR_CHECK
+    validator_rc=$?
+    $PUBLIC_CHECK
+    public_rc=$?
+  fi
+  set -e
 
-    PRIMARY_HEIGHT=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // 0')
-    local catching_up=$(echo "$status" | jq -r 'if .result.sync_info.catching_up == false then "false" else "true" end')
-    local moniker=$(echo "$status" | jq -r '.result.node_info.moniker // "unknown"')
+  if [[ $validator_rc -eq 1 || $public_rc -eq 1 ]]; then
+    overall_state="UNHEALTHY"
+  elif [[ $validator_rc -eq 2 || $public_rc -eq 2 ]]; then
+    overall_state="DEGRADED"
+  fi
 
-    local net_info
-    net_info=$(ssh -o ConnectTimeout=5 paw-testnet "curl -s http://127.0.0.1:26657/net_info" 2>/dev/null)
-    PRIMARY_PEERS=$(echo "$net_info" | jq -r '.result.n_peers // 0')
-    local peer_names=$(echo "$net_info" | jq -r '[.result.peers[]?.node_info.moniker] | join(", ") // ""')
+  if [[ "$QUIET" == false ]]; then
+    echo "Overall: $overall_state"
+  fi
+fi
 
-    if [ "$catching_up" = "false" ]; then
-        PRIMARY_OK=true
-        log "${GREEN}✓${NC} ${moniker}: height=${PRIMARY_HEIGHT}, peers=${PRIMARY_PEERS} [${peer_names}]"
-    else
-        log "${YELLOW}⚠${NC} ${moniker}: syncing at height ${PRIMARY_HEIGHT}"
-    fi
-}
+if [[ "$overall_state" == "UNHEALTHY" ]]; then
+  exit 1
+fi
+if [[ "$overall_state" == "DEGRADED" ]]; then
+  exit 2
+fi
 
-# ============================================================================
-# Check Secondary Node (services-testnet:27657)
-# ============================================================================
-check_secondary() {
-    log "${BLUE}Secondary Node (services-testnet)${NC}"
-
-    local status
-    status=$(ssh -o ConnectTimeout=5 services-testnet "curl -s http://127.0.0.1:27657/status" 2>/dev/null)
-
-    if [ -z "$status" ]; then
-        log "${RED}✗${NC} Not responding"
-        return 1
-    fi
-
-    SECONDARY_HEIGHT=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // 0')
-    local catching_up=$(echo "$status" | jq -r 'if .result.sync_info.catching_up == false then "false" else "true" end')
-    local moniker=$(echo "$status" | jq -r '.result.node_info.moniker // "unknown"')
-
-    local net_info
-    net_info=$(ssh -o ConnectTimeout=5 services-testnet "curl -s http://127.0.0.1:27657/net_info" 2>/dev/null)
-    SECONDARY_PEERS=$(echo "$net_info" | jq -r '.result.n_peers // 0')
-    local peer_names=$(echo "$net_info" | jq -r '[.result.peers[]?.node_info.moniker] | join(", ") // ""')
-
-    if [ "$catching_up" = "false" ]; then
-        SECONDARY_OK=true
-        log "${GREEN}✓${NC} ${moniker}: height=${SECONDARY_HEIGHT}, peers=${SECONDARY_PEERS} [${peer_names}]"
-    else
-        log "${YELLOW}⚠${NC} ${moniker}: syncing at height ${SECONDARY_HEIGHT}"
-    fi
-}
-
-# ============================================================================
-# Check Peering & Sync
-# ============================================================================
-check_peering() {
-    log ""
-    log "${BLUE}Network Status${NC}"
-
-    # Peering
-    if [ "$PRIMARY_PEERS" -ge 1 ] && [ "$SECONDARY_PEERS" -ge 1 ]; then
-        PEERED=true
-        log "${GREEN}✓${NC} Peering: primary ↔ secondary connected"
-    else
-        log "${RED}✗${NC} Peering: nodes not connected (primary=${PRIMARY_PEERS}, secondary=${SECONDARY_PEERS})"
-    fi
-
-    # Height sync (allow 10 block difference)
-    local height_diff=$((PRIMARY_HEIGHT - SECONDARY_HEIGHT))
-    if [ ${height_diff#-} -le 10 ]; then
-        log "${GREEN}✓${NC} Sync: heights match (diff=${height_diff})"
-    else
-        log "${YELLOW}⚠${NC} Sync: height difference=${height_diff}"
-    fi
-}
-
-# ============================================================================
-# JSON Output
-# ============================================================================
-print_json() {
-    cat <<EOF
-{
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "chain": "paw",
-  "primary": {
-    "ok": ${PRIMARY_OK},
-    "height": ${PRIMARY_HEIGHT},
-    "peers": ${PRIMARY_PEERS}
-  },
-  "secondary": {
-    "ok": ${SECONDARY_OK},
-    "height": ${SECONDARY_HEIGHT},
-    "peers": ${SECONDARY_PEERS}
-  },
-  "peered": ${PEERED}
-}
-EOF
-}
-
-# ============================================================================
-# Main
-# ============================================================================
-main() {
-    log ""
-    log "${BOLD}PAW Testnet Health Check - $(date)${NC}"
-    log ""
-
-    check_primary
-    check_secondary
-    check_peering
-
-    if [ "$JSON_OUTPUT" = true ]; then
-        print_json
-    else
-        log ""
-        log "======================================================================"
-        if [ "$PRIMARY_OK" = true ] && [ "$SECONDARY_OK" = true ] && [ "$PEERED" = true ]; then
-            log "${GREEN}${BOLD}PAW Testnet: HEALTHY${NC}"
-            log "Height: ${PRIMARY_HEIGHT} blocks, 2 nodes peered"
-            exit 0
-        else
-            log "${RED}${BOLD}PAW Testnet: ISSUES DETECTED${NC}"
-            exit 1
-        fi
-    fi
-}
-
-main "$@"
+exit 0

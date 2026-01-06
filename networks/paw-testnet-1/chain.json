@@ -41,7 +41,7 @@
     ],
     "grpc": [
       {
-        "address": "testnet-rpc.poaiw.org:9091",
+        "address": "testnet-grpc.poaiw.org:443",
         "provider": "PAW Foundation"
       }
     ]

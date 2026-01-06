@@ -57,7 +57,16 @@ enable = true
 
 # Address defines the gRPC server address to bind to.
 # SECURITY: Localhost only for validators
-address = "127.0.0.1:9090"
+address = "127.0.0.1:9091"
+
+###############################################################################
+###                        gRPC Web Configuration                           ###
+###############################################################################
+
+[grpc-web]
+
+# gRPC-Web should be disabled on validators (use public API nodes instead).
+enable = false
 
 ###############################################################################
 ###                        State Sync Configuration                         ###

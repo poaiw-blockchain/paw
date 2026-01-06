@@ -26,6 +26,22 @@ mode = "validator"
 # Use sentries for public RPC access
 laddr = "tcp://127.0.0.1:26657"
 
+# Disable CORS on validators (no browser clients should hit validator RPC)
+cors_allowed_origins = []
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+
+# Disable unsafe RPC commands
+unsafe = false
+
+# Limit RPC connection fan-out
+max_open_connections = 300
+max_body_bytes = 1000000
+max_header_bytes = 1048576
+
+# Disable profiling endpoints
+pprof_laddr = ""
+
 #######################################################
 ###           P2P Configuration Options             ###
 #######################################################
@@ -33,6 +49,10 @@ laddr = "tcp://127.0.0.1:26657"
 
 # Address to listen for incoming connections
 laddr = "tcp://0.0.0.0:26656"
+
+# Address to advertise to peers for them to dial
+# Set to the public IP:PORT for validators behind NAT (empty uses auto-detect)
+external_address = ""
 
 # Comma separated list of seed nodes to connect to
 # Seeds help discover other peers
@@ -61,6 +81,18 @@ max_num_outbound_peers = 10
 
 # Toggle to disable guard against peers connecting from the same ip.
 addr_book_strict = true
+
+# Do not allow multiple peers from the same IP (mitigates simple Sybil on a single host)
+allow_duplicate_ip = false
+
+# Limit message sizes and per-connection bandwidth
+max_packet_msg_payload_size = 1024
+send_rate = 5120000
+recv_rate = 5120000
+
+# Peer connection timeouts
+handshake_timeout = "20s"
+dial_timeout = "3s"
 
 # Maximum pause when redialing a persistent peer (if zero, exponential backoff is used)
 persistent_peers_max_dial_period = "0s"
@@ -146,8 +178,8 @@ timeout_commit = "5s"
 prometheus = true
 
 # Address to listen for Prometheus collector(s) connections
-# SECURITY: Restrict to monitoring server only
-prometheus_listen_addr = ":26660"
+# SECURITY: Bind to localhost and export via a secured monitoring host/VPN if needed
+prometheus_listen_addr = "127.0.0.1:26660"
 
 # Instrumentation namespace
 namespace = "cometbft"
