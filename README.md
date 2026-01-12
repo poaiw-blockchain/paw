@@ -121,7 +121,7 @@ Testnet
 | gRPC | testnet-grpc.poaiw.org:443 |
 | Explorer | https://testnet-explorer.poaiw.org |
 | Faucet | https://testnet-faucet.poaiw.org |
-| Metrics | https://testnet-rpc.poaiw.org:11660/metrics |
+| Metrics | http://54.39.103.49:11660/metrics |
 
 See the [testnets repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
 

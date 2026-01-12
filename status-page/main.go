@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -48,7 +49,11 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	}))
 
-	fileServer := http.FileServer(http.FS(staticFS))
+	staticRoot, err := fs.Sub(staticFS, "static")
+	if err != nil {
+		log.Fatalf("static assets error: %v", err)
+	}
+	fileServer := http.FileServer(http.FS(staticRoot))
 	mux.Handle("/", fileServer)
 
 	server := &http.Server{

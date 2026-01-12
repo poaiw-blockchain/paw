@@ -13,13 +13,13 @@ This directory hosts the canonical files and metadata for the PAW public testnet
 | `artifacts/` (tarball) | Use `scripts/devnet/bundle-testnet-artifacts.sh` to produce `artifacts/paw-testnet-1-artifacts.tar.gz` for CDN upload; validate CDN copy with `scripts/devnet/validate-remote-artifacts.sh <cdn-url>` |
 | `checkpoints/` | (Optional) state sync snapshots or metadata |
 
-## Current Public Endpoints (Status as of 2026-01-03)
+## Current Public Endpoints (Status as of 2026-01-08)
 
 | Service | Endpoint | Status | Notes |
 |---------|----------|--------|-------|
 | RPC     | `https://testnet-rpc.poaiw.org` | OK | Reverse proxy to validator RPC |
-| REST    | `https://testnet-api.poaiw.org`  | Degraded | REST port not responding on primary |
-| gRPC    | `testnet-rpc.poaiw.org:9091` | Degraded | Public gRPC host currently misrouted |
+| REST    | `https://testnet-api.poaiw.org`  | OK | Load-balanced across validators (val1-4) |
+| gRPC    | `testnet-grpc.poaiw.org:443` | OK | Load-balanced across validators (val1-4) |
 | Faucet  | `https://testnet-faucet.poaiw.org` | OK | Public faucet UI + API |
 | Explorer| `https://testnet-explorer.poaiw.org` | OK | Static UI + API |
 | Status  | `https://status.poaiw.org` | OK | Status page (RPC/REST/gRPC/Explorer/Faucet/Metrics probes) |
