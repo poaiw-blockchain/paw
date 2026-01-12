@@ -110,13 +110,20 @@ References
 - CometBFT: https://cometbft.com/
 - IBC: https://ibcprotocol.org/
 
-Devnet
+Testnet
 
-To join the PAW devnet, see the [networks repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
+**Chain ID:** `paw-testnet-1`
 
-| Network | Chain ID | Status |
-|---------|----------|--------|
-| [paw-testnet-1](https://github.com/poaiw-blockchain/testnets/tree/main/paw-testnet-1) | `paw-testnet-1` | Devnet |
+| Endpoint | URL |
+|----------|-----|
+| RPC | https://testnet-rpc.poaiw.org |
+| API | https://testnet-api.poaiw.org |
+| gRPC | testnet-grpc.poaiw.org:443 |
+| Explorer | https://testnet-explorer.poaiw.org |
+| Faucet | https://testnet-faucet.poaiw.org |
+| Metrics | https://testnet-rpc.poaiw.org:11660/metrics |
+
+See the [testnets repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
 
 **Quick join:**
 1. Build: `make build`
