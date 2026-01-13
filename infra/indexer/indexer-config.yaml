@@ -1,0 +1,65 @@
+database:
+  host: localhost
+  port: 5432
+  user: explorer
+  password: explorer_password
+  database: paw_explorer
+  ssl_mode: disable
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 3600s
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+  min_idle_conns: 5
+  cache_ttl: 300s
+
+chain:
+  chain_id: paw-testnet-1
+  rpc_url: http://127.0.0.1:26657
+  grpc_url: localhost:9091
+  ws_url: ws://127.0.0.1:26657/websocket
+  timeout: 30s
+  retry_attempts: 3
+  retry_delay: 1s
+
+indexer:
+  start_height: 1
+  batch_size: 100
+  workers: 2
+  block_buffer: 200
+  index_blocks: true
+  index_transactions: true
+  index_events: true
+  index_accounts: true
+  index_validators: true
+  index_dex: true
+  index_oracle: true
+  index_compute: true
+  sync_interval: 1s
+  enable_historical_indexing: true
+  historical_batch_size: 50
+  parallel_fetches: 5
+  max_retries: 3
+  retry_delay: 2s
+  rpc_requests_per_sec: 5
+
+api:
+  host: 0.0.0.0
+  port: 18080
+  enable_graphql: true
+  enable_rest: true
+  enable_websocket: true
+  cors_origins:
+    - "*"
+  rate_limit: 100
+  timeout: 30s
+
+metrics:
+  enabled: true
+  port: 19090
+  path: /metrics

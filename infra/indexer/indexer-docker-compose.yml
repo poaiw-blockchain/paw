@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: paw-indexer-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: paw_explorer
+      POSTGRES_USER: explorer
+      POSTGRES_PASSWORD: explorer_password
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - /home/ubuntu/paw/explorer/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - /home/ubuntu/paw/explorer/database/migrations:/docker-entrypoint-initdb.d/migrations:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: paw-indexer-redis
+    restart: always
+    command: >
+      redis-server
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+
+  indexer:
+    build:
+      context: /home/ubuntu/paw/explorer/indexer
+      dockerfile: Dockerfile
+      args:
+        GO_VERSION: 1.21
+    image: paw-explorer-indexer:latest
+    container_name: paw-indexer
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      CONFIG_FILE: /app/config/config.yaml
+    ports:
+      - "18080:18080"
+      - "19090:19090"
+    volumes:
+      - /home/ubuntu/paw/infra/indexer/config.yaml:/app/config/config.yaml:ro
+      - indexer_logs:/app/logs
+
+volumes:
+  postgres_data:
+  redis_data:
+  indexer_logs:

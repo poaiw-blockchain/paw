@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - PAW Testnet Explorer{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">API Documentation</h1>
+            <p class="lead text-muted">Access PAW Testnet data through our comprehensive API endpoints.</p>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Links</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <a href="https://testnet-graphql.poaiw.org/graphql" target="_blank" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-diagram-3 me-2"></i>GraphQL Playground
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <a href="https://testnet-api.poaiw.org" target="_blank" class="btn btn-outline-success w-100">
+                                <i class="bi bi-box-arrow-up-right me-2"></i>REST API
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="https://testnet-rpc.poaiw.org" target="_blank" class="btn btn-outline-info w-100">
+                                <i class="bi bi-hdd-network me-2"></i>RPC Endpoint
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Base URLs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Base URLs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Protocol</th>
+                                    <th>Endpoint</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-success">REST</span></td>
+                                    <td><code>https://testnet-api.poaiw.org</code></td>
+                                    <td>Cosmos SDK LCD (Light Client Daemon) REST API</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-info">RPC</span></td>
+                                    <td><code>https://testnet-rpc.poaiw.org</code></td>
+                                    <td>Tendermint RPC endpoint for node queries</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-primary">GraphQL</span></td>
+                                    <td><code>https://testnet-graphql.poaiw.org/graphql</code></td>
+                                    <td>GraphQL API for flexible queries</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary">gRPC</span></td>
+                                    <td><code>testnet-grpc.poaiw.org:443</code></td>
+                                    <td>gRPC endpoint for programmatic access</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-warning text-dark">WebSocket</span></td>
+                                    <td><code>wss://testnet-ws.poaiw.org</code></td>
+                                    <td>Real-time event subscriptions</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Examples Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="apiTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="rest-tab" data-bs-toggle="tab" data-bs-target="#rest" type="button" role="tab" aria-controls="rest" aria-selected="true">REST API</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="rpc-tab" data-bs-toggle="tab" data-bs-target="#rpc" type="button" role="tab" aria-controls="rpc" aria-selected="false">RPC</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="graphql-tab" data-bs-toggle="tab" data-bs-target="#graphql" type="button" role="tab" aria-controls="graphql" aria-selected="false">GraphQL</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="websocket-tab" data-bs-toggle="tab" data-bs-target="#websocket" type="button" role="tab" aria-controls="websocket" aria-selected="false">WebSocket</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="apiTabsContent">
+                        <!-- REST API Tab -->
+                        <div class="tab-pane fade show active" id="rest" role="tabpanel" aria-labelledby="rest-tab">
+                            <h5>REST API Examples</h5>
+                            <p>The REST API provides access to blockchain data through standard HTTP endpoints.</p>
+
+                            <h6 class="mt-4">Get Latest Block</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/cosmos/base/tendermint/v1beta1/blocks/latest"</code></pre>
+
+                            <h6 class="mt-4">Get Account Balance</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/cosmos/bank/v1beta1/balances/{address}"</code></pre>
+
+                            <h6 class="mt-4">Get Validators</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/cosmos/staking/v1beta1/validators"</code></pre>
+
+                            <h6 class="mt-4">Query Transaction by Hash</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/cosmos/tx/v1beta1/txs/{hash}"</code></pre>
+
+                            <h6 class="mt-4">Get DEX Pools</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/paw/dex/v1/pools"</code></pre>
+
+                            <h6 class="mt-4">Get IBC Channels</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-api.poaiw.org/ibc/core/channel/v1/channels"</code></pre>
+                        </div>
+
+                        <!-- RPC Tab -->
+                        <div class="tab-pane fade" id="rpc" role="tabpanel" aria-labelledby="rpc-tab">
+                            <h5>Tendermint RPC Examples</h5>
+                            <p>The RPC endpoint provides direct access to the Tendermint consensus layer.</p>
+
+                            <h6 class="mt-4">Get Node Status</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-rpc.poaiw.org/status"</code></pre>
+
+                            <h6 class="mt-4">Get Block by Height</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-rpc.poaiw.org/block?height=1000"</code></pre>
+
+                            <h6 class="mt-4">Get Validators at Height</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-rpc.poaiw.org/validators?height=1000"</code></pre>
+
+                            <h6 class="mt-4">Broadcast Transaction</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST "https://testnet-rpc.poaiw.org/broadcast_tx_sync" \
+  -H "Content-Type: application/json" \
+  -d '{"tx": "base64_encoded_tx"}'</code></pre>
+
+                            <h6 class="mt-4">ABCI Query</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-rpc.poaiw.org/abci_query?path=\"/store/bank/key\"&data=0x..."</code></pre>
+
+                            <h6 class="mt-4">Get Network Info</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X GET "https://testnet-rpc.poaiw.org/net_info"</code></pre>
+                        </div>
+
+                        <!-- GraphQL Tab -->
+                        <div class="tab-pane fade" id="graphql" role="tabpanel" aria-labelledby="graphql-tab">
+                            <h5>GraphQL Examples</h5>
+                            <p>GraphQL provides flexible queries to fetch exactly the data you need.</p>
+
+                            <h6 class="mt-4">Query Latest Blocks</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>query {
+  blocks(limit: 10, order_by: {height: desc}) {
+    height
+    hash
+    timestamp
+    num_txs
+    proposer {
+      moniker
+      operator_address
+    }
+  }
+}</code></pre>
+
+                            <h6 class="mt-4">Query Account with Transactions</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>query GetAccount($address: String!) {
+  account(address: $address) {
+    address
+    balances {
+      denom
+      amount
+    }
+    transactions(limit: 20) {
+      hash
+      height
+      success
+      messages {
+        type
+      }
+    }
+  }
+}</code></pre>
+
+                            <h6 class="mt-4">Query Validators with Delegations</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>query {
+  validators(where: {status: {_eq: "BOND_STATUS_BONDED"}}) {
+    operator_address
+    moniker
+    tokens
+    commission_rate
+    delegations_aggregate {
+      aggregate {
+        count
+        sum {
+          amount
+        }
+      }
+    }
+  }
+}</code></pre>
+
+                            <h6 class="mt-4">cURL Example</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST "https://testnet-graphql.poaiw.org/graphql" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "{ blocks(limit: 5) { height hash } }"}'</code></pre>
+                        </div>
+
+                        <!-- WebSocket Tab -->
+                        <div class="tab-pane fade" id="websocket" role="tabpanel" aria-labelledby="websocket-tab">
+                            <h5>WebSocket Examples</h5>
+                            <p>Subscribe to real-time blockchain events using WebSocket connections.</p>
+
+                            <h6 class="mt-4">JavaScript: Subscribe to New Blocks</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>const ws = new WebSocket('wss://testnet-ws.poaiw.org/websocket');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    jsonrpc: '2.0',
+    method: 'subscribe',
+    id: 1,
+    params: {
+      query: "tm.event='NewBlock'"
+    }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('New block:', data.result);
+};</code></pre>
+
+                            <h6 class="mt-4">Subscribe to Transactions</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>const ws = new WebSocket('wss://testnet-ws.poaiw.org/websocket');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({
+    jsonrpc: '2.0',
+    method: 'subscribe',
+    id: 2,
+    params: {
+      query: "tm.event='Tx'"
+    }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.result?.events) {
+    console.log('Transaction:', data.result);
+  }
+};</code></pre>
+
+                            <h6 class="mt-4">Subscribe to Specific Address</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>ws.send(JSON.stringify({
+  jsonrpc: '2.0',
+  method: 'subscribe',
+  id: 3,
+  params: {
+    query: "tm.event='Tx' AND transfer.recipient='paw1...'"
+  }
+}));</code></pre>
+
+                            <h6 class="mt-4">Unsubscribe</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>ws.send(JSON.stringify({
+  jsonrpc: '2.0',
+  method: 'unsubscribe',
+  id: 4,
+  params: {
+    query: "tm.event='NewBlock'"
+  }
+}));</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rate Limits & Best Practices -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Rate Limits</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><strong>REST API:</strong> 100 requests/minute</li>
+                        <li class="mb-2"><strong>RPC:</strong> 100 requests/minute</li>
+                        <li class="mb-2"><strong>GraphQL:</strong> 50 requests/minute</li>
+                        <li class="mb-2"><strong>WebSocket:</strong> 10 subscriptions/connection</li>
+                    </ul>
+                    <hr>
+                    <p class="text-muted small mb-0">For higher limits, contact the PAW team or run your own node.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Best Practices</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Use GraphQL for complex queries to reduce API calls</li>
+                        <li>Cache responses when possible</li>
+                        <li>Use WebSocket for real-time updates instead of polling</li>
+                        <li>Include proper error handling in your applications</li>
+                        <li>Use pagination for large result sets</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
