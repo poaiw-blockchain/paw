@@ -17,9 +17,14 @@ type Config struct {
 
 	// Blockchain configuration
 	NodeRPC          string
+	NodeREST         string
 	ChainID          string
 	FaucetMnemonic   string
 	FaucetAddress    string
+	FaucetKeyName    string
+	PawdBinary       string
+	PawdHome         string
+	KeyringBackend   string
 	Denom            string
 	AmountPerRequest int64
 
@@ -63,9 +68,14 @@ func Load() (*Config, error) {
 		CORSOrigins: strings.Split(getEnv("CORS_ORIGINS", "*"), ","),
 
 		NodeRPC:          getEnv("NODE_RPC", "http://localhost:26657"),
+		NodeREST:         getEnv("NODE_REST", "http://localhost:1317"),
 		ChainID:          getEnv("CHAIN_ID", "paw-testnet-1"),
 		FaucetMnemonic:   getEnv("FAUCET_MNEMONIC", ""),
 		FaucetAddress:    getEnv("FAUCET_ADDRESS", ""),
+		FaucetKeyName:    getEnv("FAUCET_KEY_NAME", "faucet"),
+		PawdBinary:       getEnv("PAWD_BINARY", "/home/ubuntu/.paw/cosmovisor/genesis/bin/pawd"),
+		PawdHome:         getEnv("PAWD_HOME", "/home/ubuntu/.paw"),
+		KeyringBackend:   getEnv("KEYRING_BACKEND", "test"),
 		Denom:            getEnv("DENOM", "upaw"),
 		AmountPerRequest: getEnvAsInt64("AMOUNT_PER_REQUEST", 100000000), // 100 PAW
 
