@@ -205,12 +205,9 @@ cd ~/.paw/config
 sha256sum -c /tmp/genesis.sha256
 # Expected: genesis.json: OK
 
-# Download persistent peers list
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt \
-  > /tmp/peers.txt
-
-# Extract peer list (format: node-id@ip:port,node-id@ip:port,...)
-PERSISTENT_PEERS=$(cat /tmp/peers.txt | tr '\n' ',' | sed 's/,$//')
+# Get the sentry node peer (recommended for external connections)
+# External nodes should connect to the sentry, not directly to validators
+PERSISTENT_PEERS="ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
 echo "Persistent peers: $PERSISTENT_PEERS"
 ```
 
@@ -235,7 +232,8 @@ laddr = "tcp://0.0.0.0:26656"
 seeds = ""
 
 # Comma separated list of nodes to keep persistent connections to
-persistent_peers = "<paste-from-peers.txt>"
+# Connect to the sentry node (external nodes should NOT connect directly to validators)
+persistent_peers = "ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
 
 # Maximum number of inbound peers
 max_num_inbound_peers = 40
@@ -895,7 +893,7 @@ Thank you for becoming a PAW validator.
 
 ---
 
-**Last Updated:** 2026-01-12
-**Version:** 1.1
+**Last Updated:** 2026-01-13
+**Version:** 1.2
 **Maintainer:** PAW Validator Operations Team
 **License:** Apache 2.0

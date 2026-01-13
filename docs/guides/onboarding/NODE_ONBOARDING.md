@@ -10,8 +10,10 @@ Purpose-built instructions for joining PAW as either a lightweight state-sync no
 ## Artifact Sources
 - Manifest: `networks/paw-testnet-1/paw-testnet-1-manifest.json` (chain_id, checksums, peers, endpoints).
 - Genesis: `networks/paw-testnet-1/genesis.json` (verify against `genesis.sha256`).
-- Peers: `networks/paw-testnet-1/peers.txt` (persistent peers); seeds currently empty until sentries go live.
+- Peers: `networks/paw-testnet-1/peers.txt` - **Connect to sentry node** (`ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`), NOT directly to validators.
 - Bundle: `networks/paw-testnet-1/paw-testnet-1-artifacts.tar.gz` (checksum in `paw-testnet-1-artifacts.sha256`).
+
+**Important:** External nodes should connect to the sentry node for DDoS protection. Direct validator connections are for internal use only.
 
 ## Manual Install (Full or Light)
 1. **Install binary**: `GO111MODULE=on go install github.com/paw-chain/paw/cmd/pawd@main` (or `make build && mv build/pawd ~/go/bin/`).
@@ -60,6 +62,6 @@ Purpose-built instructions for joining PAW as either a lightweight state-sync no
 - Faucet: use RPC endpoints from `docs/TESTNET_QUICK_REFERENCE.md` when running `./scripts/faucet.sh --check <rpc-endpoint>`; CLI requests use `pawd tx bank send ... --fees 5000upaw`.
 
 ## Operational Notes
-- Keep `networks/paw-testnet-1/peers.txt` in sync with published sentries; update `config.toml` on rotation.
+- Connect to the **sentry node** (`ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`) for external access. Never connect directly to validators.
 - Mainnet will mirror the same layout; only swap chain ID and base URLs. Keep trust period at 168h for Tendermint light clients.
 - For RPC endpoints serving wallets, ensure `cors_allowed_origins = ["*"]` (defaulted by the bootstrap script) and place a reverse proxy with rate limits in front of `26657`.

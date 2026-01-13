@@ -1,7 +1,7 @@
 # PAW Blockchain - Validator Onboarding Bundle
 
-**Version:** 1.1
-**Release Date:** 2026-01-12
+**Version:** 1.2
+**Release Date:** 2026-01-13
 **Network:** paw-testnet-1
 
 ---
@@ -92,8 +92,8 @@ curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testne
 sha256sum ~/.paw/config/genesis.json
 # Compare with networks/paw-testnet-1/genesis.sha256
 
-# Get persistent peers
-cat networks/paw-testnet-1/peers.txt
+# Configure persistent peers (sentry node - external nodes should NOT connect directly to validators)
+# persistent_peers = "ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
 ```
 
 ### 4. Apply Configuration Templates
@@ -327,5 +327,5 @@ Code and scripts: Apache 2.0
 
 ---
 
-**Last Updated:** 2026-01-12
+**Last Updated:** 2026-01-13
 **Maintained by:** PAW Validator Operations Team

@@ -18,7 +18,7 @@ curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding
   | sudo -u paw bash -s -- --mode full --chain-id paw-testnet-1 --home /var/lib/paw
 sudo systemctl enable --now pawd
 ```
-- Update `/var/lib/paw/config/config.toml` peers/seeds from `networks/paw-testnet-1/peers.txt` if they rotate.
+- Configure `persistent_peers` to connect to the sentry node: `ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056` (external nodes should NOT connect directly to validators).
 
 ## Docker Compose Path
 ```bash
@@ -29,8 +29,9 @@ docker compose -f docker-compose.validator.yml up -d --build
 - Override chain ID or mount a prepared home by passing envs: `CHAIN_ID=paw-mainnet-1 docker compose ...`.
 
 ## Join Checklist
-- [ ] Fetch genesis + checksum + peers from `networks/paw-testnet-1/` (verify SHA256).
-- [ ] Set `minimum-gas-prices = "0.001upaw"`; open P2P port 26656 to trusted sentries.
+- [ ] Fetch genesis + checksum from `networks/paw-testnet-1/` (verify SHA256).
+- [ ] Configure `persistent_peers` to connect to sentry: `ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`
+- [ ] Set `minimum-gas-prices = "0.001upaw"`; open P2P port 26656.
 - [ ] Enable metrics (`scripts/enable-node-metrics.sh`) and restart.
 - [ ] Run `scripts/onboarding/validator-healthcheck.sh --rpc http://localhost:26657 --home /var/lib/paw`.
 - [ ] Register validator (after faucet funding) via `scripts/register-validator.sh` or manual `pawd tx staking create-validator`.
