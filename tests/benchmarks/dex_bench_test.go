@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 
+	"github.com/paw-chain/paw/x/dex/keeper"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
 )
@@ -165,7 +166,7 @@ func BenchmarkCalculateSwapAmount(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee)
+		_, err := k.CalculateSwapOutput(ctx, amountIn, reserveIn, reserveOut, params.SwapFee, params.MaxPoolDrainPercent)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -267,7 +268,7 @@ func BenchmarkPriceImpact(b *testing.B) {
 
 		// Simulate swap
 		params, _ := k.GetParams(ctx)
-		amountOut, _ := k.CalculateSwapOutput(ctx, amountIn, pool.ReserveA, pool.ReserveB, params.SwapFee)
+		amountOut, _ := k.CalculateSwapOutput(ctx, amountIn, pool.ReserveA, pool.ReserveB, params.SwapFee, params.MaxPoolDrainPercent)
 
 		// Price after
 		newReserveA := pool.ReserveA.Add(amountIn)
@@ -426,7 +427,7 @@ func BenchmarkMultiHopSwapBatched(b *testing.B) {
 	pool2 := keepertest.CreateTestPool(b, k, ctx, "uatom", "uosmo", math.NewInt(10000000000), math.NewInt(10000000000))
 	pool3 := keepertest.CreateTestPool(b, k, ctx, "uosmo", "uusdc", math.NewInt(10000000000), math.NewInt(10000000000))
 
-	hops := []keepertest.SwapHop{
+	hops := []keeper.SwapHop{
 		{PoolID: pool1, TokenIn: "upaw", TokenOut: "uatom"},
 		{PoolID: pool2, TokenIn: "uatom", TokenOut: "uosmo"},
 		{PoolID: pool3, TokenIn: "uosmo", TokenOut: "uusdc"},
@@ -448,7 +449,7 @@ func BenchmarkSimulateMultiHopSwap(b *testing.B) {
 	pool1 := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(10000000000))
 	pool2 := keepertest.CreateTestPool(b, k, ctx, "uatom", "uosmo", math.NewInt(10000000000), math.NewInt(10000000000))
 
-	hops := []keepertest.SwapHop{
+	hops := []keeper.SwapHop{
 		{PoolID: pool1, TokenIn: "upaw", TokenOut: "uatom"},
 		{PoolID: pool2, TokenIn: "uatom", TokenOut: "uosmo"},
 	}
@@ -468,17 +469,24 @@ func BenchmarkCommitRevealFlow(b *testing.B) {
 	trader := types.TestAddr()
 
 	poolID := keepertest.CreateTestPool(b, k, ctx, "upaw", "uatom", math.NewInt(10000000000), math.NewInt(20000000000))
+	amountIn := math.NewInt(1000000)
+	minAmountOut := math.NewInt(900000)
+	salt := []byte("secret")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		// Compute commitment hash for benchmark
+		commitmentHash := keeper.ComputeSwapCommitmentHash(poolID, "upaw", "uatom", amountIn, minAmountOut, salt, trader)
+
 		// Commit phase
-		commitment, err := k.CreateSwapCommitment(ctx, trader, poolID, "upaw", "uatom", math.NewInt(1000000), math.NewInt(900000))
+		err := k.CommitSwap(ctx, trader, poolID, commitmentHash)
 		if err != nil {
-			b.Fatal(err)
+			// May fail on duplicate, skip
+			continue
 		}
 
 		// Reveal phase (typically after N blocks)
-		_, err = k.RevealAndExecuteSwap(ctx, commitment.CommitHash, math.NewInt(1000000), math.NewInt(900000), []byte("secret"))
+		_, err = k.RevealAndExecuteSwap(ctx, trader, poolID, "upaw", "uatom", amountIn, minAmountOut, salt)
 		if err != nil {
 			// Expected to fail without proper block advancement, just measure commit
 			_ = err

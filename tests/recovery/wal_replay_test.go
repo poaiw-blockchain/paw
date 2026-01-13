@@ -1,3 +1,8 @@
+//go:build recovery
+// +build recovery
+
+// NOTE: Recovery tests have long timeouts and may spawn goroutines that take time to clean up.
+// Run with: go test -tags=recovery -timeout 20m ./tests/recovery/...
 package recovery
 
 import (

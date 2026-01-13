@@ -1051,7 +1051,7 @@ func (s *CLIIntegrationTestSuite) TestComputeMessageValidation() {
 				AvailableSpecs: computetypes.ComputeSpec{
 					CpuCores:       8,
 					MemoryMb:       16384,
-					StorageGb:      100000,
+					StorageGb:      1000,
 					GpuCount:       2,
 					TimeoutSeconds: 3600,
 				},

@@ -175,16 +175,16 @@ func (suite *WalletIntegrationTestSuite) TestAddressDerivationBech32() {
 
 			// Verify Bech32 format
 			bech32Addr := addr.String()
-			suite.Require().True(strings.HasPrefix(bech32Addr, "paw1"), "address should have paw1 prefix")
+			suite.Require().True(strings.HasPrefix(bech32Addr, "pawtest1"), "address should have pawtest1 prefix")
 
 			// Validate Bech32 encoding
 			hrp, decoded, err := bech32.DecodeAndConvert(bech32Addr)
 			suite.Require().NoError(err)
-			suite.Require().Equal("paw", hrp)
+			suite.Require().Equal("pawtest", hrp)
 			suite.Require().Len(decoded, 20, "decoded address should be 20 bytes")
 
 			// Verify we can reconstruct the address
-			reconstructed, err := bech32.ConvertAndEncode("paw", decoded)
+			reconstructed, err := bech32.ConvertAndEncode("pawtest", decoded)
 			suite.Require().NoError(err)
 			suite.Require().Equal(bech32Addr, reconstructed)
 
@@ -558,7 +558,7 @@ func (suite *WalletIntegrationTestSuite) TestErrorHandlingInvalidInputs() {
 		{
 			name: "invalid bech32 address - malformed",
 			testFunc: func() error {
-				_, err := sdk.AccAddressFromBech32("paw1invalid")
+				_, err := sdk.AccAddressFromBech32("pawtest1invalid")
 				return err
 			},
 			expectError: true,
@@ -676,9 +676,9 @@ func (suite *WalletIntegrationTestSuite) TestMultipleAccountDerivation() {
 		}
 	}
 
-	// Verify all addresses have paw1 prefix
+	// Verify all addresses have pawtest1 prefix
 	for _, addr := range addresses {
-		suite.Require().True(strings.HasPrefix(addr, "paw1"))
+		suite.Require().True(strings.HasPrefix(addr, "pawtest1"))
 	}
 }
 
@@ -891,7 +891,7 @@ func TestSimpleWalletCreation(t *testing.T) {
 	addr := sdk.AccAddress(pubKey.Address())
 
 	// Verify address format
-	require.True(t, strings.HasPrefix(addr.String(), "paw1"))
+	require.True(t, strings.HasPrefix(addr.String(), "pawtest1"))
 }
 
 // TestSimpleSignature is a simple standalone test for signature

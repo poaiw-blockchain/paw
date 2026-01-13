@@ -56,6 +56,12 @@ func (suite *OracleDecoratorTestSuite) SetupTest() {
 		capabilitykeeper.ScopedKeeper{},
 	)
 
+	// Initialize params with module enabled for testing
+	params := oracletypes.DefaultParams()
+	params.Enabled = true // Enable module for ante decorator tests
+	err := suite.oracleKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
 	suite.decorator = ante.NewOracleDecorator(suite.oracleKeeper)
 
 	// Setup test addresses
@@ -287,6 +293,86 @@ func (suite *OracleDecoratorTestSuite) TestAnteHandle_MultipleMessages() {
 	})
 	suite.Require().Error(err, "should fail on invalid oracle message even with valid non-oracle message")
 	suite.Require().Contains(err.Error(), "invalid validator address")
+}
+
+// TestModuleDisabled_SubmitPrice verifies that Oracle module rejects transactions when disabled
+func (suite *OracleDecoratorTestSuite) TestModuleDisabled_SubmitPrice() {
+	// Disable the Oracle module
+	params := oracletypes.DefaultParams()
+	params.Enabled = false
+	err := suite.oracleKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &oracletypes.MsgSubmitPrice{
+		Validator: suite.validatorAddr.String(),
+		Feeder:    suite.feederAddr.String(),
+		Asset:     "BTC",
+		Price:     math.LegacyNewDec(50000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=false (CheckTx mode) - should reject with module disabled error
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject transaction")
+	suite.Require().Contains(err.Error(), "oracle module is disabled", "error should indicate module is disabled")
+}
+
+// TestModuleDisabled_DelegateFeedConsent verifies that delegate feed consent is rejected when disabled
+func (suite *OracleDecoratorTestSuite) TestModuleDisabled_DelegateFeedConsent() {
+	// Disable the Oracle module
+	params := oracletypes.DefaultParams()
+	params.Enabled = false
+	err := suite.oracleKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &oracletypes.MsgDelegateFeedConsent{
+		Validator: suite.validatorAddr.String(),
+		Delegate:  suite.feederAddr.String(),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject delegate feed consent")
+	suite.Require().Contains(err.Error(), "oracle module is disabled")
+}
+
+// TestModuleDisabled_SimulateBypass verifies that simulation mode bypasses the module check
+func (suite *OracleDecoratorTestSuite) TestModuleDisabled_SimulateBypass() {
+	// Disable the Oracle module
+	params := oracletypes.DefaultParams()
+	params.Enabled = false
+	err := suite.oracleKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &oracletypes.MsgSubmitPrice{
+		Validator: suite.validatorAddr.String(),
+		Feeder:    suite.feederAddr.String(),
+		Asset:     "BTC",
+		Price:     math.LegacyNewDec(50000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=true - should pass even when module is disabled
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, true, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().NoError(err, "simulation mode should bypass module disabled check")
 }
 
 // Benchmark tests

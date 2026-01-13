@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
@@ -38,12 +39,12 @@ func (k Keeper) RegisterProvider(ctx context.Context, provider sdk.AccAddress, m
 	// Validate specs
 	specs, err = k.validateComputeSpec(specs, params, true)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid compute specs: %w", err)
 	}
 
 	// Validate pricing
 	if err := k.validatePricing(pricing); err != nil {
-		return err
+		return fmt.Errorf("invalid pricing: %w", err)
 	}
 
 	// Transfer stake from provider to module account
@@ -133,13 +134,13 @@ func (k Keeper) UpdateProvider(ctx context.Context, provider sdk.AccAddress, mon
 	if specs != nil {
 		updatedSpecs, err := k.validateComputeSpec(*specs, params, true)
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid compute specs: %w", err)
 		}
 		existing.AvailableSpecs = updatedSpecs
 	}
 	if pricing != nil {
 		if err := k.validatePricing(*pricing); err != nil {
-			return err
+			return fmt.Errorf("invalid pricing: %w", err)
 		}
 		existing.Pricing = *pricing
 	}

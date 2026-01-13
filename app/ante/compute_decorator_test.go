@@ -58,8 +58,9 @@ func (suite *ComputeDecoratorTestSuite) SetupTest() {
 		capabilitykeeper.ScopedKeeper{},
 	)
 
-	// Initialize default params
+	// Initialize params with module enabled for testing
 	params := computetypes.DefaultParams()
+	params.Enabled = true // Enable module for ante decorator tests
 	err := suite.computeKeeper.SetParams(suite.ctx, params)
 	suite.Require().NoError(err)
 
@@ -695,4 +696,85 @@ func BenchmarkComputeDecorator_ValidateSubmitResult(b *testing.B) {
 			return ctx, nil
 		})
 	}
+}
+
+// TestModuleDisabled_SubmitRequest verifies that Compute module rejects transactions when disabled
+func (suite *ComputeDecoratorTestSuite) TestModuleDisabled_SubmitRequest() {
+	// Disable the Compute module
+	params, err := suite.computeKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.computeKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &computetypes.MsgSubmitRequest{
+		Requester:  suite.addr.String(),
+		MaxPayment: math.NewInt(100000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=false (CheckTx mode) - should reject with module disabled error
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject transaction")
+	suite.Require().Contains(err.Error(), "compute module is disabled", "error should indicate module is disabled")
+}
+
+// TestModuleDisabled_RegisterProvider verifies that provider registration is rejected when disabled
+func (suite *ComputeDecoratorTestSuite) TestModuleDisabled_RegisterProvider() {
+	// Disable the Compute module
+	params, err := suite.computeKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.computeKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &computetypes.MsgRegisterProvider{
+		Provider: suite.providerAddr.String(),
+		Moniker:  "Test Provider",
+		Endpoint: "https://compute.example.com",
+		Stake:    math.NewInt(1000000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject provider registration")
+	suite.Require().Contains(err.Error(), "compute module is disabled")
+}
+
+// TestModuleDisabled_SimulateBypass verifies that simulation mode bypasses the check
+func (suite *ComputeDecoratorTestSuite) TestModuleDisabled_SimulateBypass() {
+	// Disable the Compute module
+	params, err := suite.computeKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.computeKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &computetypes.MsgSubmitRequest{
+		Requester:  suite.addr.String(),
+		MaxPayment: math.NewInt(100000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=true - should pass even when module is disabled
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, true, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().NoError(err, "simulation mode should bypass module disabled check")
 }

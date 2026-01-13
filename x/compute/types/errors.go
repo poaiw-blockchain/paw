@@ -9,6 +9,9 @@ import (
 // Compute module sentinel errors with recovery suggestions
 
 var (
+	// ErrModuleDisabled is returned when the compute module is disabled via governance
+	ErrModuleDisabled = sdkerrors.Register(ModuleName, 1, "compute module is disabled")
+
 	// Request validation errors
 	ErrInvalidRequest  = sdkerrors.Register(ModuleName, 2, "invalid compute request")
 	ErrInvalidProvider = sdkerrors.Register(ModuleName, 3, "invalid provider")
@@ -142,6 +145,7 @@ func (e *ErrorWithRecovery) Unwrap() error {
 
 // RecoverySuggestions provides actionable recovery steps for each error type
 var RecoverySuggestions = map[error]string{
+	ErrModuleDisabled:  "Compute module is disabled by governance for MVP phase. It will be enabled via governance proposal after network stability is proven. Query params to check enabled status.",
 	ErrInvalidRequest:  "Check request parameters: ensure container image, environment variables, and resource requirements are valid. Verify request signature and timestamps.",
 	ErrInvalidProvider: "Verify provider address format (bech32). Ensure provider is registered and active. Check provider's reputation score.",
 	ErrInvalidResult:   "Verify result data format and hash. Check that result matches request specification. Ensure provider signature is valid.",

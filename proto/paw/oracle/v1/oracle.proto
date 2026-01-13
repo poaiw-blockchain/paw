@@ -106,6 +106,12 @@ message Params {
   // geoip_cache_max_entries is the maximum number of IP addresses to cache
   // Default: 1000. Uses LRU eviction when full. Should be >= number of validators.
   uint64 geoip_cache_max_entries = 20;
+
+  // enabled controls whether the Oracle module is active.
+  // When false, all oracle operations (price feeds, validator oracles) are disabled.
+  // This can be toggled via governance proposal for MVP phased rollout.
+  // Default: true
+  bool enabled = 21;
 }
 
 // AuthorizedChannel represents a permitted source port/channel combination

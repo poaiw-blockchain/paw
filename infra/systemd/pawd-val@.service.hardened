@@ -1,0 +1,87 @@
+# PAW Blockchain Validator - Hardened systemd service template
+#
+# Mainnet-ready configuration for multi-validator deployments
+#
+# Installation:
+#   sudo cp pawd-val@.service.hardened /etc/systemd/system/pawd-val@.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable pawd-val@1 pawd-val@2 (etc.)
+#   sudo systemctl start pawd-val@1 pawd-val@2
+#
+# Usage: systemctl start pawd-val@1 (for validator 1)
+#        systemctl start pawd-val@2 (for validator 2)
+
+[Unit]
+Description=PAW Validator (pawd) val%i
+Documentation=https://github.com/poaiw-blockchain/paw/docs/VALIDATOR.md
+After=network-online.target
+Wants=network-online.target
+
+# Crash recovery - allow 5 restarts in 10 minutes before giving up
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+# Dependency checks
+ConditionPathExists=/home/ubuntu/.paw-val%i/config/genesis.json
+ConditionPathExists=/home/ubuntu/.paw-val%i/config/priv_validator_key.json
+
+[Service]
+# User and group
+User=ubuntu
+Group=ubuntu
+
+# Environment
+Environment=HOME=/home/ubuntu
+Environment=PAW_HOME=/home/ubuntu/.paw-val%i
+
+# Working directory
+WorkingDirectory=/home/ubuntu
+
+# Start command with validated settings
+ExecStart=/home/ubuntu/.paw/cosmovisor/genesis/bin/pawd start \
+    --home /home/ubuntu/.paw-val%i \
+    --log_level info
+
+# Restart policy - aggressive recovery
+Restart=always
+RestartSec=5
+RestartPreventExitStatus=137 143
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits (mainnet-ready)
+LimitNOFILE=1048576
+LimitNPROC=65535
+MemoryMax=16G
+MemoryHigh=12G
+TasksMax=8192
+
+# CPU scheduling (higher priority for consensus)
+Nice=-10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pawd-val%i
+
+# Kill settings - graceful shutdown with 60s timeout
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+# Watchdog - systemd will restart if no heartbeat in 120s
+# Requires pawd to send sd_notify() calls (may need custom build)
+# WatchdogSec=120
+# WatchdogSignal=SIGABRT
+
+[Install]
+WantedBy=multi-user.target

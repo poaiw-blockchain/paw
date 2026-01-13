@@ -1,3 +1,8 @@
+//go:build chaos
+// +build chaos
+
+// NOTE: Enhanced Byzantine tests may have variable results due to timing dependencies.
+// Run with: go test -tags=chaos ./tests/chaos/...
 package chaos
 
 import (

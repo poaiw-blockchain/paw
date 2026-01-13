@@ -1,0 +1,35 @@
+[Unit]
+Description=PAW Testnet Sentry Node
+Documentation=https://github.com/poaiw-blockchain/paw
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+Type=simple
+WorkingDirectory=/home/ubuntu/.paw-sentry
+
+ExecStart=/home/ubuntu/.paw/cosmovisor/genesis/bin/pawd start \
+    --home /home/ubuntu/.paw-sentry \
+    --log_level info \
+    --log_format plain
+
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+LimitNPROC=65535
+
+# Environment
+Environment="HOME=/home/ubuntu"
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Security hardening (less strict than validator since it's public-facing)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/.paw-sentry
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

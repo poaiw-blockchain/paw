@@ -33,6 +33,23 @@ func (cd *ComputeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool
 
 	msgs := tx.GetMsgs()
 	for _, msg := range msgs {
+		// Check if module is enabled for any Compute message
+		switch msg.(type) {
+		case *computetypes.MsgSubmitRequest, *computetypes.MsgRegisterProvider, *computetypes.MsgSubmitResult,
+			*computetypes.MsgCancelRequest, *computetypes.MsgUpdateProvider, *computetypes.MsgDeactivateProvider,
+			*computetypes.MsgCreateDispute, *computetypes.MsgVoteOnDispute, *computetypes.MsgResolveDispute,
+			*computetypes.MsgSubmitEvidence, *computetypes.MsgAppealSlashing, *computetypes.MsgVoteOnAppeal,
+			*computetypes.MsgResolveAppeal, *computetypes.MsgSubmitBatchRequests:
+			params, err := cd.keeper.GetParams(ctx)
+			if err != nil {
+				return ctx, fmt.Errorf("failed to get Compute params: %w", err)
+			}
+			if !params.Enabled {
+				return ctx, computetypes.ErrModuleDisabled.Wrap("Compute module is disabled by governance - enable via governance proposal")
+			}
+		}
+
+		// Additional message-specific validation
 		switch msg := msg.(type) {
 		case *computetypes.MsgSubmitRequest:
 			if err := cd.validateSubmitRequest(ctx, msg); err != nil {

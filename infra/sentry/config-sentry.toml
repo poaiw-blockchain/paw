@@ -1,0 +1,128 @@
+# PAW Testnet Sentry Node - CometBFT Configuration
+# This sentry node runs on services-testnet (139.99.149.160 / 10.10.0.4)
+# It protects validators by acting as a public-facing relay
+
+proxy_app = "tcp://127.0.0.1:12058"
+moniker = "paw-sentry-1"
+db_backend = "goleveldb"
+db_dir = "data"
+log_level = "info"
+log_format = "plain"
+genesis_file = "config/genesis.json"
+priv_validator_key_file = "config/priv_validator_key.json"
+priv_validator_state_file = "data/priv_validator_state.json"
+priv_validator_laddr = ""
+node_key_file = "config/node_key.json"
+abci = "socket"
+filter_peers = false
+
+[rpc]
+# Bind to all interfaces to allow VPN access from paw-testnet
+# Access is controlled by firewall - only VPN (10.10.0.x) should reach this
+laddr = "tcp://0.0.0.0:12057"
+cors_allowed_origins = []
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+grpc_laddr = ""
+grpc_max_open_connections = 900
+unsafe = false
+max_open_connections = 900
+max_subscription_clients = 100
+max_subscriptions_per_client = 5
+experimental_subscription_buffer_size = 200
+experimental_websocket_write_buffer_size = 200
+experimental_close_on_slow_client = false
+timeout_broadcast_tx_commit = "10s"
+max_request_batch_size = 10
+max_body_bytes = 1000000
+max_header_bytes = 1048576
+pprof_laddr = "localhost:12063"
+
+[p2p]
+laddr = "tcp://0.0.0.0:12056"
+external_address = "139.99.149.160:12056"
+seeds = ""
+
+# Connect to all 4 validators via VPN
+# val1 and val2 on paw-testnet (10.10.0.2), val3 and val4 on localhost (services-testnet)
+persistent_peers = "72c594a424bfc156381860feaca3a2586173eead@10.10.0.2:11656,1780e068618ca0ffcba81574d62ab170c2ee3c8b@10.10.0.2:11756,a2b9ab78b0be7f006466131b44ede9a02fc140c4@127.0.0.1:11856,f8187d5bafe58b78b00d73b0563b65ad8c0d5fda@127.0.0.1:11956"
+
+# CRITICAL: Never gossip validator node IDs to the public network
+# This hides the validators from attackers
+private_peer_ids = "72c594a424bfc156381860feaca3a2586173eead,1780e068618ca0ffcba81574d62ab170c2ee3c8b,a2b9ab78b0be7f006466131b44ede9a02fc140c4,f8187d5bafe58b78b00d73b0563b65ad8c0d5fda"
+
+# Always maintain connections to validators regardless of peer limits
+unconditional_peer_ids = "72c594a424bfc156381860feaca3a2586173eead,1780e068618ca0ffcba81574d62ab170c2ee3c8b,a2b9ab78b0be7f006466131b44ede9a02fc140c4,f8187d5bafe58b78b00d73b0563b65ad8c0d5fda"
+
+# Allow private IP addresses (required for VPN connections)
+addr_book_strict = false
+
+addr_book_file = "config/addrbook.json"
+max_num_inbound_peers = 100
+max_num_outbound_peers = 50
+flush_throttle_timeout = "100ms"
+max_packet_msg_payload_size = 1024
+send_rate = 5120000
+recv_rate = 5120000
+
+# Enable peer exchange - sentry needs to discover and connect to public peers
+pex = true
+
+seed_mode = false
+allow_duplicate_ip = false
+handshake_timeout = "20s"
+dial_timeout = "3s"
+persistent_peers_max_dial_period = "30s"
+
+[mempool]
+type = "flood"
+recheck = true
+broadcast = true
+size = 5000
+max_txs_bytes = 1073741824
+cache_size = 10000
+keep-invalid-txs-in-cache = false
+max_tx_bytes = 1048576
+
+[statesync]
+enable = false
+rpc_servers = ""
+trust_height = 0
+trust_hash = ""
+trust_period = "168h0m0s"
+discovery_time = "15s"
+temp_dir = ""
+chunk_request_timeout = "10s"
+chunk_fetchers = "4"
+
+[blocksync]
+version = "v0"
+
+[consensus]
+wal_file = "data/cs.wal/wal"
+timeout_propose = "3s"
+timeout_propose_delta = "500ms"
+timeout_prevote = "1s"
+timeout_prevote_delta = "500ms"
+timeout_precommit = "1s"
+timeout_precommit_delta = "500ms"
+timeout_commit = "5s"
+double_sign_check_height = 0
+skip_timeout_commit = false
+create_empty_blocks = true
+create_empty_blocks_interval = "0s"
+peer_gossip_sleep_duration = "100ms"
+peer_query_maj23_sleep_duration = "2s"
+
+[storage]
+discard_abci_responses = false
+
+[tx_index]
+indexer = "kv"
+psql-conn = ""
+
+[instrumentation]
+prometheus = true
+prometheus_listen_addr = ":12060"
+max_open_connections = 3
+namespace = "cometbft"

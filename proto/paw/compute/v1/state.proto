@@ -339,6 +339,12 @@ message Params {
   // Reputation decays towards neutral (0.5) by this percentage per day
   // Default: 100 basis points (1% per day)
   uint32 reputation_decay_percent = 16;
+
+  // enabled controls whether the Compute module is active.
+  // When false, all compute operations (requests, providers, results) are disabled.
+  // This can be toggled via governance proposal for MVP phased rollout.
+  // Default: true
+  bool enabled = 17;
 }
 
 // AuthorizedChannel defines a permitted IBC source for compute packets

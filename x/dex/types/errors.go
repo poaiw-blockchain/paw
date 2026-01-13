@@ -8,6 +8,9 @@ import (
 
 // Sentinel errors for the DEX module
 var (
+	// ErrModuleDisabled is returned when the DEX module is disabled via governance
+	ErrModuleDisabled = sdkerrors.Register(ModuleName, 1, "dex module is disabled")
+
 	// ErrInvalidPoolState is returned when pool state is invalid
 	ErrInvalidPoolState = sdkerrors.Register(ModuleName, 2, "invalid pool state")
 
@@ -187,6 +190,7 @@ var RecoverySuggestions = map[error]string{
 	ErrInvalidSwapAmount:      "Swap amount must be positive and within min/max limits. Check params for limits. Verify token amount is greater than minimum swap threshold.",
 	ErrInvalidLiquidityAmount: "Liquidity amounts must be positive and balanced. For initial liquidity, both amounts must be provided. For additional liquidity, amounts must maintain pool ratio.",
 
+	ErrModuleDisabled:  "DEX module is disabled by governance for MVP phase. It will be enabled via governance proposal after network stability is proven. Query params to check enabled status.",
 	ErrStateCorruption: "CRITICAL: State corruption detected. Automatic recovery initiated. Pool may be temporarily disabled. Backup checkpoint will be restored. Contact validators.",
 	ErrOraclePrice:     "Failed to retrieve or validate oracle price. Ensure oracle module is active and prices are fresh. Retry once feeds are updated.",
 	ErrPriceDeviation:  "Pool price deviates excessively from oracle reference. Liquidity may be imbalanced or manipulated. Verify prices and adjust liquidity.",

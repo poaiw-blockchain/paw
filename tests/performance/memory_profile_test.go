@@ -1,5 +1,9 @@
+//go:build performance
+// +build performance
+
 // PERF-1.4: Memory Profiling for Large Pool Iterations
 // Tests memory usage with 1000+ pools
+// NOTE: Requires funded test accounts. Run with: go test -tags=performance ./tests/performance/...
 package performance
 
 import (

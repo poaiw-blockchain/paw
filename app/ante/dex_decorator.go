@@ -34,6 +34,20 @@ func (dd *DEXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 
 	msgs := tx.GetMsgs()
 	for _, msg := range msgs {
+		// Check if module is enabled for any DEX message
+		switch msg.(type) {
+		case *dextypes.MsgCreatePool, *dextypes.MsgSwap, *dextypes.MsgAddLiquidity, *dextypes.MsgRemoveLiquidity,
+			*dextypes.MsgCommitSwap, *dextypes.MsgRevealSwap, *dextypes.MsgBatchSwap:
+			params, err := dd.keeper.GetParams(ctx)
+			if err != nil {
+				return ctx, fmt.Errorf("failed to get DEX params: %w", err)
+			}
+			if !params.Enabled {
+				return ctx, dextypes.ErrModuleDisabled.Wrap("DEX module is disabled by governance - enable via governance proposal")
+			}
+		}
+
+		// Additional message-specific validation
 		switch msg := msg.(type) {
 		case *dextypes.MsgCreatePool:
 			if err := dd.validateCreatePool(ctx, msg); err != nil {

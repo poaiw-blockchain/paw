@@ -7,6 +7,11 @@
 #   val2: paw-testnet (54.39.103.49) - RPC 11757, gRPC 11190, REST 11417, P2P 11756
 #   val3: services-testnet (139.99.149.160) - RPC 11857, gRPC 11290, REST 11517, P2P 11856
 #   val4: services-testnet (139.99.149.160) - RPC 11957, gRPC 11390, REST 11617, P2P 11956
+#
+# Sentry Node:
+#   sentry1: services-testnet (139.99.149.160) - RPC 12057, gRPC 12090, REST 12017, P2P 12056
+#
+# For sentry-specific health checks, use: health-sentry.sh
 
 set -euo pipefail
 

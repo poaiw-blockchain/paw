@@ -1,5 +1,9 @@
+//go:build performance
+// +build performance
+
 // PERF-1.3: Stress Test Concurrent Swaps
 // Target: 100+ TPS without triggering circuit breaker
+// NOTE: Requires funded test accounts. Run with: go test -tags=performance ./tests/performance/...
 package performance
 
 import (

@@ -1,5 +1,9 @@
+//go:build performance
+// +build performance
+
 // PERF-1.2: Gas Baseline Tests
 // Document pool creation gas baseline and other operation gas costs
+// NOTE: Requires funded test accounts. Run with: go test -tags=performance ./tests/performance/...
 package performance
 
 import (

@@ -34,6 +34,19 @@ func (od *OracleDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool,
 
 	msgs := tx.GetMsgs()
 	for _, msg := range msgs {
+		// Check if module is enabled for any Oracle message
+		switch msg.(type) {
+		case *oracletypes.MsgSubmitPrice, *oracletypes.MsgDelegateFeedConsent:
+			params, err := od.keeper.GetParams(ctx)
+			if err != nil {
+				return ctx, fmt.Errorf("failed to get Oracle params: %w", err)
+			}
+			if !params.Enabled {
+				return ctx, oracletypes.ErrModuleDisabled.Wrap("Oracle module is disabled by governance - enable via governance proposal")
+			}
+		}
+
+		// Additional message-specific validation
 		switch msg := msg.(type) {
 		case *oracletypes.MsgSubmitPrice:
 			if err := od.validateSubmitPrice(ctx, msg); err != nil {

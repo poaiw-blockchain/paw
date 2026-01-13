@@ -38,6 +38,10 @@ func (m mockPacketData) ValidateBasic() error {
 }
 
 func (m mockPacketData) GetType() string {
+	// Use a valid packet type from whitelist if not specified
+	if m.packetType == "" || m.packetType == "test" {
+		return "heartbeat" // Valid packet type in whitelist
+	}
 	return m.packetType
 }
 
@@ -127,7 +131,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				SourceChannel: "channel-1",
 			},
 			packetData: mockPacketData{
-				packetType: "test",
+				packetType: "heartbeat",
 				valid:      true,
 			},
 			nonce:           1,
@@ -144,7 +148,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				SourceChannel: "channel-1",
 			},
 			packetData: mockPacketData{
-				packetType: "test",
+				packetType: "heartbeat",
 				valid:      false,
 			},
 			nonce:       1,
@@ -160,7 +164,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				SourceChannel: "channel-1",
 			},
 			packetData: mockPacketData{
-				packetType: "test",
+				packetType: "heartbeat",
 				valid:      true,
 			},
 			nonce:       0,
@@ -176,7 +180,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				SourceChannel: "channel-1",
 			},
 			packetData: mockPacketData{
-				packetType: "test",
+				packetType: "heartbeat",
 				valid:      true,
 			},
 			nonce:       1,
@@ -192,7 +196,7 @@ func TestPacketValidator_ValidateIncomingPacket(t *testing.T) {
 				SourceChannel: "channel-1",
 			},
 			packetData: mockPacketData{
-				packetType: "test",
+				packetType: "heartbeat",
 				valid:      true,
 			},
 			nonce:               1,

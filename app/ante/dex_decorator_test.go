@@ -51,8 +51,9 @@ func (suite *DEXDecoratorTestSuite) SetupTest() {
 		capabilitykeeper.ScopedKeeper{},
 	)
 
-	// Initialize default params
+	// Initialize params with module enabled for testing
 	params := dextypes.DefaultParams()
+	params.Enabled = true // Enable module for ante decorator tests
 	err := suite.dexKeeper.SetParams(suite.ctx, params)
 	suite.Require().NoError(err)
 
@@ -496,6 +497,126 @@ func BenchmarkDEXDecorator_ValidateCreatePool(b *testing.B) {
 			return ctx, nil
 		})
 	}
+}
+
+// TestModuleDisabled_CreatePool verifies that DEX module rejects transactions when disabled
+func (suite *DEXDecoratorTestSuite) TestModuleDisabled_CreatePool() {
+	// Disable the DEX module
+	params, err := suite.dexKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.dexKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	// Create a valid pool message
+	msg := &dextypes.MsgCreatePool{
+		Creator: suite.addr.String(),
+		TokenA:  "uatom",
+		TokenB:  "uosmo",
+		AmountA: math.NewInt(1000000),
+		AmountB: math.NewInt(1000000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=false (CheckTx mode) - should reject with module disabled error
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject transaction")
+	suite.Require().Contains(err.Error(), "dex module is disabled", "error should indicate module is disabled")
+}
+
+// TestModuleDisabled_Swap verifies that DEX swap is rejected when disabled
+func (suite *DEXDecoratorTestSuite) TestModuleDisabled_Swap() {
+	// Disable the DEX module
+	params, err := suite.dexKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.dexKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &dextypes.MsgSwap{
+		Trader:       suite.addr.String(),
+		PoolId:       1,
+		TokenIn:      "uatom",
+		TokenOut:     "uosmo",
+		AmountIn:     math.NewInt(1000),
+		MinAmountOut: math.NewInt(900),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Should reject with module disabled error
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().Error(err, "disabled module should reject swap")
+	suite.Require().Contains(err.Error(), "dex module is disabled")
+}
+
+// TestModuleDisabled_SimulateBypass verifies that simulation mode bypasses the check
+func (suite *DEXDecoratorTestSuite) TestModuleDisabled_SimulateBypass() {
+	// Disable the DEX module
+	params, err := suite.dexKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	params.Enabled = false
+	err = suite.dexKeeper.SetParams(suite.ctx, params)
+	suite.Require().NoError(err)
+
+	msg := &dextypes.MsgCreatePool{
+		Creator: suite.addr.String(),
+		TokenA:  "uatom",
+		TokenB:  "uosmo",
+		AmountA: math.NewInt(1000000),
+		AmountB: math.NewInt(1000000),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	// Test with simulate=true - should pass even when module is disabled
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, true, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		return ctx, nil
+	})
+	suite.Require().NoError(err, "simulation mode should bypass module disabled check")
+}
+
+// TestModuleEnabled_AllowsTransaction verifies enabled module allows transactions
+func (suite *DEXDecoratorTestSuite) TestModuleEnabled_AllowsTransaction() {
+	// Ensure the DEX module is enabled (default in SetupTest)
+	params, err := suite.dexKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
+	suite.Require().True(params.Enabled, "module should be enabled by SetupTest")
+
+	msg := &dextypes.MsgCreatePool{
+		Creator: suite.addr.String(),
+		TokenA:  "uatom",
+		TokenB:  "uosmo",
+		AmountA: params.MinLiquidity.Add(math.NewInt(1000)),
+		AmountB: params.MinLiquidity.Add(math.NewInt(2000)),
+	}
+
+	txBuilder := suite.encCfg.TxConfig.NewTxBuilder()
+	err = txBuilder.SetMsgs(msg)
+	suite.Require().NoError(err)
+	tx := txBuilder.GetTx()
+
+	nextCalled := false
+	_, err = suite.decorator.AnteHandle(suite.ctx, tx, false, func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
+		nextCalled = true
+		return ctx, nil
+	})
+	suite.Require().NoError(err, "enabled module should allow valid transaction")
+	suite.Require().True(nextCalled, "next handler should be called for enabled module")
 }
 
 func BenchmarkDEXDecorator_ValidateSwap(b *testing.B) {

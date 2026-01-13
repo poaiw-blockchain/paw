@@ -1,5 +1,9 @@
+//go:build performance
+// +build performance
+
 // PERF-1.1: Swap Latency Baseline Tests
 // Target: <100ms for single swap operation
+// NOTE: Requires funded test accounts. Run with: go test -tags=performance ./tests/performance/...
 package performance
 
 import (

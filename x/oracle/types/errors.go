@@ -8,6 +8,9 @@ import (
 
 // Oracle module sentinel errors
 var (
+	// ErrModuleDisabled is returned when the oracle module is disabled via governance
+	ErrModuleDisabled = sdkerrors.Register(ModuleName, 1, "oracle module is disabled")
+
 	// Asset and price errors
 	ErrInvalidAsset   = sdkerrors.Register(ModuleName, 2, "invalid asset")
 	ErrInvalidNonce   = sdkerrors.Register(ModuleName, 50, "invalid packet nonce")
@@ -101,6 +104,7 @@ func (e *ErrorWithRecovery) Unwrap() error {
 
 // RecoverySuggestions provides actionable recovery steps for each error type
 var RecoverySuggestions = map[error]string{
+	ErrModuleDisabled: "Oracle module is disabled by governance for MVP phase. It will be enabled via governance proposal after network stability is proven. Query params to check enabled status.",
 	ErrInvalidAsset:   "Asset symbol not recognized. Check supported asset list using query. Ensure asset denom is registered. Use correct format (e.g., 'BTC', 'ETH', 'ATOM').",
 	ErrInvalidPrice:   "Price must be positive and within reasonable bounds. Check for decimal overflow. Verify price source data quality. Ensure price is recent (< 1 hour old).",
 	ErrPriceNotFound:  "No price data available for this asset. Wait for next vote period (typically 30 seconds). Check if asset is actively tracked. Query available assets.",

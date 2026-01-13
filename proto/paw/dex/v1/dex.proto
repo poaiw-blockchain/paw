@@ -103,6 +103,12 @@ message Params {
   // paused when the circuit breaker is triggered due to price deviation.
   // Default: 3600 (1 hour)
   uint64 circuit_breaker_duration_seconds = 17;
+
+  // enabled controls whether the DEX module is active.
+  // When false, all DEX operations (swaps, pools, orders) are disabled.
+  // This can be toggled via governance proposal for MVP phased rollout.
+  // Default: true
+  bool enabled = 18;
 }
 
 // AuthorizedChannel represents a port/channel pair permitted to send packets

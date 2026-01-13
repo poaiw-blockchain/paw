@@ -1,0 +1,98 @@
+# PAW Testnet Hardened app.toml Configuration
+# Optimized for validator stability and mainnet readiness
+#
+# Generated: 2026-01-12
+# Target: paw-testnet-1
+
+#######################################################################
+###                    Base Configuration                           ###
+#######################################################################
+
+# Minimum gas prices (prevent spam)
+minimum-gas-prices = "0.001upaw"
+
+#######################################################################
+###                   Pruning Configuration                         ###
+#######################################################################
+
+# Pruning strategy for validators
+# "default" = keep last 362880 blocks (~25 days at 6s/block)
+# "nothing" = archive node (keep everything)
+# "everything" = aggressive pruning (not recommended for validators)
+# "custom" = use pruning-keep-recent and pruning-interval
+
+pruning = "custom"
+pruning-keep-recent = "100000"
+pruning-interval = "100"
+
+# Halt configuration (for coordinated upgrades)
+halt-height = 0
+halt-time = 0
+
+#######################################################################
+###                   IAVL Configuration                            ###
+#######################################################################
+
+# IAVL tree settings
+iavl-cache-size = 500000
+iavl-disable-fastnode = true
+
+#######################################################################
+###                   Telemetry Configuration                       ###
+#######################################################################
+
+[telemetry]
+# Enable telemetry for monitoring
+enabled = true
+service-name = "paw-validator"
+
+# Prometheus metrics endpoint
+enable-hostname = true
+enable-hostname-label = true
+enable-service-label = true
+
+# Global labels
+global-labels = [
+    ["chain_id", "paw-testnet-1"],
+]
+
+#######################################################################
+###                      API Configuration                          ###
+#######################################################################
+
+[api]
+# Enable REST API
+enable = true
+swagger = false
+address = "tcp://127.0.0.1:${REST_PORT}"
+
+# Connection limits
+max-open-connections = 1000
+
+# Security
+enabled-unsafe-cors = false
+
+#######################################################################
+###                     gRPC Configuration                          ###
+#######################################################################
+
+[grpc]
+# Enable gRPC
+enable = true
+address = "0.0.0.0:${GRPC_PORT}"
+
+# Max connections
+max-recv-msg-size = 10485760
+max-send-msg-size = 2147483647
+
+[grpc-web]
+enable = false
+
+#######################################################################
+###                  State Sync Configuration                       ###
+#######################################################################
+
+[state-sync]
+# Snapshot settings (enable for state sync support)
+snapshot-interval = 1000
+snapshot-keep-recent = 2

@@ -37,20 +37,28 @@ var ValidPacketTypes = map[string]bool{
 	"compute_timeout":  true,
 
 	// Oracle module packet types
-	"oracle_price":       true,
-	"oracle_price_feed":  true,
-	"oracle_price_batch": true,
-	"oracle_subscribe":   true,
-	"oracle_unsubscribe": true,
-	"oracle_ack":         true,
+	"subscribe_prices":    true,
+	"query_price":         true,
+	"price_update":        true,
+	"oracle_heartbeat":    true,
+	"oracle_price":        true, // legacy
+	"oracle_price_feed":   true, // legacy
+	"oracle_price_batch":  true, // for batch price updates
+	"oracle_subscribe":    true, // for price subscriptions
+	"oracle_unsubscribe":  true, // for canceling subscriptions
+	"oracle_ack":          true,
 
 	// DEX module packet types
-	"dex_swap":       true,
-	"dex_liquidity":  true,
-	"dex_order":      true,
-	"dex_cancel":     true,
-	"dex_settlement": true,
-	"dex_ack":        true,
+	"dex_swap":         true,
+	"dex_liquidity":    true,
+	"dex_order":        true,
+	"dex_cancel":       true,
+	"dex_settlement":   true,
+	"dex_ack":          true,
+	"query_pools":      true,
+	"execute_swap":     true,
+	"cross_chain_swap": true,
+	"pool_update":      true,
 
 	// Shared/generic packet types
 	"heartbeat": true,

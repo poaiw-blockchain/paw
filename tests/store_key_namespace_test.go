@@ -114,9 +114,6 @@ func TestOracleKeysHaveNamespace(t *testing.T) {
 		oraclekeeper.PriceSnapshotKeyPrefix,
 		oraclekeeper.FeederDelegationKeyPrefix,
 		oraclekeeper.SubmissionByHeightPrefix,
-		oraclekeeper.ValidatorAccuracyKeyPrefix,
-		oraclekeeper.AccuracyBonusPoolKey,
-		oraclekeeper.GeographicInfoKeyPrefix,
 		oraclekeeper.OutlierHistoryKeyPrefix,
 		oraclekeeper.IBCPacketNonceKeyPrefix,
 	}

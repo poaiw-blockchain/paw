@@ -1,0 +1,138 @@
+# PAW Testnet Hardened Configuration
+# Optimized for 4-validator network with ~5s block time
+# Apply these settings to config.toml on all validators
+#
+# Generated: 2026-01-12
+# Target: paw-testnet-1 (mainnet-ready hardening)
+
+#######################################################################
+###                   CometBFT Base Configuration                   ###
+#######################################################################
+
+# Disable unsafe RPC commands in production
+[rpc]
+unsafe = false
+
+# Connection limits (prevent resource exhaustion)
+max_open_connections = 450
+grpc_max_open_connections = 450
+max_subscription_clients = 50
+max_subscriptions_per_client = 3
+
+# WebSocket stability
+experimental_subscription_buffer_size = 200
+experimental_websocket_write_buffer_size = 200
+experimental_close_on_slow_client = true
+
+# Batch limits (prevent DoS)
+max_request_batch_size = 10
+max_body_bytes = 1000000
+max_header_bytes = 1048576
+
+#######################################################################
+###                     P2P Configuration                           ###
+#######################################################################
+
+[p2p]
+# Peer limits (balance connectivity vs resource usage)
+max_num_inbound_peers = 25
+max_num_outbound_peers = 10
+
+# Persistent peers - CRITICAL for validator stability
+# Format: node_id@ip:port
+# Val1: persistent_peers = "val2_id@127.0.0.1:11756,val3_id@10.10.0.4:11856,val4_id@10.10.0.4:11956"
+# Val2: persistent_peers = "val1_id@127.0.0.1:11656,val3_id@10.10.0.4:11856,val4_id@10.10.0.4:11956"
+# Val3: persistent_peers = "val1_id@10.10.0.2:11656,val2_id@10.10.0.2:11756,val4_id@127.0.0.1:11957"
+# Val4: persistent_peers = "val1_id@10.10.0.2:11656,val2_id@10.10.0.2:11756,val3_id@127.0.0.1:11857"
+
+# Unconditional peers (always connect, ignore limits) - set to all other validators
+# unconditional_peer_ids = "val1_id,val2_id,val3_id,val4_id"
+
+# Keep peers private to prevent external targeting
+# private_peer_ids = "val1_id,val2_id,val3_id,val4_id"
+
+# Dial settings (tuned for 212ms cross-server latency)
+persistent_peers_max_dial_period = "30s"
+handshake_timeout = "30s"
+dial_timeout = "5s"
+
+# Rate limits (balanced for consensus traffic)
+send_rate = 10240000
+recv_rate = 10240000
+
+# Disable peer exchange to prevent address leakage
+# pex = false  # Uncomment for sentry node architecture
+
+# Allow same IP for testing (disable in production with sentry nodes)
+allow_duplicate_ip = true
+
+#######################################################################
+###                   Mempool Configuration                         ###
+#######################################################################
+
+[mempool]
+type = "flood"
+
+# Moderate mempool size (prevent memory bloat)
+size = 2000
+max_txs_bytes = 536870912
+cache_size = 5000
+max_tx_bytes = 1048576
+
+# Enable recheck for consistency
+recheck = true
+recheck_timeout = "2s"
+broadcast = true
+
+# Limit gossip to prevent network saturation
+experimental_max_gossip_connections_to_persistent_peers = 3
+experimental_max_gossip_connections_to_non_persistent_peers = 5
+
+#######################################################################
+###                  Consensus Configuration                        ###
+#######################################################################
+
+[consensus]
+# Timeouts tuned for 212ms cross-server latency + 5s block time
+# These are conservative values to prevent missed blocks
+
+timeout_propose = "3s"
+timeout_propose_delta = "500ms"
+timeout_prevote = "1500ms"
+timeout_prevote_delta = "500ms"
+timeout_precommit = "1500ms"
+timeout_precommit_delta = "500ms"
+timeout_commit = "5s"
+
+# Double-sign protection (set to a few blocks)
+double_sign_check_height = 10
+
+# Don't skip timeout commit - ensures all validators sync
+skip_timeout_commit = false
+
+# Empty blocks (disable interval for consistent timing)
+create_empty_blocks = true
+create_empty_blocks_interval = "0s"
+
+# Gossip timing
+peer_gossip_sleep_duration = "50ms"
+peer_query_maj23_sleep_duration = "1s"
+
+#######################################################################
+###                   Storage Configuration                         ###
+#######################################################################
+
+[storage]
+# Keep ABCI responses for debugging (disable in mainnet if disk is concern)
+discard_abci_responses = false
+
+#######################################################################
+###                   Monitoring Configuration                      ###
+#######################################################################
+
+[instrumentation]
+# IMPORTANT: Enable Prometheus for monitoring
+prometheus = true
+prometheus_listen_addr = ":${PROMETHEUS_PORT}"
+max_open_connections = 5
+namespace = "cometbft"

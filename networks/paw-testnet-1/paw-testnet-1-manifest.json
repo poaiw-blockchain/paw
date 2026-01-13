@@ -61,5 +61,17 @@
       "grpc_port": 11390,
       "rest_port": 11617
     }
+  },
+  "sentry_nodes": {
+    "sentry1": {
+      "server": "services-testnet",
+      "ip": "139.99.149.160",
+      "node_id": "ce6afbda0a4443139ad14d2b856cca586161f00d",
+      "p2p_port": 12056,
+      "rpc_port": 12057,
+      "grpc_port": 12090,
+      "rest_port": 12017,
+      "role": "public_relay"
+    }
   }
 }
