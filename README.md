@@ -121,7 +121,8 @@ Testnet
 | gRPC | testnet-grpc.poaiw.org:443 |
 | Explorer | https://testnet-explorer.poaiw.org |
 | Faucet | https://testnet-faucet.poaiw.org |
-| Metrics | http://54.39.103.49:11660/metrics |
+
+All public endpoints route through our sentry node architecture for validator protection. See [INFRASTRUCTURE.md](INFRASTRUCTURE.md) for details.
 
 See the [testnets repository](https://github.com/poaiw-blockchain/testnets) for genesis files, peer lists, and network details.
 
@@ -129,5 +130,12 @@ See the [testnets repository](https://github.com/poaiw-blockchain/testnets) for 
 1. Build: `make build`
 2. Initialize: `./build/pawd init <moniker> --chain-id paw-testnet-1`
 3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/poaiw-blockchain/testnets/main/paw-testnet-1/genesis.json`
-4. Set peers in `~/.paw/config/config.toml` from [peers.txt](https://github.com/poaiw-blockchain/testnets/blob/main/paw-testnet-1/peers.txt)
+4. Set peers (connect to sentry node):
+   ```bash
+   # Get sentry peer from manifest
+   PEERS=$(curl -s https://testnet-explorer.poaiw.org/paw-testnet-1-manifest.json | jq -r '.persistent_peers')
+   sed -i "s/^persistent_peers = .*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
+   ```
 5. Start: `./build/pawd start --minimum-gas-prices 0.001upaw`
+
+**Note:** External nodes should connect to the sentry node (`ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`), not directly to validators.

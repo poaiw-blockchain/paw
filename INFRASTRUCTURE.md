@@ -37,23 +37,48 @@ We chose dedicated bare-metal servers over cloud instances for several reasons:
 
 ### Network Architecture
 
+PAW testnet uses a **sentry node architecture** to protect validators from direct public exposure:
+
 ```
-                    ┌─────────────────┐
-                    │   Cloudflare    │
-                    │   (DDoS/CDN)    │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │     Nginx       │
-                    │  (Reverse Proxy)│
-                    └────────┬────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-┌───────▼───────┐   ┌───────▼───────┐   ┌───────▼───────┐
-│   RPC (26657) │   │  REST (1317)  │   │  gRPC (9091)  │
-└───────────────┘   └───────────────┘   └───────────────┘
+                         Internet
+                            │
+                      ┌─────▼─────┐
+                      │ Cloudflare│
+                      │ (DDoS/CDN)│
+                      └─────┬─────┘
+                            │
+                      ┌─────▼─────┐
+                      │   Nginx   │
+                      │(paw-testnet)│
+                      └─────┬─────┘
+                            │
+               ┌────────────┴────────────┐
+               │    WireGuard VPN        │
+               │      (10.10.0.x)        │
+               └────────────┬────────────┘
+                            │
+                   ┌────────▼────────┐
+                   │  Sentry Node    │
+                   │ (services-testnet)│
+                   │  RPC:12057      │
+                   │  P2P:12056      │
+                   │  gRPC:12090     │
+                   └────────┬────────┘
+                            │
+          ┌─────────────────┼─────────────────┐
+          │                 │                 │
+    ┌─────▼─────┐     ┌─────▼─────┐     ┌─────▼─────┐
+    │ Validator │     │ Validator │     │ Validator │
+    │   1 & 2   │     │     3     │     │     4     │
+    │(paw-testnet)│   │(services) │     │(services) │
+    └───────────┘     └───────────┘     └───────────┘
 ```
+
+**Key Security Features:**
+- Validators are hidden behind sentry nodes (no public IPs exposed)
+- All public RPC/REST/gRPC traffic routes through sentry
+- Sentry nodes use `private_peer_ids` to never gossip validator addresses
+- VPN-only communication between sentry and validators
 
 ### Public Endpoints
 
@@ -102,7 +127,7 @@ For Inter-Blockchain Communication (IBC), we maintain:
 For mainnet launch, we plan to expand infrastructure with:
 
 - **Multiple validator nodes** across different geographic regions (NA, EU, Asia)
-- **Sentry node architecture** to protect validator nodes from direct exposure
+- **Multiple sentry nodes** for geographic redundancy (already implemented on testnet)
 - **Multiple hosting providers** to avoid single provider dependency
 - **Hardware Security Modules (HSM)** for validator key protection
 - **Independent snapshot providers** for quick node bootstrapping
@@ -149,8 +174,9 @@ For infrastructure-related inquiries:
 
 | Date | Change |
 |------|--------|
+| 2026-01-13 | Deployed sentry node architecture for validator protection |
 | 2025-01-01 | Initial testnet infrastructure deployed |
 
 ---
 
-*Last updated: January 2025*
+*Last updated: January 2026*

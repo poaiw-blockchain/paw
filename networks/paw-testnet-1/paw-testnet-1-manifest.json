@@ -7,7 +7,7 @@
   "bundle_sha256": "78b27d1c02196531b7907773874520447e0be2bee4b95b781085c9e11b6a90de",
   "node_id": "72c594a424bfc156381860feaca3a2586173eead",
   "listen_addr": "0.0.0.0:11656",
-  "persistent_peers": "72c594a424bfc156381860feaca3a2586173eead@54.39.103.49:11656,1780e068618ca0ffcba81574d62ab170c2ee3c8b@54.39.103.49:11756,a2b9ab78b0be7f006466131b44ede9a02fc140c4@139.99.149.160:11856,f8187d5bafe58b78b00d73b0563b65ad8c0d5fda@139.99.149.160:11956",
+  "persistent_peers": "ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056",
   "seeds": "",
   "rpc_endpoints": [
     "https://testnet-rpc.poaiw.org"

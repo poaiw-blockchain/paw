@@ -575,4 +575,26 @@ For issues with sentry setup:
 
 ---
 
+## Live Testnet Sentry
+
+The PAW testnet has a live sentry node deployed:
+
+| Property | Value |
+|----------|-------|
+| Node ID | `ce6afbda0a4443139ad14d2b856cca586161f00d` |
+| P2P | `139.99.149.160:12056` |
+| Server | services-testnet |
+
+**External nodes should connect to the sentry**, not directly to validators:
+```bash
+persistent_peers = "ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
+```
+
+For production sentry configuration files, see:
+- [`infra/sentry/config-sentry.toml`](../infra/sentry/config-sentry.toml)
+- [`infra/sentry/app-sentry.toml`](../infra/sentry/app-sentry.toml)
+- [`infra/sentry/SENTRY_ARCHITECTURE.md`](../infra/sentry/SENTRY_ARCHITECTURE.md)
+
+---
+
 **Remember:** Sentries protect validators by handling public traffic. Always use sentries for production deployments.
