@@ -38,18 +38,18 @@ Step-by-step onboarding for end-users and QA, including platform compatibility, 
    - In Settings → Hardware Wallet → “Pair Ledger (BLE)”.
    - Approve pairing request; BLE prompt will appear before signing.
 6. Request funds:
-   - Use faucet: `https://faucet.paw-testnet.io` or CLI `./scripts/faucet.sh --check https://rpc1.paw-testnet.io <address> 1000000upaw`.
+   - Use faucet: `https://testnet-faucet.poaiw.org` or CLI `./scripts/faucet.sh --check https://testnet-rpc.poaiw.org <address> 1000000upaw`.
 7. Run a smoke action:
    - Send a 1upaw transfer to yourself.
    - View balance and history to confirm RPC connectivity.
 
 ## Troubleshooting
-- **Stuck at “Connecting”**: confirm RPC in Settings → Network is `https://api.paw-testnet.io` (or your light RPC), toggle airplane mode, then reopen.
+- **Stuck at "Connecting"**: confirm RPC in Settings → Network is `https://testnet-api.poaiw.org` (or your light RPC), toggle airplane mode, then reopen.
 - **BLE pairing fails**: reboot Ledger, ensure Bluetooth is enabled system-wide, and stay within 2m of the device. Remove stale pairing in OS settings and retry.
 - **Biometric prompt missing**: re-enable biometrics inside OS settings, then toggle the in-app Security switch off/on.
 - **Low disk devices**: enable “Light mode (state sync)” in Settings → Advanced; this matches the pruning/state-sync profile documented in `docs/guides/onboarding/LIGHT_CLIENT_PROFILE.md`.
 
 ## Support & Reporting
-- Status page: `https://status.paw-testnet.io` (RPC/REST/gRPC/Explorer/Faucet health).
+- Status page: `https://status.poaiw.org` (RPC/REST/gRPC/Explorer/Faucet health).
 - Submit issues: GitHub `paw-chain/paw` (tag `mobile`).
 - Security reports: security@paw.network.

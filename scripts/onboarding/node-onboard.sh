@@ -6,8 +6,8 @@ set -euo pipefail
 MODE="full"                     # full | light
 CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
-NETWORK_BASE="${NETWORK_BASE:-https://networks.paw-testnet.io/paw-testnet-1}"
-RPC_ENDPOINT="${RPC_ENDPOINT:-https://rpc1.paw-testnet.io}"
+NETWORK_BASE="${NETWORK_BASE:-https://testnet-explorer.poaiw.org}"
+RPC_ENDPOINT="${RPC_ENDPOINT:-https://testnet-rpc.poaiw.org}"
 MONIKER="paw-$(hostname -s)"
 START_AFTER=0
 
@@ -23,8 +23,8 @@ Defaults:
   --mode          full
   --chain-id      paw-testnet-1
   --home          $HOME/.paw
-  --network-base  https://networks.paw-testnet.io/paw-testnet-1
-  --rpc           https://rpc1.paw-testnet.io
+  --network-base  https://testnet-explorer.poaiw.org
+  --rpc           https://testnet-rpc.poaiw.org
   --moniker       paw-$(hostname -s)
 EOF
 }

@@ -1,6 +1,13 @@
 #!/bin/bash
-# Health Check Aggregator for PAW Services
+# Health Check Aggregator for PAW Testnet Services
+# Run this script ON the paw-testnet server (54.39.103.49)
 # Queries all service health endpoints and aggregates results
+#
+# MVP Testnet Port Configuration (4 validators):
+#   val1: RPC 11657, gRPC 11090, REST 11317, P2P 11656
+#   val2: RPC 11757, gRPC 11190, REST 11417, P2P 11756
+#   val3 (services-testnet): RPC 11857, gRPC 11290, REST 11517, P2P 11856
+#   val4 (services-testnet): RPC 11957, gRPC 11390, REST 11617, P2P 11956
 
 set -euo pipefail
 
@@ -10,23 +17,28 @@ YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Services and their health endpoints
+# Services and their health endpoints (localhost = running on paw-testnet server)
 declare -A SERVICES=(
-    ["pawd"]="http://localhost:36661/health"
-    ["pawd-detailed"]="http://localhost:36661/health/detailed"
-    ["explorer"]="http://localhost:11080/health"
-    ["explorer-ready"]="http://localhost:11080/health/ready"
-    ["prometheus"]="http://localhost:9091/-/healthy"
-    ["grafana"]="http://localhost:11030/api/health"
-    ["alertmanager"]="http://localhost:9093/-/healthy"
+    ["val1-rpc"]="http://127.0.0.1:11657/health"
+    ["val2-rpc"]="http://127.0.0.1:11757/health"
+    ["explorer-api"]="http://127.0.0.1:11080/health"
+    ["faucet-api"]="http://127.0.0.1:11084/health"
+)
+
+# Public endpoints to verify
+declare -A PUBLIC_ENDPOINTS=(
+    ["testnet-rpc.poaiw.org"]="https://testnet-rpc.poaiw.org/health"
+    ["testnet-api.poaiw.org"]="https://testnet-api.poaiw.org/cosmos/base/tendermint/v1beta1/syncing"
+    ["testnet-explorer.poaiw.org"]="https://testnet-explorer.poaiw.org"
+    ["testnet-faucet.poaiw.org"]="https://testnet-faucet.poaiw.org"
 )
 
 # Track overall health
 OVERALL_HEALTHY=true
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S UTC')
 
 echo "======================================================================"
-echo "PAW Health Check Report - $TIMESTAMP"
+echo "PAW Testnet Health Check Report - $TIMESTAMP"
 echo "======================================================================"
 echo ""
 
@@ -41,60 +53,111 @@ check_service() {
 
     case "$response" in
         200)
-            echo -e "${GREEN}✓${NC} $name: healthy ($url)"
+            echo -e "${GREEN}✓${NC} $name: healthy"
             return 0
             ;;
         503)
-            echo -e "${YELLOW}⚠${NC} $name: not ready ($url)"
+            echo -e "${YELLOW}⚠${NC} $name: not ready"
             OVERALL_HEALTHY=false
             return 1
             ;;
         000)
-            echo -e "${RED}✗${NC} $name: unreachable ($url)"
+            echo -e "${RED}✗${NC} $name: unreachable"
             OVERALL_HEALTHY=false
             return 1
             ;;
         *)
-            echo -e "${RED}✗${NC} $name: unhealthy (HTTP $response) ($url)"
+            echo -e "${RED}✗${NC} $name: unhealthy (HTTP $response)"
             OVERALL_HEALTHY=false
             return 1
             ;;
     esac
 }
 
-# Function to get detailed health info
-get_detailed_health() {
-    local url=$1
-    local response
+# Function to check validator RPC and get height
+check_validator() {
+    local name=$1
+    local rpc_port=$2
+    local timeout=${3:-5}
 
-    response=$(curl -s --connect-timeout 5 "$url" 2>/dev/null || echo "{}")
+    local status
+    status=$(curl -s --max-time "$timeout" "http://127.0.0.1:$rpc_port/status" 2>/dev/null || echo "")
 
-    if [ -n "$response" ] && [ "$response" != "{}" ]; then
-        echo "$response" | jq '.' 2>/dev/null || echo "$response"
+    if [[ -z "$status" ]]; then
+        echo -e "${RED}✗${NC} $name (port $rpc_port): unreachable"
+        OVERALL_HEALTHY=false
+        return 1
+    fi
+
+    local height catching_up
+    height=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // "?"')
+    catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up // "?"')
+
+    if [[ "$catching_up" == "false" ]]; then
+        echo -e "${GREEN}✓${NC} $name (port $rpc_port): height=$height, synced"
+        return 0
+    else
+        echo -e "${YELLOW}⚠${NC} $name (port $rpc_port): height=$height, catching_up"
+        return 1
     fi
 }
 
-# Check all services
-echo "Service Health Status:"
+# Check local validators (on paw-testnet server)
+echo "Local Validators (paw-testnet server):"
 echo "----------------------------------------------------------------------"
+check_validator "val1" 11657 || true
+check_validator "val2" 11757 || true
 
-for service in "${!SERVICES[@]}"; do
-    check_service "$service" "${SERVICES[$service]}"
-done
+echo ""
+echo "Remote Validators (services-testnet via VPN 10.10.0.4):"
+echo "----------------------------------------------------------------------"
+# These use VPN address since this script runs on paw-testnet
+val3_status=$(curl -s --max-time 5 "http://10.10.0.4:11857/status" 2>/dev/null || echo "")
+if [[ -n "$val3_status" ]]; then
+    val3_height=$(echo "$val3_status" | jq -r '.result.sync_info.latest_block_height // "?"')
+    val3_catching=$(echo "$val3_status" | jq -r '.result.sync_info.catching_up // "?"')
+    if [[ "$val3_catching" == "false" ]]; then
+        echo -e "${GREEN}✓${NC} val3 (10.10.0.4:11857): height=$val3_height, synced"
+    else
+        echo -e "${YELLOW}⚠${NC} val3 (10.10.0.4:11857): height=$val3_height, catching_up"
+    fi
+else
+    echo -e "${RED}✗${NC} val3 (10.10.0.4:11857): unreachable"
+fi
+
+val4_status=$(curl -s --max-time 5 "http://10.10.0.4:11957/status" 2>/dev/null || echo "")
+if [[ -n "$val4_status" ]]; then
+    val4_height=$(echo "$val4_status" | jq -r '.result.sync_info.latest_block_height // "?"')
+    val4_catching=$(echo "$val4_status" | jq -r '.result.sync_info.catching_up // "?"')
+    if [[ "$val4_catching" == "false" ]]; then
+        echo -e "${GREEN}✓${NC} val4 (10.10.0.4:11957): height=$val4_height, synced"
+    else
+        echo -e "${YELLOW}⚠${NC} val4 (10.10.0.4:11957): height=$val4_height, catching_up"
+    fi
+else
+    echo -e "${RED}✗${NC} val4 (10.10.0.4:11957): unreachable"
+fi
 
 echo ""
 echo "======================================================================"
 
-# Get detailed health for main daemon
+# Check local services
 echo ""
-echo "Detailed Health Information (pawd):"
+echo "Local Services:"
 echo "----------------------------------------------------------------------"
-detailed=$(get_detailed_health "http://localhost:36661/health/detailed")
-if [ -n "$detailed" ]; then
-    echo "$detailed"
-else
-    echo "No detailed health information available"
-fi
+check_service "explorer-api" "http://127.0.0.1:11080/health" || true
+check_service "faucet-api" "http://127.0.0.1:11084/health" || true
+
+echo ""
+echo "======================================================================"
+
+# Check public endpoints
+echo ""
+echo "Public Endpoints (via nginx):"
+echo "----------------------------------------------------------------------"
+for endpoint in "${!PUBLIC_ENDPOINTS[@]}"; do
+    check_service "$endpoint" "${PUBLIC_ENDPOINTS[$endpoint]}" || true
+done
 
 echo ""
 echo "======================================================================"
@@ -126,11 +189,14 @@ else
     echo -e "${GREEN}✓${NC} Memory usage normal: ${mem_usage}%"
 fi
 
-# Check if pawd process is running
-if pgrep -x "pawd" > /dev/null; then
-    echo -e "${GREEN}✓${NC} pawd process is running"
+# Check if pawd processes are running
+pawd_count=$(pgrep -c "pawd" 2>/dev/null || echo "0")
+if [ "$pawd_count" -ge 2 ]; then
+    echo -e "${GREEN}✓${NC} pawd processes running: $pawd_count"
+elif [ "$pawd_count" -eq 1 ]; then
+    echo -e "${YELLOW}⚠${NC} Only 1 pawd process running (expected 2)"
 else
-    echo -e "${RED}✗${NC} pawd process is not running"
+    echo -e "${RED}✗${NC} No pawd processes running"
     OVERALL_HEALTHY=false
 fi
 

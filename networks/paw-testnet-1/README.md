@@ -1,52 +1,53 @@
 # paw-testnet-1 Artifacts
 
-This directory hosts the canonical files and metadata for the PAW public testnet (`paw-testnet-1`). Copy the latest outputs from `scripts/devnet/package-testnet-artifacts.sh` here before publishing them to operators.
+This directory hosts the canonical files and metadata for the PAW public testnet (`paw-testnet-1`).
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `genesis.json` | Canonical network genesis file produced by `scripts/devnet/local-phase-d-rehearsal.sh` |
-| `genesis.sha256` | SHA256 checksum validators must verify before syncing (matches the committed genesis) |
-| `peers.txt` | Persistent peers from the 4-validator + 2-sentry rehearsal; seeds intentionally empty until public sentries are published (currently set to rpc1-4.paw-testnet.io:26656) |
-| `paw-testnet-1-manifest.json` | Machine-readable manifest (chain_id, genesis sha, peers, pawd sha256, generated_at) |
-| `artifacts/` (tarball) | Use `scripts/devnet/bundle-testnet-artifacts.sh` to produce `artifacts/paw-testnet-1-artifacts.tar.gz` for CDN upload; validate CDN copy with `scripts/devnet/validate-remote-artifacts.sh <cdn-url>` |
-| `checkpoints/` | (Optional) state sync snapshots or metadata |
+| `genesis.json` | Canonical network genesis file |
+| `genesis.sha256` | SHA256 checksum validators must verify before syncing |
+| `peers.txt` | Persistent peers for 4-validator testnet |
+| `paw-testnet-1-manifest.json` | Machine-readable manifest (chain_id, genesis sha, peers, endpoints, validator details) |
+| `chain.json` | Chain registry format configuration |
 
-## Current Public Endpoints (Status as of 2026-01-08)
+## Current Public Endpoints
 
-| Service | Endpoint | Status | Notes |
-|---------|----------|--------|-------|
-| RPC     | `https://testnet-rpc.poaiw.org` | OK | Reverse proxy to validator RPC |
-| REST    | `https://testnet-api.poaiw.org`  | OK | Load-balanced across validators (val1-4) |
-| gRPC    | `testnet-grpc.poaiw.org:443` | OK | Load-balanced across validators (val1-4) |
-| Faucet  | `https://testnet-faucet.poaiw.org` | OK | Public faucet UI + API |
-| Explorer| `https://testnet-explorer.poaiw.org` | OK | Static UI + API |
-| Status  | `https://status.poaiw.org` | OK | Status page (RPC/REST/gRPC/Explorer/Faucet/Metrics probes) |
-| Stats  | `https://testnet-explorer.poaiw.org/stats/` | OK | Network stats dashboard |
-| GraphQL | `https://testnet-graphql.poaiw.org` | OK | GraphQL gateway |
-| GraphQL (via API) | `https://testnet-api.poaiw.org/graphql` | OK | GraphQL proxy |
-| Chain Registry | `https://testnet-explorer.poaiw.org/chain-registry/chain.json` | OK | Chain registry JSON |
-| SDK | `https://testnet-explorer.poaiw.org/sdk/` | OK | Python SDK artifacts |
+| Service | Endpoint | Notes |
+|---------|----------|-------|
+| RPC     | `https://testnet-rpc.poaiw.org` | Load-balanced across val1-4 |
+| REST    | `https://testnet-api.poaiw.org` | Load-balanced across val1-4 |
+| gRPC    | `testnet-grpc.poaiw.org:443` | Load-balanced across val1-4 |
+| WebSocket | `wss://testnet-ws.poaiw.org` | WebSocket proxy |
+| Faucet  | `https://testnet-faucet.poaiw.org` | Public faucet UI + API |
+| Explorer| `https://testnet-explorer.poaiw.org` | Block explorer |
+| Status  | `https://status.poaiw.org` | Health monitoring |
 
-## Validator Bootstrapping Cheatsheet
+## Validator Infrastructure
+
+| Validator | Server | IP | P2P | RPC | gRPC | REST |
+|-----------|--------|-----|-----|-----|------|------|
+| val1 | paw-testnet | 54.39.103.49 | 11656 | 11657 | 11090 | 11317 |
+| val2 | paw-testnet | 54.39.103.49 | 11756 | 11757 | 11190 | 11417 |
+| val3 | services-testnet | 139.99.149.160 | 11856 | 11857 | 11290 | 11517 |
+| val4 | services-testnet | 139.99.149.160 | 11956 | 11957 | 11390 | 11617 |
+
+## Validator Bootstrapping
 
 ```bash
-# 1. Download artifacts
+# 1. Download and verify genesis
 curl -L -o ~/.paw/config/genesis.json https://testnet-explorer.poaiw.org/genesis.json
-curl -L https://testnet-explorer.poaiw.org/genesis.json.sha256
-sha256sum ~/.paw/config/genesis.json
 sha256sum ~/.paw/config/genesis.json  # compare to published checksum
 
-# 2. Configure peers
-curl -L -o ~/.paw/config/peers.txt https://testnet-explorer.poaiw.org/peers.txt
-# Update config.toml to use the published seeds/persistent peers
-# (seeds are intentionally blank until public sentries go live)
+# 2. Configure peers (from peers.txt or manifest)
+# Add to config.toml:
+# persistent_peers = "72c594a424bfc156381860feaca3a2586173eead@54.39.103.49:11656,..."
 ```
 
-For full onboarding instructions see `docs/guides/deployment/PUBLIC_TESTNET.md`. Track artifact readiness in `STATUS.md`.
+For full onboarding instructions see `docs/guides/deployment/PUBLIC_TESTNET.md`.
 
 ## Maintenance Notes
--	Update `peers.txt` whenever seeds or sentry nodes change.
--	Keep `genesis.sha256` in sync with the committed `genesis.json`.
--	Record endpoint changes in this README so downstream docs can link here.
+- Update `peers.txt` whenever validator node IDs change.
+- Keep `genesis.sha256` in sync with the committed `genesis.json`.
+- Record endpoint changes in this README so downstream docs can link here.

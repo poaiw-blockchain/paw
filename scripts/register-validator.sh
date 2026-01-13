@@ -251,7 +251,7 @@ verify_validator() {
 
         info ""
         info "Validator operator address: $VALOPER_ADDR"
-        info "Monitor validator at: https://explorer.paw-testnet.io/validators/$VALOPER_ADDR"
+        info "Monitor validator at: https://testnet-explorer.poaiw.org/validators/$VALOPER_ADDR"
     else
         warning "Validator not found yet. May take a few blocks to appear."
     fi
