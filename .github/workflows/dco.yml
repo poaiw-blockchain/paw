@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check DCO sign-off
-        uses: tisonkun/actions-dco@v1.2
+        uses: tisonkun/actions-dco@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
