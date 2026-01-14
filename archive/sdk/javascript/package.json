@@ -1,7 +1,7 @@
 {
   "name": "@paw-chain/sdk",
-  "version": "1.0.0",
-  "description": "Official JavaScript/TypeScript SDK for PAW blockchain",
+  "version": "1.1.0",
+  "description": "Official JavaScript/TypeScript SDK for PAW blockchain (paw-mvp-1 testnet)",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -17,14 +17,25 @@
   },
   "keywords": [
     "paw",
+    "poaiw",
     "blockchain",
     "cosmos",
+    "cosmos-sdk",
     "sdk",
-    "dex",
-    "defi"
+    "ibc",
+    "staking",
+    "governance"
   ],
-  "author": "PAW Chain",
-  "license": "MIT",
+  "author": "PAW Chain <info@poaiw.org>",
+  "license": "Apache-2.0",
+  "homepage": "https://docs.poaiw.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/poaiw-blockchain/paw"
+  },
+  "bugs": {
+    "url": "https://github.com/poaiw-blockchain/paw/issues"
+  },
   "dependencies": {
     "@cosmjs/amino": "^0.32.4",
     "@cosmjs/crypto": "^0.32.4",
@@ -33,7 +44,6 @@
     "@cosmjs/proto-signing": "^0.32.4",
     "@cosmjs/stargate": "^0.32.4",
     "@cosmjs/tendermint-rpc": "^0.32.4",
-    "axios": "^1.6.0",
     "bip39": "^3.1.0"
   },
   "devDependencies": {
@@ -50,7 +60,7 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "publishConfig": {
     "access": "public"

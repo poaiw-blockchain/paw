@@ -312,16 +312,13 @@ export class PawWalletEnhanced {
  * Keystore encryption utilities for secure storage
  */
 export class KeystoreManager {
-  private static readonly VERSION = '1.0.0';
-  private static readonly CIPHER = 'aes-128-ctr';
-
   /**
    * Encrypt mnemonic to keystore format (simplified - use crypto library in production)
    */
   static async encrypt(
-    mnemonic: string,
-    password: string,
-    options: KeystoreOptions = { kdf: 'scrypt' }
+    _mnemonic: string,
+    _password: string,
+    _options: KeystoreOptions = { kdf: 'scrypt' }
   ): Promise<SerializedKeystore> {
     // This is a placeholder - in production use proper encryption libraries
     // like @noble/ciphers or similar
@@ -332,8 +329,8 @@ export class KeystoreManager {
    * Decrypt keystore to recover mnemonic
    */
   static async decrypt(
-    keystore: SerializedKeystore,
-    password: string
+    _keystore: SerializedKeystore,
+    _password: string
   ): Promise<string> {
     // This is a placeholder - in production use proper decryption
     throw new Error('Keystore decryption requires crypto library implementation');

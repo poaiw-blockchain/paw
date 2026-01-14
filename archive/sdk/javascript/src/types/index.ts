@@ -1,5 +1,21 @@
 import { Coin } from '@cosmjs/stargate';
 
+/**
+ * PAW Testnet configuration
+ * Chain ID: paw-mvp-1
+ */
+export const PAW_TESTNET_CONFIG = {
+  chainId: 'paw-mvp-1',
+  rpcEndpoint: 'https://testnet-rpc.poaiw.org',
+  restEndpoint: 'https://testnet-api.poaiw.org',
+  prefix: 'paw',
+  gasPrice: '0.025upaw',
+  gasAdjustment: 1.5,
+  denom: 'upaw',
+  displayDenom: 'PAW',
+  decimals: 6
+} as const;
+
 export interface PawChainConfig {
   rpcEndpoint: string;
   restEndpoint?: string;
@@ -7,6 +23,7 @@ export interface PawChainConfig {
   prefix?: string;
   gasPrice?: string;
   gasAdjustment?: number;
+  denom?: string;
 }
 
 export interface WalletAccount {
@@ -15,6 +32,10 @@ export interface WalletAccount {
   algo: string;
 }
 
+/**
+ * DEX Pool - NOTE: DEX module is disabled in current testnet (paw-mvp-1)
+ * Enable via governance proposal when ready
+ */
 export interface Pool {
   id: string;
   tokenA: string;
@@ -25,6 +46,9 @@ export interface Pool {
   swapFee: string;
 }
 
+/**
+ * @deprecated DEX module disabled in testnet - will return "Not Implemented"
+ */
 export interface PoolParams {
   tokenA: string;
   tokenB: string;
@@ -32,6 +56,9 @@ export interface PoolParams {
   amountB: string;
 }
 
+/**
+ * @deprecated DEX module disabled in testnet - will return "Not Implemented"
+ */
 export interface SwapParams {
   poolId: string;
   tokenIn: string;
@@ -40,6 +67,9 @@ export interface SwapParams {
   recipient?: string;
 }
 
+/**
+ * @deprecated DEX module disabled in testnet - will return "Not Implemented"
+ */
 export interface AddLiquidityParams {
   poolId: string;
   amountA: string;
@@ -47,6 +77,9 @@ export interface AddLiquidityParams {
   minShares: string;
 }
 
+/**
+ * @deprecated DEX module disabled in testnet - will return "Not Implemented"
+ */
 export interface RemoveLiquidityParams {
   poolId: string;
   shares: string;
@@ -54,25 +87,62 @@ export interface RemoveLiquidityParams {
   minAmountB: string;
 }
 
+/**
+ * Custom error for disabled modules
+ */
+export class ModuleDisabledError extends Error {
+  constructor(moduleName: string) {
+    super(`${moduleName} module is disabled in paw-mvp-1 testnet. Enable via governance proposal.`);
+    this.name = 'ModuleDisabledError';
+  }
+}
+
+/**
+ * Validator as returned by the PAW testnet API
+ * Uses snake_case to match actual API responses
+ */
 export interface Validator {
-  operatorAddress: string;
-  consensusPubkey: string;
+  operator_address: string;
+  consensus_pubkey: {
+    '@type': string;
+    key: string;
+  };
   jailed: boolean;
-  status: number;
+  status: 'BOND_STATUS_UNSPECIFIED' | 'BOND_STATUS_UNBONDED' | 'BOND_STATUS_UNBONDING' | 'BOND_STATUS_BONDED';
   tokens: string;
-  delegatorShares: string;
+  delegator_shares: string;
   description: {
     moniker: string;
     identity: string;
     website: string;
-    securityContact: string;
+    security_contact: string;
     details: string;
   };
+  unbonding_height: string;
+  unbonding_time: string;
   commission: {
-    rate: string;
-    maxRate: string;
-    maxChangeRate: string;
+    commission_rates: {
+      rate: string;
+      max_rate: string;
+      max_change_rate: string;
+    };
+    update_time: string;
   };
+  min_self_delegation: string;
+  unbonding_on_hold_ref_count: string;
+  unbonding_ids: string[];
+}
+
+/**
+ * Simplified validator for display purposes (camelCase)
+ */
+export interface ValidatorDisplay {
+  operatorAddress: string;
+  moniker: string;
+  jailed: boolean;
+  status: string;
+  tokens: string;
+  commissionRate: string;
 }
 
 export interface DelegateParams {

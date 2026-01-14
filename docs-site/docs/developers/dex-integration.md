@@ -89,7 +89,7 @@ pawd tx dex advanced add-liquidity-balanced 1 1000000000 \
 **Via TypeScript SDK:**
 
 ```typescript
-import { PawClient } from '@poaiw-blockchain/paw-sdk';
+import { PawClient } from '@paw-chain/sdk';
 
 const client = new PawClient({
   rpcEndpoint: 'http://localhost:26657',
@@ -254,7 +254,7 @@ pawd query dex advanced arbitrage --min-profit 1.0
 ### Example: Trading Bot
 
 ```typescript
-import { PawClient } from '@poaiw-blockchain/paw-sdk';
+import { PawClient } from '@paw-chain/sdk';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 
 // Initialize client

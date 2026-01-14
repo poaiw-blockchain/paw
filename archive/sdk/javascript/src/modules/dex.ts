@@ -6,20 +6,61 @@ import {
   AddLiquidityParams,
   RemoveLiquidityParams,
   TxResult,
-  GasOptions
+  GasOptions,
+  ModuleDisabledError
 } from '../types';
 
+/**
+ * DEX module for PAW blockchain
+ *
+ * ⚠️ WARNING: The DEX module is DISABLED in paw-mvp-1 testnet.
+ * All query methods will return empty results.
+ * All transaction methods will throw ModuleDisabledError.
+ *
+ * To enable: Submit a governance proposal to enable the DEX module.
+ */
 export class DexModule {
+  private static MODULE_NAME = 'DEX';
+  private moduleEnabled: boolean = false;
+
   constructor(private client: PawClient) {}
 
   /**
+   * Check if DEX module is enabled on the chain
+   */
+  async isEnabled(): Promise<boolean> {
+    try {
+      const config = this.client.getConfig();
+      const restEndpoint = config.restEndpoint || config.rpcEndpoint.replace(':26657', ':1317');
+      const response = await fetch(`${restEndpoint}/paw/dex/v1/params`);
+
+      if (response.ok) {
+        const data = await response.json() as { params?: { enabled?: boolean } };
+        this.moduleEnabled = data?.params?.enabled ?? false;
+        return this.moduleEnabled;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  private assertEnabled(): void {
+    // Always throw for now since DEX is disabled in testnet
+    throw new ModuleDisabledError(DexModule.MODULE_NAME);
+  }
+
+  /**
    * Create a new liquidity pool
+   * @throws ModuleDisabledError if DEX module is disabled
    */
   async createPool(
     creator: string,
     params: PoolParams,
     options?: GasOptions
   ): Promise<TxResult> {
+    this.assertEnabled();
+
     const message = {
       typeUrl: '/paw.dex.v1.MsgCreatePool',
       value: {
@@ -37,12 +78,15 @@ export class DexModule {
 
   /**
    * Add liquidity to an existing pool
+   * @throws ModuleDisabledError if DEX module is disabled
    */
   async addLiquidity(
     sender: string,
     params: AddLiquidityParams,
     options?: GasOptions
   ): Promise<TxResult> {
+    this.assertEnabled();
+
     const message = {
       typeUrl: '/paw.dex.v1.MsgAddLiquidity',
       value: {
@@ -60,12 +104,15 @@ export class DexModule {
 
   /**
    * Remove liquidity from a pool
+   * @throws ModuleDisabledError if DEX module is disabled
    */
   async removeLiquidity(
     sender: string,
     params: RemoveLiquidityParams,
     options?: GasOptions
   ): Promise<TxResult> {
+    this.assertEnabled();
+
     const message = {
       typeUrl: '/paw.dex.v1.MsgRemoveLiquidity',
       value: {
@@ -83,12 +130,15 @@ export class DexModule {
 
   /**
    * Swap tokens
+   * @throws ModuleDisabledError if DEX module is disabled
    */
   async swap(
     sender: string,
     params: SwapParams,
     options?: GasOptions
   ): Promise<TxResult> {
+    this.assertEnabled();
+
     const message = {
       typeUrl: '/paw.dex.v1.MsgSwap',
       value: {
@@ -107,6 +157,7 @@ export class DexModule {
 
   /**
    * Get pool by ID
+   * Returns null when DEX module is disabled
    */
   async getPool(poolId: string): Promise<Pool | null> {
     try {
@@ -118,7 +169,12 @@ export class DexModule {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as { code?: number; pool?: Pool };
+      // Check for "Not Implemented" response
+      if (data.code === 12) {
+        console.warn('DEX module is disabled in this network');
+        return null;
+      }
       return data.pool || null;
     } catch (error) {
       console.error('Error fetching pool:', error);
@@ -128,6 +184,7 @@ export class DexModule {
 
   /**
    * Get all pools
+   * Returns empty array when DEX module is disabled
    */
   async getAllPools(): Promise<Pool[]> {
     try {
@@ -139,7 +196,12 @@ export class DexModule {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as { code?: number; pools?: Pool[] };
+      // Check for "Not Implemented" response
+      if (data.code === 12) {
+        console.warn('DEX module is disabled in this network');
+        return [];
+      }
       return data.pools || [];
     } catch (error) {
       console.error('Error fetching pools:', error);
@@ -149,6 +211,7 @@ export class DexModule {
 
   /**
    * Get pool for token pair
+   * Returns null when DEX module is disabled
    */
   async getPoolByTokens(tokenA: string, tokenB: string): Promise<Pool | null> {
     const pools = await this.getAllPools();
@@ -159,7 +222,7 @@ export class DexModule {
   }
 
   /**
-   * Calculate swap output amount
+   * Calculate swap output amount (offline calculation)
    */
   calculateSwapOutput(
     amountIn: string,
@@ -183,7 +246,7 @@ export class DexModule {
   }
 
   /**
-   * Calculate price impact
+   * Calculate price impact (offline calculation)
    */
   calculatePriceImpact(
     amountIn: string,
@@ -198,13 +261,13 @@ export class DexModule {
   }
 
   /**
-   * Calculate shares for liquidity addition
+   * Calculate shares for liquidity addition (offline calculation)
    */
   calculateShares(
     amountA: string,
     amountB: string,
     reserveA: string,
-    reserveB: string,
+    _reserveB: string,
     totalShares: string
   ): string {
     if (totalShares === '0') {

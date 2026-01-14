@@ -1,3 +1,22 @@
+/**
+ * PAW Blockchain SDK
+ *
+ * Official TypeScript/JavaScript SDK for the PAW blockchain (paw-mvp-1 testnet)
+ *
+ * @example
+ * ```typescript
+ * import { PawClient, PawWallet, PAW_TESTNET_CONFIG } from '@paw-chain/sdk';
+ *
+ * const client = new PawClient(PAW_TESTNET_CONFIG);
+ * await client.connect();
+ *
+ * // Query validators
+ * const validators = await client.staking.getValidators();
+ * ```
+ *
+ * @packageDocumentation
+ */
+
 // Main exports
 export { PawClient } from './client';
 export { PawWallet } from './wallet';

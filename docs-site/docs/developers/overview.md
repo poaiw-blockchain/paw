@@ -112,11 +112,11 @@ ws.send(JSON.stringify({
 ### JavaScript/TypeScript
 
 ```bash
-npm install @poaiw-blockchain/paw-sdk
+npm install @paw-chain/sdk
 ```
 
 ```typescript
-import { PawClient } from '@poaiw-blockchain/paw-sdk';
+import { PawClient } from '@paw-chain/sdk';
 
 const client = new PawClient({
   rpcEndpoint: 'http://localhost:26657',

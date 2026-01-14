@@ -84,7 +84,7 @@ export class LedgerWallet extends HardwareWallet {
         'Install with: npm install @ledgerhq/hw-transport-webusb @ledgerhq/hw-app-cosmos'
       );
     } catch (error) {
-      throw new Error(`Failed to connect to Ledger: ${error.message}`);
+      throw new Error(`Failed to connect to Ledger: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -114,7 +114,7 @@ export class LedgerWallet extends HardwareWallet {
     throw new Error('Ledger getAccounts not implemented');
   }
 
-  async signDirect(signerAddress: string, signDoc: SignDoc): Promise<any> {
+  async signDirect(_signerAddress: string, _signDoc: SignDoc): Promise<any> {
     if (!this.connected || !this.app) {
       throw new Error('Ledger not connected');
     }
@@ -158,7 +158,7 @@ export class TrezorWallet extends HardwareWallet {
         'Install with: npm install @trezor/connect-web'
       );
     } catch (error) {
-      throw new Error(`Failed to connect to Trezor: ${error.message}`);
+      throw new Error(`Failed to connect to Trezor: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -176,7 +176,7 @@ export class TrezorWallet extends HardwareWallet {
     throw new Error('Trezor getAccounts not implemented');
   }
 
-  async signDirect(signerAddress: string, signDoc: SignDoc): Promise<any> {
+  async signDirect(_signerAddress: string, _signDoc: SignDoc): Promise<any> {
     if (!this.connected || !this.trezorConnect) {
       throw new Error('Trezor not connected');
     }
@@ -206,12 +206,15 @@ export function createHardwareWallet(options: HardwareWalletOptions): HardwareWa
 export function isHardwareWalletSupported(type: HardwareWalletType): boolean {
   // Check for WebUSB support (required for Ledger)
   if (type === HardwareWalletType.LEDGER) {
-    return typeof navigator !== 'undefined' && 'usb' in navigator;
+    return typeof globalThis !== 'undefined' &&
+           typeof (globalThis as any).navigator !== 'undefined' &&
+           'usb' in (globalThis as any).navigator;
   }
 
   // Trezor uses window.postMessage, should work in most browsers
   if (type === HardwareWalletType.TREZOR) {
-    return typeof window !== 'undefined';
+    return typeof globalThis !== 'undefined' &&
+           typeof (globalThis as any).window !== 'undefined';
   }
 
   return false;

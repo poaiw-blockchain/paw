@@ -100,8 +100,8 @@ export class TxBuilder {
       height: result.height,
       code: result.code,
       rawLog: result.rawLog,
-      gasUsed: result.gasUsed,
-      gasWanted: result.gasWanted
+      gasUsed: Number(result.gasUsed),
+      gasWanted: Number(result.gasWanted)
     };
   }
 }

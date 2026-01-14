@@ -2,16 +2,18 @@
 
 Official JavaScript/TypeScript SDK for interacting with the PAW blockchain.
 
+> **Testnet Status**: The `paw-mvp-1` testnet is live. Core modules (Bank, Staking, Governance, IBC) are fully operational. DEX, Compute, and Oracle modules are disabled at genesis and require governance activation.
+
 ## Features
 
 - **Full TypeScript Support**: Complete type definitions for all APIs
 - **Wallet Management**: Create, import, and manage wallets with BIP39 mnemonics
 - **Transaction Building**: Easy-to-use transaction builders with automatic fee estimation
 - **Module Support**:
-  - **Bank**: Send tokens, query balances
-  - **DEX**: Create pools, swap tokens, add/remove liquidity
-  - **Staking**: Delegate, undelegate, redelegate, withdraw rewards
-  - **Governance**: Submit proposals, vote, deposit
+  - **Bank**: Send tokens, query balances ✅
+  - **Staking**: Delegate, undelegate, redelegate, withdraw rewards ✅
+  - **Governance**: Submit proposals, vote, deposit ✅
+  - **DEX**: Create pools, swap tokens, add/remove liquidity *(requires activation)*
 - **Dual Build**: ESM and CommonJS support
 - **Browser Compatible**: Works in both Node.js and browser environments
 
@@ -44,13 +46,18 @@ console.log('Address:', address);
 ### Connect to PAW Blockchain
 
 ```typescript
-import { PawClient, PawWallet } from '@paw-chain/sdk';
+import { PawClient, PawWallet, PAW_TESTNET_CONFIG } from '@paw-chain/sdk';
 
-// Initialize client
-const client = new PawClient({
-  rpcEndpoint: 'http://localhost:26657',
-  restEndpoint: 'http://localhost:1317',
+// Connect to testnet using built-in config
+const client = new PawClient(PAW_TESTNET_CONFIG);
+await client.connect();
+
+// Or use custom config
+const customClient = new PawClient({
   chainId: 'paw-mvp-1',
+  rpcEndpoint: 'https://testnet-rpc.poaiw.org',
+  restEndpoint: 'https://testnet-api.poaiw.org',
+  prefix: 'paw',
   gasPrice: '0.025upaw'
 });
 
@@ -105,14 +112,22 @@ await client.bank.multiSend(sender, [
 
 ### DEX Module
 
+> **Note**: DEX module is currently disabled on paw-mvp-1 testnet. Transaction methods will throw `ModuleDisabledError` until enabled via governance.
+
 ```typescript
-// Get all pools
+import { ModuleDisabledError } from '@paw-chain/sdk';
+
+// Check if DEX is enabled
+const isEnabled = await client.dex.isEnabled();
+console.log('DEX enabled:', isEnabled);
+
+// Query pools (returns empty array when disabled)
 const pools = await client.dex.getAllPools();
 
 // Get specific pool
 const pool = await client.dex.getPoolByTokens('upaw', 'uatom');
 
-// Calculate swap output
+// Calculate swap output (offline, always works)
 const amountOut = client.dex.calculateSwapOutput(
   '1000000',
   pool.reserveA,
@@ -120,13 +135,19 @@ const amountOut = client.dex.calculateSwapOutput(
   pool.swapFee
 );
 
-// Execute swap
-await client.dex.swap(sender, {
-  poolId: pool.id,
-  tokenIn: 'upaw',
-  amountIn: '1000000',
-  minAmountOut: '900000'
-});
+// Execute swap (throws ModuleDisabledError when disabled)
+try {
+  await client.dex.swap(sender, {
+    poolId: pool.id,
+    tokenIn: 'upaw',
+    amountIn: '1000000',
+    minAmountOut: '900000'
+  });
+} catch (error) {
+  if (error instanceof ModuleDisabledError) {
+    console.log('DEX module not yet enabled');
+  }
+}
 
 // Create pool
 await client.dex.createPool(creator, {
@@ -368,13 +389,11 @@ import type { Pool, Validator, Proposal, TxResult } from '@paw-chain/sdk';
 The SDK works in modern browsers. Use a bundler like Vite, Webpack, or Rollup:
 
 ```typescript
-import { PawClient } from '@paw-chain/sdk';
+import { PawClient, PAW_TESTNET_CONFIG } from '@paw-chain/sdk';
 
 // Works in browser!
-const client = new PawClient({
-  rpcEndpoint: 'https://rpc.paw.network',
-  chainId: 'paw-1'
-});
+const client = new PawClient(PAW_TESTNET_CONFIG);
+await client.connect();
 ```
 
 ## Error Handling
@@ -405,11 +424,20 @@ MIT License - see [LICENSE](../../LICENSE) for details.
 
 ## Support
 
-- Documentation: https://docs.paw.network
-- : https://github.com/paw-chain/paw
-- Discord: https://discord.gg/DBHTc2QV
+- Documentation: https://docs.poaiw.org
+- GitHub: https://github.com/poaiw-blockchain/paw
+- Discord: PoAIW Blockchain • Official
 
 ## Changelog
+
+### 1.1.0
+- Updated for paw-mvp-1 testnet compatibility
+- Added `PAW_TESTNET_CONFIG` constant
+- Added `ModuleDisabledError` for disabled modules (DEX, Compute, Oracle)
+- Updated Validator interface to match actual API (snake_case)
+- Added `isEnabled()` method to DEX module
+- Fixed REST API endpoints
+- Removed axios dependency
 
 ### 1.0.0
 - Initial release

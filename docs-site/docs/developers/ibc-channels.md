@@ -56,7 +56,7 @@ This sets a 10-minute timeout.
 **Via TypeScript SDK:**
 
 ```typescript
-import { PawClient } from '@poaiw-blockchain/paw-sdk';
+import { PawClient } from '@paw-chain/sdk';
 
 const result = await client.ibc.transfer({
   sourcePort: 'transfer',
@@ -381,7 +381,7 @@ hermes --log-level debug start
 ### Example: Cross-Chain Transfer App
 
 ```typescript
-import { PawClient } from '@poaiw-blockchain/paw-sdk';
+import { PawClient } from '@paw-chain/sdk';
 
 class CrossChainTransferApp {
   private client: PawClient;

@@ -1,5 +1,5 @@
 import { PawClient } from '../client';
-import { SendParams, QueryBalance, TxResult, GasOptions } from '../types';
+import { SendParams, TxResult, GasOptions } from '../types';
 import { Coin } from '@cosmjs/stargate';
 
 export class BankModule {
@@ -78,31 +78,42 @@ export class BankModule {
    * Get total supply of a denom
    */
   async getTotalSupply(denom: string): Promise<Coin | null> {
-    const client = this.client.getClient();
+    try {
+      const config = this.client.getConfig();
+      const restEndpoint = config.restEndpoint || config.rpcEndpoint.replace(':26657', ':1317');
 
-    // Use query client if available
-    const queryClient = client.forceGetQueryClient();
-    if (queryClient) {
-      const response = await queryClient.bank.supplyOf(denom);
-      return response.amount || null;
+      const response = await fetch(`${restEndpoint}/cosmos/bank/v1beta1/supply/by_denom?denom=${denom}`);
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json() as { amount?: Coin };
+      return data.amount || null;
+    } catch (error) {
+      console.error('Error fetching total supply:', error);
+      return null;
     }
-
-    return null;
   }
 
   /**
    * Get all denoms
    */
   async getAllDenoms(): Promise<string[]> {
-    const client = this.client.getClient();
-    const queryClient = client.forceGetQueryClient();
+    try {
+      const config = this.client.getConfig();
+      const restEndpoint = config.restEndpoint || config.rpcEndpoint.replace(':26657', ':1317');
 
-    if (queryClient) {
-      const response = await queryClient.bank.totalSupply();
-      return response.supply.map((coin: Coin) => coin.denom);
+      const response = await fetch(`${restEndpoint}/cosmos/bank/v1beta1/supply`);
+      if (!response.ok) {
+        return [];
+      }
+
+      const data = await response.json() as { supply?: Coin[] };
+      return (data.supply || []).map((coin: Coin) => coin.denom);
+    } catch (error) {
+      console.error('Error fetching all denoms:', error);
+      return [];
     }
-
-    return [];
   }
 
   /**

@@ -99,7 +99,7 @@ export class GovernanceModule {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as { proposals?: Proposal[] };
       return data.proposals || [];
     } catch (error) {
       console.error('Error fetching proposals:', error);
@@ -120,7 +120,7 @@ export class GovernanceModule {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as { proposal?: Proposal };
       return data.proposal || null;
     } catch (error) {
       console.error('Error fetching proposal:', error);
@@ -141,7 +141,7 @@ export class GovernanceModule {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as { votes?: any[] };
       return data.votes || [];
     } catch (error) {
       console.error('Error fetching votes:', error);
@@ -164,7 +164,7 @@ export class GovernanceModule {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as { vote?: any };
       return data.vote || null;
     } catch (error) {
       console.error('Error fetching vote:', error);
@@ -185,7 +185,7 @@ export class GovernanceModule {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as { deposits?: any[] };
       return data.deposits || [];
     } catch (error) {
       console.error('Error fetching deposits:', error);
@@ -206,7 +206,7 @@ export class GovernanceModule {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as { tally?: any };
       return data.tally || null;
     } catch (error) {
       console.error('Error fetching tally:', error);
@@ -227,7 +227,7 @@ export class GovernanceModule {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as Record<string, any>;
       return data[`${paramsType}_params`] || null;
     } catch (error) {
       console.error('Error fetching params:', error);

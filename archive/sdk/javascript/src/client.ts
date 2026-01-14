@@ -48,11 +48,7 @@ export class PawClient {
     const signer = wallet.getSigner();
     this.signingClient = await SigningStargateClient.connectWithSigner(
       this.config.rpcEndpoint,
-      signer,
-      {
-        prefix: this.config.prefix,
-        gasPrice: this.config.gasPrice
-      }
+      signer
     );
 
     this.txBuilder = new TxBuilder(
