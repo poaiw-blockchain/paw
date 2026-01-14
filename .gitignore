@@ -163,15 +163,32 @@ k8s/secrets-configmaps.yaml
 .kube/
 
 # ============================================================================
-# Test Reports and Analysis Artifacts
+# AI-Generated Reports and Summaries - Never Commit
 # ============================================================================
 TEST_STATUS.csv
 TEST_FAILURE_DETAILS.json
 QUICK_TEST_SUMMARY.txt
 *SUMMARY*.md
+*SUMMARY*.txt
 *ANALYSIS*.md
+*ANALYSIS*.txt
 *FINDINGS*.txt
-!docs/**
+*FINDINGS*.md
+*_REPORT*.md
+*_REPORT*.txt
+*IMPLEMENTATION*.md
+*IMPLEMENTATION*.txt
+*EXECUTIVE*.md
+*EXECUTIVE*.txt
+*COMPLETE*.md
+*COMPLETE*.txt
+AUDIT_LOG_COMPLETION_REPORT.md
+TESTNET_HARDENING_REPORT.md
+
+# Coverage reports (generated, not source)
+**/coverage/
+**/lcov-report/
+lcov.info
 
 # ============================================================================
 # Claude/AI Assistant Files - Not for Public Repo
