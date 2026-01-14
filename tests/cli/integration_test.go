@@ -484,6 +484,7 @@ func (s *CLIIntegrationTestSuite) TestKeysListCmd() {
 	}
 
 	cmdKeys := cmd.KeysCmd()
+	cmdKeys.SetContext(context.Background())
 	var listCmd *cobra.Command
 	for _, c := range cmdKeys.Commands() {
 		if c.Name() == "list" {
@@ -492,6 +493,7 @@ func (s *CLIIntegrationTestSuite) TestKeysListCmd() {
 		}
 	}
 	require.NotNil(s.T(), listCmd)
+	listCmd.SetContext(context.Background())
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
 	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
@@ -530,6 +532,7 @@ func (s *CLIIntegrationTestSuite) TestKeysShowCmd() {
 	require.NoError(s.T(), err)
 
 	cmdKeys := cmd.KeysCmd()
+	cmdKeys.SetContext(context.Background())
 	var showCmd *cobra.Command
 	for _, c := range cmdKeys.Commands() {
 		if c.Name() == "show" {
@@ -538,6 +541,7 @@ func (s *CLIIntegrationTestSuite) TestKeysShowCmd() {
 		}
 	}
 	require.NotNil(s.T(), showCmd)
+	showCmd.SetContext(context.Background())
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
 	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
@@ -580,6 +584,7 @@ func (s *CLIIntegrationTestSuite) TestKeysDeleteCmd() {
 	require.NoError(s.T(), err)
 
 	cmdKeys := cmd.KeysCmd()
+	cmdKeys.SetContext(context.Background())
 	var deleteCmd *cobra.Command
 	for _, c := range cmdKeys.Commands() {
 		if c.Name() == "delete" {
@@ -588,6 +593,7 @@ func (s *CLIIntegrationTestSuite) TestKeysDeleteCmd() {
 		}
 	}
 	require.NotNil(s.T(), deleteCmd)
+	deleteCmd.SetContext(context.Background())
 
 	clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
 	require.NoError(s.T(), client.SetCmdClientContext(cmdKeys, clientCtx))
