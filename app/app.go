@@ -137,12 +137,7 @@ import (
 )
 
 const (
-<<<<<<< Updated upstream
-	// AccountAddressPrefix is defined in params.go as Bech32PrefixAccAddr
 	Name = "paw"
-=======
-	Name                 = "paw"
->>>>>>> Stashed changes
 )
 
 // AccountAddressPrefix re-exports the bech32 prefix from params for backward compatibility
@@ -675,7 +670,7 @@ func NewPAWApp(
 
 		chainID := cast.ToString(appOpts.Get("chain-id"))
 		if chainID == "" {
-			chainID = "paw-testnet-1"
+			chainID = "paw-mvp-1"
 		}
 
 		environment := cast.ToString(appOpts.Get("telemetry.environment"))

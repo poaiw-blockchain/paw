@@ -35,7 +35,7 @@ jobs:
 
       - name: Build PAW chain binary
         run: |
-          go build -o /tmp/pawd ./cmd/...
+          go build -o /tmp/pawd ./cmd/pawd
 
       - name: Run IBC transfer tests
         run: |

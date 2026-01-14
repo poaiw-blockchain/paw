@@ -8,11 +8,7 @@ import (
 )
 
 const (
-	// AccountAddressPrefix is the base prefix for account addresses
-	AccountAddressPrefix = "pawtest"
-	
 	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
-<<<<<<< Updated upstream
 	Bech32PrefixAccAddr = "pawtest"
 	// Bech32PrefixAccPub defines the Bech32 prefix of an account's public key
 	Bech32PrefixAccPub = "pawtestpub"
@@ -24,19 +20,6 @@ const (
 	Bech32PrefixConsAddr = "pawtestvalcons"
 	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
 	Bech32PrefixConsPub = "pawtestvalconspub"
-=======
-	Bech32PrefixAccAddr = AccountAddressPrefix
-	// Bech32PrefixAccPub defines the Bech32 prefix of an account's public key
-	Bech32PrefixAccPub = AccountAddressPrefix + "pub"
-	// Bech32PrefixValAddr defines the Bech32 prefix of a validator's operator address
-	Bech32PrefixValAddr = AccountAddressPrefix + "valoper"
-	// Bech32PrefixValPub defines the Bech32 prefix of a validator's operator public key
-	Bech32PrefixValPub = AccountAddressPrefix + "valoperpub"
-	// Bech32PrefixConsAddr defines the Bech32 prefix of a consensus node address
-	Bech32PrefixConsAddr = AccountAddressPrefix + "valcons"
-	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
-	Bech32PrefixConsPub = AccountAddressPrefix + "valconspub"
->>>>>>> Stashed changes
 
 	// CoinType is the PAW coin type as defined in SLIP44 (https://github.com/satoshilabs/slips/blob/master/slip-0044.md)
 	CoinType = 118
