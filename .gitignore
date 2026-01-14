@@ -67,7 +67,8 @@ coverage_by_package.txt
 # Dependency directories
 vendor/
 
-# Go workspace file
+# Go workspace files (local development only, contain machine-specific paths)
+go.work
 go.work.sum
 
 # ============================================================================
