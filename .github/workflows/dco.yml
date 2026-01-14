@@ -3,8 +3,7 @@ name: DCO Check
 on:
   pull_request:
     branches: [main, develop]
-  push:
-    branches: [main, develop]
+  # Note: DCO only enforced on PRs, not direct pushes (maintainers)
 
 permissions:
   contents: read
