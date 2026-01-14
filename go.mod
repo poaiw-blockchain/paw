@@ -35,7 +35,7 @@ require (
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/ibc-go/modules/capability v1.0.1
-	github.com/cosmos/ibc-go/v8 v8.7.0
+	github.com/cosmos/ibc-go/v8 v8.8.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/golang/protobuf v1.5.4
