@@ -690,6 +690,9 @@ func TestCreateEscrowProof(t *testing.T) {
 }
 
 func TestVerifyGroth16PairingFailsWithoutCircuit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow ZK proof test in short mode")
+	}
 	k, ctx := setupKeeperForTest(t)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	proof := &Groth16ProofBN254{}

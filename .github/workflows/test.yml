@@ -41,7 +41,14 @@ jobs:
         run: go build -v ./...
 
       - name: Run tests with race detection
-        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: |
+          # Use -short flag for PR tests to skip slow ZK/crypto tests
+          # Full tests run on push to main/develop
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            go test -race -short -coverprofile=coverage.out -covermode=atomic -timeout 10m ./...
+          else
+            go test -race -coverprofile=coverage.out -covermode=atomic -timeout 15m ./...
+          fi
 
       - name: Generate coverage report
         run: go tool cover -html=coverage.out -o coverage.html
