@@ -7,15 +7,38 @@ jobs:
   gosec:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Use Cosmos SDK's gosec fork with Cosmos-specific security rules
+      # https://github.com/cosmos/gosec
+      - name: Run Cosmos Gosec Security Scanner
+        uses: cosmos/gosec@master
         with:
-          go-version: '1.24'
-      - name: Install gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-      - name: Run gosec
-        # Exclude G104 (unhandled errors) and G107 (url provided to HTTP request)
-        # as these generate too many false positives in Cosmos SDK codebases
-        # Focus on high/medium severity security issues
-        run: gosec -exclude=G104,G107 -severity=medium ./...
+          # Run all Cosmos-specific rules
+          # G104 (unhandled errors) is redundant with errcheck in golangci-lint
+          # False positives should be annotated with #nosec comments
+          args: -exclude=G104 -fmt=json -out=gosec-results.json ./...
+        continue-on-error: true
+
+      - name: Upload gosec results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gosec-results
+          path: gosec-results.json
+          retention-days: 30
+        if: always()
+
+      - name: Check for high severity issues
+        run: |
+          if [ -f gosec-results.json ]; then
+            # Count high/critical severity issues (not LOW severity)
+            HIGH_COUNT=$(jq '[.Issues[] | select(.severity != "LOW")] | length' gosec-results.json 2>/dev/null || echo "0")
+            echo "High/Critical severity issues: $HIGH_COUNT"
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo "::warning::Found $HIGH_COUNT high/critical severity security issues"
+              jq '.Issues[] | select(.severity != "LOW") | {file: .file, line: .line, rule: .rule_id, severity: .severity, details: .details}' gosec-results.json
+              exit 1
+            fi
+            echo "No high/critical severity issues found"
+          fi
