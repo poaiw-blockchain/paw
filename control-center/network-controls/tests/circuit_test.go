@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -181,9 +182,9 @@ func TestCircuitBreakerManager(t *testing.T) {
 		manager.Start()
 		defer manager.Stop()
 
-		callbackCalled := false
+		var callbackCalled atomic.Bool
 		manager.SetAutoResumeCallback(func(module, subModule string) error {
-			callbackCalled = true
+			callbackCalled.Store(true)
 			return nil
 		})
 
@@ -197,7 +198,7 @@ func TestCircuitBreakerManager(t *testing.T) {
 		// Wait for auto-resume
 		time.Sleep(2 * time.Second)
 
-		require.True(t, callbackCalled)
+		require.True(t, callbackCalled.Load())
 	})
 
 	t.Run("Export and import state", func(t *testing.T) {

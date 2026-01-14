@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/curve25519"
@@ -36,6 +37,7 @@ type MessageAuthenticator struct {
 
 // NonceTracker prevents replay attacks
 type NonceTracker struct {
+	mu              sync.RWMutex
 	used            map[uint64]time.Time
 	maxAge          time.Duration
 	cleanupInterval time.Duration
@@ -69,6 +71,9 @@ func NewNonceTracker(maxAge, cleanupInterval time.Duration) *NonceTracker {
 func (nt *NonceTracker) CheckAndMark(nonce uint64) bool {
 	now := time.Now()
 
+	nt.mu.Lock()
+	defer nt.mu.Unlock()
+
 	// Check if nonce was used
 	if usedAt, exists := nt.used[nonce]; exists {
 		// Check if still within max age
@@ -89,11 +94,13 @@ func (nt *NonceTracker) cleanup() {
 
 	for range ticker.C {
 		now := time.Now()
+		nt.mu.Lock()
 		for nonce, usedAt := range nt.used {
 			if now.Sub(usedAt) > nt.maxAge {
 				delete(nt.used, nonce)
 			}
 		}
+		nt.mu.Unlock()
 	}
 }
 
