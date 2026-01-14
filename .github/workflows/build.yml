@@ -41,7 +41,7 @@ jobs:
         run: go build -v ./...
 
       - name: Build daemon binary
-        run: go build -ldflags="-s -w" -o pawd ./cmd/...
+        run: go build -ldflags="-s -w" -o pawd ./cmd/pawd
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4

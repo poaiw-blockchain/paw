@@ -14,7 +14,7 @@ jobs:
           go-version: '1.21'
       - name: Verify reproducible build (hash)
         run: |
-          go build -o /tmp/pawd1 ./cmd/...
-          go build -o /tmp/pawd2 ./cmd/...
+          go build -o /tmp/pawd1 ./cmd/pawd
+          go build -o /tmp/pawd2 ./cmd/pawd
           sha256sum /tmp/pawd1 /tmp/pawd2
           diff <(sha256sum /tmp/pawd1 | awk '{print $1}') <(sha256sum /tmp/pawd2 | awk '{print $1}')

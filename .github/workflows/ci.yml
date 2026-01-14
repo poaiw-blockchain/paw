@@ -242,7 +242,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          go build -ldflags="-s -w" -o pawd-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/...
+          go build -ldflags="-s -w" -o pawd-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/pawd
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -267,8 +267,8 @@ jobs:
 
       - name: Verify reproducible build
         run: |
-          go build -o /tmp/pawd1 ./cmd/...
-          go build -o /tmp/pawd2 ./cmd/...
+          go build -o /tmp/pawd1 ./cmd/pawd
+          go build -o /tmp/pawd2 ./cmd/pawd
           sha256sum /tmp/pawd1 /tmp/pawd2
 
           HASH1=$(sha256sum /tmp/pawd1 | awk '{print $1}')
