@@ -50,8 +50,8 @@ wallets/
 *.bin
 /build/
 /bin/
-pawd
-pawcli
+/pawd
+/pawcli
 explorer/indexer/paw-indexer
 
 # Test binary, built with `go test -c`
