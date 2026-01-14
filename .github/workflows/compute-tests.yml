@@ -1,0 +1,91 @@
+name: Compute Module Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'x/compute/**'
+  pull_request:
+    paths:
+      - 'x/compute/**'
+  schedule:
+    - cron: '0 7 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  compute-unit-tests:
+    name: Compute Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run compute unit tests
+        run: |
+          go test -v -race -coverprofile=compute-coverage.out ./x/compute/...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./compute-coverage.out
+          flags: compute
+
+  compute-integration:
+    name: Compute Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run compute integration tests
+        run: |
+          # Test task submission
+          go test -v -timeout 30m ./x/compute/... -run TestTaskSubmission
+
+          # Test task execution
+          go test -v -timeout 30m ./x/compute/... -run TestTaskExecution
+
+          # Test result verification
+          go test -v -timeout 30m ./x/compute/... -run TestResultVerification
+
+          # Test reward distribution
+          go test -v -timeout 30m ./x/compute/... -run TestRewardDistribution
+
+  compute-security:
+    name: Compute Security Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run compute security tests
+        run: |
+          # Test resource limits
+          go test -v ./x/compute/... -run TestResourceLimits
+
+          # Test permission checks
+          go test -v ./x/compute/... -run TestPermissions
+
+          # Test rate limiting
+          go test -v ./x/compute/... -run TestRateLimiting

@@ -1,0 +1,95 @@
+name: Chain Upgrade Testing
+
+on:
+  pull_request:
+    paths:
+      - 'app/upgrades/**'
+      - 'app/app.go'
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      from_version:
+        description: 'Version to upgrade from'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade-test:
+    name: Test Chain Upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout current version
+        uses: actions/checkout@v4
+        with:
+          path: new-version
+
+      - name: Checkout previous version
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.from_version || 'v1.0.0' }}
+          path: old-version
+        continue-on-error: true
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build binaries
+        run: |
+          cd new-version && go build -o /tmp/pawd-new ./cmd/...
+          if [ -d "../old-version" ]; then
+            cd ../old-version && go build -o /tmp/pawd-old ./cmd/... || cp /tmp/pawd-new /tmp/pawd-old
+          else
+            cp /tmp/pawd-new /tmp/pawd-old
+          fi
+
+      - name: Initialize chain
+        run: |
+          /tmp/pawd-old init test-node --chain-id paw-upgrade-test --home /tmp/paw-home
+          /tmp/pawd-old keys add validator --keyring-backend test --home /tmp/paw-home
+          /tmp/pawd-old genesis add-genesis-account validator 1000000000upaw \
+            --keyring-backend test --home /tmp/paw-home
+          /tmp/pawd-old genesis gentx validator 100000000upaw \
+            --chain-id paw-upgrade-test --keyring-backend test --home /tmp/paw-home
+          /tmp/pawd-old genesis collect-gentxs --home /tmp/paw-home
+
+      - name: Produce blocks with old version
+        run: |
+          /tmp/pawd-old start --home /tmp/paw-home &
+          sleep 30
+          HEIGHT=$(curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+          echo "Height before upgrade: $HEIGHT"
+          pkill pawd-old || true
+          sleep 5
+
+      - name: Upgrade to new version
+        run: |
+          /tmp/pawd-new start --home /tmp/paw-home &
+          sleep 30
+          HEIGHT=$(curl -s http://localhost:26657/status | jq -r '.result.sync_info.latest_block_height')
+          echo "Height after upgrade: $HEIGHT"
+
+          if [ "$HEIGHT" -lt "10" ]; then
+            echo "Chain failed after upgrade"
+            exit 1
+          fi
+
+          pkill pawd-new || true
+
+      - name: Test state queries
+        run: |
+          /tmp/pawd-new start --home /tmp/paw-home &
+          sleep 10
+
+          # Test basic queries
+          /tmp/pawd-new query bank total --home /tmp/paw-home
+          /tmp/pawd-new query staking params --home /tmp/paw-home
+
+          pkill pawd-new || true

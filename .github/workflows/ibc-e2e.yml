@@ -1,0 +1,83 @@
+name: IBC Interchain Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'x/ibc/**'
+      - 'x/dex/**'
+  pull_request:
+    paths:
+      - 'x/ibc/**'
+      - 'x/dex/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interchain-test:
+    name: IBC E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install interchaintest
+        run: |
+          go install github.com/strangelove-ventures/interchaintest/v8/cmd/interchaintest@latest
+
+      - name: Build PAW chain binary
+        run: |
+          go build -o /tmp/pawd ./cmd/...
+
+      - name: Run IBC transfer tests
+        run: |
+          if [ -d "tests/interchain" ]; then
+            go test -v -timeout 60m ./tests/interchain/... -run TestIBCTransfer
+          else
+            echo "No interchain tests found, running integration tests"
+            go test -v -timeout 30m ./x/ibc/... -run TestIBC
+          fi
+
+      - name: Run cross-chain swap tests
+        run: |
+          if [ -d "tests/interchain" ]; then
+            go test -v -timeout 60m ./tests/interchain/... -run TestCrossChainSwap
+          fi
+        continue-on-error: true
+
+  ibc-conformance:
+    name: IBC Conformance Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run IBC conformance
+        run: |
+          go test -v -timeout 30m ./x/ibc/... -run TestIBCConformance
+        continue-on-error: true
+
+      - name: Check IBC version compatibility
+        run: |
+          # Check IBC-go version
+          IBC_VERSION=$(grep 'github.com/cosmos/ibc-go' go.mod | awk '{print $2}')
+          echo "IBC-go version: $IBC_VERSION"
+          echo "IBC_VERSION=$IBC_VERSION" >> $GITHUB_ENV

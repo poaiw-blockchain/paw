@@ -1,0 +1,102 @@
+name: Network Artifact Sync
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-peers:
+    name: Sync Network Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout testnets
+        uses: actions/checkout@v4
+        with:
+          repository: poaiw-blockchain/testnets
+          token: ${{ secrets.TESTNETS_PAT }}
+          path: testnets
+        continue-on-error: true
+
+      - name: Fetch peer data
+        run: |
+          RPC="https://testnet-rpc.poaiw.org"
+
+          # Get peers
+          PEERS=$(curl -s "$RPC/net_info" | \
+            jq -r '.result.peers[] | "\(.node_info.id)@\(.remote_ip):\(.node_info.listen_addr | split(":")[2])"' | \
+            sort -u | head -20) || echo "RPC unavailable"
+
+          if [ -d "testnets/paw-mvp-1" ] && [ -n "$PEERS" ]; then
+            echo "$PEERS" > testnets/paw-mvp-1/peers.txt
+          fi
+
+      - name: Update state sync
+        run: |
+          RPC="https://testnet-rpc.poaiw.org"
+          LATEST=$(curl -s "$RPC/block" | jq -r '.result.block.header.height') || echo "0"
+
+          if [ "$LATEST" != "0" ] && [ -d "testnets/paw-mvp-1" ]; then
+            TRUST_HEIGHT=$((LATEST - 2000))
+            TRUST_HASH=$(curl -s "$RPC/block?height=$TRUST_HEIGHT" | jq -r '.result.block_id.hash')
+
+            cat > testnets/paw-mvp-1/state_sync.md << EOF
+# State Sync Configuration
+
+\`\`\`toml
+[statesync]
+enable = true
+rpc_servers = "$RPC,$RPC"
+trust_height = $TRUST_HEIGHT
+trust_hash = "$TRUST_HASH"
+trust_period = "168h"
+\`\`\`
+
+Updated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+EOF
+          fi
+
+      - name: Commit changes
+        if: success()
+        working-directory: testnets
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .
+          git diff --staged --quiet || git commit -m "chore: auto-update network artifacts"
+          git push
+        continue-on-error: true
+
+  upload-r2:
+    name: Upload to R2
+    runs-on: ubuntu-latest
+    needs: sync-peers
+    if: always()
+    steps:
+      - name: Checkout testnets
+        uses: actions/checkout@v4
+        with:
+          repository: poaiw-blockchain/testnets
+          path: testnets
+        continue-on-error: true
+
+      - name: Setup wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        continue-on-error: true
+
+      - name: Upload artifacts
+        run: |
+          if [ -d "testnets/paw-mvp-1" ]; then
+            cd testnets/paw-mvp-1
+            if [ -f "peers.txt" ]; then
+              wrangler r2 object put paw-testnet-artifacts/paw-mvp-1/peers.txt \
+                --file peers.txt --content-type text/plain || echo "R2 upload failed"
+            fi
+          fi
+        continue-on-error: true

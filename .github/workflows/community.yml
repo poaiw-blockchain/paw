@@ -1,0 +1,73 @@
+name: Community Automation
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, ready_for_review]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-label:
+    name: Auto-Label Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const labels = [];
+
+            if (title.includes('bug')) labels.push('bug');
+            if (title.includes('feature')) labels.push('enhancement');
+            if (body.includes('x/dex')) labels.push('module:dex');
+            if (body.includes('x/compute')) labels.push('module:compute');
+            if (body.includes('x/oracle')) labels.push('module:oracle');
+            if (body.includes('ibc')) labels.push('ibc');
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }
+
+  welcome-contributor:
+    name: Welcome New Contributors
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              creator: creator
+            });
+
+            if (prs.length === 1) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `Welcome @${creator}! Thanks for your first contribution to PAW.
+
+Please ensure:
+- All CI checks pass
+- Commits are DCO signed
+- Tests cover new functionality
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.`
+              });
+            }

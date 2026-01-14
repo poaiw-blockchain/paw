@@ -1,0 +1,137 @@
+name: Blockchain Simulations
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Daily at 3 AM UTC
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'x/**'
+  workflow_dispatch:
+    inputs:
+      simulation_type:
+        description: 'Simulation type'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - determinism
+          - import-export
+          - full-app
+
+permissions:
+  contents: read
+
+jobs:
+  sim-determinism:
+    name: Determinism Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run determinism simulation
+        run: |
+          go test -mod=readonly -run TestAppStateDeterminism \
+            -timeout 90m -v ./app/... 2>&1 | tee sim-determinism.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sim-determinism-logs
+          path: sim-determinism.log
+          retention-days: 30
+
+  sim-import-export:
+    name: Import/Export Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run import/export simulation
+        run: |
+          go test -mod=readonly -run TestAppImportExport \
+            -timeout 120m -NumBlocks=250 -BlockSize=50 \
+            -Commit=true -v ./app/... 2>&1 | tee sim-import-export.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sim-import-export-logs
+          path: sim-import-export.log
+          retention-days: 30
+
+  sim-full-app:
+    name: Full App Simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      matrix:
+        seed: [1, 7, 42, 99, 256]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run full simulation (seed ${{ matrix.seed }})
+        run: |
+          go test -mod=readonly -run TestFullAppSimulation \
+            -timeout 240m -Seed=${{ matrix.seed }} \
+            -NumBlocks=500 -BlockSize=100 -Commit=true \
+            -v ./app/... 2>&1 | tee sim-full-seed-${{ matrix.seed }}.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sim-full-seed-${{ matrix.seed }}-logs
+          path: sim-full-seed-${{ matrix.seed }}.log
+          retention-days: 30
+
+  sim-summary:
+    name: Simulation Summary
+    runs-on: ubuntu-latest
+    needs: [sim-determinism, sim-import-export, sim-full-app]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## PAW Blockchain Simulation Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Determinism | ${{ needs.sim-determinism.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Import/Export | ${{ needs.sim-import-export.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Full App (multi-seed) | ${{ needs.sim-full-app.result }} |" >> $GITHUB_STEP_SUMMARY

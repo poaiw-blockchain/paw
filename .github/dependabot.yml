@@ -1,46 +1,39 @@
 version: 2
 updates:
-  # Go modules
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "go"
     groups:
-      minor-updates:
+      cosmos-sdk:
         patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-    open-pull-requests-limit: 5
+          - "github.com/cosmos/*"
+          - "cosmossdk.io/*"
+      ibc:
+        patterns:
+          - "github.com/cosmos/ibc-go/*"
+      testing:
+        patterns:
+          - "github.com/stretchr/testify"
+          - "github.com/golang/mock"
 
-  # GitHub Actions
+  - package-ecosystem: "npm"
+    directory: "/wallet/desktop"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "javascript"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-    groups:
-      actions-updates:
-        patterns:
-          - "*"
-    open-pull-requests-limit: 3
-
-  # npm for wallet
-  - package-ecosystem: "npm"
-    directory: "/wallet"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    groups:
-      npm-minor-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-    open-pull-requests-limit: 5
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+    labels:
+      - "dependencies"
+      - "ci"

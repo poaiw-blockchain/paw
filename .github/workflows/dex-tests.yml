@@ -1,0 +1,96 @@
+name: DEX Module Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'x/dex/**'
+  pull_request:
+    paths:
+      - 'x/dex/**'
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+
+permissions:
+  contents: read
+
+jobs:
+  dex-unit-tests:
+    name: DEX Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run DEX unit tests
+        run: |
+          go test -v -race -coverprofile=dex-coverage.out ./x/dex/...
+
+      - name: Upload DEX coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./dex-coverage.out
+          flags: dex
+          name: dex-coverage
+
+  dex-simulation:
+    name: DEX Simulation Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run DEX simulations
+        run: |
+          # Test order matching
+          go test -v -timeout 30m ./x/dex/... -run TestOrderMatching
+
+          # Test liquidity pool operations
+          go test -v -timeout 30m ./x/dex/... -run TestLiquidityPool
+
+          # Test slippage protection
+          go test -v -timeout 30m ./x/dex/... -run TestSlippageProtection
+
+  dex-fuzz:
+    name: DEX Fuzz Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run DEX fuzz tests
+        run: |
+          # Fuzz order book operations
+          go test -fuzz=FuzzOrderBook -fuzztime=5m ./x/dex/keeper/...
+
+          # Fuzz swap calculations
+          go test -fuzz=FuzzSwapCalculation -fuzztime=5m ./x/dex/types/...
+        continue-on-error: true
+
+      - name: Upload fuzz artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fuzz-failures
+          path: testdata/fuzz/
+          retention-days: 30

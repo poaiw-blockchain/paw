@@ -1,0 +1,89 @@
+name: Performance Benchmarks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.go'
+  pull_request:
+    paths:
+      - '**/*.go'
+  schedule:
+    - cron: '0 5 * * 0'  # Weekly on Sunday
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  benchmarks:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Run all benchmarks
+        run: |
+          go test -bench=. -benchmem -run=^$ ./... 2>&1 | tee benchmark-results.txt
+
+      - name: Run module-specific benchmarks
+        run: |
+          # DEX benchmarks
+          go test -bench=. -benchmem -run=^$ ./x/dex/... 2>&1 | tee dex-benchmarks.txt
+
+          # Compute benchmarks
+          go test -bench=. -benchmem -run=^$ ./x/compute/... 2>&1 | tee compute-benchmarks.txt
+
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'go'
+          output-file-path: benchmark-results.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          alert-threshold: '150%'
+          comment-on-alert: true
+        continue-on-error: true
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            benchmark-results.txt
+            dex-benchmarks.txt
+            compute-benchmarks.txt
+          retention-days: 90
+
+  tps-benchmark:
+    name: TPS Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Build binary
+        run: go build -o pawd ./cmd/...
+
+      - name: Run TPS test
+        run: |
+          if [ -f "scripts/benchmark_tps.sh" ]; then
+            bash scripts/benchmark_tps.sh
+          else
+            echo "No TPS benchmark script found, skipping"
+          fi
+        continue-on-error: true
