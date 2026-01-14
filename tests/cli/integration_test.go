@@ -144,6 +144,11 @@ func execCmd(cmd *cobra.Command) error {
 func (s *CLIIntegrationTestSuite) attachCmdContexts(cmd *cobra.Command, homeDir string, chainID string) {
 	s.T().Helper()
 
+	// Ensure command has a context set before calling SetCmdClientContext
+	if cmd.Context() == nil {
+		cmd.SetContext(context.Background())
+	}
+
 	clientCtx := s.clientCtx.WithHomeDir(homeDir).WithKeyring(s.keyring)
 	if clientCtx.Codec == nil || clientCtx.InterfaceRegistry == nil || clientCtx.TxConfig == nil {
 		enc := app.MakeEncodingConfig()
