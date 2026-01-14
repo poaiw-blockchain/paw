@@ -384,10 +384,18 @@ func (ssp *StateSyncProtocol) discoverSnapshots(ctx context.Context) ([]*snapsho
 			return offers, nil
 
 		case <-done:
-			ssp.logger.Info("snapshot discovery complete",
-				"offers", len(offers),
-				"peers_queried", len(peers))
-			return offers, nil
+			// Drain any remaining offers from the channel
+			for {
+				select {
+				case offer := <-offerChan:
+					offers = append(offers, offer)
+				default:
+					ssp.logger.Info("snapshot discovery complete",
+						"offers", len(offers),
+						"peers_queried", len(peers))
+					return offers, nil
+				}
+			}
 
 		case <-ctx.Done():
 			return nil, ctx.Err()

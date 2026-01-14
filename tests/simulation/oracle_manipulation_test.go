@@ -176,41 +176,33 @@ func (suite *OracleManipulationTestSuite) TestFrontRunningAttack() {
 	newLegitimatePrice := math.LegacyNewDec(12) // 10% increase
 	frontRunPrice := math.LegacyNewDec(15)      // Attacker's exaggerated price
 
-	var wg sync.WaitGroup
 	var frontRunAccepted bool
 	var legitimateAccepted bool
 
+	// Note: Running these sequentially to avoid data races on shared context
+	// In production, each transaction would have its own context
+
 	// Front-runner submits first
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for _, v := range suite.validators {
-			if v.IsMalicious {
-				err := suite.submitPriceInternal(suite.ctx, asset, frontRunPrice, v.Address)
-				if err == nil {
-					frontRunAccepted = true
-				}
-				break
+	for _, v := range suite.validators {
+		if v.IsMalicious {
+			err := suite.submitPriceInternal(suite.ctx, asset, frontRunPrice, v.Address)
+			if err == nil {
+				frontRunAccepted = true
 			}
+			break
 		}
-	}()
+	}
 
 	// Legitimate validators submit after small delay
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		for _, v := range suite.validators {
-			if !v.IsMalicious {
-				err := suite.submitPriceInternal(suite.ctx, asset, newLegitimatePrice, v.Address)
-				if err == nil {
-					legitimateAccepted = true
-				}
+	time.Sleep(10 * time.Millisecond)
+	for _, v := range suite.validators {
+		if !v.IsMalicious {
+			err := suite.submitPriceInternal(suite.ctx, asset, newLegitimatePrice, v.Address)
+			if err == nil {
+				legitimateAccepted = true
 			}
 		}
-	}()
-
-	wg.Wait()
+	}
 
 	suite.T().Logf("TEST-1.4 Front-Running: FrontRun=%v, Legitimate=%v",
 		frontRunAccepted, legitimateAccepted)
