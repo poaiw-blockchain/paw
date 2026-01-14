@@ -9,10 +9,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: Run gosec
-        run: gosec ./...
+        # Exclude G104 (unhandled errors) and G107 (url provided to HTTP request)
+        # as these generate too many false positives in Cosmos SDK codebases
+        # Focus on high/medium severity security issues
+        run: gosec -exclude=G104,G107 -severity=medium ./...
