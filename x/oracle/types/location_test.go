@@ -390,16 +390,16 @@ func TestLocationEvidence_DetectLocationJumps(t *testing.T) {
 	period := 24 * time.Hour
 
 	tests := []struct {
-		name       string
-		proofs     []*LocationProof
-		threshold  int
-		wantJumps  bool
+		name      string
+		proofs    []*LocationProof
+		threshold int
+		wantJumps bool
 	}{
 		{
-			name:       "no jumps - less than 2 proofs",
-			proofs:     []*LocationProof{{ClaimedRegion: "na", Timestamp: now}},
-			threshold:  2,
-			wantJumps:  false,
+			name:      "no jumps - less than 2 proofs",
+			proofs:    []*LocationProof{{ClaimedRegion: "na", Timestamp: now}},
+			threshold: 2,
+			wantJumps: false,
 		},
 		{
 			name: "no jumps - consistent region",
@@ -519,7 +519,7 @@ func TestGeographicDistribution_DiversityScore(t *testing.T) {
 		{
 			name:           "perfectly distributed",
 			regions:        []string{"na", "eu", "apac"},
-			expectMinScore: 0.85,  // Lowered due to approximation in log functions
+			expectMinScore: 0.85, // Lowered due to approximation in log functions
 			expectMaxScore: 1.0,
 		},
 		{
@@ -600,14 +600,14 @@ func TestGeographicDistribution_IsSufficient(t *testing.T) {
 
 func TestLog2(t *testing.T) {
 	tests := []struct {
-		input    float64
-		expected float64
+		input     float64
+		expected  float64
 		tolerance float64
 	}{
 		{1.0, 0.0, 0.01},
-		{2.0, 1.0, 0.2},  // Increased tolerance for approximation
-		{4.0, 2.0, 0.5},  // Increased tolerance for approximation
-		{8.0, 3.0, 0.8},  // Increased tolerance for approximation
+		{2.0, 1.0, 0.2}, // Increased tolerance for approximation
+		{4.0, 2.0, 0.5}, // Increased tolerance for approximation
+		{8.0, 3.0, 0.8}, // Increased tolerance for approximation
 		{0.0, 0.0, 0.01},
 		{-1.0, 0.0, 0.01}, // Negative should return 0
 	}
@@ -623,8 +623,8 @@ func TestLog2(t *testing.T) {
 
 func TestLogNatural(t *testing.T) {
 	tests := []struct {
-		input    float64
-		expected float64
+		input     float64
+		expected  float64
 		tolerance float64
 	}{
 		{1.0, 0.0, 0.01},

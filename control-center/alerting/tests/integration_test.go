@@ -119,14 +119,14 @@ func TestAPI_ListAlerts(t *testing.T) {
 	// Create some test alerts
 	for i := 0; i < 5; i++ {
 		alert := &alerting.Alert{
-			ID:       string(rune('A' + i)),
-			RuleID:   "test-rule",
-			RuleName: "Test Alert",
-			Source:   alerting.SourcePerformance,
-			Severity: alerting.SeverityWarning,
-			Status:   alerting.StatusActive,
-			Message:  "Test message",
-			Value:    float64(i * 10),
+			ID:        string(rune('A' + i)),
+			RuleID:    "test-rule",
+			RuleName:  "Test Alert",
+			Source:    alerting.SourcePerformance,
+			Severity:  alerting.SeverityWarning,
+			Status:    alerting.StatusActive,
+			Message:   "Test message",
+			Value:     float64(i * 10),
 			Threshold: 50.0,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),

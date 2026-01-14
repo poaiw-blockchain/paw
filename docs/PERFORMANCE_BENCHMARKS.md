@@ -30,7 +30,7 @@ Any deviation ≥10% from the baseline requires an investigation and a note in `
 
 1. **Hardware:** 8 vCPU, 32 GB RAM, NVMe (3k+ MB/s), Ubuntu 22.04.
 2. **Software:** Go 1.22+, Docker 26+, Prometheus/Grafana/Loki stack from `monitoring/README.md`.
-3. **Chain State:** Use `networks/paw-testnet-1/` genesis with seeded validators. For development replay, run `./pawd start` with snapshot height ≥300k.
+3. **Chain State:** Use `networks/paw-mvp-1/` genesis with seeded validators. For development replay, run `./pawd start` with snapshot height ≥300k.
 4. **Logging:** Enable structured JSON logging so Loki queries can correlate latency spikes (`LOG_FORMAT=json`).
 5. **Monitoring:** Import dashboards from `monitoring/grafana/dashboards/*` and pin the Health + Log Aggregation dashboards before executing high-load tests.
 
@@ -57,7 +57,7 @@ Any deviation ≥10% from the baseline requires an investigation and a note in `
    make build
    ./pawd tendermint unsafe-reset-all
    ```
-   Bring up multi-node testnet via `networks/paw-testnet-1/localnet.sh` if a distributed scenario is required.
+   Bring up multi-node testnet via `networks/paw-mvp-1/localnet.sh` if a distributed scenario is required.
 
 2. **Start Monitoring Stack**
    ```bash

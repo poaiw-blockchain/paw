@@ -611,6 +611,7 @@ func (k Keeper) incrementTotalProviderCount(ctx context.Context) {
 }
 
 // decrementTotalProviderCount decrements the total provider count by 1
+// nolint:unused // Will be used when provider deregistration is implemented
 func (k Keeper) decrementTotalProviderCount(ctx context.Context) {
 	store := k.getStore(ctx)
 	count := k.GetTotalProviderCount(ctx)

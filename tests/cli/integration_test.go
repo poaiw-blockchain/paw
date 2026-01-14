@@ -182,6 +182,7 @@ func (s *CLIIntegrationTestSuite) ensureTestAccounts() {
 }
 
 // executeCommand executes a command and returns the output
+// nolint:unused // Reserved for future test expansion
 func (s *CLIIntegrationTestSuite) executeCommand(cmd *cobra.Command, args ...string) (string, error) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -230,7 +231,7 @@ func (s *CLIIntegrationTestSuite) TestInitCmd() {
 		{
 			name:         "valid init with chain ID",
 			moniker:      "test-node",
-			chainID:      "paw-testnet-1",
+			chainID:      "paw-mvp-1",
 			overwrite:    false,
 			defaultDenom: "upaw",
 			wantErr:      false,

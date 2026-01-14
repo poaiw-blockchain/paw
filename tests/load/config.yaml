@@ -5,7 +5,7 @@ global:
   base_url: 'http://localhost:1317'
   rpc_url: 'http://localhost:26657'
   ws_url: 'ws://localhost:26657/websocket'
-  chain_id: 'paw-testnet-1'
+  chain_id: 'paw-mvp-1'
   timeout: 30 # seconds
 
 # Load test scenarios

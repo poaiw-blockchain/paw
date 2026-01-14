@@ -6,9 +6,13 @@ run:
     - ledger
 
 linters:
+  disable-all: true
   enable:
     - gofmt
     - goimports
+    - govet
+    - ineffassign
+    - typecheck
 
 linters-settings:
   goimports:

@@ -40,45 +40,54 @@ We chose dedicated bare-metal servers over cloud instances for several reasons:
 PAW testnet uses a **sentry node architecture** to protect validators from direct public exposure:
 
 ```
-                         Internet
-                            │
-                      ┌─────▼─────┐
-                      │ Cloudflare│
-                      │ (DDoS/CDN)│
-                      └─────┬─────┘
-                            │
-                      ┌─────▼─────┐
-                      │   Nginx   │
-                      │(paw-testnet)│
-                      └─────┬─────┘
-                            │
-               ┌────────────┴────────────┐
-               │    WireGuard VPN        │
-               │      (10.10.0.x)        │
-               └────────────┬────────────┘
-                            │
-                   ┌────────▼────────┐
-                   │  Sentry Node    │
-                   │ (services-testnet)│
-                   │  RPC:12057      │
-                   │  P2P:12056      │
-                   │  gRPC:12090     │
-                   └────────┬────────┘
-                            │
-          ┌─────────────────┼─────────────────┐
-          │                 │                 │
-    ┌─────▼─────┐     ┌─────▼─────┐     ┌─────▼─────┐
-    │ Validator │     │ Validator │     │ Validator │
-    │   1 & 2   │     │     3     │     │     4     │
-    │(paw-testnet)│   │(services) │     │(services) │
-    └───────────┘     └───────────┘     └───────────┘
+                              Internet
+                                 │
+                    ┌────────────┴────────────┐
+                    │       Cloudflare        │
+                    │    (DDoS Protection)    │
+                    └────────────┬────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+       ┌──────▼──────┐    ┌──────▼──────┐   ┌──────▼──────┐
+       │  Sentry 1   │    │  Sentry 2   │   │   Nginx     │
+       │ paw-testnet │    │  services-  │   │  (RPC/API)  │
+       │ P2P:12056   │    │   testnet   │   └──────┬──────┘
+       └──────┬──────┘    │ P2P:12056   │          │
+              │           └──────┬──────┘          │
+              │                  │                 │
+              └────────┬─────────┘                 │
+                       │                          │
+         ┌─────────────┼─────────────┐            │
+         │     WireGuard VPN        │◄───────────┘
+         │      (10.10.0.x)         │
+         └─────────────┬─────────────┘
+                       │
+    ┌──────────────────┼──────────────────┐
+    │                  │                  │
+    ▼                  ▼                  ▼
+┌─────────┐      ┌─────────┐      ┌─────────────────┐
+│ Val 1&2 │      │ Val 3&4 │      │  Community      │
+│paw-test │◄────►│services │      │  Validators     │
+│   net   │ VPN  │ testnet │      │  (via sentries) │
+└─────────┘      └─────────┘      └─────────────────┘
 ```
 
+**Node Details:**
+| Node | Server | P2P Port | RPC Port | Node ID |
+|------|--------|----------|----------|---------|
+| val1 | paw-testnet | 11656 | 11657 | `945dfd111e231525f722a32d24de0da28dade0e8` |
+| val2 | paw-testnet | 11756 | 11757 | `35c1a40debd4a455a37a56cee7adbaaffb0778f8` |
+| val3 | services | 11856 | 11857 | `a2b9ab78b0be7f006466131b44ede9a02fc140c4` |
+| val4 | services | 11956 | 11957 | `f8187d5bafe58b78b00d73b0563b65ad8c0d5fda` |
+| sentry1 | paw-testnet | 12056 | 12057 | `38510c172e324f25e6fe8d9938d713bcaed924af` |
+| sentry2 | services | 12056 | 12057 | `ce6afbda0a4443139ad14d2b856cca586161f00d` |
+
 **Key Security Features:**
-- Validators are hidden behind sentry nodes (no public IPs exposed)
-- All public RPC/REST/gRPC traffic routes through sentry
+- Validators are hidden behind sentry nodes (no public P2P ports exposed)
+- All public RPC/REST/gRPC traffic routes through sentries
 - Sentry nodes use `private_peer_ids` to never gossip validator addresses
-- VPN-only communication between sentry and validators
+- VPN-only communication between validators (10.10.0.x network)
 
 ### Public Endpoints
 

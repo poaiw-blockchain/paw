@@ -67,7 +67,7 @@ Key configuration parameters:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `node.chainId` | Blockchain chain ID | `paw-testnet-1` |
+| `node.chainId` | Blockchain chain ID | `paw-mvp-1` |
 | `node.moniker` | Validator node moniker | `paw-validator` |
 | `persistence.size` | Blockchain data storage size | `100Gi` |
 | `resources.limits.cpu` | CPU limit | `2000m` |

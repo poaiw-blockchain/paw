@@ -74,19 +74,19 @@ func (hc *HashCalculator) VerifyHash(entry *types.AuditLogEntry) (bool, error) {
 func (hc *HashCalculator) VerifyChain(entries []types.AuditLogEntry) (*types.IntegrityReport, error) {
 	if len(entries) == 0 {
 		return &types.IntegrityReport{
-			Verified:      true,
+			Verified:       true,
 			EntriesChecked: 0,
-			CheckedAt:     time.Now(),
+			CheckedAt:      time.Now(),
 		}, nil
 	}
 
 	report := &types.IntegrityReport{
-		Verified:      true,
-		StartID:       entries[0].ID,
-		EndID:         entries[len(entries)-1].ID,
+		Verified:       true,
+		StartID:        entries[0].ID,
+		EndID:          entries[len(entries)-1].ID,
 		EntriesChecked: int64(len(entries)),
-		Errors:        []string{},
-		CheckedAt:     time.Now(),
+		Errors:         []string{},
+		CheckedAt:      time.Now(),
 	}
 
 	// Verify each entry's hash
@@ -156,24 +156,24 @@ func (hc *HashCalculator) DetectTampering(entries []types.AuditLogEntry) ([]Tamp
 			previousEntry := &entries[i-1]
 			if entry.PreviousHash != previousEntry.Hash {
 				alerts = append(alerts, TamperAlert{
-					EntryID:     entry.ID,
-					Timestamp:   entry.Timestamp,
-					AlertType:   TamperTypeChainBroken,
+					EntryID:   entry.ID,
+					Timestamp: entry.Timestamp,
+					AlertType: TamperTypeChainBroken,
 					Description: fmt.Sprintf("Chain broken: previous_hash does not match (expected: %s, got: %s)",
 						previousEntry.Hash, entry.PreviousHash),
-					Severity:    types.SeverityCritical,
+					Severity: types.SeverityCritical,
 				})
 			}
 
 			// Check for timestamp anomalies
 			if entry.Timestamp.Before(previousEntry.Timestamp) {
 				alerts = append(alerts, TamperAlert{
-					EntryID:     entry.ID,
-					Timestamp:   entry.Timestamp,
-					AlertType:   TamperTypeTimestampAnomaly,
+					EntryID:   entry.ID,
+					Timestamp: entry.Timestamp,
+					AlertType: TamperTypeTimestampAnomaly,
 					Description: fmt.Sprintf("Timestamp is before previous entry (current: %s, previous: %s)",
 						entry.Timestamp, previousEntry.Timestamp),
-					Severity:    types.SeverityWarning,
+					Severity: types.SeverityWarning,
 				})
 			}
 		}
@@ -186,10 +186,10 @@ func (hc *HashCalculator) DetectTampering(entries []types.AuditLogEntry) ([]Tamp
 type TamperType string
 
 const (
-	TamperTypeHashMismatch      TamperType = "hash_mismatch"
-	TamperTypeHashError         TamperType = "hash_error"
-	TamperTypeChainBroken       TamperType = "chain_broken"
-	TamperTypeTimestampAnomaly  TamperType = "timestamp_anomaly"
+	TamperTypeHashMismatch     TamperType = "hash_mismatch"
+	TamperTypeHashError        TamperType = "hash_error"
+	TamperTypeChainBroken      TamperType = "chain_broken"
+	TamperTypeTimestampAnomaly TamperType = "timestamp_anomaly"
 )
 
 // TamperAlert represents a tampering alert

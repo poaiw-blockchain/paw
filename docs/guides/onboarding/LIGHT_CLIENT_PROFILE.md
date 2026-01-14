@@ -12,9 +12,9 @@ This profile is optimized for wallet-facing RPC (minimal disk, state sync, aggre
 ```bash
 # Bootstrap and start with one line (override RPC if needed)
 curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh \
-  | bash -s -- --mode light --chain-id paw-testnet-1 --rpc <rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md> --start
+  | bash -s -- --mode light --chain-id paw-mvp-1 --rpc <rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md> --start
 ```
-- The script pulls `genesis.json` + `peers.txt` from `networks/paw-testnet-1`, applies pruning/state-sync, and starts `pawd`.
+- The script pulls `genesis.json` + `peers.txt` from `networks/paw-mvp-1`, applies pruning/state-sync, and starts `pawd`.
 - Swap to `paw-mainnet-1` once mainnet artifacts are published.
 
 ## Smoke Harness

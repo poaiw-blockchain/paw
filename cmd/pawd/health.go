@@ -48,7 +48,6 @@ type HealthCheck struct {
 	server      *http.Server
 	nodeChecker NodeHealthChecker
 	cache       *healthCache
-	mu          sync.RWMutex
 }
 
 // NodeHealthChecker interface for checking node health
@@ -101,18 +100,18 @@ type BasicHealthResponse struct {
 
 // ReadinessResponse is the response for /health/ready
 type ReadinessResponse struct {
-	Status string                    `json:"status"`
-	Checks map[string]CheckResult    `json:"checks"`
+	Status string                 `json:"status"`
+	Checks map[string]CheckResult `json:"checks"`
 }
 
 // DetailedHealthResponse is the response for /health/detailed
 type DetailedHealthResponse struct {
-	Status        string                    `json:"status"`
-	UptimeSeconds int64                     `json:"uptime_seconds"`
-	Version       string                    `json:"version"`
-	Checks        map[string]CheckResult    `json:"checks"`
-	Modules       map[string]ModuleHealth   `json:"modules"`
-	System        SystemHealth              `json:"system"`
+	Status        string                  `json:"status"`
+	UptimeSeconds int64                   `json:"uptime_seconds"`
+	Version       string                  `json:"version"`
+	Checks        map[string]CheckResult  `json:"checks"`
+	Modules       map[string]ModuleHealth `json:"modules"`
+	System        SystemHealth            `json:"system"`
 }
 
 // CheckResult represents a single health check result
@@ -123,15 +122,15 @@ type CheckResult struct {
 
 // ModuleHealth represents module-specific health information
 type ModuleHealth struct {
-	Status string                 `json:"status"`
+	Status  string                 `json:"status"`
 	Metrics map[string]interface{} `json:"metrics,omitempty"`
 }
 
 // SystemHealth represents system-level health metrics
 type SystemHealth struct {
-	MemoryMB   uint64 `json:"memory_mb"`
-	Goroutines int    `json:"goroutines"`
-	Peers      int    `json:"peers"`
+	MemoryMB    uint64 `json:"memory_mb"`
+	Goroutines  int    `json:"goroutines"`
+	Peers       int    `json:"peers"`
 	BlockHeight int64  `json:"block_height"`
 }
 
@@ -311,7 +310,7 @@ func (hc *HealthCheck) handleDetailed(w http.ResponseWriter, r *http.Request) {
 	modules["dex"] = ModuleHealth{
 		Status: "ok",
 		Metrics: map[string]interface{}{
-			"pools": 0,
+			"pools":      0,
 			"volume_24h": 0,
 		},
 	}
@@ -319,7 +318,7 @@ func (hc *HealthCheck) handleDetailed(w http.ResponseWriter, r *http.Request) {
 		Status: "ok",
 		Metrics: map[string]interface{}{
 			"active_validators": 0,
-			"price_pairs": 0,
+			"price_pairs":       0,
 		},
 	}
 	modules["compute"] = ModuleHealth{
@@ -384,7 +383,7 @@ func (hc *HealthCheck) handleStartup(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": "starting",
+			"status":  "starting",
 			"message": "application is initializing",
 		})
 		return

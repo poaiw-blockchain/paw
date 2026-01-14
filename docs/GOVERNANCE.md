@@ -48,21 +48,21 @@ pawd tx gov submit-proposal \
   --type Text \
   --deposit 10000000upaw \
   --from <wallet> \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 ```
 
 ### Deposit on a Proposal
 ```bash
 pawd tx gov deposit <proposal-id> 1000000upaw \
   --from <wallet> \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 ```
 
 ### Vote on a Proposal
 ```bash
 pawd tx gov vote <proposal-id> yes \
   --from <wallet> \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 ```
 
 Vote options: `yes`, `no`, `abstain`, `no_with_veto`

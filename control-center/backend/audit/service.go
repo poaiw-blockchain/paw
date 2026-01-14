@@ -13,17 +13,17 @@ import (
 
 // Entry represents an audit log entry
 type Entry struct {
-	ID          uint      `json:"id"`
-	Timestamp   time.Time `json:"timestamp"`
-	User        string    `json:"user"`
-	Role        string    `json:"role"`
-	Action      string    `json:"action"`
-	Module      string    `json:"module"`
-	Parameters  string    `json:"parameters"`
-	Result      string    `json:"result"`
-	IPAddress   string    `json:"ip_address"`
-	UserAgent   string    `json:"user_agent"`
-	SessionID   string    `json:"session_id"`
+	ID         uint      `json:"id"`
+	Timestamp  time.Time `json:"timestamp"`
+	User       string    `json:"user"`
+	Role       string    `json:"role"`
+	Action     string    `json:"action"`
+	Module     string    `json:"module"`
+	Parameters string    `json:"parameters"`
+	Result     string    `json:"result"`
+	IPAddress  string    `json:"ip_address"`
+	UserAgent  string    `json:"user_agent"`
+	SessionID  string    `json:"session_id"`
 }
 
 // Service provides audit logging functionality

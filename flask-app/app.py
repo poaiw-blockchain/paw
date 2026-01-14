@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # Configuration
 RPC_URL = os.getenv('RPC_URL', 'http://localhost:26657')
-CHAIN_ID = os.getenv('CHAIN_ID', 'paw-testnet-1')
+CHAIN_ID = os.getenv('CHAIN_ID', 'paw-mvp-1')
 
 class RPCClient:
     """Client for Cosmos RPC endpoints"""

@@ -8,9 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Configuration (overridable via env vars)
-PROJECT_ID="${PROJECT_ID:-paw-testnet-1}"
+PROJECT_ID="${PROJECT_ID:-paw-mvp-1}"
 ZONE="${ZONE:-us-central1-a}"
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 KEYRING_BACKEND="${KEYRING_BACKEND:-test}"
 NETWORK_DIR="${NETWORK_DIR:-${PROJECT_ROOT}/networks/${CHAIN_ID}}"
 PUBLISH_ARTIFACTS="${PUBLISH_ARTIFACTS:-1}"

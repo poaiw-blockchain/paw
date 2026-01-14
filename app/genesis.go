@@ -91,7 +91,7 @@ type GenesisConfig struct {
 // DefaultGenesisConfig returns default configuration from node-config.yaml
 func DefaultGenesisConfig() GenesisConfig {
 	return GenesisConfig{
-		ChainID:                     "paw-testnet-1",
+		ChainID:                     "paw-mvp-1",
 		TotalSupply:                 50000000000000, // 50M PAW
 		MaxValidators:               125,
 		UnbondingPeriodSeconds:      1814400, // 21 days

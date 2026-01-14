@@ -13,12 +13,11 @@ Usage:
 
 Environment Variables:
     PAW_GRPC_ENDPOINT - gRPC endpoint (default: localhost:9090)
-    PAW_CHAIN_ID - Chain ID (default: paw-testnet-1)
+    PAW_CHAIN_ID - Chain ID (default: paw-mvp-1)
     PAW_PROVIDER_MNEMONIC - Provider mnemonic (required)
 */
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -31,8 +30,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -42,7 +41,7 @@ import (
 func main() {
 	// Load configuration
 	grpcEndpoint := getEnv("PAW_GRPC_ENDPOINT", "localhost:9090")
-	chainID := getEnv("PAW_CHAIN_ID", "paw-testnet-1")
+	chainID := getEnv("PAW_CHAIN_ID", "paw-mvp-1")
 	mnemonic := os.Getenv("PAW_PROVIDER_MNEMONIC")
 
 	if mnemonic == "" {
@@ -117,8 +116,8 @@ func main() {
 			MemoryMb:       16384, // 16GB RAM
 			GpuCount:       1,     // 1 GPU
 			GpuType:        "NVIDIA RTX 4090",
-			StorageGb:      500,   // 500GB storage
-			TimeoutSeconds: 7200,  // 2 hours max
+			StorageGb:      500,  // 500GB storage
+			TimeoutSeconds: 7200, // 2 hours max
 		},
 		Pricing: computetypes.Pricing{
 			CpuPricePerMcoreHour:  math.NewInt(150),  // 150 tokens per mcore-hour

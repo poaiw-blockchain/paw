@@ -117,7 +117,7 @@ main() {
 
     else
         log_error "PAW home directory not found: $PAW_HOME"
-        log_info "Initialize a node first: pawd init <moniker> --chain-id paw-testnet-1"
+        log_info "Initialize a node first: pawd init <moniker> --chain-id paw-mvp-1"
         exit 1
     fi
 }

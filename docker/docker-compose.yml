@@ -72,6 +72,6 @@ services:
     environment:
       - FLASK_ENV=development
       - RPC_URL=http://localhost:26657
-      - CHAIN_ID=paw-testnet-1
+      - CHAIN_ID=paw-mvp-1
     volumes:
       - ../flask-app:/app

@@ -147,10 +147,10 @@ describe('HardwareWalletUtils', () => {
       expect(() =>
         HardwareWalletUtils.validateSignDocBasics(
           {
-            chain_id: 'paw-testnet-1',
+            chain_id: 'paw-mvp-1',
             fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
           },
-          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+          { enforceChainId: 'paw-mvp-1', allowedFeeDenoms: ['upaw'] }
         )
       ).not.toThrow();
 
@@ -160,17 +160,17 @@ describe('HardwareWalletUtils', () => {
             chain_id: 'other-chain',
             fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
           },
-          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+          { enforceChainId: 'paw-mvp-1', allowedFeeDenoms: ['upaw'] }
         )
       ).toThrow(/chain-id mismatch/);
 
       expect(() =>
         HardwareWalletUtils.validateSignDocBasics(
           {
-            chain_id: 'paw-testnet-1',
+            chain_id: 'paw-mvp-1',
             fee: { amount: [{ denom: 'uatom', amount: '2500' }], gas: '200000' },
           },
-          { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+          { enforceChainId: 'paw-mvp-1', allowedFeeDenoms: ['upaw'] }
         )
       ).toThrow(/not permitted/);
     });

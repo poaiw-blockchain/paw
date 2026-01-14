@@ -4,7 +4,7 @@
 set -euo pipefail
 
 MODE="full"                     # full | light
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
 NETWORK_BASE="${NETWORK_BASE:-https://testnet-explorer.poaiw.org}"
 RPC_ENDPOINT="${RPC_ENDPOINT:-https://testnet-rpc.poaiw.org}"
@@ -21,7 +21,7 @@ Usage: node-onboard.sh [--mode full|light] [--chain-id CHAIN_ID] [--home DIR]
 
 Defaults:
   --mode          full
-  --chain-id      paw-testnet-1
+  --chain-id      paw-mvp-1
   --home          $HOME/.paw
   --network-base  https://testnet-explorer.poaiw.org
   --rpc           https://testnet-rpc.poaiw.org

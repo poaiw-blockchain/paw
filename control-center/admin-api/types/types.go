@@ -59,25 +59,25 @@ type ParamUpdate struct {
 
 // ParamHistoryEntry represents a historical parameter change
 type ParamHistoryEntry struct {
-	ID        string                 `json:"id"`
-	Timestamp time.Time              `json:"timestamp"`
-	Module    string                 `json:"module"`
-	Param     string                 `json:"param"`
-	OldValue  interface{}            `json:"old_value"`
-	NewValue  interface{}            `json:"new_value"`
-	ChangedBy string                 `json:"changed_by"`
-	Reason    string                 `json:"reason"`
-	TxHash    string                 `json:"tx_hash,omitempty"`
+	ID        string      `json:"id"`
+	Timestamp time.Time   `json:"timestamp"`
+	Module    string      `json:"module"`
+	Param     string      `json:"param"`
+	OldValue  interface{} `json:"old_value"`
+	NewValue  interface{} `json:"new_value"`
+	ChangedBy string      `json:"changed_by"`
+	Reason    string      `json:"reason"`
+	TxHash    string      `json:"tx_hash,omitempty"`
 }
 
 // CircuitBreakerStatus represents the status of a module's circuit breaker
 type CircuitBreakerStatus struct {
-	Module    string    `json:"module"`
-	Paused    bool      `json:"paused"`
-	PausedAt  time.Time `json:"paused_at,omitempty"`
-	PausedBy  string    `json:"paused_by,omitempty"`
-	Reason    string    `json:"reason,omitempty"`
-	AutoResume bool     `json:"auto_resume"`
+	Module     string    `json:"module"`
+	Paused     bool      `json:"paused"`
+	PausedAt   time.Time `json:"paused_at,omitempty"`
+	PausedBy   string    `json:"paused_by,omitempty"`
+	Reason     string    `json:"reason,omitempty"`
+	AutoResume bool      `json:"auto_resume"`
 }
 
 // EmergencyAction represents an emergency action request
@@ -118,14 +118,14 @@ type OperationResult struct {
 
 // MultiSigRequest represents a request requiring multiple signatures
 type MultiSigRequest struct {
-	ID          string                 `json:"id"`
-	Action      string                 `json:"action"`
-	Params      map[string]interface{} `json:"params"`
-	RequiredSigs int                   `json:"required_sigs"`
-	Signatures  []MultiSigSignature    `json:"signatures"`
-	CreatedAt   time.Time              `json:"created_at"`
-	ExpiresAt   time.Time              `json:"expires_at"`
-	Status      string                 `json:"status"` // pending, approved, rejected, executed
+	ID           string                 `json:"id"`
+	Action       string                 `json:"action"`
+	Params       map[string]interface{} `json:"params"`
+	RequiredSigs int                    `json:"required_sigs"`
+	Signatures   []MultiSigSignature    `json:"signatures"`
+	CreatedAt    time.Time              `json:"created_at"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	Status       string                 `json:"status"` // pending, approved, rejected, executed
 }
 
 // MultiSigSignature represents a single signature in a multi-sig request
@@ -162,15 +162,15 @@ type NetworkStatus struct {
 type Permission string
 
 const (
-	PermissionReadParams     Permission = "read:params"
-	PermissionUpdateParams   Permission = "update:params"
-	PermissionPauseModule    Permission = "pause:module"
-	PermissionResumeModule   Permission = "resume:module"
-	PermissionEmergencyHalt  Permission = "emergency:halt"
+	PermissionReadParams      Permission = "read:params"
+	PermissionUpdateParams    Permission = "update:params"
+	PermissionPauseModule     Permission = "pause:module"
+	PermissionResumeModule    Permission = "resume:module"
+	PermissionEmergencyHalt   Permission = "emergency:halt"
 	PermissionScheduleUpgrade Permission = "upgrade:schedule"
-	PermissionReadAudit      Permission = "read:audit"
-	PermissionManageUsers    Permission = "manage:users"
-	PermissionMultiSig       Permission = "multisig:sign"
+	PermissionReadAudit       Permission = "read:audit"
+	PermissionManageUsers     Permission = "manage:users"
+	PermissionMultiSig        Permission = "multisig:sign"
 )
 
 // RolePermissions maps roles to their permissions

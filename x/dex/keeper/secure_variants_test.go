@@ -103,8 +103,8 @@ func TestCreatePool(t *testing.T) {
 			name:       "extreme price ratio (too high)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(1000),             // Meet minimum for token A
-			amountB:    math.NewInt(10_000_000_000),   // Extreme ratio - exceeds 1:1000000 limit
+			amountA:    math.NewInt(1000),           // Meet minimum for token A
+			amountB:    math.NewInt(10_000_000_000), // Extreme ratio - exceeds 1:1000000 limit
 			expectErr:  true,
 			errContain: "extreme",
 		},
@@ -114,8 +114,8 @@ func TestCreatePool(t *testing.T) {
 			name:       "extreme price ratio (too low)",
 			tokenA:     "upaw",
 			tokenB:     "uatom",
-			amountA:    math.NewInt(10_000_000_000),   // Extreme ratio - exceeds 1000000:1 limit
-			amountB:    math.NewInt(1000),             // Meet minimum for token B
+			amountA:    math.NewInt(10_000_000_000), // Extreme ratio - exceeds 1000000:1 limit
+			amountB:    math.NewInt(1000),           // Meet minimum for token B
 			expectErr:  true,
 			errContain: "extreme",
 		},

@@ -130,7 +130,7 @@ sha256sum ~/.paw/config/genesis.json
 
 # 2. Verify chain-id
 jq -r '.chain_id' ~/.paw/config/genesis.json
-# Expected: paw-testnet-1
+# Expected: paw-mvp-1
 
 # 3. Count validators in genesis
 jq '.app_state.staking.validators | length' ~/.paw/config/genesis.json

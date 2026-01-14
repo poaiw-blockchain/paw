@@ -12,8 +12,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/paw-chain/paw/x/compute"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/compute"
 	"github.com/paw-chain/paw/x/compute/types"
 )
 
@@ -102,7 +102,7 @@ func TestAppModuleBasic_ValidateGenesis_Invalid(t *testing.T) {
 			name: "zero min provider stake",
 			genesis: &types.GenesisState{
 				Params: types.Params{
-					MinProviderStake:          sdkmath.NewInt(0), // Invalid
+					MinProviderStake:           sdkmath.NewInt(0), // Invalid
 					VerificationTimeoutSeconds: 60,
 					MaxRequestTimeoutSeconds:   300,
 					ReputationSlashPercentage:  10,
@@ -136,7 +136,7 @@ func TestAppModuleBasic_ValidateGenesis_Invalid(t *testing.T) {
 			name: "zero verification timeout",
 			genesis: &types.GenesisState{
 				Params: types.Params{
-					MinProviderStake:          sdkmath.NewInt(1000),
+					MinProviderStake:           sdkmath.NewInt(1000),
 					VerificationTimeoutSeconds: 0, // Invalid
 					MaxRequestTimeoutSeconds:   300,
 					ReputationSlashPercentage:  10,

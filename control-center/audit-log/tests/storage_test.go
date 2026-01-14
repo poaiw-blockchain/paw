@@ -165,6 +165,7 @@ func TestPostgresStorage_QueryFilters(t *testing.T) {
 	results, total, err = stor.Query(ctx, filters)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, total, int64(1))
+	assert.NotEmpty(t, results) // Ensure results are returned
 }
 
 func TestPostgresStorage_GetByID(t *testing.T) {

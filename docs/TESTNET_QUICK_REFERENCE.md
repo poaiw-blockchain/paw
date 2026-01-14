@@ -51,19 +51,19 @@ curl -s http://localhost:26657/validators | jq '.result.total'
 docker ps --filter "name=paw-node"
 ```
 
-## Public Artifacts (paw-testnet-1)
+## Public Artifacts (paw-mvp-1)
 
-- Genesis and checksum: `networks/paw-testnet-1/genesis.json`, `networks/paw-testnet-1/genesis.sha256`
-- Peers: `networks/paw-testnet-1/peers.txt`
-- Manifest and bundle: `networks/paw-testnet-1/paw-testnet-1-manifest.json`, `paw-testnet-1-artifacts.tar.gz`
-- Status: `networks/paw-testnet-1/STATUS.md`
+- Genesis and checksum: `networks/paw-mvp-1/genesis.json`, `networks/paw-mvp-1/genesis.sha256`
+- Peers: `networks/paw-mvp-1/peers.txt`
+- Manifest and bundle: `networks/paw-mvp-1/paw-mvp-1-manifest.json`, `paw-mvp-1-artifacts.tar.gz`
+- Status: `networks/paw-mvp-1/STATUS.md`
 
 Fetch locally:
 ```bash
-curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json
-curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256
+curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json
+curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256
 (cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)
-curl -o ~/.paw/config/peers.txt https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt
+curl -o ~/.paw/config/peers.txt https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/peers.txt
 ```
 
 Minimum gas price: `0.001upaw`.

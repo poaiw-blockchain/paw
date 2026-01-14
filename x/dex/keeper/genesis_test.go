@@ -631,7 +631,7 @@ func TestGenesisExportImport_CircuitBreakerPreservationEnabled(t *testing.T) {
 		sdkmath.NewInt(1_000_000), sdkmath.NewInt(1_000_000))
 
 	// Pause the pool with circuit breaker
-	_ = 24 * 60 * 60 // 24 hours in seconds
+	_ = 24 * 60 * 60                                                        // 24 hours in seconds
 	pausedUntilTime := sdkCtx.BlockTime().Add(24 * 60 * 60 * 1_000_000_000) // 24 hours in nanoseconds
 	err := k.EmergencyPausePool(ctx, poolID, "security incident", 24*60*60*1_000_000_000)
 	require.NoError(t, err)

@@ -265,7 +265,7 @@ func TestMigrate_FixTokenOrdering(t *testing.T) {
 	// Set up pool with incorrect token ordering
 	invalidPool := types.Pool{
 		Id:          1,
-		TokenA:      "upaw", // Should be second lexicographically
+		TokenA:      "upaw",  // Should be second lexicographically
 		TokenB:      "uatom", // Should be first lexicographically
 		ReserveA:    math.NewInt(500000),
 		ReserveB:    math.NewInt(1000000),
@@ -528,8 +528,8 @@ func TestMigrate_MultiplePools(t *testing.T) {
 	// Create many pools with various issues
 	pools := []types.Pool{
 		{Id: 1, TokenA: "uatom", TokenB: "upaw", ReserveA: math.NewInt(1000), ReserveB: math.NewInt(500), TotalShares: math.NewInt(750)},
-		{Id: 2, TokenA: "ueth", TokenB: "upaw", ReserveA: math.NewInt(-100), ReserveB: math.NewInt(200), TotalShares: math.NewInt(150)}, // Negative reserve
-		{Id: 3, TokenA: "usol", TokenB: "uatom", ReserveA: math.NewInt(300), ReserveB: math.NewInt(400), TotalShares: math.NewInt(-50)}, // Negative shares
+		{Id: 2, TokenA: "ueth", TokenB: "upaw", ReserveA: math.NewInt(-100), ReserveB: math.NewInt(200), TotalShares: math.NewInt(150)},  // Negative reserve
+		{Id: 3, TokenA: "usol", TokenB: "uatom", ReserveA: math.NewInt(300), ReserveB: math.NewInt(400), TotalShares: math.NewInt(-50)},  // Negative shares
 		{Id: 4, TokenA: "uusdc", TokenB: "uatom", ReserveA: math.NewInt(500), ReserveB: math.NewInt(600), TotalShares: math.NewInt(550)}, // Wrong order
 	}
 	for _, p := range pools {

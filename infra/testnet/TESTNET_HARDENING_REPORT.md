@@ -1,7 +1,7 @@
 # PAW Testnet Hardening Report
 
 **Date:** 2026-01-12
-**Target:** paw-testnet-1 (4-validator deployment)
+**Target:** paw-mvp-1 (4-validator deployment)
 
 ## Executive Summary
 

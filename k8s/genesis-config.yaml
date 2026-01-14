@@ -48,7 +48,7 @@ data:
 
   # Chain Configuration
   # Used for additional verification
-  EXPECTED_CHAIN_ID: "paw-testnet-1"
+  EXPECTED_CHAIN_ID: "paw-mvp-1"
   EXPECTED_GENESIS_TIME: "2025-12-15T05:45:51.458863576Z"
 
   # Validator Set Information

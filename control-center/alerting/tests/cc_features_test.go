@@ -623,4 +623,3 @@ func TestRulesEngineWithGrouping(t *testing.T) {
 	assert.NotNil(t, evaluator)
 	assert.NotNil(t, config)
 }
-

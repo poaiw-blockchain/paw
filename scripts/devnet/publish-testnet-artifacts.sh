@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PACKAGE_SCRIPT="${PACKAGE_SCRIPT:-${SCRIPT_DIR}/package-testnet-artifacts.sh}"
 
-CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-testnet-1}}"
+CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-mvp-1}}"
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
 PAWD_BIN="${PAWD_BIN:-$(command -v pawd || true)}"
 NETWORK_DIR="${NETWORK_DIR:-${PROJECT_ROOT}/networks/${CHAIN_ID}}"

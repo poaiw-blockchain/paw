@@ -51,7 +51,7 @@ else
 
     # Set environment variables
     export RPC_URL="${RPC_URL:-http://localhost:26657}"
-    export CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+    export CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
     export FLASK_ENV="${FLASK_ENV:-development}"
 
     # Check if requirements are installed

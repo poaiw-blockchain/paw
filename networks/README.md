@@ -4,7 +4,7 @@ Use this directory to stage the public artifacts for every PAW network (testnet 
 
 ```
 networks/
-  paw-testnet-1/
+  paw-mvp-1/
     README.md               # Notes, changelog, endpoint list
     genesis.json            # Canonical genesis file (copy from packaging script)
     genesis.sha256          # SHA256 checksum for validators to verify

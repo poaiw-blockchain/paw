@@ -183,10 +183,10 @@ func TestInitGenesis_RequireGeographicDiversity_EmptyRegion(t *testing.T) {
 // TestValidateGenesis_RequireGeographicDiversity tests genesis validation for geographic diversity parameters
 func TestValidateGenesis_RequireGeographicDiversity(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		genesisState types.GenesisState
-		expectError bool
-		errorMsg    string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
 			name: "valid - diversity not required",

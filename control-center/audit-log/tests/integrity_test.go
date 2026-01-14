@@ -1,9 +1,9 @@
 package tests
 
 import (
+	"strings"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/paw-chain/paw/control-center/audit-log/integrity"
 	"github.com/paw-chain/paw/control-center/audit-log/types"

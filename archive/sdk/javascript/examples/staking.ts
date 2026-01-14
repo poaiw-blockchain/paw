@@ -9,7 +9,7 @@ async function main() {
   const client = new PawClient({
     rpcEndpoint: process.env.RPC_ENDPOINT || 'http://localhost:26657',
     restEndpoint: process.env.REST_ENDPOINT || 'http://localhost:1317',
-    chainId: process.env.CHAIN_ID || 'paw-testnet-1'
+    chainId: process.env.CHAIN_ID || 'paw-mvp-1'
   });
 
   await client.connectWithWallet(wallet);

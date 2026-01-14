@@ -57,10 +57,10 @@ func FuzzSwapOverflow(f *testing.F) {
 // FuzzPoolSharesOverflow tests pool share calculation with extreme values
 func FuzzPoolSharesOverflow(f *testing.F) {
 	// Seed corpus
-	f.Add(int64(1000000), int64(2000000))         // Normal
-	f.Add(int64(1000000000), int64(2000000000))   // Large
-	f.Add(int64(1), int64(1))                     // Minimum
-	f.Add(int64(1<<30), int64(1<<30))             // Very large
+	f.Add(int64(1000000), int64(2000000))       // Normal
+	f.Add(int64(1000000000), int64(2000000000)) // Large
+	f.Add(int64(1), int64(1))                   // Minimum
+	f.Add(int64(1<<30), int64(1<<30))           // Very large
 
 	f.Fuzz(func(t *testing.T, amountA, amountB int64) {
 		// Skip invalid inputs

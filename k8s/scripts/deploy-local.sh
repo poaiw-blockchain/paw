@@ -101,7 +101,7 @@ deploy_configmaps() {
     # Create PAW config
     kubectl create configmap paw-config \
         --namespace paw \
-        --from-literal=CHAIN_ID=paw-testnet-1 \
+        --from-literal=CHAIN_ID=paw-mvp-1 \
         --from-literal=MIN_GAS_PRICES=0.001upaw \
         --from-literal=LOG_LEVEL=info \
         --from-literal=PRUNING=custom \

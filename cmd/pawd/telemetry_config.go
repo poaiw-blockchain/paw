@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/paw-chain/paw/app"
 	"github.com/spf13/viper"
+
+	"github.com/paw-chain/paw/app"
 )
 
 const (

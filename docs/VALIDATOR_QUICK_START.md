@@ -27,15 +27,15 @@ git checkout main
 make build && sudo install -m 0755 build/pawd /usr/local/bin/pawd
 
 # Initialize
-pawd init <moniker> --chain-id paw-testnet-1
+pawd init <moniker> --chain-id paw-mvp-1
 
 # Download genesis and peers
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json > ~/.paw/config/genesis.json
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 > /tmp/genesis.sha256
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json > ~/.paw/config/genesis.json
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256 > /tmp/genesis.sha256
 cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256
 
 # Configure peers
-PEERS=$(curl -s https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt | tr '\n' ',' | sed 's/,$//')
+PEERS=$(curl -s https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/peers.txt | tr '\n' ',' | sed 's/,$//')
 sed -i "s/^persistent_peers *=.*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
 
 # Set minimum gas price
@@ -124,7 +124,7 @@ pawd tx staking create-validator \
   --website "https://yoursite.com" \
   --security-contact "security@yourdomain.com" \
   --details "Validator description" \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --commission-rate 0.10 \
   --commission-max-rate 0.20 \
   --commission-max-change-rate 0.01 \
@@ -175,19 +175,19 @@ sudo journalctl -u pawd -f
 
 ```bash
 # Unjail
-pawd tx slashing unjail --from validator-operator --chain-id paw-testnet-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
+pawd tx slashing unjail --from validator-operator --chain-id paw-mvp-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
 
 # Withdraw rewards + commission
-pawd tx distribution withdraw-rewards $(pawd keys show validator-operator --bech val -a --keyring-backend os) --commission --from validator-operator --chain-id paw-testnet-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
+pawd tx distribution withdraw-rewards $(pawd keys show validator-operator --bech val -a --keyring-backend os) --commission --from validator-operator --chain-id paw-mvp-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
 
 # Edit validator
-pawd tx staking edit-validator --website "https://new.com" --details "Updated" --from validator-operator --chain-id paw-testnet-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
+pawd tx staking edit-validator --website "https://new.com" --details "Updated" --from validator-operator --chain-id paw-mvp-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
 
 # Change commission
-pawd tx staking edit-validator --commission-rate 0.12 --from validator-operator --chain-id paw-testnet-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
+pawd tx staking edit-validator --commission-rate 0.12 --from validator-operator --chain-id paw-mvp-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
 
 # Vote on proposal
-pawd tx gov vote <id> yes --from validator-operator --chain-id paw-testnet-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
+pawd tx gov vote <id> yes --from validator-operator --chain-id paw-mvp-1 --gas auto --gas-prices 0.001upaw --keyring-backend os -y
 ```
 
 ---
@@ -196,11 +196,11 @@ pawd tx gov vote <id> yes --from validator-operator --chain-id paw-testnet-1 --g
 
 | Item | Value |
 |------|-------|
-| **Chain ID** | paw-testnet-1 |
+| **Chain ID** | paw-mvp-1 |
 | **Denom** | upaw |
-| **Genesis** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json |
-| **Genesis checksum** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 |
-| **Peers** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/peers.txt |
+| **Genesis** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json |
+| **Genesis checksum** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256 |
+| **Peers** | https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/peers.txt |
 
 ---
 

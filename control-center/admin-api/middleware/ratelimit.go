@@ -234,8 +234,8 @@ type SlidingWindowRateLimiter struct {
 }
 
 type slidingWindow struct {
-	requests  []time.Time
-	mu        sync.Mutex
+	requests []time.Time
+	mu       sync.Mutex
 }
 
 // NewSlidingWindowRateLimiter creates a new sliding window rate limiter

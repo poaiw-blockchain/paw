@@ -99,8 +99,8 @@ func (h *ParamsHandler) GetParams(c *gin.Context) {
 	)
 
 	c.JSON(http.StatusOK, gin.H{
-		"module": module,
-		"params": params,
+		"module":    module,
+		"params":    params,
 		"timestamp": time.Now(),
 	})
 }
@@ -332,9 +332,9 @@ func (h *ParamsHandler) ResetParams(c *gin.Context) {
 		TxHash:    txHash,
 		Timestamp: time.Now(),
 		Data: map[string]interface{}{
-			"module":      module,
-			"old_values":  oldParams,
-			"new_values":  defaultParams,
+			"module":     module,
+			"old_values": oldParams,
+			"new_values": defaultParams,
 		},
 	})
 }

@@ -157,14 +157,14 @@ func TestGetIBCPacketNonceKey_Determinism(t *testing.T) {
 func TestKeyPrefixUniqueness(t *testing.T) {
 	// All key prefixes should be unique to avoid collisions
 	prefixes := map[string][]byte{
-		"ParamsKey":                 ParamsKey,
-		"ComputeRequestKeyPrefix":   ComputeRequestKeyPrefix,
-		"ProviderKeyPrefix":         ProviderKeyPrefix,
-		"EscrowKeyPrefix":           EscrowKeyPrefix,
-		"JobStatusKeyPrefix":        JobStatusKeyPrefix,
-		"NonceTrackerKeyPrefix":     NonceTrackerKeyPrefix,
-		"ResultKeyPrefix":           ResultKeyPrefix,
-		"IBCPacketNonceKeyPrefix":   IBCPacketNonceKeyPrefix,
+		"ParamsKey":               ParamsKey,
+		"ComputeRequestKeyPrefix": ComputeRequestKeyPrefix,
+		"ProviderKeyPrefix":       ProviderKeyPrefix,
+		"EscrowKeyPrefix":         EscrowKeyPrefix,
+		"JobStatusKeyPrefix":      JobStatusKeyPrefix,
+		"NonceTrackerKeyPrefix":   NonceTrackerKeyPrefix,
+		"ResultKeyPrefix":         ResultKeyPrefix,
+		"IBCPacketNonceKeyPrefix": IBCPacketNonceKeyPrefix,
 	}
 
 	// Check for duplicates

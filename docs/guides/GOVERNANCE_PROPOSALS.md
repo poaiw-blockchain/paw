@@ -541,7 +541,7 @@ pawd tx gov vote 42 yes \
 pawd query gov proposal 42 --output json | jq .content
 
 # 2. Test changes on testnet
-pawd tx gov vote 42 yes --from testnet-validator --chain-id paw-testnet-1
+pawd tx gov vote 42 yes --from testnet-validator --chain-id paw-mvp-1
 
 # 3. Discuss with community
 # Discord, Twitter, Commonwealth

@@ -11,7 +11,7 @@ class ChainConfig:
     """Chain configuration."""
     rpc_endpoint: str
     rest_endpoint: Optional[str] = None
-    chain_id: str = "paw-testnet-1"
+    chain_id: str = "paw-mvp-1"
     prefix: str = "paw"
     gas_price: str = "0.025upaw"
     gas_adjustment: float = 1.5

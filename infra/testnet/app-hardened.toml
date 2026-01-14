@@ -2,7 +2,7 @@
 # Optimized for validator stability and mainnet readiness
 #
 # Generated: 2026-01-12
-# Target: paw-testnet-1
+# Target: paw-mvp-1
 
 #######################################################################
 ###                    Base Configuration                           ###
@@ -53,7 +53,7 @@ enable-service-label = true
 
 # Global labels
 global-labels = [
-    ["chain_id", "paw-testnet-1"],
+    ["chain_id", "paw-mvp-1"],
 ]
 
 #######################################################################

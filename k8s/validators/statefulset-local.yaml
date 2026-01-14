@@ -141,7 +141,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: CHAIN_ID
-              value: "paw-testnet-1"
+              value: "paw-mvp-1"
           volumeMounts:
             - name: paw-data
               mountPath: /data
@@ -198,7 +198,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: CHAIN_ID
-              value: "paw-testnet-1"
+              value: "paw-mvp-1"
           volumeMounts:
             - name: paw-data
               mountPath: /data

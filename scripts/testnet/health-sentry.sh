@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-5}"
 JSON_OUTPUT=false
 QUIET=false
@@ -32,7 +32,7 @@ usage() {
 Usage: health-sentry.sh [options]
 
 Options:
-  --chain-id <id>          Expected chain-id (default: paw-testnet-1)
+  --chain-id <id>          Expected chain-id (default: paw-mvp-1)
   --timeout <seconds>      Curl timeout (default: 5)
   --json                   JSON output
   --quiet                  Suppress non-JSON output

@@ -75,7 +75,7 @@ spec:
               mkdir -p /data/config /data/data
 
               echo "Initializing PAW node..."
-              $PAWD init "paw-validator-0" --chain-id "paw-testnet-1" --home /data
+              $PAWD init "paw-validator-0" --chain-id "paw-mvp-1" --home /data
 
               echo "Creating validator account..."
               $PAWD keys add validator --keyring-backend test --home /data --no-backup
@@ -87,7 +87,7 @@ spec:
               $PAWD add-genesis-account $VALIDATOR_ADDR 100000000000upaw --keyring-backend test --home /data
 
               echo "Creating gentx..."
-              $PAWD gentx validator 50000000000upaw --chain-id "paw-testnet-1" --keyring-backend test --home /data
+              $PAWD gentx validator 50000000000upaw --chain-id "paw-mvp-1" --keyring-backend test --home /data
 
               echo "Collecting gentxs..."
               $PAWD collect-gentxs --home /data

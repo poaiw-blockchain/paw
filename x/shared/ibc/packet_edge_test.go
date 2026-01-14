@@ -289,7 +289,7 @@ func TestHandleChannelClose_MixedSuccessFailure(t *testing.T) {
 
 	// Create a handler that fails on specific sequences
 	handler := &mockChannelCloseHandlerSelective{
-		operations:   ops,
+		operations:    ops,
 		failSequences: map[uint64]bool{2: true}, // Fail on sequence 2
 	}
 

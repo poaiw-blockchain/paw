@@ -63,16 +63,16 @@ func TestRequestStatusInvariant(t *testing.T) {
 		now := sdkCtx.BlockTime()
 
 		request := types.Request{
-			Id:              1,
-			Requester:       requester.String(),
-			Provider:        provider.String(),
-			Status:          types.REQUEST_STATUS_COMPLETED,
-			EscrowedAmount:  sdkmath.NewInt(100000),
-			MaxPayment:      sdkmath.NewInt(100000),
-			CreatedAt:       now.Add(-3600 * 1e9),
-			CompletedAt:     &now,
-			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-			ContainerImage:  "test/image",
+			Id:             1,
+			Requester:      requester.String(),
+			Provider:       provider.String(),
+			Status:         types.REQUEST_STATUS_COMPLETED,
+			EscrowedAmount: sdkmath.NewInt(100000),
+			MaxPayment:     sdkmath.NewInt(100000),
+			CreatedAt:      now.Add(-3600 * 1e9),
+			CompletedAt:    &now,
+			Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage: "test/image",
 		}
 
 		err := k.SetRequest(ctx, request)
@@ -80,11 +80,11 @@ func TestRequestStatusInvariant(t *testing.T) {
 
 		// Create result for the request
 		result := &types.Result{
-			RequestId:    1,
-			Provider:     provider.String(),
-			OutputHash:   "test_hash",
-			SubmittedAt:  now,
-			Verified:     true,
+			RequestId:   1,
+			Provider:    provider.String(),
+			OutputHash:  "test_hash",
+			SubmittedAt: now,
+			Verified:    true,
 		}
 		err = k.SetResult(ctx, result)
 		require.NoError(t, err)
@@ -107,16 +107,16 @@ func TestRequestStatusInvariant(t *testing.T) {
 		now := sdkCtx.BlockTime()
 
 		request := types.Request{
-			Id:              1,
-			Requester:       requester.String(),
-			Provider:        provider.String(),
-			Status:          types.REQUEST_STATUS_COMPLETED,
-			EscrowedAmount:  sdkmath.NewInt(100000),
-			MaxPayment:      sdkmath.NewInt(100000),
-			CreatedAt:       now.Add(-3600 * 1e9),
-			CompletedAt:     &now,
-			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-			ContainerImage:  "test/image",
+			Id:             1,
+			Requester:      requester.String(),
+			Provider:       provider.String(),
+			Status:         types.REQUEST_STATUS_COMPLETED,
+			EscrowedAmount: sdkmath.NewInt(100000),
+			MaxPayment:     sdkmath.NewInt(100000),
+			CreatedAt:      now.Add(-3600 * 1e9),
+			CompletedAt:    &now,
+			Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage: "test/image",
 		}
 
 		err := k.SetRequest(ctx, request)
@@ -124,11 +124,11 @@ func TestRequestStatusInvariant(t *testing.T) {
 
 		// Create result
 		result := &types.Result{
-			RequestId:    1,
-			Provider:     provider.String(),
-			OutputHash:   "test_hash",
-			SubmittedAt:  now,
-			Verified:     true,
+			RequestId:   1,
+			Provider:    provider.String(),
+			OutputHash:  "test_hash",
+			SubmittedAt: now,
+			Verified:    true,
 		}
 		err = k.SetResult(ctx, result)
 		require.NoError(t, err)
@@ -154,16 +154,16 @@ func TestRequestStatusInvariant(t *testing.T) {
 			provider := sdk.AccAddress([]byte("test_provider_" + string(rune(i))))
 
 			request := types.Request{
-				Id:              i,
-				Requester:       requester.String(),
-				Provider:        provider.String(),
-				Status:          types.REQUEST_STATUS_COMPLETED,
-				EscrowedAmount:  sdkmath.NewInt(100000),
-				MaxPayment:      sdkmath.NewInt(100000),
-				CreatedAt:       now.Add(-3600 * 1e9),
-				CompletedAt:     &now,
-				Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-				ContainerImage:  "test/image",
+				Id:             i,
+				Requester:      requester.String(),
+				Provider:       provider.String(),
+				Status:         types.REQUEST_STATUS_COMPLETED,
+				EscrowedAmount: sdkmath.NewInt(100000),
+				MaxPayment:     sdkmath.NewInt(100000),
+				CreatedAt:      now.Add(-3600 * 1e9),
+				CompletedAt:    &now,
+				Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+				ContainerImage: "test/image",
 			}
 
 			err := k.SetRequest(ctx, request)
@@ -201,16 +201,16 @@ func TestRequestStatusInvariant(t *testing.T) {
 			provider := sdk.AccAddress([]byte("test_provider_" + string(rune(i))))
 
 			request := types.Request{
-				Id:              i,
-				Requester:       requester.String(),
-				Provider:        provider.String(),
-				Status:          types.REQUEST_STATUS_COMPLETED,
-				EscrowedAmount:  sdkmath.NewInt(100000),
-				MaxPayment:      sdkmath.NewInt(100000),
-				CreatedAt:       now.Add(-3600 * 1e9),
-				CompletedAt:     &now,
-				Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-				ContainerImage:  "test/image",
+				Id:             i,
+				Requester:      requester.String(),
+				Provider:       provider.String(),
+				Status:         types.REQUEST_STATUS_COMPLETED,
+				EscrowedAmount: sdkmath.NewInt(100000),
+				MaxPayment:     sdkmath.NewInt(100000),
+				CreatedAt:      now.Add(-3600 * 1e9),
+				CompletedAt:    &now,
+				Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+				ContainerImage: "test/image",
 			}
 
 			err := k.SetRequest(ctx, request)
@@ -250,29 +250,29 @@ func TestRequestStatusInvariant(t *testing.T) {
 
 		// Create pending request
 		pendingRequest := types.Request{
-			Id:              1,
-			Requester:       requester.String(),
-			Status:          types.REQUEST_STATUS_PENDING,
-			EscrowedAmount:  sdkmath.NewInt(100000),
-			MaxPayment:      sdkmath.NewInt(100000),
-			CreatedAt:       now,
-			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-			ContainerImage:  "test/image",
+			Id:             1,
+			Requester:      requester.String(),
+			Status:         types.REQUEST_STATUS_PENDING,
+			EscrowedAmount: sdkmath.NewInt(100000),
+			MaxPayment:     sdkmath.NewInt(100000),
+			CreatedAt:      now,
+			Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage: "test/image",
 		}
 		err := k.SetRequest(ctx, pendingRequest)
 		require.NoError(t, err)
 
 		// Create processing request
 		processingRequest := types.Request{
-			Id:              2,
-			Requester:       requester.String(),
-			Provider:        provider.String(),
-			Status:          types.REQUEST_STATUS_PROCESSING,
-			EscrowedAmount:  sdkmath.NewInt(100000),
-			MaxPayment:      sdkmath.NewInt(100000),
-			CreatedAt:       now,
-			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-			ContainerImage:  "test/image",
+			Id:             2,
+			Requester:      requester.String(),
+			Provider:       provider.String(),
+			Status:         types.REQUEST_STATUS_PROCESSING,
+			EscrowedAmount: sdkmath.NewInt(100000),
+			MaxPayment:     sdkmath.NewInt(100000),
+			CreatedAt:      now,
+			Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage: "test/image",
 		}
 		err = k.SetRequest(ctx, processingRequest)
 		require.NoError(t, err)

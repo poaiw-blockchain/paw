@@ -46,7 +46,7 @@ pawd tx ibc-transfer transfer \
   osmo1recipientaddress... \
   1000000upaw \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --packet-timeout-timestamp $(($(date +%s + 600) * 1000000000)) \
   --yes
 ```
@@ -115,12 +115,12 @@ Swap PAW → ATOM → OSMO across multiple chains:
 
 ```bash
 pawd tx dex cross-chain-swap \
-  --route "paw-testnet-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo" \
+  --route "paw-mvp-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo" \
   --amount-in 1000000upaw \
   --min-out 950000uosmo \
   --max-slippage 0.05 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -130,7 +130,7 @@ pawd tx dex cross-chain-swap \
 
 ```bash
 pawd query dex simulate-cross-chain-swap \
-  --route "paw-testnet-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo" \
+  --route "paw-mvp-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo" \
   --amount-in 1000000upaw
 ```
 
@@ -143,14 +143,14 @@ client = PawClient(rpc_endpoint='http://localhost:26657')
 
 # Simulate cross-chain swap
 simulation = client.dex.simulate_cross_chain_swap(
-    route='paw-testnet-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo',
+    route='paw-mvp-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo',
     amount_in='1000000',
 )
 
 # Execute if profitable
 if simulation['expected_return'] > int(simulation['amount_in']) * 1.01:
     result = client.dex.cross_chain_swap(
-        route='paw-testnet-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo',
+        route='paw-mvp-1:pool-1:upaw:uatom,osmosis-1:pool-42:uatom:uosmo',
         amount_in='1000000',
         min_out='950000',
         max_slippage=0.05,
@@ -170,7 +170,7 @@ pawd tx oracle subscribe-prices \
   --sources "band-laozi-testnet4" \
   --interval 60 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -195,7 +195,7 @@ pawd tx oracle register-source \
   connection-1 \
   channel-3 \
   --from validator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -209,7 +209,7 @@ Create an account you control on Cosmos Hub:
 pawd tx interchain-accounts controller register \
   connection-1 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -230,7 +230,7 @@ pawd tx interchain-accounts controller send-tx \
   connection-1 \
   @msg.json \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -263,14 +263,14 @@ Using Hermes relayer:
 ```bash
 # Create channel for token transfers
 hermes create channel \
-  --a-chain paw-testnet-1 \
+  --a-chain paw-mvp-1 \
   --a-connection connection-0 \
   --a-port transfer \
   --b-port transfer
 
 # Create channel for DEX
 hermes create channel \
-  --a-chain paw-testnet-1 \
+  --a-chain paw-mvp-1 \
   --a-connection connection-0 \
   --a-port dex \
   --b-port dex
@@ -301,7 +301,7 @@ Create `~/.hermes/config.toml`:
 log_level = 'info'
 
 [[chains]]
-id = 'paw-testnet-1'
+id = 'paw-mvp-1'
 rpc_addr = 'http://localhost:26657'
 grpc_addr = 'http://localhost:9090'
 event_source = { mode = 'push', url = 'ws://localhost:26657/websocket', batch_delay = '500ms' }
@@ -334,7 +334,7 @@ pawd keys export relayer --unarmored-hex --unsafe > paw-relayer.key
 
 # Add to Hermes
 hermes keys add \
-  --chain paw-testnet-1 \
+  --chain paw-mvp-1 \
   --key-file paw-relayer.key
 ```
 
@@ -356,7 +356,7 @@ hermes health-check
 
 ```bash
 hermes query packet pending \
-  --chain paw-testnet-1 \
+  --chain paw-mvp-1 \
   --port transfer \
   --channel channel-0
 ```
@@ -365,7 +365,7 @@ hermes query packet pending \
 
 ```bash
 hermes clear packets \
-  --chain paw-testnet-1 \
+  --chain paw-mvp-1 \
   --port transfer \
   --channel channel-0
 ```
@@ -505,7 +505,7 @@ pawd tx ibc-transfer transfer transfer channel-0 \
 **Check:**
 ```bash
 hermes health-check
-hermes query packet pending --chain paw-testnet-1 --port transfer --channel channel-0
+hermes query packet pending --chain paw-mvp-1 --port transfer --channel channel-0
 ```
 
 **Fix:**
@@ -524,7 +524,7 @@ pawd query ibc-transfer denom-trace <hash>
 
 **Create channel:**
 ```bash
-hermes create channel --a-chain paw-testnet-1 \
+hermes create channel --a-chain paw-mvp-1 \
   --a-connection connection-0 --a-port transfer --b-port transfer
 ```
 
@@ -532,7 +532,7 @@ hermes create channel --a-chain paw-testnet-1 \
 
 **Update:**
 ```bash
-hermes update client --host-chain paw-testnet-1 --client 07-tendermint-0
+hermes update client --host-chain paw-mvp-1 --client 07-tendermint-0
 ```
 
 Or configure automatic refresh in `config.toml`:

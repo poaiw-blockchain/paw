@@ -12,36 +12,36 @@ import (
 // Config holds configuration for the alerting system
 type Config struct {
 	// Server configuration
-	HTTPPort      int    `yaml:"http_port"`
-	Environment   string `yaml:"environment"`
+	HTTPPort    int    `yaml:"http_port"`
+	Environment string `yaml:"environment"`
 
 	// Database configuration
 	DatabaseURL string `yaml:"database_url"`
 	RedisURL    string `yaml:"redis_url"`
 
 	// Rule engine configuration
-	EvaluationInterval    time.Duration `yaml:"evaluation_interval"`
-	DefaultForDuration    time.Duration `yaml:"default_for_duration"`
-	MaxConcurrentEvals    int           `yaml:"max_concurrent_evals"`
-	EnableDeduplication   bool          `yaml:"enable_deduplication"`
-	DeduplicationWindow   time.Duration `yaml:"deduplication_window"`
-	EnableGrouping        bool          `yaml:"enable_grouping"`
-	GroupingWindow        time.Duration `yaml:"grouping_window"`
+	EvaluationInterval  time.Duration `yaml:"evaluation_interval"`
+	DefaultForDuration  time.Duration `yaml:"default_for_duration"`
+	MaxConcurrentEvals  int           `yaml:"max_concurrent_evals"`
+	EnableDeduplication bool          `yaml:"enable_deduplication"`
+	DeduplicationWindow time.Duration `yaml:"deduplication_window"`
+	EnableGrouping      bool          `yaml:"enable_grouping"`
+	GroupingWindow      time.Duration `yaml:"grouping_window"`
 
 	// Notification configuration
-	MaxRetries           int           `yaml:"max_retries"`
-	RetryBackoff         time.Duration `yaml:"retry_backoff"`
-	NotificationTimeout  time.Duration `yaml:"notification_timeout"`
-	BatchNotifications   bool          `yaml:"batch_notifications"`
-	BatchSize            int           `yaml:"batch_size"`
-	BatchDelay           time.Duration `yaml:"batch_delay"`
+	MaxRetries          int           `yaml:"max_retries"`
+	RetryBackoff        time.Duration `yaml:"retry_backoff"`
+	NotificationTimeout time.Duration `yaml:"notification_timeout"`
+	BatchNotifications  bool          `yaml:"batch_notifications"`
+	BatchSize           int           `yaml:"batch_size"`
+	BatchDelay          time.Duration `yaml:"batch_delay"`
 
 	// Channel configurations
-	WebhookConfig  WebhookChannelConfig  `yaml:"webhook_config"`
-	EmailConfig    EmailChannelConfig    `yaml:"email_config"`
-	SMSConfig      SMSChannelConfig      `yaml:"sms_config"`
-	SlackConfig    SlackChannelConfig    `yaml:"slack_config"`
-	DiscordConfig  DiscordChannelConfig  `yaml:"discord_config"`
+	WebhookConfig WebhookChannelConfig `yaml:"webhook_config"`
+	EmailConfig   EmailChannelConfig   `yaml:"email_config"`
+	SMSConfig     SMSChannelConfig     `yaml:"sms_config"`
+	SlackConfig   SlackChannelConfig   `yaml:"slack_config"`
+	DiscordConfig DiscordChannelConfig `yaml:"discord_config"`
 
 	// Integration URLs
 	PrometheusURL string `yaml:"prometheus_url"`
@@ -58,21 +58,21 @@ type Config struct {
 
 // WebhookChannelConfig holds webhook channel configuration
 type WebhookChannelConfig struct {
-	Timeout         time.Duration     `yaml:"timeout"`
-	InsecureSkipVerify bool           `yaml:"insecure_skip_verify"`
-	DefaultHeaders  map[string]string `yaml:"default_headers"`
+	Timeout            time.Duration     `yaml:"timeout"`
+	InsecureSkipVerify bool              `yaml:"insecure_skip_verify"`
+	DefaultHeaders     map[string]string `yaml:"default_headers"`
 }
 
 // EmailChannelConfig holds email channel configuration
 type EmailChannelConfig struct {
-	SMTPHost     string `yaml:"smtp_host"`
-	SMTPPort     int    `yaml:"smtp_port"`
-	Username     string `yaml:"username"`
-	Password     string `yaml:"password"`
-	FromAddress  string `yaml:"from_address"`
-	FromName     string `yaml:"from_name"`
-	UseTLS       bool   `yaml:"use_tls"`
-	UseStartTLS  bool   `yaml:"use_starttls"`
+	SMTPHost    string `yaml:"smtp_host"`
+	SMTPPort    int    `yaml:"smtp_port"`
+	Username    string `yaml:"username"`
+	Password    string `yaml:"password"`
+	FromAddress string `yaml:"from_address"`
+	FromName    string `yaml:"from_name"`
+	UseTLS      bool   `yaml:"use_tls"`
+	UseStartTLS bool   `yaml:"use_starttls"`
 }
 
 // SMSChannelConfig holds SMS channel configuration (Twilio)
@@ -100,22 +100,22 @@ type DiscordChannelConfig struct {
 func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		// Defaults
-		HTTPPort:              11210,
-		Environment:           "development",
-		EvaluationInterval:    10 * time.Second,
-		DefaultForDuration:    1 * time.Minute,
-		MaxConcurrentEvals:    10,
-		EnableDeduplication:   true,
-		DeduplicationWindow:   5 * time.Minute,
-		EnableGrouping:        true,
-		GroupingWindow:        1 * time.Minute,
-		MaxRetries:            3,
-		RetryBackoff:          5 * time.Second,
-		NotificationTimeout:   30 * time.Second,
-		BatchNotifications:    false,
-		BatchSize:             10,
-		BatchDelay:            30 * time.Second,
-		AlertRetentionDays:    90,
+		HTTPPort:            11210,
+		Environment:         "development",
+		EvaluationInterval:  10 * time.Second,
+		DefaultForDuration:  1 * time.Minute,
+		MaxConcurrentEvals:  10,
+		EnableDeduplication: true,
+		DeduplicationWindow: 5 * time.Minute,
+		EnableGrouping:      true,
+		GroupingWindow:      1 * time.Minute,
+		MaxRetries:          3,
+		RetryBackoff:        5 * time.Second,
+		NotificationTimeout: 30 * time.Second,
+		BatchNotifications:  false,
+		BatchSize:           10,
+		BatchDelay:          30 * time.Second,
+		AlertRetentionDays:  90,
 		WebhookConfig: WebhookChannelConfig{
 			Timeout:            10 * time.Second,
 			InsecureSkipVerify: false,

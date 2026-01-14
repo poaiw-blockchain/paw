@@ -10,7 +10,7 @@ Last updated: 2026-01-01
 
 ### Public testnet publication
 
-- [ ] Publish/pin live public endpoints in `networks/paw-testnet-1/STATUS.md` and rerun `scripts/devnet/validate-remote-artifacts.sh <cdn-url>` after CDN upload.
+- [ ] Publish/pin live public endpoints in `networks/paw-mvp-1/STATUS.md` and rerun `scripts/devnet/validate-remote-artifacts.sh <cdn-url>` after CDN upload.
 - [ ] Rebuild/publish docs-site once endpoints are live.
 - [ ] Run link check against published endpoints after publication.
 

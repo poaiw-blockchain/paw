@@ -3,14 +3,14 @@
 # Includes: genesis.json, genesis.sha256, peers.txt (or peers.example.txt), manifest.
 #
 # Usage:
-#   CHAIN_ID=paw-testnet-1 ./scripts/devnet/bundle-testnet-artifacts.sh [/path/to/output-dir]
+#   CHAIN_ID=paw-mvp-1 ./scripts/devnet/bundle-testnet-artifacts.sh [/path/to/output-dir]
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-testnet-1}}"
+CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-mvp-1}}"
 NETWORK_DIR="${NETWORK_DIR:-${PROJECT_ROOT}/networks/${CHAIN_ID}}"
 OUTPUT_DIR="${1:-${PROJECT_ROOT}/artifacts}"
 OUTPUT_FILE="${OUTPUT_DIR}/${CHAIN_ID}-artifacts.tar.gz"

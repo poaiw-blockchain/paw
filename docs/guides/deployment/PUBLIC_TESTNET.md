@@ -10,14 +10,14 @@ Before touching cloud infrastructure, run the new local rehearsal script to vali
 
 ```bash
 cd /home/hudson/blockchain-projects/paw
-CHAIN_ID=paw-testnet-1 ./scripts/devnet/local-phase-d-rehearsal.sh
+CHAIN_ID=paw-mvp-1 ./scripts/devnet/local-phase-d-rehearsal.sh
 ```
 
 This builds `pawd`, regenerates the four-validator genesis (with faucet funding), boots `compose/docker-compose.4nodes-with-sentries.yml`, waits for consensus, executes the full smoke suite, verifies Prometheus metrics on every container, and syncs the resulting `genesis.json`, `genesis.sha256`, and `peers.txt` into `networks/${CHAIN_ID}/`. The script is idempotent and exposes a few useful overrides:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CHAIN_ID` | `paw-testnet-1` | Chain ID used for genesis + docker stack |
+| `CHAIN_ID` | `paw-mvp-1` | Chain ID used for genesis + docker stack |
 | `REBUILD_GENESIS` | `1` | Set to `0` to skip `setup-multivalidators.sh` (use existing `.state/`) |
 | `PAW_REHEARSAL_KEEP_STACK` | `0` | Set to `1` to keep the docker stack running after the script exits |
 | `COMPOSE_FILE` | `compose/docker-compose.4nodes-with-sentries.yml` | Alternate topology if desired |
@@ -29,9 +29,9 @@ Once the script completes, `networks/${CHAIN_ID}/` contains the canonical artifa
 Use the hardened GCP automation to deploy three validators + supporting accounts:
 
 ```bash
-export PROJECT_ID="paw-testnet-1"          # Override with your GCP project
+export PROJECT_ID="paw-mvp-1"          # Override with your GCP project
 export ZONE="us-central1-a"
-export CHAIN_ID="paw-testnet-1"
+export CHAIN_ID="paw-mvp-1"
 export NODES_SPEC="paw-testnode-1:34.29.163.145,paw-testnode-2:108.59.86.86,paw-testnode-3:35.184.167.38"
 cd /home/hudson/blockchain-projects/paw
 ./scripts/devnet/gcp-deploy.sh
@@ -41,15 +41,15 @@ cd /home/hudson/blockchain-projects/paw
 - Build a fresh `pawd` binary and copy it to each node
 - Initialize node1, generate validator/faucet/trader keys, and propagate genesis + configs to the other nodes
 - Create and start systemd services for every instance
-- Sync the resulting `genesis.json`, `genesis.sha256`, and `peers.txt` into `networks/paw-testnet-1/` (set `PUBLISH_ARTIFACTS=0` to skip) and run `scripts/devnet/verify-network-artifacts.sh` automatically
+- Sync the resulting `genesis.json`, `genesis.sha256`, and `peers.txt` into `networks/paw-mvp-1/` (set `PUBLISH_ARTIFACTS=0` to skip) and run `scripts/devnet/verify-network-artifacts.sh` automatically
 
 Environment overrides:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `PROJECT_ID` | GCP project containing the validator instances | `paw-testnet-1` |
+| `PROJECT_ID` | GCP project containing the validator instances | `paw-mvp-1` |
 | `ZONE` | GCP zone for the nodes | `us-central1-a` |
-| `CHAIN_ID` | Chain ID used during init (should be `paw-testnet-1`) | `paw-testnet-1` |
+| `CHAIN_ID` | Chain ID used during init (should be `paw-mvp-1`) | `paw-mvp-1` |
 | `NODES_SPEC` | Comma-separated `name:ip` list for the target VMs | script defaults |
 | `NETWORK_DIR` | Local directory for artifact sync | `networks/$CHAIN_ID` |
 | `PUBLISH_ARTIFACTS` | Set to `0` to skip local artifact sync | `1` |
@@ -88,17 +88,17 @@ PAWD_BIN=$(pwd)/build/pawd \
 # Or create a CDN-ready bundle (genesis, sha, peers, manifest) in ./artifacts/
 ./scripts/devnet/bundle-testnet-artifacts.sh
 # Validate remote CDN copy after upload:
-# ./scripts/devnet/validate-remote-artifacts.sh https://networks.paw.xyz/paw-testnet-1
+# ./scripts/devnet/validate-remote-artifacts.sh https://networks.paw.xyz/paw-mvp-1
 # Optional helper to upload to S3-compatible storage:
-# ARTIFACTS_DEST=s3://<bucket>/paw-testnet-1 ./scripts/devnet/upload-artifacts.sh
+# ARTIFACTS_DEST=s3://<bucket>/paw-mvp-1 ./scripts/devnet/upload-artifacts.sh
 ```
 
 Outputs inside `./artifacts/public-testnet/`:
-- `paw-testnet-1-genesis.json`
-- `paw-testnet-1-genesis.sha256`
-- `paw-testnet-1-peer-metadata.txt` (node ID, listen address, seeds/persistent peers, timestamp)
+- `paw-mvp-1-genesis.json`
+- `paw-mvp-1-genesis.sha256`
+- `paw-mvp-1-peer-metadata.txt` (node ID, listen address, seeds/persistent peers, timestamp)
 
-Copy these files into `networks/paw-testnet-1/` before publishing them to your CDN/bucket so the repository always carries the latest canonical snapshot. You can automate this by running:
+Copy these files into `networks/paw-mvp-1/` before publishing them to your CDN/bucket so the repository always carries the latest canonical snapshot. You can automate this by running:
 
 ```bash
 PAW_HOME=/root/.paw/node1 ./scripts/devnet/publish-testnet-artifacts.sh
@@ -108,12 +108,12 @@ Upload the files to the public artifacts bucket or `networks/` repository and sh
 Validate the repo copy before distribution:
 
 ```bash
-./scripts/devnet/verify-network-artifacts.sh paw-testnet-1
+./scripts/devnet/verify-network-artifacts.sh paw-mvp-1
 ```
 
 ### Seed & Peer List
 
-Populate `paw-testnet-1-peer-metadata.txt` with the canonical set:
+Populate `paw-mvp-1-peer-metadata.txt` with the canonical set:
 
 ```
 seeds = "seed1@<seed-host-1>:26656,seed2@<seed-host-2>:26656"
@@ -130,9 +130,9 @@ Share the following links (update hosts if you use a different domain):
 
 | Artifact | Location |
 |----------|----------|
-| Genesis JSON | `networks/paw-testnet-1/genesis.json` (host via your CDN) |
-| Genesis SHA | `networks/paw-testnet-1/genesis.sha256` |
-| Seed/Peer List | `networks/paw-testnet-1/peers.txt` |
+| Genesis JSON | `networks/paw-mvp-1/genesis.json` (host via your CDN) |
+| Genesis SHA | `networks/paw-mvp-1/genesis.sha256` |
+| Seed/Peer List | `networks/paw-mvp-1/peers.txt` |
 | Faucet | `<faucet-endpoint>` |
 | Explorer | `<explorer-endpoint>` |
 | Docs | `docs/TESTNET_QUICK_REFERENCE.md` |
@@ -151,12 +151,12 @@ Operators can follow these steps (also link to `docs/guides/VALIDATOR_QUICKSTART
    ```
 2. **Initialize the node**
    ```bash
-   pawd init <moniker> --chain-id paw-testnet-1 --home ~/.paw
+   pawd init <moniker> --chain-id paw-mvp-1 --home ~/.paw
    ```
 3. **Download & verify genesis**
    ```bash
-   curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json
-   curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256
+   curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json
+   curl -o /tmp/genesis.sha256 https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256
    (cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256)
    ```
 4. **Configure seeds/persistent peers**
@@ -181,7 +181,7 @@ Operators can follow these steps (also link to `docs/guides/VALIDATOR_QUICKSTART
      --amount 250000000upaw \
      --pubkey $(pawd tendermint show-validator --home ~/.paw) \
      --moniker "<moniker>" \
-     --chain-id paw-testnet-1 \
+     --chain-id paw-mvp-1 \
      --commission-rate 0.10 \
      --min-self-delegation 1 \
      --fees 5000upaw \
@@ -198,7 +198,7 @@ Operators can follow these steps (also link to `docs/guides/VALIDATOR_QUICKSTART
 
 - Track public nodes in `docs/NETWORK_PORTS.md`
 - Maintain a `SEEDS.md` file or update `config/node-config.toml.template` comments when seeds change
-- Announce upgrades via `docs/upgrades/` playbooks; always test proposals on `paw-testnet-1` before mainnet
+- Announce upgrades via `docs/upgrades/` playbooks; always test proposals on `paw-mvp-1` before mainnet
 
 ---
 

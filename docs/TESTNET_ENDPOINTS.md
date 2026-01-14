@@ -2,7 +2,7 @@
 
 ## Chain ID
 
-`paw-testnet-1`
+`paw-mvp-1`
 
 ## Network Status
 
@@ -17,7 +17,7 @@
 {
   "$schema": "../chain.schema.json",
   "chain_name": "paw",
-  "chain_id": "paw-testnet-1",
+  "chain_id": "paw-mvp-1",
   "pretty_name": "PAW Testnet",
   "network_type": "testnet",
   "status": "live",

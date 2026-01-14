@@ -76,17 +76,17 @@ describe('ledger hardware helpers', () => {
     expect(() =>
       validateSignDocBasics(
         {
-          chain_id: 'paw-testnet-1',
+          chain_id: 'paw-mvp-1',
           fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
         },
-        { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+        { enforceChainId: 'paw-mvp-1', allowedFeeDenoms: ['upaw'] }
       )
     ).not.toThrow();
 
     expect(() =>
       validateSignDocBasics(
         { chain_id: 'wrong', fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' } },
-        { enforceChainId: 'paw-testnet-1', allowedFeeDenoms: ['upaw'] }
+        { enforceChainId: 'paw-mvp-1', allowedFeeDenoms: ['upaw'] }
       )
     ).toThrow(/chain-id mismatch/);
   });
@@ -99,14 +99,14 @@ describe('ledger hardware helpers', () => {
 
   it('signs amino doc with guardrails', async () => {
     const signDoc = {
-      chain_id: 'paw-testnet-1',
+      chain_id: 'paw-mvp-1',
       account_number: '1',
       sequence: '1',
       fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
       msgs: [],
       memo: '',
     };
-    const res = await signAmino({ signDoc, enforceChainId: 'paw-testnet-1' });
+    const res = await signAmino({ signDoc, enforceChainId: 'paw-mvp-1' });
     expect(res.signature.length).toBeGreaterThan(0);
     expect(res.publicKey.length).toBeGreaterThan(0);
   });

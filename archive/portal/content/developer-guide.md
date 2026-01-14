@@ -50,7 +50,7 @@ API_ENDPOINT=https://api.pawchain.io
 WS_ENDPOINT=wss://ws.pawchain.io
 
 # For testnet development
-CHAIN_ID=paw-testnet-1
+CHAIN_ID=paw-mvp-1
 RPC_ENDPOINT=https://testnet-rpc.pawchain.io
 API_ENDPOINT=https://testnet-api.pawchain.io
 ```
@@ -514,7 +514,7 @@ describe('DEX End-to-End', () => {
 
 ```bash
 # Configure testnet
-export CHAIN_ID=paw-testnet-1
+export CHAIN_ID=paw-mvp-1
 export NODE=https://testnet-rpc.pawchain.io
 
 # Deploy contract

@@ -9,7 +9,7 @@ COPY . .
 
 ENV FLASK_APP=app.py
 ENV RPC_URL=http://host.docker.internal:26657
-ENV CHAIN_ID=paw-testnet-1
+ENV CHAIN_ID=paw-mvp-1
 
 EXPOSE 11080
 

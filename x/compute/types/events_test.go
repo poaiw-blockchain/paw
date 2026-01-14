@@ -440,13 +440,13 @@ func TestAttributeKeyUniqueness(t *testing.T) {
 func TestEventTypeCoverage(t *testing.T) {
 	// Verify we have events for all major operations
 	requiredCategories := map[string][]string{
-		"request":        {EventTypeComputeRequest, EventTypeComputeRequestAccepted, EventTypeComputeRequestRejected},
-		"result":         {EventTypeComputeResult, EventTypeComputeResultVerified, EventTypeComputeResultRejected},
-		"provider":       {EventTypeComputeProviderRegistered, EventTypeComputeProviderUnregistered},
-		"dispute":        {EventTypeComputeDispute, EventTypeComputeDisputeResolved},
-		"escrow":         {EventTypeComputeEscrowCreated, EventTypeComputeEscrowReleased},
-		"verification":   {EventTypeComputeVerification, EventTypeComputeVerificationPassed},
-		"zk_proof":       {EventTypeComputeZKProof, EventTypeComputeZKProofVerified},
+		"request":         {EventTypeComputeRequest, EventTypeComputeRequestAccepted, EventTypeComputeRequestRejected},
+		"result":          {EventTypeComputeResult, EventTypeComputeResultVerified, EventTypeComputeResultRejected},
+		"provider":        {EventTypeComputeProviderRegistered, EventTypeComputeProviderUnregistered},
+		"dispute":         {EventTypeComputeDispute, EventTypeComputeDisputeResolved},
+		"escrow":          {EventTypeComputeEscrowCreated, EventTypeComputeEscrowReleased},
+		"verification":    {EventTypeComputeVerification, EventTypeComputeVerificationPassed},
+		"zk_proof":        {EventTypeComputeZKProof, EventTypeComputeZKProofVerified},
 		"circuit_breaker": {EventTypeComputeCircuitBreakerTripped, EventTypeComputeCircuitBreakerReset},
 	}
 

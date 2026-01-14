@@ -37,7 +37,7 @@ describe('dapp bridge helpers', () => {
     const messages = [];
     vi.spyOn(window, 'postMessage').mockImplementation((payload) => messages.push(payload));
 
-    const promise = requestWalletConnectSession({ chains: ['paw-testnet-1'] }, { timeoutMs: 5000 });
+    const promise = requestWalletConnectSession({ chains: ['paw-mvp-1'] }, { timeoutMs: 5000 });
     const sent = messages[0];
 
     dispatchMessage({ type: 'walletconnect-session-result', id: sent.id, result: { approved: false, error: 'denied' } });

@@ -12,7 +12,7 @@ describe('DexModule', () => {
       getConfig: jest.fn().mockReturnValue({
         rpcEndpoint: 'http://localhost:26657',
         restEndpoint: 'http://localhost:1317',
-        chainId: 'paw-testnet-1'
+        chainId: 'paw-mvp-1'
       })
     } as any;
 

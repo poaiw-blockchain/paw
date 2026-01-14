@@ -67,14 +67,14 @@ For production store submissions follow the end-to-end steps in [`SUBMISSION_GUI
   import { requestWalletConnectSign, requestWalletConnectSession } from './dapp-bridge';
 
   // Start a session proposal
-  await requestWalletConnectSession({ chains: ['paw-testnet-1'], origin: window.location.origin });
+  await requestWalletConnectSession({ chains: ['paw-mvp-1'], origin: window.location.origin });
 
   // Trigger a sign (Ledger-first, software fallback)
   const { result } = await requestWalletConnectSign({
     params: [{
       signerAddress: 'paw1...',
       origin: window.location.origin,
-      signDoc: { chain_id: 'paw-testnet-1', fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' }, msgs: [], memo: '' }
+      signDoc: { chain_id: 'paw-mvp-1', fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' }, msgs: [], memo: '' }
     }]
   });
   console.log('signature', result.signature);

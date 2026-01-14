@@ -39,8 +39,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
-	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -49,15 +49,15 @@ import (
 
 // ProviderConfig holds provider configuration
 type ProviderConfig struct {
-	RPCEndpoint    string
-	GRPCEndpoint   string
-	ChainID        string
-	Mnemonic       string
-	ProviderAddr   string
-	Moniker        string
-	Endpoint       string
-	Stake          math.Int
-	PollInterval   time.Duration
+	RPCEndpoint  string
+	GRPCEndpoint string
+	ChainID      string
+	Mnemonic     string
+	ProviderAddr string
+	Moniker      string
+	Endpoint     string
+	Stake        math.Int
+	PollInterval time.Duration
 }
 
 // ComputeProvider implements a compute resource provider
@@ -142,17 +142,17 @@ func (cp *ComputeProvider) Register() error {
 		Moniker:  cp.config.Moniker,
 		Endpoint: cp.config.Endpoint,
 		AvailableSpecs: computetypes.ComputeSpec{
-			CpuCores:       4000,  // 4 cores (in millicores)
-			MemoryMb:       8192,  // 8GB RAM
-			GpuCount:       0,     // No GPU
-			StorageGb:      100,   // 100GB storage
-			TimeoutSeconds: 3600,  // 1 hour max
+			CpuCores:       4000, // 4 cores (in millicores)
+			MemoryMb:       8192, // 8GB RAM
+			GpuCount:       0,    // No GPU
+			StorageGb:      100,  // 100GB storage
+			TimeoutSeconds: 3600, // 1 hour max
 		},
 		Pricing: computetypes.Pricing{
-			CpuPricePerMcoreHour:   math.NewInt(100),  // 100 tokens per mcore-hour
-			MemoryPricePerMbHour:   math.NewInt(10),   // 10 tokens per MB-hour
-			GpuPricePerHour:        math.NewInt(0),    // No GPU pricing
-			StoragePricePerGbHour:  math.NewInt(5),    // 5 tokens per GB-hour
+			CpuPricePerMcoreHour:  math.NewInt(100), // 100 tokens per mcore-hour
+			MemoryPricePerMbHour:  math.NewInt(10),  // 10 tokens per MB-hour
+			GpuPricePerHour:       math.NewInt(0),   // No GPU pricing
+			StoragePricePerGbHour: math.NewInt(5),   // 5 tokens per GB-hour
 		},
 		Stake: cp.config.Stake,
 	}
@@ -338,7 +338,7 @@ func LoadConfig() ProviderConfig {
 	return ProviderConfig{
 		RPCEndpoint:  rpcEndpoint,
 		GRPCEndpoint: grpcEndpoint,
-		ChainID:      "paw-testnet-1",
+		ChainID:      "paw-mvp-1",
 		Mnemonic:     mnemonic,
 		ProviderAddr: "", // Will be derived from mnemonic
 		Moniker:      "Example Provider",

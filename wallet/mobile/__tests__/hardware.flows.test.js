@@ -1,5 +1,5 @@
 jest.mock('../src/services/PawAPI', () => ({
-  getNodeInfo: jest.fn().mockResolvedValue({ default_node_info: { network: 'paw-testnet-1' } }),
+  getNodeInfo: jest.fn().mockResolvedValue({ default_node_info: { network: 'paw-mvp-1' } }),
   getAccount: jest.fn().mockResolvedValue({
     base_account: { account_number: '7', sequence: '9' },
   }),
@@ -43,7 +43,7 @@ describe('hardware flow helpers', () => {
     expect(res.signature).toBeDefined();
     expect(signWithLedger).toHaveBeenCalledTimes(1);
     const signDoc = signWithLedger.mock.calls[0][0];
-    expect(signDoc.chain_id).toBe('paw-testnet-1');
+    expect(signDoc.chain_id).toBe('paw-mvp-1');
     expect(signDoc.msgs[0].type).toBe('cosmos-sdk/MsgSend');
     expect(signDoc.msgs[0].value.to_address).toContain('paw1toaddress');
   });

@@ -131,8 +131,8 @@ func TestDiscoverProvidersPacketData_GetBytes(t *testing.T) {
 
 func TestSubmitJobPacketData_ValidateBasic(t *testing.T) {
 	validRequirements := JobRequirements{
-		CPUCores:  4,
-		MemoryMB:  8192,
+		CPUCores:    4,
+		MemoryMB:    8192,
 		MaxDuration: 3600,
 	}
 
@@ -343,10 +343,10 @@ func TestSubmitJobPacketData_ValidateBasic(t *testing.T) {
 
 func TestJobResultPacketData_ValidateBasic(t *testing.T) {
 	validResult := JobResult{
-		ResultData: []byte("result"),
-		ResultHash: "hash123",
+		ResultData:  []byte("result"),
+		ResultHash:  "hash123",
 		ComputeTime: 1000,
-		Timestamp:  1000,
+		Timestamp:   1000,
 	}
 
 	tests := []struct {

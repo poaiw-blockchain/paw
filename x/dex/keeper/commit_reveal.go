@@ -41,13 +41,13 @@ var (
 
 // SwapCommitment stores a pending swap commitment
 type SwapCommitment struct {
-	CommitmentHash  []byte         `json:"commitment_hash"`
-	Trader          string         `json:"trader"`
-	PoolID          uint64         `json:"pool_id"`
-	CommitBlock     int64          `json:"commit_block"`
-	ExpiryBlock     int64          `json:"expiry_block"`
-	DepositAmount   math.Int       `json:"deposit_amount"`
-	DepositDenom    string         `json:"deposit_denom"`
+	CommitmentHash []byte   `json:"commitment_hash"`
+	Trader         string   `json:"trader"`
+	PoolID         uint64   `json:"pool_id"`
+	CommitBlock    int64    `json:"commit_block"`
+	ExpiryBlock    int64    `json:"expiry_block"`
+	DepositAmount  math.Int `json:"deposit_amount"`
+	DepositDenom   string   `json:"deposit_denom"`
 }
 
 // SwapCommitmentKey returns the store key for a swap commitment
@@ -469,7 +469,7 @@ func (k Keeper) SwapWithCommitReveal(
 	tokenIn, tokenOut string,
 	amountIn, minAmountOut math.Int,
 	commitmentHash []byte, // nil for regular swaps, set for reveal phase
-	salt []byte,           // only needed for reveal phase
+	salt []byte, // only needed for reveal phase
 ) (math.Int, error) {
 	// Check if this is a reveal operation
 	if len(commitmentHash) > 0 && len(salt) > 0 {

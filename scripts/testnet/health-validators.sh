@@ -18,7 +18,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-5}"
 MAX_HEIGHT_DIFF="${MAX_HEIGHT_DIFF:-100}"
 MAX_BLOCK_AGE_SECONDS="${MAX_BLOCK_AGE_SECONDS:-120}"
@@ -38,7 +38,7 @@ usage() {
 Usage: health-validators.sh [options]
 
 Options:
-  --chain-id <id>          Expected chain-id (default: paw-testnet-1)
+  --chain-id <id>          Expected chain-id (default: paw-mvp-1)
   --timeout <seconds>      Curl connect timeout (default: 5)
   --max-height-diff <n>    Max height difference before warning (default: 100)
   --max-block-age <sec>    Max allowed block age (default: 120)

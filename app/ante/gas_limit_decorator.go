@@ -34,12 +34,12 @@ const (
 
 	// General limits
 	MaxGasPerTx           uint64 = 10_000_000 // Maximum gas per transaction
-	MaxGasPerMessage      uint64 = 500_000   // Maximum gas per message in tx
-	MaxMessagesPerTx      int    = 10        // Maximum messages per transaction
-	MaxIterationsPerLoop  int    = 1000      // Maximum iterations in any loop
-	MaxStorageReadsPerOp  int    = 100       // Maximum storage reads per operation
-	MaxStorageWritesPerOp int    = 50        // Maximum storage writes per operation
-	MaxComputationDepth   int    = 10        // Maximum recursion/nesting depth
+	MaxGasPerMessage      uint64 = 500_000    // Maximum gas per message in tx
+	MaxMessagesPerTx      int    = 10         // Maximum messages per transaction
+	MaxIterationsPerLoop  int    = 1000       // Maximum iterations in any loop
+	MaxStorageReadsPerOp  int    = 100        // Maximum storage reads per operation
+	MaxStorageWritesPerOp int    = 50         // Maximum storage writes per operation
+	MaxComputationDepth   int    = 10         // Maximum recursion/nesting depth
 )
 
 // GasLimitDecorator enforces per-operation gas limits to prevent exhaustion attacks

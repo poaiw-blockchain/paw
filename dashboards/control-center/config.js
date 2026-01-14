@@ -23,7 +23,7 @@ export const CONFIG = {
             name: 'Public Testnet',
             rpcUrl: 'https://testnet-rpc.paw.network',
             restUrl: 'https://testnet-api.paw.network',
-            chainId: 'paw-testnet-1',
+            chainId: 'paw-mvp-1',
             faucetUrl: 'https://faucet.paw.network',
             explorerUrl: 'https://testnet-explorer.paw.network',
             analyticsUrl: 'https://testnet-explorer.paw.network/api/v1/analytics',

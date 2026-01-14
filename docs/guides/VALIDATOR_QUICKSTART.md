@@ -45,7 +45,7 @@ pawd version
 ## 4. Initialize the Validator Home
 ```bash
 export PAW_HOME=$HOME/.paw   # optional; default is already ~/.paw
-pawd init <moniker> --chain-id paw-testnet-1 --home $PAW_HOME
+pawd init <moniker> --chain-id paw-mvp-1 --home $PAW_HOME
 ```
 The command generates `config/app.toml`, `config/config.toml`, and validator keys under `$PAW_HOME`.
 
@@ -62,7 +62,7 @@ For shared testnets obtain tokens from the faucet instead of editing genesis.
 ## 6. Generate and Submit a Gentx
 ```bash
 pawd gentx <validator-key> 700000000upaw \
-  --chain-id paw-testnet-1 --home $PAW_HOME --keyring-backend os
+  --chain-id paw-mvp-1 --home $PAW_HOME --keyring-backend os
 
 # If you are orchestrating a new network:
 pawd collect-gentxs --home $PAW_HOME

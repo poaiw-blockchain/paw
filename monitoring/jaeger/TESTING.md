@@ -6,7 +6,7 @@ This guide walks through testing the OpenTelemetry tracing integration with Jaeg
 
 - Docker installed and running
 - PAW blockchain compiled (`go build -o pawd ./cmd/pawd`)
-- Node initialized (`pawd init test-node --chain-id paw-testnet-1`)
+- Node initialized (`pawd init test-node --chain-id paw-mvp-1`)
 
 ## Step 1: Start Jaeger
 
@@ -55,7 +55,7 @@ pawd start --home ~/.paw
 
 Look for these log messages:
 ```
-OpenTelemetry tracing initialized jaeger_endpoint=http://localhost:4318 sample_rate=1.0 environment=testnet chain_id=paw-testnet-1
+OpenTelemetry tracing initialized jaeger_endpoint=http://localhost:4318 sample_rate=1.0 environment=testnet chain_id=paw-mvp-1
 Telemetry health check passed prometheus_enabled=true
 ```
 
@@ -81,7 +81,7 @@ Fund the account (if using a faucet or genesis account):
 # Example: transfer from genesis account
 pawd tx bank send genesis test-user 1000000upaw \
   --from genesis \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -92,7 +92,7 @@ Generate various transactions:
 ```bash
 pawd tx bank send test-user $(pawd keys show test-user -a --keyring-backend test) 1000upaw \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -102,14 +102,14 @@ pawd tx bank send test-user $(pawd keys show test-user -a --keyring-backend test
 # Create liquidity pool
 pawd tx dex create-pool upaw uatom 1000000 1000000 \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 
 # Swap tokens
 pawd tx dex swap 1 upaw 100000 uatom 0 \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -119,7 +119,7 @@ pawd tx dex swap 1 upaw 100000 uatom 0 \
 # Submit price feed
 pawd tx oracle feed-price btc-usd 45000000000 \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -133,7 +133,7 @@ pawd tx gov submit-proposal \
   --type Text \
   --deposit 10000000upaw \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -233,7 +233,7 @@ Trigger an error (e.g., insufficient balance):
 ```bash
 pawd tx bank send test-user $(pawd keys show test-user -a --keyring-backend test) 999999999999upaw \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -253,7 +253,7 @@ Complex operations create nested spans:
 # Add liquidity (multiple module interactions)
 pawd tx dex add-liquidity 1 1000000upaw 1000000uatom 0 0 \
   --from test-user \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --keyring-backend test \
   --yes
 ```
@@ -398,7 +398,7 @@ Generate high transaction volume:
 for i in {1..1000}; do
   pawd tx bank send test-user $(pawd keys show test-user -a --keyring-backend test) 1upaw \
     --from test-user \
-    --chain-id paw-testnet-1 \
+    --chain-id paw-mvp-1 \
     --keyring-backend test \
     --yes &
 

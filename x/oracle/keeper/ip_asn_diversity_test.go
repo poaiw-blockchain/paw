@@ -354,8 +354,8 @@ func (suite *IPASNDiversitySuite) TestParameterValidation() {
 // TestSybilAttackScenario tests realistic Sybil attack scenario
 func (suite *IPASNDiversitySuite) TestSybilAttackScenario() {
 	// Attacker tries to spin up 10 validators from same location
-	attackerIP := "203.0.113.1"    // TEST-NET-3 (documentation)
-	attackerASN := uint64(64512)   // Reserved ASN for documentation
+	attackerIP := "203.0.113.1"  // TEST-NET-3 (documentation)
+	attackerASN := uint64(64512) // Reserved ASN for documentation
 
 	// Try to add 10 validators from attacker's infrastructure
 	var firstError error

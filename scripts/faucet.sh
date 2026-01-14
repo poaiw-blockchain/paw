@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Configuration
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
 PAWD="${PAWD:-$(dirname "$0")/../build/pawd}"
 FAUCET_KEY="${FAUCET_KEY:-faucet}"

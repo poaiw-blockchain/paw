@@ -124,19 +124,19 @@ func FuzzSwapAmount(f *testing.F) {
 func FuzzSwapSlippage(f *testing.F) {
 	// Seed corpus with various slippage scenarios
 	seeds := []struct {
-		amountIn         uint64
-		minAmountOutPct  uint64 // Percentage of expected output (0-200)
+		amountIn        uint64
+		minAmountOutPct uint64 // Percentage of expected output (0-200)
 	}{
-		{10000, 100},  // Exact expected output
-		{10000, 101},  // 1% above expected
-		{10000, 90},   // 10% slippage tolerance
-		{10000, 50},   // 50% slippage tolerance
-		{10000, 200},  // 2x expected (should fail)
-		{10000, 0},    // No slippage protection
-		{1000, 105},   // Small swap with 5% above
-		{100000, 99},  // Large swap with 1% tolerance
-		{50000, 110},  // Medium swap with 10% above expected
-		{1, 100},      // Minimum swap
+		{10000, 100}, // Exact expected output
+		{10000, 101}, // 1% above expected
+		{10000, 90},  // 10% slippage tolerance
+		{10000, 50},  // 50% slippage tolerance
+		{10000, 200}, // 2x expected (should fail)
+		{10000, 0},   // No slippage protection
+		{1000, 105},  // Small swap with 5% above
+		{100000, 99}, // Large swap with 1% tolerance
+		{50000, 110}, // Medium swap with 10% above expected
+		{1, 100},     // Minimum swap
 	}
 
 	for _, seed := range seeds {
@@ -338,16 +338,16 @@ func FuzzLiquidityRemove(f *testing.F) {
 	seeds := []struct {
 		removePercent uint64 // Percentage of shares to remove (1-99)
 	}{
-		{10},  // Remove 10%
-		{25},  // Remove 25%
-		{50},  // Remove 50%
-		{75},  // Remove 75%
-		{90},  // Remove 90%
-		{1},   // Remove 1%
-		{99},  // Remove 99% (might hit minimum reserves)
-		{5},   // Remove 5%
-		{33},  // Remove 1/3
-		{66},  // Remove 2/3
+		{10}, // Remove 10%
+		{25}, // Remove 25%
+		{50}, // Remove 50%
+		{75}, // Remove 75%
+		{90}, // Remove 90%
+		{1},  // Remove 1%
+		{99}, // Remove 99% (might hit minimum reserves)
+		{5},  // Remove 5%
+		{33}, // Remove 1/3
+		{66}, // Remove 2/3
 	}
 
 	for _, seed := range seeds {

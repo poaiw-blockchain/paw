@@ -38,7 +38,7 @@ func (k Keeper) MigrateStoreKeys(ctx sdk.Context) error {
 		{[]byte{0x0E}, PoolTWAPKeyPrefix},
 		{[]byte{0x15}, ActivePoolsKeyPrefix},
 		// Limit order keys (old single-byte to new namespaced)
-		{[]byte{0x0E}, LimitOrderKeyPrefix},      // Note: 0x0E also used for TWAP, limit orders were added later
+		{[]byte{0x0E}, LimitOrderKeyPrefix}, // Note: 0x0E also used for TWAP, limit orders were added later
 		{[]byte{0x0F}, LimitOrderCountKey},
 		{[]byte{0x10}, LimitOrderByOwnerPrefix},
 		{[]byte{0x11}, LimitOrderByPoolPrefix},

@@ -48,7 +48,7 @@ securityContext:
 # Blockchain node configuration
 node:
   # Chain ID for the blockchain
-  chainId: "paw-testnet-1"
+  chainId: "paw-mvp-1"
   # Moniker for the validator node
   moniker: "paw-validator"
   # Minimum gas prices the validator will accept

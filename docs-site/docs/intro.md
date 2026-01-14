@@ -37,7 +37,7 @@ PAW is built on:
 
 ## Network Specifications
 
-- **Chain ID**: `paw-testnet-1` (testnet), `paw-1` (mainnet)
+- **Chain ID**: `paw-mvp-1` (testnet), `paw-1` (mainnet)
 - **Denomination**: `upaw` (1 PAW = 1,000,000 upaw)
 - **Bech32 Prefix**: `paw`
 - **Block Time**: ~6 seconds

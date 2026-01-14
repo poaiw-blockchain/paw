@@ -37,8 +37,8 @@ import (
 
 // JobProcessor handles compute job execution
 type JobProcessor struct {
-	grpcConn    *grpc.ClientConn
-	queryClient computetypes.QueryClient
+	grpcConn     *grpc.ClientConn
+	queryClient  computetypes.QueryClient
 	providerAddr string
 }
 
@@ -54,8 +54,8 @@ func NewJobProcessor(grpcEndpoint, providerAddr string) (*JobProcessor, error) {
 	}
 
 	return &JobProcessor{
-		grpcConn:    grpcConn,
-		queryClient: computetypes.NewQueryClient(grpcConn),
+		grpcConn:     grpcConn,
+		queryClient:  computetypes.NewQueryClient(grpcConn),
 		providerAddr: providerAddr,
 	}, nil
 }

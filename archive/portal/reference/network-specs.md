@@ -17,7 +17,7 @@ Technical specifications for PAW Blockchain networks.
 
 | Parameter | Value |
 |-----------|-------|
-| Chain ID | paw-testnet-1 |
+| Chain ID | paw-mvp-1 |
 | RPC Endpoint | https://rpc-testnet.paw.network |
 | REST API | https://api-testnet.paw.network |
 | Faucet | https://faucet.paw.network |

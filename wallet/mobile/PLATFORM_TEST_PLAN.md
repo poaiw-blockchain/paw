@@ -11,7 +11,7 @@ This plan defines the device matrix, test scenarios, instrumentation steps, and 
 ## Pre-Run Setup
 1) `npm ci` (or `npm install`), ensure metro bundler not running from a stale cache.
 2) iOS: `cd ios && pod install && cd ..`; Android: accept licenses `yes | sdkmanager --licenses`.
-3) Configure API endpoint in `.env.testnet` or via dev settings: `API_URL=https://testnet-api.poaiw.org`, `RPC_URL=https://testnet-rpc.poaiw.org`, `CHAIN_ID=paw-testnet-1`.
+3) Configure API endpoint in `.env.testnet` or via dev settings: `API_URL=https://testnet-api.poaiw.org`, `RPC_URL=https://testnet-rpc.poaiw.org`, `CHAIN_ID=paw-mvp-1`.
 4) Enable push notification permissions on devices (required for regression of notification flow).
 5) Clear app storage before each scenario run: uninstall/reinstall or Settings → Apps → Storage → Clear.
 
@@ -28,7 +28,7 @@ This plan defines the device matrix, test scenarios, instrumentation steps, and 
 4) **Transaction history & pagination**  
    - Pull-to-refresh, infinite scroll; ensure timestamps and amounts match RPC history; offline mode displays cached list with “offline” badge.
 5) **DEX interaction**  
-   - Execute swap on paw-testnet-1 against a liquid pool; slippage guard enforced; error surfaces for stale quotes.
+   - Execute swap on paw-mvp-1 against a liquid pool; slippage guard enforced; error surfaces for stale quotes.
 6) **Staking**  
    - Delegate/undelegate/redelegate to testnet validator; claim rewards; verify updated balances.
 7) **Push notifications**  

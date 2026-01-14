@@ -17,8 +17,7 @@ import (
 
 type HealthCheckTestSuite struct {
 	suite.Suite
-	checker *Checker
-	logger  log.Logger
+	logger log.Logger
 }
 
 func TestHealthCheckTestSuite(t *testing.T) {

@@ -41,14 +41,14 @@ type TestNode struct {
 
 // RecoveryTestConfig holds configuration for recovery tests
 type RecoveryTestConfig struct {
-	ChainID            string
-	InitialHeight      int64
-	BlocksToGenerate   int
-	SnapshotInterval   uint64
-	KeepRecentBlocks   uint32
-	EnableSnapshots    bool
-	SimulateCrashAt    int64 // 0 = no crash simulation
-	CrashDuringCommit  bool
+	ChainID              string
+	InitialHeight        int64
+	BlocksToGenerate     int
+	SnapshotInterval     uint64
+	KeepRecentBlocks     uint32
+	EnableSnapshots      bool
+	SimulateCrashAt      int64 // 0 = no crash simulation
+	CrashDuringCommit    bool
 	CrashDuringConsensus bool
 }
 

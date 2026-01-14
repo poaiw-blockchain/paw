@@ -347,8 +347,8 @@ func TestRouteFindingResourceBounds(t *testing.T) {
 	maxHops := 5
 
 	// Estimate worst case memory (rough)
-	edgeSize := 32            // poolID (8) + string pointer (16) + overhead
-	poolMemory := maxPools * 2 * edgeSize // 2 edges per pool
+	edgeSize := 32                              // poolID (8) + string pointer (16) + overhead
+	poolMemory := maxPools * 2 * edgeSize       // 2 edges per pool
 	routeMemory := maxCandidates * maxHops * 32 // hop struct size
 
 	totalMemory := poolMemory + routeMemory

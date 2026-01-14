@@ -1,7 +1,7 @@
 # PAW Blockchain - Application Configuration Template
-# Copy to ~/.paw/config/app.toml before joining paw-testnet-1 (or adjust for mainnet).
+# Copy to ~/.paw/config/app.toml before joining paw-mvp-1 (or adjust for mainnet).
 # Baseline values:
-# - Chain ID: paw-testnet-1
+# - Chain ID: paw-mvp-1
 # - Base denom: upaw
 # - Min gas price: 0.001upaw
 # - Bech32 prefix: paw
@@ -111,7 +111,7 @@ prometheus-retention-time = 0
 # metrics emitted using the wrapper functions defined in telemetry package.
 #
 # Example:
-# [["chain_id", "paw-testnet-1"]]
+# [["chain_id", "paw-mvp-1"]]
 global-labels = [
 ]
 

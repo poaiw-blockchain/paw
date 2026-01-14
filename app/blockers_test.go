@@ -2,8 +2,6 @@ package app_test
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
 // TEST-2: BeginBlocker/EndBlocker tests
@@ -72,9 +70,4 @@ func TestInitChainer_CustomModules(t *testing.T) {
 	t.Run("oracle module genesis", func(t *testing.T) {
 		t.Skip("Requires integration test")
 	})
-}
-
-// Helper to verify module was called
-func assertModuleCalled(t *testing.T, moduleName string, called bool) {
-	require.True(t, called, "Module %s should have been called", moduleName)
 }

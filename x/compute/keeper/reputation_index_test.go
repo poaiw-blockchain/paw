@@ -33,13 +33,13 @@ func TestReputationIndexPerformance(t *testing.T) {
 		// Register provider
 		err := k.RegisterProvider(goCtx, providers[i], "TestProvider", "https://test.example.com", specs, pricing, params.MinProviderStake)
 		require.NoError(t, err)
-		
+
 		// Update reputation to different values
 		for j := 0; j < i*10; j++ {
 			_ = k.UpdateProviderReputation(goCtx, providers[i], true)
 		}
 	}
-	
+
 	// Find suitable provider - should return the one with highest reputation
 	// Use smaller specs than what providers offer
 	specs := types.ComputeSpec{
@@ -49,15 +49,15 @@ func TestReputationIndexPerformance(t *testing.T) {
 		GpuCount:       0,    // No GPU needed
 		TimeoutSeconds: 60,
 	}
-	
+
 	bestProvider, err := k.FindSuitableProvider(goCtx, specs, "")
 	require.NoError(t, err)
 	require.NotNil(t, bestProvider)
-	
+
 	// Verify it's the provider with highest reputation
 	providerRecord, err := k.GetProvider(goCtx, bestProvider)
 	require.NoError(t, err)
-	
+
 	// Check all other providers have lower or equal reputation
 	for _, addr := range providers {
 		other, _ := k.GetProvider(goCtx, addr)

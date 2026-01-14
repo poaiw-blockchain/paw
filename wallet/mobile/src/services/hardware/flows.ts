@@ -6,7 +6,7 @@ const DEFAULT_FEE = { amount: [{ denom: 'upaw', amount: '4000' }], gas: '250000'
 
 async function loadAccountMeta(address: string) {
   const nodeInfo = await PawAPI.getNodeInfo();
-  const chainId = nodeInfo?.default_node_info?.network || 'paw-testnet-1';
+  const chainId = nodeInfo?.default_node_info?.network || 'paw-mvp-1';
   const account = await PawAPI.getAccount(address);
   const base = account?.base_account || account?.base_vesting_account?.base_account || account;
   const accountNumber = String(base?.account_number || '');

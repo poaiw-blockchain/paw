@@ -69,7 +69,7 @@ func Load() (*Config, error) {
 
 		NodeRPC:          getEnv("NODE_RPC", "http://localhost:26657"),
 		NodeREST:         getEnv("NODE_REST", "http://localhost:1317"),
-		ChainID:          getEnv("CHAIN_ID", "paw-testnet-1"),
+		ChainID:          getEnv("CHAIN_ID", "paw-mvp-1"),
 		FaucetMnemonic:   getEnv("FAUCET_MNEMONIC", ""),
 		FaucetAddress:    getEnv("FAUCET_ADDRESS", ""),
 		FaucetKeyName:    getEnv("FAUCET_KEY_NAME", "faucet"),

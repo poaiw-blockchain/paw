@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/control-center/network-controls/api"
 	"github.com/paw-chain/paw/control-center/network-controls/circuit"

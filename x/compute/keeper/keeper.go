@@ -190,7 +190,6 @@ func (k *Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.A
 	return k.SetParams(ctx, params)
 }
 
-
 // GetCircuitManager returns the circuit manager, lazily initializing it if needed.
 // The circuit manager handles ZK-SNARK proof verification for compute results.
 func (k *Keeper) GetCircuitManager() *CircuitManager {

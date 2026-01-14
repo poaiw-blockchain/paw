@@ -23,7 +23,7 @@ go build -o pawd ./cmd/pawd
 pawd tx dex create-pool [token-a] [amount-a] [token-b] [amount-b] --from [key]
 
 # Example: Create PAW/USDT pool with 1M PAW and 2M USDT
-pawd tx dex create-pool upaw 1000000000000 uusdt 2000000000000 --from alice --chain-id paw-testnet-1
+pawd tx dex create-pool upaw 1000000000000 uusdt 2000000000000 --from alice --chain-id paw-mvp-1
 ```
 
 #### Add Liquidity

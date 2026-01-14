@@ -94,11 +94,11 @@ func TestGenesisState_Validate_ValidState(t *testing.T) {
 			name: "valid with authorized channels",
 			gs: GenesisState{
 				Params: Params{
-					VotePeriod:    30,
-					VoteThreshold: math.LegacyMustNewDecFromStr("0.67"),
-					SlashFraction: math.LegacyMustNewDecFromStr("0.05"),
-					SlashWindow:   10000,
-					MinValidPerWindow: 100,
+					VotePeriod:         30,
+					VoteThreshold:      math.LegacyMustNewDecFromStr("0.67"),
+					SlashFraction:      math.LegacyMustNewDecFromStr("0.05"),
+					SlashWindow:        10000,
+					MinValidPerWindow:  100,
 					TwapLookbackWindow: 1000,
 					AuthorizedChannels: []AuthorizedChannel{
 						{PortId: "oracle", ChannelId: "channel-0"},
@@ -249,10 +249,10 @@ func TestGenesisState_Validate_InvalidSlashFraction(t *testing.T) {
 
 func TestGenesisState_Validate_InvalidSlashWindow(t *testing.T) {
 	tests := []struct {
-		name            string
-		slashWindow     uint64
+		name              string
+		slashWindow       uint64
 		minValidPerWindow uint64
-		wantErr         bool
+		wantErr           bool
 	}{
 		{
 			name:              "zero slash window",

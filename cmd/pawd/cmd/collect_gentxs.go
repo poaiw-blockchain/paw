@@ -234,11 +234,11 @@ Example:
 				consAddr := sdk.ConsAddress(pubKey.Address())
 				signingInfo := slashingtypes.NewValidatorSigningInfo(
 					consAddr,
-					0,                       // StartHeight - will be set at first block
-					0,                       // IndexOffset
-					time.Unix(0, 0).UTC(),   // JailedUntil
-					false,                   // Tombstoned
-					0,                       // MissedBlocksCounter
+					0,                     // StartHeight - will be set at first block
+					0,                     // IndexOffset
+					time.Unix(0, 0).UTC(), // JailedUntil
+					false,                 // Tombstoned
+					0,                     // MissedBlocksCounter
 				)
 				slashingGenesis.SigningInfos = append(slashingGenesis.SigningInfos, slashingtypes.SigningInfo{
 					Address:              consAddr.String(),

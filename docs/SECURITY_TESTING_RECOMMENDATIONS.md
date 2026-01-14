@@ -40,11 +40,11 @@ pawd start --home ~/.paw/node2 --p2p.laddr tcp://0.0.0.0:26666 \
 
 **Setup:**
 1. Node 1: chain_id = "paw-1"
-2. Node 2: chain_id = "paw-testnet-1"
+2. Node 2: chain_id = "paw-mvp-1"
 
 **Expected Result:**
 - Connection rejected
-- Log shows: "chain ID mismatch: expected paw-1, got paw-testnet-1"
+- Log shows: "chain ID mismatch: expected paw-1, got paw-mvp-1"
 - Security event recorded: `EventTypeSecurity`
 - Peer reputation penalized by 20 points
 

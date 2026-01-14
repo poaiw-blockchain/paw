@@ -1,6 +1,0 @@
-# Placeholder peer metadata generated from local init. Replace node_id/addresses with live sentry nodes before publishing.
-node_id=
-listen_addr=
-persistent_peers=
-seeds=
-generated_at=

@@ -26,57 +26,57 @@ const (
 type AlertSource string
 
 const (
-	SourceNetworkHealth   AlertSource = "network_health"
-	SourceSecurity        AlertSource = "security"
-	SourcePerformance     AlertSource = "performance"
-	SourceModuleDEX       AlertSource = "module_dex"
-	SourceModuleOracle    AlertSource = "module_oracle"
-	SourceModuleCompute   AlertSource = "module_compute"
-	SourceInfrastructure  AlertSource = "infrastructure"
+	SourceNetworkHealth  AlertSource = "network_health"
+	SourceSecurity       AlertSource = "security"
+	SourcePerformance    AlertSource = "performance"
+	SourceModuleDEX      AlertSource = "module_dex"
+	SourceModuleOracle   AlertSource = "module_oracle"
+	SourceModuleCompute  AlertSource = "module_compute"
+	SourceInfrastructure AlertSource = "infrastructure"
 )
 
 // Alert represents an active alert
 type Alert struct {
-	ID            string                 `json:"id"`
-	RuleID        string                 `json:"rule_id"`
-	RuleName      string                 `json:"rule_name"`
-	Source        AlertSource            `json:"source"`
-	Severity      Severity               `json:"severity"`
-	Status        Status                 `json:"status"`
-	Message       string                 `json:"message"`
-	Description   string                 `json:"description"`
-	Labels        map[string]string      `json:"labels"`
-	Annotations   map[string]string      `json:"annotations"`
-	Value         float64                `json:"value"`
-	Threshold     float64                `json:"threshold"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
-	AcknowledgedAt *time.Time            `json:"acknowledged_at,omitempty"`
-	AcknowledgedBy string                `json:"acknowledged_by,omitempty"`
-	ResolvedAt    *time.Time             `json:"resolved_at,omitempty"`
-	ResolvedBy    string                 `json:"resolved_by,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	ID             string                 `json:"id"`
+	RuleID         string                 `json:"rule_id"`
+	RuleName       string                 `json:"rule_name"`
+	Source         AlertSource            `json:"source"`
+	Severity       Severity               `json:"severity"`
+	Status         Status                 `json:"status"`
+	Message        string                 `json:"message"`
+	Description    string                 `json:"description"`
+	Labels         map[string]string      `json:"labels"`
+	Annotations    map[string]string      `json:"annotations"`
+	Value          float64                `json:"value"`
+	Threshold      float64                `json:"threshold"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+	AcknowledgedAt *time.Time             `json:"acknowledged_at,omitempty"`
+	AcknowledgedBy string                 `json:"acknowledged_by,omitempty"`
+	ResolvedAt     *time.Time             `json:"resolved_at,omitempty"`
+	ResolvedBy     string                 `json:"resolved_by,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // AlertRule defines a rule that triggers alerts
 type AlertRule struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Source          AlertSource            `json:"source"`
-	Severity        Severity               `json:"severity"`
-	Enabled         bool                   `json:"enabled"`
-	RuleType        RuleType               `json:"rule_type"`
-	Conditions      []Condition            `json:"conditions"`
-	CompositeOp     CompositeOperator      `json:"composite_op,omitempty"` // For composite rules
-	EvaluationInterval time.Duration       `json:"evaluation_interval"`
-	ForDuration     time.Duration          `json:"for_duration"` // Alert must be active for this duration
-	Labels          map[string]string      `json:"labels"`
-	Annotations     map[string]string      `json:"annotations"`
-	Channels        []string               `json:"channels"` // Channel IDs to notify
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
+	ID                 string                 `json:"id"`
+	Name               string                 `json:"name"`
+	Description        string                 `json:"description"`
+	Source             AlertSource            `json:"source"`
+	Severity           Severity               `json:"severity"`
+	Enabled            bool                   `json:"enabled"`
+	RuleType           RuleType               `json:"rule_type"`
+	Conditions         []Condition            `json:"conditions"`
+	CompositeOp        CompositeOperator      `json:"composite_op,omitempty"` // For composite rules
+	EvaluationInterval time.Duration          `json:"evaluation_interval"`
+	ForDuration        time.Duration          `json:"for_duration"` // Alert must be active for this duration
+	Labels             map[string]string      `json:"labels"`
+	Annotations        map[string]string      `json:"annotations"`
+	Channels           []string               `json:"channels"` // Channel IDs to notify
+	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt          time.Time              `json:"created_at"`
+	UpdatedAt          time.Time              `json:"updated_at"`
 }
 
 // RuleType defines the type of alert rule
@@ -101,12 +101,12 @@ type Condition struct {
 type ComparisonOperator string
 
 const (
-	OpGreaterThan       ComparisonOperator = "gt"
+	OpGreaterThan        ComparisonOperator = "gt"
 	OpGreaterThanOrEqual ComparisonOperator = "gte"
-	OpLessThan          ComparisonOperator = "lt"
-	OpLessThanOrEqual   ComparisonOperator = "lte"
-	OpEquals            ComparisonOperator = "eq"
-	OpNotEquals         ComparisonOperator = "ne"
+	OpLessThan           ComparisonOperator = "lt"
+	OpLessThanOrEqual    ComparisonOperator = "lte"
+	OpEquals             ComparisonOperator = "eq"
+	OpNotEquals          ComparisonOperator = "ne"
 )
 
 // CompositeOperator defines logical operators for composite rules
@@ -119,14 +119,14 @@ const (
 
 // Channel defines a notification channel
 type Channel struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        ChannelType            `json:"type"`
-	Enabled     bool                   `json:"enabled"`
-	Config      map[string]interface{} `json:"config"`
-	Filters     []ChannelFilter        `json:"filters,omitempty"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	Type      ChannelType            `json:"type"`
+	Enabled   bool                   `json:"enabled"`
+	Config    map[string]interface{} `json:"config"`
+	Filters   []ChannelFilter        `json:"filters,omitempty"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 // ChannelType defines the type of notification channel
@@ -149,15 +149,15 @@ type ChannelFilter struct {
 
 // AlertStats represents alert statistics
 type AlertStats struct {
-	TotalAlerts       int              `json:"total_alerts"`
-	ActiveAlerts      int              `json:"active_alerts"`
-	AcknowledgedAlerts int             `json:"acknowledged_alerts"`
-	ResolvedAlerts    int              `json:"resolved_alerts"`
-	BySeverity        map[Severity]int `json:"by_severity"`
-	BySource          map[AlertSource]int `json:"by_source"`
-	ByStatus          map[Status]int   `json:"by_status"`
-	MeanTimeToAcknowledge time.Duration `json:"mean_time_to_acknowledge"`
-	MeanTimeToResolve     time.Duration `json:"mean_time_to_resolve"`
+	TotalAlerts           int                 `json:"total_alerts"`
+	ActiveAlerts          int                 `json:"active_alerts"`
+	AcknowledgedAlerts    int                 `json:"acknowledged_alerts"`
+	ResolvedAlerts        int                 `json:"resolved_alerts"`
+	BySeverity            map[Severity]int    `json:"by_severity"`
+	BySource              map[AlertSource]int `json:"by_source"`
+	ByStatus              map[Status]int      `json:"by_status"`
+	MeanTimeToAcknowledge time.Duration       `json:"mean_time_to_acknowledge"`
+	MeanTimeToResolve     time.Duration       `json:"mean_time_to_resolve"`
 }
 
 // Notification represents a notification sent to a channel
@@ -174,20 +174,20 @@ type Notification struct {
 
 // EscalationPolicy defines how alerts should be escalated
 type EscalationPolicy struct {
-	ID          string              `json:"id"`
-	Name        string              `json:"name"`
-	Enabled     bool                `json:"enabled"`
-	Levels      []EscalationLevel   `json:"levels"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Enabled   bool              `json:"enabled"`
+	Levels    []EscalationLevel `json:"levels"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 // EscalationLevel defines a level in an escalation policy
 type EscalationLevel struct {
-	Level       int           `json:"level"`
-	DelayAfter  time.Duration `json:"delay_after"` // Delay after previous level
-	Channels    []string      `json:"channels"`    // Channel IDs
-	RequireAck  bool          `json:"require_ack"` // Require acknowledgement before next level
+	Level      int           `json:"level"`
+	DelayAfter time.Duration `json:"delay_after"` // Delay after previous level
+	Channels   []string      `json:"channels"`    // Channel IDs
+	RequireAck bool          `json:"require_ack"` // Require acknowledgement before next level
 }
 
 // MetricValue represents a metric value for rule evaluation
@@ -201,11 +201,11 @@ type MetricValue struct {
 
 // EvaluationResult represents the result of evaluating a rule
 type EvaluationResult struct {
-	RuleID    string       `json:"rule_id"`
-	Triggered bool         `json:"triggered"`
-	Value     float64      `json:"value"`
-	Threshold float64      `json:"threshold"`
-	Message   string       `json:"message"`
-	Timestamp time.Time    `json:"timestamp"`
+	RuleID    string                 `json:"rule_id"`
+	Triggered bool                   `json:"triggered"`
+	Value     float64                `json:"value"`
+	Threshold float64                `json:"threshold"`
+	Message   string                 `json:"message"`
+	Timestamp time.Time              `json:"timestamp"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }

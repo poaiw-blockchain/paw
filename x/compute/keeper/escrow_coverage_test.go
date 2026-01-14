@@ -402,15 +402,15 @@ func TestCatastrophicFailureStateRecovery(t *testing.T) {
 		hugeAmount := math.NewInt(99999999999)
 
 		request := types.Request{
-			Id:              300,
-			Requester:       requester.String(),
-			Provider:        provider.String(),
-			Status:          types.REQUEST_STATUS_PENDING,
-			EscrowedAmount:  hugeAmount, // Huge amount not actually in module
-			MaxPayment:      hugeAmount,
-			CreatedAt:       sdkCtx.BlockTime(),
-			Specs:           types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
-			ContainerImage:  "test/image",
+			Id:             300,
+			Requester:      requester.String(),
+			Provider:       provider.String(),
+			Status:         types.REQUEST_STATUS_PENDING,
+			EscrowedAmount: hugeAmount, // Huge amount not actually in module
+			MaxPayment:     hugeAmount,
+			CreatedAt:      sdkCtx.BlockTime(),
+			Specs:          types.ComputeSpec{CpuCores: 1000, MemoryMb: 1024},
+			ContainerImage: "test/image",
 		}
 
 		err := k.SetRequest(ctx, request)
@@ -455,9 +455,10 @@ func TestCatastrophicFailureStateRecovery(t *testing.T) {
 		// This is the recovery mechanism
 		if moduleBalance.Amount.LT(escrow.Amount) {
 			// Force refund to recover from inconsistent state
-			err = k.RefundEscrow(ctx, requestID, "recovery_insufficient_balance")
+			refundErr := k.RefundEscrow(ctx, requestID, "recovery_insufficient_balance")
 			// This would fail in this case because balance is actually sufficient
 			// In a real inconsistency, we'd need a governance proposal to mint or recover
+			_ = refundErr // Expected to potentially fail in this test scenario
 		}
 	})
 }

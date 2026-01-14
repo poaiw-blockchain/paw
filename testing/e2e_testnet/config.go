@@ -37,10 +37,10 @@ type ExplorerConfig struct {
 	Port     int
 }
 
-// DefaultTestnetConfig returns the configuration for paw-testnet-1
+// DefaultTestnetConfig returns the configuration for paw-mvp-1
 func DefaultTestnetConfig() *TestnetConfig {
 	return &TestnetConfig{
-		ChainID: "paw-testnet-1",
+		ChainID: "paw-mvp-1",
 		Validators: []ValidatorConfig{
 			{
 				Name:     "val1",
@@ -131,7 +131,7 @@ func LocalOnlyConfig() *TestnetConfig {
 func DefaultOutputDir() string {
 	home := os.Getenv("HOME")
 	if home != "" {
-		resultsDir := home + "/testnets/paw-testnet-1/results"
+		resultsDir := home + "/testnets/paw-mvp-1/results"
 		if _, err := os.Stat(resultsDir); err == nil {
 			return resultsDir
 		}

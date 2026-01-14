@@ -33,7 +33,7 @@ The validator selected to create the next block in the blockchain.
 ## C
 
 **Chain ID**
-Unique identifier for a blockchain network. PAW mainnet: `paw-mainnet-1`, testnet: `paw-testnet-1`
+Unique identifier for a blockchain network. PAW mainnet: `paw-mainnet-1`, testnet: `paw-mvp-1`
 
 **Commission**
 The percentage fee validators charge delegators for staking services. Typical: 5-10%.

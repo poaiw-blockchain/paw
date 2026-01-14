@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validate published artifacts on a remote CDN/bucket by downloading and checking integrity.
 # Usage:
-#   ./scripts/devnet/validate-remote-artifacts.sh https://networks.paw.xyz/paw-testnet-1 [chain-id]
+#   ./scripts/devnet/validate-remote-artifacts.sh https://networks.paw.xyz/paw-mvp-1 [chain-id]
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 BASE_URL="${1%/}"
-CHAIN_ID="${2:-${CHAIN_ID:-${PAW_CHAIN_ID:-paw-testnet-1}}}"
+CHAIN_ID="${2:-${CHAIN_ID:-${PAW_CHAIN_ID:-paw-mvp-1}}}"
 NETWORK_DIR="${NETWORK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/networks/${CHAIN_ID}}"
 
 require() {

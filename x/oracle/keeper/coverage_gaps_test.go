@@ -436,10 +436,10 @@ func TestByzantineFaultInjection(t *testing.T) {
 			{ValidatorAddr: "val8", Price: correctPrice, VotingPower: 1000000},
 			{ValidatorAddr: "val9", Price: correctPrice, VotingPower: 1000000},
 			// 4 Byzantine validators with different outlier prices (31% - below 33% BFT threshold)
-			{ValidatorAddr: "byz1", Price: correctPrice.Quo(sdkmath.LegacyNewDec(2)), VotingPower: 1000000},  // 0.5x
-			{ValidatorAddr: "byz2", Price: correctPrice.Mul(sdkmath.LegacyNewDec(2)), VotingPower: 1000000},  // 2x
-			{ValidatorAddr: "byz3", Price: correctPrice.Mul(sdkmath.LegacyNewDec(3)), VotingPower: 1000000},  // 3x
-			{ValidatorAddr: "byz4", Price: correctPrice.Mul(sdkmath.LegacyNewDec(4)), VotingPower: 1000000},  // 4x
+			{ValidatorAddr: "byz1", Price: correctPrice.Quo(sdkmath.LegacyNewDec(2)), VotingPower: 1000000}, // 0.5x
+			{ValidatorAddr: "byz2", Price: correctPrice.Mul(sdkmath.LegacyNewDec(2)), VotingPower: 1000000}, // 2x
+			{ValidatorAddr: "byz3", Price: correctPrice.Mul(sdkmath.LegacyNewDec(3)), VotingPower: 1000000}, // 3x
+			{ValidatorAddr: "byz4", Price: correctPrice.Mul(sdkmath.LegacyNewDec(4)), VotingPower: 1000000}, // 4x
 		}
 
 		// Weighted median should exclude Byzantine minority

@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 PAW_HOME="${PAW_HOME:-${HOME}/.paw}"
-PAW_CHAIN_ID="${PAW_CHAIN_ID:-paw-testnet-1}"
+PAW_CHAIN_ID="${PAW_CHAIN_ID:-paw-mvp-1}"
 MONIKER="${MONIKER:-${1:-paw-testnet-node}}"
 BUILD_DIR="${BUILD_DIR:-${REPO_ROOT}/build}"
 PAWD_BIN="${PAWD_BIN:-${BUILD_DIR}/pawd}"

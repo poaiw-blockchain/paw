@@ -60,7 +60,7 @@ func main() {
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
+			"status":    "ok",
 			"timestamp": time.Now().Unix(),
 		})
 	})
@@ -148,9 +148,9 @@ func main() {
 
 	// Start HTTP server
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.HTTPPort),
-		Handler: router,
-		ReadTimeout: 30 * time.Second,
+		Addr:         fmt.Sprintf(":%d", cfg.HTTPPort),
+		Handler:      router,
+		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 

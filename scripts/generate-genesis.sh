@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 GENESIS_TIME="${GENESIS_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}"
 WORK_DIR="${WORK_DIR:-./genesis-work}"
 OUTPUT_DIR="${OUTPUT_DIR:-./genesis-output}"

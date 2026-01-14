@@ -70,8 +70,8 @@ var (
 
 // Package-level circuit state (protected by mutex)
 var (
-	circuitMu       sync.RWMutex
-	circuitState    = make(map[string]*circuitKeys)
+	circuitMu           sync.RWMutex
+	circuitState        = make(map[string]*circuitKeys)
 	circuitsInitialized bool
 )
 

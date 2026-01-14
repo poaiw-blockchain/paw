@@ -12,22 +12,22 @@ import (
 // DefaultParams returns default parameters for the dex module
 func DefaultParams() types.Params {
 	return types.Params{
-		SwapFee:                             math.LegacyNewDecWithPrec(3, 3),  // 0.3%
-		LpFee:                               math.LegacyNewDecWithPrec(25, 4), // 0.25% (of 0.3%)
-		ProtocolFee:                         math.LegacyNewDecWithPrec(5, 4),  // 0.05% (of 0.3%)
-		MinLiquidity:                        math.NewInt(1000),                // Minimum initial liquidity
-		MaxSlippagePercent:                  math.LegacyNewDecWithPrec(5, 2),  // 5%
-		MaxPoolDrainPercent:                 math.LegacyNewDecWithPrec(30, 2), // 30% per swap
-		FlashLoanProtectionBlocks:           100, // SEC-18: ~10 min at 6s blocks
-		AuthorizedChannels:                  []types.AuthorizedChannel{},
-		PoolCreationGas:                     1000,
-		SwapValidationGas:                   1500,
-		LiquidityGas:                        1200,
-		UpgradePreserveCircuitBreakerState:  true,                             // Default to preserving pause state across upgrades
-		RecommendedMaxSlippage:              math.LegacyNewDecWithPrec(3, 2),  // 3% recommended max
-		EnableCommitReveal:                  false,                            // Disabled for testnet
-		CommitRevealDelay:                   10,                               // 10 blocks
-		CommitTimeoutBlocks:                 100,                              // 100 blocks
+		SwapFee:                            math.LegacyNewDecWithPrec(3, 3),  // 0.3%
+		LpFee:                              math.LegacyNewDecWithPrec(25, 4), // 0.25% (of 0.3%)
+		ProtocolFee:                        math.LegacyNewDecWithPrec(5, 4),  // 0.05% (of 0.3%)
+		MinLiquidity:                       math.NewInt(1000),                // Minimum initial liquidity
+		MaxSlippagePercent:                 math.LegacyNewDecWithPrec(5, 2),  // 5%
+		MaxPoolDrainPercent:                math.LegacyNewDecWithPrec(30, 2), // 30% per swap
+		FlashLoanProtectionBlocks:          100,                              // SEC-18: ~10 min at 6s blocks
+		AuthorizedChannels:                 []types.AuthorizedChannel{},
+		PoolCreationGas:                    1000,
+		SwapValidationGas:                  1500,
+		LiquidityGas:                       1200,
+		UpgradePreserveCircuitBreakerState: true,                            // Default to preserving pause state across upgrades
+		RecommendedMaxSlippage:             math.LegacyNewDecWithPrec(3, 2), // 3% recommended max
+		EnableCommitReveal:                 false,                           // Disabled for testnet
+		CommitRevealDelay:                  10,                              // 10 blocks
+		CommitTimeoutBlocks:                100,                             // 100 blocks
 	}
 }
 

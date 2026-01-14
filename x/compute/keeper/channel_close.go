@@ -112,4 +112,3 @@ func (k Keeper) refundJobOnChannelClose(ctx sdk.Context, jobID string) error {
 
 	return nil
 }
-

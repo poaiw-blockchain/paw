@@ -31,12 +31,12 @@ type OracleManipulationTestSuite struct {
 
 // OracleValidator represents a validator submitting oracle prices
 type OracleValidator struct {
-	Address      sdk.ValAddress
-	VotingPower  int64
-	IsMalicious  bool
-	Submissions  int
-	Rejections   int
-	mu           sync.Mutex
+	Address     sdk.ValAddress
+	VotingPower int64
+	IsMalicious bool
+	Submissions int
+	Rejections  int
+	mu          sync.Mutex
 }
 
 func TestOracleManipulationTestSuite(t *testing.T) {

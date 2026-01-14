@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
   external_labels:
     cluster: 'paw-testnet'
-    chain_id: 'paw-testnet-1'
+    chain_id: 'paw-mvp-1'
     blockchain: 'paw'
 
 # Alertmanager configuration

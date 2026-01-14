@@ -40,7 +40,7 @@ Create a new trading pair with initial liquidity:
 ```bash
 pawd tx dex create-pool upaw 1000000000000 uusdt 2000000000000 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --yes
 ```
@@ -72,7 +72,7 @@ pawd query dex pool-by-tokens upaw uusdt
 # Add liquidity to pool 1
 pawd tx dex add-liquidity 1 100000000 200000000 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 
@@ -110,7 +110,7 @@ const result = await client.dex.addLiquidity({
 ```bash
 pawd tx dex swap 1 upaw 1000000000 uusdt 1900000000 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --yes
 ```
 

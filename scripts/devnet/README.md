@@ -45,7 +45,7 @@ Generates the canonical 4-validator genesis used by the docker-compose stacks an
 
 **Usage:**
 ```bash
-CHAIN_ID=paw-testnet-1 ./scripts/devnet/setup-multivalidators.sh
+CHAIN_ID=paw-mvp-1 ./scripts/devnet/setup-multivalidators.sh
 ```
 
 **Highlights:**
@@ -100,13 +100,13 @@ End-to-end automation for the Production Roadmap Phase D "local rehearsal" requi
 
 **Usage:**
 ```bash
-CHAIN_ID=paw-testnet-1 ./scripts/devnet/local-phase-d-rehearsal.sh
+CHAIN_ID=paw-mvp-1 ./scripts/devnet/local-phase-d-rehearsal.sh
 ```
 
 **What you get:**
 - 4 validators + 2 sentries with Prometheus metrics enabled on every node
 - Deterministic Phase D smoke test (bank + DEX + gov + oracle + compute)
-- Artifacts synced into `networks/paw-testnet-1/` via the existing publish pipeline
+- Artifacts synced into `networks/paw-mvp-1/` via the existing publish pipeline
 - Optional knobs (e.g., `PAW_REHEARSAL_KEEP_STACK=1`, `REBUILD_GENESIS=0`) for iterative debugging
 
 See `docs/guides/deployment/PUBLIC_TESTNET.md` for how this script ties into the public testnet onboarding workflow.

@@ -102,12 +102,12 @@ func NewVerifier(config *MultiSigConfig) (*Verifier, error) {
 
 // VerifyResult contains the result of multi-signature verification
 type VerifyResult struct {
-	Valid           bool     `json:"valid"`
-	ValidSignatures int      `json:"valid_signatures"`
-	RequiredThreshold int    `json:"required_threshold"`
-	ValidSigners    []string `json:"valid_signers"`
-	InvalidSigners  []string `json:"invalid_signers"`
-	Errors          []string `json:"errors,omitempty"`
+	Valid             bool     `json:"valid"`
+	ValidSignatures   int      `json:"valid_signatures"`
+	RequiredThreshold int      `json:"required_threshold"`
+	ValidSigners      []string `json:"valid_signers"`
+	InvalidSigners    []string `json:"invalid_signers"`
+	Errors            []string `json:"errors,omitempty"`
 }
 
 // Verify checks if a multi-signature meets the threshold requirement

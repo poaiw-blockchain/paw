@@ -550,11 +550,11 @@ func TestMigrate_Params_MissingFields(t *testing.T) {
 
 	// Set params with missing new fields (zero values)
 	oldParams := types.Params{
-		VotePeriod:    30,
-		VoteThreshold: math.LegacyZeroDec(), // Should be updated
-		SlashFraction: math.LegacyZeroDec(), // Should be updated
-		SlashWindow:   10000,
-		MinValidPerWindow: 0, // Should be updated
+		VotePeriod:         30,
+		VoteThreshold:      math.LegacyZeroDec(), // Should be updated
+		SlashFraction:      math.LegacyZeroDec(), // Should be updated
+		SlashWindow:        10000,
+		MinValidPerWindow:  0, // Should be updated
 		TwapLookbackWindow: 0, // Should be updated
 	}
 	setParams(t, store, cdc, oldParams)
@@ -778,7 +778,7 @@ func TestMigrate_EdgeCases_NilPrice(t *testing.T) {
 
 	// Set up price with nil price value (using empty LegacyDec)
 	price := types.Price{
-		Asset:         "ATOM",
+		Asset: "ATOM",
 		// Price left as default (nil)
 		BlockHeight:   100,
 		BlockTime:     1609459200,

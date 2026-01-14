@@ -66,7 +66,7 @@ helm install my-paw-node ./helm/paw -n paw
 | `replicaCount` | Number of replicas | `1` |
 | `image.repository` | Container image repository | `ghcr.io/decristofaroj/paw` |
 | `image.tag` | Container image tag | `""` (uses appVersion) |
-| `node.chainId` | Blockchain chain ID | `paw-testnet-1` |
+| `node.chainId` | Blockchain chain ID | `paw-mvp-1` |
 | `node.moniker` | Validator node moniker | `paw-validator` |
 | `node.minGasPrices` | Minimum gas prices | `0.025upaw` |
 | `node.logLevel` | Log level (debug/info/warn/error) | `info` |
@@ -143,7 +143,7 @@ image:
   pullPolicy: Always
 
 node:
-  chainId: "paw-testnet-1"
+  chainId: "paw-mvp-1"
   moniker: "dev-node"
   minGasPrices: "0.001upaw"
   logLevel: "debug"

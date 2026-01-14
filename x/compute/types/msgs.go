@@ -337,11 +337,11 @@ func (msg *MsgUpdateParams) ValidateBasic() error {
 // ComputeSpec validation constants
 // SEC-3.2: Upper bounds prevent resource abuse and unrealistic requests
 const (
-	MaxCPUMillicores    = 256000         // 256 cores in millicores
-	MaxMemoryMB         = 512 * 1024     // 512 GB in MB
-	MaxStorageGB        = 10 * 1024      // 10 TB in GB
-	MaxGPUCount         = 16             // 16 GPUs maximum
-	MaxTimeoutSeconds   = 7 * 24 * 3600  // 7 days maximum timeout
+	MaxCPUMillicores  = 256000        // 256 cores in millicores
+	MaxMemoryMB       = 512 * 1024    // 512 GB in MB
+	MaxStorageGB      = 10 * 1024     // 10 TB in GB
+	MaxGPUCount       = 16            // 16 GPUs maximum
+	MaxTimeoutSeconds = 7 * 24 * 3600 // 7 days maximum timeout
 )
 
 func validateComputeSpec(spec ComputeSpec) error {

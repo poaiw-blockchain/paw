@@ -38,15 +38,15 @@ func (s *AdvancedDiscoveryTestSuite) SetupTest() {
 
 	// Create peer manager
 	config := &DiscoveryConfig{
-		MaxInboundPeers:     10,
-		MaxOutboundPeers:    10,
-		MinOutboundPeers:    3,
-		InactivityTimeout:   1 * time.Minute,
-		PersistentPeers:     []string{},
+		MaxInboundPeers:      10,
+		MaxOutboundPeers:     10,
+		MinOutboundPeers:     3,
+		InactivityTimeout:    1 * time.Minute,
+		PersistentPeers:      []string{},
 		UnconditionalPeerIDs: []string{},
-		EnableAutoReconnect: true,
-		ChainID:             "test-chain",
-		NodeID:              "test-node",
+		EnableAutoReconnect:  true,
+		ChainID:              "test-chain",
+		NodeID:               "test-node",
 	}
 
 	s.peerManager = NewPeerManager(config, s.addressBook, s.repManager, s.logger)
@@ -181,9 +181,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	for i := 0; i < maxOutbound; i++ {
 		peerID := reputation.PeerID(fmt.Sprintf("outbound-peer-%d", i))
 		addr := &PeerAddr{
-			ID:   peerID,
+			ID:      peerID,
 			Address: fmt.Sprintf("10.0.0.%d", i+1),
-			Port: 26656,
+			Port:    26656,
 		}
 
 		err := s.peerManager.AddPeer(peerID, addr, true)
@@ -196,9 +196,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	// Try to add one more outbound
 	overflowPeer := reputation.PeerID("overflow-outbound")
 	overflowAddr := &PeerAddr{
-		ID:   overflowPeer,
+		ID:      overflowPeer,
 		Address: "10.0.1.1",
-		Port: 26656,
+		Port:    26656,
 	}
 
 	err := s.peerManager.AddPeer(overflowPeer, overflowAddr, true)
@@ -210,9 +210,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	for i := 0; i < maxInbound; i++ {
 		peerID := reputation.PeerID(fmt.Sprintf("inbound-peer-%d", i))
 		addr := &PeerAddr{
-			ID:   peerID,
+			ID:      peerID,
 			Address: fmt.Sprintf("10.0.2.%d", i+1),
-			Port: 26656,
+			Port:    26656,
 		}
 
 		err := s.peerManager.AddPeer(peerID, addr, false)
@@ -225,9 +225,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerManagerCapacityLimits() {
 	// Try to add one more inbound
 	overflowInbound := reputation.PeerID("overflow-inbound")
 	overflowInboundAddr := &PeerAddr{
-		ID:   overflowInbound,
+		ID:      overflowInbound,
 		Address: "10.0.3.1",
-		Port: 26656,
+		Port:    26656,
 	}
 
 	err = s.peerManager.AddPeer(overflowInbound, overflowInboundAddr, false)
@@ -324,14 +324,14 @@ func (s *AdvancedDiscoveryTestSuite) TestUnconditionalPeersBypassLimits() {
 
 	unconditionalID := "unconditional-peer"
 	config := &DiscoveryConfig{
-		MaxInboundPeers:     10,
-		MaxOutboundPeers:    2, // Very low limit
-		MinOutboundPeers:    1,
-		InactivityTimeout:   1 * time.Minute,
+		MaxInboundPeers:      10,
+		MaxOutboundPeers:     2, // Very low limit
+		MinOutboundPeers:     1,
+		InactivityTimeout:    1 * time.Minute,
 		UnconditionalPeerIDs: []string{unconditionalID},
-		EnableAutoReconnect: true,
-		ChainID:             "test-chain",
-		NodeID:              "test-node",
+		EnableAutoReconnect:  true,
+		ChainID:              "test-chain",
+		NodeID:               "test-node",
 	}
 
 	pm := NewPeerManager(config, s.addressBook, s.repManager, s.logger)
@@ -341,9 +341,9 @@ func (s *AdvancedDiscoveryTestSuite) TestUnconditionalPeersBypassLimits() {
 	for i := 0; i < config.MaxOutboundPeers; i++ {
 		peerID := reputation.PeerID(fmt.Sprintf("regular-peer-%d", i))
 		addr := &PeerAddr{
-			ID:   peerID,
+			ID:      peerID,
 			Address: fmt.Sprintf("10.0.0.%d", i+1),
-			Port: 26656,
+			Port:    26656,
 		}
 		require.NoError(t, pm.AddPeer(peerID, addr, true))
 	}
@@ -353,9 +353,9 @@ func (s *AdvancedDiscoveryTestSuite) TestUnconditionalPeersBypassLimits() {
 
 	// Unconditional peer should still be allowed
 	unconditionalAddr := &PeerAddr{
-		ID:   reputation.PeerID(unconditionalID),
+		ID:      reputation.PeerID(unconditionalID),
 		Address: "10.0.1.1",
-		Port: 26656,
+		Port:    26656,
 	}
 
 	// Add to address book first
@@ -375,9 +375,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerActivityTracking() {
 
 	peerID := reputation.PeerID("activity-peer")
 	addr := &PeerAddr{
-		ID:   peerID,
+		ID:      peerID,
 		Address: "127.0.0.1",
-		Port: 26656,
+		Port:    26656,
 	}
 
 	require.NoError(t, s.peerManager.AddPeer(peerID, addr, true))
@@ -404,9 +404,9 @@ func (s *AdvancedDiscoveryTestSuite) TestTrafficStatistics() {
 
 	peerID := reputation.PeerID("traffic-peer")
 	addr := &PeerAddr{
-		ID:   peerID,
+		ID:      peerID,
 		Address: "127.0.0.1",
-		Port: 26656,
+		Port:    26656,
 	}
 
 	require.NoError(t, s.peerManager.AddPeer(peerID, addr, true))
@@ -429,9 +429,9 @@ func (s *AdvancedDiscoveryTestSuite) TestPeerInfoCollection() {
 	for i := 0; i < 5; i++ {
 		peerID := reputation.PeerID(fmt.Sprintf("info-peer-%d", i))
 		addr := &PeerAddr{
-			ID:   peerID,
+			ID:      peerID,
 			Address: fmt.Sprintf("10.0.0.%d", i+1),
-			Port: 26656,
+			Port:    26656,
 		}
 
 		outbound := i%2 == 0
@@ -521,9 +521,9 @@ func (s *AdvancedDiscoveryTestSuite) TestConcurrentPeerOperations() {
 			for i := 0; i < peersPerGoroutine; i++ {
 				peerID := reputation.PeerID(fmt.Sprintf("concurrent-peer-%d-%d", goroutineID, i))
 				addr := &PeerAddr{
-					ID:   peerID,
+					ID:      peerID,
 					Address: fmt.Sprintf("10.%d.%d.1", goroutineID, i),
-					Port: 26656,
+					Port:    26656,
 				}
 
 				// Alternate between inbound and outbound
@@ -631,9 +631,9 @@ func BenchmarkPeerManagerStats(b *testing.B) {
 	for i := 0; i < 50; i++ {
 		peerID := reputation.PeerID(fmt.Sprintf("bench-peer-%d", i))
 		addr := &PeerAddr{
-			ID:   peerID,
+			ID:      peerID,
 			Address: fmt.Sprintf("10.0.%d.1", i),
-			Port: 26656,
+			Port:    26656,
 		}
 		_ = pm.AddPeer(peerID, addr, i%2 == 0)
 	}

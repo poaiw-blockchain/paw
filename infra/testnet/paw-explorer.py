@@ -21,7 +21,7 @@ cache = Cache(app)
 
 RPC_URL = os.getenv("RPC_URL", "http://localhost:26657")
 API_URL = os.getenv("API_URL", "http://localhost:1317")
-CHAIN_ID = "paw-testnet-1"
+CHAIN_ID = "paw-mvp-1"
 
 
 def rpc_call(method, params=None):

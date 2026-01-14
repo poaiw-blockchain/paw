@@ -453,7 +453,7 @@ This proposal seeks approval for the v1.1.0 upgrade of the PAW blockchain, intro
 ## Testing
 The upgrade has been tested on:
 - Local development networks (100+ upgrade simulations)
-- Public testnet (paw-testnet-1, upgraded at height 500,000)
+- Public testnet (paw-mvp-1, upgraded at height 500,000)
 - Load testing (validated with 1000 TPS)
 
 Vote YES to approve this upgrade.

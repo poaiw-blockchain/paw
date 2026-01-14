@@ -107,7 +107,7 @@ func TestGenerateKeysWithoutMPC(t *testing.T) {
 	require.NotEmpty(t, encryptedPair.EncryptedPK)
 	require.NotEmpty(t, encryptedPair.EncryptedVK)
 	require.Equal(t, 32, len(encryptedPair.Salt))
-	require.Equal(t, 24, len(encryptedPair.Nonce)) // 12 bytes for PK + 12 for VK
+	require.Equal(t, 24, len(encryptedPair.Nonce))   // 12 bytes for PK + 12 for VK
 	require.Equal(t, 32, len(encryptedPair.AuthTag)) // 16 bytes for PK + 16 for VK
 	require.Equal(t, "groth16", encryptedPair.Metadata.Algorithm)
 	require.Equal(t, "bn254", encryptedPair.Metadata.Curve)

@@ -100,7 +100,7 @@ jq . ~/.paw/config/genesis.json
    cp ~/.paw/config/genesis.json ~/.paw/config/genesis.json.backup
 
    # Download official genesis
-   wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
+   wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json \
      -O ~/.paw/config/genesis.json
 
    # Verify checksum (get from official docs)
@@ -142,7 +142,7 @@ ls -la ~/.paw/config/node_key.json
 1. **For new node (no existing validator):**
    ```bash
    # Validator key is created during 'pawd init'
-   ./build/pawd init mynode --chain-id paw-testnet-1
+   ./build/pawd init mynode --chain-id paw-mvp-1
    ```
 
 2. **If you have a backup:**
@@ -413,7 +413,7 @@ INFO Validator missed signing block height=X
    # Unjail validator
    ./build/pawcli tx slashing unjail \
      --from validator \
-     --chain-id paw-testnet-1 \
+     --chain-id paw-mvp-1 \
      --keyring-backend test \
      --fees 1000upaw \
      --yes
@@ -863,8 +863,8 @@ Transaction sent but tokens not received on destination chain
 2. **Manually relay packets (if you run relayer):**
    ```bash
    # Using Hermes relayer
-   hermes tx packet-recv paw-testnet-1 transfer <channel-id>
-   hermes tx packet-ack paw-testnet-1 transfer <channel-id>
+   hermes tx packet-recv paw-mvp-1 transfer <channel-id>
+   hermes tx packet-ack paw-mvp-1 transfer <channel-id>
    ```
 
 3. **Check timeout height:**
@@ -1077,7 +1077,7 @@ ERR Error: unauthorized IBC channel
 # Validator must delegate feeder address
 ./build/pawcli tx oracle delegate-feeder <feeder-address> \
   --from validator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --fees 1000upaw
 
 # Verify delegation
@@ -1486,7 +1486,7 @@ ERR Validator slashed for downtime
    # Unjail validator
    ./build/pawcli tx slashing unjail \
      --from validator \
-     --chain-id paw-testnet-1 \
+     --chain-id paw-mvp-1 \
      --fees 1000upaw
 
    # Monitor to prevent future downtime

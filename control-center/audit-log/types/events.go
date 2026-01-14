@@ -9,27 +9,27 @@ type EventType string
 
 const (
 	// Authentication events
-	EventTypeLogin            EventType = "auth.login"
-	EventTypeLogout           EventType = "auth.logout"
-	EventTypeLoginFailed      EventType = "auth.login_failed"
-	EventTypePasswordChanged  EventType = "auth.password_changed"
-	EventTypeTokenRefreshed   EventType = "auth.token_refreshed"
-	EventTypeSessionExpired   EventType = "auth.session_expired"
+	EventTypeLogin           EventType = "auth.login"
+	EventTypeLogout          EventType = "auth.logout"
+	EventTypeLoginFailed     EventType = "auth.login_failed"
+	EventTypePasswordChanged EventType = "auth.password_changed"
+	EventTypeTokenRefreshed  EventType = "auth.token_refreshed"
+	EventTypeSessionExpired  EventType = "auth.session_expired"
 
 	// Parameter changes
-	EventTypeParamUpdate       EventType = "param.update"
-	EventTypeParamBulkUpdate   EventType = "param.bulk_update"
-	EventTypeParamReset        EventType = "param.reset"
+	EventTypeParamUpdate     EventType = "param.update"
+	EventTypeParamBulkUpdate EventType = "param.bulk_update"
+	EventTypeParamReset      EventType = "param.reset"
 
 	// Circuit breaker operations
-	EventTypeCircuitPause      EventType = "circuit.pause"
-	EventTypeCircuitResume     EventType = "circuit.resume"
-	EventTypeCircuitTriggered  EventType = "circuit.triggered"
+	EventTypeCircuitPause     EventType = "circuit.pause"
+	EventTypeCircuitResume    EventType = "circuit.resume"
+	EventTypeCircuitTriggered EventType = "circuit.triggered"
 
 	// Emergency operations
-	EventTypeEmergencyPause    EventType = "emergency.pause"
-	EventTypeEmergencyResume   EventType = "emergency.resume"
-	EventTypeEmergencyAction   EventType = "emergency.action"
+	EventTypeEmergencyPause  EventType = "emergency.pause"
+	EventTypeEmergencyResume EventType = "emergency.resume"
+	EventTypeEmergencyAction EventType = "emergency.action"
 
 	// Alert management
 	EventTypeAlertRuleCreated  EventType = "alert.rule_created"
@@ -39,10 +39,10 @@ const (
 	EventTypeAlertResolved     EventType = "alert.resolved"
 
 	// Network upgrades
-	EventTypeUpgradeScheduled  EventType = "upgrade.scheduled"
-	EventTypeUpgradeExecuted   EventType = "upgrade.executed"
-	EventTypeUpgradeCancelled  EventType = "upgrade.cancelled"
-	EventTypeUpgradeFailed     EventType = "upgrade.failed"
+	EventTypeUpgradeScheduled EventType = "upgrade.scheduled"
+	EventTypeUpgradeExecuted  EventType = "upgrade.executed"
+	EventTypeUpgradeCancelled EventType = "upgrade.cancelled"
+	EventTypeUpgradeFailed    EventType = "upgrade.failed"
 
 	// Access control
 	EventTypeRoleAssigned      EventType = "access.role_assigned"
@@ -96,8 +96,8 @@ type AuditLogEntry struct {
 	ErrorMessage  string                 `json:"error_message,omitempty"`
 	Severity      Severity               `json:"severity"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
-	Hash          string                 `json:"hash"`           // Cryptographic hash
-	PreviousHash  string                 `json:"previous_hash"`  // Hash chain
+	Hash          string                 `json:"hash"`          // Cryptographic hash
+	PreviousHash  string                 `json:"previous_hash"` // Hash chain
 }
 
 // QueryFilters represents filters for querying audit logs
@@ -121,23 +121,23 @@ type QueryFilters struct {
 
 // AuditStats represents aggregated statistics
 type AuditStats struct {
-	TotalEvents       int64            `json:"total_events"`
-	EventsByType      map[EventType]int64 `json:"events_by_type"`
-	EventsByUser      map[string]int64 `json:"events_by_user"`
-	EventsByResult    map[Result]int64 `json:"events_by_result"`
-	EventsBySeverity  map[Severity]int64 `json:"events_by_severity"`
-	SuccessRate       float64          `json:"success_rate"`
-	FailureRate       float64          `json:"failure_rate"`
-	TopUsers          []UserActivity   `json:"top_users"`
-	TopActions        []ActionCount    `json:"top_actions"`
-	TimeRange         TimeRange        `json:"time_range"`
+	TotalEvents      int64               `json:"total_events"`
+	EventsByType     map[EventType]int64 `json:"events_by_type"`
+	EventsByUser     map[string]int64    `json:"events_by_user"`
+	EventsByResult   map[Result]int64    `json:"events_by_result"`
+	EventsBySeverity map[Severity]int64  `json:"events_by_severity"`
+	SuccessRate      float64             `json:"success_rate"`
+	FailureRate      float64             `json:"failure_rate"`
+	TopUsers         []UserActivity      `json:"top_users"`
+	TopActions       []ActionCount       `json:"top_actions"`
+	TimeRange        TimeRange           `json:"time_range"`
 }
 
 // UserActivity represents user activity statistics
 type UserActivity struct {
-	UserID    string `json:"user_id"`
-	UserEmail string `json:"user_email"`
-	Count     int64  `json:"count"`
+	UserID    string    `json:"user_id"`
+	UserEmail string    `json:"user_email"`
+	Count     int64     `json:"count"`
 	LastSeen  time.Time `json:"last_seen"`
 }
 
@@ -155,13 +155,13 @@ type TimeRange struct {
 
 // TimelineEntry represents an entry in the audit timeline
 type TimelineEntry struct {
-	Timestamp   time.Time   `json:"timestamp"`
-	EventType   EventType   `json:"event_type"`
-	Action      string      `json:"action"`
-	UserEmail   string      `json:"user_email"`
-	Resource    string      `json:"resource"`
-	Result      Result      `json:"result"`
-	Description string      `json:"description"`
+	Timestamp   time.Time `json:"timestamp"`
+	EventType   EventType `json:"event_type"`
+	Action      string    `json:"action"`
+	UserEmail   string    `json:"user_email"`
+	Resource    string    `json:"resource"`
+	Result      Result    `json:"result"`
+	Description string    `json:"description"`
 }
 
 // ExportRequest represents a request to export audit logs
@@ -173,10 +173,10 @@ type ExportRequest struct {
 
 // IntegrityReport represents a hash chain integrity report
 type IntegrityReport struct {
-	Verified      bool      `json:"verified"`
-	StartID       string    `json:"start_id"`
-	EndID         string    `json:"end_id"`
-	EntriesChecked int64    `json:"entries_checked"`
-	Errors        []string  `json:"errors,omitempty"`
-	CheckedAt     time.Time `json:"checked_at"`
+	Verified       bool      `json:"verified"`
+	StartID        string    `json:"start_id"`
+	EndID          string    `json:"end_id"`
+	EntriesChecked int64     `json:"entries_checked"`
+	Errors         []string  `json:"errors,omitempty"`
+	CheckedAt      time.Time `json:"checked_at"`
 }

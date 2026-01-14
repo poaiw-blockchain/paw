@@ -295,7 +295,7 @@ docker build --build-arg GO_VERSION=1.23.1 \
 
 ```bash
 # Use testnet genesis
-CHAIN_ID=paw-testnet-1 docker-compose up -d
+CHAIN_ID=paw-mvp-1 docker-compose up -d
 
 # Connect to testnet seeds
 SEEDS=testnet-seed@testnet.paw-chain.io:26656

@@ -294,7 +294,7 @@ pawd tx gov vote 1 yes --from validator --yes
 
 ```bash
 # Connect to testnet
-pawd config chain-id paw-testnet-1
+pawd config chain-id paw-mvp-1
 pawd config node https://rpc.testnet.paw.com:443
 
 # Submit test proposal

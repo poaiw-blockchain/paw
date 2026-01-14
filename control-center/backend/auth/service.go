@@ -27,13 +27,13 @@ const (
 
 // User represents a system user
 type User struct {
-	ID           uint      `json:"id"`
-	Email        string    `json:"email"`
-	Password     string    `json:"-"` // Never expose in JSON
-	Role         Role      `json:"role"`
-	TwoFactorKey string    `json:"-"` // 2FA secret key
-	Enabled      bool      `json:"enabled"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           uint       `json:"id"`
+	Email        string     `json:"email"`
+	Password     string     `json:"-"` // Never expose in JSON
+	Role         Role       `json:"role"`
+	TwoFactorKey string     `json:"-"` // 2FA secret key
+	Enabled      bool       `json:"enabled"`
+	CreatedAt    time.Time  `json:"created_at"`
 	LastLoginAt  *time.Time `json:"last_login_at"`
 }
 
@@ -50,7 +50,7 @@ type Service struct {
 	jwtSecret       []byte
 	tokenExpiration time.Duration
 	auditService    *audit.Service
-	users           map[string]*User // In-memory user store (replace with DB in production)
+	users           map[string]*User    // In-memory user store (replace with DB in production)
 	sessions        map[string]*Session // Active sessions
 }
 

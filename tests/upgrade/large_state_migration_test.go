@@ -392,6 +392,7 @@ func (suite *LargeStateMigrationTestSuite) seedOrders(count int) {
 }
 
 // simulateBlocks advances the blockchain
+// nolint:unused // Reserved for future test expansion
 func (suite *LargeStateMigrationTestSuite) simulateBlocks(count int64) {
 	for i := int64(0); i < count; i++ {
 		suite.ctx = suite.ctx.WithBlockHeight(suite.ctx.BlockHeight() + 1)
@@ -482,4 +483,3 @@ func (suite *LargeStateMigrationTestSuite) TestMigrationSummary() {
 	suite.T().Log("  → Error counts")
 	suite.T().Log("=== END SUMMARY ===\n")
 }
-

@@ -55,16 +55,16 @@ func DefaultParams() Params {
 		MinLiquidity:                       math.NewInt(1000),                // Minimum initial liquidity
 		MaxSlippagePercent:                 math.LegacyNewDecWithPrec(5, 2),  // 5%
 		MaxPoolDrainPercent:                math.LegacyNewDecWithPrec(30, 2), // 30% of reserves
-		FlashLoanProtectionBlocks:          100, // SEC-18: ~10 min at 6s blocks
+		FlashLoanProtectionBlocks:          100,                              // SEC-18: ~10 min at 6s blocks
 		PoolCreationGas:                    1000,
 		SwapValidationGas:                  1500,
 		LiquidityGas:                       1200,
-		UpgradePreserveCircuitBreakerState: true,                             // Preserve pause state across upgrades
-		RecommendedMaxSlippage:             math.LegacyNewDecWithPrec(3, 2),  // 3% recommended max
-		EnableCommitReveal:                 false,                            // Disabled for testnet
-		CommitRevealDelay:                  10,                               // 10 blocks
-		CommitTimeoutBlocks:                100,                              // 100 blocks
-		CircuitBreakerDurationSeconds:      3600,                             // 1 hour
+		UpgradePreserveCircuitBreakerState: true,                            // Preserve pause state across upgrades
+		RecommendedMaxSlippage:             math.LegacyNewDecWithPrec(3, 2), // 3% recommended max
+		EnableCommitReveal:                 false,                           // Disabled for testnet
+		CommitRevealDelay:                  10,                              // 10 blocks
+		CommitTimeoutBlocks:                100,                             // 100 blocks
+		CircuitBreakerDurationSeconds:      3600,                            // 1 hour
 	}
 }
 

@@ -187,9 +187,9 @@ prometheus-retention-time = 600
 # metrics emitted using the wrapper functions defined in telemetry package.
 #
 # Example:
-# [["chain_id", "paw-testnet-1"], ["role", "validator"]]
+# [["chain_id", "paw-mvp-1"], ["role", "validator"]]
 global-labels = [
-  ["chain_id", "paw-testnet-1"],
+  ["chain_id", "paw-mvp-1"],
   ["network", "testnet"]
 ]
 ```
@@ -549,7 +549,7 @@ global:
   evaluation_interval: 15s
   external_labels:
     cluster: 'paw-testnet'
-    chain_id: 'paw-testnet-1'
+    chain_id: 'paw-mvp-1'
     blockchain: 'paw'
 
 # Scrape configurations

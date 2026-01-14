@@ -60,7 +60,7 @@ Connect to the live PAW testnet.
 ### 1. Initialize for Testnet
 
 ```bash
-pawd init my-node --chain-id paw-testnet-1
+pawd init my-node --chain-id paw-mvp-1
 ```
 
 ### 2. Download Genesis

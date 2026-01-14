@@ -269,7 +269,7 @@
     "upgrade": {},
     "vesting": {}
   },
-  "chain_id": "paw-testnet-1",
+  "chain_id": "paw-mvp-1",
   "consensus_params": {
     "abci": {
       "vote_extensions_enable_height": "0"

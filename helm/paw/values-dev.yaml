@@ -28,7 +28,7 @@ securityContext:
   runAsUser: 1000
 
 node:
-  chainId: "paw-testnet-1"
+  chainId: "paw-mvp-1"
   moniker: "dev-node"
   minGasPrices: "0.001upaw"  # Lower gas prices for testing
   prometheusMetrics: true

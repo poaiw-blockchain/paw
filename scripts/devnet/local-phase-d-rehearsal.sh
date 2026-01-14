@@ -12,7 +12,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # shellcheck source=./lib.sh
 source "${SCRIPT_DIR}/lib.sh"
 
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 COMPOSE_FILE="${COMPOSE_FILE:-compose/docker-compose.4nodes-with-sentries.yml}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-paw-phase-d}"
 COMPOSE_CMD=(docker compose -p "${COMPOSE_PROJECT_NAME}" -f "${PROJECT_ROOT}/${COMPOSE_FILE}")

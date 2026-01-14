@@ -2,7 +2,7 @@
 
 **Version:** 1.2
 **Release Date:** 2026-01-13
-**Network:** paw-testnet-1
+**Network:** paw-mvp-1
 
 ---
 
@@ -31,7 +31,7 @@ All documentation is in `/docs/` directory.
 
 ### Network Artifacts
 
-Located in `/networks/paw-testnet-1/`:
+Located in `/networks/paw-mvp-1/`:
 
 - `genesis.json` - Official testnet genesis file
 - `genesis.sha256` - Checksum for verification
@@ -85,28 +85,28 @@ cat docs/VALIDATOR_QUICK_START.md
 
 ```bash
 # Download genesis
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json \
   > ~/.paw/config/genesis.json
 
 # Verify checksum
 sha256sum ~/.paw/config/genesis.json
-# Compare with networks/paw-testnet-1/genesis.sha256
+# Compare with networks/paw-mvp-1/genesis.sha256
 
-# Configure persistent peers (sentry node - external nodes should NOT connect directly to validators)
-# persistent_peers = "ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
+# Configure persistent peers (sentry nodes - external nodes should NOT connect directly to validators)
+# persistent_peers = "38510c172e324f25e6fe8d9938d713bcaed924af@54.39.103.49:12056,ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056"
 ```
 
 ### 4. Apply Configuration Templates
 
 ```bash
 # Copy CometBFT config template
-cp networks/paw-testnet-1/validator-config.toml.template ~/.paw/config/config.toml
+cp networks/paw-mvp-1/validator-config.toml.template ~/.paw/config/config.toml
 
 # Edit: Update moniker and persistent_peers
 vi ~/.paw/config/config.toml
 
 # Copy application config template
-cp networks/paw-testnet-1/validator-app.toml.template ~/.paw/config/app.toml
+cp networks/paw-mvp-1/validator-app.toml.template ~/.paw/config/app.toml
 ```
 
 ### 5. Register Validator
@@ -156,14 +156,14 @@ cp networks/paw-testnet-1/validator-app.toml.template ~/.paw/config/app.toml
 ### PAW Testnet-1
 
 Key parameters:
-- Chain ID: `paw-testnet-1`
+- Chain ID: `paw-mvp-1`
 - Denomination: `upaw`
 - Consensus: CometBFT (Tendermint)
-- Config templates and artifacts: `networks/paw-testnet-1/`
+- Config templates and artifacts: `networks/paw-mvp-1/`
 
 ### Public Endpoints
 
-See `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-testnet-1/STATUS.md` for current RPC, API, explorer, and faucet endpoints.
+See `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-mvp-1/STATUS.md` for current RPC, API, explorer, and faucet endpoints.
 
 ### Key Dates
 
@@ -291,7 +291,7 @@ Total: ~$530/month or $6,360/year
 After setting up your validator:
 
 1. Enable metrics, logging, and alerting from `OBSERVABILITY.md` and `DASHBOARDS_GUIDE.md`.
-2. Keep `peers.txt` and config templates from `networks/paw-testnet-1/` up to date.
+2. Keep `peers.txt` and config templates from `networks/paw-mvp-1/` up to date.
 3. Test backups and key recovery quarterly.
 4. Follow governance discussions and vote using `VALIDATOR_OPERATOR_GUIDE.md`.
 5. Review `SENTRY_ARCHITECTURE.md` before exposing public endpoints.
@@ -302,7 +302,7 @@ After setting up your validator:
 
 ### Version 1.0 (2025-12-14)
 
-- Initial release for paw-testnet-1
+- Initial release for paw-mvp-1
 - Complete validator onboarding documentation
 - Interactive registration script
 - Configuration templates

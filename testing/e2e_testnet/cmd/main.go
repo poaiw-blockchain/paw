@@ -15,7 +15,7 @@ import (
 func main() {
 	var (
 		verbose     = flag.Bool("v", false, "Verbose output")
-		outputDir   = flag.String("output", "", "Output directory for results (default: ~/testnets/paw-testnet-1/results)")
+		outputDir   = flag.String("output", "", "Output directory for results (default: ~/testnets/paw-mvp-1/results)")
 		jsonOutput  = flag.Bool("json", false, "Output results as JSON")
 		mdOutput    = flag.Bool("md", true, "Output results as Markdown")
 		timeout     = flag.Duration("timeout", 5*time.Minute, "Test timeout")
@@ -33,7 +33,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  %s -all                     # Run all tests (local validators only)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s -all -full               # Run all tests on ALL validators (requires SSH)\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "\nDefault: Tests only local validators (val1, val2 on this server)\n")
-		fmt.Fprintf(os.Stderr, "Results saved to: ~/testnets/paw-testnet-1/results/\n")
+		fmt.Fprintf(os.Stderr, "Results saved to: ~/testnets/paw-mvp-1/results/\n")
 	}
 
 	flag.Parse()

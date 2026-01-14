@@ -73,13 +73,13 @@ PAW follows a standardized naming convention for environment variables:
 ```bash
 # Correct
 PAW_HOME="/data/paw"
-PAW_CHAIN_ID="paw-testnet-1"
+PAW_CHAIN_ID="paw-mvp-1"
 PAW_RPC_LADDR="tcp://0.0.0.0:26657"
 PAW_LOG_LEVEL="info"
 
 # Incorrect (no PAW_ prefix)
 HOME="/data/paw"           # Conflicts with shell HOME
-CHAIN_ID="paw-testnet-1"   # Ambiguous
+CHAIN_ID="paw-mvp-1"   # Ambiguous
 
 # Incorrect (mixed case)
 Paw_Home="/data/paw"
@@ -147,7 +147,7 @@ ls -la $PAW_HOME
 export PAW_CHAIN_ID="paw-1"
 
 # Testnet
-export PAW_CHAIN_ID="paw-testnet-1"
+export PAW_CHAIN_ID="paw-mvp-1"
 
 # Devnet
 export PAW_CHAIN_ID="paw-devnet"
@@ -160,7 +160,7 @@ export PAW_CHAIN_ID="paw-local-$(date +%s)"
 
 ```bash
 pawd status 2>&1 | jq -r '.NodeInfo.network'
-# Should output: paw-testnet-1
+# Should output: paw-mvp-1
 ```
 
 ---
@@ -660,7 +660,7 @@ export PAW_LOG_FORMAT="json"
 **JSON Example Output:**
 
 ```json
-{"level":"info","ts":"2025-12-07T12:34:56.789Z","caller":"node/node.go:123","msg":"Starting node","chain_id":"paw-testnet-1","moniker":"validator-1"}
+{"level":"info","ts":"2025-12-07T12:34:56.789Z","caller":"node/node.go:123","msg":"Starting node","chain_id":"paw-mvp-1","moniker":"validator-1"}
 ```
 
 ---
@@ -754,13 +754,13 @@ export PAW_TELEMETRY_PROMETHEUS_RETENTION=0
 
 ```bash
 # Single label
-export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-testnet-1"]]'
+export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-mvp-1"]]'
 
 # Multiple labels
-export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-testnet-1"],["network","testnet"],["region","us-east-1"]]'
+export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-mvp-1"],["network","testnet"],["region","us-east-1"]]'
 
 # Kubernetes environment
-export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-testnet-1"],["pod","'$HOSTNAME'"],["namespace","paw-blockchain"]]'
+export PAW_TELEMETRY_GLOBAL_LABELS='[["chain_id","paw-mvp-1"],["pod","'$HOSTNAME'"],["namespace","paw-blockchain"]]'
 ```
 
 ---
@@ -1195,7 +1195,7 @@ kind: ConfigMap
 metadata:
   name: paw-config
 data:
-  PAW_CHAIN_ID: "paw-testnet-1"
+  PAW_CHAIN_ID: "paw-mvp-1"
   PAW_LOG_LEVEL: "info"
   PAW_TELEMETRY_ENABLED: "true"
 

@@ -102,10 +102,10 @@ func updateParamsHandler(auditLogger *middleware.AuditLogger) http.HandlerFunc {
 			ErrorMessage:  errorMsg,
 			Severity:      severity,
 			Metadata: map[string]interface{}{
-				"module":          params.Module,
-				"params_count":    len(params.Params),
-				"endpoint":        r.URL.Path,
-				"request_id":      ctx.Value("request_id"),
+				"module":       params.Module,
+				"params_count": len(params.Params),
+				"endpoint":     r.URL.Path,
+				"request_id":   ctx.Value("request_id"),
 			},
 		})
 
@@ -208,8 +208,8 @@ func createAlertHandler(auditLogger *middleware.AuditLogger) http.HandlerFunc {
 
 		// Parse request
 		var alert struct {
-			Name      string `json:"name"`
-			Condition string `json:"condition"`
+			Name      string  `json:"name"`
+			Condition string  `json:"condition"`
 			Threshold float64 `json:"threshold"`
 		}
 		// ... decode JSON ...
@@ -219,16 +219,16 @@ func createAlertHandler(auditLogger *middleware.AuditLogger) http.HandlerFunc {
 
 		// Log the action
 		auditLogger.LogAction(ctx, middleware.AuditAction{
-			EventType:  types.EventTypeAlertRuleCreated,
-			UserEmail:  ctx.Value("user_email").(string),
-			UserRole:   ctx.Value("user_role").(string),
-			Action:     fmt.Sprintf("Create alert rule: %s", alert.Name),
-			Resource:   "alert",
-			ResourceID: alertID,
-			NewValue:   alert,
-			Result:     getResult(err),
+			EventType:    types.EventTypeAlertRuleCreated,
+			UserEmail:    ctx.Value("user_email").(string),
+			UserRole:     ctx.Value("user_role").(string),
+			Action:       fmt.Sprintf("Create alert rule: %s", alert.Name),
+			Resource:     "alert",
+			ResourceID:   alertID,
+			NewValue:     alert,
+			Result:       getResult(err),
 			ErrorMessage: getErrorMessage(err),
-			Severity:   types.SeverityInfo,
+			Severity:     types.SeverityInfo,
 			Metadata: map[string]interface{}{
 				"alert_name": alert.Name,
 				"condition":  alert.Condition,
@@ -312,9 +312,9 @@ func getErrorMessage(err error) string {
 }
 
 // Stub functions for example
-func getCurrentParams(module string) map[string]interface{} { return nil }
-func updateParams(module string, params map[string]interface{}) error { return nil }
-func pauseCircuit(module string) error { return nil }
-func executeEmergencyPause(duration int) error { return nil }
+func getCurrentParams(module string) map[string]interface{}                 { return nil }
+func updateParams(module string, params map[string]interface{}) error       { return nil }
+func pauseCircuit(module string) error                                      { return nil }
+func executeEmergencyPause(duration int) error                              { return nil }
 func createAlert(name, condition string, threshold float64) (string, error) { return "alert123", nil }
-func timeFromDaysAgo(days int) time.Time { return time.Now().AddDate(0, 0, -days) }
+func timeFromDaysAgo(days int) time.Time                                    { return time.Now().AddDate(0, 0, -days) }

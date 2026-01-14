@@ -16,9 +16,9 @@ Quick start
 - Build: `make build` (produces `./build/pawd`)
 - Verify binary: `./build/pawd version`
 - Strict single-node boot (canonical genesis, conflict-free ports):
-  - `./build/pawd init validator --chain-id paw-testnet-1 --home ./localnode`
+  - `./build/pawd init validator --chain-id paw-mvp-1 --home ./localnode`
   - `./build/pawd add-genesis-account <addr> 1000000000upaw --home ./localnode --keyring-backend test`
-  - `./build/pawd gentx validator 700000000upaw --chain-id paw-testnet-1 --home ./localnode --keyring-backend test`
+  - `./build/pawd gentx validator 700000000upaw --chain-id paw-mvp-1 --home ./localnode --keyring-backend test`
   - `./build/pawd collect-gentxs --home ./localnode`
   - `./build/pawd start --home ./localnode --minimum-gas-prices 0.001upaw --grpc.address 127.0.0.1:19090 --api.address tcp://127.0.0.1:1318 --rpc.laddr tcp://127.0.0.1:26658`
 - Docker localnet: `docker compose up -d`
@@ -52,9 +52,9 @@ Build from source
 Node initialization
 - Default home: `~/.paw` (override via `PAW_HOME` or `--home`).
 - Bootstrap a fresh validator on canonical genesis (no lenient JSON accepted):
-  1. `./build/pawd init <moniker> --chain-id paw-testnet-1 --home <home>`
+  1. `./build/pawd init <moniker> --chain-id paw-mvp-1 --home <home>`
   2. `./build/pawd add-genesis-account <addr> 1000000000upaw --home <home> --keyring-backend test`
-  3. `./build/pawd gentx <moniker> 700000000upaw --chain-id paw-testnet-1 --home <home> --keyring-backend test`
+  3. `./build/pawd gentx <moniker> 700000000upaw --chain-id paw-mvp-1 --home <home> --keyring-backend test`
   4. `./build/pawd collect-gentxs --home <home>`
   5. Start with strict ports and min-gas-price:  
      `./build/pawd start --home <home> --minimum-gas-prices 0.001upaw --grpc.address 127.0.0.1:19090 --api.address tcp://127.0.0.1:1318 --rpc.laddr tcp://127.0.0.1:26658`
@@ -112,7 +112,7 @@ References
 
 Testnet
 
-**Chain ID:** `paw-testnet-1`
+**Chain ID:** `paw-mvp-1`
 
 | Endpoint | URL |
 |----------|-----|
@@ -128,12 +128,12 @@ See the [testnets repository](https://github.com/poaiw-blockchain/testnets) for 
 
 **Quick join:**
 1. Build: `make build`
-2. Initialize: `./build/pawd init <moniker> --chain-id paw-testnet-1`
-3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/poaiw-blockchain/testnets/main/paw-testnet-1/genesis.json`
+2. Initialize: `./build/pawd init <moniker> --chain-id paw-mvp-1`
+3. Download genesis: `curl -o ~/.paw/config/genesis.json https://raw.githubusercontent.com/poaiw-blockchain/testnets/main/paw-mvp-1/genesis.json`
 4. Set peers (connect to sentry node):
    ```bash
    # Get sentry peer from manifest
-   PEERS=$(curl -s https://testnet-explorer.poaiw.org/paw-testnet-1-manifest.json | jq -r '.persistent_peers')
+   PEERS=$(curl -s https://testnet-explorer.poaiw.org/paw-mvp-1-manifest.json | jq -r '.persistent_peers')
    sed -i "s/^persistent_peers = .*/persistent_peers = \"$PEERS\"/" ~/.paw/config/config.toml
    ```
 5. Start: `./build/pawd start --minimum-gas-prices 0.001upaw`

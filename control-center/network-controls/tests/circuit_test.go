@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/paw-chain/paw/control-center/network-controls/circuit"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paw-chain/paw/control-center/network-controls/circuit"
 )
 
 func TestCircuitBreakerRegistry(t *testing.T) {

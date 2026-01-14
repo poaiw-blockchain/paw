@@ -19,7 +19,7 @@ redis:
   cache_ttl: 300s
 
 chain:
-  chain_id: paw-testnet-1
+  chain_id: paw-mvp-1
   rpc_url: http://127.0.0.1:26657
   grpc_url: localhost:9091
   ws_url: ws://127.0.0.1:26657/websocket

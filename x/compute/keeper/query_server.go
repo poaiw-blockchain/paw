@@ -709,9 +709,9 @@ func (qs queryServer) SimulateRequest(goCtx context.Context, req *types.QuerySim
 
 	// Initialize response
 	resp := &types.QuerySimulateRequestResponse{
-		ValidationErrors:    make([]string, 0),
-		AvailableProviders:  make([]string, 0),
-		WillQueue:           false,
+		ValidationErrors:         make([]string, 0),
+		AvailableProviders:       make([]string, 0),
+		WillQueue:                false,
 		EstimatedWaitTimeSeconds: 0,
 	}
 
@@ -790,9 +790,9 @@ func (qs queryServer) SimulateRequest(goCtx context.Context, req *types.QuerySim
 	// Estimate gas (base gas + compute-specific overhead)
 	// Base tx gas is around 100k, compute request adds overhead based on specs
 	baseGas := uint64(100000)
-	cpuGas := req.Specs.CpuCores * 10              // ~10 gas per cpu core unit
-	memGas := req.Specs.MemoryMb * 5               // ~5 gas per MB
-	storageGas := req.Specs.StorageGb * 1000       // ~1000 gas per GB
+	cpuGas := req.Specs.CpuCores * 10        // ~10 gas per cpu core unit
+	memGas := req.Specs.MemoryMb * 5         // ~5 gas per MB
+	storageGas := req.Specs.StorageGb * 1000 // ~1000 gas per GB
 	resp.EstimatedGas = baseGas + cpuGas + memGas + storageGas
 
 	// Estimate queue wait time based on pending requests

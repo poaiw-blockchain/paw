@@ -42,7 +42,7 @@ async function main() {
   console.log(`[INFO] Ledger address: ${addressRes.address}`);
 
   const signDoc = {
-    chain_id: 'paw-testnet-1',
+    chain_id: 'paw-mvp-1',
     account_number: '0',
     sequence: '0',
     fee: { amount: [{ denom: 'upaw', amount: '0' }], gas: '200000' },

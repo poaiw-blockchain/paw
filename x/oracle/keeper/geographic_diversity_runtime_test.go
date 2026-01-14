@@ -152,10 +152,10 @@ func TestCheckGeographicDiversityForNewValidator(t *testing.T) {
 // TestMonitorGeographicDiversity tests periodic diversity monitoring in BeginBlocker
 func TestMonitorGeographicDiversity(t *testing.T) {
 	tests := []struct {
-		name            string
-		validators      []validatorSetup
-		expectedEvents  int // Number of warning/critical events expected
-		expectError     bool
+		name           string
+		validators     []validatorSetup
+		expectedEvents int // Number of warning/critical events expected
+		expectError    bool
 	}{
 		{
 			name: "good diversity - no warnings",
@@ -277,7 +277,7 @@ func TestMonitorGeographicDiversity(t *testing.T) {
 // TestSubmitPriceWithGeographicDiversityCheck tests that SubmitPrice enforces diversity on first submission
 func TestSubmitPriceWithGeographicDiversityCheck(t *testing.T) {
 	tests := []struct {
-		name              string
+		name               string
 		existingValidators []validatorSetup
 		newValidatorRegion string
 		enforceRuntime     bool
@@ -430,10 +430,10 @@ func TestBeginBlockerDiversityCheck(t *testing.T) {
 		expectCheck   bool
 		expectWarning bool
 	}{
-		{height: 5, expectCheck: false, expectWarning: false},   // Not a check block
-		{height: 10, expectCheck: true, expectWarning: true},    // Check block - should warn
-		{height: 15, expectCheck: false, expectWarning: false},  // Not a check block
-		{height: 20, expectCheck: true, expectWarning: true},    // Check block - should warn
+		{height: 5, expectCheck: false, expectWarning: false},  // Not a check block
+		{height: 10, expectCheck: true, expectWarning: true},   // Check block - should warn
+		{height: 15, expectCheck: false, expectWarning: false}, // Not a check block
+		{height: 20, expectCheck: true, expectWarning: true},   // Check block - should warn
 	}
 
 	for _, tb := range testBlocks {

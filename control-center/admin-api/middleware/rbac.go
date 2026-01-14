@@ -127,10 +127,10 @@ func (rbac *RBACMiddleware) RequirePermissions(permissions ...types.Permission) 
 			)
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":              "forbidden",
-				"message":            "Insufficient permissions",
-				"required":           permissions,
-				"missing":            missingPermissions,
+				"error":    "forbidden",
+				"message":  "Insufficient permissions",
+				"required": permissions,
+				"missing":  missingPermissions,
 			})
 			c.Abort()
 			return
@@ -192,8 +192,8 @@ func (rbac *RBACMiddleware) RequireAnyPermission(permissions ...types.Permission
 			)
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "forbidden",
-				"message": "At least one of the required permissions is needed",
+				"error":           "forbidden",
+				"message":         "At least one of the required permissions is needed",
 				"required_any_of": permissions,
 			})
 			c.Abort()
@@ -310,8 +310,8 @@ func (rbac *RBACMiddleware) RequireAnyRole(roles ...types.Role) gin.HandlerFunc 
 			)
 
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":   "forbidden",
-				"message": "User role is not authorized for this endpoint",
+				"error":         "forbidden",
+				"message":       "User role is not authorized for this endpoint",
 				"allowed_roles": roles,
 			})
 			c.Abort()

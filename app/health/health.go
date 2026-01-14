@@ -23,7 +23,6 @@ import (
 
 	"cosmossdk.io/log"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/gorilla/mux"
 
 	rpcclient "github.com/cometbft/cometbft/rpc/client/http"
@@ -60,7 +59,6 @@ type HealthCheck struct {
 type Checker struct {
 	logger    log.Logger
 	rpcClient *rpcclient.HTTP
-	apiServer *api.Server
 	clientCtx client.Context
 
 	// Thresholds for health determination

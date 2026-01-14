@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/component: config
     environment: testnet
 data:
-  CHAIN_ID: "paw-testnet-1"
+  CHAIN_ID: "paw-mvp-1"
   MIN_GAS_PRICES: "0.001upaw"
   LOG_LEVEL: "info"
   LOG_FORMAT: "json"

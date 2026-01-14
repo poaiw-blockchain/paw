@@ -290,7 +290,7 @@ const (
 
 **Symptom:**
 ```
-ERROR chain ID mismatch: expected paw-1, got paw-testnet-1
+ERROR chain ID mismatch: expected paw-1, got paw-mvp-1
 ```
 
 **Solution:**

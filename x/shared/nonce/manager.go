@@ -154,6 +154,7 @@ func (m *Manager) setIncomingNonce(ctx sdk.Context, channel, sender string, nonc
 }
 
 // getNonceTimestamp retrieves the stored timestamp for a channel/sender pair
+// nolint:unused // Reserved for nonce expiry validation
 func (m *Manager) getNonceTimestamp(ctx sdk.Context, channel, sender string) int64 {
 	store := ctx.KVStore(m.storeKey)
 	key := m.nonceTimestampKey(channel, sender)

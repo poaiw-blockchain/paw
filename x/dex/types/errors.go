@@ -133,7 +133,7 @@ var (
 	ErrSwapExpired = sdkerrors.Register(ModuleName, 94, "swap deadline expired")
 
 	// Commit-reveal errors for large swap protection
-	ErrCommitRequired = sdkerrors.Register(ModuleName, 40, "commit-reveal required for large swap")
+	ErrCommitRequired       = sdkerrors.Register(ModuleName, 40, "commit-reveal required for large swap")
 	ErrCommitmentNotFound   = sdkerrors.Register(ModuleName, 41, "swap commitment not found")
 	ErrDuplicateCommitment  = sdkerrors.Register(ModuleName, 42, "duplicate swap commitment")
 	ErrRevealTooEarly       = sdkerrors.Register(ModuleName, 43, "reveal too early")

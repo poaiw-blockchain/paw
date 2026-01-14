@@ -204,7 +204,7 @@ Explorer: https://explorer.pawchain.io
 ### Testnet
 
 ```yaml
-Chain ID: paw-testnet-1
+Chain ID: paw-mvp-1
 RPC: https://testnet-rpc.pawchain.io
 API: https://testnet-api.pawchain.io
 Explorer: https://testnet-explorer.pawchain.io

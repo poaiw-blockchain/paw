@@ -41,7 +41,7 @@ const hw = { address: hwAddress, transport: 'webhid' };
 
   it('signs amino request with guardrails', async () => {
     const signDoc = {
-      chain_id: 'paw-testnet-1',
+      chain_id: 'paw-mvp-1',
       account_number: '1',
       sequence: '2',
       fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
@@ -52,7 +52,7 @@ const hw = { address: hwAddress, transport: 'webhid' };
     const res = await signAminoRequest({
       signDoc,
       address: hw.address,
-      chainId: 'paw-testnet-1',
+      chainId: 'paw-mvp-1',
       hardwareState: hw,
     });
 
@@ -68,7 +68,7 @@ const hw = { address: hwAddress, transport: 'webhid' };
       msgs: [],
     };
     await expect(
-      signAminoRequest({ signDoc, address: hw.address, chainId: 'paw-testnet-1', hardwareState: hw })
+      signAminoRequest({ signDoc, address: hw.address, chainId: 'paw-mvp-1', hardwareState: hw })
     ).rejects.toThrow(/Chain-id mismatch/);
   });
 });

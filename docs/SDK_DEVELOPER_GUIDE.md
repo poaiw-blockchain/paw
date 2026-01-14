@@ -131,7 +131,7 @@ tx = Transaction(
     privkey=bytes.fromhex(wallet["private_key"]),
     account_num=0,
     sequence=0,
-    chain_id="paw-testnet-1",
+    chain_id="paw-mvp-1",
     gas=200000,
 )
 

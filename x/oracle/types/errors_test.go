@@ -10,10 +10,10 @@ import (
 
 func TestErrorDefinitions(t *testing.T) {
 	tests := []struct {
-		name  string
-		err   error
-		code  uint32
-		msg   string
+		name string
+		err  error
+		code uint32
+		msg  string
 	}{
 		{"ErrInvalidAsset", ErrInvalidAsset, 2, "invalid asset"},
 		{"ErrInvalidNonce", ErrInvalidNonce, 50, "invalid packet nonce"},

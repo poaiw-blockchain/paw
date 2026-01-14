@@ -559,7 +559,7 @@ echo "CRITICAL: Store the encryption password separately and securely"
         # Unjail validator
         pawd tx slashing unjail \
             --from validator \
-            --chain-id paw-testnet-1 \
+            --chain-id paw-mvp-1 \
             --gas auto \
             --gas-adjustment 1.5 \
             --fees 5000upaw \
@@ -1172,11 +1172,11 @@ done
    - Sync secrets via SOPS/KMS (validator keys stored in secure bucket).
 4. **Bootstrap network plumbing**
    - Update DNS or GSLB weights to send traffic to standby RPC set.
-   - Update `networks/paw-testnet-1/peers.txt` with new sentry endpoints.
+   - Update `networks/paw-mvp-1/peers.txt` with new sentry endpoints.
 5. **Gradual re-introduction**
    ```bash
    pawd status 2>&1 | jq '.NodeInfo.moniker'
-   scripts/verify-network-artifacts.sh paw-testnet-1
+   scripts/verify-network-artifacts.sh paw-mvp-1
    ```
 
 **Communication Template:**
@@ -1542,7 +1542,7 @@ curl -s http://localhost:26657/net_info | jq '.result.n_peers'
     pawd query staking validator $(pawd keys show validator --bech val -a)
 
     # If jailed, unjail after recovery
-    pawd tx slashing unjail --from validator --chain-id paw-testnet-1
+    pawd tx slashing unjail --from validator --chain-id paw-mvp-1
     ```
 
 ### Validating Restored Data

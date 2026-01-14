@@ -1,3 +1,5 @@
+//go:build chaos
+
 // TEST-1.2: Chaos Engineering - Validator Failures During Escrow
 // Tests escrow resilience when validators fail during critical operations
 package chaos
@@ -36,13 +38,12 @@ type EscrowValidatorFailureTestSuite struct {
 
 // SimulatedValidator represents a validator in the test
 type SimulatedValidator struct {
-	ID           string
-	VotingPower  int64
-	IsActive     bool
-	FailedAt     time.Time
-	RecoveredAt  time.Time
-	mu           sync.Mutex
-	processedTxs uint64
+	ID          string
+	VotingPower int64
+	IsActive    bool
+	FailedAt    time.Time
+	RecoveredAt time.Time
+	mu          sync.Mutex
 }
 
 func TestEscrowValidatorFailureTestSuite(t *testing.T) {

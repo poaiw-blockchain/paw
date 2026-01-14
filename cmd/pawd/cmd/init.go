@@ -45,7 +45,7 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 		Long: `Initialize validators's and node's configuration files.
 
 Example:
-  pawd init paw-controller --chain-id paw-testnet-1 --home ~/.paw
+  pawd init paw-controller --chain-id paw-mvp-1 --home ~/.paw
 `,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

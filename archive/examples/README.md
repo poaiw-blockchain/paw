@@ -161,7 +161,7 @@ Each example includes:
 ### Testnet
 - RPC: `https://rpc-testnet.paw-chain.network`
 - REST: `https://api-testnet.paw-chain.network`
-- Chain ID: `paw-testnet-1`
+- Chain ID: `paw-mvp-1`
 
 ### Local Development
 - RPC: `http://localhost:26657`

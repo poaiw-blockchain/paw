@@ -338,12 +338,12 @@ func TestRecoverySuggestionQuality(t *testing.T) {
 func TestErrorMessages(t *testing.T) {
 	// Verify error messages are descriptive
 	errorMessages := map[error]string{
-		ErrInvalidRequest:          "invalid compute request",
-		ErrInvalidProvider:         "invalid provider",
-		ErrProviderNotFound:        "provider not found",
-		ErrInvalidSignature:        "invalid signature",
-		ErrReplayAttackDetected:    "replay attack detected",
-		ErrUnauthorizedChannel:     "unauthorized IBC channel",
+		ErrInvalidRequest:       "invalid compute request",
+		ErrInvalidProvider:      "invalid provider",
+		ErrProviderNotFound:     "provider not found",
+		ErrInvalidSignature:     "invalid signature",
+		ErrReplayAttackDetected: "replay attack detected",
+		ErrUnauthorizedChannel:  "unauthorized IBC channel",
 	}
 
 	for err, expectedMsg := range errorMessages {

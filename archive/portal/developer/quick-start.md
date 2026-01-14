@@ -38,7 +38,7 @@ import { PAWClient } from '@paw/sdk';
 // Initialize client
 const client = new PAWClient({
   rpc: 'https://rpc.paw.network',
-  chainId: 'paw-testnet-1'
+  chainId: 'paw-mvp-1'
 });
 
 // Get account balance
@@ -75,7 +75,7 @@ from paw_sdk import PAWClient, Wallet
 # Initialize client
 client = PAWClient(
     rpc_url='https://rpc.paw.network',
-    chain_id='paw-testnet-1'
+    chain_id='paw-mvp-1'
 )
 
 # Load wallet
@@ -123,7 +123,7 @@ func main() {
     // Initialize client
     client := sdk.NewClient(&sdk.Config{
         RPC:     "https://rpc.paw.network",
-        ChainID: "paw-testnet-1",
+        ChainID: "paw-mvp-1",
     })
 
     // Create account

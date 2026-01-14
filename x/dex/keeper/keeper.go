@@ -175,4 +175,3 @@ func (k Keeper) SetAuthorizedChannels(ctx context.Context, channels []ibcutil.Au
 	params.AuthorizedChannels = moduleChannels
 	return k.SetParams(ctx, params)
 }
-

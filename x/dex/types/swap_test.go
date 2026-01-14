@@ -207,8 +207,8 @@ func TestSwapResult_RealisticScenarios(t *testing.T) {
 	}{
 		{
 			name:        "small swap low slippage",
-			amountIn:    math.NewInt(1000000),      // 1 token with 6 decimals
-			amountOut:   math.NewInt(995000),       // 0.5% slippage
+			amountIn:    math.NewInt(1000000), // 1 token with 6 decimals
+			amountOut:   math.NewInt(995000),  // 0.5% slippage
 			route:       "pool-1",
 			slippage:    math.LegacyMustNewDecFromStr("0.005"),
 			priceImpact: math.LegacyMustNewDecFromStr("0.003"),
@@ -217,8 +217,8 @@ func TestSwapResult_RealisticScenarios(t *testing.T) {
 		},
 		{
 			name:        "large swap high impact",
-			amountIn:    math.NewInt(100000000),    // 100 tokens
-			amountOut:   math.NewInt(90000000),     // 10% slippage
+			amountIn:    math.NewInt(100000000), // 100 tokens
+			amountOut:   math.NewInt(90000000),  // 10% slippage
 			route:       "pool-1",
 			slippage:    math.LegacyMustNewDecFromStr("0.10"),
 			priceImpact: math.LegacyMustNewDecFromStr("0.08"),

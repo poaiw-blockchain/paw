@@ -34,7 +34,6 @@ var (
 	// SubmissionByHeightPrefix is the prefix for indexing submissions by block height for cleanup
 	SubmissionByHeightPrefix = []byte{0x03, 0x07}
 
-
 	// OutlierHistoryKeyPrefix is the prefix for outlier history storage
 	// Tracks validator outlier submissions for reputation and slashing
 	OutlierHistoryKeyPrefix = []byte{0x03, 0x0C}

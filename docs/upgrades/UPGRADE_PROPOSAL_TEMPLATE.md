@@ -97,7 +97,7 @@ The v1.1.0 upgrade has undergone extensive testing:
 
 1. **Unit Tests**: All migrations have 100% test coverage
 2. **Integration Tests**: Full upgrade simulation on local network
-3. **Testnet Deployment**: Successfully tested on paw-testnet-1
+3. **Testnet Deployment**: Successfully tested on paw-mvp-1
 4. **Load Testing**: Validated with production-level transaction load
 5. **Security Audit**: [If applicable] Reviewed by [auditor name]
 
@@ -108,7 +108,7 @@ The v1.1.0 upgrade has undergone extensive testing:
 Example:
 ```
 ✅ Local network upgrade: PASSED (100 blocks produced)
-✅ Testnet upgrade: PASSED (paw-testnet-1, height 50000)
+✅ Testnet upgrade: PASSED (paw-mvp-1, height 50000)
 ✅ State integrity checks: PASSED
 ✅ Performance benchmarks: PASSED (no degradation)
 ✅ Rollback test: PASSED

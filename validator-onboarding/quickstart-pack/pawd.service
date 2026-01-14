@@ -1,5 +1,5 @@
 [Unit]
-Description=PAW Validator (paw-testnet-1)
+Description=PAW Validator (paw-mvp-1)
 After=network-online.target
 Wants=network-online.target
 
@@ -8,7 +8,7 @@ User=paw
 Group=paw
 Environment=DAEMON_HOME=/var/lib/paw
 Environment=DAEMON_NAME=pawd
-Environment=CHAIN_ID=paw-testnet-1
+Environment=CHAIN_ID=paw-mvp-1
 ExecStart=/usr/local/bin/pawd start --home ${DAEMON_HOME}
 ExecStop=/bin/kill -s SIGTERM $MAINPID
 Restart=on-failure

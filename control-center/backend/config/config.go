@@ -13,9 +13,9 @@ import (
 // Config holds all configuration for the control center backend
 type Config struct {
 	// Server configuration
-	Environment    string `yaml:"environment"`
-	HTTPPort       int    `yaml:"http_port"`
-	WebSocketPort  int    `yaml:"websocket_port"`
+	Environment   string `yaml:"environment"`
+	HTTPPort      int    `yaml:"http_port"`
+	WebSocketPort int    `yaml:"websocket_port"`
 
 	// Database configuration
 	DatabaseURL string `yaml:"database_url"`
@@ -34,8 +34,8 @@ type Config struct {
 	AnalyticsURL    string `yaml:"analytics_url"`
 
 	// Rate limiting
-	RateLimitAdmin int `yaml:"rate_limit_admin"`  // requests per minute
-	RateLimitRead  int `yaml:"rate_limit_read"`   // requests per minute
+	RateLimitAdmin int `yaml:"rate_limit_admin"` // requests per minute
+	RateLimitRead  int `yaml:"rate_limit_read"`  // requests per minute
 
 	// Circuit breaker configuration
 	CircuitBreakerTimeout time.Duration `yaml:"circuit_breaker_timeout"`

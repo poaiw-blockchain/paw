@@ -342,22 +342,22 @@ func (k Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) 
 	}
 
 	return &types.GenesisState{
-		Params:                     params,
-		GovernanceParams:           govParams,
-		Providers:                  providers,
-		Requests:                   requests,
-		Results:                    results,
-		Disputes:                   disputes,
-		SlashRecords:               slashRecords,
-		Appeals:                    appeals,
-		EscrowStates:               escrowStates,
-		CatastrophicFailures:       catastrophicFailures,
-		NextRequestId:              nextRequestID,
-		NextDisputeId:              nextDisputeID,
-		NextSlashId:                nextSlashID,
-		NextAppealId:               nextAppealID,
-		NextEscrowNonce:            nextEscrowNonce,
-		NextCatastrophicFailureId:  nextCatastrophicFailureID,
+		Params:                    params,
+		GovernanceParams:          govParams,
+		Providers:                 providers,
+		Requests:                  requests,
+		Results:                   results,
+		Disputes:                  disputes,
+		SlashRecords:              slashRecords,
+		Appeals:                   appeals,
+		EscrowStates:              escrowStates,
+		CatastrophicFailures:      catastrophicFailures,
+		NextRequestId:             nextRequestID,
+		NextDisputeId:             nextDisputeID,
+		NextSlashId:               nextSlashID,
+		NextAppealId:              nextAppealID,
+		NextEscrowNonce:           nextEscrowNonce,
+		NextCatastrophicFailureId: nextCatastrophicFailureID,
 	}, nil
 }
 

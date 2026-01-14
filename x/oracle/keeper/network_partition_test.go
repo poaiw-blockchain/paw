@@ -638,36 +638,36 @@ func TestNetworkPartition_PropagatesErrors(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name              string
-		numSubmitters     int
-		expectedError     bool
-		errorType         error
-		errorMsgContains  string
-		description       string
+		name             string
+		numSubmitters    int
+		expectedError    bool
+		errorType        error
+		errorMsgContains string
+		description      string
 	}{
 		{
-			name:              "no submissions",
-			numSubmitters:     0,
-			expectedError:     true,
-			errorType:         nil,
-			errorMsgContains:  "no price submissions",
-			description:       "Complete network isolation",
+			name:             "no submissions",
+			numSubmitters:    0,
+			expectedError:    true,
+			errorType:        nil,
+			errorMsgContains: "no price submissions",
+			description:      "Complete network isolation",
 		},
 		{
-			name:              "insufficient voting power",
-			numSubmitters:     5, // 50% < 67%
-			expectedError:     true,
-			errorType:         nil, // Error is wrapped, so ErrorIs won't work
-			errorMsgContains:  "insufficient voting power",
-			description:       "Partition has < 67% voting power",
+			name:             "insufficient voting power",
+			numSubmitters:    5, // 50% < 67%
+			expectedError:    true,
+			errorType:        nil, // Error is wrapped, so ErrorIs won't work
+			errorMsgContains: "insufficient voting power",
+			description:      "Partition has < 67% voting power",
 		},
 		{
-			name:              "single validator",
-			numSubmitters:     1, // 10% << 67%
-			expectedError:     true,
-			errorType:         nil, // Error is wrapped, so ErrorIs won't work
-			errorMsgContains:  "insufficient voting power",
-			description:       "Extreme isolation - only 1 validator",
+			name:             "single validator",
+			numSubmitters:    1, // 10% << 67%
+			expectedError:    true,
+			errorType:        nil, // Error is wrapped, so ErrorIs won't work
+			errorMsgContains: "insufficient voting power",
+			description:      "Extreme isolation - only 1 validator",
 		},
 	}
 

@@ -29,24 +29,24 @@ type PacketData interface {
 // Each module must register its packet types here.
 var ValidPacketTypes = map[string]bool{
 	// Compute module packet types
-	"compute_request":  true,
-	"compute_result":   true,
-	"compute_cancel":   true,
-	"compute_status":   true,
-	"compute_ack":      true,
-	"compute_timeout":  true,
+	"compute_request": true,
+	"compute_result":  true,
+	"compute_cancel":  true,
+	"compute_status":  true,
+	"compute_ack":     true,
+	"compute_timeout": true,
 
 	// Oracle module packet types
-	"subscribe_prices":    true,
-	"query_price":         true,
-	"price_update":        true,
-	"oracle_heartbeat":    true,
-	"oracle_price":        true, // legacy
-	"oracle_price_feed":   true, // legacy
-	"oracle_price_batch":  true, // for batch price updates
-	"oracle_subscribe":    true, // for price subscriptions
-	"oracle_unsubscribe":  true, // for canceling subscriptions
-	"oracle_ack":          true,
+	"subscribe_prices":   true,
+	"query_price":        true,
+	"price_update":       true,
+	"oracle_heartbeat":   true,
+	"oracle_price":       true, // legacy
+	"oracle_price_feed":  true, // legacy
+	"oracle_price_batch": true, // for batch price updates
+	"oracle_subscribe":   true, // for price subscriptions
+	"oracle_unsubscribe": true, // for canceling subscriptions
+	"oracle_ack":         true,
 
 	// DEX module packet types
 	"dex_swap":         true,

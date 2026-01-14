@@ -311,9 +311,6 @@ func (k Keeper) CreatePool(ctx context.Context, creator sdk.AccAddress, tokenA, 
 	return pool, nil
 }
 
-
-
-
 // GetPool retrieves a pool by its unique numeric ID.
 // Returns ErrPoolNotFound if the pool does not exist.
 func (k Keeper) GetPool(ctx context.Context, poolID uint64) (*types.Pool, error) {
@@ -417,6 +414,7 @@ func (k Keeper) GetAllPools(ctx context.Context) ([]types.Pool, error) {
 func (k Keeper) GetModuleAddress() sdk.AccAddress {
 	return k.moduleAddressCache
 }
+
 // DeletePool removes a pool (governance only - emergency use)
 // This function requires governance authority and can only delete empty pools.
 func (k Keeper) DeletePool(ctx context.Context, poolID uint64, authority string) error {

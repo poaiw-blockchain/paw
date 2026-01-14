@@ -11,8 +11,8 @@ import (
 type CircuitBreakerStatus string
 
 const (
-	StatusClosed   CircuitBreakerStatus = "closed"   // Normal operation
-	StatusOpen     CircuitBreakerStatus = "open"     // Circuit broken, operations blocked
+	StatusClosed   CircuitBreakerStatus = "closed"    // Normal operation
+	StatusOpen     CircuitBreakerStatus = "open"      // Circuit broken, operations blocked
 	StatusHalfOpen CircuitBreakerStatus = "half-open" // Testing if system recovered
 )
 

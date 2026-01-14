@@ -1,6 +1,6 @@
 {
   "genesis_time": "2025-12-15T05:45:51.458863576Z",
-  "chain_id": "paw-testnet-1",
+  "chain_id": "paw-mvp-1",
   "initial_height": "1",
   "consensus_params": {
     "block": {

@@ -3,7 +3,7 @@
 # Apply these settings to config.toml on all validators
 #
 # Generated: 2026-01-12
-# Target: paw-testnet-1 (mainnet-ready hardening)
+# Target: paw-mvp-1 (mainnet-ready hardening)
 
 #######################################################################
 ###                   CometBFT Base Configuration                   ###

@@ -44,7 +44,7 @@ Each module has an `enabled` boolean parameter in its params:
 ```bash
 pawd tx gov submit-proposal param-change enable-dex.json \
   --from <key> \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-adjustment 1.4
 ```

@@ -555,10 +555,10 @@ span.SetAttributes(
 **Measure Overhead:**
 ```bash
 # Baseline (tracing disabled)
-time pawd tx bank send ... --chain-id paw-testnet-1
+time pawd tx bank send ... --chain-id paw-mvp-1
 
 # With tracing (sample-rate = 1.0)
-time pawd tx bank send ... --chain-id paw-testnet-1
+time pawd tx bank send ... --chain-id paw-mvp-1
 
 # Compare durations
 ```

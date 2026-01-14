@@ -3,7 +3,7 @@
 
 ## CURRENT STATE
 - **Status**: VMs created but NOT configured with PAW blockchain yet
-- **GCP Project**: `paw-testnet-1` (update for your environment)
+- **GCP Project**: `paw-mvp-1` (update for your environment)
 - **Account**: `jeff@moproinsure.com`
 - **Region/Zone**: `us-central1-a`
 - **Nodes**: 3x e2-medium VMs running Ubuntu 22.04
@@ -51,16 +51,16 @@
 ### GCloud Direct Commands
 ```bash
 # List instances
-gcloud compute instances list --project=paw-testnet-1
+gcloud compute instances list --project=paw-mvp-1
 
 # SSH to node
-gcloud compute ssh paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
+gcloud compute ssh paw-testnode-1 --zone=us-central1-a --project=paw-mvp-1
 
 # Stop specific node
-gcloud compute instances stop paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
+gcloud compute instances stop paw-testnode-1 --zone=us-central1-a --project=paw-mvp-1
 
 # Start specific node
-gcloud compute instances start paw-testnode-1 --zone=us-central1-a --project=paw-testnet-1
+gcloud compute instances start paw-testnode-1 --zone=us-central1-a --project=paw-mvp-1
 ```
 
 ## DEPLOYMENT STATUS
@@ -94,7 +94,7 @@ gcloud compute instances start paw-testnode-1 --zone=us-central1-a --project=paw
 ## BLOCKCHAIN CONFIG
 
 ### Chain Details
-- **Chain ID**: `paw-devnet` (or `paw-testnet-1`)
+- **Chain ID**: `paw-devnet` (or `paw-mvp-1`)
 - **Keyring**: `test`
 - **Home Dir**: `/root/.paw/<node_name>`
 
@@ -164,7 +164,7 @@ paw-testnode-3 (Full Node)
 
 ### VMs not accessible
 ```bash
-gcloud compute instances list --project=paw-testnet-1
+gcloud compute instances list --project=paw-mvp-1
 gcloud compute ssh paw-testnode-1 --zone=us-central1-a
 ```
 
@@ -194,6 +194,6 @@ curl http://localhost:26657/status
 
 ## REFERENCES
 
-- GCP Console: https://console.cloud.google.com/compute/instances?project=paw-testnet-1
+- GCP Console: https://console.cloud.google.com/compute/instances?project=paw-mvp-1
 - Cosmos SDK Docs: https://docs.cosmos.network
 - Local devnet: `docker-compose -f docker-compose.devnet.yml up`

@@ -35,7 +35,7 @@ func main() {
     config := pawclient.Config{
         RPCEndpoint:  "http://localhost:26657",
         GRPCEndpoint: "localhost:9090",
-        ChainID:      "paw-testnet-1",
+        ChainID:      "paw-mvp-1",
     }
 
     client, err := pawclient.NewClient(config)

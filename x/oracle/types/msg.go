@@ -7,11 +7,11 @@ import (
 
 // Message type URLs
 const (
-	TypeMsgSubmitPrice           = "submit_price"
-	TypeMsgDelegateFeedConsent   = "delegate_feed_consent"
-	TypeMsgUpdateParams          = "update_params"
-	TypeMsgEmergencyPauseOracle  = "emergency_pause_oracle"
-	TypeMsgResumeOracle          = "resume_oracle"
+	TypeMsgSubmitPrice          = "submit_price"
+	TypeMsgDelegateFeedConsent  = "delegate_feed_consent"
+	TypeMsgUpdateParams         = "update_params"
+	TypeMsgEmergencyPauseOracle = "emergency_pause_oracle"
+	TypeMsgResumeOracle         = "resume_oracle"
 )
 
 var (

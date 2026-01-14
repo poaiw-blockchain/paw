@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 **Last Updated:** 2026-01-12
-**Network:** paw-testnet-1
+**Network:** paw-mvp-1
 **Status:** Public Testnet Open for External Validators
 
 ---
@@ -175,7 +175,7 @@ pawd version
 
 ```bash
 # Set environment variables
-export CHAIN_ID="paw-testnet-1"
+export CHAIN_ID="paw-mvp-1"
 export MONIKER="<your-validator-name>"  # Choose unique name
 
 # Initialize node (creates ~/.paw directory structure)
@@ -193,11 +193,11 @@ pawd init "$MONIKER" --chain-id $CHAIN_ID
 
 ```bash
 # Download official genesis file
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json \
   > ~/.paw/config/genesis.json
 
 # Download genesis checksum for verification
-curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 \
+curl -L https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256 \
   > /tmp/genesis.sha256
 
 # Verify genesis integrity
@@ -383,7 +383,7 @@ pawd start --home ~/.paw
 
 **Option C: Snapshot Restore (Fastest)**
 
-If a snapshot is published (see `networks/paw-testnet-1/STATUS.md`), follow the provided download and extraction instructions before restarting the node.
+If a snapshot is published (see `networks/paw-mvp-1/STATUS.md`), follow the provided download and extraction instructions before restarting the node.
 
 ### Step 9: Create systemd Service
 
@@ -480,10 +480,10 @@ curl -s ${RPC_1}/status | jq '.result.sync_info.latest_block_height'
 
 ## Network Information
 
-- Chain ID: `paw-testnet-1`
+- Chain ID: `paw-mvp-1`
 - Denomination: `upaw`
-- Artifacts: `networks/paw-testnet-1/` (`genesis.json`, `genesis.sha256`, `peers.txt`, templates, STATUS.md)
-- Live endpoints and faucet: see `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-testnet-1/STATUS.md`.
+- Artifacts: `networks/paw-mvp-1/` (`genesis.json`, `genesis.sha256`, `peers.txt`, templates, STATUS.md)
+- Live endpoints and faucet: see `docs/TESTNET_QUICK_REFERENCE.md` and `networks/paw-mvp-1/STATUS.md`.
 
 ---
 
@@ -536,7 +536,7 @@ pawd tx staking create-validator \
   --website "$WEBSITE" \
   --security-contact "$SECURITY_CONTACT" \
   --details "$DETAILS" \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --commission-rate $COMMISSION_RATE \
   --commission-max-rate $COMMISSION_MAX_RATE \
   --commission-max-change-rate $COMMISSION_MAX_CHANGE_RATE \
@@ -628,7 +628,7 @@ See [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARD
 
 ## Getting Testnet Tokens
 
-Use the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md` (and `networks/paw-testnet-1/STATUS.md` when available). Request only what you need for validator creation and fees.
+Use the faucet listed in `docs/TESTNET_QUICK_REFERENCE.md` (and `networks/paw-mvp-1/STATUS.md` when available). Request only what you need for validator creation and fees.
 
 ### Verify Token Receipt
 
@@ -685,7 +685,7 @@ pawd query gov proposal <proposal-id>
 # Vote on proposal
 pawd tx gov vote <proposal-id> yes \
   --from validator-operator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --keyring-backend os \
@@ -696,7 +696,7 @@ pawd tx gov vote <proposal-id> yes \
 
 When a chain upgrade is announced:
 
-1. **Monitor release announcements** (GitHub releases and `networks/paw-testnet-1/STATUS.md`) for coordination details
+1. **Monitor release announcements** (GitHub releases and `networks/paw-mvp-1/STATUS.md`) for coordination details
 2. **Read upgrade proposal** carefully
 3. **Download new binary** or build from source (new version tag)
 4. **Test on separate testnet** if possible
@@ -759,7 +759,7 @@ pawd query slashing signing-info $(pawd tendermint show-validator) | jq '.jailed
 # 3. Unjail validator
 pawd tx slashing unjail \
   --from validator-operator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --keyring-backend os \
@@ -875,7 +875,7 @@ Now that your validator is set up:
 
 1. Complete observability setup: [OBSERVABILITY.md](./OBSERVABILITY.md) and [DASHBOARDS_GUIDE.md](./DASHBOARDS_GUIDE.md).
 2. Review operational runbooks: [VALIDATOR_OPERATOR_GUIDE.md](./VALIDATOR_OPERATOR_GUIDE.md) and [SENTRY_ARCHITECTURE.md](./SENTRY_ARCHITECTURE.md) if exposing public endpoints.
-3. Keep peers and templates current from `networks/paw-testnet-1/`.
+3. Keep peers and templates current from `networks/paw-mvp-1/`.
 4. Participate in governance once proposals are live.
 5. Test backups and key recovery quarterly.
 

@@ -22,7 +22,7 @@ services:
       PAW_ENV: ${PAW_ENV:-development}
       PAW_HOME: /data
       PAW_MONIKER: ${PAW_MONIKER:-paw-node-1}
-      PAW_CHAIN_ID: ${PAW_CHAIN_ID:-paw-testnet-1}
+      PAW_CHAIN_ID: ${PAW_CHAIN_ID:-paw-mvp-1}
 
       # Network Configuration
       PAW_P2P_LADDR: tcp://0.0.0.0:26656

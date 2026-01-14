@@ -11,7 +11,7 @@ This directory contains configuration templates for PAW blockchain nodes.
 
 ## Baseline Values (testnet-ready)
 
-- Chain ID: `paw-testnet-1` (set explicitly when running `pawd init`)
+- Chain ID: `paw-mvp-1` (set explicitly when running `pawd init`)
 - Bech32 prefix: `paw`
 - Base denom: `upaw` (display: `PAW`)
 - Minimum gas price: `0.001upaw`
@@ -25,7 +25,7 @@ Create a `.env` file with the following variables:
 
 ```bash
 # Chain Configuration
-CHAIN_ID=paw-testnet-1
+CHAIN_ID=paw-mvp-1
 MONIKER=my-node
 MINIMUM_GAS_PRICES=0.001upaw
 MIN_RETAIN_BLOCKS=500000
@@ -57,7 +57,7 @@ STATE_SYNC_TRUST_HASH=
 
 ```bash
 # Initialize node
-pawd init my-node --chain-id paw-testnet-1 --home ~/.paw
+pawd init my-node --chain-id paw-mvp-1 --home ~/.paw
 
 # Copy configuration templates
 cp app.toml.template ~/.paw/config/app.toml
@@ -77,7 +77,7 @@ pawd start --home ~/.paw
 
 ```bash
 # Initialize validator
-pawd init my-validator --chain-id paw-testnet-1 --home ~/.paw
+pawd init my-validator --chain-id paw-mvp-1 --home ~/.paw
 
 # Copy validator configuration template
 cp validator-config.toml.template ~/.paw/config/config.toml
@@ -102,7 +102,7 @@ Use the helper to build `pawd`, initialize the home, apply hardened templates, a
 ```bash
 ./scripts/init-testnet.sh <moniker>
 # Optional environment overrides:
-#   PAW_HOME=~/.paw-testnet   PAW_CHAIN_ID=paw-testnet-1
+#   PAW_HOME=~/.paw-testnet   PAW_CHAIN_ID=paw-mvp-1
 #   SEEDS="id1@seed1:26656,id2@seed2:26656"   PERSISTENT_PEERS="id3@p2p:26656"
 #   EXTERNAL_ADDRESS="1.2.3.4:26656"          MIN_GAS_PRICES=0.001upaw
 #   PRUNING_KEEP_RECENT=500000 PRUNING_INTERVAL=10 MIN_RETAIN_BLOCKS=500000
@@ -113,7 +113,7 @@ The script **never touches git** and writes only to `${PAW_HOME}` (default `~/.p
 
 ## Genesis Template
 
-`config/genesis-template.json` is generated from `pawd init` with the hardened consensus/evidence settings above for `paw-testnet-1`. Use it as the base for testnet genesis creation (fund accounts, tweak module params) and keep the canonical format (numeric fields serialized as strings).
+`config/genesis-template.json` is generated from `pawd init` with the hardened consensus/evidence settings above for `paw-mvp-1`. Use it as the base for testnet genesis creation (fund accounts, tweak module params) and keep the canonical format (numeric fields serialized as strings).
 
 ## Network Hardening Defaults
 

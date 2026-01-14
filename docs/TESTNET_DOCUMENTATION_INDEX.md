@@ -10,7 +10,7 @@ Use this index to navigate public testnet documentation.
 - [../scripts/devnet/README.md](../scripts/devnet/README.md) — genesis generation and helper scripts
 - [SENTRY_ARCHITECTURE.md](SENTRY_ARCHITECTURE.md) and [SENTRY_TESTING_GUIDE.md](SENTRY_TESTING_GUIDE.md) — production-style sentry topology and validation tests
 - [DASHBOARDS_GUIDE.md](DASHBOARDS_GUIDE.md) — operational dashboards
-- Network artifacts: `../networks/paw-testnet-1/` (`genesis.json`, `genesis.sha256`, `peers.txt`)
+- Network artifacts: `../networks/paw-mvp-1/` (`genesis.json`, `genesis.sha256`, `peers.txt`)
 
 ## Common scenarios
 

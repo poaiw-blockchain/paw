@@ -15,9 +15,9 @@ import (
 // Benchmark pool sizes for different scenarios
 // Note: Sizes are constrained by pre-funded amounts (5B per token per address)
 const (
-	SmallPoolSize  = 10_000_000   // 10M - Small pool
-	MediumPoolSize = 100_000_000  // 100M - Medium pool
-	LargePoolSize  = 500_000_000  // 500M - Large pool (within 5B limit)
+	SmallPoolSize  = 10_000_000  // 10M - Small pool
+	MediumPoolSize = 100_000_000 // 100M - Medium pool
+	LargePoolSize  = 500_000_000 // 500M - Large pool (within 5B limit)
 )
 
 // Pre-funded tokens from testutil/keeper/dex.go
@@ -43,6 +43,7 @@ func createBenchmarkPool(b *testing.B, k *keeper.Keeper, ctx sdk.Context, reserv
 }
 
 // createBenchmarkPoolWithTokens creates a pool with custom tokens
+// nolint:unused // Reserved for extended benchmark tests
 func createBenchmarkPoolWithTokens(b *testing.B, k *keeper.Keeper, ctx sdk.Context, tokenA, tokenB string, reserveSize int64) uint64 {
 	b.Helper()
 	creator := types.TestAddr()

@@ -16,7 +16,7 @@ import (
 
 // Handler handles audit log API requests
 type Handler struct {
-	storage *storage.PostgresStorage
+	storage  *storage.PostgresStorage
 	hashCalc *integrity.HashCalculator
 }
 
@@ -301,8 +301,8 @@ func (h *Handler) DetectTampering(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"alerts":         alerts,
-		"alerts_count":   len(alerts),
+		"alerts":          alerts,
+		"alerts_count":    len(alerts),
 		"entries_checked": len(entries),
 	}
 
@@ -392,8 +392,8 @@ func (h *Handler) respondJSON(w http.ResponseWriter, status int, data interface{
 // respondError sends an error response
 func (h *Handler) respondError(w http.ResponseWriter, status int, message string, err error) {
 	response := map[string]interface{}{
-		"error":   message,
-		"status":  status,
+		"error":  message,
+		"status": status,
 	}
 
 	if err != nil {

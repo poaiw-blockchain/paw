@@ -61,9 +61,9 @@ func NewManager() *Manager {
 	})
 
 	return &Manager{
-		registry: NewCircuitBreakerRegistry(),
-		ctx:      ctx,
-		cancel:   cancel,
+		registry:             NewCircuitBreakerRegistry(),
+		ctx:                  ctx,
+		cancel:               cancel,
 		circuitBreakerStatus: sharedCircuitBreakerStatus,
 		stateTransitions:     sharedStateTransitions,
 		autoResumes:          sharedAutoResumes,

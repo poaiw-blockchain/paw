@@ -3,12 +3,12 @@
 # Requires AWS CLI configured with credentials and ARTIFACTS_DEST set to an s3 URI.
 #
 # Usage:
-#   ARTIFACTS_DEST=s3://my-bucket/paw-testnet-1 ./scripts/devnet/upload-artifacts.sh
+#   ARTIFACTS_DEST=s3://my-bucket/paw-mvp-1 ./scripts/devnet/upload-artifacts.sh
 
 set -euo pipefail
 
 DEST="${ARTIFACTS_DEST:-}"
-CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-testnet-1}}"
+CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-paw-mvp-1}}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 NETWORK_DIR="${PROJECT_ROOT}/networks/${CHAIN_ID}"
 BUNDLE="${PROJECT_ROOT}/artifacts/${CHAIN_ID}-artifacts.tar.gz"

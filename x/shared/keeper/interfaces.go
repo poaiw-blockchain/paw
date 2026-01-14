@@ -72,11 +72,11 @@ type DexKeeperV1Extended interface {
 
 // PoolInfo holds pool data returned by DEX queries.
 type PoolInfo struct {
-	PoolID     uint64
-	TokenA     string
-	TokenB     string
-	ReserveA   sdkmath.Int
-	ReserveB   sdkmath.Int
+	PoolID      uint64
+	TokenA      string
+	TokenB      string
+	ReserveA    sdkmath.Int
+	ReserveB    sdkmath.Int
 	TotalShares sdkmath.Int
 }
 

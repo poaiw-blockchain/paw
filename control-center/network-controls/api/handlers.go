@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+
 	"github.com/paw-chain/paw/control-center/network-controls/circuit"
 	"github.com/paw-chain/paw/control-center/network-controls/multisig"
 )
 
 // Handler provides HTTP handlers for circuit breaker operations
 type Handler struct {
-	manager        *circuit.Manager
+	manager          *circuit.Manager
 	multiSigVerifier *multisig.Verifier
 }
 
@@ -31,7 +32,7 @@ func NewHandlerWithMultiSig(manager *circuit.Manager, multiSigConfig *multisig.M
 		return nil, fmt.Errorf("failed to create multi-sig verifier: %w", err)
 	}
 	return &Handler{
-		manager:        manager,
+		manager:          manager,
 		multiSigVerifier: verifier,
 	}, nil
 }
@@ -85,12 +86,12 @@ type ResumeRequest struct {
 }
 
 type OverridePriceRequest struct {
-	Actor     string                 `json:"actor"`
-	Pair      string                 `json:"pair"`
-	Price     string                 `json:"price"`
-	Duration  int                    `json:"duration"` // minutes
-	Reason    string                 `json:"reason"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Actor    string                 `json:"actor"`
+	Pair     string                 `json:"pair"`
+	Price    string                 `json:"price"`
+	Duration int                    `json:"duration"` // minutes
+	Reason   string                 `json:"reason"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type CancelJobRequest struct {
@@ -100,11 +101,11 @@ type CancelJobRequest struct {
 }
 
 type EmergencyHaltRequest struct {
-	Actor        string              `json:"actor"`
-	Reason       string              `json:"reason"`
-	Modules      []string            `json:"modules"` // empty = all modules
-	Signature    string              `json:"signature,omitempty"`  // deprecated: use multi_sig instead
-	MultiSig     *multisig.MultiSignature `json:"multi_sig,omitempty"` // multi-signature for verification
+	Actor     string                   `json:"actor"`
+	Reason    string                   `json:"reason"`
+	Modules   []string                 `json:"modules"`             // empty = all modules
+	Signature string                   `json:"signature,omitempty"` // deprecated: use multi_sig instead
+	MultiSig  *multisig.MultiSignature `json:"multi_sig,omitempty"` // multi-signature for verification
 }
 
 type StatusResponse struct {

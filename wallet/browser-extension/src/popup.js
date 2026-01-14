@@ -373,7 +373,7 @@ async function handleWalletConnectSignRequest(request) {
   enforceRateLimit(origin);
   const allowlist = await loadWalletConnectAllowlist();
   const hardwareState = await getHardwareWallet();
-  const chainId = signDoc?.chain_id || COSMOS_SDK.config.chainId || COSMOS_SDK.config?.chain_id || 'paw-testnet-1';
+  const chainId = signDoc?.chain_id || COSMOS_SDK.config.chainId || COSMOS_SDK.config?.chain_id || 'paw-mvp-1';
   const address = await getActiveWalletAddress(
     signParams?.signerAddress || signParams?.signer_address || hardwareState?.address
   );

@@ -68,7 +68,7 @@ pip3 install -r requirements.txt
 
 # Set environment variables (optional, defaults shown)
 export RPC_URL=http://localhost:26657
-export CHAIN_ID=paw-testnet-1
+export CHAIN_ID=paw-mvp-1
 
 # Run the explorer
 python3 app.py --port 11080
@@ -83,7 +83,7 @@ Environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `RPC_URL` | Cosmos RPC endpoint URL | `http://localhost:26657` |
-| `CHAIN_ID` | Blockchain chain identifier | `paw-testnet-1` |
+| `CHAIN_ID` | Blockchain chain identifier | `paw-mvp-1` |
 | `FLASK_ENV` | Flask environment (development/production) | `development` |
 
 ## Usage

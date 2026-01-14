@@ -111,9 +111,9 @@ func (e *EmailChannel) buildHTMLBody(alert *alerting.Alert) string {
 	tmpl := template.Must(template.New("email").Parse(emailHTMLTemplate))
 
 	data := map[string]interface{}{
-		"Alert":        alert,
+		"Alert":         alert,
 		"SeverityColor": e.getSeverityColor(alert.Severity),
-		"StatusBadge":  e.getStatusBadge(alert.Status),
+		"StatusBadge":   e.getStatusBadge(alert.Status),
 	}
 
 	var buf bytes.Buffer

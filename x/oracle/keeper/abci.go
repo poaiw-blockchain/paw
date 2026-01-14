@@ -20,13 +20,13 @@ const maxAggregationWorkers = 4
 // AssetAggregationResult holds the computed result from parallel asset price aggregation.
 // PERF-8: This struct captures computation results so writes can be serialized.
 type AssetAggregationResult struct {
-	Asset          string
-	Price          types.Price
-	Snapshot       types.PriceSnapshot
-	FilteredData   *FilteredPriceData
-	AggregatedDec  sdkmath.LegacyDec
-	MinHeight      int64
-	Err            error
+	Asset         string
+	Price         types.Price
+	Snapshot      types.PriceSnapshot
+	FilteredData  *FilteredPriceData
+	AggregatedDec sdkmath.LegacyDec
+	MinHeight     int64
+	Err           error
 }
 
 // BeginBlocker is called at the beginning of every block

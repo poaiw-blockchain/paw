@@ -131,7 +131,7 @@ func TestCatastrophicFailureRecovery_ResolvedFailuresPassInvariant(t *testing.T)
 
 	// Verify invariant is broken before resolution
 	invariant := EscrowStateConsistencyInvariant(*k)
-	msg, broken := invariant(sdkCtx)
+	_, broken := invariant(sdkCtx)
 	require.True(t, broken, "invariant should be broken before resolution")
 
 	// Mark failure as resolved
@@ -158,7 +158,7 @@ func TestCatastrophicFailureRecovery_ResolvedFailuresPassInvariant(t *testing.T)
 	require.Len(t, unresolvedFailures, 0, "should have no unresolved failures")
 
 	// Verify invariant now passes
-	msg, broken = invariant(sdkCtx)
+	msg, broken := invariant(sdkCtx)
 	require.False(t, broken, "invariant should pass after resolution: %s", msg)
 }
 

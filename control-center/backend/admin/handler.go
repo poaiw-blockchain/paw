@@ -271,11 +271,11 @@ func (h *Handler) ResumeModule(c *gin.Context) {
 	err := h.integrationService.ResumeModule(module)
 	if err != nil {
 		h.auditService.Log(audit.Entry{
-			User:       userEmail.(string),
-			Action:     "resume_module",
-			Module:     module,
-			Result:     fmt.Sprintf("failed: %v", err),
-			IPAddress:  c.ClientIP(),
+			User:      userEmail.(string),
+			Action:    "resume_module",
+			Module:    module,
+			Result:    fmt.Sprintf("failed: %v", err),
+			IPAddress: c.ClientIP(),
 		})
 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to resume module: %v", err)})
@@ -292,11 +292,11 @@ func (h *Handler) ResumeModule(c *gin.Context) {
 
 	// Log success
 	h.auditService.Log(audit.Entry{
-		User:       userEmail.(string),
-		Action:     "resume_module",
-		Module:     module,
-		Result:     "success",
-		IPAddress:  c.ClientIP(),
+		User:      userEmail.(string),
+		Action:    "resume_module",
+		Module:    module,
+		Result:    "success",
+		IPAddress: c.ClientIP(),
 	})
 
 	// Broadcast circuit breaker state change
@@ -630,9 +630,9 @@ func (h *Handler) ListUsers(c *gin.Context) {
 // CreateUser creates a new user
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req struct {
-		Email    string     `json:"email" binding:"required,email"`
-		Password string     `json:"password" binding:"required,min=8"`
-		Role     auth.Role  `json:"role" binding:"required"`
+		Email    string    `json:"email" binding:"required,email"`
+		Password string    `json:"password" binding:"required,min=8"`
+		Role     auth.Role `json:"role" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -86,7 +86,7 @@ spec:
         - name: PAW_VERSION
           value: "v1.0.0"
         - name: CHAIN_ID
-          value: "paw-testnet-1"
+          value: "paw-mvp-1"
 
         resources:
           requests:

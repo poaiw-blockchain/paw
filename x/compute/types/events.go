@@ -142,9 +142,9 @@ const (
 
 // Circuit breaker event types
 const (
-	EventTypeCircuitBreakerOpen     = "compute_circuit_breaker_open"
-	EventTypeCircuitBreakerClose    = "compute_circuit_breaker_close"
-	EventTypeJobCancellation        = "compute_job_cancellation"
-	EventTypeReputationOverride     = "compute_reputation_override"
+	EventTypeCircuitBreakerOpen      = "compute_circuit_breaker_open"
+	EventTypeCircuitBreakerClose     = "compute_circuit_breaker_close"
+	EventTypeJobCancellation         = "compute_job_cancellation"
+	EventTypeReputationOverride      = "compute_reputation_override"
 	EventTypeReputationOverrideClear = "compute_reputation_override_clear"
 )

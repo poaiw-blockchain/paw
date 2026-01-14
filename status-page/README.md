@@ -1,6 +1,6 @@
 # PAW Status Page
 
-Production-ready status page for paw-testnet-1 with live health probes for RPC, REST, gRPC, Explorer, Faucet, and Metrics.
+Production-ready status page for paw-mvp-1 with live health probes for RPC, REST, gRPC, Explorer, Faucet, and Metrics.
 
 ## Quick start (local)
 ```bash

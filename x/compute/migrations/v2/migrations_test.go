@@ -210,11 +210,11 @@ func TestMigrate_ValidProviderData(t *testing.T) {
 
 	// Set up valid provider
 	validProvider := types.Provider{
-		Address:                 providerAddr.String(),
-		Active:                  true,
-		Reputation:              80,
-		TotalRequestsCompleted:  100,
-		TotalRequestsFailed:     20,
+		Address:                providerAddr.String(),
+		Active:                 true,
+		Reputation:             80,
+		TotalRequestsCompleted: 100,
+		TotalRequestsFailed:    20,
 	}
 	setProvider(t, store, cdc, validProvider)
 
@@ -238,11 +238,11 @@ func TestMigrate_FixZeroReputation(t *testing.T) {
 
 	// Set up provider with zero reputation
 	invalidProvider := types.Provider{
-		Address:                 providerAddr.String(),
-		Active:                  true,
-		Reputation:              0,
-		TotalRequestsCompleted:  50,
-		TotalRequestsFailed:     10,
+		Address:                providerAddr.String(),
+		Active:                 true,
+		Reputation:             0,
+		TotalRequestsCompleted: 50,
+		TotalRequestsFailed:    10,
 	}
 	setProvider(t, store, cdc, invalidProvider)
 
@@ -264,11 +264,11 @@ func TestMigrate_FixReputationAbove100(t *testing.T) {
 
 	// Set up provider with reputation above 100
 	invalidProvider := types.Provider{
-		Address:                 providerAddr.String(),
-		Active:                  true,
-		Reputation:              150,
-		TotalRequestsCompleted:  100,
-		TotalRequestsFailed:     0,
+		Address:                providerAddr.String(),
+		Active:                 true,
+		Reputation:             150,
+		TotalRequestsCompleted: 100,
+		TotalRequestsFailed:    0,
 	}
 	setProvider(t, store, cdc, invalidProvider)
 
@@ -291,11 +291,11 @@ func TestMigrate_RecalculateWrongReputation(t *testing.T) {
 	// Set up provider with clearly wrong reputation
 	// 80% success rate (80/100) but reputation is 50
 	invalidProvider := types.Provider{
-		Address:                 providerAddr.String(),
-		Active:                  true,
-		Reputation:              50, // Should be ~80
-		TotalRequestsCompleted:  80,
-		TotalRequestsFailed:     20,
+		Address:                providerAddr.String(),
+		Active:                 true,
+		Reputation:             50, // Should be ~80
+		TotalRequestsCompleted: 80,
+		TotalRequestsFailed:    20,
 	}
 	setProvider(t, store, cdc, invalidProvider)
 
@@ -534,11 +534,11 @@ func TestMigrate_MultipleProviders(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		addr := sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
 		provider := types.Provider{
-			Address:                 addr.String(),
-			Active:                  i%2 == 0,
-			Reputation:              uint32(50 + i*5),
-			TotalRequestsCompleted:  uint64(10 + i),
-			TotalRequestsFailed:     uint64(i),
+			Address:                addr.String(),
+			Active:                 i%2 == 0,
+			Reputation:             uint32(50 + i*5),
+			TotalRequestsCompleted: uint64(10 + i),
+			TotalRequestsFailed:    uint64(i),
 		}
 		setProvider(t, store, cdc, provider)
 	}
@@ -567,11 +567,11 @@ func TestMigrate_Idempotency(t *testing.T) {
 
 	// Set up provider
 	provider := types.Provider{
-		Address:                 providerAddr.String(),
-		Active:                  true,
-		Reputation:              80,
-		TotalRequestsCompleted:  100,
-		TotalRequestsFailed:     20,
+		Address:                providerAddr.String(),
+		Active:                 true,
+		Reputation:             80,
+		TotalRequestsCompleted: 100,
+		TotalRequestsFailed:    20,
 	}
 	setProvider(t, store, cdc, provider)
 

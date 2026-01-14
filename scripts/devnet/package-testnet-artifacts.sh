@@ -8,7 +8,7 @@ set -euo pipefail
 
 PAW_HOME="${PAW_HOME:-$HOME/.paw}"
 CHAIN_ID="${PAW_CHAIN_ID:-}"
-OUTPUT_DIR="${1:-${PWD}/artifacts/paw-testnet-1}"
+OUTPUT_DIR="${1:-${PWD}/artifacts/paw-mvp-1}"
 PAWD_BIN="${PAWD_BIN:-$(command -v pawd)}"
 
 if [[ -z "${PAWD_BIN}" ]]; then
@@ -36,7 +36,7 @@ mkdir -p "${OUTPUT_DIR}"
 if [[ -z "${CHAIN_ID}" ]]; then
   CHAIN_ID="$("${PAWD_BIN}" status --home "${PAW_HOME}" 2>/dev/null | jq -r '.NodeInfo.network // empty')"
 fi
-CHAIN_ID="${CHAIN_ID:-paw-testnet-1}"
+CHAIN_ID="${CHAIN_ID:-paw-mvp-1}"
 
 GENESIS_TARGET="${OUTPUT_DIR}/${CHAIN_ID}-genesis.json"
 cp "${GENESIS_PATH}" "${GENESIS_TARGET}"

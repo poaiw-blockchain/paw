@@ -339,7 +339,7 @@ Configure chain IDs for wallet integration:
 ```javascript
 this.chainIds = {
     local: 'paw-local',
-    testnet: 'paw-testnet-1',
+    testnet: 'paw-mvp-1',
     mainnet: 'paw-1'
 };
 ```

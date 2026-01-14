@@ -45,9 +45,9 @@ var (
 	ErrDataPoisoning        = sdkerrors.Register(ModuleName, 24, "data poisoning attempt detected")
 
 	// SEC-14: Signature verification errors
-	ErrInvalidSignature        = sdkerrors.Register(ModuleName, 25, "invalid price data signature")
-	ErrMissingSignature        = sdkerrors.Register(ModuleName, 26, "missing required price data signature")
-	ErrSignatureVerifyFailed   = sdkerrors.Register(ModuleName, 27, "signature verification failed")
+	ErrInvalidSignature      = sdkerrors.Register(ModuleName, 25, "invalid price data signature")
+	ErrMissingSignature      = sdkerrors.Register(ModuleName, 26, "missing required price data signature")
+	ErrSignatureVerifyFailed = sdkerrors.Register(ModuleName, 27, "signature verification failed")
 
 	// Aggregation errors
 	ErrInsufficientDataSources     = sdkerrors.Register(ModuleName, 30, "insufficient data sources")
@@ -66,12 +66,12 @@ var (
 	ErrInvalidPriceSource = sdkerrors.Register(ModuleName, 43, "invalid price source")
 
 	// Geographic location verification errors
-	ErrInvalidIPAddress          = sdkerrors.Register(ModuleName, 44, "invalid IP address")
-	ErrIPRegionMismatch          = sdkerrors.Register(ModuleName, 45, "IP address does not match claimed region")
-	ErrPrivateIPNotAllowed       = sdkerrors.Register(ModuleName, 46, "private IP addresses not allowed for validators")
-	ErrLocationProofRequired     = sdkerrors.Register(ModuleName, 47, "location proof required")
-	ErrLocationProofInvalid      = sdkerrors.Register(ModuleName, 48, "location proof invalid or expired")
-	ErrInsufficientGeoDiversity  = sdkerrors.Register(ModuleName, 49, "insufficient geographic diversity")
+	ErrInvalidIPAddress            = sdkerrors.Register(ModuleName, 44, "invalid IP address")
+	ErrIPRegionMismatch            = sdkerrors.Register(ModuleName, 45, "IP address does not match claimed region")
+	ErrPrivateIPNotAllowed         = sdkerrors.Register(ModuleName, 46, "private IP addresses not allowed for validators")
+	ErrLocationProofRequired       = sdkerrors.Register(ModuleName, 47, "location proof required")
+	ErrLocationProofInvalid        = sdkerrors.Register(ModuleName, 48, "location proof invalid or expired")
+	ErrInsufficientGeoDiversity    = sdkerrors.Register(ModuleName, 49, "insufficient geographic diversity")
 	ErrGeoIPDatabaseUnavailable    = sdkerrors.Register(ModuleName, 51, "GeoIP database unavailable")
 	ErrTooManyValidatorsFromSameIP = sdkerrors.Register(ModuleName, 52, "too many validators from same IP address")
 	ErrGeoIPVerificationRequired   = sdkerrors.Register(ModuleName, 61, "GeoIP verification required but unavailable")
@@ -81,11 +81,11 @@ var (
 	ErrCircuitBreakerAlreadyClosed = sdkerrors.Register(ModuleName, 54, "circuit breaker already closed")
 
 	// Emergency pause errors
-	ErrOraclePaused            = sdkerrors.Register(ModuleName, 55, "oracle is currently paused")
-	ErrOracleNotPaused         = sdkerrors.Register(ModuleName, 56, "oracle is not currently paused")
-	ErrUnauthorizedPause       = sdkerrors.Register(ModuleName, 57, "unauthorized to trigger emergency pause")
-	ErrUnauthorizedResume      = sdkerrors.Register(ModuleName, 58, "unauthorized to resume oracle")
-	ErrInvalidEmergencyAdmin   = sdkerrors.Register(ModuleName, 59, "invalid emergency admin address")
+	ErrOraclePaused          = sdkerrors.Register(ModuleName, 55, "oracle is currently paused")
+	ErrOracleNotPaused       = sdkerrors.Register(ModuleName, 56, "oracle is not currently paused")
+	ErrUnauthorizedPause     = sdkerrors.Register(ModuleName, 57, "unauthorized to trigger emergency pause")
+	ErrUnauthorizedResume    = sdkerrors.Register(ModuleName, 58, "unauthorized to resume oracle")
+	ErrInvalidEmergencyAdmin = sdkerrors.Register(ModuleName, 59, "invalid emergency admin address")
 )
 
 // ErrorWithRecovery wraps an error with recovery suggestions
@@ -140,12 +140,12 @@ var RecoverySuggestions = map[error]string{
 	ErrOracleDataUnavailable: "No oracle data available for requested asset. Wait for next aggregation interval or ensure feeder connectivity. Confirm asset is registered and active.",
 	ErrInvalidPriceSource:    "Price source failed validation or is unregistered. Verify source registration, reputation, and heartbeat before retrying.",
 
-	ErrInvalidIPAddress:          "IP address format is invalid. Provide a valid IPv4 or IPv6 address. Check network configuration.",
-	ErrIPRegionMismatch:          "SECURITY: IP address geolocation does not match claimed region. Update claimed region to match actual location or fix IP address. This prevents location spoofing.",
-	ErrPrivateIPNotAllowed:       "SECURITY: Validators must use public IP addresses. Private/localhost IPs (10.x, 192.168.x, 127.x) are not allowed. Configure proper public network access.",
-	ErrLocationProofRequired:     "Geographic location proof required for validator registration. Provide verifiable location evidence. This ensures geographic diversity.",
-	ErrLocationProofInvalid:      "Location proof verification failed or expired. Renew location proof with current timestamp. Ensure proof is cryptographically signed and valid.",
-	ErrInsufficientGeoDiversity:  "SECURITY: Insufficient geographic diversity among validators. Need minimum 3 distinct regions. This is critical for decentralization and resilience.",
+	ErrInvalidIPAddress:            "IP address format is invalid. Provide a valid IPv4 or IPv6 address. Check network configuration.",
+	ErrIPRegionMismatch:            "SECURITY: IP address geolocation does not match claimed region. Update claimed region to match actual location or fix IP address. This prevents location spoofing.",
+	ErrPrivateIPNotAllowed:         "SECURITY: Validators must use public IP addresses. Private/localhost IPs (10.x, 192.168.x, 127.x) are not allowed. Configure proper public network access.",
+	ErrLocationProofRequired:       "Geographic location proof required for validator registration. Provide verifiable location evidence. This ensures geographic diversity.",
+	ErrLocationProofInvalid:        "Location proof verification failed or expired. Renew location proof with current timestamp. Ensure proof is cryptographically signed and valid.",
+	ErrInsufficientGeoDiversity:    "SECURITY: Insufficient geographic diversity among validators. Need minimum 3 distinct regions. This is critical for decentralization and resilience.",
 	ErrGeoIPDatabaseUnavailable:    "GeoIP database not available for location verification. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable.",
 	ErrTooManyValidatorsFromSameIP: "SECURITY: Too many validators sharing same IP address (max 2). This indicates centralization risk or Sybil attack. Ensure validators are independently operated.",
 	ErrGeoIPVerificationRequired:   "SECURITY: GeoIP verification is required (RequireGeographicDiversity=true) but the GeoIP database is not configured. Download GeoLite2-Country.mmdb and set GEOIP_DB_PATH environment variable, or disable RequireGeographicDiversity for testnet.",

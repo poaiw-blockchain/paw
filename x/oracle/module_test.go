@@ -12,8 +12,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/paw-chain/paw/x/oracle"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/oracle"
 	"github.com/paw-chain/paw/x/oracle/types"
 )
 

@@ -18,7 +18,7 @@ Pools require symmetric value in both tokens. The creator receives pool shares r
 ```bash
 pawd tx dex create-pool upaw 1000000uatom \
   --amount-in "1000000upaw,1000000uatom" \
-  --from trader --chain-id paw-testnet-1 \
+  --from trader --chain-id paw-mvp-1 \
   --gas auto --gas-adjustment 1.5 --fees 5000upaw
 ```
 Flags:

@@ -820,10 +820,10 @@ Parameters automatically update when proposal passes.
 # Submit to testnet
 pawd tx gov submit-proposal param-change proposal.json \
   --from proposer \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 
 # Monitor effects
-pawd query dex pools --chain-id paw-testnet-1
+pawd query dex pools --chain-id paw-mvp-1
 
 # Verify metrics
 curl http://testnet-node:26657/metrics

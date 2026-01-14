@@ -429,10 +429,10 @@ func (k Keeper) GetCacheStats(ctx context.Context) (map[string]interface{}, erro
 	currentHeight := sdkCtx.BlockHeight()
 
 	stats := map[string]interface{}{
-		"enabled":             metadata.Enabled,
-		"cache_size":          metadata.CacheSize,
-		"last_refresh_block":  metadata.LastRefreshBlock,
-		"current_block":       currentHeight,
+		"enabled":              metadata.Enabled,
+		"cache_size":           metadata.CacheSize,
+		"last_refresh_block":   metadata.LastRefreshBlock,
+		"current_block":        currentHeight,
 		"blocks_since_refresh": currentHeight - metadata.LastRefreshBlock,
 	}
 

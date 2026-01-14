@@ -165,7 +165,7 @@ Configured when creating validator:
 pawd tx staking edit-validator \
   --commission-rate 0.12 \
   --from validator-operator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -270,7 +270,7 @@ Must start new validator (reputation damage)
 # Delegate 1000 PAW to validator
 pawd tx staking delegate <validator-address> 1000000000upaw \
   --from delegator-account \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -285,7 +285,7 @@ pawd tx staking redelegate \
   <destination-validator> \
   1000000000upaw \
   --from delegator-account \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -301,7 +301,7 @@ pawd tx staking redelegate \
 ```bash
 pawd tx staking unbond <validator-address> 1000000000upaw \
   --from delegator-account \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -331,7 +331,7 @@ pawd query distribution commission <validator-address>
 # Withdraw all delegator rewards
 pawd tx distribution withdraw-all-rewards \
   --from delegator-account \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -340,7 +340,7 @@ pawd tx distribution withdraw-all-rewards \
 pawd tx distribution withdraw-rewards <validator-address> \
   --commission \
   --from validator-operator \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto \
   --gas-prices 0.001upaw \
   --yes
@@ -355,7 +355,7 @@ pawd tx distribution withdraw-rewards <validator-address> \
 VALIDATOR_OPERATOR="validator-operator"
 VALIDATOR_ADDR=$(pawd keys show $VALIDATOR_OPERATOR --bech val -a)
 OPERATOR_ADDR=$(pawd keys show $VALIDATOR_OPERATOR -a)
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 
 # Withdraw commission
 pawd tx distribution withdraw-rewards $VALIDATOR_ADDR \

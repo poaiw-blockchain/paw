@@ -11,22 +11,22 @@ import (
 func DefaultGenesis() *GenesisState {
 	return &GenesisState{
 		Params: Params{
-			SwapFee:                              sdkmath.LegacyMustNewDecFromStr("0.003"),  // 0.30%
-			LpFee:                                sdkmath.LegacyMustNewDecFromStr("0.0025"), // 0.25%
-			ProtocolFee:                          sdkmath.LegacyMustNewDecFromStr("0.0005"), // 0.05%
-			MinLiquidity:                         sdkmath.NewInt(1_000),
-			MaxSlippagePercent:                   sdkmath.LegacyMustNewDecFromStr("0.50"), // 50% guardrail
-			MaxPoolDrainPercent:                  sdkmath.LegacyMustNewDecFromStr("0.30"), // Production swap drain limit
-			FlashLoanProtectionBlocks:            100, // SEC-18: ~10 min at 6s blocks
-			PoolCreationGas:                      1000,
-			SwapValidationGas:                    1500,
-			LiquidityGas:                         1200,
-			AuthorizedChannels:                   []AuthorizedChannel{},
-			UpgradePreserveCircuitBreakerState:   true,
-			RecommendedMaxSlippage:               sdkmath.LegacyMustNewDecFromStr("0.03"),  // 3%
-			EnableCommitReveal:                   false,                                     // Disabled for testnet
-			CommitRevealDelay:                    10,                                        // 10 blocks (~60s)
-			CommitTimeoutBlocks:                  100,                                       // 100 blocks (~10min)
+			SwapFee:                            sdkmath.LegacyMustNewDecFromStr("0.003"),  // 0.30%
+			LpFee:                              sdkmath.LegacyMustNewDecFromStr("0.0025"), // 0.25%
+			ProtocolFee:                        sdkmath.LegacyMustNewDecFromStr("0.0005"), // 0.05%
+			MinLiquidity:                       sdkmath.NewInt(1_000),
+			MaxSlippagePercent:                 sdkmath.LegacyMustNewDecFromStr("0.50"), // 50% guardrail
+			MaxPoolDrainPercent:                sdkmath.LegacyMustNewDecFromStr("0.30"), // Production swap drain limit
+			FlashLoanProtectionBlocks:          100,                                     // SEC-18: ~10 min at 6s blocks
+			PoolCreationGas:                    1000,
+			SwapValidationGas:                  1500,
+			LiquidityGas:                       1200,
+			AuthorizedChannels:                 []AuthorizedChannel{},
+			UpgradePreserveCircuitBreakerState: true,
+			RecommendedMaxSlippage:             sdkmath.LegacyMustNewDecFromStr("0.03"), // 3%
+			EnableCommitReveal:                 false,                                   // Disabled for testnet
+			CommitRevealDelay:                  10,                                      // 10 blocks (~60s)
+			CommitTimeoutBlocks:                100,                                     // 100 blocks (~10min)
 		},
 		Pools:           []Pool{},
 		NextPoolId:      1,

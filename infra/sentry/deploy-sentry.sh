@@ -11,7 +11,7 @@ set -euo pipefail
 
 SENTRY_HOME="${SENTRY_HOME:-$HOME/.paw-sentry}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 
 # Port configuration for sentry
 P2P_PORT=12056

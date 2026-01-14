@@ -50,7 +50,7 @@ import { PawClient, PawWallet } from '@paw-chain/sdk';
 const client = new PawClient({
   rpcEndpoint: 'http://localhost:26657',
   restEndpoint: 'http://localhost:1317',
-  chainId: 'paw-testnet-1',
+  chainId: 'paw-mvp-1',
   gasPrice: '0.025upaw'
 });
 
@@ -349,7 +349,7 @@ Run examples:
 # Set environment variables
 export MNEMONIC="your mnemonic here"
 export RPC_ENDPOINT="http://localhost:26657"
-export CHAIN_ID="paw-testnet-1"
+export CHAIN_ID="paw-mvp-1"
 
 # Run example
 npx ts-node examples/basic-usage.ts

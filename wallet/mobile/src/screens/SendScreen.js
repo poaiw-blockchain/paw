@@ -56,7 +56,7 @@ const SendScreen = () => {
     setIsSending(true);
     try {
       const nodeInfo = await PawAPI.getNodeInfo();
-      const chainId = nodeInfo?.default_node_info?.network || 'paw-testnet-1';
+      const chainId = nodeInfo?.default_node_info?.network || 'paw-mvp-1';
       const account = await PawAPI.getAccount(fromAddress);
       const baseAccount = account?.base_account || account?.base_vesting_account?.base_account || account;
       const accountNumber = String(baseAccount?.account_number || '');

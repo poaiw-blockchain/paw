@@ -198,7 +198,7 @@ resources:
 ```yaml
 # testnet-validator.yaml
 node:
-  chainId: "paw-testnet-1"
+  chainId: "paw-mvp-1"
   moniker: "testnet-validator-01"
   minGasPrices: "0.001upaw"
 

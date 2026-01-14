@@ -20,11 +20,11 @@ type SwapHop struct {
 
 // MultiHopSwapResult contains the result of a multi-hop swap
 type MultiHopSwapResult struct {
-	AmountIn      math.Int   `json:"amount_in"`
-	AmountOut     math.Int   `json:"amount_out"`
-	HopAmounts    []math.Int `json:"hop_amounts"`      // intermediate amounts
-	TotalFees     math.Int   `json:"total_fees"`
-	GasUsed       uint64     `json:"gas_used"`
+	AmountIn   math.Int   `json:"amount_in"`
+	AmountOut  math.Int   `json:"amount_out"`
+	HopAmounts []math.Int `json:"hop_amounts"` // intermediate amounts
+	TotalFees  math.Int   `json:"total_fees"`
+	GasUsed    uint64     `json:"gas_used"`
 }
 
 // ExecuteMultiHopSwap executes a multi-hop swap atomically with batched state updates.
@@ -375,9 +375,9 @@ func (k Keeper) SimulateMultiHopSwap(
 
 // Route finding constants - bounded to prevent resource exhaustion
 const (
-	MaxRouteSearchPools  = 100 // Maximum pools to consider in route search
-	MaxRouteCandidates   = 10  // Maximum candidate routes to evaluate
-	DefaultMaxHops       = 3   // Default maximum hops if not specified
+	MaxRouteSearchPools = 100 // Maximum pools to consider in route search
+	MaxRouteCandidates  = 10  // Maximum candidate routes to evaluate
+	DefaultMaxHops      = 3   // Default maximum hops if not specified
 )
 
 // tokenGraph represents the pool connectivity graph for route finding
@@ -433,6 +433,7 @@ func (k Keeper) buildTokenGraph(ctx context.Context) (*tokenGraph, error) {
 
 // getOrBuildTokenGraph returns the cached token graph if valid, or builds a new one.
 // PERF-10: Caches the token graph and invalidates when pool version changes.
+// nolint:unused // Reserved for performance optimization path
 func (k *Keeper) getOrBuildTokenGraph(ctx context.Context) (*tokenGraph, error) {
 	currentVersion := k.GetPoolVersion(ctx)
 

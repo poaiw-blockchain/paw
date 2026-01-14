@@ -12,8 +12,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	"github.com/paw-chain/paw/x/dex"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/dex"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 
@@ -388,4 +388,3 @@ type mockInvariantRegistry struct {
 func (m *mockInvariantRegistry) RegisterRoute(moduleName string, route string, invar sdk.Invariant) {
 	m.count++
 }
-

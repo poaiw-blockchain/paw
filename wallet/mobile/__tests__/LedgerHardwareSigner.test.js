@@ -14,7 +14,7 @@ const { LedgerServiceMobile } = require('../src/services/hardware');
 describe('LedgerHardwareSigner', () => {
   it('connects and signs with Ledger', async () => {
     const signDoc = {
-      chain_id: 'paw-testnet-1',
+      chain_id: 'paw-mvp-1',
       account_number: '1',
       sequence: '1',
       fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },
@@ -30,7 +30,7 @@ describe('LedgerHardwareSigner', () => {
 
   it('rejects when signer address mismatches', async () => {
     const signDoc = {
-      chain_id: 'paw-testnet-1',
+      chain_id: 'paw-mvp-1',
       account_number: '1',
       sequence: '1',
       fee: { amount: [{ denom: 'upaw', amount: '2500' }], gas: '200000' },

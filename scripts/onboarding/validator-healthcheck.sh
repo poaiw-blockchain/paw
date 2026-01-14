@@ -5,7 +5,7 @@ set -euo pipefail
 
 RPC="${RPC_ENDPOINT:-http://localhost:26657}"
 HOME_DIR="${PAW_HOME:-$HOME/.paw}"
-EXPECT_CHAIN_ID="${EXPECT_CHAIN_ID:-paw-testnet-1}"
+EXPECT_CHAIN_ID="${EXPECT_CHAIN_ID:-paw-mvp-1}"
 
 log() { printf "[validator-health] %s\n" "$*"; }
 fail() { echo "error: $*" >&2; exit 1; }

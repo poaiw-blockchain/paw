@@ -26,7 +26,7 @@ Step-by-step onboarding for end-users and QA, including platform compatibility, 
 
 ## First-Run Flow
 1. Install from the link above (Play/TestFlight) and launch the app.
-2. Choose network: select **paw-testnet-1** (default). Mainnet will surface as **paw-mainnet-1** on release.
+2. Choose network: select **paw-mvp-1** (default). Mainnet will surface as **paw-mainnet-1** on release.
 3. Create or import wallet:
    - New wallet: generate 24-word mnemonic → confirm words → set passphrase.
    - Import: paste mnemonic → optional passphrase.

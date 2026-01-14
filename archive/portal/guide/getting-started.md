@@ -93,7 +93,7 @@ docker run -d \
 
 ```bash
 # Initialize the node with a moniker (your node's name)
-pawd init my-node --chain-id paw-testnet-1
+pawd init my-node --chain-id paw-mvp-1
 
 # This creates a ~/.paw directory with configuration files
 ```
@@ -230,7 +230,7 @@ pawd tx bank send \
   my-wallet \
   paw1yyyyyyyyyyyyyyyyyyyyyy \
   1000000upaw \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --fees 500upaw \
   --gas auto \
   --gas-adjustment 1.3

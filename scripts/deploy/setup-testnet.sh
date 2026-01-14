@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 HOME_DIR="$HOME/.paw-testnet"
 MONIKER="paw-testnet-validator"
 KEYRING_BACKEND="test"

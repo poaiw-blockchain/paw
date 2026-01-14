@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/paw/control-center/alerting"
 	_ "github.com/lib/pq"
+	"github.com/paw/control-center/alerting"
 	"github.com/redis/go-redis/v9"
 )
 

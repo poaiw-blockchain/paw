@@ -773,7 +773,7 @@ func main() {
 	// Parse command-line flags
 	rpcEndpoint := flag.String("rpc", "http://localhost:26657", "RPC endpoint")
 	apiEndpoint := flag.String("api", "http://localhost:1317", "API endpoint")
-	chainID := flag.String("chain-id", "paw-testnet-1", "Chain ID")
+	chainID := flag.String("chain-id", "paw-mvp-1", "Chain ID")
 	duration := flag.Duration("duration", 5*time.Minute, "Test duration")
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent workers")
 	txRate := flag.Int("rate", 100, "Target transactions per second")

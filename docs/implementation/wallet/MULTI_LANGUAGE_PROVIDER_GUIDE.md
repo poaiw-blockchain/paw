@@ -2,7 +2,7 @@
 
 The TypeScript SDK under `wallet/core` powers the desktop, mobile, and extension wallets, but many integrators prefer native providers for Go- and Rust-based infrastructure. This guide shows how to derive PAW accounts, sign transactions, and talk to RPC or gRPC endpoints using those languages so service providers can embed PAW support without going through a JavaScript bridge.
 
-All snippets assume the PAW chain is running with `chain-id=paw-testnet-1`, gRPC on `localhost:9090`, and RPC on `http://localhost:26657`. Adjust the endpoints per your deployment.
+All snippets assume the PAW chain is running with `chain-id=paw-mvp-1`, gRPC on `localhost:9090`, and RPC on `http://localhost:26657`. Adjust the endpoints per your deployment.
 
 ---
 
@@ -54,7 +54,7 @@ func main() {
 
 	// 3. Prepare factory + signer info
 	factory := tx.Factory{}.
-		WithChainID("paw-testnet-1").
+		WithChainID("paw-mvp-1").
 		WithTxConfig(encoding.TxConfig).
 		WithGas(120000).
 		WithFees("2500upaw")
@@ -150,7 +150,7 @@ fn main() -> anyhow::Result<()> {
     let signer_info = SignerInfo::single_direct(Some(signer.public_key()), 0);
     let auth_info = signer_info.auth_info(Uint128::new(150_000), Coin::new(3_000u64, "upaw"));
 
-    let sign_doc = SignDoc::new(&body, &auth_info, "paw-testnet-1", AccountNumber::new(0))?;
+    let sign_doc = SignDoc::new(&body, &auth_info, "paw-mvp-1", AccountNumber::new(0))?;
     let tx_raw = sign_doc.sign(&signer)?;
 
     let client = reqwest::blocking::Client::new();

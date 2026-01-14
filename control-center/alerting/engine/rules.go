@@ -15,17 +15,17 @@ import (
 
 // RulesEngine manages alert rule evaluation
 type RulesEngine struct {
-	storage         *storage.PostgresStorage
-	evaluator       *Evaluator
-	config          *alerting.Config
-	activeRules     map[string]*alerting.AlertRule
-	ruleTimers      map[string]*time.Ticker
-	alertHandlers   []AlertHandler
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
-	deduplicator    *Deduplicator
-	grouper         *AlertGrouper
+	storage       *storage.PostgresStorage
+	evaluator     *Evaluator
+	config        *alerting.Config
+	activeRules   map[string]*alerting.AlertRule
+	ruleTimers    map[string]*time.Ticker
+	alertHandlers []AlertHandler
+	mu            sync.RWMutex
+	ctx           context.Context
+	cancel        context.CancelFunc
+	deduplicator  *Deduplicator
+	grouper       *AlertGrouper
 }
 
 // AlertHandler is called when an alert is triggered
@@ -266,9 +266,9 @@ func (e *RulesEngine) handleAlert(alert *alerting.Alert) error {
 
 // Deduplicator prevents duplicate alerts within a time window
 type Deduplicator struct {
-	window    time.Duration
-	alerts    map[string]time.Time
-	mu        sync.RWMutex
+	window time.Duration
+	alerts map[string]time.Time
+	mu     sync.RWMutex
 }
 
 // NewDeduplicator creates a new deduplicator

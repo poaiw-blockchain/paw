@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-CHAIN_ID="${1:-${CHAIN_ID:-${PAW_CHAIN_ID:-paw-testnet-1}}}"
+CHAIN_ID="${1:-${CHAIN_ID:-${PAW_CHAIN_ID:-paw-mvp-1}}}"
 NETWORK_DIR="${NETWORK_DIR:-${PROJECT_ROOT}/networks/${CHAIN_ID}}"
 GENESIS="${NETWORK_DIR}/genesis.json"
 SHA_FILE="${NETWORK_DIR}/genesis.sha256"

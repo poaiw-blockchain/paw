@@ -1,4 +1,4 @@
-# Validator Quickstart Pack (paw-testnet-1)
+# Validator Quickstart Pack (paw-mvp-1)
 
 Ready-to-run assets for bringing up a public testnet validator with either systemd or Docker Compose, plus health checks and sizing guidance for light validators.
 
@@ -15,7 +15,7 @@ sudo mkdir -p /var/lib/paw && sudo chown -R paw:paw /var/lib/paw
 sudo cp validator-onboarding/quickstart-pack/pawd.service /etc/systemd/system/pawd.service
 sudo systemctl daemon-reload
 curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh \
-  | sudo -u paw bash -s -- --mode full --chain-id paw-testnet-1 --home /var/lib/paw
+  | sudo -u paw bash -s -- --mode full --chain-id paw-mvp-1 --home /var/lib/paw
 sudo systemctl enable --now pawd
 ```
 - Configure `persistent_peers` to connect to the sentry node: `ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056` (external nodes should NOT connect directly to validators).
@@ -29,7 +29,7 @@ docker compose -f docker-compose.validator.yml up -d --build
 - Override chain ID or mount a prepared home by passing envs: `CHAIN_ID=paw-mainnet-1 docker compose ...`.
 
 ## Join Checklist
-- [ ] Fetch genesis + checksum from `networks/paw-testnet-1/` (verify SHA256).
+- [ ] Fetch genesis + checksum from `networks/paw-mvp-1/` (verify SHA256).
 - [ ] Configure `persistent_peers` to connect to sentry: `ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`
 - [ ] Set `minimum-gas-prices = "0.001upaw"`; open P2P port 26656.
 - [ ] Enable metrics (`scripts/enable-node-metrics.sh`) and restart.

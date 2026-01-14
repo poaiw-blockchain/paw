@@ -39,7 +39,7 @@ func TestInitCmd(t *testing.T) {
 		{
 			name:         "valid init with chain ID",
 			moniker:      "test-node",
-			chainID:      "paw-testnet-1",
+			chainID:      "paw-mvp-1",
 			overwrite:    false,
 			defaultDenom: "upaw",
 			wantErr:      false,
@@ -167,7 +167,7 @@ func TestInitCmdGenesisExists(t *testing.T) {
 
 	// First initialization
 	cmd.SetArgs([]string{"test-node"})
-	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet-1")
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-mvp-1")
 	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 	setFlag(t, cmd.Flags(), flagOverwrite, "false")
 
@@ -211,7 +211,7 @@ func TestInitCmdWithOverwrite(t *testing.T) {
 	// First initialization
 	cmd := InitCmd(app.ModuleBasics, homeDir)
 	cmd.SetArgs([]string{"test-node"})
-	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-testnet-1")
+	setFlag(t, cmd.Flags(), flags.FlagChainID, "paw-mvp-1")
 	setFlag(t, cmd.Flags(), flags.FlagHome, homeDir)
 	setFlag(t, cmd.Flags(), flagOverwrite, "false")
 
@@ -554,7 +554,7 @@ func TestInitCmdChainIDValidation(t *testing.T) {
 	}{
 		{
 			name:    "valid chain ID",
-			chainID: "paw-testnet-1",
+			chainID: "paw-mvp-1",
 			wantErr: false,
 		},
 		{
@@ -676,7 +676,7 @@ func TestInitCmdPrivValidatorKeyGeneration(t *testing.T) {
 
 // TestInitCmdMultipleChains tests initializing multiple chains
 func TestInitCmdMultipleChains(t *testing.T) {
-	chains := []string{"paw-testnet-1", "paw-testnet-2", "paw-mainnet"}
+	chains := []string{"paw-mvp-1", "paw-testnet-2", "paw-mainnet"}
 
 	for i, chainID := range chains {
 		homeDir := t.TempDir()

@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-paw-testnet-1}"
+PROJECT_ID="${PROJECT_ID:-paw-mvp-1}"
 ZONE="us-central1-a"
 NODES=("paw-testnode-1" "paw-testnode-2" "paw-testnode-3")
 

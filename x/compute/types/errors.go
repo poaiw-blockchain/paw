@@ -19,11 +19,11 @@ var (
 	ErrInvalidProof    = sdkerrors.Register(ModuleName, 5, "invalid verification proof")
 
 	// Provider errors
-	ErrProviderNotFound   = sdkerrors.Register(ModuleName, 10, "provider not found")
-	ErrProviderNotActive  = sdkerrors.Register(ModuleName, 11, "provider not active")
-	ErrProviderOverloaded = sdkerrors.Register(ModuleName, 12, "provider overloaded")
-	ErrInsufficientStake  = sdkerrors.Register(ModuleName, 13, "insufficient provider stake")
-	ErrProviderSlashed    = sdkerrors.Register(ModuleName, 14, "provider has been slashed")
+	ErrProviderNotFound    = sdkerrors.Register(ModuleName, 10, "provider not found")
+	ErrProviderNotActive   = sdkerrors.Register(ModuleName, 11, "provider not active")
+	ErrProviderOverloaded  = sdkerrors.Register(ModuleName, 12, "provider overloaded")
+	ErrInsufficientStake   = sdkerrors.Register(ModuleName, 13, "insufficient provider stake")
+	ErrProviderSlashed     = sdkerrors.Register(ModuleName, 14, "provider has been slashed")
 	ErrMaxProvidersReached = sdkerrors.Register(ModuleName, 15, "maximum provider limit reached")
 
 	// Request lifecycle errors
@@ -97,8 +97,8 @@ var (
 	ErrCacheStale      = sdkerrors.Register(ModuleName, 103, "cache is stale")
 
 	// Appeal errors
-	ErrAppealNotFound          = sdkerrors.Register(ModuleName, 110, "appeal not found")
-	ErrAppealNotAcceptingVotes = sdkerrors.Register(ModuleName, 111, "appeal not accepting votes")
+	ErrAppealNotFound            = sdkerrors.Register(ModuleName, 110, "appeal not found")
+	ErrAppealNotAcceptingVotes   = sdkerrors.Register(ModuleName, 111, "appeal not accepting votes")
 	ErrInsufficientAppealDeposit = sdkerrors.Register(ModuleName, 112, "insufficient appeal deposit")
 
 	// Dispute errors
@@ -118,11 +118,11 @@ var (
 	ErrProviderAlreadyInactive   = sdkerrors.Register(ModuleName, 126, "provider already inactive")
 
 	// Randomness errors
-	ErrCommitmentNotFound      = sdkerrors.Register(ModuleName, 130, "randomness commitment not found")
+	ErrCommitmentNotFound        = sdkerrors.Register(ModuleName, 130, "randomness commitment not found")
 	ErrCommitmentAlreadyRevealed = sdkerrors.Register(ModuleName, 131, "commitment already revealed")
-	ErrCommitmentExpired       = sdkerrors.Register(ModuleName, 132, "commitment has expired")
-	ErrRevealVerificationFailed = sdkerrors.Register(ModuleName, 133, "reveal verification failed")
-	ErrMaxParticipantsReached  = sdkerrors.Register(ModuleName, 134, "maximum participants reached")
+	ErrCommitmentExpired         = sdkerrors.Register(ModuleName, 132, "commitment has expired")
+	ErrRevealVerificationFailed  = sdkerrors.Register(ModuleName, 133, "reveal verification failed")
+	ErrMaxParticipantsReached    = sdkerrors.Register(ModuleName, 134, "maximum participants reached")
 
 	// Generic operation errors
 	ErrOperationFailed = sdkerrors.Register(ModuleName, 140, "operation failed")
@@ -151,10 +151,10 @@ var RecoverySuggestions = map[error]string{
 	ErrInvalidResult:   "Verify result data format and hash. Check that result matches request specification. Ensure provider signature is valid.",
 	ErrInvalidProof:    "Validate proof structure: signature (64 bytes), public key (32 bytes), merkle root (32 bytes). Ensure nonce is unique and timestamp is recent.",
 
-	ErrProviderNotFound:   "Register as a provider using MsgRegisterProvider. Ensure stake amount meets minimum requirement (query params). Verify provider address is correct.",
-	ErrProviderNotActive:  "Provider must activate registration. Check if provider was deactivated due to poor performance. Verify sufficient stake and no active slashing.",
-	ErrProviderOverloaded: "Provider is at capacity. Wait for current jobs to complete or select a different provider. Check provider's available resources.",
-	ErrInsufficientStake:  "Increase provider stake using MsgStakeProvider. Minimum stake requirement can be queried from params. Ensure tokens are available in account.",
+	ErrProviderNotFound:    "Register as a provider using MsgRegisterProvider. Ensure stake amount meets minimum requirement (query params). Verify provider address is correct.",
+	ErrProviderNotActive:   "Provider must activate registration. Check if provider was deactivated due to poor performance. Verify sufficient stake and no active slashing.",
+	ErrProviderOverloaded:  "Provider is at capacity. Wait for current jobs to complete or select a different provider. Check provider's available resources.",
+	ErrInsufficientStake:   "Increase provider stake using MsgStakeProvider. Minimum stake requirement can be queried from params. Ensure tokens are available in account.",
 	ErrProviderSlashed:     "Provider was slashed for misbehavior. Cannot submit new requests until penalty period expires. Check slashing status and wait for recovery period.",
 	ErrMaxProvidersReached: "Maximum provider registration limit has been reached. The network limits providers to prevent state bloat. Wait for existing providers to deactivate or contact governance.",
 

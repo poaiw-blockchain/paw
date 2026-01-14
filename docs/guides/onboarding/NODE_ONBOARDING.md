@@ -3,25 +3,25 @@
 Purpose-built instructions for joining PAW as either a lightweight state-sync node or a full archival node. These steps cover artifact retrieval, pruning/state-sync settings, metrics, and faucet readiness with one-line bootstrap commands.
 
 ## Quick Start (One-Liners)
-- **Full node (testnet)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode full --chain-id paw-testnet-1 --start`
-- **Light node (testnet, wallet RPC)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode light --chain-id paw-testnet-1 --rpc <rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md> --start`
-- Swap `paw-testnet-1` with `paw-mainnet-1` when mainnet artifacts are published.
+- **Full node (testnet)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode full --chain-id paw-mvp-1 --start`
+- **Light node (testnet, wallet RPC)**: `curl -sL https://raw.githubusercontent.com/paw-chain/paw/main/scripts/onboarding/node-onboard.sh | bash -s -- --mode light --chain-id paw-mvp-1 --rpc <rpc-endpoint-from-docs/TESTNET_QUICK_REFERENCE.md> --start`
+- Swap `paw-mvp-1` with `paw-mainnet-1` when mainnet artifacts are published.
 
 ## Artifact Sources
-- Manifest: `networks/paw-testnet-1/paw-testnet-1-manifest.json` (chain_id, checksums, peers, endpoints).
-- Genesis: `networks/paw-testnet-1/genesis.json` (verify against `genesis.sha256`).
-- Peers: `networks/paw-testnet-1/peers.txt` - **Connect to sentry node** (`ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`), NOT directly to validators.
-- Bundle: `networks/paw-testnet-1/paw-testnet-1-artifacts.tar.gz` (checksum in `paw-testnet-1-artifacts.sha256`).
+- Manifest: `networks/paw-mvp-1/paw-mvp-1-manifest.json` (chain_id, checksums, peers, endpoints).
+- Genesis: `networks/paw-mvp-1/genesis.json` (verify against `genesis.sha256`).
+- Peers: `networks/paw-mvp-1/peers.txt` - **Connect to sentry node** (`ce6afbda0a4443139ad14d2b856cca586161f00d@139.99.149.160:12056`), NOT directly to validators.
+- Bundle: `networks/paw-mvp-1/paw-mvp-1-artifacts.tar.gz` (checksum in `paw-mvp-1-artifacts.sha256`).
 
 **Important:** External nodes should connect to the sentry node for DDoS protection. Direct validator connections are for internal use only.
 
 ## Manual Install (Full or Light)
 1. **Install binary**: `GO111MODULE=on go install github.com/paw-chain/paw/cmd/pawd@main` (or `make build && mv build/pawd ~/go/bin/`).
-2. **Init home**: `pawd init <moniker> --chain-id paw-testnet-1 --home ~/.paw`.
+2. **Init home**: `pawd init <moniker> --chain-id paw-mvp-1 --home ~/.paw`.
 3. **Fetch artifacts**:
    ```bash
-   BASE=networks/paw-testnet-1
-   cp $BASE/paw-testnet-1-manifest.json /tmp/paw-manifest.json
+   BASE=networks/paw-mvp-1
+   cp $BASE/paw-mvp-1-manifest.json /tmp/paw-manifest.json
    cp $BASE/genesis.json ~/.paw/config/genesis.json
    sha256sum ~/.paw/config/genesis.json && cat $BASE/genesis.sha256
    cp $BASE/peers.txt ~/.paw/config/peers.txt

@@ -50,7 +50,7 @@ async def main():
     config = ChainConfig(
         rpc_endpoint="http://localhost:26657",
         rest_endpoint="http://localhost:1317",
-        chain_id="paw-testnet-1"
+        chain_id="paw-mvp-1"
     )
 
     async with PawClient(config) as client:

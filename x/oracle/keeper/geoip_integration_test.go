@@ -62,9 +62,9 @@ func TestGeoIPManagerCacheIntegration(t *testing.T) {
 
 		require.Equal(t, 0, manager.GetCacheSize())
 		require.Equal(t, time.Duration(0), manager.GetCacheTTL())
-		manager.SetCacheTTL(1 * time.Hour)  // Should not panic
-		manager.SetCacheMaxEntries(100)     // Should not panic
-		manager.ClearCache()                // Should not panic
+		manager.SetCacheTTL(1 * time.Hour) // Should not panic
+		manager.SetCacheMaxEntries(100)    // Should not panic
+		manager.ClearCache()               // Should not panic
 		require.Equal(t, 0, manager.PruneCacheExpired())
 	})
 }

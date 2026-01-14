@@ -204,15 +204,15 @@ pawd version
 
 ```bash
 # Set chain ID (testnet)
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 
 # Initialize node with unique moniker
 pawd init "<your-validator-name>" --chain-id $CHAIN_ID
 
 # Download genesis file (testnet)
-curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
+curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json \
   > ~/.paw/config/genesis.json
-curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.sha256 \
+curl https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.sha256 \
   > /tmp/genesis.sha256
 cd ~/.paw/config && sha256sum -c /tmp/genesis.sha256
 

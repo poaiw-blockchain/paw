@@ -32,4 +32,4 @@ Security
 Operations
 - API reference (OpenAPI and Nginx sample): `api/`
 - Upgrades: `upgrades/` (templates and process)
-- Genesis artifacts: see `networks/paw-testnet-1/` for current testnet genesis, checksums, and peers
+- Genesis artifacts: see `networks/paw-mvp-1/` for current testnet genesis, checksums, and peers

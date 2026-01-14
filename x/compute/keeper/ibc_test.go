@@ -23,8 +23,8 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
@@ -353,6 +353,7 @@ func TestOnRecvPacketJobResultVerificationFailureStillAcknowledges(t *testing.T)
 // Compute Module Tests (from ibc_compute_test.go)
 // =============================================================================
 
+// nolint:unused // Reserved for future IBC channel authorization tests
 func authorizeComputeChannel(t testing.TB, k *Keeper, ctx sdk.Context, channelID string) {
 	t.Helper()
 	require.NoError(t, ibcutil.AuthorizeChannel(ctx, k, types.PortID, channelID))

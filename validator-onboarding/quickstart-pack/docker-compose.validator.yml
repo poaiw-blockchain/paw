@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: paw-validator
     environment:
-      - CHAIN_ID=paw-testnet-1
+      - CHAIN_ID=paw-mvp-1
     command: ["pawd", "start", "--home", "/root/.paw"]
     volumes:
       - ${HOME}/.paw:/root/.paw

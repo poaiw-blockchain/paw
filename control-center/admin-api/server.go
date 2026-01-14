@@ -47,19 +47,19 @@ var (
 
 // Server represents the Admin API server
 type Server struct {
-	config          *Config
-	router          *gin.Engine
-	server          *http.Server
-	authService     *middleware.AuthService
-	rateLimiter     *middleware.RateLimiter
-	rbacMiddleware  *middleware.RBACMiddleware
-	paramsHandler   *handlers.ParamsHandler
-	circuitHandler  *handlers.CircuitBreakerHandler
+	config           *Config
+	router           *gin.Engine
+	server           *http.Server
+	authService      *middleware.AuthService
+	rateLimiter      *middleware.RateLimiter
+	rbacMiddleware   *middleware.RBACMiddleware
+	paramsHandler    *handlers.ParamsHandler
+	circuitHandler   *handlers.CircuitBreakerHandler
 	emergencyHandler *handlers.EmergencyHandler
-	upgradeHandler  *handlers.UpgradeHandler
-	auditService    AuditService
-	rpcClient       RPCClient
-	storage         Storage
+	upgradeHandler   *handlers.UpgradeHandler
+	auditService     AuditService
+	rpcClient        RPCClient
+	storage          Storage
 }
 
 // Config holds the server configuration

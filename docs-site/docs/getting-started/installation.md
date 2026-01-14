@@ -103,7 +103,7 @@ docker run -d \
 
 ```bash
 # Initialize node with a moniker (your node's name)
-pawd init my-node --chain-id paw-testnet-1
+pawd init my-node --chain-id paw-mvp-1
 
 # This creates the default home directory at ~/.paw
 ```

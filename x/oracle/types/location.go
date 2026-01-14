@@ -94,11 +94,11 @@ func (lp *LocationProof) ValidateBasic() error {
 // LocationEvidence represents evidence of validator location over time
 // This helps detect if validators are spoofing location by tracking history
 type LocationEvidence struct {
-	ValidatorAddr string              `json:"validator_addr"`
-	Proofs        []*LocationProof    `json:"proofs"`
-	VerifiedAt    time.Time           `json:"verified_at"`
-	VerifiedBy    string              `json:"verified_by"` // Optional: external verifier
-	Metadata      map[string]string   `json:"metadata,omitempty"`
+	ValidatorAddr string            `json:"validator_addr"`
+	Proofs        []*LocationProof  `json:"proofs"`
+	VerifiedAt    time.Time         `json:"verified_at"`
+	VerifiedBy    string            `json:"verified_by"` // Optional: external verifier
+	Metadata      map[string]string `json:"metadata,omitempty"`
 }
 
 // AddProof adds a location proof to the evidence
@@ -187,10 +187,10 @@ func (le *LocationEvidence) DetectLocationJumps(threshold int, period time.Durat
 
 // GeographicDistribution represents the distribution of validators across regions
 type GeographicDistribution struct {
-	RegionCounts  map[string]int `json:"region_counts"`
-	TotalCount    int            `json:"total_count"`
-	UniqueRegions int            `json:"unique_regions"`
-	DiversityScore float64       `json:"diversity_score"` // 0-1, higher is better
+	RegionCounts   map[string]int `json:"region_counts"`
+	TotalCount     int            `json:"total_count"`
+	UniqueRegions  int            `json:"unique_regions"`
+	DiversityScore float64        `json:"diversity_score"` // 0-1, higher is better
 }
 
 // NewGeographicDistribution creates a new geographic distribution tracker

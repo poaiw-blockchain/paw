@@ -66,7 +66,7 @@ func (c *SimpleNodeChecker) CheckSync() (syncing bool, height int64, err error) 
 	var status struct {
 		Result struct {
 			SyncInfo struct {
-				CatchingUp     bool   `json:"catching_up"`
+				CatchingUp        bool   `json:"catching_up"`
 				LatestBlockHeight string `json:"latest_block_height"`
 			} `json:"sync_info"`
 		} `json:"result"`

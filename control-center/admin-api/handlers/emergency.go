@@ -95,9 +95,9 @@ func (h *EmergencyHandler) ResumeAll(c *gin.Context) {
 		"emergency/resume-all",
 		c.ClientIP(),
 		map[string]interface{}{
-			"reason":   req.Reason,
-			"modules":  modules,
-			"results":  results,
+			"reason":    req.Reason,
+			"modules":   modules,
+			"results":   results,
 			"tx_hashes": txHashes,
 		},
 		true,
@@ -109,8 +109,8 @@ func (h *EmergencyHandler) ResumeAll(c *gin.Context) {
 		Message:   "All modules resume requested",
 		Timestamp: time.Now(),
 		Data: map[string]interface{}{
-			"modules":  modules,
-			"results":  results,
+			"modules":   modules,
+			"results":   results,
 			"tx_hashes": txHashes,
 		},
 	})

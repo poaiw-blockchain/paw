@@ -59,7 +59,7 @@ Full IBC support enables cross-chain compute requests, token transfers, and data
 
 ## Development Status
 
-PAW testnet (paw-testnet-1) is live with core DEX, compute, and oracle modules deployed. IBC channel establishment and ZK proof integration are in progress. Security audits are planned before mainnet.
+PAW testnet (paw-mvp-1) is live with core DEX, compute, and oracle modules deployed. IBC channel establishment and ZK proof integration are in progress. Security audits are planned before mainnet.
 
 ---
 

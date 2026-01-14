@@ -690,11 +690,11 @@ func TestPoolUpdatePacketData_ValidateBasic(t *testing.T) {
 
 func TestParsePacketData(t *testing.T) {
 	tests := []struct {
-		name        string
-		data        []byte
-		wantType    string
-		wantErr     bool
-		errMsg      string
+		name     string
+		data     []byte
+		wantType string
+		wantErr  bool
+		errMsg   string
 	}{
 		{
 			name:     "query pools packet",

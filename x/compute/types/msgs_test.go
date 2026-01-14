@@ -1558,7 +1558,6 @@ func TestMsgRegisterSigningKeyResponse_ProtoMethods(t *testing.T) {
 	resp.ProtoMessage()
 }
 
-
 // ============================================================================
 // MsgUpdateProvider Additional Tests
 // ============================================================================

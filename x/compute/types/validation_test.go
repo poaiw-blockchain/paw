@@ -525,7 +525,7 @@ func TestValidateEnvVars(t *testing.T) {
 		{
 			name: "valid environment variables",
 			envVars: map[string]string{
-				"ENV": "production",
+				"ENV":   "production",
 				"DEBUG": "false",
 			},
 			wantErr: false,
@@ -536,7 +536,7 @@ func TestValidateEnvVars(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "too many env vars",
+			name: "too many env vars",
 			envVars: func() map[string]string {
 				m := make(map[string]string)
 				for i := 0; i < MaxEnvVarsCount+1; i++ {
@@ -732,8 +732,8 @@ func BenchmarkValidateOutputHash(b *testing.B) {
 
 func BenchmarkValidateEnvVars(b *testing.B) {
 	envVars := map[string]string{
-		"ENV":   "production",
-		"DEBUG": "false",
+		"ENV":       "production",
+		"DEBUG":     "false",
 		"LOG_LEVEL": "info",
 	}
 	b.ResetTimer()

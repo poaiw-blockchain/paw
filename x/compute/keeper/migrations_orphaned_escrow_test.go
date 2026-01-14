@@ -245,7 +245,7 @@ func TestMigration_MixedOrphanedAndValidTimeoutIndexes(t *testing.T) {
 
 	// Run invariant - should detect orphaned indexes
 	invariant := EscrowTimeoutIndexInvariant(*k)
-	msg, broken := invariant(sdkCtx)
+	_, broken := invariant(sdkCtx)
 	require.True(t, broken, "invariant should be broken due to orphaned indexes")
 
 	// Clean up only orphaned indexes
@@ -271,7 +271,7 @@ func TestMigration_MixedOrphanedAndValidTimeoutIndexes(t *testing.T) {
 	}
 
 	// Verify invariant now passes
-	msg, broken = invariant(sdkCtx)
+	msg, broken := invariant(sdkCtx)
 	require.False(t, broken, "invariant should pass after cleaning orphaned indexes: %s", msg)
 }
 

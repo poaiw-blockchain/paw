@@ -46,7 +46,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_consensus_height{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_consensus_height{chain_id=\"paw-mvp-1\"}",
           "refId": "A"
         }
       ],
@@ -91,7 +91,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_consensus_validators{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_consensus_validators{chain_id=\"paw-mvp-1\"}",
           "refId": "A"
         }
       ],
@@ -136,7 +136,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_p2p_peers{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_p2p_peers{chain_id=\"paw-mvp-1\"}",
           "refId": "A"
         }
       ],
@@ -183,7 +183,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_mempool_size{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_mempool_size{chain_id=\"paw-mvp-1\"}",
           "refId": "A"
         }
       ],
@@ -259,7 +259,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_consensus_height{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_consensus_height{chain_id=\"paw-mvp-1\"}",
           "legendFormat": "Block Height",
           "refId": "A"
         }
@@ -336,7 +336,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "rate(cometbft_consensus_block_interval_seconds_sum{chain_id=\"paw-testnet-1\"}[5m]) / rate(cometbft_consensus_block_interval_seconds_count{chain_id=\"paw-testnet-1\"}[5m])",
+          "expr": "rate(cometbft_consensus_block_interval_seconds_sum{chain_id=\"paw-mvp-1\"}[5m]) / rate(cometbft_consensus_block_interval_seconds_count{chain_id=\"paw-mvp-1\"}[5m])",
           "legendFormat": "Block Time",
           "refId": "A"
         }
@@ -413,7 +413,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_consensus_rounds{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_consensus_rounds{chain_id=\"paw-mvp-1\"}",
           "legendFormat": "Consensus Rounds",
           "refId": "A"
         }
@@ -490,12 +490,12 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "cometbft_mempool_size{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_mempool_size{chain_id=\"paw-mvp-1\"}",
           "legendFormat": "Mempool Size",
           "refId": "A"
         },
         {
-          "expr": "cometbft_mempool_failed_txs{chain_id=\"paw-testnet-1\"}",
+          "expr": "cometbft_mempool_failed_txs{chain_id=\"paw-mvp-1\"}",
           "legendFormat": "Failed Txs",
           "refId": "B"
         }

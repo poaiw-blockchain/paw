@@ -10,7 +10,7 @@ services:
       - "11080:11080"
     environment:
       - RPC_URL=${RPC_URL:-http://host.docker.internal:26657}
-      - CHAIN_ID=${CHAIN_ID:-paw-testnet-1}
+      - CHAIN_ID=${CHAIN_ID:-paw-mvp-1}
       - FLASK_ENV=production
     restart: unless-stopped
     healthcheck:

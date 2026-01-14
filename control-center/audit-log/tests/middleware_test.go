@@ -123,71 +123,71 @@ func TestAuditLogger_DetermineEventType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		method        string
-		path          string
-		expectedEvent types.EventType
+		name           string
+		method         string
+		path           string
+		expectedEvent  types.EventType
 		expectedAction string
 	}{
 		{
-			name:          "Login",
-			method:        "POST",
-			path:          "/api/v1/auth/login",
-			expectedEvent: types.EventTypeLogin,
+			name:           "Login",
+			method:         "POST",
+			path:           "/api/v1/auth/login",
+			expectedEvent:  types.EventTypeLogin,
 			expectedAction: "User login",
 		},
 		{
-			name:          "Logout",
-			method:        "POST",
-			path:          "/api/v1/auth/logout",
-			expectedEvent: types.EventTypeLogout,
+			name:           "Logout",
+			method:         "POST",
+			path:           "/api/v1/auth/logout",
+			expectedEvent:  types.EventTypeLogout,
 			expectedAction: "User logout",
 		},
 		{
-			name:          "Update params",
-			method:        "PUT",
-			path:          "/api/v1/admin/params",
-			expectedEvent: types.EventTypeParamUpdate,
+			name:           "Update params",
+			method:         "PUT",
+			path:           "/api/v1/admin/params",
+			expectedEvent:  types.EventTypeParamUpdate,
 			expectedAction: "Update module parameters",
 		},
 		{
-			name:          "Circuit pause",
-			method:        "POST",
-			path:          "/api/v1/admin/circuit/pause",
-			expectedEvent: types.EventTypeCircuitPause,
+			name:           "Circuit pause",
+			method:         "POST",
+			path:           "/api/v1/admin/circuit/pause",
+			expectedEvent:  types.EventTypeCircuitPause,
 			expectedAction: "Pause circuit breaker",
 		},
 		{
-			name:          "Emergency pause",
-			method:        "POST",
-			path:          "/api/v1/admin/emergency/pause",
-			expectedEvent: types.EventTypeEmergencyPause,
+			name:           "Emergency pause",
+			method:         "POST",
+			path:           "/api/v1/admin/emergency/pause",
+			expectedEvent:  types.EventTypeEmergencyPause,
 			expectedAction: "Emergency pause",
 		},
 		{
-			name:          "Create alert",
-			method:        "POST",
-			path:          "/api/v1/admin/alerts",
-			expectedEvent: types.EventTypeAlertRuleCreated,
+			name:           "Create alert",
+			method:         "POST",
+			path:           "/api/v1/admin/alerts",
+			expectedEvent:  types.EventTypeAlertRuleCreated,
 			expectedAction: "Create alert rule",
 		},
 	}
 
-		stor, cleanup := setupTestStorage(t)
-		defer cleanup()
+	stor, cleanup := setupTestStorage(t)
+	defer cleanup()
 
-		logger := middleware.NewAuditLogger(stor)
-		_ = logger
+	logger := middleware.NewAuditLogger(stor)
+	_ = logger
 
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				req := httptest.NewRequest(tt.method, tt.path, nil)
-				_ = req
-				// Using reflection to call private method would require making it public
-				// For now, we test through the middleware
-			})
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			_ = req
+			// Using reflection to call private method would require making it public
+			// For now, we test through the middleware
+		})
 	}
+}
 
 func TestAuditLogger_HashChain(t *testing.T) {
 	// Note: Cannot run in parallel - hash chain depends on ordered inserts

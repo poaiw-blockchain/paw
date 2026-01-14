@@ -5,8 +5,8 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/paw-chain/paw/x/dex/keeper"
 	keepertest "github.com/paw-chain/paw/testutil/keeper"
+	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
 )
 

@@ -19,9 +19,8 @@ func TestVolatilityCalculationCap(t *testing.T) {
 	baseHeight := ctx.BlockHeight()
 	baseTime := ctx.BlockTime().Unix()
 
-	// Create 1500 snapshots - more than the 1000 cap
+	// Create 1500 snapshots - more than the 1000 cap (maxSnapshotsForVolatility in aggregation.go)
 	const numSnapshots = 1500
-	const maxSnapshotsForVolatility = 1000 // Must match constant in aggregation.go
 
 	for i := 0; i < numSnapshots; i++ {
 		snapshot := types.PriceSnapshot{

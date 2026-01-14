@@ -3,6 +3,9 @@ package dex
 import (
 	"fmt"
 
+	"strconv"
+	"strings"
+
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -12,8 +15,6 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
-	"strconv"
-	"strings"
 
 	"github.com/paw-chain/paw/x/dex/keeper"
 	"github.com/paw-chain/paw/x/dex/types"
@@ -27,12 +28,12 @@ var (
 // IBCModule implements the ICS26 interface for the DEX module.
 // This enables cross-chain liquidity aggregation and atomic swaps.
 type IBCModule struct {
-	keeper            keeper.Keeper
-	cdc               codec.Codec
-	channelValidator  *sharedibc.ChannelOpenValidator
-	packetValidator   *sharedibc.PacketValidator
-	ackHelper         *sharedibc.AcknowledgementHelper
-	eventEmitter      *sharedibc.EventEmitter
+	keeper           keeper.Keeper
+	cdc              codec.Codec
+	channelValidator *sharedibc.ChannelOpenValidator
+	packetValidator  *sharedibc.PacketValidator
+	ackHelper        *sharedibc.AcknowledgementHelper
+	eventEmitter     *sharedibc.EventEmitter
 }
 
 // NewIBCModule creates a new IBCModule given the keeper and codec

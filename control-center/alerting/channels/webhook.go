@@ -166,15 +166,15 @@ func (w *WebhookChannel) buildSlackPayload(alert *alerting.Alert) map[string]int
 	}
 
 	return map[string]interface{}{
-		"username": "PAW Alert Manager",
+		"username":   "PAW Alert Manager",
 		"icon_emoji": emoji,
 		"attachments": []map[string]interface{}{
 			{
-				"color":      color,
-				"title":      fmt.Sprintf("%s Alert: %s", alert.Severity, alert.RuleName),
-				"text":       alert.Message,
-				"footer":     string(alert.Source),
-				"ts":         alert.CreatedAt.Unix(),
+				"color":  color,
+				"title":  fmt.Sprintf("%s Alert: %s", alert.Severity, alert.RuleName),
+				"text":   alert.Message,
+				"footer": string(alert.Source),
+				"ts":     alert.CreatedAt.Unix(),
 				"fields": []map[string]interface{}{
 					{
 						"title": "Severity",
@@ -328,10 +328,10 @@ func (w *WebhookChannel) buildBatchPayload(alerts []*alerting.Alert, channel *al
 	}
 
 	return map[string]interface{}{
-		"batch":      true,
+		"batch":       true,
 		"alert_count": len(alerts),
-		"alerts":     alertPayloads,
-		"sent_at":    time.Now().Format(time.RFC3339),
+		"alerts":      alertPayloads,
+		"sent_at":     time.Now().Format(time.RFC3339),
 	}
 }
 

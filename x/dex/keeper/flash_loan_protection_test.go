@@ -131,13 +131,14 @@ func TestFlashLoanProtection_AddAndRemoveSameBlock(t *testing.T) {
 	ctx = ctx.WithBlockHeight(200)
 
 	// Attacker adds liquidity
-	sharesAdded, err := k.AddLiquidity(ctx, provider, poolID,
+	sharesAdded, addErr := k.AddLiquidity(ctx, provider, poolID,
 		math.NewInt(100_000), math.NewInt(100_000))
+	require.NoError(t, addErr)
 	require.True(t, sharesAdded.GT(math.ZeroInt()))
 
 	// SAME BLOCK: Attacker tries to remove liquidity immediately
 	// This should FAIL due to flash loan protection
-	_, _, err = k.RemoveLiquidity(ctx, provider, poolID, sharesAdded)
+	_, _, err := k.RemoveLiquidity(ctx, provider, poolID, sharesAdded)
 	require.Error(t, err)
 	require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 	require.Contains(t, err.Error(), "must wait")
@@ -409,9 +410,10 @@ func TestFlashLoanProtection_EdgeCases(t *testing.T) {
 		require.Error(t, err)
 		require.ErrorIs(t, err, types.ErrFlashLoanDetected)
 
-		// Try at block 1 - should succeed
-		ctx = ctx.WithBlockHeight(1)
+		// Try well past the flash loan protection window (100+ blocks)
+		ctx = ctx.WithBlockHeight(101)
 		err = k.CheckFlashLoanProtection(ctx, poolID, provider)
+		require.NoError(t, err)
 	})
 
 	t.Run("very large block heights", func(t *testing.T) {
@@ -429,9 +431,10 @@ func TestFlashLoanProtection_EdgeCases(t *testing.T) {
 		err := k.CheckFlashLoanProtection(ctx, poolID, provider)
 		require.Error(t, err)
 
-		// Try one block later - should succeed
-		ctx = ctx.WithBlockHeight(largeBlock + 1)
+		// Try well past the flash loan protection window (100+ blocks)
+		ctx = ctx.WithBlockHeight(largeBlock + 101)
 		err = k.CheckFlashLoanProtection(ctx, poolID, provider)
+		require.NoError(t, err)
 	})
 
 	t.Run("different pools same provider", func(t *testing.T) {

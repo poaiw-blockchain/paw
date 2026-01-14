@@ -907,7 +907,7 @@ func TestPrice_LargeValues(t *testing.T) {
 	largePrice := Price{
 		Asset:         "LARGE",
 		Price:         math.LegacyNewDec(1e18), // 10^18
-		BlockHeight:   int64(1e12),              // Very large block height
+		BlockHeight:   int64(1e12),             // Very large block height
 		BlockTime:     int64(1e12),
 		NumValidators: 1000,
 	}

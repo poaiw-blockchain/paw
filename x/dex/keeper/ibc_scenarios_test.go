@@ -211,33 +211,33 @@ func TestIBCScenario_ErrorRecovery_MalformedPackets(t *testing.T) {
 	ctx = ctx.WithEventManager(sdk.NewEventManager())
 
 	testCases := []struct {
-		name       string
-		packetData []byte
+		name        string
+		packetData  []byte
 		errContains string
 	}{
 		{
-			name:       "invalid JSON",
-			packetData: []byte(`{not valid json`),
+			name:        "invalid JSON",
+			packetData:  []byte(`{not valid json`),
 			errContains: "ABCI code", // IBC-go wraps errors with ABCI code format
 		},
 		{
-			name:       "empty packet",
-			packetData: []byte(``),
+			name:        "empty packet",
+			packetData:  []byte(``),
 			errContains: "ABCI code", // IBC-go wraps errors with ABCI code format
 		},
 		{
-			name:       "missing type field",
-			packetData: []byte(`{"nonce": 1, "timestamp": 1234567890}`),
+			name:        "missing type field",
+			packetData:  []byte(`{"nonce": 1, "timestamp": 1234567890}`),
 			errContains: "ABCI code", // IBC-go wraps errors with ABCI code format
 		},
 		{
-			name:       "invalid packet type",
-			packetData: []byte(`{"type":"invalid_type","nonce":1}`),
+			name:        "invalid packet type",
+			packetData:  []byte(`{"type":"invalid_type","nonce":1}`),
 			errContains: "ABCI code", // IBC-go wraps errors with ABCI code format
 		},
 		{
-			name:       "swap with invalid pool ID format",
-			packetData: []byte(`{"type":"execute_swap","nonce":1,"timestamp":1234567890,"pool_id":"","token_in":"upaw","token_out":"uusdt","amount_in":"1000","min_amount_out":"0","sender":"paw1addr","receiver":"paw1addr"}`),
+			name:        "swap with invalid pool ID format",
+			packetData:  []byte(`{"type":"execute_swap","nonce":1,"timestamp":1234567890,"pool_id":"","token_in":"upaw","token_out":"uusdt","amount_in":"1000","min_amount_out":"0","sender":"paw1addr","receiver":"paw1addr"}`),
 			errContains: "", // Should fail validation
 		},
 	}
@@ -921,6 +921,7 @@ func TestIBCScenario_PendingOperationsTracking(t *testing.T) {
 // Helper: Create pending operation key for direct store access
 // ---------------------------------------------------------------------------
 
+// nolint:unused // Reserved for pending operation store access tests
 func pendingOperationKey(channelID string, sequence uint64) []byte {
 	prefix := []byte(fmt.Sprintf("pending_op/%s/", channelID))
 	seq := make([]byte, 8)

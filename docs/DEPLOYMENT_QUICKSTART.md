@@ -344,7 +344,7 @@ For rapid development iteration, use the provided script:
 
 ```bash
 # Testnet configuration
-CHAIN_ID="paw-testnet-1"
+CHAIN_ID="paw-mvp-1"
 MONIKER="my-testnet-node"
 
 # Initialize with testnet chain ID
@@ -355,7 +355,7 @@ MONIKER="my-testnet-node"
 
 ```bash
 # Download verified genesis file from official source
-wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-testnet-1/genesis.json \
+wget https://raw.githubusercontent.com/paw-chain/paw/main/networks/paw-mvp-1/genesis.json \
   -O ~/.paw/config/genesis.json
 
 # Verify genesis checksum (published on GitHub)
@@ -388,7 +388,7 @@ sed -i "s/^seeds = .*/seeds = \"$SEEDS\"/" ~/.paw/config/config.toml
 
 **Finding Peers:**
 - Official documentation: https://docs.paw.network/testnet/peers
-- GitHub: https://github.com/paw-chain/paw/tree/main/networks/paw-testnet-1
+- GitHub: https://github.com/paw-chain/paw/tree/main/networks/paw-mvp-1
 - Community Discord: #testnet-peers channel
 
 #### 4. Configure State Sync (Recommended)
@@ -547,7 +547,7 @@ Configure node behavior via environment variables:
 export PAW_HOME="$HOME/.paw"
 
 # Chain ID
-export PAW_CHAIN_ID="paw-testnet-1"
+export PAW_CHAIN_ID="paw-mvp-1"
 
 # Custom ports (useful for running multiple nodes)
 export PAW_RPC_PORT="26657"

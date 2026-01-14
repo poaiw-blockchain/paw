@@ -343,7 +343,7 @@ func (ndb *nodeDB) getLatestVersion() (int64, error) {
 1. **Create a chain with fast nodes disabled**:
    ```bash
    cd /home/hudson/blockchain-projects/paw
-   pawd init --chain-id paw-testnet-1
+   pawd init --chain-id paw-mvp-1
    pawd add-genesis-account paw1... 1000000upaw
    pawd gentx validator 100000upaw
    pawd collect-gentxs

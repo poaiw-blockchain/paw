@@ -7,6 +7,12 @@ package types
 import (
 	binary "encoding/binary"
 	fmt "fmt"
+	io "io"
+	math "math"
+	reflect "reflect"
+	sort "sort"
+	sync "sync"
+
 	_ "github.com/cosmos/cosmos-proto"
 	runtime "github.com/cosmos/cosmos-proto/runtime"
 	_ "github.com/cosmos/gogoproto/gogoproto"
@@ -14,11 +20,6 @@ import (
 	protoiface "google.golang.org/protobuf/runtime/protoiface"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	io "io"
-	math "math"
-	reflect "reflect"
-	sort "sort"
-	sync "sync"
 )
 
 var (

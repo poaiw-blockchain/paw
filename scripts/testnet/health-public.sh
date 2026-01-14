@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Public endpoint health checks for PAW testnet.
-# - Uses networks/paw-testnet-1/chain.json and paw-testnet-1-manifest.json
+# - Uses networks/paw-mvp-1/chain.json and paw-mvp-1-manifest.json
 # - Checks RPC/REST/gRPC endpoints plus explorer/faucet/status URLs
 
 set -euo pipefail
@@ -8,8 +8,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-MANIFEST_DEFAULT="${REPO_ROOT}/networks/paw-testnet-1/paw-testnet-1-manifest.json"
-CHAIN_JSON_DEFAULT="${REPO_ROOT}/networks/paw-testnet-1/chain.json"
+MANIFEST_DEFAULT="${REPO_ROOT}/networks/paw-mvp-1/paw-mvp-1-manifest.json"
+CHAIN_JSON_DEFAULT="${REPO_ROOT}/networks/paw-mvp-1/chain.json"
 
 CHAIN_ID="${CHAIN_ID:-${PAW_CHAIN_ID:-}}"
 MANIFEST_PATH="${MANIFEST_PATH:-$MANIFEST_DEFAULT}"
@@ -26,9 +26,9 @@ usage() {
 Usage: health-public.sh [options]
 
 Options:
-  --chain-id <id>       Expected chain-id (default: manifest/chain.json or paw-testnet-1)
-  --manifest <path>     Manifest JSON (default: networks/paw-testnet-1/paw-testnet-1-manifest.json)
-  --chain-json <path>   Chain registry JSON (default: networks/paw-testnet-1/chain.json)
+  --chain-id <id>       Expected chain-id (default: manifest/chain.json or paw-mvp-1)
+  --manifest <path>     Manifest JSON (default: networks/paw-mvp-1/paw-mvp-1-manifest.json)
+  --chain-json <path>   Chain registry JSON (default: networks/paw-mvp-1/chain.json)
   --timeout <seconds>   Curl connect timeout (default: 5)
   --extra-http <list>   Comma-separated extra HTTP endpoints to probe
   --extra-tcp <list>    Comma-separated extra host:port endpoints to probe
@@ -71,7 +71,7 @@ if [[ -z "$CHAIN_ID" ]]; then
   fi
 fi
 if [[ -z "$CHAIN_ID" ]]; then
-  CHAIN_ID="paw-testnet-1"
+  CHAIN_ID="paw-mvp-1"
 fi
 
 log() {

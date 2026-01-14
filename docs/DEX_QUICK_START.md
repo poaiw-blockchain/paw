@@ -40,7 +40,7 @@ Create a new trading pair with initial liquidity:
 ```bash
 pawd tx dex create-pool upaw 1000000000000 uusdt 2000000000000 \
   --from alice \
-  --chain-id paw-testnet-1 \
+  --chain-id paw-mvp-1 \
   --gas auto
 ```
 
@@ -57,7 +57,7 @@ pawd query dex pool-by-tokens upaw uusdt
 # Add liquidity to pool 1
 pawd tx dex add-liquidity 1 100000000 200000000 \
   --from alice \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 ```
 
 **Pro tip:** Use `add-liquidity-balanced` for automatic ratio calculation:
@@ -74,7 +74,7 @@ pawd tx dex advanced add-liquidity-balanced 1 1000000000 \
 ```bash
 pawd tx dex swap 1 upaw 1000000000 uusdt 1900000000 \
   --from alice \
-  --chain-id paw-testnet-1
+  --chain-id paw-mvp-1
 ```
 
 This swaps 1,000 PAW for at least 1,900 USDT.

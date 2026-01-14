@@ -92,11 +92,11 @@ func TestTestAddrWithSeed_String(t *testing.T) {
 
 // mockDexHooks is a mock implementation of DexHooks for testing
 type mockDexHooks struct {
-	afterSwapCalled            bool
-	afterPoolCreatedCalled     bool
+	afterSwapCalled             bool
+	afterPoolCreatedCalled      bool
 	afterLiquidityChangedCalled bool
-	circuitBreakerCalled       bool
-	shouldError                bool
+	circuitBreakerCalled        bool
+	shouldError                 bool
 }
 
 func (m *mockDexHooks) AfterSwap(ctx context.Context, poolID uint64, sender string, tokenIn, tokenOut string, amountIn, amountOut math.Int) error {

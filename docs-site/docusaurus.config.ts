@@ -179,7 +179,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} PAW Blockchain | Chain ID: paw-testnet-1 | Network: Devnet`,
+      copyright: `Copyright © ${new Date().getFullYear()} PAW Blockchain | Chain ID: paw-mvp-1 | Network: Devnet`,
     },
     prism: {
       theme: prismThemes.github,

@@ -15,18 +15,18 @@ import (
 
 // ResourceSnapshot captures resource usage at a point in time
 type ResourceSnapshot struct {
-	Timestamp      time.Time
-	GoRoutines     int
-	HeapAllocMB    float64
-	HeapSysMB      float64
-	TotalAllocMB   float64
-	NumGC          uint32
-	PauseTotalNs   uint64
-	CPUPercent     float64
-	NumCPU         int
-	StackInUseMB   float64
-	MSpanInUseMB   float64
-	MCacheInUseMB  float64
+	Timestamp     time.Time
+	GoRoutines    int
+	HeapAllocMB   float64
+	HeapSysMB     float64
+	TotalAllocMB  float64
+	NumGC         uint32
+	PauseTotalNs  uint64
+	CPUPercent    float64
+	NumCPU        int
+	StackInUseMB  float64
+	MSpanInUseMB  float64
+	MCacheInUseMB float64
 }
 
 // ResourceMonitor monitors system resources during stress tests
@@ -224,21 +224,21 @@ func (rm *ResourceMonitor) GetStats() ResourceStats {
 	count := float64(len(rm.snapshots))
 
 	return ResourceStats{
-		Duration:           last.Timestamp.Sub(first.Timestamp),
-		SampleCount:        len(rm.snapshots),
-		AvgGoroutines:      totalGoroutines / count,
-		MaxGoroutines:      maxGoroutines,
-		MinGoroutines:      minGoroutines,
-		AvgHeapMB:          totalHeap / count,
-		MaxHeapMB:          maxHeap,
-		MinHeapMB:          minHeap,
-		HeapGrowthMB:       last.HeapAllocMB - first.HeapAllocMB,
-		TotalGCCount:       last.NumGC - first.NumGC,
-		TotalGCPauseMs:     float64(last.PauseTotalNs-first.PauseTotalNs) / 1e6,
-		FinalGoroutines:    last.GoRoutines,
-		FinalHeapMB:        last.HeapAllocMB,
-		InitialGoroutines:  first.GoRoutines,
-		InitialHeapMB:      first.HeapAllocMB,
+		Duration:          last.Timestamp.Sub(first.Timestamp),
+		SampleCount:       len(rm.snapshots),
+		AvgGoroutines:     totalGoroutines / count,
+		MaxGoroutines:     maxGoroutines,
+		MinGoroutines:     minGoroutines,
+		AvgHeapMB:         totalHeap / count,
+		MaxHeapMB:         maxHeap,
+		MinHeapMB:         minHeap,
+		HeapGrowthMB:      last.HeapAllocMB - first.HeapAllocMB,
+		TotalGCCount:      last.NumGC - first.NumGC,
+		TotalGCPauseMs:    float64(last.PauseTotalNs-first.PauseTotalNs) / 1e6,
+		FinalGoroutines:   last.GoRoutines,
+		FinalHeapMB:       last.HeapAllocMB,
+		InitialGoroutines: first.GoRoutines,
+		InitialHeapMB:     first.HeapAllocMB,
 	}
 }
 
