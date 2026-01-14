@@ -19,8 +19,8 @@ jobs:
           # G104 (unhandled errors) is redundant with errcheck in golangci-lint
           # G204 (subprocess) excluded for test utilities that legitimately use exec
           # G702 excluded - cosmos/gosec incorrectly flags crypto/rand as blocklisted
-          # Exclude archive/ and testing/ directories (non-production code)
-          args: -exclude=G104,G204,G702 -exclude-dir=archive -exclude-dir=testing -fmt=json -out=gosec-results.json ./...
+          # Exclude non-production directories (archive, testing, control-center auxiliary tooling)
+          args: -exclude=G104,G204,G702 -exclude-dir=archive -exclude-dir=testing -exclude-dir=control-center -fmt=json -out=gosec-results.json ./...
         continue-on-error: true
 
       - name: Upload gosec results

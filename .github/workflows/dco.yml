@@ -21,9 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check DCO sign-off
-        uses: tisonkun/actions-dco@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        uses: KineticCafe/actions-dco@v1.1.0
 
       - name: DCO failure guidance
         if: failure()
