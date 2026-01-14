@@ -415,6 +415,7 @@ func (s *CLIIntegrationTestSuite) TestKeysAddCmd() {
 
 			cmdKeys := cmd.KeysCmd()
 			require.NotNil(s.T(), cmdKeys)
+			cmdKeys.SetContext(context.Background())
 
 			// Find the "add" subcommand
 			var addCmd *cobra.Command
@@ -425,6 +426,7 @@ func (s *CLIIntegrationTestSuite) TestKeysAddCmd() {
 				}
 			}
 			require.NotNil(s.T(), addCmd)
+			addCmd.SetContext(context.Background())
 
 			// Setup client context with keyring
 			clientCtx := s.clientCtx.WithKeyring(kr).WithHomeDir(testHomeDir)
