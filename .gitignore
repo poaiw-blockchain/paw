@@ -220,3 +220,6 @@ ESCROW_*.md
 AGENTS.md
 .wrangler/
 status-page/status-page
+
+# Archives (local backups, not for git)
+.archive/
