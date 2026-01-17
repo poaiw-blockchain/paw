@@ -5,8 +5,10 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	sdkmath "cosmossdk.io/math"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/paw-chain/paw/x/oracle/types"
 )
@@ -59,4 +61,15 @@ func (k Keeper) DetectAndFilterOutliers(ctx context.Context, asset string, price
 // Exported for testing: voting power calculation
 func (k Keeper) CalculateVotingPower(ctx context.Context, validatorPrices []types.ValidatorPrice) (int64, []types.ValidatorPrice, error) {
 	return k.calculateVotingPower(ctx, validatorPrices)
+}
+
+// Exported for testing: cached price helpers
+func (k Keeper) StoreCachedPrice(ctx sdk.Context, symbol, chainID string, price *CrossChainPriceData) {
+	k.storeCachedPrice(ctx, symbol, chainID, price)
+}
+
+func (k Keeper) ClearCachedPrice(ctx sdk.Context, symbol, chainID string) {
+	store := ctx.KVStore(k.storeKey)
+	key := []byte(fmt.Sprintf("cached_price_%s_%s", chainID, symbol))
+	store.Delete(key)
 }

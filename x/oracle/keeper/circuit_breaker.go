@@ -85,6 +85,18 @@ func (k Keeper) GetCircuitBreakerState(ctx context.Context) (bool, string, strin
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	store := sdkCtx.KVStore(k.storeKey)
 
+	// Honor recovery time from structured state and auto-heal when cooldown passed.
+	if state, err := k.getCircuitBreakerState(ctx); err == nil && state.Active {
+		if state.RecoveryTime > 0 && sdkCtx.BlockHeight() >= state.RecoveryTime {
+			state.Active = false
+			// best effort cleanup; ignore errors to preserve legacy behavior
+			_ = k.setCircuitBreakerState(ctx, state)
+			store.Delete(CircuitBreakerEnabledKey)
+			store.Delete(CircuitBreakerReasonKey)
+			store.Delete(CircuitBreakerActorKey)
+		}
+	}
+
 	enabled := store.Get(CircuitBreakerEnabledKey)
 	if enabled == nil || enabled[0] == 0 {
 		return false, "", ""

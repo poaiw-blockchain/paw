@@ -25,6 +25,7 @@ import (
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
 	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
+	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	"github.com/stretchr/testify/require"
 
@@ -34,16 +35,39 @@ import (
 
 // DexKeeper creates a test keeper for the DEX module with mock dependencies
 func DexKeeper(t testing.TB) (*keeper.Keeper, sdk.Context) {
-	k, _, ctx := buildDexKeeper(t)
+	k, _, _, ctx := buildDexKeeper(t)
 	return k, ctx
 }
 
 // DexKeeperWithBank returns the dex keeper and bank keeper for tests needing explicit funding.
 func DexKeeperWithBank(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Context) {
+	k, bk, _, ctx := buildDexKeeper(t)
+	return k, bk, ctx
+}
+
+// DexKeeperWithAccounts exposes the account keeper for specialized tests.
+func DexKeeperWithAccounts(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, authkeeper.AccountKeeper, sdk.Context) {
 	return buildDexKeeper(t)
 }
 
-func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Context) {
+// DexKeeperWithIBCMock wires a mock ChannelKeeper to enable IBC send-path tests.
+// It returns the keeper, bank keeper, mock channel keeper, and context.
+func DexKeeperWithIBCMock(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, *MockChannelKeeper, sdk.Context) {
+	k, bk, _, ctx := buildDexKeeper(t)
+	mockChan := &MockChannelKeeper{}
+	k.SetChannelSender(mockChan)
+
+	// Pre-claim channel capability for default port/channel so SendPacket auth passes.
+	channelID := "channel-0"
+	portID := types.PortID
+	cap, err := k.ScopedKeeper().NewCapability(ctx, host.ChannelCapabilityPath(portID, channelID))
+	require.NoError(t, err)
+	require.NotNil(t, cap)
+
+	return k, bk, mockChan, ctx
+}
+
+func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, authkeeper.AccountKeeper, sdk.Context) {
 	storeKey := storetypes.NewKVStoreKey(types.StoreKey)
 	memStoreKey := storetypes.NewMemoryStoreKey(types.MemStoreKey)
 	bankStoreKey := storetypes.NewKVStoreKey(banktypes.StoreKey)
@@ -69,7 +93,8 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 
 	// Create account keeper (required by bank keeper)
 	maccPerms := map[string][]string{
-		types.ModuleName: {authtypes.Minter, authtypes.Burner},
+		types.ModuleName:           {authtypes.Minter, authtypes.Burner},
+		authtypes.FeeCollectorName: {},
 	}
 
 	accountKeeper := authkeeper.NewAccountKeeper(
@@ -110,6 +135,8 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 	// Setup module account for mint/burn
 	moduleAccount := accountKeeper.NewAccount(ctx, authtypes.NewEmptyModuleAccount(types.ModuleName, authtypes.Minter, authtypes.Burner)).(*authtypes.ModuleAccount)
 	accountKeeper.SetModuleAccount(ctx, moduleAccount)
+	feeCollector := accountKeeper.NewAccount(ctx, authtypes.NewEmptyModuleAccount(authtypes.FeeCollectorName)).(*authtypes.ModuleAccount)
+	accountKeeper.SetModuleAccount(ctx, feeCollector)
 
 	// Prefund common test accounts with ample liquidity across all denoms used in tests
 	mintCoins := sdk.NewCoins(
@@ -164,7 +191,7 @@ func buildDexKeeper(t testing.TB) (*keeper.Keeper, bankkeeper.Keeper, sdk.Contex
 	require.NoError(t, k.SetParams(ctx, types.DefaultParams()))
 	k.SetNextPoolId(ctx, 1)
 
-	return k, bankKeeper, ctx
+	return k, bankKeeper, accountKeeper, ctx
 }
 
 // CreateTestPool creates a test liquidity pool with given tokens

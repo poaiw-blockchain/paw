@@ -97,6 +97,17 @@ func (k Keeper) ExecuteMultiHopSwap(
 	for i, hop := range hops {
 		pool := pools[hop.PoolID]
 
+		// Ensure pool update accumulator is initialized to avoid nil math.Int values
+		if _, exists := poolUpdates[hop.PoolID]; !exists {
+			poolUpdates[hop.PoolID] = struct {
+				deltaA math.Int
+				deltaB math.Int
+			}{
+				deltaA: math.ZeroInt(),
+				deltaB: math.ZeroInt(),
+			}
+		}
+
 		// Determine reserves based on swap direction
 		var reserveIn, reserveOut math.Int
 		var isTokenAIn bool

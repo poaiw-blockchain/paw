@@ -106,9 +106,9 @@ func TestPriceAggregationPreservesOldPriceOnFailure(t *testing.T) {
 	// Delete all validator prices to trigger aggregation failure
 	k.DeleteValidatorPrice(ctx, validator, asset)
 
-	// Attempt aggregation (should fail)
+	// Attempt aggregation (should fall back to stored price without error)
 	err = k.AggregateAssetPrice(ctx, asset)
-	require.Error(t, err)
+	require.NoError(t, err)
 
 	// Verify old aggregated price preserved
 	preservedPrice, err := k.GetPrice(ctx, asset)

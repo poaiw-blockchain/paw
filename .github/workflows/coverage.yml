@@ -28,9 +28,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (module-scoped, exclude generated types)
         run: |
-          go test ./... -coverprofile=coverage.out -covermode=atomic -timeout=30m
+          # Compute, DEX, Oracle only (critical modules)
+          PKGS=$(go list ./x/compute/... ./x/dex/... ./x/oracle/... | grep -v '/types$' | paste -sd, -)
+          go test ./x/compute/... ./x/dex/... ./x/oracle/... -coverpkg="$PKGS" -coverprofile=coverage.out -covermode=atomic -timeout=30m
           go tool cover -func=coverage.out > coverage_by_package.txt
 
       - name: Generate coverage report

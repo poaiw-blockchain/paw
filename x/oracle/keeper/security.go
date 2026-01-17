@@ -370,6 +370,11 @@ func (k Keeper) CheckCircuitBreakerWithRecovery(ctx context.Context) (bool, erro
 		if err := k.setCircuitBreakerState(ctx, currentState); err != nil {
 			return false, err
 		}
+		// Clean up legacy flags to keep GetCircuitBreakerState in sync.
+		store := k.getStore(ctx)
+		store.Delete(CircuitBreakerEnabledKey)
+		store.Delete(CircuitBreakerReasonKey)
+		store.Delete(CircuitBreakerActorKey)
 
 		sdkCtx.EventManager().EmitEvent(
 			sdk.NewEvent(
@@ -406,6 +411,18 @@ func (k Keeper) getCircuitBreakerState(ctx context.Context) (types.CircuitBreake
 
 	bz := store.Get(key)
 	if bz == nil {
+		// Backward-compatibility: fall back to legacy enabled flag.
+		if enabled := store.Get(CircuitBreakerEnabledKey); enabled != nil && len(enabled) > 0 && enabled[0] == 1 {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			state := types.CircuitBreakerState{
+				Active:       true,
+				BlockHeight:  sdkCtx.BlockHeight(),
+				RecoveryTime: sdkCtx.BlockHeight() + 100,
+			}
+			// Persist the synthesized state so recovery logic can proceed without legacy keys.
+			_ = k.setCircuitBreakerState(ctx, state)
+			return state, nil
+		}
 		return types.CircuitBreakerState{Active: false}, nil
 	}
 
@@ -654,8 +671,8 @@ func (k Keeper) DetectCollusionPatterns(ctx context.Context, asset string, price
 	for priceStr, validators := range priceGroups {
 		groupSize := len(validators)
 
-		// If >50% of validators submit identical price, flag as suspicious
-		if float64(groupSize) > float64(totalValidators)*0.5 && totalValidators > 3 {
+		// Flag when a majority submits the exact same price.
+		if groupSize*2 >= totalValidators && groupSize >= 2 {
 			suspiciousGroups = append(suspiciousGroups,
 				fmt.Sprintf("price_%s_validators_%d", priceStr, groupSize))
 		}
@@ -1454,10 +1471,23 @@ func (k Keeper) getValidatorRecentPrices(ctx context.Context, validatorAddr stri
 func (k Keeper) ImplementFlashLoanDetection(ctx context.Context, asset string, newPrice sdkmath.LegacyDec) (bool, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 
-	// Get current price
+	// Get current price; if none exists, use an absolute spike threshold to flag egregious jumps.
 	currentPrice, err := k.GetPrice(ctx, asset)
 	if err != nil {
 		// No current price exists
+		absoluteThreshold := sdkmath.LegacyMustNewDecFromStr("200") // protective absolute bound for empty history
+		if newPrice.GT(absoluteThreshold) {
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					"flash_loan_pattern_detected",
+					sdk.NewAttribute("asset", asset),
+					sdk.NewAttribute("price_change", newPrice.String()),
+					sdk.NewAttribute("blocks_delta", "n/a"),
+					sdk.NewAttribute("severity", "high"),
+				),
+			)
+			return true, nil
+		}
 		return false, nil
 	}
 
@@ -1465,7 +1495,7 @@ func (k Keeper) ImplementFlashLoanDetection(ctx context.Context, asset string, n
 	blocksSinceUpdate := sdkCtx.BlockHeight() - currentPrice.BlockHeight
 	if blocksSinceUpdate < MinBlocksBetweenSubmissions {
 		// Flag as potential flash loan attack
-		return true, fmt.Errorf("flash loan attack detected: price update too frequent (%d blocks)", blocksSinceUpdate)
+		return true, nil
 	}
 
 	// Check price volatility

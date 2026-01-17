@@ -20,6 +20,10 @@ type mockNodeChecker struct {
 	peerErr      error
 }
 
+func makeURL(hc *HealthCheck, path string) string {
+	return fmt.Sprintf("http://localhost:%s%s", hc.Port(), path)
+}
+
 func (m *mockNodeChecker) CheckRPC() error {
 	return m.rpcErr
 }
@@ -46,14 +50,14 @@ func TestHealthCheckBasic(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38661, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
 
 	// Test basic health endpoint
-	resp, err := http.Get("http://localhost:38661/health")
+	resp, err := http.Get(makeURL(hc, "/health"))
 	if err != nil {
 		t.Fatalf("Failed to get health: %v", err)
 	}
@@ -83,13 +87,13 @@ func TestHealthCheckReady(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38662, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Test readiness endpoint when healthy
-	resp, err := http.Get("http://localhost:38662/health/ready")
+	resp, err := http.Get(makeURL(hc, "/health/ready"))
 	if err != nil {
 		t.Fatalf("Failed to get health/ready: %v", err)
 	}
@@ -116,13 +120,13 @@ func TestHealthCheckReadyWhenSyncing(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38663, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Test readiness endpoint when syncing
-	resp, err := http.Get("http://localhost:38663/health/ready")
+	resp, err := http.Get(makeURL(hc, "/health/ready"))
 	if err != nil {
 		t.Fatalf("Failed to get health/ready: %v", err)
 	}
@@ -153,13 +157,13 @@ func TestHealthCheckReadyWhenRPCFails(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38664, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Test readiness endpoint when RPC fails
-	resp, err := http.Get("http://localhost:38664/health/ready")
+	resp, err := http.Get(makeURL(hc, "/health/ready"))
 	if err != nil {
 		t.Fatalf("Failed to get health/ready: %v", err)
 	}
@@ -185,13 +189,13 @@ func TestHealthCheckDetailed(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38665, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Test detailed health endpoint
-	resp, err := http.Get("http://localhost:38665/health/detailed")
+	resp, err := http.Get(makeURL(hc, "/health/detailed"))
 	if err != nil {
 		t.Fatalf("Failed to get health/detailed: %v", err)
 	}
@@ -236,13 +240,13 @@ func TestHealthCheckCache(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38666, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// First request should not be cached
-	resp1, err := http.Get("http://localhost:38666/health/detailed")
+	resp1, err := http.Get(makeURL(hc, "/health/detailed"))
 	if err != nil {
 		t.Fatalf("Failed to get health/detailed: %v", err)
 	}
@@ -254,7 +258,7 @@ func TestHealthCheckCache(t *testing.T) {
 	}
 
 	// Second request should be cached
-	resp2, err := http.Get("http://localhost:38666/health/detailed")
+	resp2, err := http.Get(makeURL(hc, "/health/detailed"))
 	if err != nil {
 		t.Fatalf("Failed to get health/detailed: %v", err)
 	}
@@ -277,13 +281,13 @@ func TestHealthCheckStartup(t *testing.T) {
 		peerCount: 5,
 	}
 
-	hc := StartHealthCheckServer(38667, checker)
+	hc := StartHealthCheckServer(0, checker)
 	defer hc.Shutdown(context.Background())
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Should return 503 during grace period
-	resp, err := http.Get("http://localhost:38667/health/startup")
+	resp, err := http.Get(makeURL(hc, "/health/startup"))
 	if err != nil {
 		t.Fatalf("Failed to get health/startup: %v", err)
 	}

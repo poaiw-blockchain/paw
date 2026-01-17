@@ -214,8 +214,8 @@ func (k Keeper) CleanupStaleReentrancyLocks(ctx context.Context) {
 	currentHeight := sdkCtx.BlockHeight()
 	store := k.getStore(ctx)
 
-	// Iterate over all reentrancy locks
-	prefix := []byte{0x02, 0x30} // ReentrancyLockPrefix from keys.go
+	// Iterate over all reentrancy locks (ensure prefix matches ReentrancyLockKeyPrefix)
+	prefix := ReentrancyLockKeyPrefix
 	iterator := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	defer iterator.Close()
 

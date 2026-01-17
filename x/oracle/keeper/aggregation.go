@@ -64,7 +64,25 @@ func (k Keeper) AggregateAssetPrice(ctx context.Context, asset string) error {
 	}
 
 	if len(validatorPrices) == 0 {
-		return fmt.Errorf("no price submissions for asset: %s", asset)
+		// DATA-12: Allow stale price fallback when no validators submitted this block.
+		if lastPrice, err := k.GetPrice(ctx, asset); err == nil {
+			sdkCtx.Logger().Warn("no price submissions; using stale price fallback",
+				"asset", asset,
+				"stale_price", lastPrice.Price.String(),
+				"stale_block", lastPrice.BlockHeight,
+			)
+			sdkCtx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					types.EventTypeOracleFallback,
+					sdk.NewAttribute(types.AttributeKeyAsset, asset),
+					sdk.NewAttribute("fallback_type", "stale_price_no_submissions"),
+					sdk.NewAttribute(types.AttributeKeyPrice, lastPrice.Price.String()),
+					sdk.NewAttribute("stale_block_height", fmt.Sprintf("%d", lastPrice.BlockHeight)),
+				),
+			)
+			return nil
+		}
+		return fmt.Errorf("no price submissions and no fallback available for asset: %s", asset)
 	}
 
 	params, err := k.GetParams(ctx)

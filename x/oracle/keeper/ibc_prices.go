@@ -431,8 +431,8 @@ func (k Keeper) AggregateCrossChainPrices(
 	sources := k.getAllActiveSources(sdkCtx)
 
 	var priceData []CrossChainPriceData
-	var totalWeight math.LegacyDec
-	var weightedSum math.LegacyDec
+	totalWeight := math.LegacyZeroDec()
+	weightedSum := math.LegacyZeroDec()
 
 	// Collect prices from all sources
 	for _, source := range sources {
@@ -1046,7 +1046,7 @@ func calculateAggregatedConfidence(prices []CrossChainPriceData, totalWeight mat
 		return math.LegacyZeroDec()
 	}
 
-	var weightedConfidence math.LegacyDec
+	weightedConfidence := math.LegacyZeroDec()
 	for _, p := range prices {
 		weightedConfidence = weightedConfidence.Add(p.Confidence)
 	}

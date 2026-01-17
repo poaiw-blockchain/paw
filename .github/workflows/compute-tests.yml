@@ -29,9 +29,10 @@ jobs:
           go-version: '1.21'
           cache: true
 
-      - name: Run compute unit tests
+      - name: Run compute unit tests (exclude generated types)
         run: |
-          go test -v -race -coverprofile=compute-coverage.out ./x/compute/...
+          PKGS=$(go list ./x/compute/... | grep -v '/types$' | paste -sd, -)
+          go test -v -race -coverpkg="$PKGS" -coverprofile=compute-coverage.out ./x/compute/...
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

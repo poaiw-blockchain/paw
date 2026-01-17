@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -149,8 +150,14 @@ func StartHealthCheckServer(port int, nodeChecker NodeHealthChecker) *HealthChec
 	mux.HandleFunc("/health/detailed", hc.withHealthMetrics("detailed", hc.handleDetailed))
 	mux.HandleFunc("/health/startup", hc.withHealthMetrics("startup", hc.handleStartup))
 
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		// In tests this should fail fast; in prod we bubble up to stderr
+		panic(fmt.Sprintf("failed to start health check listener: %v", err))
+	}
+
 	hc.server = &http.Server{
-		Addr:              fmt.Sprintf(":%d", port),
+		Addr:              listener.Addr().String(),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -158,12 +165,21 @@ func StartHealthCheckServer(port int, nodeChecker NodeHealthChecker) *HealthChec
 	}
 
 	go func() {
-		if err := hc.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := hc.server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("health check server error: %v\n", err)
 		}
 	}()
 
 	return hc
+}
+
+// Port returns the TCP port the health server is bound to.
+func (hc *HealthCheck) Port() string {
+	_, port, err := net.SplitHostPort(hc.server.Addr)
+	if err != nil {
+		return ""
+	}
+	return port
 }
 
 // withHealthMetrics wraps health check handlers with metrics

@@ -528,6 +528,26 @@ func (k Keeper) sendIBCPacket(
 	data []byte,
 	timeout time.Duration,
 ) (uint64, error) {
+	// Test hook: allow overriding IBC send behaviour for unit tests without full IBC stack.
+	if k.sendPacketFn != nil {
+		return k.sendPacketFn(ctx, connectionID, channelID, data, timeout)
+	}
+	if k.channelSender != nil {
+		channelCap, found := k.GetChannelCapability(ctx, types.PortID, channelID)
+		if !found {
+			return 0, errorsmod.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "port: %s, channel: %s", types.PortID, channelID)
+		}
+		return k.channelSender.SendPacket(
+			ctx,
+			channelCap,
+			types.PortID,
+			channelID,
+			clienttypes.ZeroHeight(),
+			uint64(ctx.BlockTime().Add(timeout).UnixNano()),
+			data,
+		)
+	}
+
 	// Create IBC packet with timeout
 	timeoutTimestamp := uint64(ctx.BlockTime().Add(timeout).UnixNano())
 

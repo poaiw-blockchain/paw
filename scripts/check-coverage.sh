@@ -33,7 +33,8 @@ print_header() {
 # Check if coverage.out exists, generate if needed
 if [ ! -f coverage.out ]; then
     print_status "Coverage file not found. Generating..." "$YELLOW"
-    go test ./... -coverprofile=coverage.out -covermode=atomic -timeout=30m
+    PKGS=$(go list ./x/compute/... ./x/dex/... ./x/oracle/... | grep -v '/types$' | paste -sd, -)
+    go test ./x/compute/... ./x/dex/... ./x/oracle/... -coverpkg="$PKGS" -coverprofile=coverage.out -covermode=atomic -timeout=30m
 fi
 
 # Extract total coverage

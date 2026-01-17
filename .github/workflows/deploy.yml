@@ -1,0 +1,260 @@
+# CI/CD Deploy Workflow for PAW Blockchain
+# Triggered on push/PR to main. Builds, tests, scans for secrets, and deploys to testnet.
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  GO_VERSION: '1.21'
+  BINARY_NAME: pawd
+  CHAIN_ID: paw-mvp-1
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build binary
+        run: |
+          go build -ldflags="-s -w -X github.com/poaiw-blockchain/paw/version.Version=${{ github.sha }}" \
+            -o build/${{ env.BINARY_NAME }} \
+            ./cmd/...
+
+      - name: Verify binary
+        run: |
+          ls -la build/
+          ./build/${{ env.BINARY_NAME }} version || echo "Version command may not be implemented yet"
+
+      - name: Run tests
+        run: go test ./... -short -v
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-linux-amd64
+          path: build/${{ env.BINARY_NAME }}
+          retention-days: 7
+          if-no-files-found: error
+
+  security-scan:
+    name: Security Scan (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-testnet:
+    name: Deploy to Testnet
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: testnet
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-linux-amd64
+          path: ./build
+
+      - name: Verify downloaded artifact
+        run: |
+          ls -la build/
+          chmod +x build/${{ env.BINARY_NAME }}
+
+      - name: Deploy to primary validators (paw-testnet)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PAW_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "=== Deploying to paw-testnet (val1, val2) ==="
+
+            # Stop validators gracefully
+            sudo systemctl stop pawd-val@1 || true
+            sudo systemctl stop pawd-val@2 || true
+
+            # Wait for clean shutdown
+            sleep 5
+
+            echo "Validators stopped, ready for binary update"
+
+      - name: Copy binary to primary server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PAW_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: build/${{ env.BINARY_NAME }}
+          target: /tmp/
+          strip_components: 1
+
+      - name: Install binary on primary server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PAW_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Backup current binary
+            BINARY_PATH="/home/ubuntu/.paw/cosmovisor/genesis/bin/pawd"
+            if [ -f "$BINARY_PATH" ]; then
+              cp "$BINARY_PATH" "${BINARY_PATH}.backup.$(date +%Y%m%d%H%M%S)"
+            fi
+
+            # Install new binary
+            chmod +x /tmp/pawd
+            cp /tmp/pawd "$BINARY_PATH"
+
+            # Verify binary
+            $BINARY_PATH version || echo "Version check completed"
+
+            # Start validators
+            sudo systemctl start pawd-val@1
+            sudo systemctl start pawd-val@2
+
+            # Wait for startup
+            sleep 15
+
+            # Health check
+            echo "=== Health Check - paw-testnet ==="
+            curl -s http://127.0.0.1:11657/status | jq -r '.result.sync_info.latest_block_height' || echo "Val1 not responding yet"
+            curl -s http://127.0.0.1:11757/status | jq -r '.result.sync_info.latest_block_height' || echo "Val2 not responding yet"
+
+      - name: Deploy to secondary validators (services-testnet)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVICES_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "=== Deploying to services-testnet (val3, val4) ==="
+
+            # Stop validators gracefully
+            sudo systemctl stop pawd-val@3 || true
+            sudo systemctl stop pawd-val@4 || true
+
+            # Wait for clean shutdown
+            sleep 5
+
+            echo "Validators stopped, ready for binary update"
+
+      - name: Copy binary to secondary server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVICES_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: build/${{ env.BINARY_NAME }}
+          target: /tmp/
+          strip_components: 1
+
+      - name: Install binary on secondary server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVICES_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Backup current binary
+            BINARY_PATH="/home/ubuntu/.paw/cosmovisor/genesis/bin/pawd"
+            if [ -f "$BINARY_PATH" ]; then
+              cp "$BINARY_PATH" "${BINARY_PATH}.backup.$(date +%Y%m%d%H%M%S)"
+            fi
+
+            # Install new binary
+            chmod +x /tmp/pawd
+            cp /tmp/pawd "$BINARY_PATH"
+
+            # Verify binary
+            $BINARY_PATH version || echo "Version check completed"
+
+            # Start validators
+            sudo systemctl start pawd-val@3
+            sudo systemctl start pawd-val@4
+
+            # Wait for startup
+            sleep 15
+
+            # Health check
+            echo "=== Health Check - services-testnet ==="
+            curl -s http://127.0.0.1:11857/status | jq -r '.result.sync_info.latest_block_height' || echo "Val3 not responding yet"
+            curl -s http://127.0.0.1:11957/status | jq -r '.result.sync_info.latest_block_height' || echo "Val4 not responding yet"
+
+      - name: Final health check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PAW_TESTNET_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "=== Final Deployment Verification ==="
+            echo "Chain ID: ${{ env.CHAIN_ID }}"
+            echo "Commit: ${{ github.sha }}"
+            echo ""
+
+            # Check block heights
+            echo "Block Heights:"
+            echo "  Val1: $(curl -s http://127.0.0.1:11657/status | jq -r '.result.sync_info.latest_block_height' 2>/dev/null || echo 'N/A')"
+            echo "  Val2: $(curl -s http://127.0.0.1:11757/status | jq -r '.result.sync_info.latest_block_height' 2>/dev/null || echo 'N/A')"
+
+            # Check if validators are signing
+            echo ""
+            echo "Validator Status:"
+            curl -s http://127.0.0.1:11657/status | jq '.result.validator_info' || echo "Could not get validator info"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Chain ID:** ${{ env.CHAIN_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed to:**" >> $GITHUB_STEP_SUMMARY
+          echo "- paw-testnet (val1, val2)" >> $GITHUB_STEP_SUMMARY
+          echo "- services-testnet (val3, val4)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Endpoints" >> $GITHUB_STEP_SUMMARY
+          echo "- RPC: https://testnet-rpc.poaiw.org" >> $GITHUB_STEP_SUMMARY
+          echo "- API: https://testnet-api.poaiw.org" >> $GITHUB_STEP_SUMMARY
+          echo "- Explorer: https://testnet-explorer.poaiw.org" >> $GITHUB_STEP_SUMMARY

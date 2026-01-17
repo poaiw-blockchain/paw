@@ -34,18 +34,26 @@ external_address = ""
 seeds = ""
 persistent_peers = ""
 upnp = false
-addr_book_strict = true
+addr_book_strict = false
 
 # Validator-optimized P2P settings
 max_num_inbound_peers = 20
 max_num_outbound_peers = 10
 send_rate = 10240000
 recv_rate = 10240000
-pex = true
+pex = false
 seed_mode = false
 
 # Use for sentry architecture (add sentry node IDs)
 private_peer_ids = ""
+
+# Allow multiple validators behind the same NAT/VPN IP (required for our 4-validator/2-sentry layout)
+allow_duplicate_ip = true
+
+# Keep redial periods bounded to avoid silent backoff when a peer drops
+persistent_peers_max_dial_period = "30s"
+handshake_timeout = "30s"
+dial_timeout = "5s"
 
 [mempool]
 version = "v0"

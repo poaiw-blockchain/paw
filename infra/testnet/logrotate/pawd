@@ -1,9 +1,0 @@
-/home/ubuntu/.paw/logs/node.log {
-    daily
-    rotate 14
-    compress
-    delaycompress
-    missingok
-    notifempty
-    copytruncate
-}

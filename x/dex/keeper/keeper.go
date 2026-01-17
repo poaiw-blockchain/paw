@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"time"
 
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -10,6 +11,7 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	portkeeper "github.com/cosmos/ibc-go/v8/modules/core/05-port/keeper"
 	host "github.com/cosmos/ibc-go/v8/modules/core/24-host"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
@@ -17,6 +19,18 @@ import (
 	"github.com/paw-chain/paw/app/ibcutil"
 	dextypes "github.com/paw-chain/paw/x/dex/types"
 )
+
+// channelSender abstracts the subset of ChannelKeeper we need for sending packets (test override).
+type channelSender interface {
+	SendPacket(ctx sdk.Context,
+		channelCap *capabilitytypes.Capability,
+		sourcePort string,
+		sourceChannel string,
+		timeoutHeight clienttypes.Height,
+		timeoutTimestamp uint64,
+		data []byte,
+	) (uint64, error)
+}
 
 // Keeper of the dex store
 type Keeper struct {
@@ -30,6 +44,7 @@ type Keeper struct {
 	authority          string
 	metrics            *DEXMetrics
 	moduleAddressCache sdk.AccAddress // Cached module address to avoid repeated allocations
+	channelSender      channelSender  // test override for SendPacket
 
 	// PERF-10: Token graph cache to avoid rebuilding on every route search
 	// The cache is invalidated when pools are created or deleted by incrementing poolVersion
@@ -38,6 +53,9 @@ type Keeper struct {
 
 	// ARCH-2: Hooks for cross-module notifications
 	hooks dextypes.DexHooks
+
+	// test-only: optional override for sending IBC packets; nil in production.
+	sendPacketFn func(ctx sdk.Context, connectionID, channelID string, data []byte, timeout time.Duration) (uint64, error)
 }
 
 // kvStoreProvider is an interface for types that can provide a KVStore.
@@ -99,9 +117,19 @@ func (k *Keeper) SetHooks(hooks dextypes.DexHooks) {
 	k.hooks = hooks
 }
 
+// SetChannelSender overrides the channel send path for testing.
+func (k *Keeper) SetChannelSender(sender channelSender) {
+	k.channelSender = sender
+}
+
 // GetHooks returns the DEX hooks.
 func (k Keeper) GetHooks() dextypes.DexHooks {
 	return k.hooks
+}
+
+// ScopedKeeper returns the capability scoped keeper (testing only).
+func (k Keeper) ScopedKeeper() capabilitykeeper.ScopedKeeper {
+	return k.scopedKeeper
 }
 
 // ClaimCapability claims a channel capability for later authentication.
